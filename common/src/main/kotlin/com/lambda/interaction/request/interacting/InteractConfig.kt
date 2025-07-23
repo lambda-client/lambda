@@ -15,20 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.request.interacting
 
-import com.lambda.config.groups.InteractionConfig.InteractConfirmationMode
+import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.request.RequestConfig
-import com.lambda.interaction.request.interacting.InteractionManager
-import com.lambda.interaction.request.interacting.InteractionRequest
 
-abstract class InteractConfig : RequestConfig<InteractionRequest>() {
-    abstract val rotate: Boolean
-    abstract val swingHand: Boolean
-    abstract val interactSwingType: BuildConfig.SwingType
-    abstract val interactConfirmationMode: InteractConfirmationMode
-
-    override fun requestInternal(request: InteractionRequest, queueIfClosed: Boolean) {
-        InteractionManager.request(request, queueIfClosed)
-    }
+interface InteractConfig : RequestConfig {
+    val rotate: Boolean
+    val swingHand: Boolean
+    val interactSwingType: BuildConfig.SwingType
+    val interactConfirmationMode: InteractionConfig.InteractConfirmationMode
 }

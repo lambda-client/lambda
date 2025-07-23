@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.interacting
 
-import com.lambda.config.groups.InteractConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.ActionInfo
@@ -25,5 +24,5 @@ import com.lambda.interaction.request.ActionInfo
 data class InteractionInfo(
     override val context: InteractionContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
-    val interact: InteractConfig
-) : ActionInfo
+    private val config: InteractConfig
+) : ActionInfo, InteractConfig by config

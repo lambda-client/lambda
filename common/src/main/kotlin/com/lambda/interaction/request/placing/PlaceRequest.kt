@@ -34,10 +34,13 @@ data class PlaceRequest(
     val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
     val onPlace: () -> Unit
-) : Request() {
+) : Request(), PlaceConfig by build.placing {
     override val config = build.placing
     override val done: Boolean
         get() = runSafe {
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
         } == true
+
+    override fun submit(queueIfClosed: Boolean) =
+        PlaceManager.request(this, queueIfClosed)
 }

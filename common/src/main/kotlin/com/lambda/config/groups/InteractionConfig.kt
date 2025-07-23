@@ -17,54 +17,47 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.request.RequestConfig
-import com.lambda.interaction.request.interacting.InteractionManager
-import com.lambda.interaction.request.interacting.InteractionRequest
 import com.lambda.interaction.request.rotating.visibilty.PointSelection
 
-abstract class InteractionConfig : RequestConfig<InteractionRequest>() {
+interface InteractionConfig {
     /**
      * Maximum entity interaction distance
      */
-    abstract val attackReach: Double
+    val attackReach: Double
 
     /**
      * Maximum block interaction distance
      */
-    abstract val interactReach: Double
+    val interactReach: Double
 
     /**
      * Maximum possible interaction distance
      *
      * Equals to `max(attackReach, placeReach)` if both are present. Equals to one of them otherwise
      */
-    abstract val scanReach: Double
+    val scanReach: Double
 
     /**
      * Whether to include the environment to the ray cast context.
      *
      * if false: skips walls for entities, skips entities for blocks.
      */
-    abstract val strictRayCast: Boolean
+    val strictRayCast: Boolean
 
     /**
      * Whether to check if an AABB side is visible.
      */
-    abstract val checkSideVisibility: Boolean
+    val checkSideVisibility: Boolean
 
     /**
      * Grid divisions count per surface of the hit box.
      */
-    abstract val resolution: Int
+    val resolution: Int
 
     /**
      * The way to select the best point.
      */
-    abstract val pointSelection: PointSelection
-
-    override fun requestInternal(request: InteractionRequest, queueIfClosed: Boolean) {
-        InteractionManager.request(request, queueIfClosed)
-    }
+    val pointSelection: PointSelection
 
     enum class InteractConfirmationMode {
         None,

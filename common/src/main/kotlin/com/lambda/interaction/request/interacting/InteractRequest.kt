@@ -19,7 +19,6 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.Request
@@ -28,7 +27,7 @@ import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
-data class InteractionRequest(
+data class InteractRequest(
     val contexts: Collection<InteractionContext>,
     val onInteract: ((BlockPos) -> Unit)?,
     val pendingInteractionsList: MutableCollection<BuildContext>,
@@ -36,7 +35,10 @@ data class InteractionRequest(
     val build: BuildConfig,
     val hotbar: HotbarConfig,
     val rotation: RotationConfig
-) : Request() {
+) : Request(), InteractConfig by config {
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
+
+    override fun submit(queueIfClosed: Boolean) =
+        InteractionManager.request(this, queueIfClosed)
 }

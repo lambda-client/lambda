@@ -21,7 +21,6 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -46,7 +45,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.interacting.InteractionRequest
+import com.lambda.interaction.request.interacting.InteractRequest
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
@@ -164,7 +164,7 @@ class BuildTask @Ta5kBuilder constructor(
                                     onItemDrop { onItemDrop(it) }
                                 }
                             }
-                            build.breaking.request(request)
+                            request.submit()
                             return@listen
                         }
                         is PlaceResult.Place -> {
@@ -173,11 +173,7 @@ class BuildTask @Ta5kBuilder constructor(
                                 .distinctBy { it.blockPos }
                                 .take(emptyPendingInteractionSlots)
 
-                            build.placing.request(
-                                PlaceRequest(
-                                    placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions
-                                ) { placements++ }
-                            )
+                            PlaceRequest(placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions) { placements++ }.submit()
                         }
                         is InteractResult.Interact -> {
                             val interactResults = resultsNotBlocked
@@ -186,17 +182,7 @@ class BuildTask @Ta5kBuilder constructor(
                                 .take(emptyPendingInteractionSlots)
                                 .map { it.context }
 
-                            build.interacting.request(
-                                InteractionRequest(
-                                    interactResults,
-                                    null,
-                                    pendingInteractions,
-                                    build.interacting,
-                                    build,
-                                    hotbar,
-                                    rotation
-                                )
-                            )
+                            InteractRequest(interactResults, null, pendingInteractions, build.interacting, build, hotbar, rotation).submit()
                         }
                     }
                 }

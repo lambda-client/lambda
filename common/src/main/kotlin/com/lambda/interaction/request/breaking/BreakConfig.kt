@@ -23,55 +23,51 @@ import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
 import java.awt.Color
 
-abstract class BreakConfig : RequestConfig<BreakRequest>() {
-    abstract val breakMode: BreakMode
-    abstract val sorter: SortMode
-    abstract val reBreak: Boolean
-    abstract val unsafeCancels: Boolean
-    abstract val breakThreshold: Float
-    abstract val doubleBreak: Boolean
-    abstract val fudgeFactor: Int
+interface BreakConfig : RequestConfig {
+    val breakMode: BreakMode
+    val sorter: SortMode
+    val reBreak: Boolean
+    val unsafeCancels: Boolean
+    val breakThreshold: Float
+    val doubleBreak: Boolean
+    val fudgeFactor: Int
     //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
 //    abstract val desyncFix: Boolean
-    abstract val breakDelay: Int
-    abstract val breakStageMask: Set<Event>
-    abstract val swing: SwingMode
-    abstract val swingType: BuildConfig.SwingType
-    abstract val sounds: Boolean
-    abstract val particles: Boolean
-    abstract val breakingTexture: Boolean
-    abstract val rotateForBreak: Boolean
-    abstract val breakConfirmation: BreakConfirmationMode
-    abstract val maxPendingBreaks: Int
-    abstract val breaksPerTick: Int
-    abstract val suitableToolsOnly: Boolean
-    abstract val avoidLiquids: Boolean
-    abstract val avoidSupporting: Boolean
-    abstract val breakWeakBlocks: Boolean
-    abstract val forceSilkTouch: Boolean
-    abstract val forceFortunePickaxe: Boolean
-    abstract val minFortuneLevel: Int
-    abstract val ignoredBlocks: Set<Block>
+    val breakDelay: Int
+    val breakStageMask: Set<Event>
+    val swing: SwingMode
+    val swingType: BuildConfig.SwingType
+    val sounds: Boolean
+    val particles: Boolean
+    val breakingTexture: Boolean
+    val rotateForBreak: Boolean
+    val breakConfirmation: BreakConfirmationMode
+    val maxPendingBreaks: Int
+    val breaksPerTick: Int
+    val suitableToolsOnly: Boolean
+    val avoidLiquids: Boolean
+    val avoidSupporting: Boolean
+    val breakWeakBlocks: Boolean
+    val forceSilkTouch: Boolean
+    val forceFortunePickaxe: Boolean
+    val minFortuneLevel: Int
+    val ignoredBlocks: Set<Block>
 
-    abstract val renders: Boolean
-    abstract val fill: Boolean
-    abstract val outline: Boolean
-    abstract val outlineWidth: Int
-    abstract val animation: AnimationMode
+    val renders: Boolean
+    val fill: Boolean
+    val outline: Boolean
+    val outlineWidth: Int
+    val animation: AnimationMode
 
-    abstract val dynamicFillColor: Boolean
-    abstract val staticFillColor: Color
-    abstract val startFillColor: Color
-    abstract val endFillColor: Color
+    val dynamicFillColor: Boolean
+    val staticFillColor: Color
+    val startFillColor: Color
+    val endFillColor: Color
 
-    abstract val dynamicOutlineColor: Boolean
-    abstract val staticOutlineColor: Color
-    abstract val startOutlineColor: Color
-    abstract val endOutlineColor: Color
-
-    override fun requestInternal(request: BreakRequest, queueIfClosed: Boolean) {
-        BreakManager.request(request, queueIfClosed)
-    }
+    val dynamicOutlineColor: Boolean
+    val staticOutlineColor: Color
+    val startOutlineColor: Color
+    val endOutlineColor: Color
 
     enum class BreakMode {
         Vanilla,

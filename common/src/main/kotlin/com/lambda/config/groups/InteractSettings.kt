@@ -18,11 +18,12 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.interaction.request.interacting.InteractConfig
 
 class InteractSettings(
     c: Configurable,
     vis: () -> Boolean =  { true }
-) : InteractConfig() {
+) : InteractConfig {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis)
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis)
     override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swingHand }

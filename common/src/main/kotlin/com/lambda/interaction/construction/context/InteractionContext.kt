@@ -22,7 +22,7 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.interacting.InteractionRequest
+import com.lambda.interaction.request.interacting.InteractRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
@@ -65,11 +65,9 @@ class InteractionContext(
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
-    fun requestDependencies(request: InteractionRequest): Boolean {
-        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
-        val validRotation = if (request.config.rotate) {
-            request.rotation.request(rotation, false).done
-        } else true
+    fun requestDependencies(request: InteractRequest): Boolean {
+        val hotbarRequest = HotbarRequest(hotbarIndex, request.hotbar).submit(false)
+        val validRotation = if (request.rotate) rotation.submit(false).done else true
         return hotbarRequest.done && validRotation
     }
 }

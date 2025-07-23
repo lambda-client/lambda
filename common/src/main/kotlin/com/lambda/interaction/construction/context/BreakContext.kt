@@ -76,8 +76,10 @@ data class BreakContext(
         withState(cachedState, blockPos, sideColor, result.side)
     }
 
-    fun requestDependencies(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean {
-        val request = HotbarRequest(hotbarIndex, breakRequest.hotbar, breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks))
-        return request.config.request(request, false).done
-    }
+    fun requestDependencies(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean =
+        HotbarRequest(
+            hotbarIndex,
+            breakRequest.hotbar,
+            breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks)
+        ).submit(false).done
 }

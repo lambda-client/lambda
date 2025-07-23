@@ -18,8 +18,10 @@
 package com.lambda.interaction.request
 
 abstract class Request {
-    abstract val config: RequestConfig<*>
+    abstract val config: RequestConfig
     var fresh = true
 
     abstract val done: Boolean
+
+    abstract fun submit(queueIfClosed: Boolean = true): Request
 }

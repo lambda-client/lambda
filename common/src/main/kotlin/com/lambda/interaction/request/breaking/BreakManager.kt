@@ -44,7 +44,18 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.breaking.BreakManager.activeRequest
+import com.lambda.interaction.request.breaking.BreakManager.breakInfos
+import com.lambda.interaction.request.breaking.BreakManager.breaks
+import com.lambda.interaction.request.breaking.BreakManager.canAccept
+import com.lambda.interaction.request.breaking.BreakManager.cancelBreak
+import com.lambda.interaction.request.breaking.BreakManager.initNewBreak
+import com.lambda.interaction.request.breaking.BreakManager.instantBreaks
+import com.lambda.interaction.request.breaking.BreakManager.makeRedundant
+import com.lambda.interaction.request.breaking.BreakManager.maxBreaksThisTick
+import com.lambda.interaction.request.breaking.BreakManager.performInstantBreaks
+import com.lambda.interaction.request.breaking.BreakManager.processNewBreaks
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
+import com.lambda.interaction.request.breaking.BreakManager.updateBreakProgress
 import com.lambda.interaction.request.breaking.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakType.ReBreak
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
@@ -299,7 +310,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         rotationRequest = it.firstOrNull { info -> info.breakConfig.rotateForBreak }
                             ?.let { info ->
                                 val rotation = info.context.rotation
-                                if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
+                                if (instantBreaks.isEmpty()) rotation.submit(false) else rotation
                             }
                     }
                     .asReversed()
@@ -422,7 +433,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             val ctx = iterator.next()
 
             if (!ctx.requestDependencies(request)) return false
-            rotationRequest = if (request.build.breaking.rotateForBreak) request.rotation.request(ctx.rotation, false) else null
+            rotationRequest = if (request.build.breaking.rotateForBreak) ctx.rotation.submit(false) else null
             if (!rotated || tickStage !in request.build.breaking.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false

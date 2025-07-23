@@ -19,11 +19,11 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
@@ -37,11 +37,11 @@ annotation class BreakRequestBuilder
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
+    val build: BuildConfig,
     val hotbar: HotbarConfig,
     val rotation: RotationConfig,
     val inventory: InventoryConfig,
-    val interact: InteractionConfig,
-    val build: BuildConfig
+    val interact: InteractionConfig
 ) : Request() {
     override val config = build.breaking
     var onStart: ((BlockPos) -> Unit)? = null
@@ -55,6 +55,9 @@ data class BreakRequest(
     override val done: Boolean
         get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
 
+    override fun submit(queueIfClosed: Boolean) =
+        BreakManager.request(this, queueIfClosed)
+
     @BreakRequestBuilder
     class RequestBuilder(
         contexts: Collection<BreakContext>,
@@ -65,7 +68,7 @@ data class BreakRequest(
         inventory: InventoryConfig,
         build: BuildConfig
     ) {
-        val request = BreakRequest(contexts, pendingInteractions, hotbar, rotation, inventory, interact, build)
+        val request = BreakRequest(contexts, pendingInteractions, build, hotbar, rotation, inventory, interact)
 
         @BreakRequestBuilder
         fun onStart(callback: (BlockPos) -> Unit) {

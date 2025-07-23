@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.material.StackSelection.Companion.selectStack

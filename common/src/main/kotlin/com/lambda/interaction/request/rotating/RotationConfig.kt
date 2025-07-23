@@ -24,40 +24,36 @@ import com.lambda.interaction.request.RequestConfig
  *
  * @param priority The priority of this configuration.
  */
-abstract class RotationConfig : RequestConfig<RotationRequest>() {
+interface RotationConfig : RequestConfig {
     /**
      * - [RotationMode.Silent] Spoofing server-side rotation.
      * - [RotationMode.Sync] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
      * - [RotationMode.Lock] Locks the camera client-side.
      * - [RotationMode.None] No rotation.
      */
-    abstract val rotationMode: RotationMode
+    val rotationMode: RotationMode
 
     /**
      * The rotation speed (in degrees).
      */
-    abstract val turnSpeed: Double
+    val turnSpeed: Double
 
     /**
      * Ticks the rotation should not be changed.
      */
-    abstract val keepTicks: Int
+    val keepTicks: Int
 
     /**
      * Ticks to rotate back to the actual rotation.
      */
-    abstract val decayTicks: Int
+    val decayTicks: Int
 
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
-    override fun requestInternal(request: RotationRequest, queueIfClosed: Boolean) {
-        RotationManager.request(request, queueIfClosed)
-    }
-
-    open class Instant(mode: RotationMode) : RotationConfig() {
-        override val turnSpeed get() = 360.0
-        override val keepTicks get() = 1
-        override val decayTicks get() = 1
+    open class Instant(mode: RotationMode) : RotationConfig {
         override val rotationMode = mode
+        override val keepTicks = 1
+        override val decayTicks = 1
+        override val turnSpeed = 360.0
     }
 }

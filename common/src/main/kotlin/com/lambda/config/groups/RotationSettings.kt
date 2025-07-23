@@ -30,7 +30,7 @@ import kotlin.random.Random
 class RotationSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
-) : RotationConfig() {
+) : RotationConfig {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera, NONE - No rotation", visibility = vis)
 
     /** How many ticks to keep the rotation before resetting */

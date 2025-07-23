@@ -158,8 +158,7 @@ object AntiAim : Module(
 
         listen<UpdateManagerEvent.Rotation>(priority = Int.MIN_VALUE) {
             if (currentYaw == wrap(player.yaw) && currentPitch == player.pitch) return@listen
-            val rotationRequest = RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), rotation)
-            rotation.request(rotationRequest, false)
+            RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), rotation).submit(false)
         }
     }
 

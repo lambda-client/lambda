@@ -134,7 +134,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
 
         // Handle LOCK mode
-        if (activeRequest?.mode == RotationMode.Lock) {
+        if (activeRequest?.rotationMode == RotationMode.Lock) {
             mc.player?.yaw = activeRotation.yawF
             mc.player?.pitch = activeRotation.pitchF
         }
@@ -148,7 +148,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             else player.rotation
 
             val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
-            val turnSpeed = request.turnSpeed() * speedMultiplier
+            val turnSpeed = request.turnSpeed * speedMultiplier
 
             serverRotation.slerp(rotationTo, turnSpeed).wrap()
         } ?: player.rotation
@@ -166,7 +166,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     @JvmStatic
     val lockRotation
-        get() = if (activeRequest?.mode == RotationMode.Lock) smoothRotation else null
+        get() = if (activeRequest?.rotationMode == RotationMode.Lock) smoothRotation else null
 
     @JvmStatic
     val headYaw
@@ -178,29 +178,29 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     @JvmStatic
     val handYaw
-        get() = if (activeRequest?.mode == RotationMode.Lock) activeRotation.yawF else null
+        get() = if (activeRequest?.rotationMode == RotationMode.Lock) activeRotation.yawF else null
 
     @JvmStatic
     val handPitch
-        get() = if (activeRequest?.mode == RotationMode.Lock) activeRotation.pitchF else null
+        get() = if (activeRequest?.rotationMode == RotationMode.Lock) activeRotation.pitchF else null
 
     @JvmStatic
     val movementYaw: Float?
         get() {
-            if (activeRequest == null || activeRequest?.mode == RotationMode.Silent) return null
+            if (activeRequest == null || activeRequest?.rotationMode == RotationMode.Silent) return null
             return activeRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            if (activeRequest == null || activeRequest?.mode == RotationMode.Silent) return null
+            if (activeRequest == null || activeRequest?.rotationMode == RotationMode.Silent) return null
             return activeRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        if (activeRequest == null || activeRequest?.mode == RotationMode.Silent) return null
+        if (activeRequest == null || activeRequest?.rotationMode == RotationMode.Silent) return null
 
         val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
@@ -248,7 +248,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             // Actual yaw used by the physics engine
             var actualYaw = activeRotation.yaw
 
-            if (activeRequest?.mode == RotationMode.Silent) {
+            if (activeRequest?.rotationMode == RotationMode.Silent) {
                 actualYaw = player.yaw.toDouble()
             }
 

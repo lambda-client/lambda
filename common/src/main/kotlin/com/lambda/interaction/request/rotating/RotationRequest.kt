@@ -23,21 +23,18 @@ import com.lambda.threading.runSafe
 
 data class RotationRequest(
     val target: RotationTarget,
-    val mode: RotationMode,
     override val config: RotationConfig,
-    var keepTicks: Int = 3,
-    var decayTicks: Int = 0,
-    val turnSpeed: () -> Double = { 180.0 },
+    override val rotationMode: RotationMode = config.rotationMode,
+    override val turnSpeed: Double = config.turnSpeed,
+    override var keepTicks: Int = config.keepTicks,
+    override var decayTicks: Int = config.decayTicks,
     val speedMultiplier: Double = 1.0
-) : Request() {
+) : Request(), RotationConfig by config {
     var age = 0
 
-    constructor(
-        target: RotationTarget,
-        config: RotationConfig,
-        speedMultiplier: Double = 1.0
-    ) : this(target, config.rotationMode, config, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
-
     override val done: Boolean get() =
-        mode == RotationMode.None || runSafe { target.verify() } == true
+        rotationMode == RotationMode.None || runSafe { target.verify() } == true
+
+    override fun submit(queueIfClosed: Boolean): RotationRequest =
+        RotationManager.request(this, queueIfClosed)
 }

@@ -32,6 +32,10 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
+import com.lambda.interaction.request.placing.PlaceManager.maxPlacementsThisTick
+import com.lambda.interaction.request.placing.PlaceManager.placeBlock
+import com.lambda.interaction.request.placing.PlaceManager.populateFrom
+import com.lambda.interaction.request.placing.PlaceManager.potentialPlacements
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingActions
 import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
@@ -160,15 +164,13 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see isPosBlocked
      */
     private fun populateFrom(request: PlaceRequest) {
-        val place = request.build.placing
-
         setPendingConfigs(request.build)
         potentialPlacements = request.contexts
             .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
-        val pendingLimit =  (place.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
-        maxPlacementsThisTick = (place.placementsPerTick.coerceAtMost(pendingLimit))
+        val pendingLimit =  (request.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
+        maxPlacementsThisTick = (request.placementsPerTick.coerceAtMost(pendingLimit))
     }
 
     /**

@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.verify
 
-import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.inventory.InventoryConfig
 import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack

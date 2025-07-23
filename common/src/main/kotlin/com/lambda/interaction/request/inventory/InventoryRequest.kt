@@ -17,12 +17,14 @@
 
 package com.lambda.interaction.request.inventory
 
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.Request
 
 class InventoryRequest(
     override val config: InventoryConfig
-) : Request() {
+) : Request(), InventoryConfig by config {
     override val done: Boolean
         get() = TODO("Not yet implemented")
+
+    override fun submit(queueIfClosed: Boolean) =
+        InventoryManager.request(this, queueIfClosed)
 }

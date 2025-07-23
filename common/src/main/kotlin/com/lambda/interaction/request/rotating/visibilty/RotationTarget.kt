@@ -52,6 +52,6 @@ data class RotationTarget(
      * @param config The rotation configuration.
      * @return [RotationRequest] containing this [RotationTarget].
      */
-    fun requestBy(config: RotationConfig) =
-        config.request(RotationRequest(this, config))
+    fun requestBy(config: RotationConfig, queueIfClosed: Boolean = true) =
+        RotationRequest(this, config).submit(queueIfClosed)
 }

@@ -187,7 +187,7 @@ object PacketMine : Module(
             onReBreak { reBreakPos = it }
             onItemDrop { _ -> itemDrops++ }
         }
-        breakConfig.request(request, true)
+        request.submit()
     }
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =

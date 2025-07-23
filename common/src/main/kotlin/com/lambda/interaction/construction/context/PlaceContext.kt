@@ -76,9 +76,9 @@ data class PlaceContext(
     }
 
     fun requestDependencies(request: PlaceRequest): Boolean {
-        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
-        val validRotation = if (request.build.placing.rotateForPlace) {
-            request.rotation.request(rotation, false).done && currentDirIsValid
+        val hotbarRequest = HotbarRequest(hotbarIndex, request.hotbar).submit(false)
+        val validRotation = if (request.rotateForPlace) {
+            rotation.submit(false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
     }

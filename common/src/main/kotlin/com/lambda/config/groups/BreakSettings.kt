@@ -20,13 +20,18 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.breaking.BreakConfig
+import com.lambda.interaction.request.breaking.BreakConfig.AnimationMode
+import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.request.breaking.BreakConfig.SortMode
+import com.lambda.interaction.request.breaking.BreakConfig.SwingMode
 import com.lambda.util.BlockUtils.allSigns
 import java.awt.Color
 
 class BreakSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
-) : BreakConfig() {
+) : BreakConfig {
     val page by c.setting("Break Page", Page.General, visibility = vis)
     override val breakMode by c.setting("Break Mode", BreakMode.Packet) { vis() && page == Page.General }
     override val sorter by c.setting("Sorter", SortMode.Closest, "The order in which breaks are performed") { vis() && page == Page.General }

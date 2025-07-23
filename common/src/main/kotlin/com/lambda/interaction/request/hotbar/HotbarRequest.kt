@@ -22,9 +22,9 @@ import com.lambda.interaction.request.Request
 class HotbarRequest(
     val slot: Int,
     override val config: HotbarConfig,
-    var keepTicks: Int = config.keepTicks,
-    var swapPause: Int = config.swapPause
-) : Request() {
+    override var keepTicks: Int = config.keepTicks,
+    override var swapPause: Int = config.swapPause
+) : Request(), HotbarConfig by config {
     var activeRequestAge = 0
     var swapPauseAge = 0
 
@@ -34,4 +34,7 @@ class HotbarRequest(
 
     override val done: Boolean
         get() = slot == HotbarManager.serverSlot && !swapPaused
+
+    override fun submit(queueIfClosed: Boolean) =
+        HotbarManager.request(this, queueIfClosed)
 }

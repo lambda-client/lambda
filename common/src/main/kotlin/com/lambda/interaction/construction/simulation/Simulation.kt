@@ -19,12 +19,12 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe

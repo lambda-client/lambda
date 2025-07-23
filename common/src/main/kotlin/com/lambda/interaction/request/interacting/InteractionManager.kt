@@ -39,7 +39,7 @@ import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.util.Hand
 
-object InteractionManager : RequestHandler<InteractionRequest>(
+object InteractionManager : RequestHandler<InteractRequest>(
     0,
     TickEvent.Pre,
     TickEvent.Input.Pre,
@@ -47,7 +47,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     TickEvent.Player.Post,
     onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
-    private var activeRequest: InteractionRequest? = null
+    private var activeRequest: InteractRequest? = null
     private var potentialInteractions = mutableListOf<InteractionContext>()
 
     private var interactionsThisTick = 0
@@ -70,7 +70,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
         }
     }
 
-    override fun SafeContext.handleRequest(request: InteractionRequest) {
+    override fun SafeContext.handleRequest(request: InteractRequest) {
         if (activeRequest != null || BreakManager.activeThisTick || PlaceManager.activeThisTick) return
 
         activeRequest = request
@@ -78,7 +78,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
         if (interactionsThisTick > 0) activeThisTick = true
     }
 
-    fun SafeContext.processRequest(request: InteractionRequest) {
+    fun SafeContext.processRequest(request: InteractRequest) {
         pendingActions.cleanUp()
         
         if (request.fresh) populateFrom(request)
@@ -88,23 +88,22 @@ object InteractionManager : RequestHandler<InteractionRequest>(
         val iterator = potentialInteractions.iterator()
         while (iterator.hasNext()) {
             if (interactionsThisTick + 1 > maxInteractionsThisTick) break
-            val config = request.config
             val ctx = iterator.next()
 
             if (!ctx.requestDependencies(request)) return
 
-            if (config.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.None) {
-                InteractionInfo(ctx, request.pendingInteractionsList, config).startPending()
+            if (request.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.None) {
+                InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
-            if (config.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+            if (request.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.result)
             } else {
                 interaction.sendSequencedPacket(world) { sequence ->
                     PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, ctx.result, sequence)
                 }
             }
-            if (request.config.swingHand) {
-                swingHand(request.config.interactSwingType, Hand.MAIN_HAND)
+            if (request.swingHand) {
+                swingHand(request.interactSwingType, Hand.MAIN_HAND)
             }
             request.onInteract?.invoke(ctx.blockPos)
             interactionsThisTick++
@@ -112,7 +111,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
         }
     }
 
-    private fun populateFrom(request: InteractionRequest) {
+    private fun populateFrom(request: InteractRequest) {
         setPendingConfigs(request.build)
         potentialInteractions = request.contexts
             .filter { !isPosBlocked(it.blockPos) }

@@ -20,11 +20,13 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.placing.PlaceConfig
+import com.lambda.interaction.request.placing.PlaceConfig.AirPlaceMode
+import com.lambda.interaction.request.placing.PlaceConfig.PlaceConfirmationMode
 
 class PlaceSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
-) : PlaceConfig() {
+) : PlaceConfig {
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing", visibility = vis)
     override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = vis)
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { vis() && airPlace.isEnabled() }

@@ -25,43 +25,34 @@ import com.lambda.interaction.request.RequestConfig
  *
  * @param priority The priority of this configuration.
  */
-abstract class HotbarConfig : RequestConfig<HotbarRequest>() {
+interface HotbarConfig : RequestConfig {
 
     /**
      * The number of ticks to keep the current hotbar selection active.
      */
-    abstract val keepTicks: Int
+    val keepTicks: Int
 
     /**
      * The delay, in ticks, between swapping hotbar selections
      */
-    abstract val swapDelay: Int
+    val swapDelay: Int
 
     /**
      * The amount of hotbar selection swaps that can happen per tick
      *
      * Only makes a difference if swapDelay is set to 0
      */
-    abstract val swapsPerTick: Int
+    val swapsPerTick: Int
 
     /**
      * The delay in ticks to pause actions after switching to the slot.
      *
      * Affects the validity state of the request
      */
-    abstract val swapPause: Int
+    val swapPause: Int
 
     /**
      * The sub-tick timings at which hotbar actions can be performed
      */
-    abstract val sequenceStageMask: Set<Event>
-
-    /**
-     * Registers a hotbar request with the HotbarManager.
-     *
-     * @param request The hotbar request to register.
-     */
-    override fun requestInternal(request: HotbarRequest, queueIfClosed: Boolean) {
-        HotbarManager.request(request, queueIfClosed)
-    }
+    val sequenceStageMask: Set<Event>
 }

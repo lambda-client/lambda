@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.material.container
 
-import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent

@@ -36,7 +36,7 @@ object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interact.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+        if (it.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
             mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)
@@ -52,7 +52,7 @@ object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
                     if (!matchesTargetState(event.pos, info.context.expectedState, event.newState))
                         return@listen
 
-                    if (info.interact.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
+                    if (info.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
                         with (info.context) {
                             cachedState.onUse(world, player, Hand.MAIN_HAND, result)
                         }
