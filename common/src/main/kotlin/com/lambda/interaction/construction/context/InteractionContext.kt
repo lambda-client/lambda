@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.context
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.interacting.InteractRequest
@@ -66,8 +67,8 @@ class InteractionContext(
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {
-        val hotbarRequest = HotbarRequest(hotbarIndex, request.hotbar).submit(false)
-        val validRotation = if (request.rotate) rotation.submit(false).done else true
+        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request.hotbar), false)
+        val validRotation = if (request.rotate) submit(rotation, false).done else true
         return hotbarRequest.done && validRotation
     }
 }

@@ -20,6 +20,7 @@ package com.lambda.module.modules.debug
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -34,7 +35,7 @@ object SilentSwap : Module(
 
     init {
         listen<PlayerEvent.Attack.Block> {
-            if (!HotbarRequest(0, hotbar).submit().done) {
+            if (!submit(HotbarRequest(0, hotbar)).done) {
                 it.cancel()
                 return@listen
             }

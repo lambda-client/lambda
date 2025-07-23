@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceRequest
@@ -76,9 +77,9 @@ data class PlaceContext(
     }
 
     fun requestDependencies(request: PlaceRequest): Boolean {
-        val hotbarRequest = HotbarRequest(hotbarIndex, request.hotbar).submit(false)
+        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request.hotbar), false)
         val validRotation = if (request.rotateForPlace) {
-            rotation.submit(false).done && currentDirIsValid
+            submit(rotation, false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
     }

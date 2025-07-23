@@ -22,6 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
@@ -158,7 +159,7 @@ object AntiAim : Module(
 
         listen<UpdateManagerEvent.Rotation>(priority = Int.MIN_VALUE) {
             if (currentYaw == wrap(player.yaw) && currentPitch == player.pitch) return@listen
-            RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), rotation).submit(false)
+            submit(RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), rotation), false)
         }
     }
 

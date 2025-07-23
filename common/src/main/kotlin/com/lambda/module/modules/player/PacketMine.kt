@@ -176,7 +176,7 @@ object PacketMine : Module(
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
-        val request = breakRequest(
+        breakRequest(
             breakContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
         ) {
             onStart { queuePositions.removePos(it); addBreak(it) }
@@ -186,8 +186,7 @@ object PacketMine : Module(
             onReBreakStart { reBreakPos = it }
             onReBreak { reBreakPos = it }
             onItemDrop { _ -> itemDrops++ }
-        }
-        request.submit()
+        }.submit()
     }
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
