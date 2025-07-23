@@ -642,7 +642,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
                     return primaryBreak?.let { primary ->
                         updateBreakProgress(primary)
-                    } ?: false
+                    } == true
                 }
                 is ReBreakResult.ReBroke -> {
                     info.type = ReBreak
