@@ -34,15 +34,15 @@ class IntegerSetting(
     override val range: ClosedRange<Int>,
     override val step: Int = 1,
     description: String,
-    visibility: () -> Boolean,
     unit: String,
+    visibility: () -> Boolean
 ) : NumericSetting<Int>(
     defaultValue,
     range,
     step,
     description,
-    visibility,
-    unit
+    unit,
+    visibility
 ) {
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer(name, range.start, range.endInclusive)) { parameter ->
