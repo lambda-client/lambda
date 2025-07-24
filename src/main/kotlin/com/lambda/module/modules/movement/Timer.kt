@@ -15,16 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.modules.movement
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+
+object Timer : Module(
+    name = "Timer",
+    description = "Modify client tick speed.",
+    tag = ModuleTag.MOVEMENT,
+) {
+    private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
+
+    init {
+        listen<ClientEvent.TimerUpdate> {
+            it.speed = timer.coerceAtLeast(0.05)
+        }
     }
 }

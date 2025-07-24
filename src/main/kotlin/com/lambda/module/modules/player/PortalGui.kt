@@ -15,16 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.modules.player
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+
+object PortalGui : Module(
+    name = "PortalGui",
+    description = "Allows you to open guis in portals",
+    tag = ModuleTag.PLAYER,
+)

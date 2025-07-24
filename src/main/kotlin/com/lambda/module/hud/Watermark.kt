@@ -15,16 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.hud
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
+import com.lambda.graphics.texture.TextureOwner.upload
+import com.lambda.module.HudModule
+import com.lambda.module.tag.ModuleTag
+
+object Watermark : HudModule(
+    name    = "Watermark",
+    tag     = ModuleTag.CLIENT,
+) {
+    private val shade by setting("Shade", true)
+
+    private val normalTexture = upload("textures/lambda.png")
+    private val monoTexture = upload("textures/lambda_mono.png")
+
+    init {
     }
 }

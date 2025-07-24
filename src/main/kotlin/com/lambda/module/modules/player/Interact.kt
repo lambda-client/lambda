@@ -15,16 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.modules.player
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+
+object Interact : Module(
+    name = "Interact",
+    description = "Modify players interaction with the world",
+    tag = ModuleTag.PLAYER,
+) {
+    @JvmStatic
+    val placeDelay by setting("Item Use / Place Delay", 4, 0..20, 1, "Sets the delay between placing blocks or using items")
+    
+    @JvmStatic
+    val multiAction by setting("Multi Action", false, "Allows to use many items while breaking blocks")
 }

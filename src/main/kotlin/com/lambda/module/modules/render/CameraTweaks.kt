@@ -15,16 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.modules.render
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+
+object CameraTweaks : Module(
+    name = "CameraTweaks",
+    description = "Adjusts camera settings",
+    tag = ModuleTag.RENDER,
+) {
+    @JvmStatic
+    val camDistance by setting("Camera Distance", 4.0f, 1.0f..20.0f, 0.1f)
+
+    @JvmStatic
+    val noClipCam by setting("No Clip Camera", true)
 }

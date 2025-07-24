@@ -15,16 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.gui
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
+import com.lambda.gui.dsl.ImGuiBuilder
+
+/**
+ * [Layout] is the core interface for rendering custom elements in ImGui.
+ *
+ * It contains the [layout] property which is a getter that returns a lambda
+ * that will be invoked when inside an ImGui frame.
+ *
+ * You are able to call other layouts by passing the [ImGuiBuilder] context.
+ */
+interface Layout {
+    val layout: ImGuiBuilder.() -> Unit
 }

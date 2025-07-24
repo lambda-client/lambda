@@ -15,16 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.modules.client
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
+import com.lambda.config.groups.RotationSettings
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+
+object Baritone : Module(
+    name = "Baritone",
+    description = "Baritone configuration",
+    tag = ModuleTag.CLIENT,
+) {
+    val rotation = RotationSettings(this, Int.MAX_VALUE)
 }

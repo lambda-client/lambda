@@ -15,16 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.hud
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
+import com.lambda.module.HudModule
+import com.lambda.module.tag.ModuleTag
+import com.lambda.task.RootTask
+
+object TaskFlowHUD : HudModule(
+    name    = "TaskFlowHud",
+    tag     = ModuleTag.CLIENT,
+) {
+    //override fun getText() = RootTask.toString()
 }

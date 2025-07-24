@@ -15,16 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.event.events
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
+import com.lambda.event.Event
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
+import com.lambda.graphics.renderer.esp.global.DynamicESP
+import com.lambda.graphics.renderer.esp.global.StaticESP
+
+sealed class RenderEvent {
+    class World : Event
+
+    class StaticESP : Event {
+        val renderer = StaticESP
     }
+
+    class DynamicESP : Event {
+        val renderer = DynamicESP
+    }
+
+    class UpdateTarget : ICancellable by Cancellable()
 }

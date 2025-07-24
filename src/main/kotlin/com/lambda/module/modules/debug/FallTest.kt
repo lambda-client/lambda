@@ -15,16 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.module.modules.debug
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.combat.DamageUtils.fallDamage
+import com.lambda.util.combat.DamageUtils.isFallDeadly
+
+object FallTest : Module(
+    name = "FallTest",
+    tag = ModuleTag.DEBUG,
+) {
+    init {
+        listen<TickEvent.Pre> {
+            val damage = fallDamage()
+
+            info("Fall damage = $damage, Deadly = ${isFallDeadly()}")
+        }
     }
 }

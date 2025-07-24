@@ -15,16 +15,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-rootProject.name = "Lambda"
+package com.lambda.config.settings.collections
 
-pluginManagement {
-    repositories {
-        maven("https://maven.neoforged.net/releases/")
-        maven("https://maven.minecraftforge.net/")
-        maven("https://maven.fabricmc.net/")
-        maven("https://maven.architectury.dev/")
-        maven("https://jitpack.io")
-        mavenCentral()
-        gradlePluginPortal()
-    }
+import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
+import java.lang.reflect.Type
+
+/**
+ * @see [com.lambda.config.Configurable]
+ */
+class MapSetting<K, V>(
+    override val name: String,
+    defaultValue: MutableMap<K, V>,
+    type: Type,
+    description: String,
+    visibility: () -> Boolean,
+) : AbstractSetting<MutableMap<K, V>>(
+    defaultValue,
+    type,
+    description,
+    visibility
+) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            // ToDo
+        }
 }
