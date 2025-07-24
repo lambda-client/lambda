@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotation.Rotation
@@ -46,13 +47,13 @@ object FreeLook : Module(
 
     @JvmStatic
     fun updateCam() {
-        Lambda.mc.gameRenderer.apply {
-            camera.setRotation(FreeLook.camera.yawF, FreeLook.camera.pitchF)
+        mc.gameRenderer.apply {
+            camera.setRotation(this@FreeLook.camera.yawF, this@FreeLook.camera.pitchF)
         }
     }
 
     init {
-        previousPerspective = Lambda.mc.options.perspective
+        previousPerspective = mc.options.perspective
 
         onEnable {
             camera = player.rotation
@@ -67,16 +68,15 @@ object FreeLook : Module(
 
         listen<PlayerEvent.ChangeLookDirection> {
             if (!isEnabled) return@listen
+
             camera = camera.withDelta(
                 it.deltaYaw * SENSITIVITY_FACTOR,
                 it.deltaPitch * SENSITIVITY_FACTOR
             )
-            if (enablePitch) {
-                player.pitch = camera.pitchF
-            }
-            if (enableYaw) {
-                player.yaw = camera.yawF
-            }
+
+            if (enablePitch) player.pitch = camera.pitchF
+            if (enableYaw) player.yaw = camera.yawF
+
             it.cancel()
         }
     }
