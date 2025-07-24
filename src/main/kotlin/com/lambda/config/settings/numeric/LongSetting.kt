@@ -50,9 +50,12 @@ class LongSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            inputInt(name, ::intValue) { value = it.toLong() }
+            text(name)
+
             sameLine()
             helpMarker(description)
+
+            inputInt("##$name", ::intValue) { value = it.toLong() }
         }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

@@ -140,7 +140,7 @@ abstract class Module(
 
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     private val keybindSetting = setting("Keybind", defaultKeybind)
-    val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") })
+    val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") }, "Reset settings values to default.")
 
     open val isVisible: Boolean = true
 

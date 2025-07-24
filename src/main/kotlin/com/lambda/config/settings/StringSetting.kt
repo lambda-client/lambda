@@ -47,11 +47,13 @@ class StringSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            if (multiline) inputTextMultiline(name, ::value, flags = flags)
-            else inputText(name, ::value, flags)
+            text(name)
 
             sameLine()
             helpMarker(description)
+
+            if (multiline) inputTextMultiline(name, ::value, flags = flags)
+            else inputText(name, ::value, flags)
         }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

@@ -45,6 +45,7 @@ class BooleanSetting(
         get() =
         {
             checkbox(name, ::value)
+
             sameLine()
             helpMarker(description)
         }

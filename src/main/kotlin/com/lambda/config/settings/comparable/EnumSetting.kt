@@ -61,7 +61,12 @@ class EnumSetting<T : Enum<T>>(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            slider(name, ::index, 0, value.enumValues.size - 1, format = "", flags = AlwaysClamp)
+            text(name)
+
+            sameLine()
+            helpMarker(description)
+
+            slider("##$name", ::index, 0, value.enumValues.size - 1, format = "", flags = AlwaysClamp)
 
             val min = ImGui.getItemRectMin()
             val max = ImGui.getItemRectMax()

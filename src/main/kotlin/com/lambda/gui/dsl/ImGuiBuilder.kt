@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 /*
  * Copyright 2025 Lambda
  *
@@ -1077,6 +1079,28 @@ object ImGuiBuilder {
     }
 
     /**
+     * Color button and picker combined
+     */
+    @ImGuiDsl
+    inline fun colorEdit(
+        label: String,
+        color: KMutableProperty0<Color>,
+        flags: Int = ImGuiColorEditFlags.None,
+        block: (Color) -> Unit = {},
+    ) {
+        val default = floatArrayOf(0f, 0f, 0f, 0f)
+        val col = color.get()
+        val components = col.getComponents(default)
+
+        if (ImGui.colorEdit4(label, components)) {
+            val (r, b, g, a) = components
+
+            color.set(Color(r, g, b, a))
+            block(col)
+        }
+    }
+
+    /**
      * Creates a color picker.
      *
      * @param label Label for the picker
@@ -1126,17 +1150,16 @@ object ImGuiBuilder {
      * @param descId Description ID
      * @param color Color value
      * @param flags Button flags
-     * @param size Size of the button
      * @param block Action to perform when clicked
      *
      * @see ImGuiColorEditFlags
      */
     @ImGuiDsl
-    inline fun colorButton(descId: String, color: Color, block: ProcedureBlock = {}) {
+    inline fun colorButton(descId: String, color: Color, flags: Int = ImGuiColorEditFlags.None, block: ProcedureBlock = {}) {
         val floats = floatArrayOf(0f, 0f, 0f, 0f)
         val (r, g, b, a) = color.getColorComponents(floats)
 
-        if (ImGui.colorButton(descId, r, g, b, a))
+        if (ImGui.colorButton(descId, r, g, b, a, flags))
             block()
     }
 

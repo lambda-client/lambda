@@ -35,6 +35,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * blue = (float)vec3d3.getZ();
  * }</pre>
  */
+// FixMe: This crashes the game
 @Mixin(BackgroundRenderer.class)
 public class BackgroundRendererMixin {
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getX()D"))

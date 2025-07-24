@@ -26,6 +26,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
+import imgui.ImGui
 import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
 
@@ -46,12 +47,12 @@ class ColorSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            colorButton(name, value) {
-                colorPicker(name, ::value)
-            }
+            text(name)
 
             sameLine()
             helpMarker(description)
+
+            colorEdit("##$name", ::value)
         }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

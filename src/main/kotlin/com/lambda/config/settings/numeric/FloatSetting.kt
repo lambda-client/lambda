@@ -48,9 +48,12 @@ class FloatSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            inputFloat(name, ::value)
+            text(name)
+
             sameLine()
             helpMarker(description)
+
+            inputFloat("##$name", ::value)
         }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

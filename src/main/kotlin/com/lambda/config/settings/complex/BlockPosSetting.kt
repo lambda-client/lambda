@@ -50,9 +50,12 @@ class BlockPosSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            inputVec3i(name, value) { value = it.blockPos }
+            text(name)
+
             sameLine()
             helpMarker(description)
+
+            inputVec3i("##$name", value) { value = it.blockPos }
         }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

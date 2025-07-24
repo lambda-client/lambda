@@ -38,6 +38,7 @@ open class FunctionSetting<T>(
         get() =
         {
             button(name) { value() }
+
             sameLine()
             helpMarker(description)
         }
