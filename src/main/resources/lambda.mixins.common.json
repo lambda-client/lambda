@@ -38,6 +38,7 @@
     "render.ElytraFeatureRendererMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
+    "render.HeldItemRendererMixin",
     "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",

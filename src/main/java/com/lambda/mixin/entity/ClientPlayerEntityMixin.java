@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2024 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,11 @@ import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
+import com.lambda.module.modules.render.ViewModel;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.util.Hand;
@@ -152,6 +154,18 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Inject(method = "updateHealth", at = @At("HEAD"))
     public void damage(float health, CallbackInfo ci) {
         EventFlow.post(new PlayerEvent.Damage(health));
+    }
+
+    @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
+        ViewModel viewModel = ViewModel.INSTANCE;
+
+        if (!viewModel.isEnabled()) {
+            instance.swingHand(hand, false);
+            return;
+        }
+
+        viewModel.adjustSwing(hand, instance);
     }
 
     /**

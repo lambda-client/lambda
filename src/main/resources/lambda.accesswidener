@@ -7,6 +7,7 @@ accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
 accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
+accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
@@ -34,6 +35,7 @@ accessible method net/minecraft/entity/Entity isAlwaysInvulnerableTo (Lnet/minec
 accessible field net/minecraft/entity/player/PlayerInventory equipment Lnet/minecraft/entity/EntityEquipment;
 accessible method net/minecraft/client/network/ClientPlayerEntity applyMovementSpeedFactors (Lnet/minecraft/util/math/Vec2f;)Lnet/minecraft/util/math/Vec2f;
 accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
+accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
