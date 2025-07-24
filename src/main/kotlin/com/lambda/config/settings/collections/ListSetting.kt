@@ -27,7 +27,8 @@ import java.lang.reflect.Type
  */
 class ListSetting<T : Any>(
     override val name: String,
-    private val defaultValue: MutableList<T>,
+    private val immutableList: List<T>,
+    defaultValue: MutableList<T>,
     type: Type,
     description: String,
     visibility: () -> Boolean,
@@ -37,27 +38,18 @@ class ListSetting<T : Any>(
     description,
     visibility
 ) {
-    // Break the reference chain for the value property
-    private val immutableList = value.toList()
-
     override val layout: ImGuiBuilder.() -> Unit
-        get() = {
-            treeNode(name)
-            {
-            filter("Filter")
-            { f ->
-                combo("##", "${value.size} item(s)") {
-                    immutableList
-                        .filter { f.passFilter(it.toString()) }
-                        .forEach {
-                            val isSelected = value.contains(it)
+        get() =
+        {
+            combo(name, "${value.size} item(s)") {
+                immutableList
+                    .forEach {
+                        val isSelected = value.contains(it)
 
-                            selectable(it.toString(), isSelected,
-                                flags = DontClosePopups)
-                            { if (isSelected) value.remove(it) else value.add(it) }
-                        }
-                }
-            }
+                        selectable(it.toString(), isSelected,
+                            flags = DontClosePopups)
+                        { if (isSelected) value.remove(it) else value.add(it) }
+                    }
             }
         }
 }

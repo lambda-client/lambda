@@ -34,9 +34,10 @@ public class BarrierBlockMixin {
      */
     @Inject(method = "getRenderType", at = @At("RETURN"), cancellable = true)
     private void getRenderType(BlockState state, CallbackInfoReturnable<BlockRenderType> cir) {
-        if (BlockESP.INSTANCE.isEnabled()
+        // FixMe: This mixins fucks up the loading process by calling the configurations too early and doesn't load the settings
+        /*if (BlockESP.INSTANCE.isEnabled()
                 && BlockESP.getBarrier()
                 && state.getBlock() == Blocks.BARRIER
-        ) cir.setReturnValue(BlockRenderType.MODEL);
+        ) cir.setReturnValue(BlockRenderType.MODEL);*/
     }
 }

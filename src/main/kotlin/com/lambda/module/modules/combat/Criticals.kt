@@ -68,10 +68,11 @@ object Criticals : Module(
 
     private fun SafeContext.posPacket(yOffset: Double, ground: Boolean = false, rotation: Rotation?) {
         val (x, y, z) = player.pos
+        val collidesHorizontally = player.horizontalCollision
 
         val packet = rotation?.let {
-            PlayerMoveC2SPacket.Full(x, y + yOffset, z, it.yawF, it.pitchF, ground, true) // TODO: Check this after update
-        } ?: PlayerMoveC2SPacket.PositionAndOnGround(x, y + yOffset, z, ground, true) // TODO: Check this after update
+            PlayerMoveC2SPacket.Full(x, y + yOffset, z, it.yawF, it.pitchF, ground, collidesHorizontally)
+        } ?: PlayerMoveC2SPacket.PositionAndOnGround(x, y + yOffset, z, ground, collidesHorizontally)
 
         connection.sendPacket(packet)
     }

@@ -46,8 +46,8 @@ object SettingTest : Module(
     private val longSetting by setting("Long Setting", 100000L, 0L..1000000L, 1000L)
 
     // Collections
-    private val stringList by setting("String List", listOf("Hello", "World"))
-    private val stringSet by setting("String Set", setOf("Apple", "Banana"))
+    private val stringList by setting("String List", listOf("Hello", "World"), listOf("Hello", "World"))
+    private val stringSet by setting("String Set", setOf("Apple", "Banana"), setOf("Apple", "Banana"))
     private val stringMap by setting("String Map", mapOf("Key1" to "Value1", "Key2" to "Value2"))
 
     // Complex
@@ -57,10 +57,10 @@ object SettingTest : Module(
     private val keyBindSetting by setting("Key Bind Setting", KeyCode.T)
 
     // Complex collections
-    private val blockPosSet by setting("Block Position Set", setOf(BlockPos(0, 0, 0)))
-    private val blockList by setting("Block List", listOf(Blocks.OBSIDIAN))
+    private val blockPosSet by setting("Block Position Set", setOf(BlockPos(0, 0, 0)), setOf(BlockPos(0, 0, 0)))
+    private val blockList by setting("Block List", listOf(Blocks.OBSIDIAN), listOf(Blocks.OBSIDIAN))
     private val colorMap by setting("Color Map", mapOf("Primary" to Color.GREEN))
-    private val keyBindSet by setting("Key Bind Set", setOf(KeyCode.T))
+    private val keyBindSet by setting("Key Bind Set", setOf(KeyCode.T), setOf(KeyCode.T))
 
     // Other
     private val unitSetting by setting("Unit Test", { this@SettingTest.info("Unit setting") })

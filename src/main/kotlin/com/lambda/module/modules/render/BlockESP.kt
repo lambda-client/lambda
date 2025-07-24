@@ -53,7 +53,7 @@ object BlockESP : Module(
 
     private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").onValueSet(::rebuildMesh)
 
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks").onValueSet(::rebuildMesh)
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks").onValueSet(::rebuildMesh)
 
     @JvmStatic
     val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")

@@ -42,7 +42,7 @@ class BuildSettings(
     override val breaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() && page == Page.Break }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() && page == Page.Break }
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() && page == Page.Break }
-    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() && page == Page.Break }
+    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, allSigns, "Blocks that wont be broken") { vis() && page == Page.Break }
 
     // Placing
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing") { vis() && page == Page.Place }

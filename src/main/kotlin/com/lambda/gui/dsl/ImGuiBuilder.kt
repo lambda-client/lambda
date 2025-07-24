@@ -95,7 +95,6 @@ import imgui.type.ImDouble
 import imgui.type.ImFloat
 import imgui.type.ImInt
 import imgui.type.ImString
-import net.minecraft.advancement.criterion.InventoryChangedCriterion.Conditions.items
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
@@ -1878,19 +1877,19 @@ object ImGuiBuilder {
      * Gets the current draw list for custom drawing.
      */
     @ImGuiDsl
-    fun getWindowDrawList(): ImDrawList = ImGui.getWindowDrawList()
+    val windowDrawList: ImDrawList get() = ImGui.getWindowDrawList()
 
     /**
      * Gets the background draw list for custom drawing.
      */
     @ImGuiDsl
-    fun getBackgroundDrawList(): ImDrawList = ImGui.getBackgroundDrawList()
+    val getBackgroundDrawList: ImDrawList get() = ImGui.getBackgroundDrawList()
 
     /**
      * Gets the foreground draw list for custom drawing.
      */
     @ImGuiDsl
-    fun getForegroundDrawList(): ImDrawList = ImGui.getForegroundDrawList()
+    val getForegroundDrawList: ImDrawList get() = ImGui.getForegroundDrawList()
 
     /**
      * Creates a frame with optional border.

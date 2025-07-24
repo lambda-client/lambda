@@ -31,6 +31,7 @@ sealed class PlayerPacketEvent {
         var onGround: Boolean,
         var isSprinting: Boolean,
         var isSneaking: Boolean,
+        var isCollidingHorizontally: Boolean,
     ) : ICancellable by Cancellable()
 
     class Post : Event

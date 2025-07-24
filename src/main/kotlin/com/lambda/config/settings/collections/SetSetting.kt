@@ -19,6 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
@@ -26,6 +27,7 @@ import java.lang.reflect.Type
  */
 class SetSetting<T : Any>(
     override val name: String,
+    private val immutableSet: Set<T>,
     defaultValue: MutableSet<T>,
     type: Type,
     description: String,
@@ -38,7 +40,16 @@ class SetSetting<T : Any>(
 ) {
     override val layout: ImGuiBuilder.() -> Unit
         get() =
-        {
-            // ToDo
-        }
+            {
+                combo(name, "${value.size} item(s)") {
+                    immutableSet
+                        .forEach {
+                            val isSelected = value.contains(it)
+
+                            selectable(it.toString(), isSelected,
+                                flags = DontClosePopups)
+                            { if (isSelected) value.remove(it) else value.add(it) }
+                        }
+                }
+            }
 }

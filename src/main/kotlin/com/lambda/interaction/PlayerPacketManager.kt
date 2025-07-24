@@ -57,7 +57,8 @@ object PlayerPacketManager {
                 RotationManager.currentRotation,
                 player.isOnGround,
                 player.isSprinting,
-                player.isSneaking
+                player.isSneaking,
+                player.horizontalCollision,
             ).post {
                 updatePlayerPackets(this)
             }
@@ -76,6 +77,7 @@ object PlayerPacketManager {
         val position = new.position
         val (yaw, pitch) = rotation.float
         val onGround = new.onGround
+        val isCollidingHorizontally = new.isCollidingHorizontally
 
         if (player.hasVehicle()) {
             connection.sendPacket(
@@ -86,9 +88,10 @@ object PlayerPacketManager {
                     yaw,
                     pitch,
                     onGround,
-                    true // TODO: Check this after update
+                    isCollidingHorizontally,
                 )
             )
+
             return
         }
 
@@ -99,21 +102,17 @@ object PlayerPacketManager {
         val (x, y, z) = position
 
         val packet = when {
-            updatePosition && updateRotation -> {
-                Full(x, y, z, yaw, pitch, onGround, true) // TODO: Check this after update
-            }
+            updatePosition && updateRotation ->
+                Full(x, y, z, yaw, pitch, onGround, isCollidingHorizontally)
 
-            updatePosition -> {
-                PositionAndOnGround(x, y, z, onGround, true) // TODO: Check this after update
-            }
+            updatePosition ->
+                PositionAndOnGround(x, y, z, onGround, isCollidingHorizontally)
 
-            updateRotation -> {
-                LookAndOnGround(yaw, pitch, onGround, true) // TODO: Check this after update
-            }
+            updateRotation ->
+                LookAndOnGround(yaw, pitch, onGround, isCollidingHorizontally)
 
-            lastOnGround != onGround -> {
-                OnGroundOnly(onGround, true) // TODO: Check this after update
-            }
+            lastOnGround != onGround ->
+                OnGroundOnly(onGround, isCollidingHorizontally)
 
             else -> null
         }

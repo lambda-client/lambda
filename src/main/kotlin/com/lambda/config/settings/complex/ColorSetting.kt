@@ -46,7 +46,10 @@ class ColorSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            colorPicker(name, ::value)
+            colorButton(name, value) {
+                colorPicker(name, ::value)
+            }
+
             sameLine()
             helpMarker(description)
         }

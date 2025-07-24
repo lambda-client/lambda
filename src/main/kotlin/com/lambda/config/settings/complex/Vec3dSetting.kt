@@ -42,10 +42,9 @@ class Vec3dSetting(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {
-            // ToDo: tf
-//            inputVec3d(name, ::value)
-//            sameLine()
-//            helpMarker(description)
+            inputVec3d(name, ::value as Vec3d) // wat da hell
+            sameLine()
+            helpMarker(description)
         }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

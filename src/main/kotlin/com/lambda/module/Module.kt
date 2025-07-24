@@ -125,7 +125,7 @@ abstract class Module(
     override val layout: ImGuiBuilder.() -> Unit
         get() =
             {
-                checkbox("##-$this", ::isEnabled)
+                checkbox("##-${this@Module}", ::isEnabled)
                 sameLine()
 
                 treeNode(name) {

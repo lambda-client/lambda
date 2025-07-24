@@ -51,7 +51,9 @@ object PacketLimiter : Module(
         OnGroundOnly::class,
         TeleportConfirmC2SPacket::class
     )
-    private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets.mapNotNull { it.simpleName }, "Packets to ignore when limiting")
+
+    // ToDo: Find a way to have a list of serverbound packets
+    private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets, defaultIgnorePackets, "Packets to ignore when limiting")
 
     init {
         onEnable {
@@ -59,7 +61,7 @@ object PacketLimiter : Module(
         }
 
         listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
-            if (it.packet::class.simpleName in ignorePackets) return@listen
+            if (it.packet::class in ignorePackets) return@listen
 
 //            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
             if (packetQueue.add(it)) return@listen

@@ -194,11 +194,13 @@ abstract class Configurable(
      */
     inline fun <reified T : Any> setting(
         name: String,
+        immutableList: List<T>,
         defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
     ) = ListSetting(
         name,
+        immutableList,
         defaultValue.toMutableList(),
         TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
@@ -254,11 +256,13 @@ abstract class Configurable(
      */
     inline fun <reified T : Any> setting(
         name: String,
+        immutableList: Set<T>,
         defaultValue: Set<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
     ) = SetSetting(
         name,
+        immutableList,
         defaultValue.toMutableSet(),
         TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
         description,
