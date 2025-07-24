@@ -6,6 +6,7 @@ accessible field net/minecraft/client/MinecraftClient paused Z
 accessible field net/minecraft/client/MinecraftClient pausedTickDelta F
 accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
+accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;
@@ -30,6 +31,7 @@ accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
 accessible method net/minecraft/entity/LivingEntity modifyAppliedDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
 accessible method net/minecraft/entity/LivingEntity applyArmorToDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
+accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V

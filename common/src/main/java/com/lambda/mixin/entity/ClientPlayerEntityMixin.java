@@ -25,11 +25,11 @@ import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
+import com.lambda.module.modules.render.ViewModel;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.DeathScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.damage.DamageSource;
@@ -152,6 +152,18 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
     void onSwingHandPre(Hand hand, CallbackInfo ci) {
         if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
+    }
+
+    @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
+        ViewModel viewModel = ViewModel.INSTANCE;
+
+        if (!viewModel.isEnabled()) {
+            instance.swingHand(hand, false);
+            return;
+        }
+
+        viewModel.adjustSwing(hand, instance);
     }
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
