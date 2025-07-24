@@ -21,7 +21,7 @@ import kotlin.math.tan
 object ViewModel : Module(
     name = "View Model",
     description = "Adjusts hand and held item rendering",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     private val page by setting("Page", Page.General)
 
