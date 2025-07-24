@@ -80,6 +80,7 @@ import imgui.ImVec2
 import imgui.flag.ImDrawListFlags
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiColorEditFlags
+import imgui.flag.ImGuiComboFlags
 import imgui.flag.ImGuiDir
 import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiInputTextFlags
@@ -94,6 +95,7 @@ import imgui.type.ImDouble
 import imgui.type.ImFloat
 import imgui.type.ImInt
 import imgui.type.ImString
+import net.minecraft.advancement.criterion.InventoryChangedCriterion.Conditions.items
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
@@ -499,6 +501,19 @@ object ImGuiBuilder {
     @ImGuiDsl
     inline fun radioButton(label: String, active: Boolean, block: ProcedureBlock = {}) {
         if (ImGui.radioButton(label, active)) block()
+    }
+
+    @ImGuiDsl
+    inline fun combo(
+        label: String,
+        preview: String?,
+        flags: Int = ImGuiComboFlags.None,
+        block: () -> Unit = {},
+    ) {
+        if (ImGui.beginCombo(label, preview, flags)) {
+            block()
+            ImGui.endCombo()
+        }
     }
 
     /**

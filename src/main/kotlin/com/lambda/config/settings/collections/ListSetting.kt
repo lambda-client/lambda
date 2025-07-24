@@ -19,10 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
-import imgui.ImGuiTextFilter
-import net.minecraft.block.Blocks
-import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
+import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
@@ -40,15 +37,27 @@ class ListSetting<T : Any>(
     description,
     visibility
 ) {
+    // Break the reference chain for the value property
+    private val immutableList = value.toList()
+
     override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            filter("##Filter") { f ->
-                defaultValue
-                    .filter { f.passFilter(it.toString()) }
-                    .forEach {
-                        selectable(it.toString(), value.contains(it)) { value.add(it) }
-                    }
+        get() = {
+            treeNode(name)
+            {
+            filter("Filter")
+            { f ->
+                combo("##", "${value.size} item(s)") {
+                    immutableList
+                        .filter { f.passFilter(it.toString()) }
+                        .forEach {
+                            val isSelected = value.contains(it)
+
+                            selectable(it.toString(), isSelected,
+                                flags = DontClosePopups)
+                            { if (isSelected) value.remove(it) else value.add(it) }
+                        }
+                }
+            }
             }
         }
 }
