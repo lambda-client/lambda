@@ -36,15 +36,15 @@ class DoubleSetting(
     override val range: ClosedRange<Double>,
     override val step: Double,
     description: String,
-    visibility: () -> Boolean,
     unit: String,
+    visibility: () -> Boolean
 ) : NumericSetting<Double>(
     defaultValue,
     range,
     step,
     description,
-    visibility,
-    unit
+    unit,
+    visibility
 ) {
     override val layout: ImGuiBuilder.() -> Unit
         get() =

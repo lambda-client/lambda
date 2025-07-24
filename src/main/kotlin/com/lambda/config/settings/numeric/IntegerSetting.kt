@@ -35,15 +35,15 @@ class IntegerSetting(
     override val range: ClosedRange<Int>,
     override val step: Int = 1,
     description: String,
-    visibility: () -> Boolean,
     unit: String,
+    visibility: () -> Boolean
 ) : NumericSetting<Int>(
     defaultValue,
     range,
     step,
     description,
-    visibility,
-    unit
+    unit,
+    visibility
 ) {
     override val layout: ImGuiBuilder.() -> Unit
         get() =

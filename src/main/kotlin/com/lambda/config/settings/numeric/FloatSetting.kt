@@ -35,15 +35,15 @@ class FloatSetting(
     override val range: ClosedRange<Float>,
     override val step: Float = 1f,
     description: String,
-    visibility: () -> Boolean,
     unit: String,
+    visibility: () -> Boolean
 ) : NumericSetting<Float>(
     defaultValue,
     range,
     step,
     description,
-    visibility,
-    unit
+    unit,
+    visibility
 ) {
     override val layout: ImGuiBuilder.() -> Unit
         get() =

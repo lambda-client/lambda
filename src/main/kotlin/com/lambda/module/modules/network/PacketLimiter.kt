@@ -39,8 +39,8 @@ object PacketLimiter : Module(
     private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1000)
     private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
         .onValueChange { _, to -> packetQueue.setSizeLimit(to) }
-    
-    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
+
+    private val interval by setting("Duration", 4000L, 1L..10000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
         .onValueChange { _, to -> packetQueue.setDecayTime(to) }
 
     private val defaultIgnorePackets = setOf(

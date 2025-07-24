@@ -31,6 +31,7 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.tickDelta
+import com.lambda.util.extension.fullHealth
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -161,7 +162,7 @@ object AutoDisconnect : Module(
         literal(" on ")
         highlighted(Communication.currentTime())
         literal(" with ")
-        highlighted(player.health.string)
+        highlighted(player.fullHealth.string)
         literal(" health.")
         if (player.isSubmergedInWater) {
             literal("\n")
@@ -191,10 +192,10 @@ object AutoDisconnect : Module(
 
     enum class Reason(val check: () -> Boolean, val generateReason: SafeContext.() -> Text?) {
         HEALTH({ health }, {
-            if (player.health < minimumHealth) {
+            if (player.fullHealth < minimumHealth) {
                 buildText {
                     literal("Health ")
-                    highlighted(player.health.string)
+                    highlighted(player.fullHealth.string)
                     literal(" below minimum of ")
                     highlighted("$minimumHealth")
                     literal("!")

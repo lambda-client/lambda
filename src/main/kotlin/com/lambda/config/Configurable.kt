@@ -292,7 +292,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = DoubleSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = DoubleSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates a [FloatSetting] with the provided parameters and adds it to the [settings].
@@ -317,7 +317,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = FloatSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = FloatSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates an [IntegerSetting] with the provided parameters and adds it to the [settings].
@@ -342,7 +342,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = IntegerSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = IntegerSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates a [LongSetting] with the provided parameters and adds it to the [settings].
@@ -367,7 +367,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = LongSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates a [KeyBindSetting] with the provided parameters and adds it to the [settings].

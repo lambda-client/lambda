@@ -31,6 +31,7 @@ import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.extension.dimensionName
+import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.worldName
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
@@ -116,7 +117,7 @@ object Discord : Module(
         VERSION({ Lambda.VERSION }),
         WORLD({ worldName }),
         USERNAME({ mc.session.username }),
-        HEALTH({ "${player.health} HP" }),
+        HEALTH({ "${player.fullHealth} HP" }),
         HUNGER({ "${player.hungerManager.foodLevel} Hunger" }),
         DIMENSION({ world.dimensionName }),
         FPS({ "${mc.currentFps} FPS" });

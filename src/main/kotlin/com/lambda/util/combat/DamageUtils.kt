@@ -96,6 +96,13 @@ object DamageUtils {
         return source.scale(world, player, player.fallDamage(distance, multiplier))
     }
 
+    /**
+     * Calculates the fall damage for the given entity
+     *
+     * @param distance The fall distance
+     * @param multiplier The fall damage multiplier
+     * @return The calculated fall damage
+     */
     fun LivingEntity.fallDamage(distance: Double, multiplier: Double): Double {
         if (type.isIn(FALL_DAMAGE_IMMUNE)) return 0.0
 
