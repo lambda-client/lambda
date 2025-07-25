@@ -295,6 +295,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             }
         }
 
+        val itemStack = itemPlacementContext.stack
+        if (!player.abilities.creativeMode) itemStack.decrement(1)
+
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.success(world.isClient)
 
@@ -304,7 +307,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
 
         val blockPos = itemPlacementContext.blockPos
-        val itemStack = itemPlacementContext.stack
         var hitState = world.getBlockState(blockPos)
         if (hitState.isOf(blockState.block)) {
             hitState = item.placeFromNbt(blockPos, world, itemStack, hitState)
@@ -313,7 +315,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
         if (placeConfig.sounds) placeSound(item, hitState, blockPos)
-        if (!player.abilities.creativeMode) itemStack.decrement(1)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
             request.onPlace?.invoke(placeContext.blockPos)
