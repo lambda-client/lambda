@@ -6,6 +6,7 @@ accessible field net/minecraft/client/MinecraftClient paused Z
 accessible field net/minecraft/client/MinecraftClient pausedTickDelta F
 accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
+accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;

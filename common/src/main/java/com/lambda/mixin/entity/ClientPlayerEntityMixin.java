@@ -27,9 +27,11 @@ import com.lambda.interaction.request.rotating.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.lambda.module.modules.render.ViewModel;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.damage.DamageSource;
@@ -144,6 +146,18 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     float fixHeldItemPitch(ClientPlayerEntity instance) {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
+    }
+
+    @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
+        ViewModel viewModel = ViewModel.INSTANCE;
+
+        if (!viewModel.isEnabled()) {
+            instance.swingHand(hand, false);
+            return;
+        }
+
+        viewModel.adjustSwing(hand, instance);
     }
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
