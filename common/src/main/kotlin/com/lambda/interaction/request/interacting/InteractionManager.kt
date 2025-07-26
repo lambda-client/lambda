@@ -56,7 +56,9 @@ object InteractionManager : RequestHandler<InteractRequest>(
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
 
-    init {
+    override fun load(): String {
+        super.load()
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest = null
             interactionsThisTick = 0
@@ -68,6 +70,8 @@ object InteractionManager : RequestHandler<InteractRequest>(
                 it.input.sneaking = false
             }
         }
+
+        return "Loaded Interaction Manager"
     }
 
     override fun SafeContext.handleRequest(request: InteractRequest) {

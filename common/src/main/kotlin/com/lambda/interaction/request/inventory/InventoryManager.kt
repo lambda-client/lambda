@@ -37,6 +37,8 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     var activeRequest: InventoryRequest? = null
 
     override fun load(): String {
+        super.load()
+
         return "Loaded Inventory Manager"
     }
 
