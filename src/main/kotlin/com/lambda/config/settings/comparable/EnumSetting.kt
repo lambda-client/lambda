@@ -20,23 +20,19 @@ package com.lambda.config.settings.comparable
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
-import com.lambda.brigadier.argument.float
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.dsl.ImGuiBuilder.windowDrawList
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import imgui.ImColor
 import imgui.ImGui
-import imgui.ImGuiStyle
 import imgui.ImVec2
 import imgui.flag.ImGuiSliderFlags.AlwaysClamp
 import net.minecraft.command.CommandRegistryAccess
-import org.apache.logging.log4j.core.tools.picocli.CommandLine.Help.Ansi.Style.off
 import java.awt.Color
 import kotlin.properties.Delegates
 
@@ -70,7 +66,11 @@ class EnumSetting<T : Enum<T>>(
 
             val min = ImGui.getItemRectMin()
             val max = ImGui.getItemRectMax()
-            val center = ImVec2((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f)
+            val textSize = ImGui.calcTextSize(value.name)
+            val center = ImVec2(
+                (min.x + max.x) * 0.5f - textSize.x * 0.5f,
+                (min.y + max.y) * 0.5f - textSize.y * 0.5f
+            )
 
             windowDrawList.addText(
                 center,
