@@ -38,7 +38,7 @@ data class PlaceContext(
     override val rotation: RotationRequest,
     override var hotbarIndex: Int,
     override val blockPos: BlockPos,
-    override val cachedState: BlockState,
+    override var cachedState: BlockState,
     override val expectedState: BlockState,
     val sneak: Boolean,
     val insideBlock: Boolean,

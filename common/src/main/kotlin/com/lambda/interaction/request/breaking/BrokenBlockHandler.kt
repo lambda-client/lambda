@@ -83,11 +83,11 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                         return@listen
                     }
 
-                    if (!pending.isReBreaking) {
+                    if (pending.isReBreaking) {
+                        pending.context.cachedState = event.newState
+                    } else {
                         this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")
                         pending.stopPending()
-                    } else {
-                        pending.context.cachedState = event.newState
                     }
                     return@listen
                 }

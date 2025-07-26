@@ -92,7 +92,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
 
             if (!ctx.requestDependencies(request)) return
 
-            if (request.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.None) {
+            if (request.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None) {
                 InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
             if (request.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {

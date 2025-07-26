@@ -20,6 +20,7 @@ package com.lambda.interaction.request.placing
 import com.lambda.Lambda.mc
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.placing.PlaceManager.placeSound
 import com.lambda.module.modules.client.TaskFlowModule
@@ -46,13 +47,19 @@ object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
             pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { pending ->
-                    pending.stopPending()
-
-                    // return if the block wasn't placed properly
                     if (!pending.context.expectedState.matches(event.newState)) {
-                        this@PlacedBlockHandler.warn("Place at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+                        if (pending.context.cachedState.matches(event.newState, ProcessorRegistry.postProcessedProperties)) {
+                            pending.context.cachedState = event.newState
+                            return@listen
+                        }
+
+                        pending.stopPending()
+
+                        this@PlacedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
                         return@listen
                     }
+
+                    pending.stopPending()
 
                     if (pending.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
                         with (pending.context) {

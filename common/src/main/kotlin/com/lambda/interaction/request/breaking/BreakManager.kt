@@ -33,7 +33,6 @@ import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
@@ -70,8 +69,6 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.BlockUtils.matches
-import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
@@ -189,9 +186,6 @@ object BreakManager : RequestHandler<BreakRequest>(
                     val currentState = info.context.cachedState
                     // if not broken
                     if (isNotBroken(currentState, event.newState)) {
-                        // check to see if its just some small property changes, e.g. redstone ore changing the LIT property
-                        if (!currentState.matches(event.newState, ProcessorRegistry.postProcessedProperties))
-                            this@BreakManager.warn("Server updated breaking block at ${event.pos.toShortString()} with a new state: ${event.newState}")
                         // update the cached state
                         info.context.cachedState = event.newState
                         return@listen
@@ -199,11 +193,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                     destroyBlock(info)
                     info.request.onStop?.invoke(info.context.blockPos)
                     info.internalOnBreak()
-                    if (!info.callbacksCompleted) {
-                        info.startPending()
-                    } else {
+                    if (info.callbacksCompleted)
                         ReBreakManager.offerReBreak(info)
-                    }
+                    else info.startPending()
                     info.nullify()
                 }
         }

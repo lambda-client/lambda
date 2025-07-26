@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.matches
@@ -44,12 +45,19 @@ object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
             pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { pending ->
-                    pending.stopPending()
-
                     if (!pending.context.expectedState.matches(event.newState)) {
+                        if (pending.context.cachedState.matches(event.newState, ProcessorRegistry.postProcessedProperties)) {
+                            pending.context.cachedState = event.newState
+                            return@listen
+                        }
+
+                        pending.stopPending()
+
                         this@InteractedBlockHandler.warn("Interacted block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
                         return@listen
                     }
+
+                    pending.stopPending()
 
                     //ToDo: reliable way to recreate the sounds played when interacting with any given block
 //                    if (pending.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
