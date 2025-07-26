@@ -20,7 +20,6 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.render.ViewModel;
 import com.lambda.interaction.request.rotating.RotationManager;
 import net.minecraft.entity.LivingEntity;
