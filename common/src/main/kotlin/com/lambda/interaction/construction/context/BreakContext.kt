@@ -25,7 +25,6 @@ import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
@@ -38,9 +37,9 @@ data class BreakContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override var hotbarIndex: Int,
-    override var cachedState: BlockState,
     var instantBreak: Boolean,
-    val sortMode: BreakConfig.SortMode = TaskFlowModule.build.breaking.sorter
+    override var cachedState: BlockState,
+    val sortMode: BreakConfig.SortMode
 ) : BuildContext() {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)

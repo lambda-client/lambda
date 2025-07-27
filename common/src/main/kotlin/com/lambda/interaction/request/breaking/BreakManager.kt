@@ -351,7 +351,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         // Sanitize the new breaks
         val newBreaks = request.contexts
             .distinctBy { it.blockPos }
-            .filter { ctx -> canAccept(ctx, request.build.breaking) }
+            .filter { ctx -> canAccept(ctx, request.config) }
             .let { acceptable ->
                 acceptable.firstOrNull()?.let { first ->
                     acceptable.filter { it.hotbarIndex == first.hotbarIndex }
@@ -387,7 +387,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filter { !it.instantBreak }
             .toMutableList()
 
-        val breakConfig = request.build.breaking
+        val breakConfig = request.config
         val pendingLimit = (breakConfig.maxPendingBreaks - pendingBreakCount).coerceAtLeast(0)
         maxBreaksThisTick = breakConfig.breaksPerTick.coerceAtMost(pendingLimit)
     }
@@ -425,8 +425,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             val ctx = iterator.next()
 
             if (!ctx.requestDependencies(request)) return false
-            rotationRequest = if (request.build.breaking.rotateForBreak) ctx.rotation.submit(false) else null
-            if (!rotated || tickStage !in request.build.breaking.breakStageMask) return false
+            rotationRequest = if (request.config.rotateForBreak) ctx.rotation.submit(false) else null
+            if (!rotated || tickStage !in request.config.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false
             updateBreakProgress(breakInfo)

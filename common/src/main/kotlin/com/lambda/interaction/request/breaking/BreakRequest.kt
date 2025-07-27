@@ -25,6 +25,7 @@ import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
@@ -34,11 +35,11 @@ import net.minecraft.util.math.BlockPos
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
-    val build: BuildConfig,
-    val hotbar: HotbarConfig,
-    val rotation: RotationConfig,
-    val inventory: InventoryConfig,
-    val interact: InteractionConfig
+    val build: BuildConfig = TaskFlowModule.build,
+    val hotbar: HotbarConfig = TaskFlowModule.hotbar,
+    val rotation: RotationConfig = TaskFlowModule.rotation,
+    val inventory: InventoryConfig = TaskFlowModule.inventory,
+    val interact: InteractionConfig = TaskFlowModule.interaction
 ) : Request() {
     override val config = build.breaking
     var onStart: ((BlockPos) -> Unit)? = null
@@ -114,11 +115,11 @@ data class BreakRequest(
         fun breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,
-            rotation: RotationConfig,
-            hotbar: HotbarConfig,
-            interact: InteractionConfig,
-            inventory: InventoryConfig,
-            build: BuildConfig,
+            rotation: RotationConfig = TaskFlowModule.rotation,
+            hotbar: HotbarConfig = TaskFlowModule.hotbar,
+            interact: InteractionConfig = TaskFlowModule.interaction,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
+            build: BuildConfig = TaskFlowModule.build,
             builder: RequestBuilder.() -> Unit
         ) = RequestBuilder(contexts, pendingInteractions, rotation, hotbar, interact, inventory, build).apply(builder).build()
     }

@@ -27,9 +27,9 @@ interface BreakConfig : RequestConfig {
     val breakMode: BreakMode
     val sorter: SortMode
     val reBreak: Boolean
-    val unsafeCancels: Boolean
     val breakThreshold: Float
     val doubleBreak: Boolean
+    val unsafeCancels: Boolean
     val fudgeFactor: Int
     //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
 //    abstract val desyncFix: Boolean

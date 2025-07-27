@@ -697,8 +697,8 @@ object BuildSimulator {
                     blockHit,
                     rotationRequest,
                     player.inventory.selectedSlot,
-                    state,
                     instantBreakable(state, pos, breaking.breakThreshold),
+                    state,
                     breaking.sorter
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
@@ -746,7 +746,7 @@ object BuildSimulator {
         val rotationRequest = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos, breaking.breakThreshold)
 
-        val breakContext = BreakContext(blockHit, rotationRequest, player.inventory.selectedSlot, state, instant)
+        val breakContext = BreakContext(blockHit, rotationRequest, player.inventory.selectedSlot, instant, state, breaking.sorter)
 
         if (gamemode.isCreative) {
             acc.add(BreakResult.Break(pos, breakContext))
