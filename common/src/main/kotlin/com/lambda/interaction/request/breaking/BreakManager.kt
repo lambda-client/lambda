@@ -45,7 +45,6 @@ import com.lambda.interaction.request.breaking.BreakManager.activeRequest
 import com.lambda.interaction.request.breaking.BreakManager.breakInfos
 import com.lambda.interaction.request.breaking.BreakManager.breaks
 import com.lambda.interaction.request.breaking.BreakManager.canAccept
-import com.lambda.interaction.request.breaking.BreakManager.cancelBreak
 import com.lambda.interaction.request.breaking.BreakManager.checkForCancels
 import com.lambda.interaction.request.breaking.BreakManager.initNewBreak
 import com.lambda.interaction.request.breaking.BreakManager.instantBreaks
@@ -347,7 +346,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      * value is set.
      *
      * @see canAccept
-     * @see cancelBreak
      */
     private fun SafeContext.populateFrom(request: BreakRequest) {
         // Sanitize the new breaks
@@ -361,7 +359,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
             .toMutableList()
 
-        // Update the current break infos or cancel if abandoned
+        // Update the current break infos
         breakInfos
             .filterNotNull()
             .forEach { info ->
@@ -469,7 +467,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
             if (!breakInfo.breakConfig.doubleBreak || secondaryBreak != null) {
-                if (!primaryInfo.updatedThisTick) {
+                if (!primaryInfo.updatedThisTick && tickStage in primaryInfo.breakConfig.breakStageMask) {
                     primaryInfo.cancelBreak()
                     return@let
                 } else return null
@@ -563,6 +561,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (isPrimary) {
                 nullify()
                 setBreakingTextureStage(player, world, -1)
+                abortBreakPacket(world, interaction)
                 request.onCancel?.invoke(context.blockPos)
             } else if (isSecondary) {
                 if (breakConfig.unsafeCancels) {
