@@ -46,13 +46,14 @@ import com.lambda.interaction.request.breaking.BreakManager.breakInfos
 import com.lambda.interaction.request.breaking.BreakManager.breaks
 import com.lambda.interaction.request.breaking.BreakManager.canAccept
 import com.lambda.interaction.request.breaking.BreakManager.cancelBreak
+import com.lambda.interaction.request.breaking.BreakManager.checkForCancels
 import com.lambda.interaction.request.breaking.BreakManager.initNewBreak
 import com.lambda.interaction.request.breaking.BreakManager.instantBreaks
-import com.lambda.interaction.request.breaking.BreakManager.makeRedundant
 import com.lambda.interaction.request.breaking.BreakManager.maxBreaksThisTick
 import com.lambda.interaction.request.breaking.BreakManager.performInstantBreaks
 import com.lambda.interaction.request.breaking.BreakManager.processNewBreaks
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
+import com.lambda.interaction.request.breaking.BreakManager.simulateAbandoned
 import com.lambda.interaction.request.breaking.BreakManager.updateBreakProgress
 import com.lambda.interaction.request.breaking.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakType.ReBreak
@@ -91,7 +92,8 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    onOpen = { processRequest(activeRequest) }
+    onOpen = { simulateAbandoned(); processRequest(activeRequest) },
+    onClose = { checkForCancels() }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?
         get() = breakInfos[0]
@@ -134,41 +136,12 @@ object BreakManager : RequestHandler<BreakRequest>(
     override fun load(): String {
         super.load()
 
-        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
-            // Cancelled but double breaking so requires break manager to continue the simulation
-            breakInfos
-                .asSequence()
-                .filterNotNull()
-                .filter { it.abandoned && !it.isRedundant }
-                .forEach { info ->
-                    with (info.request) {
-                        info.context.blockPos
-                            .toStructure(TargetState.Empty)
-                            .toBlueprint()
-                            .simulate(player.eyePos, interact, rotation, inventory, build)
-                            .asSequence()
-                            .filterIsInstance<BreakResult.Break>()
-                            .sorted()
-                            .let { sim ->
-                                info.updateInfo(sim.firstOrNull()?.context ?: return@forEach)
-                            }
-                    }
-                }
-        }
-
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             if (breakCooldown > 0) {
                 breakCooldown--
             }
             breakInfos.forEach { info ->
-                info?.apply {
-                    if (isRedundant) updateBreakProgress(this)
-                    else if (!updatedThisTick) {
-                        this.cancelBreak()
-                        return@apply
-                    }
-                    tickStats()
-                }
+                info?.tickStats()
             }
             activeRequest = null
             breaks = mutableListOf()
@@ -305,7 +278,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }
                     .asReversed()
                     .forEach { info ->
-                        if (info.updatedProgressThisTick) return@forEach
+                        if (info.progressedThisTick) return@forEach
                         val minKeepTicks = if (info.isSecondary) {
                             val breakDelta = info.context.cachedState.calcBreakDelta(
                                 player,
@@ -332,6 +305,39 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (breaksThisTick > 0 || breakInfos.any { it != null && !it.isRedundant }) {
             activeThisTick = true
         }
+    }
+
+    private fun SafeContext.simulateAbandoned() {
+        // Cancelled but double breaking so requires break manager to continue the simulation
+        breakInfos
+            .asSequence()
+            .filterNotNull()
+            .filter { it.abandoned && !it.isRedundant }
+            .forEach { info ->
+                with (info.request) {
+                    info.context.blockPos
+                        .toStructure(TargetState.Empty)
+                        .toBlueprint()
+                        .simulate(player.eyePos, interact, rotation, inventory, build)
+                        .asSequence()
+                        .filterIsInstance<BreakResult.Break>()
+                        .sorted()
+                        .let { sim ->
+                            info.updateInfo(sim.firstOrNull()?.context ?: return@forEach)
+                        }
+                }
+            }
+    }
+
+    private fun SafeContext.checkForCancels() {
+        breakInfos
+            .filterNotNull()
+            .asSequence()
+            .filter { !it.updatedThisTick && tickStage in it.breakConfig.breakStageMask }
+            .forEach { info ->
+                if (info.isRedundant && !info.progressedThisTick) updateBreakProgress(info)
+                else info.cancelBreak()
+            }
     }
 
     /**
@@ -362,15 +368,13 @@ object BreakManager : RequestHandler<BreakRequest>(
                 newBreaks.find { ctx -> ctx.blockPos == info.context.blockPos }?.let { ctx ->
                     if (!info.updatedThisTick || info.abandoned) {
                         info.updateInfo(ctx, request)
-                        if (info.isRedundant) {
-                            info.type = BreakType.Secondary
+                        if (info.isRedundant)
                             info.request.onStart?.invoke(info.context.blockPos)
-                        } else if (info.abandoned) {
+                        else if (info.abandoned) {
                             info.abandoned = false
                             info.request.onStart?.invoke(info.context.blockPos)
-                        } else {
+                        } else
                             info.request.onUpdate?.invoke(info.context.blockPos)
-                        }
                     }
                     newBreaks.remove(ctx)
                     return@forEach
@@ -552,8 +556,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      *
      * If the user has [BreakConfig.unsafeCancels] enabled, the info is made redundant, and mostly ignored.
      * If not, the break continues.
-     *
-     * @see makeRedundant
      */
     private fun BreakInfo.cancelBreak() =
         runSafe {
@@ -564,7 +566,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 request.onCancel?.invoke(context.blockPos)
             } else if (isSecondary) {
                 if (breakConfig.unsafeCancels) {
-                    makeRedundant()
+                    type = BreakType.RedundantSecondary
                     setBreakingTextureStage(player, world, -1)
                     request.onCancel?.invoke(context.blockPos)
                 } else {
@@ -577,13 +579,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnCancel] callback gets triggered
      */
     private fun BreakInfo.nullify() = type.nullify()
-
-    /**
-     * Makes the [BreakInfo] redundant and triggers the [BreakInfo.internalOnCancel] callback
-     */
-    private fun BreakInfo.makeRedundant() {
-        type = BreakType.RedundantSecondary
-    }
 
     /**
      * Nullifies the [BreakInfo] reference in the [breakInfos] array based on the [BreakType]
@@ -603,8 +598,9 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
      */
     private fun SafeContext.updateBreakProgress(info: BreakInfo): Boolean {
+        info.progressedThisTick = true
+
         val config = info.breakConfig
-        info.updatedProgressThisTick = true
         val ctx = info.context
         val hitResult = ctx.result
 

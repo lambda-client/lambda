@@ -82,7 +82,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
 
         val sameButLonger = activeRequest?.let { active ->
             request.slot == active.slot && request.keepTicks >= active.keepTicks
-        } ?: false
+        } == true
 
         if (sameButLonger) activeRequest?.let { current ->
             request.swapPauseAge = current.swapPauseAge

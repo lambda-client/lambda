@@ -37,7 +37,7 @@ data class BreakInfo(
     override val pendingInteractionsList get() = request.pendingInteractions
 
     var updatedThisTick = true
-    var updatedProgressThisTick = false
+    var progressedThisTick = false
 
     var breaking = false
     var abandoned = false
@@ -79,11 +79,12 @@ data class BreakInfo(
         updatedThisTick = true
         this.context = context
         request?.let { this.request = it }
+        if (isRedundant) type = BreakType.Secondary
     }
 
     fun tickStats() {
         updatedThisTick = false
-        updatedProgressThisTick = false
+        progressedThisTick = false
     }
 
     fun resetCallbacks() {

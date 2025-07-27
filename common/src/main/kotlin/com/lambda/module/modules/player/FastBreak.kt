@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
@@ -28,7 +27,6 @@ import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.lerp
-import com.lambda.util.math.transform
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.math.Box
@@ -60,9 +58,6 @@ object FastBreak : Module(
     private val startOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start outline of the box") { page == Page.Render && render && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic }
     private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box") { page == Page.Render && render && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic }
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline") { page == Page.Render && render && renderSetting != RenderSetting.Fill }
-
-
-    private var boxSet = emptySet<Box>()
 
     init {
         listen<PacketEvent.Send.Pre> {
