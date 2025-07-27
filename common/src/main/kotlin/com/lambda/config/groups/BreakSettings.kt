@@ -42,7 +42,7 @@ class BreakSettings(
     override val fudgeFactor by c.setting("Fudge Factor", 1, 0..5, 1, "The amount of ticks to give double, aka secondary breaks extra for the server to recognise the break") { vis() && page == Page.General }
 //    override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { vis() && page == Page.General }
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " ticks") { vis() && page == Page.General }
-    override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Pre, TickEvent.Input.Post, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed") { vis() && page == Page.General }
+    override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed") { vis() && page == Page.General }
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() && page == Page.General }
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && page == Page.General && swing != SwingMode.None }
     override val rotateForBreak by c.setting("Rotate For Break", false, "Rotate towards block while breaking") { vis() && page == Page.General }
