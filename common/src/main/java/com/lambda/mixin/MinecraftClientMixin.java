@@ -23,10 +23,12 @@ import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
+import com.lambda.module.modules.player.InventoryMove;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.util.thread.ThreadExecutor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -89,6 +91,19 @@ public class MinecraftClientMixin {
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new InventoryEvent.Close(handledScreen.getScreenHandler()));
         }
+    }
+
+    @Redirect(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
+    private void redirectUnPressAll() {
+        if (InventoryMove.INSTANCE.isDisabled() || InventoryMove.hasInputOrNull(currentScreen)) {
+            KeyBinding.unpressAll();
+            return;
+        }
+        KeyBinding.KEYS_BY_ID.values().forEach(bind -> {
+            if (!InventoryMove.isKeyMovementRelated(bind.boundKey.getCode())) {
+                bind.reset();
+            }
+        });
     }
 
     @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
