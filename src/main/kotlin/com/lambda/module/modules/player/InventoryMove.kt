@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.Lambda.mc
 import com.lambda.gui.LambdaScreen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -28,7 +29,6 @@ import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyboardUtils.isKeyPressed
-import com.lambda.util.math.MathUtils.toDouble
 import com.lambda.util.math.MathUtils.toFloatSign
 import com.lambda.util.player.MovementUtils.update
 import net.minecraft.client.gui.screen.ChatScreen
@@ -51,45 +51,27 @@ import org.lwjgl.glfw.GLFW.GLFW_KEY_S
 import org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE
 import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
 import org.lwjgl.glfw.GLFW.GLFW_KEY_W
+import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_6
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_8
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
 
 object InventoryMove : Module(
     name = "InventoryMove",
     description = "Allows you to move with GUIs opened",
     tag = ModuleTag.PLAYER,
 ) {
-    private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick")
+    private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
+    private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
     private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
-    /**
-     * Whether the current screen has text inputs or is null
-     */
-    val Screen?.hasInputOrNull: Boolean
-        get() = this is ChatScreen ||
-                this is SignEditScreen ||
-                this is AnvilScreen ||
-                this is CommandBlockScreen ||
-                this is LambdaScreen ||
-                this == null
-
     init {
-        listen<MovementEvent.InputUpdate>(20250415) { event ->
-            if (mc.currentScreen.hasInputOrNull) return@listen
-
-            val forward = isKeyPressed(GLFW_KEY_W).toDouble() -
-                    isKeyPressed(GLFW_KEY_S).toDouble()
-
-            val strafe = isKeyPressed(GLFW_KEY_A).toDouble() -
-                    isKeyPressed(GLFW_KEY_D).toDouble()
-
-            val jump = isKeyPressed(GLFW_KEY_SPACE)
-            val sneak = isKeyPressed(GLFW_KEY_LEFT_SHIFT)
-            val sprint = isKeyPressed(GLFW_KEY_LEFT_CONTROL)
-
-            event.input.update(forward, strafe, jump, sneak, sprint)
-        }
-
-        listen<UpdateManagerEvent.Rotation> {
-            if (mc.currentScreen.hasInputOrNull) return@listen
+        onRotate {
+            if (!arrowKeys || hasInputOrNull(mc.currentScreen)) return@onRotate
 
             val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
                     isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
@@ -99,6 +81,33 @@ object InventoryMove : Module(
             lookAt(
                 Rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f))
             ).requestBy(rotationConfig)
+        }
+    }
+
+    /**
+     * Whether the current screen has text inputs or is null
+     */
+    @JvmStatic
+    fun hasInputOrNull(screen: Screen?) =
+        screen is ChatScreen ||
+                screen is SignEditScreen ||
+                screen is AnvilScreen ||
+                screen is CommandBlockScreen ||
+                screen is LambdaScreen ||
+                screen == null
+
+    @JvmStatic
+    fun isKeyMovementRelated(key: Int): Boolean {
+        val options = mc.options
+        return when (key) {
+            options.forwardKey.boundKey.code,
+            options.backKey.boundKey.code,
+            options.leftKey.boundKey.code,
+            options.rightKey.boundKey.code,
+            options.jumpKey.boundKey.code,
+            options.sprintKey.boundKey.code,
+            options.sneakKey.boundKey.code -> true
+            else -> false
         }
     }
 }

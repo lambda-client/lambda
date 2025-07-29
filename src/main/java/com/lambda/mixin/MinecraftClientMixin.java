@@ -28,6 +28,7 @@ import com.lambda.module.modules.player.PacketMine;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.lambda.module.modules.player.InventoryMove;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
@@ -37,6 +38,7 @@ import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.sound.SoundManager;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.util.thread.ThreadExecutor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -129,6 +131,19 @@ public class MinecraftClientMixin {
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new InventoryEvent.Close(handledScreen.getScreenHandler()));
         }
+    }
+
+    @Redirect(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
+    private void redirectUnPressAll() {
+        if (InventoryMove.INSTANCE.isDisabled() || InventoryMove.hasInputOrNull(currentScreen)) {
+            KeyBinding.unpressAll();
+            return;
+        }
+        KeyBinding.KEYS_BY_ID.values().forEach(bind -> {
+            if (!InventoryMove.isKeyMovementRelated(bind.boundKey.getCode())) {
+                bind.reset();
+            }
+        });
     }
 
     @Redirect(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
