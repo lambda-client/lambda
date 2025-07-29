@@ -19,20 +19,52 @@ package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
 import com.lambda.gui.LambdaScreen
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.KeyboardUtils.isKeyPressed
+import com.lambda.util.math.MathUtils.toFloatSign
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
+import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_6
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_8
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
 
 object InventoryMove : Module(
     name = "InventoryMove",
     description = "Allows you to move with GUIs opened",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.MOVEMENT)
 ) {
-    private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick")
+    private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
+    private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
+    private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+
+    init {
+        onRotate {
+            if (!arrowKeys || hasInputOrNull(mc.currentScreen)) return@onRotate
+
+            val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
+                    isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
+            val yaw = (isKeyPressed(GLFW_KEY_RIGHT, GLFW_KEY_KP_6).toFloatSign() -
+                    isKeyPressed(GLFW_KEY_LEFT, GLFW_KEY_KP_4).toFloatSign()) * speed
+
+            lookAt(
+                Rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f))
+            ).requestBy(rotationConfig)
+        }
+    }
 
     /**
      * Whether the current screen has text inputs or is null
