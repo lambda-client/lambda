@@ -84,11 +84,18 @@ object PacketMine : Module(
 
     private val breakPositions = arrayOfNulls<BlockPos>(2)
     private val queuePositions = ArrayList<MutableCollection<BlockPos>>()
-    private val queueSorted
+    private val SafeContext.queueSorted
         get() = when (queueOrder) {
             QueueOrder.Standard -> queuePositions
             QueueOrder.Reversed -> queuePositions.asReversed()
-        }.flatten()
+            QueueOrder.Closest -> queuePositions.sortedBy {
+                it.firstOrNull()
+                    ?.toCenterPos()
+                    ?.let { center ->
+                        center distSq player.pos
+                    } ?: Double.MAX_VALUE
+            }
+        }
 
     private var reBreakPos: BlockPos? = null
 
@@ -120,7 +127,7 @@ object PacketMine : Module(
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
                 queuePositions.add(positions)
-                breakPositions.toList() + queueSorted
+                breakPositions.toList() + queueSorted.flatten()
             } else {
                 queuePositions.clear()
                 queuePositions.add(positions)
@@ -135,7 +142,7 @@ object PacketMine : Module(
 
         listen<TickEvent.Input.Post> {
             if (!attackedThisTick) {
-                requestBreakManager((breakPositions + queueSorted).toList())
+                requestBreakManager((breakPositions + queueSorted.flatten()).toList())
                 if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
                 val reBreak = reBreakPos ?: return@listen
                 requestBreakManager(listOf(reBreak), true)
@@ -144,7 +151,7 @@ object PacketMine : Module(
 
         listen<RenderEvent.StaticESP> { event ->
             if (!renderQueue) return@listen
-            queuePositions.forEachIndexed { index, positions ->
+            queueSorted.forEachIndexed { index, positions ->
                 positions.forEach { pos ->
                     val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)
                     else staticColor
@@ -260,7 +267,8 @@ object PacketMine : Module(
 
     enum class QueueOrder {
         Standard,
-        Reversed
+        Reversed,
+        Closest
     }
 
     private enum class RenderMode {
