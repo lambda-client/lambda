@@ -19,6 +19,8 @@ package com.lambda.interaction.request
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.breaking.BrokenBlockHandler
 import com.lambda.util.collections.LimitedDecayQueue
@@ -27,6 +29,10 @@ abstract class PostActionHandler<T : ActionInfo> {
     abstract val pendingActions: LimitedDecayQueue<T>
 
     init {
+        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+            pendingActions.cleanUp()
+        }
+
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
             pendingActions.clear()
         }

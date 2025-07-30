@@ -83,8 +83,6 @@ object InteractionManager : RequestHandler<InteractRequest>(
     }
 
     fun SafeContext.processRequest(request: InteractRequest) {
-        pendingActions.cleanUp()
-        
         if (request.fresh) populateFrom(request)
 
         if (player.isSneaking) return

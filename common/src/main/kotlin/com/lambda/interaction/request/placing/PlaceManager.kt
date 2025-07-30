@@ -135,8 +135,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun SafeContext.processRequest(request: PlaceRequest) {
-        pendingActions.cleanUp()
-
         if (request.fresh) populateFrom(request)
 
         val iterator = potentialPlacements.iterator()

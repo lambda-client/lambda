@@ -256,8 +256,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see updateBreakProgress
      */
     private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
-        pendingActions.cleanUp()
-
         repeat(2) {
             breakRequest?.let { request ->
                 if (request.fresh) populateFrom(request)
