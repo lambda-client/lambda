@@ -496,7 +496,7 @@ object BuildSimulator {
                         return@forEach
                     }
                     false
-                } ?: true
+                } != false
 
                 run rotate@ {
                     if (!place.axisRotate) {

@@ -63,7 +63,7 @@ class PlaceContainer @Ta5kBuilder constructor(
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
             canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
-        val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>().filter {
+        val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
             canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
@@ -79,9 +79,10 @@ class PlaceContainer @Ta5kBuilder constructor(
             }.finally {
                 success(result.blockPos)
             }.execute(this@PlaceContainer)
-        } ?: {
-            failure("No valid placement found")
+            return
         }
+
+        failure("No valid placement found")
     }
 
     private fun SafeContext.canBeOpened(
