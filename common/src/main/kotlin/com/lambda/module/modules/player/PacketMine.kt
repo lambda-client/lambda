@@ -191,12 +191,15 @@ object PacketMine : Module(
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
         positions
+            .asSequence()
             .filterNotNull()
             .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
             .toBlueprint()
             .simulate(player.eyePos, interact, rotation, inventory, build)
+            .asSequence()
             .filterIsInstance<BreakResult.Break>()
             .map { it.context }
+            .toCollection(mutableListOf())
 
     private fun addBreak(pos: BlockPos) {
         if (breakConfig.doubleBreak && breakPositions[0] != null) {
