@@ -26,32 +26,41 @@ import java.awt.Color
 interface BreakConfig : RequestConfig {
     val breakMode: BreakMode
     val sorter: SortMode
-    val reBreak: Boolean
     val breakThreshold: Float
+    val reBreak: Boolean
+
     val doubleBreak: Boolean
     val unsafeCancels: Boolean
+
     val fudgeFactor: Int
     //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
 //    abstract val desyncFix: Boolean
     val breakDelay: Int
+
     val breakStageMask: Set<Event>
+
     val swing: SwingMode
     val swingType: BuildConfig.SwingType
-    val sounds: Boolean
-    val particles: Boolean
-    val breakingTexture: Boolean
+
     val rotateForBreak: Boolean
+
     val breakConfirmation: BreakConfirmationMode
-    val maxPendingBreaks: Int
     val breaksPerTick: Int
-    val suitableToolsOnly: Boolean
+    val maxPendingBreaks: Int
+
     val avoidLiquids: Boolean
     val avoidSupporting: Boolean
     val breakWeakBlocks: Boolean
+    val ignoredBlocks: Set<Block>
+
+    val suitableToolsOnly: Boolean
     val forceSilkTouch: Boolean
     val forceFortunePickaxe: Boolean
     val minFortuneLevel: Int
-    val ignoredBlocks: Set<Block>
+
+    val sounds: Boolean
+    val particles: Boolean
+    val breakingTexture: Boolean
 
     val renders: Boolean
     val fill: Boolean
