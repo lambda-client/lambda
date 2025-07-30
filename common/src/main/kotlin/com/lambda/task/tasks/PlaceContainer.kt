@@ -60,11 +60,12 @@ class PlaceContainer @Ta5kBuilder constructor(
                     .simulate(player.eyePos)
             }
 
+        // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side)
+            canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
         }
         val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side)
+            canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
             build(
