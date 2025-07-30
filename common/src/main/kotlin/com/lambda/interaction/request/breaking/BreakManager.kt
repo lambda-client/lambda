@@ -69,6 +69,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
@@ -198,21 +199,25 @@ object BreakManager : RequestHandler<BreakRequest>(
                         info.context.blockPos,
                         info.breakConfig,
                         if (!info.isRedundant) player.inventory.getStack(info.context.hotbarIndex) else null
-                    )
-                    val threshold = if (info.isPrimary) info.breakConfig.breakThreshold else 1f
-                    val progress = (info.breakingTicks * breakDelta).toDouble() / (threshold + (breakDelta * config.fudgeFactor))
-                    val state = info.context.cachedState
-                    val boxes = state.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
-                        it.offset(info.context.blockPos)
-                    }
+                    ).toDouble()
+                    val currentDelta = info.breakingTicks * breakDelta
 
-                    val fillColor = if (config.dynamicFillColor) lerp(progress, config.startFillColor, config.endFillColor)
+                    val threshold = if (info.isPrimary) info.breakConfig.breakThreshold else 1f
+                    val adjustedThreshold = threshold + (breakDelta * config.fudgeFactor)
+
+                    val currentProgress = currentDelta / adjustedThreshold
+                    val nextTicksProgress = (currentDelta + breakDelta) / adjustedThreshold
+                    val interpolatedProgress = lerp(mc.partialTicks, currentProgress, nextTicksProgress)
+
+                    val fillColor = if (config.dynamicFillColor) lerp(interpolatedProgress, config.startFillColor, config.endFillColor)
                     else config.staticFillColor
-                    val outlineColor = if (config.dynamicOutlineColor) lerp(progress, config.startOutlineColor, config.endOutlineColor)
+                    val outlineColor = if (config.dynamicOutlineColor) lerp(interpolatedProgress, config.startOutlineColor, config.endOutlineColor)
                     else config.staticOutlineColor
 
-                    boxes.forEach boxes@ { box ->
-                        val interpolated = interpolateBox(box, progress, info.breakConfig)
+                    info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
+                        it.offset(info.context.blockPos)
+                    }.forEach boxes@ { box ->
+                        val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
                         if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
                         if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
                     }
