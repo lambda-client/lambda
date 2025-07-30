@@ -115,7 +115,7 @@ object PacketMine : Module(
                 }
             }
             positions.removeIf { breakPos ->
-                queue && queuePositions.any { it == breakPos }
+                (queue && queuePositions.any { it == breakPos }) || breakPos == breakPositions[1]
             }
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
