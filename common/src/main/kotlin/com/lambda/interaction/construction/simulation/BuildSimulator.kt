@@ -781,17 +781,24 @@ object BuildSimulator {
             return acc
         }
 
-        val matchingStacks = swapCandidates.associateWith { it.matchingStacks(stackSelection) }
-        val (_, toolPair) = matchingStacks.mapValues { (_, stacks) ->
-	        stacks.associateWith { state.calcItemBlockBreakingDelta(player, world, pos, it) }
-                .maxByOrNull { it.value }
-                ?.toPair()
-        }.entries.maxByOrNull { it.value?.second ?: 0f }?.toPair() ?: return acc
+        val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
+            .asSequence()
+            .flatten()
+            .let { containerStacks ->
+                var bestStack = player.mainHandStack
+                var bestBreakDelta = state.calcItemBlockBreakingDelta(player, world, pos, bestStack)
+                containerStacks.forEach { stack ->
+                    val breakDelta = state.calcItemBlockBreakingDelta(player, world, pos, stack)
+                    if (breakDelta > bestBreakDelta) {
+                        bestBreakDelta = breakDelta
+                        bestStack = stack
+                    }
+                }
+                bestStack
+        }
 
-        if (toolPair == null) return acc
-
-        breakContext.hotbarIndex = player.hotbar.indexOf(toolPair.first)
-        breakContext.instantBreak = instantBreakable(state, pos, toolPair.first, breaking.breakThreshold)
+        breakContext.hotbarIndex = player.hotbar.indexOf(swapStack)
+        breakContext.instantBreak = instantBreakable(state, pos, swapStack, breaking.breakThreshold)
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }
