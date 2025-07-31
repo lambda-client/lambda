@@ -27,6 +27,7 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.ManagerUtils
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
@@ -55,7 +56,8 @@ class PlaceContainer @Ta5kBuilder constructor(
     override fun SafeContext.onStart() {
         tickingBlueprint { current ->
             if (current.isNotEmpty() &&
-                current.all { it.value.matches(blockState(it.key), it.key, world) })
+                (current.all { it.value.matches(blockState(it.key), it.key, world) } ||
+                ManagerUtils.positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }))
             {
                 return@tickingBlueprint current
             }

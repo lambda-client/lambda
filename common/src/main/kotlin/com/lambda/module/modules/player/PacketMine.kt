@@ -192,7 +192,6 @@ object PacketMine : Module(
             onCancel { removeBreak(it, true) }
             onReBreakStart { reBreakPos = it }
             onReBreak { reBreakPos = it }
-            onItemDrop { _ -> itemDrops++ }
         }.submit()
     }
 
