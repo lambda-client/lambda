@@ -70,7 +70,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
     private val inventory: InventoryConfig = TaskFlowModule.inventory,
     private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
-) : Task<Unit>() {
+) : Task<Structure>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -89,7 +89,7 @@ class BuildTask @Ta5kBuilder constructor(
         } else null
 
     override fun SafeContext.onStart() {
-        (blueprint as? PropagatingBlueprint)?.next()
+        iteratePropagating()
     }
 
     init {
@@ -115,12 +115,9 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (blueprint is PropagatingBlueprint) {
-                        blueprint.next()
-                        return@listen
-                    }
+                    if (iteratePropagating()) return@listen
 
-                    if (finishOnDone) success()
+                    if (finishOnDone) success(blueprint.structure)
                 }
 
                 is BuildResult.NotVisible,
@@ -195,7 +192,9 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Post> {
-            (blueprint as? TickingBlueprint)?.tick()
+            if (blueprint is TickingBlueprint) {
+                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
+            }
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
@@ -233,6 +232,12 @@ class BuildTask @Ta5kBuilder constructor(
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
                 return true
             } ?: false
+
+    fun iteratePropagating() =
+        if (blueprint is PropagatingBlueprint) {
+            blueprint.next() ?: failure("Failed to propagate the next blueprint")
+            true
+        } else false
 
     companion object {
         @Ta5kBuilder
