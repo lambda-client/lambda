@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.context
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
@@ -37,6 +38,7 @@ data class BreakContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override var hotbarIndex: Int,
+    var itemSelection: StackSelection,
     var instantBreak: Boolean,
     override var cachedState: BlockState,
     val sortMode: BreakConfig.SortMode

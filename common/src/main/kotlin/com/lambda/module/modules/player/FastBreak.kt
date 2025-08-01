@@ -22,6 +22,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationRequest
@@ -59,6 +60,7 @@ object FastBreak : Module(
                 hitResult,
                 RotationRequest(lookAt(player.rotation), TaskFlowModule.rotation),
                 player.inventory.selectedSlot,
+                player.mainHandStack.select(),
                 state.calcBlockBreakingDelta(player, world, pos) >= buildConfig.breaking.breakThreshold,
                 state,
                 buildConfig.breaking.sorter

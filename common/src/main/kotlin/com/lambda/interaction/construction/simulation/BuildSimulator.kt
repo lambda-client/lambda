@@ -38,6 +38,7 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.breaking.BreakConfig
+import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
@@ -687,6 +688,7 @@ object BuildSimulator {
             hit.blockResult?.blockPos == pos
         }
 
+        // ToDo: Move this to a location where more of the context parameters can be properly set
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
@@ -697,6 +699,7 @@ object BuildSimulator {
                     blockHit,
                     rotationRequest,
                     player.inventory.selectedSlot,
+                    StackSelection.EVERYTHING.select(),
                     instantBreakable(state, pos, breaking.breakThreshold),
                     state,
                     breaking.sorter
@@ -746,7 +749,15 @@ object BuildSimulator {
         val rotationRequest = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos, breaking.breakThreshold)
 
-        val breakContext = BreakContext(blockHit, rotationRequest, player.inventory.selectedSlot, instant, state, breaking.sorter)
+        val breakContext = BreakContext(
+            blockHit,
+            rotationRequest,
+            player.inventory.selectedSlot,
+            StackSelection.EVERYTHING.select(),
+            instant,
+            state,
+            breaking.sorter
+        )
 
         if (gamemode.isCreative) {
             acc.add(BreakResult.Break(pos, breakContext))
@@ -784,6 +795,15 @@ object BuildSimulator {
         val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
             .asSequence()
             .flatten()
+            .filter { newStack ->
+                BreakManager.currentStackSelection.filterStack(newStack) &&
+                        BreakManager.currentContext?.run {
+                            val currentStack = player.inventory.getStack(hotbarIndex)
+                            val currentSpeed = cachedState.calcItemBlockBreakingDelta(player, world, blockPos, currentStack)
+                            val newSpeed = cachedState.calcItemBlockBreakingDelta(player, world, blockPos, newStack)
+                            newSpeed >= currentSpeed
+                        } != false
+            }
             .let { containerStacks ->
                 var bestStack = player.mainHandStack
                 var bestBreakDelta = state.calcItemBlockBreakingDelta(player, world, pos, bestStack)
@@ -797,8 +817,11 @@ object BuildSimulator {
                 bestStack
         }
 
-        breakContext.hotbarIndex = player.hotbar.indexOf(swapStack)
-        breakContext.instantBreak = instantBreakable(state, pos, swapStack, breaking.breakThreshold)
+        breakContext.apply {
+            hotbarIndex = player.hotbar.indexOf(swapStack)
+            itemSelection = stackSelection
+            instantBreak = instantBreakable(state, pos, swapStack, breaking.breakThreshold)
+        }
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }

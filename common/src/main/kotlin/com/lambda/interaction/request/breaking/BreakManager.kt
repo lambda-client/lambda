@@ -36,6 +36,8 @@ import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
@@ -102,6 +104,14 @@ object BreakManager : RequestHandler<BreakRequest>(
         get() = breakInfos[1]
         set(value) { breakInfos[1] = value }
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
+    val currentStackSelection
+        get() = breakInfos
+            .lastOrNull {
+                it?.breakConfig?.doubleBreak == true || it?.isSecondary == true
+            }?.context?.itemSelection
+            ?: StackSelection.EVERYTHING.select()
+    val currentContext
+        get() = breakInfos.lastOrNull()?.context
 
     private val pendingBreakCount get() = breakInfos.count { it != null } + pendingActions.size
     override val blockedPositions
@@ -294,7 +304,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         } else 0
                         if (!info.context.requestDependencies(info.request, minKeepTicks)) return@run
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
-                        if ((!rotated && info.isPrimary)) return@run
+                        if (!rotated && info.isPrimary) return@run
 
                         updateBreakProgress(info)
                     }
@@ -323,6 +333,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         .simulate(player.eyePos, interact, rotation, inventory, build)
                         .asSequence()
                         .filterIsInstance<BreakResult.Break>()
+                        .filter { canAccept(it.context) }
                         .sorted()
                         .let { sim ->
                             info.updateInfo(sim.firstOrNull()?.context ?: return@forEach)
@@ -354,7 +365,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         // Sanitize the new breaks
         val newBreaks = request.contexts
             .distinctBy { it.blockPos }
-            .filter { ctx -> canAccept(ctx, request.config) }
+            .filter { ctx -> canAccept(ctx) }
             .let { acceptable ->
                 acceptable.firstOrNull()?.let { first ->
                     acceptable.filter { it.hotbarIndex == first.hotbarIndex }
@@ -398,19 +409,23 @@ object BreakManager : RequestHandler<BreakRequest>(
     /**
      * @return if the break context can be accepted.
      */
-    private fun SafeContext.canAccept(ctx: BreakContext, breakConfig: BreakConfig): Boolean {
-        if (breakInfos.none { it?.context?.blockPos == ctx.blockPos } && isPosBlocked(ctx.blockPos)) return false
+    private fun SafeContext.canAccept(newCtx: BreakContext): Boolean {
+        if (breakInfos.none { it?.context?.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
 
-        if (breakConfig.doubleBreak) {
-            breakInfos
-                .firstOrNull { it != null && !it.isRedundant }
-                ?.let { info ->
-                    if (ctx.hotbarIndex != info.context.hotbarIndex) return false
-                }
-        }
+        breakInfos
+            .lastOrNull { it != null && !it.isRedundant && it.breakConfig.doubleBreak }
+            ?.let { info ->
+                val currentCtx = info.context
+                val currentStack = player.inventory.getStack(currentCtx.hotbarIndex)
+                val currentSpeed = currentCtx.cachedState.calcItemBlockBreakingDelta(player, world, currentCtx.blockPos, currentStack)
+                val newStack = player.inventory.getStack(newCtx.hotbarIndex)
+                val newSpeed = currentCtx.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, newStack)
+                if (!currentCtx.itemSelection.filterStack(newStack) || newSpeed < currentSpeed)
+                    return false
+            }
 
-        val blockState = blockState(ctx.blockPos)
-        val hardness = ctx.cachedState.getHardness(world, ctx.blockPos)
+        val blockState = blockState(newCtx.blockPos)
+        val hardness = newCtx.cachedState.getHardness(world, newCtx.blockPos)
 
         return blockState.isNotEmpty && hardness != 600f && hardness != -1f
     }
@@ -469,7 +484,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
-            if (!breakInfo.breakConfig.doubleBreak || secondaryBreak != null) {
+            if (!primaryInfo.breakConfig.doubleBreak || secondaryBreak != null) {
                 if (!primaryInfo.updatedThisTick && tickStage in primaryInfo.breakConfig.breakStageMask) {
                     primaryInfo.cancelBreak()
                     return@let
