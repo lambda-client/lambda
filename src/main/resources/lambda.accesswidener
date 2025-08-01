@@ -36,7 +36,6 @@ accessible field net/minecraft/entity/player/PlayerInventory equipment Lnet/mine
 accessible method net/minecraft/client/network/ClientPlayerEntity applyMovementSpeedFactors (Lnet/minecraft/util/math/Vec2f;)Lnet/minecraft/util/math/Vec2f;
 accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
 accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
-accessible field net/minecraft/entity/player/PlayerInventory main Lnet/minecraft/util/collection/DefaultedList;
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V

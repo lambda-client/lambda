@@ -38,7 +38,7 @@ public class PlayerInventoryMixin {
 
     @Shadow @Final public PlayerEntity player;
 
-    @Inject(method = "getMainStacks", at = @At(value = "HEAD"), cancellable = true)
+    @Inject(method = "getSelectedStack", at = @At(value = "HEAD"), cancellable = true)
     public void handleSpoofedMainHandStack(CallbackInfoReturnable<ItemStack> cir) {
         MinecraftClient mc = MinecraftClient.getInstance();
         ClientPlayerInteractionManager interaction = mc.interactionManager;
