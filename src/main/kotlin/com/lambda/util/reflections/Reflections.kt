@@ -25,10 +25,17 @@ import io.github.classgraph.Resource
 import io.github.classgraph.ResourceList
 import io.github.classgraph.ScanResult
 import java.lang.reflect.Modifier
-import kotlin.jvm.java
 
 val scanResult: ScanResult by lazy { ClassGraph().enableAllInfo().scan() }
 
+/**
+ * This function returns a instance of subtype [T].
+ *
+ * When [T] is an interface, the function with returns a list of classes that implements [T].
+ * When [T] is an abstract class (open classes too), the function will return a list of classes extending [T].
+ *
+ * Only final classes with empty constructors will be created.
+ */
 inline fun <reified T : Any> getInstances(crossinline block: (ClassInfo) -> Boolean = { true }): List<T> {
     if (scanResult.isClosed) return emptyList()
 
@@ -36,13 +43,11 @@ inline fun <reified T : Any> getInstances(crossinline block: (ClassInfo) -> Bool
 
     return when {
         clazz.isInterface -> scanResult.getClassesImplementing(clazz)
-            .filter { block(it) }
+        Modifier.isAbstract(clazz.modifiers) -> scanResult.getSubclasses(clazz)
 
-        clazz.isObject || Modifier.isAbstract(clazz.modifiers) -> scanResult.getSubclasses(clazz)
-             .filter { block(it) }
-
-        else -> throw IllegalAccessException("class ${clazz.name} is neither an interface or open class")
-    }.mapNotNull { createInstance<T>(Class.forName(it.name)) }
+        else -> throw IllegalStateException("class ${clazz.name} is neither an interface or open class")
+    }.filter { block(it) }
+        .mapNotNull { createInstance<T>(Class.forName(it.name)) }
 }
 
 inline fun getResources(pattern: String, crossinline block: (Resource) -> Boolean): ResourceList =
