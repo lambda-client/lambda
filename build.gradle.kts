@@ -75,6 +75,18 @@ repositories {
     }
 }
 
+fabricApi {
+    configureTests {
+        modId = "${base.archivesName}-tests"
+        eula = true
+        createSourceSet = true
+
+        enableGameTests = false
+        enableClientGameTests = true
+        clearRunDirectory = false
+    }
+}
+
 loom {
     accessWidenerPath = file("src/main/resources/$modId.accesswidener")
 
