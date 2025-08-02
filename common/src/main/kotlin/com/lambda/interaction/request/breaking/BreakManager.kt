@@ -107,7 +107,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     val currentStackSelection
         get() = breakInfos
             .lastOrNull {
-                it?.breakConfig?.doubleBreak == true || it?.isSecondary == true
+                it?.isRedundant == false && (it.breakConfig.doubleBreak || it.isSecondary)
             }?.context?.itemSelection
             ?: StackSelection.EVERYTHING.select()
 
@@ -172,6 +172,10 @@ object BreakManager : RequestHandler<BreakRequest>(
                         return@listen
                     }
                     destroyBlock(info)
+                    if (info.isRedundant) {
+                        info.nullify()
+                        return@listen
+                    }
                     info.request.onStop?.invoke(info.context.blockPos)
                     info.internalOnBreak()
                     if (info.callbacksCompleted)
@@ -185,6 +189,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
 
+            // ToDo: Proper item drop prediction system
             ReBreakManager.reBreak?.let { reBreak ->
                 if (matchesBlockItem(reBreak, it.entity)) return@listen
             }
@@ -364,7 +369,15 @@ object BreakManager : RequestHandler<BreakRequest>(
             .asSequence()
             .filter { !it.updatedThisTick && tickStage in it.breakConfig.breakStageMask }
             .forEach { info ->
-                if (info.isRedundant && !info.progressedThisTick) updateBreakProgress(info)
+                if (info.isRedundant && !info.progressedThisTick) {
+                    val cachedState = info.context.cachedState
+                    if (cachedState.isEmpty || cachedState.isAir) {
+                        info.nullify()
+                        return@forEach
+                    }
+                    info.progressedThisTick = true
+                    info.breakingTicks++
+                }
                 else info.cancelBreak()
             }
     }
@@ -422,12 +435,8 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.canAccept(newCtx: BreakContext): Boolean {
         if (breakInfos.none { it?.context?.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
 
-        breakInfos
-            .lastOrNull { it != null && !it.isRedundant && it.breakConfig.doubleBreak }
-            ?.let { current ->
-                val newStack = player.inventory.getStack(newCtx.hotbarIndex)
-                if (!current.context.itemSelection.filterStack(newStack)) return false
-            }
+        if (!currentStackSelection.filterStack(player.inventory.getStack(newCtx.hotbarIndex)))
+            return false
 
         val blockState = blockState(newCtx.blockPos)
         val hardness = newCtx.cachedState.getHardness(world, newCtx.blockPos)
@@ -536,29 +545,25 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
         info.request.onStop?.invoke(info.context.blockPos)
-        if (info.isRedundant) {
-            info.startPending()
-        } else {
-            when (info.breakConfig.breakConfirmation) {
-                BreakConfirmationMode.None -> {
-                    destroyBlock(info)
-                    info.internalOnBreak()
-                    if (!info.callbacksCompleted) {
-                        info.startPending()
-                    } else {
-                        ReBreakManager.offerReBreak(info)
-                    }
-                }
-                BreakConfirmationMode.BreakThenAwait -> {
-                    destroyBlock(info)
+        when (info.breakConfig.breakConfirmation) {
+            BreakConfirmationMode.None -> {
+                destroyBlock(info)
+                info.internalOnBreak()
+                if (!info.callbacksCompleted) {
                     info.startPending()
-                }
-                BreakConfirmationMode.AwaitThenBreak -> {
-                    info.startPending()
+                } else {
+                    ReBreakManager.offerReBreak(info)
                 }
             }
-            breaksThisTick++
+            BreakConfirmationMode.BreakThenAwait -> {
+                destroyBlock(info)
+                info.startPending()
+            }
+            BreakConfirmationMode.AwaitThenBreak -> {
+                info.startPending()
+            }
         }
+        breaksThisTick++
         info.nullify()
     }
 
@@ -632,10 +637,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         val hitResult = ctx.result
 
         if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos) && info.breaking) {
-            if (info.isRedundant) {
-                onBlockBreak(info)
-                return true
-            }
             breakCooldown = config.breakDelay
             lastPosStarted = ctx.blockPos
             onBlockBreak(info)
@@ -682,7 +683,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val blockState = blockState(ctx.blockPos)
         if (blockState.isEmpty || blockState.isAir) {
             info.nullify()
-            if (!info.isRedundant) info.request.onCancel?.invoke(info.context.blockPos)
+            info.request.onCancel?.invoke(info.context.blockPos)
             return false
         }
 
@@ -695,13 +696,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         ) * (info.breakingTicks - config.fudgeFactor)
 
         val overBreakThreshold = progress >= info.getBreakThreshold()
-
-        if (info.isRedundant) {
-            if (overBreakThreshold) {
-                onBlockBreak(info)
-            }
-            return true
-        }
 
         if (config.sounds) {
             if (info.soundsCooldown % 4.0f == 0.0f) {
