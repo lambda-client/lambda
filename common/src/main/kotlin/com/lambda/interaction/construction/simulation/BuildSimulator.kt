@@ -797,11 +797,13 @@ object BuildSimulator {
             .flatten()
             .filter { BreakManager.currentStackSelection.filterStack(it) }
             .let { containerStacks ->
-                var bestStack = player.mainHandStack
-                var bestBreakDelta = state.calcItemBlockBreakingDelta(player, world, pos, bestStack)
+                var bestStack = ItemStack.EMPTY
+                var bestBreakDelta = -1f
                 containerStacks.forEach { stack ->
                     val breakDelta = state.calcItemBlockBreakingDelta(player, world, pos, stack)
-                    if (breakDelta > bestBreakDelta) {
+                    if (breakDelta > bestBreakDelta ||
+                        (stack == player.mainHandStack && breakDelta >= bestBreakDelta))
+                    {
                         bestBreakDelta = breakDelta
                         bestStack = stack
                     }
