@@ -288,21 +288,25 @@ object BreakManager : RequestHandler<BreakRequest>(
                                 if (instantBreaks.isEmpty()) rotation.submit(false) else rotation
                             }
                     }
+                    .also {
+                        it.firstOrNull()?.let { info ->
+                            val minKeepTicks = secondaryBreak?.let { secondary ->
+                                val breakDelta = secondary.context.cachedState.calcBreakDelta(
+                                    player,
+                                    world,
+                                    secondary.context.blockPos,
+                                    secondary.breakConfig,
+                                    player.inventory.getStack(secondary.context.hotbarIndex)
+                                )
+                                val breakAmount = breakDelta * (secondary.breakingTicks + 1)
+                                if (breakAmount >= 1.0f) 1 else 0
+                            } ?: 0
+                            if (!info.context.requestDependencies(info.request, minKeepTicks)) return@run
+                        }
+                    }
                     .asReversed()
                     .forEach { info ->
                         if (info.progressedThisTick) return@forEach
-                        val minKeepTicks = if (info.isSecondary) {
-                            val breakDelta = info.context.cachedState.calcBreakDelta(
-                                player,
-                                world,
-                                info.context.blockPos,
-                                info.breakConfig,
-                                player.inventory.getStack(info.context.hotbarIndex)
-                            )
-                            val breakAmount = breakDelta * (info.breakingTicks + 1)
-                            if (breakAmount >= 1.0f) 1 else 0
-                        } else 0
-                        if (!info.context.requestDependencies(info.request, minKeepTicks)) return@run
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
                         if (!rotated && info.isPrimary) return@run
 

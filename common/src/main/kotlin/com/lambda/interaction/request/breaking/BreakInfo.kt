@@ -128,11 +128,11 @@ data class BreakInfo(
         }
 }
 
-enum class BreakType(val index: Int) {
-    Primary(0),
-    Secondary(1),
-    RedundantSecondary(2),
-    ReBreak(2);
+enum class BreakType() {
+    Primary,
+    Secondary,
+    RedundantSecondary,
+    ReBreak;
 
     fun getBreakThreshold(breakConfig: BreakConfig) =
         when (this) {
