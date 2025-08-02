@@ -103,6 +103,7 @@ loom {
             //property("org.lwjgl.util.DebugAllocator.fast", "true")
             property("org.lwjgl.util.DebugStack", "true")
             property("org.lwjgl.util.DebugFunctions", "true")
+            property("mixin.debug.export", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
