@@ -28,7 +28,12 @@ import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.math.Vec2d
+import com.mojang.blaze3d.opengl.GlStateManager
+import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.client.gl.GlBackend
+import net.minecraft.client.texture.GlTexture
 import org.joml.Matrix4f
+import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
 
 object RenderMain {
     val projectionMatrix = Matrix4f()
@@ -36,12 +41,11 @@ object RenderMain {
     val projModel: Matrix4f get() = Matrix4f(projectionMatrix).mul(modelViewMatrix)
 
     var screenSize = Vec2d.ZERO
-    var scaleFactor = 1.0
 
     @JvmStatic
-    fun render3D(positionMatrix: Matrix4f, projectionMatrix: Matrix4f) {
+    fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
         resetMatrices(positionMatrix)
-        projectionMatrix.set(projectionMatrix)
+        projectionMatrix.set(projMatrix)
 
         setupGL {
             RenderEvent.World().post()
@@ -60,18 +64,5 @@ object RenderMain {
             RenderEvent.DynamicESP().post()
             DynamicESP.upload()
         }
-    }
-
-    private fun rescale(factor: Double) {
-        val width = mc.window.framebufferWidth.toFloat()
-        val height = mc.window.framebufferHeight.toFloat()
-
-        val scaledWidth = width / factor
-        val scaledHeight = height / factor
-
-        screenSize = Vec2d(scaledWidth, scaledHeight)
-        scaleFactor = factor
-
-        projectionMatrix.setOrtho(0f, scaledWidth.toFloat(), scaledHeight.toFloat(), 0f, 1000f, 21000f)
     }
 }
