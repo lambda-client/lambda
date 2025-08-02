@@ -19,9 +19,9 @@ package com.lambda.graphics.pipeline
 
 import com.lambda.graphics.buffer.vertex.VertexArray
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib.Vec2
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import org.lwjgl.opengl.GL32C.GL_ARRAY_BUFFER
-import org.lwjgl.opengl.GL32C.GL_ELEMENT_ARRAY_BUFFER
+import org.lwjgl.opengl.GL32C.*
 
 /**
  * A GPU vertex processing pipeline that manages Vertex Array Objects (VAO) and associated buffers.
@@ -39,8 +39,13 @@ class VertexPipeline(
     private val attributes: VertexAttrib.Group
 ) {
     private val vao = VertexArray(vertexMode, attributes)
+
     private val vbo = PersistentBuffer(GL_ARRAY_BUFFER, attributes.stride)
-    private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, 4)
+    private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, Int.SIZE_BYTES)
+
+    init {
+        vao.linkVbo(vbo)
+    }
 
     /**
      * Direct access to the vertex buffer's underlying byte storage
@@ -56,11 +61,7 @@ class VertexPipeline(
      * Submits a draw call to the GPU using currently uploaded data
      * Binds VAO and issues glDrawElementsBaseVertex command
      */
-    fun render() = vao.render(
-        indicesSize = indices.bytesPut - ibo.uploadOffset,
-        indicesPointer = indices.pointer + ibo.uploadOffset,
-        verticesOffset = vbo.uploadOffset
-    )
+    fun render() = vao.renderIndices(ibo)
 
     /**
      * Builds and renders data constructed by [VertexBuilder]
@@ -143,11 +144,5 @@ class VertexPipeline(
     fun clear() {
         vbo.clear()
         ibo.clear()
-    }
-
-    init {
-        vao.bind()
-        vbo.use(attributes::link)
-        vao.bind(0)
     }
 }

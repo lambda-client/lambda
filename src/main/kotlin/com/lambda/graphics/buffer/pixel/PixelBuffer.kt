@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2024 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,30 +20,7 @@ package com.lambda.graphics.buffer.pixel
 import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.MathUtils.toInt
-import org.lwjgl.opengl.GL45C.GL_ALPHA
-import org.lwjgl.opengl.GL45C.GL_BGR
-import org.lwjgl.opengl.GL45C.GL_BGRA
-import org.lwjgl.opengl.GL45C.GL_BLUE
-import org.lwjgl.opengl.GL45C.GL_DYNAMIC_STORAGE_BIT
-import org.lwjgl.opengl.GL45C.GL_GREEN
-import org.lwjgl.opengl.GL45C.GL_LINEAR
-import org.lwjgl.opengl.GL45C.GL_MAP_COHERENT_BIT
-import org.lwjgl.opengl.GL45C.GL_MAP_PERSISTENT_BIT
-import org.lwjgl.opengl.GL45C.GL_MAP_WRITE_BIT
-import org.lwjgl.opengl.GL45C.GL_PIXEL_UNPACK_BUFFER
-import org.lwjgl.opengl.GL45C.GL_RED
-import org.lwjgl.opengl.GL45C.GL_RG
-import org.lwjgl.opengl.GL45C.GL_RGB
-import org.lwjgl.opengl.GL45C.GL_RGBA
-import org.lwjgl.opengl.GL45C.GL_STATIC_DRAW
-import org.lwjgl.opengl.GL45C.GL_TEXTURE_2D
-import org.lwjgl.opengl.GL45C.GL_TEXTURE_MAG_FILTER
-import org.lwjgl.opengl.GL45C.GL_TEXTURE_MIN_FILTER
-import org.lwjgl.opengl.GL45C.GL_UNSIGNED_BYTE
-import org.lwjgl.opengl.GL45C.glBindTexture
-import org.lwjgl.opengl.GL45C.glTexImage2D
-import org.lwjgl.opengl.GL45C.glTexParameteri
-import org.lwjgl.opengl.GL45C.glTexSubImage2D
+import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
 
 /**
@@ -75,7 +52,7 @@ class PixelBuffer(
 
     private val channels = channelMapping[texture.format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got ${texture.format} instead")
     private val size = texture.width * texture.height * channels * 1L
-//    private var sharedRegion: ByteBuffer? = null
+    //    private var sharedRegion: ByteBuffer? = null
 
     override fun upload(data: ByteBuffer, offset: Long) {
         if (!asynchronous) {
@@ -104,8 +81,8 @@ class PixelBuffer(
         swap()
         bind()
 
-//        if (persistent) data.putTo(sharedRegion)
-//        else update(data, offset)
+        //        if (persistent) data.putTo(sharedRegion)
+        //        else update(data, offset)
         update(data, offset)
 
         bind(0)
@@ -124,9 +101,9 @@ class PixelBuffer(
 
         storage(size)
 
-//        bind()
-//        sharedRegion = if (persistent) map(size, 0) else null
-//        bind(0)
+        //        bind()
+        //        sharedRegion = if (persistent) map(size, 0) else null
+        //        bind(0)
     }
 
     companion object {

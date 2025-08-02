@@ -29,7 +29,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"))
     private void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
-        if (key <= 0) return;
         EventFlow.post(new KeyboardEvent.Press(key, scancode, action, modifiers));
     }
 

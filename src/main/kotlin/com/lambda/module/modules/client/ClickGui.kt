@@ -22,11 +22,16 @@ import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
 import com.lambda.module.Module
+import com.lambda.module.modules.player.InventoryMove.hasInputOrNull
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import com.lambda.util.math.setAlpha
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
+import net.minecraft.client.gui.screen.ingame.AnvilScreen
+import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
+import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.text.Text
 import java.awt.Color
 
@@ -77,22 +82,23 @@ object ClickGui : Module(
 
     val hudPadding by setting("Hud Padding", 3.0, 0.0..10.0, 0.1)
 
+    val Screen?.hasInput: Boolean
+        get() = this is ChatScreen ||
+                this is SignEditScreen ||
+                this is AnvilScreen ||
+                this is CommandBlockScreen
+
     init {
-        listenUnsafe<KeyboardEvent.Press>(alwaysListen = true) {
-            if (it.translated == keybind && it.isPressed)
+        /*listenUnsafe<KeyboardEvent.Press> {
+            if (it.translated == keybind && it.isReleased)
                 toggle()
-        }
+        }*/
 
         onEnable {
             // When there is a screen active, we don't want to replace the screen because it will interfere with the
             // game.
-            if (mc.currentScreen == null)
+            if (!mc.currentScreen.hasInput)
                 mc.setScreen(LambdaScreen)
-        }
-
-        onDisable {
-            if (mc.currentScreen is LambdaScreen)
-                mc.currentScreen?.close()
         }
     }
 }

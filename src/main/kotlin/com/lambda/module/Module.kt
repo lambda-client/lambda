@@ -165,6 +165,9 @@ abstract class Module(
 
         onEnable { LambdaSound.MODULE_ON.play() }
         onDisable { LambdaSound.MODULE_OFF.play() }
+
+        onEnableUnsafe { LambdaSound.MODULE_ON.play() }
+        onDisableUnsafe { LambdaSound.MODULE_OFF.play() }
     }
 
     fun enable() {

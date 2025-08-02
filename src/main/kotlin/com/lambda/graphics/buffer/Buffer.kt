@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2024 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,40 +17,6 @@
 
 package com.lambda.graphics.buffer
 
-import org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER
-import org.lwjgl.opengl.GL15.GL_DYNAMIC_COPY
-import org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW
-import org.lwjgl.opengl.GL15.GL_DYNAMIC_READ
-import org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER
-import org.lwjgl.opengl.GL15.GL_STATIC_COPY
-import org.lwjgl.opengl.GL15.GL_STATIC_DRAW
-import org.lwjgl.opengl.GL15.GL_STATIC_READ
-import org.lwjgl.opengl.GL15.GL_STREAM_COPY
-import org.lwjgl.opengl.GL15.GL_STREAM_DRAW
-import org.lwjgl.opengl.GL15.GL_STREAM_READ
-import org.lwjgl.opengl.GL15.glBufferSubData
-import org.lwjgl.opengl.GL21.GL_PIXEL_PACK_BUFFER
-import org.lwjgl.opengl.GL21.GL_PIXEL_UNPACK_BUFFER
-import org.lwjgl.opengl.GL30.GL_MAP_FLUSH_EXPLICIT_BIT
-import org.lwjgl.opengl.GL30.GL_MAP_INVALIDATE_BUFFER_BIT
-import org.lwjgl.opengl.GL30.GL_MAP_INVALIDATE_RANGE_BIT
-import org.lwjgl.opengl.GL30.GL_MAP_READ_BIT
-import org.lwjgl.opengl.GL30.GL_MAP_UNSYNCHRONIZED_BIT
-import org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT
-import org.lwjgl.opengl.GL30.GL_TRANSFORM_FEEDBACK_BUFFER
-import org.lwjgl.opengl.GL31.GL_COPY_READ_BUFFER
-import org.lwjgl.opengl.GL31.GL_COPY_WRITE_BUFFER
-import org.lwjgl.opengl.GL31.GL_TEXTURE_BUFFER
-import org.lwjgl.opengl.GL31.GL_UNIFORM_BUFFER
-import org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER
-import org.lwjgl.opengl.GL42.GL_ATOMIC_COUNTER_BUFFER
-import org.lwjgl.opengl.GL43.GL_DISPATCH_INDIRECT_BUFFER
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
-import org.lwjgl.opengl.GL44.GL_CLIENT_STORAGE_BIT
-import org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT
-import org.lwjgl.opengl.GL44.GL_MAP_COHERENT_BIT
-import org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT
-import org.lwjgl.opengl.GL44.GL_QUERY_BUFFER
 import org.lwjgl.opengl.GL46.*
 import java.nio.ByteBuffer
 
@@ -70,6 +36,7 @@ abstract class Buffer(
      * Edge case to handle vertex arrays
      */
     val isVertexArray: Boolean = false,
+    val validate: Boolean = true
 ) {
     /**
      * Specifies how the buffers are used
@@ -139,12 +106,33 @@ abstract class Buffer(
     /**
      * Index of the current buffer.
      */
-    var index: Int = 0; private set
+    private var index: Int = 0; private set(value) {
+        if (field == value) return
+        field = value
+        id = bufferIds[value]
+    }
+
+    /**
+     * ID of the current buffer.
+     */
+    var id: Int = 0; get() {
+        if (field == 0) field = bufferIds[0]
+        return field
+    } private set
 
     /**
      * List of all the buffers.
      */
     private val bufferIds = IntArray(buffers)
+
+    /**
+     * Execute the [block] in a bound context
+     */
+    fun bind(block: Buffer.() -> Unit) {
+        bind()
+        block(this)
+        bind(0)
+    }
 
     /**
      * Binds the buffer id to the [target].
@@ -154,12 +142,7 @@ abstract class Buffer(
     /**
      * Binds current the buffer [index] to the [target].
      */
-    fun bind() = bind(bufferAt(index))
-
-    /**
-     * Returns the id of the buffer based on the index.
-     */
-    fun bufferAt(index: Int) = bufferIds[index]
+    fun bind() = bind(id)
 
     /**
      * Swaps the buffer [index] if [buffers] is greater than 1.
@@ -351,6 +334,8 @@ abstract class Buffer(
     abstract fun upload(data: ByteBuffer, offset: Long)
 
     private fun validate() {
+        if (!validate) return
+
         check(usage in GL_STREAM_DRAW..GL_DYNAMIC_COPY)
         { "Usage is invalid, refer to the documentation table." }
 
@@ -393,7 +378,7 @@ abstract class Buffer(
         var lastIbo = 0
         var prevIbo = 0
 
-        fun createPipelineBuffer(bufferTarget: Int) = object : Buffer(buffers = 1) {
+        fun createPipelineBuffer(bufferTarget: Int) = object : Buffer(buffers = 1, validate = false) {
             override val target: Int = bufferTarget
 
             override val usage: Int = GL_STATIC_DRAW

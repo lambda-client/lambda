@@ -20,6 +20,7 @@ package com.lambda.graphics.buffer.vertex
 import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.pipeline.PersistentBuffer
 import org.lwjgl.opengl.GL30C.GL_UNSIGNED_INT
 import org.lwjgl.opengl.GL30C.glBindVertexArray
 import org.lwjgl.opengl.GL32C.glDrawElementsBaseVertex
@@ -33,20 +34,41 @@ class VertexArray(
     override val target: Int = -1
     override val access: Int = -1
 
-    fun render(
+    private var linkedVBO: PersistentBuffer? = null
+
+    fun renderIndices(
+        ibo: PersistentBuffer
+    ) = linkedVBO?.let { vbo ->
+        renderInternal(
+            indicesSize = ibo.byteBuffer.bytesPut - ibo.uploadOffset,
+            indicesPointer = ibo.byteBuffer.pointer + ibo.uploadOffset,
+            verticesOffset = vbo.uploadOffset
+        )
+    } ?: throw IllegalStateException("Unable to use vertex array without having a VBO linked to it.")
+
+    private fun renderInternal(
         indicesSize: Long,
         indicesPointer: Long,
-        verticesOffset: Int
-    ) {
-        bind()
+        verticesOffset: Long
+    ) = bind {
         glDrawElementsBaseVertex(
             vertexMode.mode,
-            indicesSize.toInt() / UInt.SIZE_BYTES,
+            indicesSize.toInt() / Int.SIZE_BYTES,
             GL_UNSIGNED_INT,
             indicesPointer,
-            verticesOffset / attributes.stride
+            verticesOffset.toInt() / attributes.stride,
         )
-        bind(0)
+    }
+
+    fun linkVbo(vbo: PersistentBuffer, block: VertexArray.() -> Unit = {  }) {
+        linkedVBO = vbo
+
+        bind {
+            vbo.use {
+                attributes.link()
+                block(this@VertexArray)
+            }
+        }
     }
 
     override fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit) = throw UnsupportedOperationException()

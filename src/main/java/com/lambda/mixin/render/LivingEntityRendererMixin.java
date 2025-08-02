@@ -18,6 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.interaction.request.rotation.RotationManager;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -45,8 +46,8 @@ public class LivingEntityRendererMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F", ordinal = 0), require = 0)
-    private float injectRotationPitch(LivingEntity instance, float v) {
-        return Objects.requireNonNullElse(RotationManager.getRenderPitch(), v);
+    @ModifyExpressionValue(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F"))
+    private float injectRotationPitch(float original) {
+        return Objects.requireNonNullElse(RotationManager.getRenderPitch(), original);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2024 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,7 @@ package com.lambda.graphics.gl
 import com.lambda.Lambda.mc
 import net.minecraft.util.math.RotationAxis
 import net.minecraft.util.math.Vec3d
-import org.joml.Matrix4d
-import org.joml.Matrix4f
+import org.joml.*
 
 /**
  * A utility object for managing OpenGL transformation matrices.
