@@ -38,6 +38,7 @@ data class BreakInfo(
 
     var updatedThisTick = true
     var progressedThisTick = false
+    var serverBreakTicks = 0
 
     var breaking = false
     var abandoned = false

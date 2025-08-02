@@ -795,15 +795,7 @@ object BuildSimulator {
         val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
             .asSequence()
             .flatten()
-            .filter { newStack ->
-                BreakManager.currentStackSelection.filterStack(newStack) &&
-                        BreakManager.currentContext?.run {
-                            val currentStack = player.inventory.getStack(hotbarIndex)
-                            val currentSpeed = cachedState.calcItemBlockBreakingDelta(player, world, blockPos, currentStack)
-                            val newSpeed = cachedState.calcItemBlockBreakingDelta(player, world, blockPos, newStack)
-                            newSpeed >= currentSpeed
-                        } != false
-            }
+            .filter { BreakManager.currentStackSelection.filterStack(it) }
             .let { containerStacks ->
                 var bestStack = player.mainHandStack
                 var bestBreakDelta = state.calcItemBlockBreakingDelta(player, world, pos, bestStack)

@@ -56,8 +56,8 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
             if (!loaded) return@let
 
-            if (!info.broken) warn("${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}")
-            else if (!TaskFlowModule.ignoreItemDropWarnings) warn("${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
+            if (!info.broken) warn("${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}")
+            else if (!TaskFlowModule.ignoreItemDropWarnings) warn("${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
                 world.setBlockState(info.context.blockPos, info.context.cachedState)
