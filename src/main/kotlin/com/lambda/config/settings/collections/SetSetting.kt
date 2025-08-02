@@ -17,6 +17,9 @@
 
 package com.lambda.config.settings.collections
 
+import com.google.gson.JsonElement
+import com.google.gson.reflect.TypeToken
+import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
@@ -38,6 +41,24 @@ class SetSetting<T : Any>(
     description,
     visibility
 ) {
+    private val strSetType =
+        TypeToken.getParameterized(Set::class.java, String::class.java).type
+
+    // When serializing the list to json we do not want to serialize the elements' classes, but
+    // their stringified representation.
+    // If we do serialize the classes we'll run into missing type adapters errors by Gson.
+    override fun toJson(): JsonElement =
+        gson.toJsonTree(value.map { it.toString() })
+
+    override fun loadFromJson(serialized: JsonElement) {
+        val strSet = gson.fromJson<Set<String>>(serialized, strSetType)
+            .mapNotNull { str -> immutableSet.find { it.toString() == str } }
+            .toMutableSet()
+
+        value = strSet
+    }
+
+
     override val layout: ImGuiBuilder.() -> Unit
         get() =
             {
