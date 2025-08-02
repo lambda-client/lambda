@@ -26,13 +26,16 @@ import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.MovementType;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -46,10 +49,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Objects;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
-public abstract class ClientPlayerEntityMixin extends EntityMixin {
+public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
 
     @Shadow
     private boolean autoJumpEnabled;
+
+    public ClientPlayerEntityMixin(ClientWorld world, GameProfile profile) {
+        super(world, profile);
+    }
 
     @Shadow
     protected abstract void autoJump(float dx, float dz);
@@ -70,13 +77,14 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         float prevZ = (float) self.getZ();
 
         EventFlow.post(new MovementEvent.Player.Pre(movementType, movement));
-        super.move(movementType, self.getVelocity());
+        super.move(movementType, movement);
         EventFlow.post(new MovementEvent.Player.Post(movementType, movement));
 
-        float currX = (float) self.getX();
-        float currZ = (float) self.getZ();
+        float deltaX = (float) self.getX() - prevX;
+        float deltaZ = (float) self.getZ() - prevZ;
 
-        this.autoJump(currX - prevX, currZ - prevZ);
+        this.autoJump(deltaX, deltaZ);
+        this.distanceMoved = this.distanceMoved + MathHelper.hypot(deltaX, deltaZ) * 0.6F;
     }
 
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
