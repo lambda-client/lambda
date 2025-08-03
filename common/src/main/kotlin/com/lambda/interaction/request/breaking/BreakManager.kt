@@ -217,7 +217,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         world,
                         info.context.blockPos,
                         info.breakConfig,
-                        if (!info.isRedundant) activeStack else null
+                        if (!info.isRedundant && info.breakConfig.swapMode.isEnabled()) activeStack else null
                     ).toDouble()
                     val currentDelta = info.breakingTicks * breakDelta
 
@@ -298,6 +298,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                             }
                     }
                     .also {
+                        if (breakInfos.none { it?.shouldSwap(player, world) == true }) return@also
+
                         it.firstOrNull()?.let { info ->
                             secondaryBreak?.let { secondary ->
                                 val breakDelta = secondary.context.cachedState.calcBreakDelta(
@@ -307,9 +309,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                                     secondary.breakConfig,
                                     player.inventory.getStack(secondary.context.hotbarIndex)
                                 )
-                                val breakAmount = breakDelta * (secondary.breakingTicks + 1)
+                                val breakAmount = breakDelta * ((secondary.breakingTicks - secondary.breakConfig.fudgeFactor) + 1)
                                 val minKeepTicks = if (breakAmount >= 1.0f) 1 else 0
-                                if (!info.context.requestDependencies(info.request, minKeepTicks)) {
+                                if (!info.context.requestSwap(info.request, minKeepTicks)) {
                                     secondary.serverBreakTicks = 0
                                     return@run
                                 }
@@ -318,7 +320,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                                 }
                                 return@also
                             }
-                            if (!info.context.requestDependencies(info.request, 0)) return@run
+                            if (!info.context.requestSwap(info.request, 0)) return@run
                         }
                     }
                     .asReversed()
@@ -458,13 +460,12 @@ object BreakManager : RequestHandler<BreakRequest>(
 
             if (!canAccept(ctx)) continue
 
-            if (!ctx.requestDependencies(request)) return false
+            if (request.build.breaking.swapMode.isEnabled() && !ctx.requestSwap(request)) return false
             rotationRequest = if (request.config.rotateForBreak) ctx.rotation.submit(false) else null
             if (!rotated || tickStage !in request.config.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false
             updateBreakProgress(breakInfo)
-            breaksThisTick++
             iterator.remove()
         }
         return true

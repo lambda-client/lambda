@@ -37,7 +37,6 @@ class BreakSettings(
     // General
     override val breakMode by c.setting("Break Mode", BreakMode.Packet) { vis() && page == Page.General }
     override val sorter by c.setting("Sorter", SortMode.Closest, "The order in which breaks are performed") { vis() && page == Page.General }
-    override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken") { vis() && page == Page.General }
     override val reBreak by c.setting("ReBreak", true, "Re-breaks blocks after they've been broken once") { vis() && page == Page.General }
 
     // Double break
@@ -45,12 +44,16 @@ class BreakSettings(
     override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { vis() && page == Page.General }
 
     // Fixes / Delays
+    override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken") { vis() && page == Page.General }
     override val fudgeFactor by c.setting("Fudge Factor", 1, 0..5, 1, "The amount of ticks to give double, aka secondary breaks extra for the server to recognise the break") { vis() && page == Page.General }
 //    override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { vis() && page == Page.General }
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " ticks") { vis() && page == Page.General }
 
     // Timing
     override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed") { vis() && page == Page.General }
+
+    // Swap
+    override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block") { vis() && page == Page.General }
 
     // Swing
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() && page == Page.General }

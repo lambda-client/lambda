@@ -77,7 +77,7 @@ data class BreakContext(
         withState(cachedState, blockPos, sideColor, result.side)
     }
 
-    fun requestDependencies(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean =
+    fun requestSwap(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean =
         HotbarRequest(
             hotbarIndex,
             breakRequest.hotbar,

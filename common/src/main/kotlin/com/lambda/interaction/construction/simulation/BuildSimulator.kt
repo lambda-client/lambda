@@ -814,7 +814,7 @@ object BuildSimulator {
         breakContext.apply {
             hotbarIndex = player.hotbar.indexOf(swapStack)
             itemSelection = stackSelection
-            instantBreak = instantBreakable(state, pos, swapStack, breaking.breakThreshold)
+            instantBreak = instantBreakable(state, pos, if (breaking.swapMode.isEnabled()) swapStack else player.mainHandStack, breaking.breakThreshold)
         }
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc

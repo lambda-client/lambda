@@ -39,6 +39,8 @@ interface BreakConfig : RequestConfig {
 
     val breakStageMask: Set<Event>
 
+    val swapMode: SwapMode
+
     val swing: SwingMode
     val swingType: BuildConfig.SwingType
 
@@ -88,6 +90,16 @@ interface BreakConfig : RequestConfig {
         Farthest,
         Rotation,
         Random
+    }
+
+    enum class SwapMode {
+        None,
+        Start,
+        End,
+        StartAndEnd,
+        Constant;
+
+        fun isEnabled() = this != None
     }
 
     enum class SwingMode {

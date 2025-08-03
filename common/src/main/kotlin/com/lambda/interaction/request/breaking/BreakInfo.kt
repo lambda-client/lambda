@@ -27,6 +27,7 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
+import net.minecraft.world.WorldView
 
 data class BreakInfo(
     override var context: BreakContext,
@@ -91,6 +92,21 @@ data class BreakInfo(
     fun resetCallbacks() {
         broken = false
         item = null
+    }
+
+    fun shouldSwap(player: ClientPlayerEntity, world: WorldView): Boolean {
+        val item = player.inventory.getStack(context.hotbarIndex)
+        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
+        val breakProgress = breakDelta * ((breakingTicks + 1) - breakConfig.fudgeFactor).let {
+            if (isSecondary) it + 1 else it
+        }
+        return when (breakConfig.swapMode) {
+            BreakConfig.SwapMode.None -> false
+            BreakConfig.SwapMode.Start -> !breaking
+            BreakConfig.SwapMode.End -> breakProgress >= getBreakThreshold()
+            BreakConfig.SwapMode.StartAndEnd -> !breaking || breakProgress >= getBreakThreshold()
+            BreakConfig.SwapMode.Constant -> true
+        }
     }
 
     fun setBreakingTextureStage(
