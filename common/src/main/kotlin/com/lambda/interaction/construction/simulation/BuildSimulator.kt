@@ -58,6 +58,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.util.BlockUtils.hasFluid
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
@@ -345,7 +346,8 @@ object BuildSimulator {
         val statePromoting = currentState.block is SlabBlock && targetState.matches(currentState, pos, world, preProcessing.ignore)
         // If the target state is air then the only possible blocks it could place are to remove liquids so we use the Solid TargetState
         val nextTargetState = if (targetState is TargetState.Air) {
-            TargetState.Solid
+            if (currentState.hasFluid) TargetState.Solid
+            else return acc
         } else if (targetState.isEmpty()) {
             // Otherwise if the target state is empty, there's no situation where placement would be required so we can return
             return acc
