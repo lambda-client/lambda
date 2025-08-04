@@ -324,7 +324,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                                 }
                                 return@also
                             }
-                            if (!info.context.requestSwap(info.request, 0)) return@run
+                            if (!info.context.requestSwap(info.request)) return@run
                         }
                     }
                     .asReversed()
@@ -332,28 +332,6 @@ object BreakManager : RequestHandler<BreakRequest>(
                         if (info.progressedThisTick) return@forEach
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
                         if (!rotated && info.isPrimary) return@run
-
-                        if (info.couldReBreak.value == true) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
-                            is ReBreakResult.StillBreaking -> {
-                                primaryBreak = reBreakResult.breakInfo.apply {
-                                    type = Primary
-                                    ReBreakManager.clearReBreak()
-                                    request.onStart?.invoke(info.context.blockPos)
-                                }
-
-                                primaryBreak?.let { primary ->
-                                    updateBreakProgress(primary)
-                                }
-                                return@forEach
-                            }
-                            is ReBreakResult.ReBroke -> {
-                                info.type = ReBreak
-                                info.nullify()
-                                info.request.onReBreak?.invoke(info.context.blockPos)
-                                return@forEach
-                            }
-                            else -> {}
-                        }
 
                         updateBreakProgress(info)
                     }
@@ -657,13 +635,26 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
      */
     private fun SafeContext.updateBreakProgress(info: BreakInfo): Boolean {
-        info.progressedThisTick = true
-
         val config = info.breakConfig
         val ctx = info.context
+
+        if (!info.breaking) {
+            if (!startBreaking(info)) {
+                info.nullify()
+                info.request.onCancel?.invoke(ctx.blockPos)
+                return false
+            }
+            val swing = config.swing
+            if (swing.isEnabled() && (swing != BreakConfig.SwingMode.End || info.isReBreaking)) {
+                swingHand(config.swingType, Hand.MAIN_HAND)
+            }
+            return true
+        }
+
+        info.progressedThisTick = true
         val hitResult = ctx.result
 
-        if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos) && info.breaking) {
+        if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
             breakCooldown = config.breakDelay
             lastPosStarted = ctx.blockPos
             onBlockBreak(info)
@@ -674,23 +665,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
 
-        if (!info.breaking) {
-            if (!startBreaking(info)) {
-                info.nullify()
-                info.request.onCancel?.invoke(info.context.blockPos)
-                return false
-            }
-            val swing = config.swing
-            if (swing.isEnabled() && swing != BreakConfig.SwingMode.End) {
-                swingHand(config.swingType, Hand.MAIN_HAND)
-            }
-            return true
-        }
-
         val blockState = blockState(ctx.blockPos)
         if (blockState.isEmpty || blockState.isAir) {
             info.nullify()
-            info.request.onCancel?.invoke(info.context.blockPos)
+            info.request.onCancel?.invoke(ctx.blockPos)
             return false
         }
 
@@ -755,6 +733,28 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun SafeContext.startBreaking(info: BreakInfo): Boolean {
         val ctx = info.context
+
+        if (info.couldReBreak.value == true) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
+            is ReBreakResult.StillBreaking -> {
+                primaryBreak = reBreakResult.breakInfo.apply {
+                    type = Primary
+                    ReBreakManager.clearReBreak()
+                    request.onStart?.invoke(ctx.blockPos)
+                }
+
+                primaryBreak?.let { primary ->
+                    updateBreakProgress(primary)
+                }
+                return true
+            }
+            is ReBreakResult.ReBroke -> {
+                info.type = ReBreak
+                info.nullify()
+                info.request.onReBreak?.invoke(ctx.blockPos)
+                return true
+            }
+            else -> {}
+        }
 
         if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
         if (!world.worldBorder.contains(ctx.blockPos)) return false
