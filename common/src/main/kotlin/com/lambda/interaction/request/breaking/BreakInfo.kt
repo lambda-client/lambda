@@ -21,6 +21,7 @@ import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.util.collections.updatableLazy
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
@@ -42,7 +43,7 @@ data class BreakInfo(
     var progressedThisTick = false
     var serverBreakTicks = 0
 
-    var couldReBreak = lazy {
+    var couldReBreak = updatableLazy {
         runSafe {
             ReBreakManager.couldReBreak(this@BreakInfo, player, world)
         } == true
@@ -107,7 +108,7 @@ data class BreakInfo(
         val breakProgress = breakDelta * ((breakingTicks + 1) - breakConfig.fudgeFactor).let {
             if (isSecondary) it + 1 else it
         }
-        return if (couldReBreak.value)
+        return if (couldReBreak.value == true)
             breakConfig.swapMode.isEnabled()
         else when (breakConfig.swapMode) {
             BreakConfig.SwapMode.None -> false

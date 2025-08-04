@@ -297,6 +297,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                                 if (instantBreaks.isEmpty()) rotation.submit(false) else rotation
                             }
                     }
+                    .also  {
+                        it.forEach { it.couldReBreak.update() }
+                    }
                     .also {
                         if (breakInfos.none { it?.shouldSwap(player, world) == true }) return@also
 
@@ -329,7 +332,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
                         if (!rotated && info.isPrimary) return@run
 
-                        if (info.couldReBreak.value) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
+                        if (info.couldReBreak.value == true) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
                             is ReBreakResult.StillBreaking -> {
                                 primaryBreak = reBreakResult.breakInfo.apply {
                                     type = Primary
