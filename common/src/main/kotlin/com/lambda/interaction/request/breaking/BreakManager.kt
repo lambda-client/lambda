@@ -212,12 +212,13 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .forEach { info ->
                     val config = info.breakConfig
                     if (!config.renders) return@listen
+                    val swapMode = info.breakConfig.swapMode
                     val breakDelta = info.context.cachedState.calcBreakDelta(
                         player,
                         world,
                         info.context.blockPos,
                         info.breakConfig,
-                        if (!info.isRedundant && info.breakConfig.swapMode.isEnabled()) activeStack else null
+                        if (!info.isRedundant && swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) activeStack else null
                     ).toDouble()
                     val currentDelta = info.breakingTicks * breakDelta
 
