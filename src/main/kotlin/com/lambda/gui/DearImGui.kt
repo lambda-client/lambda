@@ -73,7 +73,7 @@ object DearImGui : Loadable {
                 ImGuiConfigFlags.DockingEnable
 
         io.iniFilename = "lambda.ini"
-        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, 13f)
+        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, 18f)
         io.fonts.build()
 
         implGlfw.init(mc.window.handle, true)
