@@ -94,7 +94,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    onOpen = { simulateAbandoned(); processRequest(activeRequest) },
+    onOpen = { processRequest(activeRequest); simulateAbandoned() },
     onClose = { checkForCancels() }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?

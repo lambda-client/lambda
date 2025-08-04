@@ -32,11 +32,17 @@ object ReBreakManager {
     var reBreak: BreakInfo? = null
 
     init {
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            reBreak?.apply {
-                breakingTicks++
-                tickStats()
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
+            reBreak?.run {
+                if (!progressedThisTick) {
+                    breakingTicks++
+                    progressedThisTick = true
+                }
             }
+        }
+
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            reBreak?.tickStats()
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
@@ -72,7 +78,7 @@ object ReBreakManager {
             val context = info.context
 
             val breakProgress = context.cachedState.calcBlockBreakingDelta(player, world, context.blockPos)
-            return@runSafe if (info.breakingTicks * breakProgress >= info.breakConfig.breakThreshold) {
+            return@runSafe if ((info.breakingTicks - info.breakConfig.fudgeFactor) * breakProgress >= info.breakConfig.breakThreshold) {
                 if (context.cachedState.isEmpty) {
                     return@runSafe ReBreakResult.Ignored
                 }
