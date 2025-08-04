@@ -19,6 +19,7 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
@@ -40,6 +41,12 @@ data class BreakInfo(
     var updatedThisTick = true
     var progressedThisTick = false
     var serverBreakTicks = 0
+
+    var couldReBreak = lazy {
+        runSafe {
+            ReBreakManager.couldReBreak(this@BreakInfo, player, world)
+        } == true
+    }
 
     var breaking = false
     var abandoned = false
@@ -100,7 +107,9 @@ data class BreakInfo(
         val breakProgress = breakDelta * ((breakingTicks + 1) - breakConfig.fudgeFactor).let {
             if (isSecondary) it + 1 else it
         }
-        return when (breakConfig.swapMode) {
+        return if (couldReBreak.value)
+            breakConfig.swapMode.isEnabled()
+        else when (breakConfig.swapMode) {
             BreakConfig.SwapMode.None -> false
             BreakConfig.SwapMode.Start -> !breaking
             BreakConfig.SwapMode.End -> breakProgress >= getBreakThreshold()

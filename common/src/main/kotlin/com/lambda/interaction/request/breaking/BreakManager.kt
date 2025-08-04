@@ -329,6 +329,28 @@ object BreakManager : RequestHandler<BreakRequest>(
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
                         if (!rotated && info.isPrimary) return@run
 
+                        if (info.couldReBreak.value) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
+                            is ReBreakResult.StillBreaking -> {
+                                primaryBreak = reBreakResult.breakInfo.apply {
+                                    type = Primary
+                                    ReBreakManager.clearReBreak()
+                                    request.onStart?.invoke(info.context.blockPos)
+                                }
+
+                                primaryBreak?.let { primary ->
+                                    updateBreakProgress(primary)
+                                }
+                                return@forEach
+                            }
+                            is ReBreakResult.ReBroke -> {
+                                info.type = ReBreak
+                                info.nullify()
+                                info.request.onReBreak?.invoke(info.context.blockPos)
+                                return@forEach
+                            }
+                            else -> {}
+                        }
+
                         updateBreakProgress(info)
                     }
             }
@@ -649,26 +671,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         if (!info.breaking) {
-            when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
-                is ReBreakResult.StillBreaking -> {
-                    primaryBreak = reBreakResult.breakInfo.apply {
-                        type = Primary
-                        ReBreakManager.clearReBreak()
-                        request.onStart?.invoke(ctx.blockPos)
-                    }
-
-                    return primaryBreak?.let { primary ->
-                        updateBreakProgress(primary)
-                    } == true
-                }
-                is ReBreakResult.ReBroke -> {
-                    info.type = ReBreak
-                    info.nullify()
-                    info.request.onReBreak?.invoke(info.context.blockPos)
-                    return true
-                }
-                else -> {}
-            }
             if (!startBreaking(info)) {
                 info.nullify()
                 info.request.onCancel?.invoke(info.context.blockPos)
