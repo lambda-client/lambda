@@ -17,7 +17,7 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.request.rotation.visibilty.PointSelection
+import com.lambda.interaction.request.rotating.visibilty.PointSelection
 
 interface InteractionConfig {
     /**
@@ -59,8 +59,9 @@ interface InteractionConfig {
      */
     val pointSelection: PointSelection
 
-    /**
-     * Whether to swing the hand when interacting.
-     */
-    val swingHand: Boolean
+    enum class InteractConfirmationMode {
+        None,
+        InteractThenAwait,
+        AwaitThenInteract
+    }
 }

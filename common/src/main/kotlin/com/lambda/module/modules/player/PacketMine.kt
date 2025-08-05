@@ -24,22 +24,28 @@ import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.renderer.esp.builders.buildFilled
+import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.distSq
+import com.lambda.util.math.lerp
+import com.lambda.util.math.setAlpha
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
-import java.util.*
+import net.minecraft.util.math.Box
+import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
@@ -62,19 +68,34 @@ object PacketMine : Module(
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued")
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }
+    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }
+    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }
 
-    private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
+
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     private var breaks = 0
     private var itemDrops = 0
 
     private val breakPositions = arrayOfNulls<BlockPos>(2)
-    private val queuePositions = LinkedList<MutableCollection<BlockPos>>()
-    private val queueSorted
+    private val queuePositions = ArrayList<MutableCollection<BlockPos>>()
+    private val SafeContext.queueSorted
         get() = when (queueOrder) {
             QueueOrder.Standard -> queuePositions
-            QueueOrder.Reversed -> queuePositions.reversed()
-        }.flatten()
+            QueueOrder.Reversed -> queuePositions.asReversed()
+            QueueOrder.Closest -> queuePositions.sortedBy {
+                it.firstOrNull()
+                    ?.toCenterPos()
+                    ?.let { center ->
+                        center distSq player.pos
+                    } ?: Double.MAX_VALUE
+            }
+        }
 
     private var reBreakPos: BlockPos? = null
 
@@ -89,39 +110,61 @@ object PacketMine : Module(
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             val pos = event.pos
-            val positions = mutableListOf(pos).apply {
-                if (breakRadius <= 0) return@apply
+            val positions = mutableListOf<BlockPos>().apply {
+                if (breakRadius <= 0) {
+                    add(pos)
+                    return@apply
+                }
                 BlockPos.iterateOutwards(pos, breakRadius, breakRadius, breakRadius).forEach { blockPos ->
-                    if (blockPos distSq pos <= (breakRadius * breakRadius) && (!flatten || blockPos.y >= player.blockPos.y)) {
+                    if (blockPos distSq pos <= (breakRadius * breakRadius) && (!flatten || (blockPos.y >= player.blockPos.y || blockPos == pos))) {
                         add(blockPos.toImmutable())
                     }
                 }
             }
             positions.removeIf { breakPos ->
-                breakPositions.any { it == breakPos }
-                        || (queue && queuePositions.any { it == pos })
+                (queue && queuePositions.any { it == breakPos }) || breakPos == breakPositions[1]
             }
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
-                queuePositions.addLast(positions)
-                breakPositions.toList() + queueSorted
+                queuePositions.add(positions)
+                breakPositions.toList() + queueSorted.flatten()
             } else {
                 queuePositions.clear()
-                queuePositions.addLast(positions)
+                queuePositions.add(positions)
                 queuePositions.flatten() + if (breakConfig.doubleBreak) {
                     breakPositions[1] ?: breakPositions[0]
                 } else null
             }
             requestBreakManager(activeBreaking)
             attackedThisTick = true
+            queuePositions.trimToSize()
         }
 
         listen<TickEvent.Input.Post> {
             if (!attackedThisTick) {
-                requestBreakManager((breakPositions + queueSorted).toList())
+                requestBreakManager((breakPositions + queueSorted.flatten()).toList())
                 if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
                 val reBreak = reBreakPos ?: return@listen
                 requestBreakManager(listOf(reBreak), true)
+            }
+        }
+
+        listen<RenderEvent.StaticESP> { event ->
+            if (!renderQueue) return@listen
+            queueSorted.forEachIndexed { index, positions ->
+                positions.forEach { pos ->
+                    val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)
+                    else staticColor
+                    val boxes = when (renderMode) {
+                        RenderMode.State -> blockState(pos).getOutlineShape(world, pos).boundingBoxes
+                        RenderMode.Box -> listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
+                    }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
+
+                    boxes.forEach { box ->
+                        event.renderer.buildFilled(box, color)
+                        event.renderer.buildOutline(box, color.setAlpha(1.0))
+                    }
+                }
             }
         }
 
@@ -135,31 +178,34 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.requestBreakManager(requestPositions: Collection<BlockPos?>, reBreaking: Boolean = false) {
-        if (requestPositions.isEmpty()) return
+        if (requestPositions.count { it != null } <= 0) return
         val breakContexts = breakContexts(requestPositions)
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
-        val request = BreakRequest(
-            breakContexts, build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onStart = { queuePositions.removePos(it); addBreak(it) },
-            onStop = { removeBreak(it); breaks++ },
-            onCancel = { removeBreak(it, true) },
-            onReBreakStart = { reBreakPos = it },
-            onReBreak = { reBreakPos = it },
-            onItemDrop = { _ -> itemDrops++ }
-        )
-        breakConfig.request(request, true)
+        breakRequest(
+            breakContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
+        ) {
+            onStart { queuePositions.removePos(it); addBreak(it) }
+            onUpdate { queuePositions.removePos(it) }
+            onStop { removeBreak(it); breaks++ }
+            onCancel { removeBreak(it, true) }
+            onReBreakStart { reBreakPos = it }
+            onReBreak { reBreakPos = it }
+        }.submit()
     }
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
         positions
+            .asSequence()
             .filterNotNull()
             .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
             .toBlueprint()
             .simulate(player.eyePos, interact, rotation, inventory, build)
+            .asSequence()
             .filterIsInstance<BreakResult.Break>()
             .map { it.context }
+            .toCollection(mutableListOf())
 
     private fun addBreak(pos: BlockPos) {
         if (breakConfig.doubleBreak && breakPositions[0] != null) {
@@ -180,7 +226,7 @@ object PacketMine : Module(
         }
     }
 
-    private fun LinkedList<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
+    private fun ArrayList<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
         var anyRemoved = false
         removeIf {
             val removed = it.remove(element)
@@ -190,19 +236,19 @@ object PacketMine : Module(
         return anyRemoved
     }
 
-    private fun LinkedList<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
+    private fun ArrayList<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
         var modified = false
         forEach {
             modified = modified or it.retainAll { pos ->
                 positions.any { retain ->
-                    retain.expectedPos == pos
+                    retain.blockPos == pos
                 }
             }
         }
         return modified
     }
 
-    private fun LinkedList<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
+    private fun ArrayList<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
         if (isEmpty()) return false
         forEach { if (it.any(predicate)) return true }
         return false
@@ -220,6 +266,12 @@ object PacketMine : Module(
 
     enum class QueueOrder {
         Standard,
-        Reversed
+        Reversed,
+        Closest
+    }
+
+    private enum class RenderMode {
+        State,
+        Box
     }
 }

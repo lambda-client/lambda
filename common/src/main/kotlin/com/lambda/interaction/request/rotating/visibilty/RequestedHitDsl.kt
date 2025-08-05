@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation.visibilty
+package com.lambda.interaction.request.rotating.visibilty
 
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos

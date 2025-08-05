@@ -68,7 +68,10 @@ fun SafeContext.spawnFakePlayer(
 
 fun SafeContext.swingHand(swingType: BuildConfig.SwingType, hand: Hand) =
     when (swingType) {
-        BuildConfig.SwingType.Vanilla -> player.swingHand(hand)
+        BuildConfig.SwingType.Vanilla -> {
+            swingHandClient(hand)
+            connection.sendPacket(HandSwingC2SPacket(hand))
+        }
         BuildConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(hand))
         BuildConfig.SwingType.Client -> swingHandClient(hand)
     }

@@ -19,45 +19,87 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
+import java.awt.Color
 
-abstract class BreakConfig(
-    priority: Priority = 0
-) : RequestConfig<BreakRequest>(priority) {
-    abstract val breakMode: BreakMode
-    abstract val reBreak: Boolean
-    abstract val unsafeCancels: Boolean
-    abstract val breakThreshold: Float
-    abstract val doubleBreak: Boolean
-    abstract val fudgeFactor: Int
-    abstract val breakDelay: Int
-    abstract val breakStageMask: Set<Event>
-    abstract val swing: SwingMode
-    abstract val swingType: BuildConfig.SwingType
-    abstract val sounds: Boolean
-    abstract val particles: Boolean
-    abstract val breakingTexture: Boolean
-    abstract val rotateForBreak: Boolean
-    abstract val breakConfirmation: BreakConfirmationMode
-    abstract val maxPendingBreaks: Int
-    abstract val breaksPerTick: Int
-    abstract val suitableToolsOnly: Boolean
-    abstract val avoidLiquids: Boolean
-    abstract val breakWeakBlocks: Boolean
-    abstract val forceSilkTouch: Boolean
-    abstract val forceFortunePickaxe: Boolean
-    abstract val minFortuneLevel: Int
-    abstract val ignoredBlocks: Set<Block>
+interface BreakConfig : RequestConfig {
+    val breakMode: BreakMode
+    val sorter: SortMode
+    val breakThreshold: Float
+    val reBreak: Boolean
 
-    override fun requestInternal(request: BreakRequest, queueIfClosed: Boolean) {
-        BreakManager.request(request, queueIfClosed)
-    }
+    val doubleBreak: Boolean
+    val unsafeCancels: Boolean
+
+    val fudgeFactor: Int
+    //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
+//    abstract val desyncFix: Boolean
+    val breakDelay: Int
+
+    val breakStageMask: Set<Event>
+
+    val swapMode: SwapMode
+
+    val swing: SwingMode
+    val swingType: BuildConfig.SwingType
+
+    val rotateForBreak: Boolean
+
+    val breakConfirmation: BreakConfirmationMode
+    val breaksPerTick: Int
+    val maxPendingBreaks: Int
+
+    val avoidLiquids: Boolean
+    val avoidSupporting: Boolean
+    val breakWeakBlocks: Boolean
+    val ignoredBlocks: Set<Block>
+
+    val suitableToolsOnly: Boolean
+    val forceSilkTouch: Boolean
+    val forceFortunePickaxe: Boolean
+    val minFortuneLevel: Int
+
+    val sounds: Boolean
+    val particles: Boolean
+    val breakingTexture: Boolean
+
+    val renders: Boolean
+    val fill: Boolean
+    val outline: Boolean
+    val outlineWidth: Int
+    val animation: AnimationMode
+
+    val dynamicFillColor: Boolean
+    val staticFillColor: Color
+    val startFillColor: Color
+    val endFillColor: Color
+
+    val dynamicOutlineColor: Boolean
+    val staticOutlineColor: Color
+    val startOutlineColor: Color
+    val endOutlineColor: Color
 
     enum class BreakMode {
         Vanilla,
         Packet
+    }
+
+    enum class SortMode {
+        Closest,
+        Farthest,
+        Rotation,
+        Random
+    }
+
+    enum class SwapMode {
+        None,
+        Start,
+        End,
+        StartAndEnd,
+        Constant;
+
+        fun isEnabled() = this != None
     }
 
     enum class SwingMode {
@@ -74,5 +116,13 @@ abstract class BreakConfig(
         None,
         BreakThenAwait,
         AwaitThenBreak
+    }
+
+    enum class AnimationMode {
+        None,
+        Out,
+        In,
+        OutIn,
+        InOut,
     }
 }

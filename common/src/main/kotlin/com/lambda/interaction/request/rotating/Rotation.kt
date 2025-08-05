@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
+package com.lambda.interaction.request.rotating
 
 import com.lambda.Lambda.mc
 import com.lambda.threading.runSafe
@@ -102,6 +102,8 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             }
 
         fun wrap(deg: Double) = wrapDegrees(deg)
+        fun wrap(deg: Float) = wrapDegrees(deg)
+        fun Rotation.wrap() = Rotation(wrap(yaw), pitch)
 
         fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
             // Calculate the wrapped difference to ensure we take the shortest path

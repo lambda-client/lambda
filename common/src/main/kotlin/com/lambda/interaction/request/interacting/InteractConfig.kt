@@ -15,6 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request
+package com.lambda.interaction.request.interacting
 
-typealias Priority = Int
+import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.interaction.request.RequestConfig
+
+interface InteractConfig : RequestConfig {
+    val rotate: Boolean
+    val swingHand: Boolean
+    val interactSwingType: BuildConfig.SwingType
+    val interactConfirmationMode: InteractionConfig.InteractConfirmationMode
+}

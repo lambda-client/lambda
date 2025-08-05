@@ -35,7 +35,6 @@ import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -119,7 +118,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         if (self != Lambda.getMc().player) return;
 
         if (self.input == null) return;
-        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
+        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.sneaking)).getSneak());
     }
 
     /**
@@ -149,14 +148,21 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
     }
 
-    @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
-    void onSwingHandPre(Hand hand, CallbackInfo ci) {
-        if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
+    @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
+        ViewModel viewModel = ViewModel.INSTANCE;
+
+        if (!viewModel.isEnabled()) {
+            instance.swingHand(hand, false);
+            return;
+        }
+
+        viewModel.adjustSwing(hand, instance);
     }
 
-    @Inject(method = "updateHealth", at = @At("HEAD"))
-    public void damage(float health, CallbackInfo ci) {
-        EventFlow.post(new PlayerEvent.Damage(health));
+    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    public void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (EventFlow.post(new PlayerEvent.Damage(source, amount)).isCanceled()) cir.setReturnValue(false);
     }
 
     /**

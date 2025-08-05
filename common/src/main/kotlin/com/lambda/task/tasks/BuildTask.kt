@@ -38,15 +38,15 @@ import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
-import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -54,7 +54,6 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
@@ -66,10 +65,10 @@ class BuildTask @Ta5kBuilder constructor(
     private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
     private val build: BuildConfig = TaskFlowModule.build,
     private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
     private val inventory: InventoryConfig = TaskFlowModule.inventory,
     private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
-) : Task<Unit>() {
+) : Task<Structure>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -81,7 +80,6 @@ class BuildTask @Ta5kBuilder constructor(
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
-//    private var goodPositions = setOf<BlockPos>()
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
         get() = if (collectDrops) {
@@ -89,21 +87,21 @@ class BuildTask @Ta5kBuilder constructor(
         } else null
 
     override fun SafeContext.onStart() {
-        (blueprint as? PropagatingBlueprint)?.next()
+        iteratePropagating()
     }
 
     init {
         listen<TickEvent.Pre> {
             if (collectDrops()) return@listen
 
-            val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
+            val results = blueprint.simulate(player.eyePos, interactionConfig, rotation, inventory, build)
 
             TaskFlowModule.drawables = results
                 .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
 
             val resultsNotBlocked = results
-                .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
+                .filter { result -> pendingInteractions.none { it.blockPos == result.blockPos } }
                 .sorted()
 
             val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
@@ -115,18 +113,15 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (blueprint is PropagatingBlueprint) {
-                        blueprint.next()
-                        return@listen
-                    }
+                    if (iteratePropagating()) return@listen
 
-                    if (finishOnDone) success()
+                    if (finishOnDone) success(blueprint.structure)
                 }
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
                     if (!build.pathing) return@listen
-                    val sim = blueprint.simulation(interact, rotation, inventory, build)
+                    val sim = blueprint.simulation(interactionConfig, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
@@ -155,13 +150,14 @@ class BuildTask @Ta5kBuilder constructor(
                                 requestContexts.addAll(breakResults.map { it.context })
                             }
 
-                            val request = BreakRequest(
-                                requestContexts, build, rotation, hotbar,
-                                pendingInteractions = pendingInteractions,
-                                onStop = { breaks++ },
-                                onItemDrop = onItemDrop
-                            )
-                            build.breaking.request(request)
+                            breakRequest(
+                                requestContexts, pendingInteractions, rotation, hotbar, interactionConfig, inventory, build,
+                            ) {
+                                onStop { breaks++ }
+                                onItemDrop?.let { onItemDrop ->
+                                    onItemDrop { onItemDrop(it) }
+                                }
+                            }.submit()
                             return@listen
                         }
                         is PlaceResult.Place -> {
@@ -170,11 +166,16 @@ class BuildTask @Ta5kBuilder constructor(
                                 .distinctBy { it.blockPos }
                                 .take(emptyPendingInteractionSlots)
 
-                            build.placing.request(
-                                PlaceRequest(
-                                    placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions
-                                ) { placements++ }
-                            )
+                            PlaceRequest(placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions) { placements++ }.submit()
+                        }
+                        is InteractResult.Interact -> {
+                            val interactResults = resultsNotBlocked
+                                .filterIsInstance<InteractResult.Interact>()
+                                .distinctBy { it.blockPos }
+                                .take(emptyPendingInteractionSlots)
+                                .map { it.context }
+
+                            InteractRequest(interactResults, null, pendingInteractions, build.interacting, build, hotbar, rotation).submit()
                         }
                     }
                 }
@@ -188,7 +189,9 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Post> {
-            (blueprint as? TickingBlueprint)?.tick()
+            if (blueprint is TickingBlueprint) {
+                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
+            }
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
@@ -227,6 +230,11 @@ class BuildTask @Ta5kBuilder constructor(
                 return true
             } ?: false
 
+    fun iteratePropagating() =
+        if (blueprint is PropagatingBlueprint) {
+            blueprint.next() ?: failure("Failed to propagate the next blueprint")
+            true
+        } else false
 
     companion object {
         @Ta5kBuilder
@@ -235,7 +243,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
             blueprint: () -> Blueprint,
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
@@ -246,7 +254,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
 
@@ -256,7 +264,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory)
 
@@ -267,7 +275,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = true,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
@@ -281,7 +289,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

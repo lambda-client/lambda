@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
@@ -30,18 +31,18 @@ import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifference
-import com.lambda.interaction.request.rotation.Rotation.Companion.dist
-import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationManager.activeRotation
-import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
-import com.lambda.interaction.request.rotation.visibilty.blockHit
-import com.lambda.interaction.request.rotation.visibilty.lookAtHit
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.angleDifference
+import com.lambda.interaction.request.rotating.Rotation.Companion.dist
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
+import com.lambda.interaction.request.rotating.RotationManager.onRotate
+import com.lambda.interaction.request.rotating.RotationManager.activeRotation
+import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.request.rotating.visibilty.blockHit
+import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.TaskFlowModule
@@ -87,6 +88,7 @@ object Scaffold : Module(
     private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05) { page == Page.ROTATION }
 
     private val interactionConfig = InteractionSettings(this, InteractionMask.Block) { page == Page.INTERACTION }
+    private val interactConfig = InteractSettings(this) { page == Page.INTERACT }
 
     // Placement
     private var placeInfo: PlaceInfo? = null
@@ -117,6 +119,7 @@ object Scaffold : Module(
     private enum class Page {
         GENERAL,
         ROTATION,
+        INTERACT,
         INTERACTION
     }
 
@@ -223,7 +226,7 @@ object Scaffold : Module(
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
             val box = Box(info.clickPos)
-            val sides = if (TaskFlowModule.interact.checkSideVisibility) {
+            val sides = if (TaskFlowModule.interaction.checkSideVisibility) {
                 box.getVisibleSurfaces(eye)
             } else Direction.entries.toSet()
             scanSurfaces(
@@ -301,7 +304,7 @@ object Scaffold : Module(
         }
 
         // Run placement
-        placeBlock(blockResult ?: return, Hand.MAIN_HAND, interactionConfig.swingHand)
+        placeBlock(blockResult ?: return, Hand.MAIN_HAND, interactConfig.swingHand)
         renderInfo.add(info to currentTime)
     }
 

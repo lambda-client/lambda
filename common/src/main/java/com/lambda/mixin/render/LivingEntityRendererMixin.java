@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.interaction.request.rotation.RotationManager;
+import com.lambda.interaction.request.rotating.RotationManager;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;

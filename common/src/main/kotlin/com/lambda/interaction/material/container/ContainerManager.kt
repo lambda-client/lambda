@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.material.container
 
-import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -139,7 +139,7 @@ object ContainerManager : Loadable {
     }?.first
 
     fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
-        inventory.disposables.any { container.materialAvailable(it.item.select()) >= 0 }
+        inventory.disposables.any { container.materialAvailable(it.item.select()) > 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

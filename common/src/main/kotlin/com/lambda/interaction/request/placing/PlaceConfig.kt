@@ -19,28 +19,21 @@ package com.lambda.interaction.request.placing
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
-abstract class PlaceConfig(
-    priority: Priority
-) : RequestConfig<PlaceRequest>(priority) {
-    abstract val rotateForPlace: Boolean
-    abstract val airPlace: AirPlaceMode
-    protected abstract val axisRotateSetting: Boolean
+interface PlaceConfig : RequestConfig {
+    val rotateForPlace: Boolean
+    val airPlace: AirPlaceMode
+    val axisRotateSetting: Boolean
     val axisRotate
         get() = rotateForPlace && airPlace.isEnabled() && axisRotateSetting
-    abstract val placeStageMask: Set<Event>
-    abstract val placeConfirmationMode: PlaceConfirmationMode
-    abstract val maxPendingPlacements: Int
-    abstract val placementsPerTick: Int
-    abstract val swing: Boolean
-    abstract val swingType: BuildConfig.SwingType
-    abstract val sounds: Boolean
-
-    override fun requestInternal(request: PlaceRequest, queueIfClosed: Boolean) {
-        PlaceManager.request(request, queueIfClosed)
-    }
+    val placeStageMask: Set<Event>
+    val placeConfirmationMode: PlaceConfirmationMode
+    val maxPendingPlacements: Int
+    val placementsPerTick: Int
+    val swing: Boolean
+    val swingType: BuildConfig.SwingType
+    val sounds: Boolean
 
     enum class AirPlaceMode {
         None,

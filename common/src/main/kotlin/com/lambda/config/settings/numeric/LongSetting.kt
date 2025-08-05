@@ -34,15 +34,15 @@ class LongSetting(
     override val range: ClosedRange<Long>,
     override val step: Long = 1,
     description: String,
-    visibility: () -> Boolean,
     unit: String,
+    visibility: () -> Boolean
 ) : NumericSetting<Long>(
     defaultValue,
     range,
     step,
     description,
-    visibility,
-    unit
+    unit,
+    visibility
 ) {
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(long(name, range.start, range.endInclusive)) { parameter ->

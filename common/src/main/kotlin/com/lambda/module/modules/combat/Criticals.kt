@@ -20,8 +20,8 @@ package com.lambda.module.modules.combat
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.rotation

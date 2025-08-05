@@ -17,16 +17,14 @@
 
 package com.lambda.interaction.request.hotbar
 
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 
 class HotbarRequest(
     val slot: Int,
-    val hotbar: HotbarConfig,
-    var keepTicks: Int = hotbar.keepTicks,
-    var swapPause: Int = hotbar.swapPause,
-    priority: Priority = 0,
-) : Request(priority, hotbar) {
+    override val config: HotbarConfig,
+    override var keepTicks: Int = config.keepTicks,
+    override var swapPause: Int = config.swapPause
+) : Request(), HotbarConfig by config {
     var activeRequestAge = 0
     var swapPauseAge = 0
 
@@ -36,4 +34,7 @@ class HotbarRequest(
 
     override val done: Boolean
         get() = slot == HotbarManager.serverSlot && !swapPaused
+
+    override fun submit(queueIfClosed: Boolean) =
+        HotbarManager.request(this, queueIfClosed)
 }

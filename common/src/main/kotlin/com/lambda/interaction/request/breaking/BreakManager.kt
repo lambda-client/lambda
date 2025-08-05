@@ -22,44 +22,71 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.graphics.renderer.esp.builders.buildFilled
+import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.breaking.BreakManager.activeRequest
+import com.lambda.interaction.request.breaking.BreakManager.breakInfos
+import com.lambda.interaction.request.breaking.BreakManager.breaks
+import com.lambda.interaction.request.breaking.BreakManager.canAccept
+import com.lambda.interaction.request.breaking.BreakManager.checkForCancels
+import com.lambda.interaction.request.breaking.BreakManager.initNewBreak
+import com.lambda.interaction.request.breaking.BreakManager.instantBreaks
+import com.lambda.interaction.request.breaking.BreakManager.maxBreaksThisTick
+import com.lambda.interaction.request.breaking.BreakManager.performInstantBreaks
+import com.lambda.interaction.request.breaking.BreakManager.processNewBreaks
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
+import com.lambda.interaction.request.breaking.BreakManager.simulateAbandoned
+import com.lambda.interaction.request.breaking.BreakManager.updateBreakProgress
 import com.lambda.interaction.request.breaking.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakType.ReBreak
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.brokenState
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.isBroken
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingActions
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
+import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
-import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
-import com.lambda.util.Communication.warn
+import com.lambda.util.BlockUtils.isEmpty
+import com.lambda.util.BlockUtils.isNotBroken
+import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.swingHand
+import net.minecraft.block.BlockState
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.entity.ItemEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
-import kotlin.math.abs
-import kotlin.math.ceil
+import net.minecraft.util.math.Box
+import net.minecraft.world.BlockView
 
 object BreakManager : RequestHandler<BreakRequest>(
     0,
@@ -67,8 +94,8 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    // ToDo: Post interact
-    onOpen = { processRequest(activeRequest) }
+    onOpen = { processRequest(activeRequest); simulateAbandoned() },
+    onClose = { checkForCancels() }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?
         get() = breakInfos[0]
@@ -77,10 +104,16 @@ object BreakManager : RequestHandler<BreakRequest>(
         get() = breakInfos[1]
         set(value) { breakInfos[1] = value }
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
+    val currentStackSelection
+        get() = breakInfos
+            .lastOrNull {
+                it?.isRedundant == false && (it.breakConfig.doubleBreak || it.isSecondary)
+            }?.context?.itemSelection
+            ?: StackSelection.EVERYTHING.select()
 
-    private val pendingBreakCount get() = breakInfos.count { it != null } + pendingBreaks.size
+    private val pendingBreakCount get() = breakInfos.count { it != null } + pendingActions.size
     override val blockedPositions
-        get() = breakInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
+        get() = breakInfos.mapNotNull { it?.context?.blockPos } + pendingActions.map { it.context.blockPos }
 
     private var activeRequest: BreakRequest? = null
 
@@ -102,7 +135,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,
-        priority: Priority = 0,
+        priority: Int = 0,
         block: SafeContext.() -> Unit
     ) = this.listen<UpdateManagerEvent.Break>(priority, alwaysListen) {
         block()
@@ -116,14 +149,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 breakCooldown--
             }
             breakInfos.forEach { info ->
-                info?.apply {
-                    if (isRedundant) updateBreakProgress(this)
-                    else if (!updatedThisTick) {
-                        this.cancelBreak()
-                        return@apply
-                    }
-                    tickStats()
-                }
+                info?.tickStats()
             }
             activeRequest = null
             breaks = mutableListOf()
@@ -132,27 +158,29 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            if (event.pos == ReBreakManager.reBreak?.context?.expectedPos) return@listen
+            if (event.pos == ReBreakManager.reBreak?.context?.blockPos) return@listen
 
             breakInfos
                 .filterNotNull()
-                .firstOrNull { it.context.expectedPos == event.pos }
+                .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { info ->
+                    val currentState = info.context.cachedState
                     // if not broken
-                    if (!isBroken(info.context.checkedState, event.newState)) {
-                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.brokenState}")
-                        // update the checked state
-                        info.context.checkedState = event.newState
+                    if (isNotBroken(currentState, event.newState)) {
+                        // update the cached state
+                        info.context.cachedState = event.newState
                         return@listen
                     }
                     destroyBlock(info)
-                    info.request.onStop?.invoke(info.context.expectedPos)
-                    info.internalOnBreak()
-                    if (!info.callbacksCompleted) {
-                        info.startPending()
-                    } else {
-                        ReBreakManager.offerReBreak(info)
+                    if (info.isRedundant) {
+                        info.nullify()
+                        return@listen
                     }
+                    info.request.onStop?.invoke(info.context.blockPos)
+                    info.internalOnBreak()
+                    if (info.callbacksCompleted)
+                        ReBreakManager.offerReBreak(info)
+                    else info.startPending()
                     info.nullify()
                 }
         }
@@ -161,6 +189,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
 
+            // ToDo: Proper item drop prediction system
             ReBreakManager.reBreak?.let { reBreak ->
                 if (matchesBlockItem(reBreak, it.entity)) return@listen
             }
@@ -169,6 +198,50 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .filterNotNull()
                 .firstOrNull { info -> matchesBlockItem(info, it.entity) }
                 ?.internalOnItemDrop(it.entity)
+        }
+
+        listen<RenderEvent.StaticESP> { event ->
+            val activeStack = breakInfos
+                .filterNotNull()
+                .firstOrNull()?.let { info ->
+                    player.inventory.getStack(info.context.hotbarIndex)
+                } ?: return@listen
+
+            breakInfos
+                .filterNotNull()
+                .forEach { info ->
+                    val config = info.breakConfig
+                    if (!config.renders) return@listen
+                    val swapMode = info.breakConfig.swapMode
+                    val breakDelta = info.context.cachedState.calcBreakDelta(
+                        player,
+                        world,
+                        info.context.blockPos,
+                        info.breakConfig,
+                        if (!info.isRedundant && swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) activeStack else null
+                    ).toDouble()
+                    val currentDelta = info.breakingTicks * breakDelta
+
+                    val threshold = if (info.isPrimary) info.breakConfig.breakThreshold else 1f
+                    val adjustedThreshold = threshold + (breakDelta * config.fudgeFactor)
+
+                    val currentProgress = currentDelta / adjustedThreshold
+                    val nextTicksProgress = (currentDelta + breakDelta) / adjustedThreshold
+                    val interpolatedProgress = lerp(mc.partialTicks, currentProgress, nextTicksProgress)
+
+                    val fillColor = if (config.dynamicFillColor) lerp(interpolatedProgress, config.startFillColor, config.endFillColor)
+                    else config.staticFillColor
+                    val outlineColor = if (config.dynamicOutlineColor) lerp(interpolatedProgress, config.startOutlineColor, config.endOutlineColor)
+                    else config.staticOutlineColor
+
+                    info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
+                        it.offset(info.context.blockPos)
+                    }.forEach boxes@ { box ->
+                        val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
+                        if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
+                        if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
+                    }
+                }
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
@@ -186,7 +259,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see processRequest
      */
     override fun SafeContext.handleRequest(request: BreakRequest) {
-        if (activeRequest != null || PlaceManager.activeThisTick || request.contexts.isEmpty()) return
+        if (activeRequest != null || PlaceManager.activeThisTick || InteractionManager.activeThisTick || request.contexts.isEmpty()) return
 
         activeRequest = request
         processRequest(request)
@@ -203,8 +276,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see updateBreakProgress
      */
     private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
-        pendingBreaks.cleanUp()
-
         repeat(2) {
             breakRequest?.let { request ->
                 if (request.fresh) populateFrom(request)
@@ -224,25 +295,43 @@ object BreakManager : RequestHandler<BreakRequest>(
                         rotationRequest = it.firstOrNull { info -> info.breakConfig.rotateForBreak }
                             ?.let { info ->
                                 val rotation = info.context.rotation
-                                if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
+                                if (instantBreaks.isEmpty()) rotation.submit(false) else rotation
                             }
+                    }
+                    .also  {
+                        it.forEach { it.couldReBreak.update() }
+                    }
+                    .also {
+                        if (breakInfos.none { it?.shouldSwap(player, world) == true }) return@also
+
+                        it.firstOrNull()?.let { info ->
+                            secondaryBreak?.let { secondary ->
+                                val breakDelta = secondary.context.cachedState.calcBreakDelta(
+                                    player,
+                                    world,
+                                    secondary.context.blockPos,
+                                    secondary.breakConfig,
+                                    player.inventory.getStack(secondary.context.hotbarIndex)
+                                )
+                                val breakAmount = breakDelta * ((secondary.breakingTicks - secondary.breakConfig.fudgeFactor) + 1)
+                                val minKeepTicks = if (breakAmount >= 1.0f) 1 else 0
+                                if (!info.context.requestSwap(info.request, minKeepTicks)) {
+                                    secondary.serverBreakTicks = 0
+                                    return@run
+                                }
+                                if (minKeepTicks > 0) {
+                                    secondary.serverBreakTicks++
+                                }
+                                return@also
+                            }
+                            if (!info.context.requestSwap(info.request)) return@run
+                        }
                     }
                     .asReversed()
                     .forEach { info ->
-                        if (info.updatedProgressThisTick) return@forEach
-                        val minKeepTicks = if (info.isSecondary) {
-                            val breakDelta = info.context.checkedState.calcItemBlockBreakingDelta(
-                                player,
-                                world,
-                                info.context.expectedPos,
-                                player.inventory.getStack(info.context.hotbarIndex)
-                            )
-                            val breakAmount = breakDelta * (info.breakingTicks + 1)
-                            if (breakAmount >= 1.0f) 1 else 0
-                        } else 0
-                        if (!info.context.requestDependencies(info.request, minKeepTicks)) return@run
+                        if (info.progressedThisTick) return@forEach
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
-                        if ((!rotated && info.isPrimary)) return@run
+                        if (!rotated && info.isPrimary) return@run
 
                         updateBreakProgress(info)
                     }
@@ -257,6 +346,48 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
     }
 
+    private fun SafeContext.simulateAbandoned() {
+        // Cancelled but double breaking so requires break manager to continue the simulation
+        breakInfos
+            .asSequence()
+            .filterNotNull()
+            .filter { it.abandoned && !it.isRedundant }
+            .forEach { info ->
+                with (info.request) {
+                    info.context.blockPos
+                        .toStructure(TargetState.Empty)
+                        .toBlueprint()
+                        .simulate(player.eyePos, interact, rotation, inventory, build)
+                        .asSequence()
+                        .filterIsInstance<BreakResult.Break>()
+                        .filter { canAccept(it.context) }
+                        .sorted()
+                        .let { sim ->
+                            info.updateInfo(sim.firstOrNull()?.context ?: return@forEach)
+                        }
+                }
+            }
+    }
+
+    private fun SafeContext.checkForCancels() {
+        breakInfos
+            .filterNotNull()
+            .asSequence()
+            .filter { !it.updatedThisTick && tickStage in it.breakConfig.breakStageMask }
+            .forEach { info ->
+                if (info.isRedundant && !info.progressedThisTick) {
+                    val cachedState = info.context.cachedState
+                    if (cachedState.isEmpty || cachedState.isAir) {
+                        info.nullify()
+                        return@forEach
+                    }
+                    info.progressedThisTick = true
+                    info.breakingTicks++
+                }
+                else info.cancelBreak()
+            }
+    }
+
     /**
      * Filters the requests [BreakContext]s, and iterates over the [breakInfos] collection looking for matches
      * in positions. If a match is found, the [BreakInfo] is updated with the new context. Otherwise, the break is cancelled.
@@ -264,21 +395,28 @@ object BreakManager : RequestHandler<BreakRequest>(
      * value is set.
      *
      * @see canAccept
-     * @see cancelBreak
      */
     private fun SafeContext.populateFrom(request: BreakRequest) {
         // Sanitize the new breaks
         val newBreaks = request.contexts
-            .distinctBy { it.expectedPos }
-            .filter { ctx -> canAccept(ctx, request.build.breaking) }
+            .distinctBy { it.blockPos }
             .toMutableList()
 
-        // Update the current break infos or cancel if abandoned
+        // Update the current break infos
         breakInfos
             .filterNotNull()
             .forEach { info ->
-                newBreaks.find { ctx -> ctx.expectedPos == info.context.expectedPos }?.let { ctx ->
-                    if (!info.updatedThisTick) info.updateInfo(ctx, request)
+                newBreaks.find { ctx -> ctx.blockPos == info.context.blockPos && canAccept(ctx) }?.let { ctx ->
+                    if (!info.updatedThisTick || info.abandoned) {
+                        info.updateInfo(ctx, request)
+                        if (info.isRedundant)
+                            info.request.onStart?.invoke(info.context.blockPos)
+                        else if (info.abandoned) {
+                            info.abandoned = false
+                            info.request.onStart?.invoke(info.context.blockPos)
+                        } else
+                            info.request.onUpdate?.invoke(info.context.blockPos)
+                    }
                     newBreaks.remove(ctx)
                     return@forEach
                 }
@@ -292,7 +430,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filter { !it.instantBreak }
             .toMutableList()
 
-        val breakConfig = request.build.breaking
+        val breakConfig = request.config
         val pendingLimit = (breakConfig.maxPendingBreaks - pendingBreakCount).coerceAtLeast(0)
         maxBreaksThisTick = breakConfig.breaksPerTick.coerceAtMost(pendingLimit)
     }
@@ -300,18 +438,16 @@ object BreakManager : RequestHandler<BreakRequest>(
     /**
      * @return if the break context can be accepted.
      */
-    private fun SafeContext.canAccept(ctx: BreakContext, breakConfig: BreakConfig): Boolean {
-        if (pendingBreaks.any { it.context.expectedPos == ctx.expectedPos }) return false
+    private fun SafeContext.canAccept(newCtx: BreakContext): Boolean {
+        if (breakInfos.none { it?.context?.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
 
-        if (breakConfig.doubleBreak) {
-            breakInfos
-                .firstOrNull { it != null && !it.isRedundant }
-                ?.let { info ->
-                    if (ctx.hotbarIndex != info.context.hotbarIndex) return false
-                }
-        }
+        if (!currentStackSelection.filterStack(player.inventory.getStack(newCtx.hotbarIndex)))
+            return false
 
-        return !blockState(ctx.expectedPos).isAir
+        val blockState = blockState(newCtx.blockPos)
+        val hardness = newCtx.cachedState.getHardness(world, newCtx.blockPos)
+
+        return blockState.isNotEmpty && hardness != 600f && hardness != -1f
     }
 
     /**
@@ -326,13 +462,14 @@ object BreakManager : RequestHandler<BreakRequest>(
 
             val ctx = iterator.next()
 
-            if (!ctx.requestDependencies(request)) return false
-            rotationRequest = if (request.build.breaking.rotateForBreak) request.rotation.request(ctx.rotation, false) else null
-            if (!rotated || tickStage !in request.build.breaking.breakStageMask) return false
+            if (!canAccept(ctx)) continue
+
+            if (request.build.breaking.swapMode.isEnabled() && !ctx.requestSwap(request)) return false
+            rotationRequest = if (request.config.rotateForBreak) ctx.rotation.submit(false) else null
+            if (!rotated || tickStage !in request.config.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false
             updateBreakProgress(breakInfo)
-            breaksThisTick++
             iterator.remove()
         }
         return true
@@ -349,6 +486,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         val iterator = breaks.iterator()
         while (iterator.hasNext()) {
             val ctx = iterator.next()
+
+            if (!canAccept(ctx)) continue
+
             initNewBreak(ctx, request) ?: return false
             iterator.remove()
         }
@@ -364,10 +504,12 @@ object BreakManager : RequestHandler<BreakRequest>(
         requestCtx: BreakContext,
         request: BreakRequest
     ): BreakInfo? {
+        if (breakCooldown > 0) return null
+
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
-            if (!breakInfo.breakConfig.doubleBreak || secondaryBreak != null) {
-                if (!primaryInfo.updatedThisTick) {
+            if (!primaryInfo.breakConfig.doubleBreak || secondaryBreak != null) {
+                if (!primaryInfo.updatedThisTick && tickStage in primaryInfo.breakConfig.breakStageMask) {
                     primaryInfo.cancelBreak()
                     return@let
                 } else return null
@@ -384,7 +526,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         primaryBreak = breakInfo
-        setPendingConfigs(request)
+        setPendingConfigs(request.build)
         return primaryBreak
     }
 
@@ -407,7 +549,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see startPending
      */
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
-        info.request.onStop?.invoke(info.context.expectedPos)
+        info.request.onStop?.invoke(info.context.blockPos)
         when (info.breakConfig.breakConfirmation) {
             BreakConfirmationMode.None -> {
                 destroyBlock(info)
@@ -450,33 +592,30 @@ object BreakManager : RequestHandler<BreakRequest>(
      *
      * If the user has [BreakConfig.unsafeCancels] enabled, the info is made redundant, and mostly ignored.
      * If not, the break continues.
-     *
-     * @see makeRedundant
      */
     private fun BreakInfo.cancelBreak() =
         runSafe {
-            setBreakingTextureStage(player, world, -1)
+            if (isRedundant || abandoned) return@runSafe
             if (isPrimary) {
-                abortBreakPacket(world, interaction)
                 nullify()
-            } else if (isSecondary && breakConfig.unsafeCancels) {
-                makeRedundant()
+                setBreakingTextureStage(player, world, -1)
+                abortBreakPacket(world, interaction)
+                request.onCancel?.invoke(context.blockPos)
+            } else if (isSecondary) {
+                if (breakConfig.unsafeCancels) {
+                    type = BreakType.RedundantSecondary
+                    setBreakingTextureStage(player, world, -1)
+                    request.onCancel?.invoke(context.blockPos)
+                } else {
+                    abandoned = true
+                }
             }
-
-            internalOnCancel()
         }
 
     /**
      * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnCancel] callback gets triggered
      */
     private fun BreakInfo.nullify() = type.nullify()
-
-    /**
-     * Makes the [BreakInfo] redundant and triggers the [BreakInfo.internalOnCancel] callback
-     */
-    private fun BreakInfo.makeRedundant() {
-        type = BreakType.RedundantSecondary
-    }
 
     /**
      * Nullifies the [BreakInfo] reference in the [breakInfos] array based on the [BreakType]
@@ -497,91 +636,51 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun SafeContext.updateBreakProgress(info: BreakInfo): Boolean {
         val config = info.breakConfig
-        info.updatedProgressThisTick = true
         val ctx = info.context
-        val hitResult = ctx.result
-
-        if (gamemode.isCreative && world.worldBorder.contains(ctx.expectedPos) && info.breaking) {
-            if (info.isRedundant) {
-                onBlockBreak(info)
-                return true
-            }
-            breakCooldown = config.breakDelay
-            lastPosStarted = ctx.expectedPos
-            onBlockBreak(info)
-            info.startBreakPacket(world, interaction)
-            val swing = config.swing
-            if (swing.isEnabled()) {
-                swingHand(config.swingType, Hand.MAIN_HAND)
-            }
-            return true
-        }
 
         if (!info.breaking) {
-            when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
-                is ReBreakResult.StillBreaking -> {
-                    primaryBreak = reBreakResult.breakInfo.apply {
-                        type = Primary
-                        ReBreakManager.clearReBreak()
-                        request.onStart?.invoke(ctx.expectedPos)
-                    }
-
-                    return primaryBreak?.let { primary ->
-                        updateBreakProgress(primary)
-                    } ?: false
-                }
-                is ReBreakResult.ReBroke -> {
-                    info.type = ReBreak
-                    info.nullify()
-                    info.request.onReBreak?.invoke(info.context.expectedPos)
-                    return true
-                }
-                else -> {}
-            }
-            if (breakCooldown > 0) return false
             if (!startBreaking(info)) {
                 info.nullify()
-                info.internalOnCancel()
+                info.request.onCancel?.invoke(ctx.blockPos)
                 return false
             }
             val swing = config.swing
-            if (swing.isEnabled() && swing != BreakConfig.SwingMode.End) {
+            if (swing.isEnabled() && (swing != BreakConfig.SwingMode.End || info.isReBreaking)) {
                 swingHand(config.swingType, Hand.MAIN_HAND)
             }
             return true
         }
 
-        val blockState = blockState(ctx.expectedPos)
-        if (blockState.isAir) {
+        info.progressedThisTick = true
+        val hitResult = ctx.result
+
+        if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
+            breakCooldown = config.breakDelay
+            lastPosStarted = ctx.blockPos
+            onBlockBreak(info)
+            info.startBreakPacket(world, interaction)
+            if (config.swing.isEnabled()) {
+                swingHand(config.swingType, Hand.MAIN_HAND)
+            }
+            return true
+        }
+
+        val blockState = blockState(ctx.blockPos)
+        if (blockState.isEmpty || blockState.isAir) {
             info.nullify()
-            info.internalOnCancel()
+            info.request.onCancel?.invoke(ctx.blockPos)
             return false
         }
 
         info.breakingTicks++
-        val progress = blockState.calcBlockBreakingDelta(
+        val progress = blockState.calcBreakDelta(
             player,
             world,
-            ctx.expectedPos
-        ).let { breakDelta ->
-            breakDelta * if (info.isSecondary || info.isRedundant) {
-                info.breakingTicks - config.fudgeFactor
-            } else {
-                val serverBreakTicks = ceil(1.0 / breakDelta).toInt()
-                val clientBreakTicks = ceil(config.breakThreshold / breakDelta).toInt()
-                val diff = serverBreakTicks - clientBreakTicks
-                info.breakingTicks - config.fudgeFactor.coerceAtMost(abs(diff))
-            }
-        }
+            ctx.blockPos,
+            config
+        ) * (info.breakingTicks - config.fudgeFactor)
 
         val overBreakThreshold = progress >= info.getBreakThreshold()
-
-        if (info.isRedundant) {
-            if (overBreakThreshold) {
-                onBlockBreak(info)
-            }
-            return true
-        }
 
         if (config.sounds) {
             if (info.soundsCooldown % 4.0f == 0.0f) {
@@ -593,7 +692,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         (blockSoundGroup.getVolume() + 1.0f) / 8.0f,
                         blockSoundGroup.getPitch() * 0.5f,
                         SoundInstance.createRandom(),
-                        ctx.expectedPos
+                        ctx.blockPos
                     )
                 )
             }
@@ -601,7 +700,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         if (config.particles) {
-            mc.particleManager.addBlockBreakingParticles(ctx.expectedPos, hitResult.side)
+            mc.particleManager.addBlockBreakingParticles(ctx.blockPos, hitResult.side)
         }
 
         if (config.breakingTexture) {
@@ -609,7 +708,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (overBreakThreshold) {
+        if (overBreakThreshold && (!info.isSecondary || info.serverBreakTicks >= info.breakConfig.fudgeFactor + 1)) {
             if (info.isPrimary) {
                 onBlockBreak(info)
                 info.stopBreakPacket(world, interaction)
@@ -635,31 +734,55 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.startBreaking(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
-        if (!world.worldBorder.contains(ctx.expectedPos)) return false
+        if (info.couldReBreak.value == true) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
+            is ReBreakResult.StillBreaking -> {
+                primaryBreak = reBreakResult.breakInfo.apply {
+                    type = Primary
+                    ReBreakManager.clearReBreak()
+                    request.onStart?.invoke(ctx.blockPos)
+                }
+
+                primaryBreak?.let { primary ->
+                    updateBreakProgress(primary)
+                }
+                return true
+            }
+            is ReBreakResult.ReBroke -> {
+                info.type = ReBreak
+                info.nullify()
+                info.request.onReBreak?.invoke(ctx.blockPos)
+                return true
+            }
+            else -> {}
+        }
+
+        if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
+        if (!world.worldBorder.contains(ctx.blockPos)) return false
 
         if (gamemode.isCreative) {
-            lastPosStarted = ctx.expectedPos
-            info.request.onStart?.invoke(ctx.expectedPos)
+            lastPosStarted = ctx.blockPos
+            info.request.onStart?.invoke(ctx.blockPos)
             onBlockBreak(info)
             info.startBreakPacket(world, interaction)
             breakCooldown = info.breakConfig.breakDelay
             return true
         }
         if (info.breaking) return false
-        info.request.onStart?.invoke(ctx.expectedPos)
+        info.request.onStart?.invoke(ctx.blockPos)
 
-        lastPosStarted = ctx.expectedPos
+        lastPosStarted = ctx.blockPos
 
-        val blockState = blockState(ctx.expectedPos)
-        val notAir = !blockState.isAir
-        if (notAir && info.breakingTicks == 0) {
-            blockState.onBlockBreakStart(world, ctx.expectedPos, player)
+        val blockState = blockState(ctx.blockPos)
+        val notEmpty = blockState.isNotEmpty
+        if (notEmpty && info.breakingTicks == 0) {
+            blockState.onBlockBreakStart(world, ctx.blockPos, player)
         }
 
-        val breakDelta = blockState.calcBlockBreakingDelta(player, world, ctx.expectedPos)
-        if (notAir && breakDelta >= info.getBreakThreshold()) {
+        val breakDelta = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
+        info.vanillaInstantBreakable = breakDelta >= 1
+        if (notEmpty && breakDelta >= info.getBreakThreshold()) {
             onBlockBreak(info)
+            if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {
             info.apply {
                 breaking = true
@@ -676,7 +799,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         info.startBreakPacket(world, interaction)
-        info.vanillaInstantBreakable = breakDelta >= 1
 
         if (info.isSecondary || (!info.vanillaInstantBreakable && breakDelta >= info.breakConfig.breakThreshold)) {
             info.stopBreakPacket(world, interaction)
@@ -685,13 +807,53 @@ object BreakManager : RequestHandler<BreakRequest>(
         return true
     }
 
+    private fun BlockState.calcBreakDelta(
+        player: ClientPlayerEntity,
+        world: BlockView,
+        pos: BlockPos,
+        config: BreakConfig,
+        item: ItemStack? = null
+    ) = runSafe {
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.mainHandStack)
+        //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
+//        if (config.desyncFix) {
+//            val nextTickPrediction = buildPlayerPrediction().next()
+//            if (player.isOnGround && !nextTickPrediction.onGround) {
+//                delta /= 5.0f
+//            }
+//
+//            val affectedThisTick = player.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)
+//            val simulatedPlayer = nextTickPrediction.predictionEntity.player
+//            val affectedNextTick = simulatedPlayer.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(simulatedPlayer)
+//            if (!affectedThisTick && affectedNextTick) {
+//                delta /= 5.0f
+//            }
+//        }
+        delta
+    } ?: 0f
+
     /**
      * @return if the [ItemEntity] matches the [BreakInfo]'s expected item drop.
      */
     fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
-        val inRange = info.context.expectedPos.toCenterPos().isInRange(entity.pos, 0.5)
-        val correctMaterial = info.context.checkedState.block == entity.stack.item.block
+        val inRange = info.context.blockPos.toCenterPos().isInRange(entity.pos, 0.5)
+        val correctMaterial = info.context.cachedState.block == entity.stack.item.block
         return inRange && correctMaterial
+    }
+
+    private fun interpolateBox(box: Box, progress: Double, config: BreakConfig): Box {
+        val boxCenter = Box(box.center, box.center)
+        return when (config.animation) {
+            BreakConfig.AnimationMode.Out -> lerp(progress, boxCenter, box)
+            BreakConfig.AnimationMode.In -> lerp(progress, box, boxCenter)
+            BreakConfig.AnimationMode.InOut ->
+                if (progress >= 0.5f) lerp((progress - 0.5) * 2, boxCenter, box)
+                else lerp(progress * 2, box, boxCenter)
+            BreakConfig.AnimationMode.OutIn ->
+                if (progress >= 0.5f) lerp((progress - 0.5) * 2, box, boxCenter)
+                else lerp(progress * 2, boxCenter, box)
+            else -> box
+        }
     }
 
     override fun preEvent(): Event = UpdateManagerEvent.Break.post()

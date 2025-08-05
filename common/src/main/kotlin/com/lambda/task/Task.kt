@@ -185,9 +185,7 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun failure(message: String) {
-        failure(IllegalStateException(message))
-    }
+    fun failure(message: String) = failure(IllegalStateException(message))
 
     @Ta5kBuilder
     fun failure(

@@ -19,19 +19,22 @@ package com.lambda.task.tasks
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.ManagerUtils
+import com.lambda.interaction.request.inventory.InventoryConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
@@ -44,44 +47,54 @@ class PlaceContainer @Ta5kBuilder constructor(
     val stack: ItemStack,
     val build: BuildConfig = TaskFlowModule.build,
     val rotation: RotationConfig = TaskFlowModule.rotation,
-    val interact: InteractionConfig = TaskFlowModule.interact,
-    val inventory: InventoryConfig = TaskFlowModule.inventory,
+    val interact: InteractionConfig = TaskFlowModule.interaction,
+    val inventory: InventoryConfig = TaskFlowModule.inventory
 ) : Task<BlockPos>() {
     private val startStack: ItemStack = stack.copy()
     override val name: String get() = "Placing container ${startStack.name.string}"
 
     override fun SafeContext.onStart() {
-        val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
-            .map { it.blockPos }
-            .flatMap {
-                it.blockPos
-                    .toStructure(TargetState.Stack(startStack))
-                    .toBlueprint()
-                    .simulate(player.eyePos)
+        tickingBlueprint { current ->
+            if (current.isNotEmpty() &&
+                (current.all { it.value.matches(blockState(it.key), it.key, world) } ||
+                ManagerUtils.positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }))
+            {
+                return@tickingBlueprint current
             }
 
-        val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side)
-        }
-        val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side)
-        }
-        (succeeds + wrongStacks).minOrNull()?.let { result ->
-            build(
-                build = build,
-                rotation = rotation,
-                interact = interact,
-                inventory = inventory,
-            ) {
-                result.blockPos
-                    .toStructure(TargetState.Stack(startStack))
-                    .toBlueprint()
-            }.finally {
-                success(result.blockPos)
-            }.execute(this@PlaceContainer)
-        } ?: {
-            failure("No valid placement found")
-        }
+            val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
+                .map { it.blockPos }
+                .flatMap {
+                    it.blockPos
+                        .toStructure(TargetState.Stack(startStack))
+                        .toBlueprint()
+                        .simulate(player.eyePos)
+                }
+
+            // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
+            val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
+                canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
+            }
+            val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
+                canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
+            }
+            (succeeds + wrongStacks).minOrNull()
+                ?.blockPos
+                ?.toStructure(TargetState.Stack(startStack))
+        }.build(
+            true,
+            false,
+            build = build,
+            rotation = rotation,
+            interact = interact,
+            inventory = inventory
+        ).finally {
+            val pos = it.keys.firstOrNull() ?: run {
+                failure("The returned structure was empty")
+                return@finally
+            }
+            success(pos)
+        }.execute(this@PlaceContainer)
     }
 
     private fun SafeContext.canBeOpened(

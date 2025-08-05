@@ -15,22 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.processors
+package com.lambda.interaction.construction.processing.preprocessors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingStep
+import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import net.minecraft.block.BlockState
+import net.minecraft.block.enums.DoubleBlockHalf
 import net.minecraft.state.property.Properties
-import net.minecraft.util.math.Direction
+import net.minecraft.util.math.BlockPos
 
-object AxisPreprocessor : PlacementProcessor() {
-    override fun acceptState(state: BlockState) =
-        state.getOrEmpty(Properties.AXIS).isPresent
+// Collected using reflections and then accessed from a collection in ProcessorRegistry
+@Suppress("unused")
+object OmitPreProcessor : PlacementProcessor() {
+    override fun acceptsState(state: BlockState) = true
 
-    override fun preProcess(state: BlockState): PreprocessingStep {
-        val axis = state.getOrEmpty(Properties.AXIS).get()
-        return PreprocessingStep(
-            sides = Direction.entries.filter { it.axis == axis }.toSet()
-        )
+    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
+        if (Properties.DOUBLE_BLOCK_HALF in state.properties) {
+            if (state.get(Properties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER) {
+                accumulator.omitPlacement()
+            }
+        }
     }
 }

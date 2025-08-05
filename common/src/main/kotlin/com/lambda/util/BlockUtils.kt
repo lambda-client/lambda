@@ -84,6 +84,16 @@ import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.util.math.*
+import net.minecraft.item.ItemStack
+import net.minecraft.item.SwordItem
+import net.minecraft.registry.tag.FluidTags
+import net.minecraft.state.property.Property
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
+import net.minecraft.world.BlockView
 
 object BlockUtils {
 
@@ -207,10 +217,10 @@ object BlockUtils {
     )
 
     val fluids = listOf(
-        Fluids.LAVA,
         Fluids.FLOWING_LAVA,
-        Fluids.WATER,
+        Fluids.LAVA,
         Fluids.FLOWING_WATER,
+        Fluids.WATER,
         Fluids.EMPTY,
     )
 
@@ -218,9 +228,9 @@ object BlockUtils {
     fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
-    fun BlockState.matches(state: BlockState) =
+    fun BlockState.matches(state: BlockState, ignoredProperties: Collection<Property<*>> = emptySet()) =
          this.block == state.block && this.properties.all {
-            /*it in TaskFlowModule.defaultIgnoreTags ||*/ this[it] == state[it]
+             this[it] == state[it] || it in ignoredProperties
         }
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
@@ -287,4 +297,11 @@ object BlockUtils {
 
         return speedMultiplier
     }
+
+    val BlockState.isEmpty get() = matches(emptyState)
+    val BlockState.isNotEmpty get() = !isEmpty
+    val BlockState.hasFluid get() = !fluidState.isEmpty
+    val BlockState.emptyState: BlockState get() = fluidState.blockState
+    fun isBroken(oldState: BlockState, newState: BlockState) = oldState.isNotEmpty && oldState.emptyState.matches(newState)
+    fun isNotBroken(oldState: BlockState, newState: BlockState) = !isBroken(oldState, newState)
 }

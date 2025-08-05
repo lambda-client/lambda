@@ -17,58 +17,53 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.util.world.raycast.RayCastUtils.distanceTo
+import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.random.Random
 
 data class BreakContext(
-    override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override var checkedState: BlockState,
-    override val targetState: TargetState,
     override var hotbarIndex: Int,
+    var itemSelection: StackSelection,
     var instantBreak: Boolean,
-) : BuildContext {
+    override var cachedState: BlockState,
+    val sortMode: BreakConfig.SortMode
+) : BuildContext() {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
-    override val expectedPos: BlockPos
-        get() = result.blockPos
+    override val blockPos: BlockPos = result.blockPos
+    override val expectedState: BlockState = cachedState.emptyState
 
-    override val distance: Double by lazy {
-        result.distanceTo(pov)
-    }
-
-    fun exposedSides(ctx: SafeContext) =
-        Direction.entries.filter {
-            ctx.world.isAir(expectedPos.offset(it))
-        }
-
-    override val expectedState: BlockState = checkedState.fluidState.blockState
+    val random = Random.nextDouble()
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is BreakContext -> compareByDescending<BreakContext> {
-                if (it.checkedState.block is FallingBlock) it.expectedPos.y else 0
+                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
             }.thenBy {
                 it.instantBreak
             }.thenBy {
-                it.rotation.target.angleDistance
+                when (sortMode) {
+                    BreakConfig.SortMode.Closest -> it.distance
+                    BreakConfig.SortMode.Farthest -> -it.distance
+                    BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
+                    BreakConfig.SortMode.Random -> it.random
+                }
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.compare(this, other)
@@ -77,15 +72,15 @@ data class BreakContext(
         }
     }
 
-    override fun shouldRotate(config: BuildConfig) = config.breaking.rotateForBreak
-
     override fun SafeContext.buildRenderer() {
-        withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
-        withState(checkedState, expectedPos, sideColor, result.side)
+        withState(cachedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side))
+        withState(cachedState, blockPos, sideColor, result.side)
     }
 
-    fun requestDependencies(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean {
-        val request = HotbarRequest(hotbarIndex, breakRequest.hotbar, breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks))
-        return request.hotbar.request(request, false).done
-    }
+    fun requestSwap(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean =
+        HotbarRequest(
+            hotbarIndex,
+            breakRequest.hotbar,
+            breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks)
+        ).submit(false).done
 }

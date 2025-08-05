@@ -99,7 +99,7 @@ abstract class RequestHandler<R : Request>(
      */
     fun request(request: R, queueIfClosed: Boolean = true): R {
         if (!acceptingRequests) {
-            val canOverrideQueued = queuedRequest?.run { config === request.config } ?: true
+            val canOverrideQueued = queuedRequest?.run { config === request.config } != false
             if (queueIfClosed && canOverrideQueued) {
                 queuedRequest = request
             }

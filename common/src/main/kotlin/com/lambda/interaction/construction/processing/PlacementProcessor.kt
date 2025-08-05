@@ -18,9 +18,9 @@
 package com.lambda.interaction.construction.processing
 
 import net.minecraft.block.BlockState
+import net.minecraft.util.math.BlockPos
 
 abstract class PlacementProcessor {
-    abstract fun acceptState(state: BlockState): Boolean
-    abstract fun preProcess(state: BlockState): PreprocessingStep
+    abstract fun acceptsState(state: BlockState): Boolean
+    abstract fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator)
 }
-

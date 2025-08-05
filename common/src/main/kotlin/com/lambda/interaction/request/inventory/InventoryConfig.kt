@@ -15,15 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.request.inventory
 
 import com.lambda.interaction.material.ContainerSelection
-import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
 
-interface InventoryConfig {
+interface InventoryConfig : RequestConfig {
     val disposables: Set<Block>
     val swapWithDisposables: Boolean
     val providerPriority: Priority
@@ -34,16 +34,17 @@ interface InventoryConfig {
     val accessChests: Boolean
     val accessStashes: Boolean
 
-    val containerSelection: ContainerSelection get() = selectContainer {
-        val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
-            addAll(MaterialContainer.Rank.entries)
-            if (!accessShulkerBoxes) remove(MaterialContainer.Rank.SHULKER_BOX)
-            if (!accessEnderChest) remove(MaterialContainer.Rank.ENDER_CHEST)
-            if (!accessChests) remove(MaterialContainer.Rank.CHEST)
-            if (!accessStashes) remove(MaterialContainer.Rank.STASH)
+    val containerSelection: ContainerSelection
+        get() = ContainerSelection.Companion.selectContainer {
+            val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
+                addAll(MaterialContainer.Rank.entries)
+                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.SHULKER_BOX)
+                if (!accessEnderChest) remove(MaterialContainer.Rank.ENDER_CHEST)
+                if (!accessChests) remove(MaterialContainer.Rank.CHEST)
+                if (!accessStashes) remove(MaterialContainer.Rank.STASH)
+            }
+            ofAnyType(*allowedContainers.toTypedArray())
         }
-        ofAnyType(*allowedContainers.toTypedArray())
-    }
 
     enum class Priority {
         WithMinItems,

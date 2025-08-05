@@ -15,12 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifference
-import com.lambda.interaction.request.rotation.Rotation.Companion.dist
-import com.lambda.interaction.request.rotation.Rotation.Companion.lerp
-import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.angleDifference
+import com.lambda.interaction.request.rotating.Rotation.Companion.dist
+import com.lambda.interaction.request.rotating.Rotation.Companion.lerp
+import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals

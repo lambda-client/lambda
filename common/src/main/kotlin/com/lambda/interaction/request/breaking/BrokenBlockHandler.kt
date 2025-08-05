@@ -19,23 +19,24 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.construction.processing.ProcessorRegistry
+import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.request.breaking.ReBreakManager.reBreak
 import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.fluidState
+import com.lambda.util.BlockUtils.isEmpty
+import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.gamemode
-import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos
@@ -46,55 +47,60 @@ import net.minecraft.util.math.ChunkSectionPos
  *
  * @see BreakManager
  */
-object BrokenBlockHandler {
-    val pendingBreaks = LimitedDecayQueue<BreakInfo>(
+object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
+    override val pendingActions = LimitedDecayQueue<BreakInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info ->
         mc.world?.let { world ->
-            val pos = info.context.expectedPos
+            val pos = info.context.blockPos
             val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
             if (!loaded) return@let
 
-            info("${info::class.simpleName} at ${info.context.expectedPos.toShortString()} timed out")
+            if (!info.broken) warn("${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}")
+            else if (!TaskFlowModule.ignoreItemDropWarnings) warn("${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
 
-            val awaitThenBreak = info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak
-            if (!info.broken && awaitThenBreak) {
-                world.setBlockState(info.context.expectedPos, info.context.checkedState)
+            if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
+                world.setBlockState(info.context.blockPos, info.context.cachedState)
             }
         }
-        info.internalOnCancel()
-        info.pendingInteractions.remove(info.context)
+        info.request.onCancel?.invoke(info.context.blockPos)
+        info.pendingInteractionsList.remove(info.context)
     }
 
     init {
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
+        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             run {
-                pendingBreaks.firstOrNull { it.context.expectedPos == event.pos }
-                    ?: if (reBreak?.context?.expectedPos == event.pos) reBreak
+                pendingActions.firstOrNull { it.context.blockPos == event.pos }
+                    ?: if (reBreak?.context?.blockPos == event.pos) reBreak
                     else null
             }?.let { pending ->
-                // return if the state hasn't changed
-                if (event.newState.matches(pending.context.checkedState))
-                    return@listen
-
+                val currentState = pending.context.cachedState
                 // return if the block's not broken
-                if (!isBroken(pending.context.checkedState, event.newState)) {
-                    if (!pending.isReBreaking) {
-                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.checkedState.brokenState}")
-                        pending.stopPending()
+                if (isNotBroken(currentState, event.newState)) {
+                    // return if the state hasn't changed
+                    if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties)) {
+                        pending.context.cachedState = event.newState
+                        return@listen
+                    }
+
+                    if (pending.isReBreaking) {
+                        pending.context.cachedState = event.newState
                     } else {
-                        pending.context.checkedState = event.newState
+                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")
+                        pending.stopPending()
                     }
                     return@listen
                 }
 
-                if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
+                if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
+                    || (pending.isReBreaking && !pending.breakConfig.reBreak)
+                    ) {
                     destroyBlock(pending)
                 }
                 pending.internalOnBreak()
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
-                    if (lastPosStarted == pending.context.expectedPos) {
+                    if (lastPosStarted == pending.context.blockPos) {
                         ReBreakManager.offerReBreak(pending)
                     }
                 }
@@ -102,10 +108,10 @@ object BrokenBlockHandler {
             }
         }
 
-        listen<EntityEvent.Update>(priority = Int.MIN_VALUE + 1) {
+        listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
             run {
-                pendingBreaks.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
                     ?: reBreak?.let { info ->
                         return@run if (matchesBlockItem(info, it.entity)) info
                         else null
@@ -114,44 +120,13 @@ object BrokenBlockHandler {
                 pending.internalOnItemDrop(it.entity)
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
-                    if (lastPosStarted == pending.context.expectedPos) {
+                    if (lastPosStarted == pending.context.blockPos) {
                         ReBreakManager.offerReBreak(pending)
                     }
                 }
                 return@listen
             }
         }
-
-        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE + 1) {
-            pendingBreaks.clear()
-        }
-    }
-
-    /**
-     * Adds the [info] to the [BrokenBlockHandler], and requesters, pending interaction collections.
-     */
-    fun BreakInfo.startPending() {
-        pendingBreaks.add(this)
-        pendingInteractions.add(context)
-    }
-
-    /**
-     * Removes the [info] from the [BrokenBlockHandler], and requesters, pending interaction collections.
-     */
-    fun BreakInfo.stopPending() {
-        if (!isReBreaking) {
-            pendingBreaks.remove(this)
-            pendingInteractions.remove(context)
-        }
-    }
-
-    /**
-     * Sets the size limit and decay time for the [pendingBreaks] [LimitedDecayQueue]
-     * using the [request]'s configs
-     */
-    fun setPendingConfigs(request: BreakRequest) {
-        pendingBreaks.setSizeLimit(request.build.breaking.maxPendingBreaks)
-        pendingBreaks.setDecayTime(request.build.interactionTimeout * 50L)
     }
 
     /**
@@ -167,25 +142,21 @@ object BrokenBlockHandler {
     fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
+        if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
 
-        if (!player.mainHandStack.item.canMine(ctx.checkedState, world, ctx.expectedPos, player))
+        if (!player.mainHandStack.item.canMine(ctx.cachedState, world, ctx.blockPos, player))
             return false
-        val block = ctx.checkedState.block
+        val block = ctx.cachedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
-        if (ctx.checkedState.isAir) return false
+        if (ctx.cachedState.isEmpty) return false
 
-        block.onBreak(world, ctx.expectedPos, ctx.checkedState, player)
-        val fluidState = fluidState(ctx.expectedPos)
-        val setState = world.setBlockState(ctx.expectedPos, fluidState.blockState, 11)
-        if (setState) block.onBroken(world, ctx.expectedPos, ctx.checkedState)
+        block.onBreak(world, ctx.blockPos, ctx.cachedState, player)
+        val fluidState = fluidState(ctx.blockPos)
+        val setState = world.setBlockState(ctx.blockPos, fluidState.blockState, 11)
+        if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
 
         if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
 
         return setState
     }
-
-    val BlockState.isEmpty get() = matches(fluidState.blockState)
-    val BlockState.brokenState: BlockState get() = fluidState.blockState
-    fun isBroken(oldState: BlockState, newState: BlockState) = !oldState.isEmpty && oldState.brokenState.matches(newState)
 }

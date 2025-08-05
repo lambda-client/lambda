@@ -18,7 +18,10 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.request.ActionInfo
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.util.collections.updatableLazy
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
@@ -26,20 +29,28 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
+import net.minecraft.world.WorldView
 
 data class BreakInfo(
-    var context: BreakContext,
+    override var context: BreakContext,
     var type: BreakType,
     var request: BreakRequest
-) {
+) : ActionInfo {
     val breakConfig get() = request.build.breaking
-    val pendingInteractions get() = request.pendingInteractions
+    override val pendingInteractionsList get() = request.pendingInteractions
 
-    var activeAge = 0
     var updatedThisTick = true
-    var updatedProgressThisTick = false
+    var progressedThisTick = false
+    var serverBreakTicks = 0
+
+    var couldReBreak = updatableLazy {
+        runSafe {
+            ReBreakManager.couldReBreak(this@BreakInfo, player, world)
+        } == true
+    }
 
     var breaking = false
+    var abandoned = false
     var breakingTicks = 0
     var soundsCooldown = 0.0f
 
@@ -74,23 +85,16 @@ data class BreakInfo(
         }
     }
 
-    fun internalOnCancel() {
-        request.onCancel?.invoke(context.expectedPos)
-    }
-
-    fun updateInfo(context: BreakContext, request: BreakRequest) {
+    fun updateInfo(context: BreakContext, request: BreakRequest? = null) {
         updatedThisTick = true
         this.context = context
-        this.request = request
-        if (isRedundant) {
-            type = BreakType.Secondary
-        }
+        request?.let { this.request = it }
+        if (isRedundant) type = BreakType.Secondary
     }
 
     fun tickStats() {
-        activeAge++
         updatedThisTick = false
-        updatedProgressThisTick = false
+        progressedThisTick = false
     }
 
     fun resetCallbacks() {
@@ -98,18 +102,37 @@ data class BreakInfo(
         item = null
     }
 
+    fun shouldSwap(player: ClientPlayerEntity, world: WorldView): Boolean {
+        val item = player.inventory.getStack(context.hotbarIndex)
+        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
+        val breakProgress = breakDelta * ((breakingTicks + 1) - breakConfig.fudgeFactor).let {
+            if (isSecondary) it + 1 else it
+        }
+        return if (couldReBreak.value == true)
+            breakConfig.swapMode.isEnabled()
+        else when (breakConfig.swapMode) {
+            BreakConfig.SwapMode.None -> false
+            BreakConfig.SwapMode.Start -> !breaking
+            BreakConfig.SwapMode.End -> breakProgress >= getBreakThreshold()
+            BreakConfig.SwapMode.StartAndEnd -> !breaking || breakProgress >= getBreakThreshold()
+            BreakConfig.SwapMode.Constant -> true
+        }
+    }
+
     fun setBreakingTextureStage(
         player: ClientPlayerEntity,
         world: ClientWorld,
         stage: Int = getBreakTextureProgress(player, world)
     ) {
-        world.setBlockBreakingInfo(player.id, context.expectedPos, stage)
+        world.setBlockBreakingInfo(player.id, context.blockPos, stage)
     }
 
     private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
-        val breakDelta = context.checkedState.calcItemBlockBreakingDelta(player, world, context.expectedPos, player.mainHandStack)
-        val progress = (breakDelta * breakingTicks) / getBreakThreshold()
-        return if (progress > 0.0f) (progress * 10.0f).toInt() else -1
+        val swapMode = breakConfig.swapMode
+        val item = if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) player.inventory.getStack(context.hotbarIndex) else player.mainHandStack
+        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
+        val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
+        return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(10) else -1
     }
 
     fun getBreakThreshold() = type.getBreakThreshold(breakConfig)
@@ -127,18 +150,18 @@ data class BreakInfo(
         interaction.sendSequencedPacket(world) { sequence: Int ->
             PlayerActionC2SPacket(
                 action,
-                context.expectedPos,
+                context.blockPos,
                 context.result.side,
                 sequence
             )
         }
 }
 
-enum class BreakType(val index: Int) {
-    Primary(0),
-    Secondary(1),
-    RedundantSecondary(2),
-    ReBreak(2);
+enum class BreakType() {
+    Primary,
+    Secondary,
+    RedundantSecondary,
+    ReBreak;
 
     fun getBreakThreshold(breakConfig: BreakConfig) =
         when (this) {

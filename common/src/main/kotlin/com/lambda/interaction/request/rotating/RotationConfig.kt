@@ -15,11 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
+package com.lambda.interaction.request.rotating
 
-import com.lambda.event.Event
-import com.lambda.event.events.TickEvent
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
 /**
@@ -27,46 +24,36 @@ import com.lambda.interaction.request.RequestConfig
  *
  * @param priority The priority of this configuration.
  */
-abstract class RotationConfig(priority: Priority) : RequestConfig<RotationRequest>(priority) {
+interface RotationConfig : RequestConfig {
     /**
      * - [RotationMode.Silent] Spoofing server-side rotation.
      * - [RotationMode.Sync] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
      * - [RotationMode.Lock] Locks the camera client-side.
      * - [RotationMode.None] No rotation.
      */
-    abstract val rotationMode: RotationMode
+    val rotationMode: RotationMode
 
     /**
      * The rotation speed (in degrees).
      */
-    abstract val turnSpeed: Double
+    val turnSpeed: Double
 
     /**
      * Ticks the rotation should not be changed.
      */
-    abstract val keepTicks: Int
+    val keepTicks: Int
 
     /**
      * Ticks to rotate back to the actual rotation.
      */
-    abstract val decayTicks: Int
-
-    /**
-     * The sub-tick stages at which rotations can take place
-     */
-    abstract val rotationStageMask: Set<Event>
+    val decayTicks: Int
 
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
-    override fun requestInternal(request: RotationRequest, queueIfClosed: Boolean) {
-        RotationManager.request(request, queueIfClosed)
-    }
-
-    open class Instant(mode: RotationMode, priority: Priority = 0) : RotationConfig(priority) {
-        override val turnSpeed get() = 360.0
-        override val keepTicks get() = 1
-        override val decayTicks get() = 1
-        override val rotationStageMask = setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post)
+    open class Instant(mode: RotationMode) : RotationConfig {
         override val rotationMode = mode
+        override val keepTicks = 1
+        override val decayTicks = 1
+        override val turnSpeed = 360.0
     }
 }

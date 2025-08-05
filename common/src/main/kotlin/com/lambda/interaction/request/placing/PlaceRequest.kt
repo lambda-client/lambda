@@ -20,12 +20,13 @@ package com.lambda.interaction.request.placing
 import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.matches
+import net.minecraft.util.math.BlockPos
 
 data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
@@ -33,11 +34,14 @@ data class PlaceRequest(
     val rotation: RotationConfig,
     val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
-    val prio: Priority = 0,
-    val onPlace: () -> Unit
-) : Request(prio, build.placing) {
+    val onPlace: ((BlockPos) -> Unit)? = null
+) : Request(), PlaceConfig by build.placing {
+    override val config = build.placing
     override val done: Boolean
         get() = runSafe {
-            contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) }
+            contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
         } == true
+
+    override fun submit(queueIfClosed: Boolean) =
+        PlaceManager.request(this, queueIfClosed)
 }

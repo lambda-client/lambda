@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
-import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.StackSelection
@@ -205,8 +205,15 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val pausesParent get() = true
 
-        override fun resolve() = neededSelection
-            .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find $neededSelection anywhere.")
+        override fun resolve() =
+            neededSelection.let { selection ->
+                selection.transfer(MainHandContainer, inventory)
+                    ?: MaterialContainer.AwaitItemTask(
+                        "Couldn't find $neededSelection anywhere.",
+                        selection,
+                        inventory
+                    )
+            }
 
         override fun SafeContext.buildRenderer() {
             if (blockState(blockPos).isAir) {
@@ -242,8 +249,14 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val pausesParent get() = true
 
         override fun resolve() =
-            neededStack.select()
-                .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededStack.item.name.string} anywhere.")
+            neededStack.select().let { selection ->
+                selection.transfer(MainHandContainer, inventory)
+                    ?: MaterialContainer.AwaitItemTask(
+                        "Couldn't find ${neededStack.item.name.string} anywhere.",
+                        selection,
+                        inventory
+                    )
+            }
 
         override fun SafeContext.buildRenderer() {
             if (blockState(blockPos).isAir) {

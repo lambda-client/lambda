@@ -7,6 +7,7 @@ accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
 accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
+accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
@@ -21,6 +22,7 @@ accessible method net/minecraft/item/BlockItem place (Lnet/minecraft/item/ItemPl
 accessible method net/minecraft/item/BlockItem placeFromNbt (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;
 accessible method net/minecraft/item/BlockItem postPlacement (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Z
 accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/minecraft/block/BlockState;)Lnet/minecraft/sound/SoundEvent;
+accessible field net/minecraft/state/State owner Ljava/lang/Object;
 
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;

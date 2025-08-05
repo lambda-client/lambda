@@ -15,16 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation.visibilty
+package com.lambda.interaction.request.rotating.visibilty
 
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.SurfaceScan
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.dist
-import com.lambda.interaction.request.rotation.RotationManager
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.ALL_SIDES
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.findRotation
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.dist
+import com.lambda.interaction.request.rotating.RotationManager
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.ALL_SIDES
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.extension.rotation
 import com.lambda.util.world.raycast.InteractionMask
@@ -86,7 +86,7 @@ fun lookAtHit(hit: RequestedHit, rotation: SafeContext.() -> Rotation?) =
 @RotationDsl
 fun lookAtHit(
     hit: HitResult,
-    config: InteractionConfig = TaskFlowModule.interact,
+    config: InteractionConfig = TaskFlowModule.interaction,
 ): RotationTarget? {
     return when (hit) {
         is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), SurfaceScan.DEFAULT, config)
@@ -105,7 +105,7 @@ fun lookAtHit(
 @RotationDsl
 fun lookAtEntity(
     entity: LivingEntity,
-    config: InteractionConfig = TaskFlowModule.interact
+    config: InteractionConfig = TaskFlowModule.interaction
 ): RotationTarget {
     val requestedHit = entityHit(entity, config.attackReach)
 
@@ -135,7 +135,7 @@ fun lookAtBlock(
     pos: BlockPos,
     sides: Set<Direction> = ALL_SIDES,
     surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    config: InteractionConfig = TaskFlowModule.interact,
+    config: InteractionConfig = TaskFlowModule.interaction,
 ): RotationTarget {
     val requestedHit = blockHit(pos, sides, config.interactReach)
 

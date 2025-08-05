@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.visibilty.PlaceDirection
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.visibilty.PlaceDirection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -265,7 +265,7 @@ class PlaceDirectionTest {
         val secondSnapped = nextDirection.snapToArea(firstSnapped)
 
         // Verify that the yaw and pitch are snapped to the boundary
-        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+        assertEquals(nextDirection, PlaceDirection.fromRotation(secondSnapped))
     }
 
     @Test
@@ -278,7 +278,7 @@ class PlaceDirectionTest {
         val secondSnapped = nextDirection.snapToArea(firstSnapped)
 
         // Verify that the yaw and pitch are snapped to the boundary
-        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+        assertEquals(nextDirection, PlaceDirection.fromRotation(secondSnapped))
     }
 
     @Test
@@ -291,7 +291,7 @@ class PlaceDirectionTest {
         val secondSnapped = nextDirection.snapToArea(firstSnapped)
 
         // Verify that the yaw and pitch are snapped to the boundary
-        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+        assertEquals(nextDirection, PlaceDirection.fromRotation(secondSnapped))
     }
 
     @Test
@@ -304,7 +304,7 @@ class PlaceDirectionTest {
         val secondSnapped = nextDirection.snapToArea(firstSnapped)
 
         // Verify that the yaw and pitch are snapped to the boundary
-        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+        assertEquals(nextDirection, PlaceDirection.fromRotation(secondSnapped))
     }
 
     // Tests for when rotation is already in the area

@@ -18,7 +18,7 @@
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian

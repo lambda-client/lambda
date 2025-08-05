@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
+package com.lambda.interaction.request.rotating
 
 import com.lambda.interaction.request.rotation.RotationMode.Lock
 import com.lambda.interaction.request.rotation.RotationMode.None

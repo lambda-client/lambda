@@ -22,6 +22,7 @@ interface BuildConfig {
     val pathing: Boolean
     val stayInRange: Boolean
     val collectDrops: Boolean
+    val interactionsPerTick: Int
     val maxPendingInteractions: Int
     val interactionTimeout: Int
 
@@ -30,6 +31,9 @@ interface BuildConfig {
 
     // Placing
     val placing: PlaceSettings
+
+    // Interacting
+    val interacting: InteractSettings
 
     enum class SwingType {
         Vanilla,

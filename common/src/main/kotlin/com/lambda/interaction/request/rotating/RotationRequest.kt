@@ -15,31 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
+package com.lambda.interaction.request.rotating
 
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
-import com.lambda.interaction.request.rotation.visibilty.RotationTarget
+import com.lambda.interaction.request.rotating.visibilty.RotationTarget
 import com.lambda.threading.runSafe
 
 data class RotationRequest(
     val target: RotationTarget,
-    val prio: Priority,
-    val mode: RotationMode,
-    val rot: RotationConfig,
-    var keepTicks: Int = 3,
-    var decayTicks: Int = 0,
-    val turnSpeed: () -> Double = { 180.0 },
+    override val config: RotationConfig,
+    override val rotationMode: RotationMode = config.rotationMode,
+    override val turnSpeed: Double = config.turnSpeed,
+    override var keepTicks: Int = config.keepTicks,
+    override var decayTicks: Int = config.decayTicks,
     val speedMultiplier: Double = 1.0
-) : Request(prio, rot) {
+) : Request(), RotationConfig by config {
     var age = 0
 
-    constructor(
-        target: RotationTarget,
-        config: RotationConfig,
-        speedMultiplier: Double = 1.0
-    ) : this(target, config.priority, config.rotationMode, config, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
-
     override val done: Boolean get() =
-        mode == RotationMode.None || runSafe { target.verify() } == true
+        rotationMode == RotationMode.None || runSafe { target.verify() } == true
+
+    override fun submit(queueIfClosed: Boolean): RotationRequest =
+        RotationManager.request(this, queueIfClosed)
 }

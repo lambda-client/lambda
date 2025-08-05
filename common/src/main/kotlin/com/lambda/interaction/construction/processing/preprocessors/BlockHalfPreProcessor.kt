@@ -15,36 +15,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.processors
+package com.lambda.interaction.construction.processing.preprocessors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingStep
+import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import net.minecraft.block.BlockState
-import net.minecraft.block.SlabBlock
-import net.minecraft.block.enums.SlabType
+import net.minecraft.block.enums.BlockHalf
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-object SlabProcessor : PlacementProcessor() {
-    override fun acceptState(state: BlockState) = state.block is SlabBlock
+// Collected using reflections and then accessed from a collection in ProcessorRegistry
+@Suppress("unused")
+object BlockHalfPreProcessor : PlacementProcessor() {
+    override fun acceptsState(state: BlockState) =
+        state.getOrEmpty(Properties.BLOCK_HALF).isPresent
 
-    override fun preProcess(state: BlockState): PreprocessingStep {
-        val slab = state.getOrEmpty(Properties.SLAB_TYPE).get()
+    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
+        val slab = state.get(Properties.BLOCK_HALF) ?: return
 
         val surfaceScan = when (slab) {
-             SlabType.BOTTOM -> SurfaceScan(
-                 ScanMode.LESSER_HALF, Direction.Axis.Y
-             )
-             SlabType.TOP -> SurfaceScan(
-                 ScanMode.GREATER_HALF, Direction.Axis.Y
-             )
-             SlabType.DOUBLE -> SurfaceScan(
-                 ScanMode.FULL, Direction.Axis.Y
-             )
+            BlockHalf.BOTTOM -> SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Y)
+            BlockHalf.TOP -> SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Y)
         }
 
-        return PreprocessingStep(surfaceScan)
+        accumulator.offerSurfaceScan(surfaceScan)
     }
 }

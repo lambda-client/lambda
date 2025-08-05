@@ -34,15 +34,15 @@ class FloatSetting(
     override val range: ClosedRange<Float>,
     override val step: Float = 1f,
     description: String,
-    visibility: () -> Boolean,
     unit: String,
+    visibility: () -> Boolean
 ) : NumericSetting<Float>(
     defaultValue,
     range,
     step,
     description,
-    visibility,
-    unit
+    unit,
+    visibility
 ) {
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(float(name, range.start, range.endInclusive)) { parameter ->

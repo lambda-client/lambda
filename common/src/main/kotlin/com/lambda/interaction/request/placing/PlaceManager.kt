@@ -25,15 +25,20 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
+import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
+import com.lambda.interaction.request.placing.PlaceManager.maxPlacementsThisTick
+import com.lambda.interaction.request.placing.PlaceManager.placeBlock
+import com.lambda.interaction.request.placing.PlaceManager.populateFrom
+import com.lambda.interaction.request.placing.PlaceManager.potentialPlacements
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
-import com.lambda.interaction.request.placing.PlacedBlockHandler.addPendingPlace
-import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
+import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingActions
 import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
+import com.lambda.interaction.request.placing.PlacedBlockHandler.startPending
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import com.lambda.util.player.gamemode
@@ -63,7 +68,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    // ToDo: Post interact
     onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
     private var activeRequest: PlaceRequest? = null
@@ -77,11 +81,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         { player -> shouldSneak == player.isSneaking }
 
     override val blockedPositions
-        get() = pendingPlacements.map { it.context.expectedPos }
+        get() = pendingActions.map { it.context.blockPos }
 
     fun Any.onPlace(
         alwaysListen: Boolean = false,
-        priority: Priority = 0,
+        priority: Int = 0,
         block: SafeContext.() -> Unit
     ) = this.listen<UpdateManagerEvent.Place>(priority, alwaysListen) {
         block()
@@ -93,6 +97,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest = null
             placementsThisTick = 0
+            potentialPlacements.clear()
         }
 
         listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
@@ -112,7 +117,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see processRequest
      */
     override fun SafeContext.handleRequest(request: PlaceRequest) {
-        if (activeRequest != null || BreakManager.activeThisTick) return
+        if (activeRequest != null || BreakManager.activeThisTick || InteractionManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
@@ -130,8 +135,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun SafeContext.processRequest(request: PlaceRequest) {
-        pendingPlacements.cleanUp()
-
         if (request.fresh) populateFrom(request)
 
         val iterator = potentialPlacements.iterator()
@@ -155,27 +158,17 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * Filters the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
      * setting the maxPlacementsThisTick value.
      *
-     * @see canPlace
+     * @see isPosBlocked
      */
     private fun populateFrom(request: PlaceRequest) {
-        val place = request.build.placing
-
-        setPendingConfigs(request)
+        setPendingConfigs(request.build)
         potentialPlacements = request.contexts
-            .filter { canPlace(it) }
+            .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
-        val pendingLimit =  (place.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
-        maxPlacementsThisTick = (place.placementsPerTick.coerceAtMost(pendingLimit))
+        val pendingLimit =  (request.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
+        maxPlacementsThisTick = (request.placementsPerTick.coerceAtMost(pendingLimit))
     }
-
-    /**
-     * @return if none of the [pendingPlacements] match positions with the [placeContext]
-     */
-    private fun canPlace(placeContext: PlaceContext) =
-        pendingPlacements.none { pending ->
-            pending.context.expectedPos == placeContext.expectedPos
-        }
 
     /**
      * A modified version of the minecraft interactBlock method, renamed to better suit its usage.
@@ -280,9 +273,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         val stackInHand = player.getStackInHand(hand)
         val stackCountPre = stackInHand.count
         if (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) {
-            addPendingPlace(
-                PlaceInfo(placeContext, request.onPlace, request.pendingInteractions, placeConfig)
-            )
+            PlaceInfo(placeContext, request.pendingInteractions, request.onPlace, placeConfig).startPending()
         }
 
         if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {
@@ -302,6 +293,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             }
         }
 
+        val itemStack = itemPlacementContext.stack
+        if (!player.abilities.creativeMode) itemStack.decrement(1)
+
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.success(world.isClient)
 
@@ -311,7 +305,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
 
         val blockPos = itemPlacementContext.blockPos
-        val itemStack = itemPlacementContext.stack
         var hitState = world.getBlockState(blockPos)
         if (hitState.isOf(blockState.block)) {
             hitState = item.placeFromNbt(blockPos, world, itemStack, hitState)
@@ -320,10 +313,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
         if (placeConfig.sounds) placeSound(item, hitState, blockPos)
-        if (!player.abilities.creativeMode) itemStack.decrement(1)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
-            request.onPlace()
+            request.onPlace?.invoke(placeContext.blockPos)
         }
 
         return ActionResult.success(world.isClient)

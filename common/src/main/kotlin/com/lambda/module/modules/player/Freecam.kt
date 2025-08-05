@@ -23,11 +23,12 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationMode
-import com.lambda.interaction.request.rotation.visibilty.lookAtHit
+import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.request.rotating.RotationManager.onRotate
+import com.lambda.interaction.request.rotating.RotationMode
+import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.partialTicks

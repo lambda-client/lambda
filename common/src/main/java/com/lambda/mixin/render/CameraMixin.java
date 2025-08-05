@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.interaction.request.rotation.RotationManager;
+import com.lambda.interaction.request.rotating.RotationManager;
 import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import net.minecraft.client.render.Camera;

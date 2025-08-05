@@ -18,89 +18,55 @@
 package com.lambda.interaction.request.placing
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
-import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.construction.processing.ProcessorRegistry
+import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.placing.PlaceManager.placeSound
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.item
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
-import net.minecraft.block.BlockState
 import net.minecraft.item.BlockItem
-import net.minecraft.util.math.BlockPos
 
-object PlacedBlockHandler {
-    val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
+object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
+    override val pendingActions = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
-        info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
-        mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+        info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
+        if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {
+            mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
+        }
         it.pendingInteractionsList.remove(it.context)
     }
 
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            pendingPlacements
-                .firstOrNull { it.context.expectedPos == event.pos }
-                ?.let { info ->
-                    removePendingPlace(info)
-
-                    // return if the block wasn't placed
-                    if (!matchesTargetState(event.pos, info.context.targetState, event.newState))
-                        return@listen
-
-                    if (info.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
-                        with (info.context) {
-                            placeSound(expectedState.block.item as BlockItem, expectedState, expectedPos)
+            pendingActions
+                .firstOrNull { it.context.blockPos == event.pos }
+                ?.let { pending ->
+                    if (!pending.context.expectedState.matches(event.newState)) {
+                        if (pending.context.cachedState.matches(event.newState, ProcessorRegistry.postProcessedProperties)) {
+                            pending.context.cachedState = event.newState
+                            return@listen
                         }
-                    info.onPlace()
-                    return@listen
+
+                        pending.stopPending()
+
+                        this@PlacedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+                        return@listen
+                    }
+
+                    pending.stopPending()
+
+                    if (pending.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
+                        with (pending.context) {
+                            placeSound(expectedState.block.item as BlockItem, expectedState, blockPos)
+                        }
+                    pending.onPlace?.invoke(pending.context.blockPos)
                 }
         }
-
-        listenUnsafe<ConnectionEvent.Connect.Pre> {
-            pendingPlacements.clear()
-        }
     }
-
-    /**
-     * Adds the info to the [PlacedBlockHandler], and requesters, pending interaction collections.
-     */
-    fun addPendingPlace(info: PlaceInfo) {
-        pendingPlacements.add(info)
-        info.pendingInteractionsList.add(info.context)
-    }
-
-    /**
-     * Removes the info from the [PlacedBlockHandler], and requesters, pending interaction collections.
-     */
-    private fun removePendingPlace(info: PlaceInfo) {
-        pendingPlacements.remove(info)
-        info.pendingInteractionsList.remove(info.context)
-    }
-
-    /**
-     * Sets the size limit and decay time for the [pendingPlacements] using the [request]'s configs
-     */
-    fun setPendingConfigs(request: PlaceRequest) {
-        pendingPlacements.setSizeLimit(request.build.placing.maxPendingPlacements)
-        pendingPlacements.setDecayTime(request.build.interactionTimeout * 50L)
-    }
-
-    /**
-     * @return if the [targetState] matches the [newState]
-     *
-     * @see TargetState
-     */
-    private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
-        if (targetState.matches(newState, pos, world)) true
-        else {
-            this@PlacedBlockHandler.warn("Place at ${pos.toShortString()} was rejected with $newState instead of $targetState")
-            false
-        }
 }

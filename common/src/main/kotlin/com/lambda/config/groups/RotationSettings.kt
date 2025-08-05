@@ -18,10 +18,8 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.event.events.TickEvent
-import com.lambda.interaction.request.Priority
-import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.request.rotating.RotationMode
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -31,9 +29,8 @@ import kotlin.random.Random
 
 class RotationSettings(
     c: Configurable,
-    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : RotationConfig(priority) {
+) : RotationConfig {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera, NONE - No rotation", visibility = vis)
 
     /** How many ticks to keep the rotation before resetting */
@@ -41,11 +38,6 @@ class RotationSettings(
 
     /** How many ticks to wait before resetting the rotation */
     override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }
-
-    /**
-     * At what sub-tick stages rotations can be performed
-     */
-    override val rotationStageMask by c.setting("Rotation Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post), "The sub-tick stages at which rotations can be performed", visibility = vis)
 
     /** Whether the rotation is instant */
     var instant by c.setting("Instant Rotation", true, "Instantly rotate") { rotate && vis() }

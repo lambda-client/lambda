@@ -15,14 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing
+package com.lambda.interaction.request
 
-import com.lambda.interaction.construction.verify.SurfaceScan
-import net.minecraft.state.property.Property
-import net.minecraft.util.math.Direction
+import com.lambda.interaction.construction.context.BuildContext
 
-data class PreprocessingStep(
-    val surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    val ignore: Set<Property<*>> = emptySet(),
-    val sides: Set<Direction> = Direction.entries.toSet(),
-)
+interface ActionInfo {
+    val context: BuildContext
+    val pendingInteractionsList: MutableCollection<BuildContext>
+}

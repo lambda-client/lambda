@@ -23,20 +23,28 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.isEmpty
 import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.player.swingHand
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.Hand
+import net.minecraft.world.BlockView
 
 object ReBreakManager {
     var reBreak: BreakInfo? = null
 
     init {
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            reBreak?.apply {
-                breakingTicks++
-                tickStats()
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
+            reBreak?.run {
+                if (!progressedThisTick) {
+                    breakingTicks++
+                    progressedThisTick = true
+                }
             }
+        }
+
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            reBreak?.tickStats()
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
@@ -52,40 +60,45 @@ object ReBreakManager {
             breaking = true
             resetCallbacks()
         }
-        info.request.onReBreakStart?.invoke(info.context.expectedPos)
+        info.request.onReBreakStart?.invoke(info.context.blockPos)
     }
 
     fun clearReBreak() {
         reBreak = null
     }
 
+    fun couldReBreak(info: BreakInfo, player: ClientPlayerEntity, world: BlockView) =
+        reBreak?.let { reBreak ->
+            val stack = if (info.breakConfig.swapMode.isEnabled())
+                player.inventory.getStack(info.context.hotbarIndex)
+            else player.mainHandStack
+            val breakDelta = info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
+            reBreak.breakConfig.reBreak &&
+                    info.context.blockPos == reBreak.context.blockPos &&
+                    !reBreak.updatedThisTick &&
+                    ((reBreak.breakingTicks - info.breakConfig.fudgeFactor) * breakDelta >= info.breakConfig.breakThreshold)
+        } == true
+
     fun handleUpdate(ctx: BreakContext, breakRequest: BreakRequest) =
         runSafe {
-            val info = reBreak ?: return@runSafe ReBreakResult.Ignored
+            val reBreak = this@ReBreakManager.reBreak ?: return@runSafe ReBreakResult.Ignored
 
-            if (info.context.expectedPos != ctx.expectedPos || !info.breakConfig.reBreak) {
-                return@runSafe ReBreakResult.Ignored
-            }
-            if (info.updatedThisTick) return@runSafe ReBreakResult.ReBroke
-            info.updateInfo(ctx, breakRequest)
+            reBreak.updateInfo(ctx, breakRequest)
 
-            val context = info.context
-            val awaitThenBreak = info.breakConfig.breakConfirmation == BreakConfig.BreakConfirmationMode.AwaitThenBreak
-
-            val breakProgress = context.checkedState.calcBlockBreakingDelta(player, world, context.expectedPos)
-            return@runSafe if (info.breakingTicks * breakProgress >= info.breakConfig.breakThreshold) {
-                if (!context.checkedState.isEmpty && !awaitThenBreak)  {
-                    destroyBlock(info)
+            val context = reBreak.context
+            val breakDelta = context.cachedState.calcBlockBreakingDelta(player, world, context.blockPos)
+            return@runSafe if ((reBreak.breakingTicks - reBreak.breakConfig.fudgeFactor) * breakDelta >= reBreak.breakConfig.breakThreshold) {
+                if (reBreak.breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
+                    destroyBlock(reBreak)
                 }
-                info.stopBreakPacket(world, interaction)
-                val swing = info.breakConfig.swing
-                if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) {
-                    swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+                reBreak.stopBreakPacket(world, interaction)
+                if (reBreak.breakConfig.swing.isEnabled()) {
+                    swingHand(reBreak.breakConfig.swingType, Hand.MAIN_HAND)
                 }
                 BreakManager.breaksThisTick++
                 ReBreakResult.ReBroke
             } else {
-                ReBreakResult.StillBreaking(info)
+                ReBreakResult.StillBreaking(reBreak)
             }
         }
 }
