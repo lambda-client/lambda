@@ -25,6 +25,7 @@ import net.minecraft.item.Items
 
 object ItemUtils {
 
+
     val pickaxes = setOf(
         Items.WOODEN_PICKAXE,
         Items.STONE_PICKAXE,
@@ -122,19 +123,6 @@ object ItemUtils {
     )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
-
-    fun findBestToolsForBreaking(
-        blockState: BlockState,
-        availableTools: Set<Item> = tools,
-    ) = availableTools.map {
-        it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
-    }.filter { (item, speed) ->
-        speed > 1.0 && item.isSuitableFor(blockState)
-    }.sortedByDescending {
-        it.second
-    }.map {
-        it.first
-    }
 
     fun Int.toItemCount(): String {
         if (this < 0) {

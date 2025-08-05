@@ -24,11 +24,13 @@ import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.placing.PlaceManager.placeSound
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.item
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
+import net.minecraft.block.BlockState
+import net.minecraft.util.math.BlockPos
 import net.minecraft.item.BlockItem
 
 object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
@@ -62,9 +64,7 @@ object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
                     pending.stopPending()
 
                     if (pending.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
-                        with (pending.context) {
-                            placeSound(expectedState.block.item as BlockItem, expectedState, blockPos)
-                        }
+                        with(pending.context) { placeSound(expectedState, blockPos) }
                     pending.onPlace?.invoke(pending.context.blockPos)
                 }
         }

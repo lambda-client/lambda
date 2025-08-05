@@ -41,6 +41,7 @@ import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfi
 import com.lambda.interaction.request.placing.PlacedBlockHandler.startPending
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
+import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.isItemOnCooldown
 import com.lambda.util.player.swingHand
@@ -53,7 +54,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
-import net.minecraft.registry.RegistryKeys
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
@@ -203,24 +203,24 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 return ActionResult.FAIL
             }
 
-            val actionResult = blockState.onUse(world, player, hand, hitResult)
+            val actionResult = blockState.onUse(world, player, hitResult)
             if (actionResult.isAccepted) {
                 return actionResult
             }
         }
 
-        val itemStack = player.getStackInHand(hand)
+        val stack = player.mainHandStack
 
-        if (!itemStack.isEmpty && !isItemOnCooldown(itemStack.item)) {
+        if (!stack.isEmpty && !isItemOnCooldown(stack)) {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
             return if (gamemode.isCreative) {
-                val i = itemStack.count
-                useOnBlock(placeContext, request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
+                val i = stack.count
+                useOnBlock(placeContext, request, hand, hitResult, placeConfig, stack, itemUsageContext)
                     .also {
-                        itemStack.count = i
+                        stack.count = i
                     }
             } else
-                useOnBlock(placeContext, request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
+                useOnBlock(placeContext, request, hand, hitResult, placeConfig, stack, itemUsageContext)
         }
         return ActionResult.PASS
     }
@@ -242,7 +242,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         val cachedBlockPosition = CachedBlockPosition(world, context.blockPos, false)
 
         val cantModifyWorld = !player.abilities.allowModifyWorld
-        val cantPlaceOn = !itemStack.canPlaceOn(context.world.registryManager.get(RegistryKeys.BLOCK), cachedBlockPosition)
+        val cantPlaceOn = !itemStack.canPlaceOn(cachedBlockPosition)
         if (cantModifyWorld && cantPlaceOn) return ActionResult.PASS
 
         val item = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
@@ -288,7 +288,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (placeConfig.swing) {
             swingHand(placeConfig.swingType, hand)
 
-            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
+            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
             }
         }
@@ -297,7 +297,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!player.abilities.creativeMode) itemStack.decrement(1)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
-            return ActionResult.success(world.isClient)
+            return ActionResult.SUCCESS
 
         // TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
         //  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
@@ -305,20 +305,20 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
 
         val blockPos = itemPlacementContext.blockPos
-        var hitState = world.getBlockState(blockPos)
-        if (hitState.isOf(blockState.block)) {
-            hitState = item.placeFromNbt(blockPos, world, itemStack, hitState)
-            item.postPlacement(blockPos, world, player, itemStack, hitState)
-            hitState.block.onPlaced(world, blockPos, hitState, player, itemStack)
+        var state = world.getBlockState(blockPos)
+        if (state.isOf(blockState.block)) {
+            state = item.placeFromNbt(blockPos, world, itemStack, state)
+            item.postPlacement(blockPos, world, player, itemStack, state)
+            state.block.onPlaced(world, blockPos, state, player, itemStack)
         }
 
-        if (placeConfig.sounds) placeSound(item, hitState, blockPos)
+        if (placeConfig.sounds) placeSound(state, blockPos)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
             request.onPlace?.invoke(placeContext.blockPos)
         }
 
-        return ActionResult.success(world.isClient)
+        return ActionResult.SUCCESS
     }
 
     /**
@@ -332,12 +332,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     /**
      * Plays the block placement sound at a given position.
      */
-    fun SafeContext.placeSound(item: BlockItem, state: BlockState, pos: BlockPos) {
+    fun SafeContext.placeSound(state: BlockState, pos: BlockPos) {
         val blockSoundGroup = state.soundGroup
         world.playSound(
             player,
             pos,
-            item.getPlaceSound(state),
+            state.soundGroup.placeSound,
             SoundCategory.BLOCKS,
             (blockSoundGroup.getVolume() + 1.0f) / 2.0f,
             blockSoundGroup.getPitch() * 0.8f

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,8 +41,8 @@ public class InGameHudMixin {
         RenderMain.render2D();
     }
 
-    @Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getMainHandStack()Lnet/minecraft/item/ItemStack;"))
+    @Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getSelectedStack()Lnet/minecraft/item/ItemStack;"))
     private ItemStack onTick(PlayerInventory inventory) {
-        return isValidHotbarIndex(inventory.selectedSlot) ? inventory.main.get(inventory.selectedSlot) : ItemStack.EMPTY;
+        return isValidHotbarIndex(inventory.getSelectedSlot()) ? inventory.getMainStacks().get(inventory.getSelectedSlot()) : ItemStack.EMPTY;
     }
 }

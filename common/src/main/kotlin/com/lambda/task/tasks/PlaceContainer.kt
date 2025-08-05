@@ -33,7 +33,6 @@ import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ChestBlock
@@ -63,10 +62,8 @@ class PlaceContainer @Ta5kBuilder constructor(
             }
 
             val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
-                .map { it.blockPos }
                 .flatMap {
-                    it.blockPos
-                        .toStructure(TargetState.Stack(startStack))
+                    it.toStructure(TargetState.Stack(startStack))
                         .toBlueprint()
                         .simulate(player.eyePos)
                 }
@@ -82,8 +79,8 @@ class PlaceContainer @Ta5kBuilder constructor(
                 ?.blockPos
                 ?.toStructure(TargetState.Stack(startStack))
         }.build(
-            true,
-            false,
+            finishOnDone = true,
+            collectDrops = false,
             build = build,
             rotation = rotation,
             interact = interact,

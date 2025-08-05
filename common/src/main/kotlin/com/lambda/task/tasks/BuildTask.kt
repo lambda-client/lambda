@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -35,6 +34,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.result.InteractResult
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
@@ -43,10 +43,12 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.interacting.InteractRequest
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceRequest
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -204,12 +206,12 @@ class BuildTask @Ta5kBuilder constructor(
         dropsToCollect
             .firstOrNull()
             ?.let { itemDrop ->
-                if (pendingInteractions.isNotEmpty()) return true
+                if (pendingInteractions.isNotEmpty()) return@let true
 
                 if (!world.entities.contains(itemDrop)) {
                     dropsToCollect.remove(itemDrop)
                     BaritoneUtils.cancel()
-                    return true
+                    return@let true
                 }
 
                 val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
@@ -218,16 +220,16 @@ class BuildTask @Ta5kBuilder constructor(
                         it.stack.item.block in TaskFlowModule.inventory.disposables
                     } ?: run {
                         failure("No item in inventory to throw but inventory is full and cant pick up item drop")
-                        return true
+                        return@let true
                     }
                     transfer(player.currentScreenHandler) {
                         throwStack(stackToThrow.id)
                     }.execute(this@BuildTask)
-                    return true
+                    return@let true
                 }
 
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-                return true
+                return@let true
             } ?: false
 
     fun iteratePropagating() =

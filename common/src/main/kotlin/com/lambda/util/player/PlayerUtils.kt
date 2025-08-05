@@ -24,7 +24,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
 
@@ -84,4 +84,4 @@ fun SafeContext.swingHandClient(hand: Hand) {
     }
 }
 
-fun SafeContext.isItemOnCooldown(item: Item) = player.itemCooldownManager.isCoolingDown(item)
+fun SafeContext.isItemOnCooldown(stack: ItemStack) = player.itemCooldownManager.isCoolingDown(stack)

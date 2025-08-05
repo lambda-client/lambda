@@ -25,7 +25,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.request.rotating.RotationManager
@@ -34,12 +34,12 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.util.item.ItemStackUtils.attackDamage
-import com.lambda.util.item.ItemStackUtils.itemAttackSpeed
+import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
-import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
+import net.minecraft.registry.tag.ItemTags
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
 
@@ -102,9 +102,10 @@ object KillAura : Module(
         listen<TickEvent.Pre> {
             target?.let { entity ->
                 if (swap) {
-                    val selection = player.combined
-                        .maxBy { stack -> stack.attackDamage } // ToDo: Write our own enchantment utils
-                        .select()
+                    val selection = selectStack(
+                        sorter = compareByDescending { attackDamage(stack = it) }
+                    ) { isTag(ItemTags.SWORDS) }
+
 
                     if (!selection.selector(player.mainHandStack)) {
                         selection.transfer(MainHandContainer)
@@ -130,7 +131,7 @@ object KillAura : Module(
         // Cooldown check
         when (attackMode) {
             AttackMode.Cooldown -> {
-                if (player.lastAttackedTicks < 20/player.itemAttackSpeed + cooldownOffset) return
+                if (player.lastAttackedTicks < 20/player.attackSpeed() + cooldownOffset) return
             }
 
             AttackMode.Delay -> {

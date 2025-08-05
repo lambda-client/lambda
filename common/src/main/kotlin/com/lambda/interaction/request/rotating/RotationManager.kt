@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request.rotating
 
-import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
@@ -25,7 +25,6 @@ import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.RequestHandler
-import com.lambda.interaction.request.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import com.lambda.interaction.request.rotating.visibilty.lookAt
@@ -39,6 +38,7 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.util.math.Vec2f
 import kotlin.math.cos
 import kotlin.math.round
 import kotlin.math.sign
@@ -89,7 +89,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             if (packet !is PlayerPositionLookS2CPacket) return@listen
 
             runGameScheduled {
-                reset(Rotation(packet.yaw, packet.pitch))
+                reset(Rotation(packet.change.yaw, packet.change.pitch))
             }
         }
 
@@ -130,7 +130,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
 
         // Handle LOCK mode
-        if (activeRequest?.mode == RotationMode.Lock) {
+        if (activeRequest?.rotationMode == RotationMode.Lock) {
             mc.player?.yaw = serverRotation.yawF
             mc.player?.pitch = serverRotation.pitchF
         }
@@ -277,5 +277,5 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
-    override fun preEvent(): Event = UpdateManagerEvent.Rotation.post()
+    override fun preEvent() = UpdateManagerEvent.Rotation.post()
 }

@@ -814,7 +814,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         config: BreakConfig,
         item: ItemStack? = null
     ) = runSafe {
-        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.mainHandStack)
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.selectedStack)
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
 //        if (config.desyncFix) {
 //            val nextTickPrediction = buildPlayerPrediction().next()

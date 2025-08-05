@@ -17,13 +17,17 @@
 
 package com.lambda.interaction.material
 
-import com.lambda.util.BlockUtils.item
+import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.Enchantment
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.RegistryKey
+import net.minecraft.registry.tag.ItemTags
+import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import kotlin.reflect.KClass
 
@@ -127,6 +131,11 @@ class StackSelection {
     @StackSelectionDsl
     fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
 
+    @StackSelectionDsl
+    fun isTag(tag: TagKey<Item>): (ItemStack) -> Boolean {
+        return { it.isIn(tag) }
+    }
+
     /**
      * [isItem] returns a predicate that matches a specific [Item] instance.
      * @param T The instance of [Item] to be matched.
@@ -145,8 +154,8 @@ class StackSelection {
      */
     @StackSelectionDsl
     fun isBlock(block: Block): (ItemStack) -> Boolean {
-        item = block.item
-        return { it.item == block.item }
+        item = block.asItem()
+        return { it.item == block.asItem() }
     }
 
     /**
@@ -178,15 +187,12 @@ class StackSelection {
      * @return A predicate that matches the [Enchantment] and `level`.
      */
     @StackSelectionDsl
-    fun hasEnchantment(enchantment: Enchantment, level: Int = -1): (ItemStack) -> Boolean = {
-        true
-
-        // TODO: Figure out what the fuck the new registry system is lmao
-        /*if (level < 0) {
-            EnchantmentHelper.getLevel(enchantment, it) > 0
+    fun hasEnchantment(enchantment: RegistryKey<Enchantment>, level: Int = -1): (ItemStack) -> Boolean = {
+        if (level < 0) {
+            it.getEnchantment(enchantment) > 0
         } else {
-            EnchantmentHelper.getLevel(enchantment, it) == level
-        }*/
+            it.getEnchantment(enchantment) == level
+        }
     }
 
     /**
@@ -264,7 +270,7 @@ class StackSelection {
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
-            block: StackSelection.() -> (ItemStack) -> Boolean
+            block: StackSelection.() -> (ItemStack) -> Boolean,
         ) = StackSelection().apply {
             selector = block()
             this.count = count
@@ -275,8 +281,8 @@ class StackSelection {
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
+            sorter: Comparator<ItemStack>? = null,
             block: StackSelection.() -> (ItemStack) -> Boolean,
-            sorter: Comparator<ItemStack>? = null
         ) = StackSelection().apply {
             selector = block()
             comparator = sorter

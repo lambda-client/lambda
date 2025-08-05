@@ -26,7 +26,6 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.util.math.BlockPos
 
@@ -50,8 +49,7 @@ object Nuker : Module(
             task = tickingBlueprint {
                 val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                     .asSequence()
-                    .map { it.blockPos }
-                    .filter { !blockState(it).isAir }
+                    .filter { !world.isAir(it) }
                     .filter { !flatten || it.y >= player.blockPos.y }
                     .filter { !instantOnly || blockState(it).getHardness(world, it) <= TaskFlowModule.build.breaking.breakThreshold }
                     .filter { pos ->
@@ -68,7 +66,6 @@ object Nuker : Module(
 
                 if (fillFloor) {
                     val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
-                        .map { it.blockPos }
                         .associateWith { TargetState.Solid }
                     return@tickingBlueprint selection + floor
                 }

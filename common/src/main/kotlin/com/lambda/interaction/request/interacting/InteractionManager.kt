@@ -35,6 +35,7 @@ import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPe
 import com.lambda.interaction.request.interacting.InteractionManager.activeRequest
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
+import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.util.Hand

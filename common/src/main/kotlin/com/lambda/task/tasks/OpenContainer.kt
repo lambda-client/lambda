@@ -21,7 +21,6 @@ import com.lambda.config.groups.InteractionConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.interacting.InteractConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.visibilty.lookAtBlock

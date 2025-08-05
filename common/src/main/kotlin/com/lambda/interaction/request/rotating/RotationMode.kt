@@ -17,12 +17,6 @@
 
 package com.lambda.interaction.request.rotating
 
-import com.lambda.interaction.request.rotation.RotationMode.Lock
-import com.lambda.interaction.request.rotation.RotationMode.None
-import com.lambda.interaction.request.rotation.RotationMode.Silent
-import com.lambda.interaction.request.rotation.RotationMode.Sync
-
-
 /**
  * @property Silent Spoofing server-side rotation.
  * @property Sync Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).

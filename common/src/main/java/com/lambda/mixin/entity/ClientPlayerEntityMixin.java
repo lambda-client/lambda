@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,18 +23,18 @@ import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
-import com.lambda.interaction.request.rotation.RotationManager;
+import com.lambda.interaction.request.rotating.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
+import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.DeathScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
-import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -118,7 +118,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         if (self != Lambda.getMc().player) return;
 
         if (self.input == null) return;
-        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.sneaking)).getSneak());
+        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
     }
 
     /**
@@ -148,6 +148,11 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
     }
 
+    @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
+    void onSwing(Hand hand, CallbackInfo ci) {
+        if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
+    }
+
     @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
     private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
         ViewModel viewModel = ViewModel.INSTANCE;
@@ -160,9 +165,9 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         viewModel.adjustSwing(hand, instance);
     }
 
-    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    public void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new PlayerEvent.Damage(source, amount)).isCanceled()) cir.setReturnValue(false);
+    @Inject(method = "updateHealth", at = @At("HEAD"))
+    public void damage(float health, CallbackInfo ci) {
+        EventFlow.post(new PlayerEvent.Damage(health));
     }
 
     /**

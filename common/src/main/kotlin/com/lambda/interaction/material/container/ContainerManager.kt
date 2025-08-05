@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockEntity
-import com.lambda.util.BlockUtils.item
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.reflections.getInstances
@@ -124,22 +123,8 @@ object ContainerManager : Loadable {
             .filter { it.spaceAvailable(selection) >= selection.count }
             .filter { inventory.containerSelection.matches(it) }
 
-    fun findBestAvailableTool(
-        blockState: BlockState,
-        availableTools: Set<Item> = ItemUtils.tools,
-        inventory: InventoryConfig = TaskFlowModule.inventory,
-    ) = availableTools.map {
-        it to it.getMiningSpeed(it.defaultStack, blockState)
-    }.filter { (item, speed) ->
-        speed > 1.0
-                && item.defaultStack.isSuitableFor(blockState)
-                && containerWithMaterial(item.select(), inventory).isNotEmpty()
-    }.maxByOrNull {
-        it.second
-    }?.first
-
     fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
-        inventory.disposables.any { container.materialAvailable(it.item.select()) > 0 }
+        inventory.disposables.any { container.materialAvailable(it.asItem().select()) >= 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

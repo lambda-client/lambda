@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,6 @@ import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
@@ -48,26 +46,6 @@ data class PlaceContext(
 ) : BuildContext() {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
-
-    override fun interact(swingHand: Boolean) {
-        runSafe {
-            val actionResult = interaction.interactBlock(
-                player, hand, result
-            )
-
-            if (actionResult is ActionResult.Success) {
-                if (actionResult.swingSource() == ActionResult.SwingSource.CLIENT && swingHand) {
-                    player.swingHand(hand)
-                }
-
-                if (!player.getStackInHand(hand).isEmpty && player.isCreative) {
-                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
-                }
-            } else {
-                warn("Internal interaction failed with $actionResult")
-            }
-        }
-    }
 
     override fun compareTo(other: BuildContext) =
         when (other) {

@@ -47,6 +47,6 @@ public class LivingEntityRendererMixin {
      */
     @Redirect(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F", ordinal = 0), require = 0)
     private float injectRotationPitch(LivingEntity instance, float v) {
-        return Objects.requireNonNullElse(RotationManager.getRenderPitch(), v);
+        return Objects.requireNonNullElse(RotationManager.getHeadPitch(), v);
     }
 }

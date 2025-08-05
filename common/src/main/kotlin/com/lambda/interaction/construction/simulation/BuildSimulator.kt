@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,9 +62,9 @@ import com.lambda.util.BlockUtils.hasFluid
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.math.distSq
+import com.lambda.util.math.vec3d
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
@@ -85,7 +85,6 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
-import net.minecraft.registry.RegistryKeys
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -256,7 +255,7 @@ object BuildSimulator {
                     acc.add(BuildResult.OutOfReach(pos, eye, misses))
                 } else {
                     //ToDo: Must clean up surface scan usage / renders. Added temporary direction until changes are made
-                    acc.add(BuildResult.NotVisible(pos, pos, Direction.UP, eye.distanceTo(pos.vecOf(Direction.UP))))
+                    acc.add(BuildResult.NotVisible(pos, pos, Direction.UP, eye.distanceTo(pos.offset(Direction.UP).vec3d)))
                 }
                 return@interactBlock
             }
@@ -421,7 +420,7 @@ object BuildSimulator {
                     return@forEach
                 }
 
-                acc.add(BuildResult.NotVisible(pos, hitPos, hitSide, eye.distanceTo(hitPos.vecOf(hitSide))))
+                acc.add(BuildResult.NotVisible(pos, hitPos, hitSide, eye.distanceTo(hitPos.offset(hitSide).vec3d)))
                 return@forEach
             }
 
@@ -444,10 +443,7 @@ object BuildSimulator {
                 val cachePos = CachedBlockPosition(
                     usageContext.world, usageContext.blockPos, false
                 )
-                val canBePlacedOn = optimalStack.canPlaceOn(
-                    usageContext.world.registryManager.get(RegistryKeys.BLOCK),
-                    cachePos,
-                )
+                val canBePlacedOn = optimalStack.canPlaceOn(cachePos)
                 if (!player.abilities.allowModifyWorld && !canBePlacedOn) {
                     acc.add(PlaceResult.IllegalUsage(pos))
                     return@forEach
@@ -767,22 +763,21 @@ object BuildSimulator {
         }
 
         val stackSelection = selectStack(
-            block = {
-                run {
-                    if (breaking.suitableToolsOnly) isSuitableForBreaking(state)
-                    else StackSelection.EVERYTHING
-                } and if (breaking.forceSilkTouch) {
-                    hasEnchantment(Enchantments.SILK_TOUCH)
-                } else if (breaking.forceFortunePickaxe) {
-                    hasEnchantment(Enchantments.FORTUNE, breaking.minFortuneLevel)
-                } else StackSelection.EVERYTHING
-            },
             sorter = compareByDescending<ItemStack> {
-                it.canDestroy(world.registryManager.get(RegistryKeys.BLOCK), CachedBlockPosition(world, pos, false))
+                it.canBreak(CachedBlockPosition(world, pos, false))
             }.thenByDescending {
                 state.calcItemBlockBreakingDelta(player, world, pos, it)
             }
-        )
+        ) {
+            run {
+                if (breaking.suitableToolsOnly) isSuitableForBreaking(state)
+                else StackSelection.EVERYTHING
+            } and if (breaking.forceSilkTouch) {
+                hasEnchantment(Enchantments.AQUA_AFFINITY)
+            } else if (breaking.forceFortunePickaxe) {
+                hasEnchantment(Enchantments.FORTUNE, breaking.minFortuneLevel)
+            } else StackSelection.EVERYTHING
+        }
 
         val silentSwapSelection = selectContainer {
             ofAnyType(MaterialContainer.Rank.HOTBAR)

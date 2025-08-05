@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
-import com.lambda.util.math.MathUtils.floorToInt
+import com.lambda.util.player.gamemode
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock
 import net.minecraft.block.AbstractSignBlock
@@ -28,7 +28,6 @@ import net.minecraft.block.BeaconBlock
 import net.minecraft.block.BedBlock
 import net.minecraft.block.BeehiveBlock
 import net.minecraft.block.BellBlock
-import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.BrewingStandBlock
@@ -80,19 +79,12 @@ import net.minecraft.block.StructureBlock
 import net.minecraft.block.SweetBerryBushBlock
 import net.minecraft.block.TntBlock
 import net.minecraft.block.TrapdoorBlock
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
-import net.minecraft.item.Item
-import net.minecraft.util.math.*
 import net.minecraft.item.ItemStack
-import net.minecraft.item.SwordItem
-import net.minecraft.registry.tag.FluidTags
 import net.minecraft.state.property.Property
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.EightWayDirection
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
+import net.minecraft.util.math.*
 import net.minecraft.world.BlockView
 
 object BlockUtils {
@@ -155,7 +147,7 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
-    val interactionClasses = setOf(
+    val interactionBlocks = setOf(
         AbstractCauldronBlock::class,
         AbstractFurnaceBlock::class,
         AbstractSignBlock::class,
@@ -217,10 +209,10 @@ object BlockUtils {
     )
 
     val fluids = listOf(
-        Fluids.FLOWING_LAVA,
         Fluids.LAVA,
-        Fluids.FLOWING_WATER,
+        Fluids.FLOWING_LAVA,
         Fluids.WATER,
+        Fluids.FLOWING_WATER,
         Fluids.EMPTY,
     )
 
@@ -248,55 +240,7 @@ object BlockUtils {
         world: BlockView,
         blockPos: BlockPos,
         item: ItemStack
-    ): Float =
-        if ((block is BambooShootBlock || block is BambooBlock) && item.item is SwordItem) {
-            1.0f
-        } else {
-            val hardness = getHardness(world, blockPos)
-            if (hardness == -1.0f) 0.0f else {
-                val harvestMultiplier = if (item.canHarvest(this)) 30 else 100
-                player.getItemBlockBreakingSpeed(this, item) / hardness / harvestMultiplier
-            }
-        }
-
-    fun ItemStack.canHarvest(blockState: BlockState) =
-        !blockState.isToolRequired || isSuitableFor(blockState)
-
-    fun PlayerEntity.getItemBlockBreakingSpeed(blockState: BlockState, item: ItemStack): Float {
-        var speedMultiplier = item.getMiningSpeedMultiplier(blockState)
-        if (speedMultiplier > 1.0f) {
-            val level = EnchantmentHelper.getLevel(Enchantments.EFFICIENCY, item)
-            if (level > 0 && !item.isEmpty) {
-                speedMultiplier += (level * level + 1)
-            }
-        }
-
-        if (StatusEffectUtil.hasHaste(this)) {
-            speedMultiplier *= 1.0f + (StatusEffectUtil.getHasteAmplifier(this) + 1) * 0.2f
-        }
-
-        getStatusEffect(StatusEffects.MINING_FATIGUE)?.amplifier?.let { fatigue ->
-            val fatigueMultiplier = when (fatigue) {
-                0 -> 0.3f
-                1 -> 0.09f
-                2 -> 0.0027f
-                3 -> 8.1E-4f
-                else -> 8.1E-4f
-            }
-
-            speedMultiplier *= fatigueMultiplier
-        }
-
-        if (isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(this)) {
-            speedMultiplier /= 5.0f
-        }
-
-        if (!isOnGround) {
-            speedMultiplier /= 5.0f
-        }
-
-        return speedMultiplier
-    }
+    ): Float = 0f
 
     val BlockState.isEmpty get() = matches(emptyState)
     val BlockState.isNotEmpty get() = !isEmpty

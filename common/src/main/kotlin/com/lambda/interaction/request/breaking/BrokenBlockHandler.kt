@@ -143,9 +143,8 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
         val ctx = info.context
 
         if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
+        if (!player.mainHandStack.canMine(ctx.cachedState, world, ctx.blockPos, player)) return false
 
-        if (!player.mainHandStack.item.canMine(ctx.cachedState, world, ctx.blockPos, player))
-            return false
         val block = ctx.cachedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
         if (ctx.cachedState.isEmpty) return false
