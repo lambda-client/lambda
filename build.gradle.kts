@@ -15,143 +15,233 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.internal.jvm.*
-import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.provideDelegate
+import org.gradle.kotlin.dsl.register
 import java.util.*
 
-val modId: String by project
-val modVersion: String by project
-val mavenGroup: String by project
-val minecraftVersion: String by project
-val yarnMappings: String by project
+val modId               : String by project
+val mavenGroup          : String by project
+val modVersion          : String by project
+val minecraftVersion    : String by project
+val yarnMappings        : String by project
+val fabricLoaderVersion : String by project
+val fabricApiVersion    : String by project
+val kotlinFabricVersion : String by project
+val pngEncoderVersion   : String by project
+val discordIPCVersion   : String by project
+val classGraphVersion   : String by project
+val kotlinVersion       : String by project
+val ktorVersion         : String by project
+val mockitoKotlin       : String by project
+val mockitoInline       : String by project
+val mockkVersion        : String by project
+val spairVersion        : String by project
+
 
 val libs = file("libs")
-val targets = listOf("META-INF/*.toml", "fabric.mod.json")
+val targets = listOf("fabric.mod.json")
 val replacements = file("gradle.properties").inputStream().use { stream ->
     Properties().apply { load(stream) }
 }.map { (k, v) -> k.toString() to v.toString() }.toMap()
 
-val Project.loom: LoomGradleExtensionAPI
-    get() = (this as ExtensionAware).extensions.getByName("loom") as LoomGradleExtensionAPI
-
 plugins {
-    kotlin("jvm") version "2.1.10"
+    kotlin("jvm") version "2.2.0"
     id("org.jetbrains.dokka") version "2.0.0"
-    id("architectury-plugin") version "3.4-SNAPSHOT"
-    id("dev.architectury.loom") version "1.10-SNAPSHOT" apply false
-    id("com.gradleup.shadow") version "9.0.0-beta13" apply false
+    id("fabric-loom") version "1.10-SNAPSHOT"
+    id("com.gradleup.shadow") version "9.0.0-rc1"
     id("maven-publish")
 }
 
-architectury {
-    minecraft = minecraftVersion
+group = mavenGroup
+version = modVersion
+
+base.archivesName = modId
+
+repositories {
+    mavenLocal() // Allow the use of local repositories
+    maven("https://maven.shedaniel.me/") // Architectury
+    maven("https://maven.terraformersmc.com/releases/")
+    maven("https://maven.2b2t.vc/releases") // Baritone
+    maven("https://jitpack.io") // KDiscordIPC
+    maven("https://raw.githubusercontent.com/kotlin-graphics/mary/master")
+    mavenCentral()
+
+    // Allow the use of local libraries
+    flatDir {
+        dirs(libs)
+    }
 }
 
-subprojects {
-    apply(plugin = "dev.architectury.loom")
-    apply(plugin = "org.jetbrains.dokka")
-    apply(plugin = "maven-publish")
+fabricApi {
+    configureTests {
+        modId = "${base.archivesName}-tests"
+        eula = true
+        createSourceSet = true
 
-    dependencies {
-        "minecraft"("com.mojang:minecraft:$minecraftVersion")
-        "mappings"("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
+        enableGameTests = false
+        enableClientGameTests = true
+        clearRunDirectory = false
     }
+}
 
-    publishing {
-        publications {
-            register<MavenPublication>("maven") {
-                groupId = mavenGroup
-                artifactId = if (project.name == "common") modId else "$modId-${project.name}"
-                version = "$modVersion+$minecraftVersion"
+loom {
+    accessWidenerPath = file("src/main/resources/$modId.accesswidener")
 
-                from(components["java"])
-            }
-        }
+    // Apply access wideners transitively (other mods)
+    enableTransitiveAccessWideners = true
 
-        repositories {
-            maven {
-                name = "reposilite"
-                url = uri("https://maven.lambda-client.org/lambda")
-                credentials(PasswordCredentials::class)
-                authentication {
-                    create<BasicAuthentication>("basic")
-                }
-            }
-        }
-    }
-
-    if (path == ":common") return@subprojects
-
-    loom.mods {
-        maybeCreate("main").apply {
-            sourceSet(project.sourceSets.main.get())
-            sourceSet(project(":common").sourceSets.main.get())
-        }
-    }
-
-    loom.runs {
+    runs {
         all {
             property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+
             property("org.lwjgl.util.Debug", "true")
+            property("org.lwjgl.util.DebugLoader", "true")
+            //property("org.lwjgl.util.DebugAllocator", "true")
+            //property("org.lwjgl.util.DebugAllocator.fast", "true")
+            property("org.lwjgl.util.DebugStack", "true")
+            property("org.lwjgl.util.DebugFunctions", "true")
+            property("mixin.debug.export", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
         }
     }
+}
 
-    tasks {
-        processResources {
-            // Replaces placeholders in the mod info files
-            filesMatching(targets) { expand(replacements) }
+val includeLib: Configuration by configurations.creating
+val includeMod: Configuration by configurations.creating
+val shadowLib: Configuration by configurations.creating { isCanBeConsumed = false }
+val shadowMod: Configuration by configurations.creating { isCanBeConsumed = false }
 
-            // Forces the task to always run
-            outputs.upToDateWhen { false }
-        }
+fun DependencyHandlerScope.setupConfigurations() {
+    includeLib.dependencies.forEach {
+        implementation(it)
+        include(it)
+    }
 
-        register<Exec>("renderDoc") {
-            val javaHome = Jvm.current().javaHome
-            val gradleWrapper = rootProject.tasks.wrapper.get().jarFile.absolutePath
+    includeMod.dependencies.forEach {
+        modImplementation(it)
+        include(it)
+    }
 
-            commandLine = listOf(
-                "renderdoccmd", "capture", "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children",
-                "--wait-for-exit", "--working-dir", ".", "$javaHome/bin/java", "-Xmx64m", "-Xms64m",
-                /*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",*/
-                "-Dorg.gradle.appname=gradlew", "-Dorg.gradle.java.home=$javaHome", "-classpath", gradleWrapper, "org.gradle.wrapper.GradleWrapperMain",
-                "${this@subprojects.path}:runClient",
-            )
-        }
+    shadowLib.dependencies.forEach {
+        implementation(it)
+    }
+
+    shadowMod.dependencies.forEach {
+        modImplementation(it)
     }
 }
 
-allprojects {
-    apply(plugin = "java")
-    apply(plugin = "architectury-plugin")
-    apply(plugin = "maven-publish")
-    apply(plugin = "org.jetbrains.kotlin.jvm")
+dependencies {
+    // Read this if you'd like to understand the gradle dependency hell
+    // https://medium.com/@nagendra.raja/understanding-configurations-and-dependencies-in-gradle-ad0827619501
 
-    group = mavenGroup
-    version = modVersion
+    minecraft("com.mojang:minecraft:$minecraftVersion")
+    mappings("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
 
-    base.archivesName = modId
+    // Fabric
+    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
+    modImplementation("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
 
-    repositories {
-        mavenLocal() // Allow the use of local repositories
-        maven("https://maven.shedaniel.me/") // Architectury
-        maven("https://maven.terraformersmc.com/releases/")
-        maven("https://maven.2b2t.vc/releases") // Baritone
-        maven("https://jitpack.io") // KDiscordIPC
-        mavenCentral()
+    // Add dependencies on the required Kotlin modules.
+    includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
-        // Allow the use of local libraries
-        flatDir {
-            dirs(libs)
-        }
+    includeLib("io.github.spair:imgui-java-binding:$spairVersion")
+    includeLib("io.github.spair:imgui-java-lwjgl3:$spairVersion")
+    runtimeOnly("io.github.spair:imgui-java-natives-windows:$spairVersion")
+    runtimeOnly("io.github.spair:imgui-java-natives-linux:$spairVersion")
+    runtimeOnly("io.github.spair:imgui-java-natives-macos:$spairVersion")
+
+    // Ktor
+    includeLib("io.ktor:ktor-client-core:$ktorVersion")
+    shadowLib("io.ktor:ktor-client-cio:$ktorVersion") { exclude(group = "org.jetbrains.kotlin"); exclude(group = "org.jetbrains.kotlinx"); exclude(group = "org.slf4j") }
+    includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
+
+    // Add mods to the mod jar
+    includeMod("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+
+    // Test implementations
+    testImplementation(kotlin("test"))
+    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
+    testImplementation("org.mockito:mockito-inline:$mockitoInline")
+    testImplementation("io.mockk:mockk:${mockkVersion}")
+
+    // Finish the configuration
+    setupConfigurations()
+}
+
+tasks {
+    test {
+        useJUnitPlatform()
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     }
 
-    java {
-        withSourcesJar()
-
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+    shadowJar {
+        archiveClassifier = "dev-shadow"
+        archiveVersion = "$modVersion+$minecraftVersion"
+        configurations = listOf(shadowLib, shadowMod)
     }
+
+    remapJar {
+        dependsOn(shadowJar)
+
+        inputFile = shadowJar.get().archiveFile
+        archiveVersion = "$modVersion+$minecraftVersion"
+    }
+
+    processResources {
+        filesMatching(targets) { expand(replacements) }
+
+        // Forces the task to always run
+        outputs.upToDateWhen { false }
+    }
+
+    register<Exec>("renderDoc") {
+        // You need renderdoc installed on your system and available in your environment variables in order
+        // to use this task.
+        // You can download it from their official website at https://renderdoc.org/
+
+        val javaHome = Jvm.current().javaHome
+        val gradle = rootProject.tasks.wrapper.get().jarFile.absolutePath
+
+        val seperator =
+            if (Os.isFamily(Os.FAMILY_WINDOWS)) ";" else ":"
+
+        commandLine = listOf(
+            "renderdoccmd", "capture", "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children", "--wait-for-exit", "--working-dir", ".",
+            "$javaHome/bin/java",
+            //"-javaagent:${projectDir.resolve("lwjglx-debug-1.0.0.jar")}=t",
+            //"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
+            "-Dorg.gradle.appname=gradlew",
+            "-Dorg.gradle.java.home=$javaHome",
+            "-Dorg.lwjgl.util.Debug=true",
+            "-Dorg.lwjgl.util.DebugLoader=true",
+            "-Dorg.lwjgl.util.DebugAllocator=true",
+            "-Dorg.lwjgl.util.DebugStack=true",
+            "-Dorg.lwjgl.util.DebugFunctions=true",
+            "-cp", listOf(projectDir.resolve("lwjgl.jar"), gradle, projectDir.resolve("lwjglx-debug-1.0.0.jar"))
+                .joinToString(seperator),
+            "org.gradle.wrapper.GradleWrapperMain",
+            "runClient",
+        )
+    }
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+java {
+    withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }

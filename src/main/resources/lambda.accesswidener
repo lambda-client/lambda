@@ -1,0 +1,98 @@
+accessWidener   v2      named
+# MC
+accessible field net/minecraft/client/MinecraftClient itemUseCooldown I
+accessible field net/minecraft/client/MinecraftClient attackCooldown I
+accessible field net/minecraft/client/MinecraftClient paused Z
+accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
+accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
+accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
+accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
+accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
+
+# World
+accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
+accessible field net/minecraft/world/entity/ClientEntityManager cache Lnet/minecraft/world/entity/SectionedEntityCache;
+accessible field net/minecraft/world/entity/EntityTrackingSection collection Lnet/minecraft/util/collection/TypeFilterableList;
+accessible field net/minecraft/client/world/ClientChunkManager chunks Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;
+accessible field net/minecraft/client/world/ClientChunkManager$ClientChunkMap chunks Ljava/util/concurrent/atomic/AtomicReferenceArray;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingProgress F
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager blockBreakingCooldown I
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingPos Lnet/minecraft/util/math/BlockPos;
+accessible method net/minecraft/item/BlockItem place (Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z
+accessible method net/minecraft/item/BlockItem placeFromNbt (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;
+accessible method net/minecraft/item/BlockItem postPlacement (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Z
+accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/minecraft/block/BlockState;)Lnet/minecraft/sound/SoundEvent;
+accessible field net/minecraft/state/State owner Ljava/lang/Object;
+
+# Entity
+accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
+accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
+accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag (IZ)V
+accessible field net/minecraft/entity/LivingEntity lastAttackedTicks I
+accessible method net/minecraft/entity/Entity setFlag (IZ)V
+accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
+accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
+accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
+accessible method net/minecraft/entity/LivingEntity modifyAppliedDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
+accessible method net/minecraft/entity/LivingEntity applyArmorToDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
+accessible method net/minecraft/entity/Entity isAlwaysInvulnerableTo (Lnet/minecraft/entity/damage/DamageSource;)Z
+accessible field net/minecraft/entity/player/PlayerInventory equipment Lnet/minecraft/entity/EntityEquipment;
+accessible method net/minecraft/client/network/ClientPlayerEntity applyMovementSpeedFactors (Lnet/minecraft/util/math/Vec2f;)Lnet/minecraft/util/math/Vec2f;
+accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
+accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
+accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
+accessible method net/minecraft/util/math/Direction listClosest (Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;)[Lnet/minecraft/util/math/Direction;
+
+# Camera
+accessible method net/minecraft/client/render/Camera setPos (DDD)V
+accessible method net/minecraft/client/render/Camera setRotation (FF)V
+
+# Renderer
+accessible field net/minecraft/client/texture/NativeImage pointer J
+accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
+accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer indexBuffer Lcom/mojang/blaze3d/buffers/GpuBuffer;
+accessible field net/minecraft/client/gl/GlGpuBuffer id I
+
+# Text
+accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
+accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style italic Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style underlined Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style strikethrough Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style obfuscated Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style clickEvent Lnet/minecraft/text/ClickEvent;
+accessible field net/minecraft/text/Style hoverEvent Lnet/minecraft/text/HoverEvent;
+accessible field net/minecraft/text/Style insertion Ljava/lang/String;
+accessible field net/minecraft/text/Style font Lnet/minecraft/util/Identifier;
+accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Integer;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/util/Identifier;)V
+
+# Network
+accessible field net/minecraft/client/network/ClientPlayNetworkHandler playerListEntries Ljava/util/Map;
+accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket entityId I
+accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket type Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
+accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler
+accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractAtHandler
+accessible field net/minecraft/network/packet/s2c/play/EntityS2CPacket id I
+accessible method net/minecraft/network/ClientConnection handlePacket (Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V
+accessible field net/minecraft/network/ClientConnection packetsSentCounter I
+accessible field net/minecraft/network/ClientConnection packetsReceivedCounter I
+accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket encryptedSecretKey [B
+accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce [B
+accessible method net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket <init> (IZLnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;)V
+accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket ATTACK Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
+accessible method net/minecraft/network/packet/BrandCustomPayload write (Lnet/minecraft/network/PacketByteBuf;)V
+accessible method net/minecraft/client/network/ClientPlayerInteractionManager sendSequencedPacket (Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/network/SequencedPacketCreator;)V
+accessible field net/minecraft/client/world/ClientWorld pendingUpdateManager Lnet/minecraft/client/network/PendingUpdateManager;
+
+# Math
+accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
+
+# Other
+accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;
+accessible method net/minecraft/item/BlockItem getPlacementState (Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/block/BlockState;
+accessible method net/minecraft/block/AbstractBlock getPickStack (Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/item/ItemStack;
+accessible field net/minecraft/client/gui/screen/ingame/HandledScreen focusedSlot Lnet/minecraft/screen/slot/Slot;
+accessible field net/minecraft/registry/SimpleRegistry frozen Z

@@ -7,12 +7,6 @@ labels:
   - label: 'feature'
     title: '(?i)\[?(feature|feat)[:\]]'
 
-  - label: 'forge'
-    title: '(?i)\[?(forge|all)[:\]]'
-
-  - label: 'fabric'
-    title: '(?i)\[?(fabric|all)[:\]]'
-
   - label: '1.20'
     title: '\[?1\.20(\.\d+|\.x)?[:\]]?'
 

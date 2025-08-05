@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "lambda-tests",
+  "version": "1.0.0",
+  "name": "Lambda Fabric gametest entrypoint",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.LambdaTest"
+      }
+    ]
+  }
+}

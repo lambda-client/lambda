@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "${modId}",
+  "version": "${modVersion}",
+  "name": "${modName}",
+  "description": "${modDescription}",
+  "authors": [
+    "${modAuthors}"
+  ],
+  "contact": {
+    "homepage": "",
+    "sources": ""
+  },
+  "license": "GNU General Public License v3.0",
+  "icon": "${modIcon}",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.Lambda"
+      }
+    ]
+  },
+  "mixins": [
+    "${modId}.mixins.common.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${fabricLoaderVersion}",
+    "minecraft": "~${minecraftVersion}",
+    "fabric-api": ">=${fabricApiVersion}+${minecraftVersion}",
+    "fabric-language-kotlin": ">=${kotlinFabricVersion}",
+    "java": ">=${javaVersion}"
+  }
+}
