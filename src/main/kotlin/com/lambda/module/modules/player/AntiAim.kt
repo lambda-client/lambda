@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.rotating.Rotation
@@ -36,9 +37,9 @@ import net.minecraft.util.math.MathHelper.wrapDegrees
 import kotlin.random.Random
 
 object AntiAim : Module(
-    "AntiAim",
-    "Rotates the player using the given configs",
-    setOf(ModuleTag.PLAYER, ModuleTag.MOVEMENT)
+    name = "AntiAim",
+    description = "Rotates the player using the given configs",
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val page by setting("Page", Page.General)
     private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw") { page == Page.General }

@@ -37,6 +37,7 @@ import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
+import net.minecraft.util.math.BlockPos
 
 object AutoTotem : Module(
     name = "AutoTotem",

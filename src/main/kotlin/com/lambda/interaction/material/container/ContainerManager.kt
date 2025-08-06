@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.material.container
 
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -27,6 +26,7 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.Communication.info

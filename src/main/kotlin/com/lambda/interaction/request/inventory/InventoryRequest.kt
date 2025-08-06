@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.inventory
 
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.Request
 
 class InventoryRequest(

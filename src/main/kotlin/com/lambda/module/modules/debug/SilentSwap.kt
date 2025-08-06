@@ -29,7 +29,7 @@ import com.lambda.util.Communication.info
 object SilentSwap : Module(
     name = "SilentSwap",
     description = "SilentSwap",
-    defaultTags = setOf(ModuleTag.DEBUG),
+    tag = ModuleTag.DEBUG,
 ) {
     private val hotbar = HotbarSettings(this)
 

@@ -28,7 +28,7 @@ class InventorySettings(
 ) : InventoryConfig {
     val page by c.setting("Inventory Page", Page.Container, "The page to open when the module is enabled", vis)
 
-    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, "Items that will be included when checking for a free slot / are allowed to be droped when inventory is full") { vis() && page == Page.Container}
+    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, ItemUtils.defaultDisposables, "Items that will be included when checking for a free slot / are allowed to be droped when inventory is full") { vis() && page == Page.Container}
     override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones") { vis() && page == Page.Container}
     override val providerPriority by c.setting("Provider Priority", Priority.WithMinItems, "What container to prefer when retrieving the item from") { vis() && page == Page.Container}
     override val storePriority by c.setting("Store Priority", Priority.WithMinItems, "What container to prefer when storing the item to") { vis() && page == Page.Container}

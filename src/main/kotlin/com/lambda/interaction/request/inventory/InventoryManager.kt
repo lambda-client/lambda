@@ -20,6 +20,7 @@ package com.lambda.interaction.request.inventory
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.UpdateManagerEvent
 
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.inventory.InventoryManager.activeRequest

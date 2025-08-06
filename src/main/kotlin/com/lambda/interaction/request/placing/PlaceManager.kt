@@ -22,6 +22,7 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked

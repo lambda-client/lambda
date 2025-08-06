@@ -49,9 +49,9 @@ import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
-    "PacketMine",
-    "automatically breaks blocks, and does it faster",
-    setOf(ModuleTag.PLAYER)
+    name = "PacketMine",
+    description = "automatically breaks blocks, and does it faster",
+    tag = ModuleTag.PLAYER
 ) {
     private val page by setting("Page", Page.Build)
 

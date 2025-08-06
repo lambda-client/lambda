@@ -50,7 +50,7 @@ class BreakSettings(
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " ticks") { vis() && page == Page.General }
 
     // Timing
-    override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed") { vis() && page == Page.General }
+    override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post, TickEvent.Player.Post), description = "The sub-tick timing at which break actions can be performed") { vis() && page == Page.General }
 
     // Swap
     override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block") { vis() && page == Page.General }
@@ -71,7 +71,7 @@ class BreakSettings(
     override val avoidLiquids by c.setting("Avoid Liquids", true, "Avoids breaking blocks that would cause liquid to spill") { vis() && page == Page.General }
     override val avoidSupporting by c.setting("Avoid Supporting", true, "Avoids breaking the block supporting the player") { vis() && page == Page.General }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() && page == Page.General }
-    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() && page == Page.General }
+    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, description = "Blocks that wont be broken") { vis() && page == Page.General }
 
     // Tool
     override val suitableToolsOnly by c.setting("Suitable Tools Only", false, "Places a restriction to only use tools suitable for the given block") { vis() && page == Page.General }

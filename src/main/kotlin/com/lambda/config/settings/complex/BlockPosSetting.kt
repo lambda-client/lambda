@@ -43,10 +43,6 @@ class BlockPosSetting(
     description,
     visibility
 ) {
-    private var x = "${value.x}"
-    private var y = value.y
-    private var z = value.z
-
     override val layout: ImGuiBuilder.() -> Unit
         get() =
         {

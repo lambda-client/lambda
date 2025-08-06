@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.construction.verify
 
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.matches

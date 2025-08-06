@@ -19,11 +19,6 @@ package com.lambda.interaction.request.rotating
 
 import com.lambda.interaction.request.RequestConfig
 
-/**
- * Abstract base class for configuring rotation behavior.
- *
- * @param priority The priority of this configuration.
- */
 interface RotationConfig : RequestConfig {
     /**
      * - [RotationMode.Silent] Spoofing server-side rotation.

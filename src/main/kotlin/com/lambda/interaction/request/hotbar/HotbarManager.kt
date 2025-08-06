@@ -26,15 +26,8 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
-import com.lambda.mixin.render.InGameHudMixin
 import com.lambda.threading.runSafe
 
-/**
- * See mixins:
- * @see PlayerInventoryMixin.handleSpoofedMainHandStack
- * @see PlayerInventoryMixin.handleSpoofedBlockBreakingSpeed
- * @see InGameHudMixin.onTick
- */
 object HotbarManager : RequestHandler<HotbarRequest>(
     1,
     TickEvent.Pre,

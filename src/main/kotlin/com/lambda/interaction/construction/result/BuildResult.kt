@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.StackSelection
@@ -27,6 +26,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Nameable
 import net.minecraft.block.BlockState

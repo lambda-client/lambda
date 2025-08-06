@@ -30,9 +30,9 @@ import net.minecraft.state.property.Property
 import net.minecraft.util.hit.BlockHitResult
 
 object StateInfo : Module(
-    "StateInfo",
-    "Prints the target block's state into chat",
-    setOf(ModuleTag.DEBUG)
+    name = "StateInfo",
+    description = "Prints the target block's state into chat",
+    tag = ModuleTag.DEBUG,
 ) {
     private val printBind by setting("Print", KeyCode.UNBOUND, "The bind used to print the info to chat")
 

@@ -17,11 +17,11 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 

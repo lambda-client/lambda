@@ -28,6 +28,7 @@ import net.minecraft.block.BeaconBlock
 import net.minecraft.block.BedBlock
 import net.minecraft.block.BeehiveBlock
 import net.minecraft.block.BellBlock
+import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.BrewingStandBlock
@@ -82,6 +83,7 @@ import net.minecraft.block.TrapdoorBlock
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Property
 import net.minecraft.util.math.*
@@ -248,4 +250,10 @@ object BlockUtils {
     val BlockState.emptyState: BlockState get() = fluidState.blockState
     fun isBroken(oldState: BlockState, newState: BlockState) = oldState.isNotEmpty && oldState.emptyState.matches(newState)
     fun isNotBroken(oldState: BlockState, newState: BlockState) = !isBroken(oldState, newState)
+
+    val Vec3i.blockPos: BlockPos get() = BlockPos(this)
+    val Block.item: Item get() = asItem()
+    fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
+    fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
+        add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)
 }

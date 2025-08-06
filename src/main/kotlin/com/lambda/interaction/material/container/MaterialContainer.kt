@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.material.container
 
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -25,6 +24,7 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.task.Task
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
