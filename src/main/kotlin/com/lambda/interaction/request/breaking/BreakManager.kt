@@ -299,7 +299,12 @@ object BreakManager : RequestHandler<BreakRequest>(
                             }
                     }
                     .also  {
-                        it.forEach { it.couldReBreak.update() }
+                        it.forEach {
+                            it.couldReBreak.update()
+                            it.shouldProgress = !it.progressedThisTick &&
+                                    tickStage in it.breakConfig.breakStageMask &&
+                                    rotated || !it.isPrimary
+                        }
                     }
                     .also {
                         if (breakInfos.none { it?.shouldSwap(player, world) == true }) return@also
@@ -329,10 +334,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }
                     .asReversed()
                     .forEach { info ->
-                        if (info.progressedThisTick) return@forEach
-                        if (tickStage !in info.breakConfig.breakStageMask) return@forEach
-                        if (!rotated && info.isPrimary) return@run
-
+                        if (!info.shouldProgress) return@forEach
                         updateBreakProgress(info)
                     }
             }
@@ -814,7 +816,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         config: BreakConfig,
         item: ItemStack? = null
     ) = runSafe {
-        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.selectedStack)
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack)
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
 //        if (config.desyncFix) {
 //            val nextTickPrediction = buildPlayerPrediction().next()

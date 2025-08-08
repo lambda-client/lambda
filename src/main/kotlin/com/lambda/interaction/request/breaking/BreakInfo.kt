@@ -49,6 +49,7 @@ data class BreakInfo(
         } == true
     }
 
+    var shouldProgress = false
     var breaking = false
     var abandoned = false
     var breakingTicks = 0
@@ -103,7 +104,7 @@ data class BreakInfo(
     }
 
     fun shouldSwap(player: ClientPlayerEntity, world: WorldView): Boolean {
-        if (BreakManager.tickStage !in breakConfig.breakStageMask) return false
+        if (!shouldProgress) return false
         val item = player.inventory.getStack(context.hotbarIndex)
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
         val breakProgress = breakDelta * ((breakingTicks + 1) - breakConfig.fudgeFactor).let {
