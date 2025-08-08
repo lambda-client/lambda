@@ -22,6 +22,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -86,7 +87,7 @@ object ReBreakManager {
             reBreak.updateInfo(ctx, breakRequest)
 
             val context = reBreak.context
-            val breakDelta = context.cachedState.calcBlockBreakingDelta(player, world, context.blockPos)
+            val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, reBreak.breakConfig)
             return@runSafe if ((reBreak.breakingTicks - reBreak.breakConfig.fudgeFactor) * breakDelta >= reBreak.breakConfig.breakThreshold) {
                 if (reBreak.breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
                     destroyBlock(reBreak)

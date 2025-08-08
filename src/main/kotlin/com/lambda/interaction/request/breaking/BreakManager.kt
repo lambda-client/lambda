@@ -62,6 +62,7 @@ import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingActions
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
@@ -809,14 +810,14 @@ object BreakManager : RequestHandler<BreakRequest>(
         return true
     }
 
-    private fun BlockState.calcBreakDelta(
+    fun BlockState.calcBreakDelta(
         player: ClientPlayerEntity,
         world: BlockView,
         pos: BlockPos,
         config: BreakConfig,
         item: ItemStack? = null
     ) = runSafe {
-        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack)
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.getStack(HotbarManager.serverSlot))
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
 //        if (config.desyncFix) {
 //            val nextTickPrediction = buildPlayerPrediction().next()
