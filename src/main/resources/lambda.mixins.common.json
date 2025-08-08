@@ -15,6 +15,7 @@
     "entity.FireworkRocketEntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
+    "entity.PlayerInventoryMixin",
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
     "input.MouseMixin",

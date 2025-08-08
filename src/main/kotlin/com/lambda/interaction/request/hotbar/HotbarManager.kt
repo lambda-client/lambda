@@ -20,7 +20,6 @@ package com.lambda.interaction.request.hotbar
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -45,7 +44,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     private var maxSwapsThisTick = 0
     private var swapDelay = 0
 
-    private var activeRequest: HotbarRequest? = null
+    var activeRequest: HotbarRequest? = null
 
     override fun load(): String {
         super.load()
@@ -58,10 +57,6 @@ object HotbarManager : RequestHandler<HotbarRequest>(
             activeInfo.swapPauseAge++
             activeInfo.activeRequestAge++
             activeInfo.keepTicks--
-        }
-
-        listen<InventoryEvent.HotbarSlot.Update>(priority = Int.MIN_VALUE) {
-            it.slot = activeRequest?.slot ?: return@listen
         }
 
         return "Loaded Hotbar Manager"

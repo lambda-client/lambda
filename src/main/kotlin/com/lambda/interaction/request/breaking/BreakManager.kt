@@ -62,7 +62,6 @@ import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingActions
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
@@ -304,7 +303,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                             it.couldReBreak.update()
                             it.shouldProgress = !it.progressedThisTick &&
                                     tickStage in it.breakConfig.breakStageMask &&
-                                    rotated || !it.isPrimary
+                                    (rotated || !it.isPrimary)
                         }
                     }
                     .also {
@@ -817,7 +816,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         config: BreakConfig,
         item: ItemStack? = null
     ) = runSafe {
-        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.getStack(HotbarManager.serverSlot))
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack)
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
 //        if (config.desyncFix) {
 //            val nextTickPrediction = buildPlayerPrediction().next()
