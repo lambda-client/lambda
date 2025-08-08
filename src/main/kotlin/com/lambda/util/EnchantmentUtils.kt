@@ -40,6 +40,7 @@ object EnchantmentUtils {
         get() = !getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).isEmpty
                 || getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).isEmpty
 
+    //FixMe: doesn't work with, at least, efficiency on pickaxes
     /**
      * Returns the given enchantment level from a [net.minecraft.item.ItemStack]
      */

@@ -28,6 +28,7 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
 import com.lambda.threading.runSafe
 
+//FixMe: as of 1.21.5, player.mainHandStack no longer points back to the serverSlot's stack
 object HotbarManager : RequestHandler<HotbarRequest>(
     1,
     TickEvent.Pre,
