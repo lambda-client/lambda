@@ -132,7 +132,7 @@ data class BreakInfo(
         val item = if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) player.inventory.getStack(context.hotbarIndex) else player.mainHandStack
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
         val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
-        return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(10) else -1
+        return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
     }
 
     fun getBreakThreshold() = type.getBreakThreshold(breakConfig)
