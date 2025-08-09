@@ -71,6 +71,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
@@ -298,7 +299,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                                 if (instantBreaks.isEmpty()) rotation.submit(false) else rotation
                             }
                     }
-                    .also  {
+                    .also {
                         it.forEach {
                             it.couldReBreak.update()
                             it.shouldProgress = !it.progressedThisTick &&
@@ -306,33 +307,32 @@ object BreakManager : RequestHandler<BreakRequest>(
                                     (rotated || !it.isPrimary)
                         }
                     }
+                    .asReversed()
                     .also {
-                        if (breakInfos.none { it?.shouldSwap(player, world) == true }) return@also
+                        it.firstOrNull { it.shouldSwap(player, world) }?.let { info ->
+                            val breakDelta = info.context.cachedState.calcBreakDelta(
+                                player,
+                                world,
+                                info.context.blockPos,
+                                info.breakConfig,
+                                player.inventory.getStack(info.context.hotbarIndex)
+                            )
+                            val breakAmount = breakDelta * info.breakingTicks
+                            val minKeepTicks = if (breakAmount >= info.getBreakThreshold() &&
+                                info.serverBreakTicks < info.breakConfig.fudgeFactor)
+                            {
+                                1
+                            } else 0
 
-                        it.firstOrNull()?.let { info ->
-                            secondaryBreak?.let { secondary ->
-                                val breakDelta = secondary.context.cachedState.calcBreakDelta(
-                                    player,
-                                    world,
-                                    secondary.context.blockPos,
-                                    secondary.breakConfig,
-                                    player.inventory.getStack(secondary.context.hotbarIndex)
-                                )
-                                val breakAmount = breakDelta * ((secondary.breakingTicks - secondary.breakConfig.fudgeFactor) + 1)
-                                val minKeepTicks = if (breakAmount >= 1.0f) 1 else 0
-                                if (!info.context.requestSwap(info.request, minKeepTicks)) {
-                                    secondary.serverBreakTicks = 0
-                                    return@run
-                                }
-                                if (minKeepTicks > 0) {
-                                    secondary.serverBreakTicks++
-                                }
-                                return@also
+                            if (!info.context.requestSwap(info.request, minKeepTicks)) {
+                                info.serverBreakTicks = 0
+                                return@run
                             }
-                            if (!info.context.requestSwap(info.request)) return@run
+                            if (minKeepTicks > 0) {
+                                info.serverBreakTicks++
+                            }
                         }
                     }
-                    .asReversed()
                     .forEach { info ->
                         if (!info.shouldProgress) return@forEach
                         updateBreakProgress(info)
@@ -640,6 +640,8 @@ object BreakManager : RequestHandler<BreakRequest>(
         val config = info.breakConfig
         val ctx = info.context
 
+        info.progressedThisTick = true
+
         if (!info.breaking) {
             if (!startBreaking(info)) {
                 info.nullify()
@@ -653,7 +655,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
 
-        info.progressedThisTick = true
         val hitResult = ctx.result
 
         if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
@@ -710,7 +711,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (overBreakThreshold && (!info.isSecondary || info.serverBreakTicks >= info.breakConfig.fudgeFactor + 1)) {
+        if (overBreakThreshold && info.serverBreakTicks >= info.breakConfig.fudgeFactor) {
             if (info.isPrimary) {
                 onBlockBreak(info)
                 info.stopBreakPacket(world, interaction)

@@ -107,9 +107,7 @@ data class BreakInfo(
         if (!shouldProgress) return false
         val item = player.inventory.getStack(context.hotbarIndex)
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
-        val breakProgress = breakDelta * ((breakingTicks + 1) - breakConfig.fudgeFactor).let {
-            if (isSecondary) it + 1 else it
-        }
+        val breakProgress = breakDelta * (breakingTicks + 1)
         return if (couldReBreak.value == true)
             breakConfig.swapMode.isEnabled()
         else when (breakConfig.swapMode) {
