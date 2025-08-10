@@ -206,11 +206,10 @@ tasks {
     }
 
     processResources {
-        inputs.properties(replacements)
+        filesMatching(targets) { expand(replacements) }
 
-        filesMatching(targets) {
-            expand(replacements)
-        }
+        // Forces the task to always run
+        outputs.upToDateWhen { false }
     }
 
     // Visual debugger for OpenGL
