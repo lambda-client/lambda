@@ -50,6 +50,8 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.distSq
 import com.lambda.util.player.copyPlayer
+import com.lambda.util.world.WorldUtils.hasFluid
+import com.lambda.util.world.WorldUtils.isLoaded
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
@@ -96,7 +98,7 @@ object BuildSimulator {
         target: TargetState,
         build: BuildConfig
     ): BuildResult? {/* the chunk is not loaded */
-        if (!world.isChunkLoaded(pos)) {
+        if (!isLoaded(pos)) {
             return BuildResult.ChunkNotLoaded(pos)
         }
 
@@ -151,7 +153,7 @@ object BuildSimulator {
         val preprocessing = target.findProcessorForState()
 
         preprocessing.sides.forEach { neighbor ->
-            val hitPos = if (targetPosState.isAir || targetPosState.isLiquid) pos.offset(neighbor) else pos
+            val hitPos = if (targetPosState.isAir || targetPosState.hasFluid) pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
 
             val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos)
