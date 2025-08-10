@@ -39,6 +39,7 @@ val mockitoKotlin       : String by project
 val mockitoInline       : String by project
 val mockkVersion        : String by project
 val spairVersion        : String by project
+val lwjglVersion        : String by project
 
 
 val libs = file("libs")
@@ -59,6 +60,15 @@ group = mavenGroup
 version = modVersion
 
 base.archivesName = modId
+
+// We need to force it using lwjgl 3.3.3 because of 3.3.4 poor support for Wayland protocol
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.lwjgl") {
+            useVersion(lwjglVersion)
+        }
+    }
+}
 
 repositories {
     mavenLocal() // Allow the use of local repositories
