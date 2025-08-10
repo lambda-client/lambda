@@ -62,8 +62,6 @@ base.archivesName = modId
 
 repositories {
     mavenLocal() // Allow the use of local repositories
-    maven("https://maven.shedaniel.me/") // Architectury
-    maven("https://maven.terraformersmc.com/releases/")
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://raw.githubusercontent.com/kotlin-graphics/mary/master")
@@ -106,7 +104,7 @@ loom {
             property("mixin.debug.export", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
-            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
+            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "<TOKEN>")
         }
     }
 }
@@ -198,12 +196,14 @@ tasks {
     }
 
     processResources {
-        filesMatching(targets) { expand(replacements) }
+        inputs.properties(replacements)
 
-        // Forces the task to always run
-        outputs.upToDateWhen { false }
+        filesMatching(targets) {
+            expand(replacements)
+        }
     }
 
+    // Visual debugger for OpenGL
     register<Exec>("renderDoc") {
         // You need renderdoc installed on your system and available in your environment variables in order
         // to use this task.
