@@ -310,15 +310,27 @@ object BreakManager : RequestHandler<BreakRequest>(
                     .asReversed()
                     .also {
                         it.firstOrNull { it.shouldSwap(player, world) }?.let { info ->
-                            val breakDelta = info.context.cachedState.calcBreakDelta(
+                            val cachedState = info.context.cachedState
+                            val swapStack = player.inventory.getStack(info.context.hotbarIndex)
+
+                            val breakAmount = cachedState.calcBreakDelta(
                                 player,
                                 world,
                                 info.context.blockPos,
                                 info.breakConfig,
-                                player.inventory.getStack(info.context.hotbarIndex)
-                            )
-                            val breakAmount = breakDelta * info.breakingTicks
-                            val minKeepTicks = if (breakAmount >= info.getBreakThreshold() &&
+                                swapStack
+                            ) * info.breakingTicks
+                            val breakAmountNoEfficiency = cachedState.calcBreakDelta(
+                                player,
+                                world,
+                                info.context.blockPos,
+                                info.breakConfig,
+                                swapStack,
+                                ignoreEfficiency = true
+                            ) * info.breakingTicks
+
+                            val minKeepTicks = if ((breakAmount >= info.getBreakThreshold() || info.couldReBreak.value == true) &&
+                                breakAmountNoEfficiency < info.getBreakThreshold() &&
                                 info.serverBreakTicks < info.breakConfig.fudgeFactor)
                             {
                                 1
@@ -334,8 +346,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                         }
                     }
                     .forEach { info ->
-                        if (!info.shouldProgress) return@forEach
-                        updateBreakProgress(info)
+                        if (info.shouldProgress)
+                            updateBreakProgress(info)
                     }
             }
         }
@@ -815,9 +827,10 @@ object BreakManager : RequestHandler<BreakRequest>(
         world: BlockView,
         pos: BlockPos,
         config: BreakConfig,
-        item: ItemStack? = null
+        item: ItemStack? = null,
+        ignoreEfficiency: Boolean = false
     ) = runSafe {
-        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack)
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack, ignoreEfficiency)
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
 //        if (config.desyncFix) {
 //            val nextTickPrediction = buildPlayerPrediction().next()

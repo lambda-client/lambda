@@ -247,22 +247,23 @@ object BlockUtils {
         player: PlayerEntity,
         world: BlockView,
         blockPos: BlockPos,
-        item: ItemStack
+        item: ItemStack,
+        ignoreEfficiency: Boolean = false
     ): Float {
         val hardness = getHardness(world, blockPos)
         return if (hardness == -1.0f) 0.0f else {
             val harvestMultiplier = if (item.canHarvest(this)) 30 else 100
-            player.getItemBlockBreakingSpeed(this, item) / hardness / harvestMultiplier
+            player.getItemBlockBreakingSpeed(this, item, ignoreEfficiency) / hardness / harvestMultiplier
         }
     }
 
     fun ItemStack.canHarvest(blockState: BlockState) =
         !blockState.isToolRequired || isSuitableFor(blockState)
 
-    fun PlayerEntity.getItemBlockBreakingSpeed(blockState: BlockState, item: ItemStack): Float {
+    fun PlayerEntity.getItemBlockBreakingSpeed(blockState: BlockState, item: ItemStack, ignoreEfficiency: Boolean = false): Float {
         var speedMultiplier = item.getMiningSpeedMultiplier(blockState)
         if (speedMultiplier > 1.0f) {
-            val level = item.getEnchantment(Enchantments.EFFICIENCY)
+            val level = if (ignoreEfficiency) 0 else item.getEnchantment(Enchantments.EFFICIENCY)
             if (level > 0 && !item.isEmpty) {
                 speedMultiplier += (level * level + 1)
             }
