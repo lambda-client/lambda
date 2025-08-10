@@ -8,8 +8,8 @@
     "${modAuthors}"
   ],
   "contact": {
-    "homepage": "",
-    "sources": ""
+    "homepage": "https://github.com/lambda-client/lambda",
+    "sources": "https://github.com/lambda-client/lambda"
   },
   "license": "GNU General Public License v3.0",
   "icon": "${modIcon}",
