@@ -20,13 +20,10 @@ package com.lambda.gui
 import com.lambda.gui.dsl.ImGuiBuilder
 
 /**
- * [Layout] is the core interface for rendering custom elements in ImGui.
- *
- * It contains the [layout] property which is a getter that returns a lambda
- * that will be invoked when inside an ImGui frame.
- *
- * You are able to call other layouts by passing the [ImGuiBuilder] context.
+ * Represents a layout structure that can be built using an ImGui-based DSL.
+ * Implementations of this interface define how the layout should be constructed
+ * within the provided builder context.
  */
 interface Layout {
-    val layout: ImGuiBuilder.() -> Unit
+    fun ImGuiBuilder.buildLayout()
 }

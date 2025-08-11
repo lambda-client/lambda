@@ -33,11 +33,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.module.hud.ModuleList
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
-import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
@@ -122,22 +120,6 @@ abstract class Module(
     Configurable(ModuleConfig),
     Layout
 {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-            {
-                checkbox("##-${this@Module}", ::isEnabled)
-                sameLine()
-
-                treeNode(name) {
-                    settings
-                        .filter { it.visibility() }
-                        .forEach { it.layout(this) }
-                }
-
-                sameLine()
-                helpMarker(description)
-            }
-
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     private val keybindSetting = setting("Keybind", defaultKeybind)
     val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") }, "Reset settings values to default.")
@@ -151,6 +133,20 @@ abstract class Module(
 
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
+
+    override fun ImGuiBuilder.buildLayout() {
+        checkbox("##-${this@Module}", ::isEnabled)
+        sameLine()
+
+        treeNode(name) {
+            settings
+                .filter { it.visibility() }
+                .forEach { with(it) { buildLayout() } }
+        }
+
+        sameLine()
+        helpMarker(description)
+    }
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->

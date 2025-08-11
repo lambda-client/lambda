@@ -17,22 +17,16 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.Lambda
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
 import com.lambda.module.Module
-import com.lambda.module.modules.player.InventoryMove.hasInputOrNull
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import com.lambda.util.math.setAlpha
-import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
-import net.minecraft.text.Text
 import java.awt.Color
 
 object ClickGui : Module(
@@ -97,8 +91,9 @@ object ClickGui : Module(
         onEnable {
             // When there is a screen active, we don't want to replace the screen because it will interfere with the
             // game.
-            if (!mc.currentScreen.hasInput)
+            if (!mc.currentScreen.hasInput) {
                 mc.setScreen(LambdaScreen)
+            }
         }
     }
 }

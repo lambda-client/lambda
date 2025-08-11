@@ -41,14 +41,12 @@ class BooleanSetting(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            checkbox(name, ::value)
+    override fun ImGuiBuilder.buildLayout() {
+        checkbox(name, ::value)
 
-            sameLine()
-            helpMarker(description)
-        }
+        sameLine()
+        helpMarker(description)
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(boolean(name)) { parameter ->

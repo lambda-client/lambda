@@ -54,30 +54,29 @@ class EnumSetting<T : Enum<T>>(
         value = value.enumValues[to % value.enumValues.size]
     }
 
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            slider("##$name", ::index, 0, value.enumValues.size - 1, format = "", flags = AlwaysClamp)
+        combo("##$name", ::index, value.enumValues.map { it.name.capitalize() }.toTypedArray())
+        slider("##$name#", ::index, 0, value.enumValues.size - 1, format = "", flags = AlwaysClamp)
 
-            val min = ImGui.getItemRectMin()
-            val max = ImGui.getItemRectMax()
-            val textSize = ImGui.calcTextSize(value.name)
-            val center = ImVec2(
-                (min.x + max.x) * 0.5f - textSize.x * 0.5f,
-                (min.y + max.y) * 0.5f - textSize.y * 0.5f
-            )
+        val min = ImGui.getItemRectMin()
+        val max = ImGui.getItemRectMax()
+        val textSize = ImGui.calcTextSize(value.name)
+        val center = ImVec2(
+            (min.x + max.x) * 0.5f - textSize.x * 0.5f,
+            (min.y + max.y) * 0.5f - textSize.y * 0.5f
+        )
 
-            windowDrawList.addText(
-                center,
-                ImColor.rgb(Color.WHITE),
-                value.name,
-            )
-        }
+        windowDrawList.addText(
+            center,
+            ImColor.rgb(Color.WHITE),
+            value.name,
+        )
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

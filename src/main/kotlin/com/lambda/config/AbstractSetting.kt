@@ -31,7 +31,6 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
 import com.lambda.context.SafeContext
 import com.lambda.gui.Layout
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
@@ -98,10 +97,7 @@ abstract class AbstractSetting<T : Any>(
     val type: Type,
     val description: String,
     val visibility: () -> Boolean,
-) : Jsonable,
-    Nameable,
-    Layout
-{
+) : Jsonable, Nameable, Layout {
     private val listeners = mutableListOf<ValueListener<T>>()
 
     var value by Delegates.observable(defaultValue) { _, from, to ->

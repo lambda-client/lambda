@@ -45,16 +45,14 @@ class FloatSetting(
     unit,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            inputFloat("##$name", ::value)
-        }
+        inputFloat("##$name", ::value)
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(float(name, range.start, range.endInclusive)) { parameter ->

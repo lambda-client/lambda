@@ -38,6 +38,9 @@ object DearImGui : Loadable {
     val implGl3 = ImGuiImplGl3()
 
     val io: ImGuiIO get() = ImGui.getIO()
+    const val DEFAULT_FLAGS = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
+            ImGuiConfigFlags.NavEnableSetMousePos or // Move the cursor using the keyboard
+            ImGuiConfigFlags.DockingEnable
 
     fun render(block: ImGuiBuilder.() -> Unit) {
         // Minecraft will not bind the framebuffer unless it is needed, so do it manually and hope Vulcan never gets real:tm:
@@ -68,12 +71,12 @@ object DearImGui : Loadable {
     init {
         ImGui.createContext()
 
-        io.configFlags = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
-                ImGuiConfigFlags.NavEnableSetMousePos or // Move the cursor using the keyboard
-                ImGuiConfigFlags.DockingEnable
-
+        io.configFlags = DEFAULT_FLAGS
         io.iniFilename = "lambda.ini"
-        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, 13f)
+        (13..24).forEach { size ->
+            io.fonts.addFontFromFileTTF("fonts/FiraSans-Bold.ttf".path, size.toFloat())
+            io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, size.toFloat())
+        }
         io.fonts.build()
 
         implGlfw.init(mc.window.handle, true)
