@@ -21,6 +21,7 @@ import com.lambda.interaction.request.rotation.RotationMode.Lock
 import com.lambda.interaction.request.rotation.RotationMode.None
 import com.lambda.interaction.request.rotation.RotationMode.Silent
 import com.lambda.interaction.request.rotation.RotationMode.Sync
+import com.lambda.util.NamedEnum
 
 
 /**

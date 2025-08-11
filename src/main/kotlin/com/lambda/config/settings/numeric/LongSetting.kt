@@ -45,7 +45,11 @@ class LongSetting(
     unit,
     visibility
 ) {
-    var intValue = value.toInt()
+    private var valueIndex: Int
+        get() = ((value - range.start) / step).toInt()
+        set(index) {
+            value = (range.start + index * step).coerceIn(range)
+        }
 
     override fun ImGuiBuilder.buildLayout() {
         text(name)
@@ -53,7 +57,8 @@ class LongSetting(
         sameLine()
         helpMarker(description)
 
-        inputInt("##$name", ::intValue) { value = it.toLong() }
+        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+        slider("##$name", ::valueIndex, 0, maxIndex, super.toString())
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

@@ -51,7 +51,7 @@ class IntegerSetting(
         sameLine()
         helpMarker(description)
 
-        slider("##$name", ::value, range.start, range.endInclusive, "%d$unit")
+        slider("##$name", ::value, range.start, range.endInclusive, super.toString())
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
