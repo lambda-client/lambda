@@ -28,7 +28,7 @@ object GuiSettings : Module(
     tag = ModuleTag.CLIENT,
 ) {
     // General
-    private val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%").group(Group.General)
+    internal val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%").group(Group.General)
 
     // Colors
     val primaryColor by setting("Primary Color", Color(130, 200, 255)).group(Group.Colors)
