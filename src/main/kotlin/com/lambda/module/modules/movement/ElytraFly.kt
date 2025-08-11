@@ -32,8 +32,6 @@ object ElytraFly : Module(
     description = "Allows you to fly with an elytra",
     tag = ModuleTag.MOVEMENT,
 ) {
-    // private val page by setting("Page", Page.GENERAL) // Uncomment when needed
-
     private val playerBoost by setting("Player Boost", true, description = "Boosts the player when flying")
     private val playerSpeed by setting("Player Speed", 0.02, 0.0..0.5, 0.005, description = "Speed to add when flying") { playerBoost }
     private val rocketBoost by setting("Rocket Boost", false, description = "Boosts the player when using a firework")
@@ -71,10 +69,5 @@ object ElytraFly : Module(
             vec.y * e + (vec.y * d - velocity.y) * 0.5,
             vec.z * e + (vec.z * d - velocity.z) * 0.5
         )
-    }
-
-    private enum class Page {
-        GENERAL,
-        // Add more when needed
     }
 }

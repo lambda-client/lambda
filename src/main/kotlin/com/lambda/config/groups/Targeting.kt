@@ -24,6 +24,7 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
@@ -49,6 +50,7 @@ import java.util.*
  */
 abstract class Targeting(
     private val owner: Configurable,
+    private val baseGroup: NamedEnum,
     private val predicate: () -> Boolean = { true },
     private val defaultRange: Double,
     private val maxRange: Double,
@@ -133,20 +135,21 @@ abstract class Targeting(
      */
     class Combat(
         owner: Configurable,
+        baseGroup: NamedEnum,
         defaultRange: Double = 5.0,
         maxRange: Double = 16.0,
         predicate: () -> Boolean = { true },
-    ) : Targeting(owner, predicate, defaultRange, maxRange) {
+    ) : Targeting(owner, baseGroup, predicate, defaultRange, maxRange) {
 
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by owner.setting("FOV Limit", 180, 5..180, 1) { predicate() }
+        val fov by owner.setting("FOV Limit", 180, 5..180, 1) { predicate() }.group(baseGroup)
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.DISTANCE].
          */
-        val priority by owner.setting("Priority", Priority.DISTANCE) { predicate() }
+        val priority by owner.setting("Priority", Priority.DISTANCE) { predicate() }.group(baseGroup)
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
@@ -184,8 +187,9 @@ abstract class Targeting(
      */
     class ESP(
         owner: Configurable,
+        baseGroup: NamedEnum,
         predicate: () -> Boolean = { true },
-    ) : Targeting(owner, predicate, 128.0, 1024.0)
+    ) : Targeting(owner, baseGroup, predicate, 128.0, 1024.0)
 
     /**
      * Enum representing the different priority factors used for determining the best target.

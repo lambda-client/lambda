@@ -46,6 +46,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
@@ -75,18 +76,16 @@ object Scaffold : Module(
     description = "Places blocks under the player",
     tag = ModuleTag.PLAYER,
 ) {
-    private val page by setting("Page", Page.GENERAL)
+    private val keepY by setting("Keep Y", true).group(Group.General)
+    private val minPlaceDist by setting("Min Place Dist", 0.0, 0.0..0.2, 0.01).group(Group.General)
+    private val minRotateDist by setting("Min Rotate Dist", 0.10, 0.0..0.2, 0.01).group(Group.General)
 
-    private val keepY by setting("Keep Y", true) { page == Page.GENERAL }
-    private val minPlaceDist by setting("Min Place Dist", 0.0, 0.0..0.2, 0.01) { page == Page.GENERAL }
-    private val minRotateDist by setting("Min Rotate Dist", 0.10, 0.0..0.2, 0.01) { page == Page.GENERAL }
+    private val rotationConfig = RotationSettings(this, Group.Rotation)
+    private val safeWalk by setting("Sneak Before Rotation", true).group(Group.Rotation)
+    private val direction by setting("Direction", LookingDirection.FREE).group(Group.Rotation)
+    private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05).group(Group.Rotation)
 
-    private val rotationConfig = RotationSettings(this) { page == Page.ROTATION }
-    private val safeWalk by setting("Sneak Before Rotation", true) { page == Page.ROTATION }
-    private val direction by setting("Direction", LookingDirection.FREE) { page == Page.ROTATION }
-    private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05) { page == Page.ROTATION }
-
-    private val interactionConfig = InteractionSettings(this, InteractionMask.Block) { page == Page.INTERACTION }
+    private val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
 
     // Placement
     private var placeInfo: PlaceInfo? = null
@@ -114,10 +113,10 @@ object Scaffold : Module(
     // Yaw values within this range will not make your movement unstable
     private const val YAW_THRESHOLD = 15.0
 
-    private enum class Page {
-        GENERAL,
-        ROTATION,
-        INTERACTION
+    private enum class Group(override val displayName: String): NamedEnum {
+        General("General"),
+        Rotation("Rotation"),
+        Interaction("Interaction")
     }
 
     private enum class LookingDirection {

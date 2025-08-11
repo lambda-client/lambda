@@ -34,6 +34,7 @@ import com.lambda.gui.Layout
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.HoverEvents
@@ -99,6 +100,7 @@ abstract class AbstractSetting<T : Any>(
     val visibility: () -> Boolean,
 ) : Jsonable, Nameable, Layout {
     private val listeners = mutableListOf<ValueListener<T>>()
+    val groups: MutableList<List<NamedEnum>> = mutableListOf()
 
     var value by Delegates.observable(defaultValue) { _, from, to ->
         listeners.forEach {
@@ -107,7 +109,6 @@ abstract class AbstractSetting<T : Any>(
         }
     }
 
-    private val isVisible get() = visibility()
     val isModified get() = value != defaultValue
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>) = value
@@ -147,6 +148,10 @@ abstract class AbstractSetting<T : Any>(
 
     fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
         listeners.add(ValueListener(false, block))
+    }
+
+    fun group(vararg path: NamedEnum) = apply {
+        groups.add(path.toList())
     }
 
     fun reset() {

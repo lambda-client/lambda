@@ -26,8 +26,10 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.NamedEnum
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.extension.displayValue
 import imgui.ImColor
 import imgui.ImGui
 import imgui.ImVec2
@@ -60,22 +62,7 @@ class EnumSetting<T : Enum<T>>(
         sameLine()
         helpMarker(description)
 
-        combo("##$name", ::index, value.enumValues.map { it.name.capitalize() }.toTypedArray())
-        slider("##$name#", ::index, 0, value.enumValues.size - 1, format = "", flags = AlwaysClamp)
-
-        val min = ImGui.getItemRectMin()
-        val max = ImGui.getItemRectMax()
-        val textSize = ImGui.calcTextSize(value.name)
-        val center = ImVec2(
-            (min.x + max.x) * 0.5f - textSize.x * 0.5f,
-            (min.y + max.y) * 0.5f - textSize.y * 0.5f
-        )
-
-        windowDrawList.addText(
-            center,
-            ImColor.rgb(Color.WHITE),
-            value.name,
-        )
+        combo("##$name", ::index, value.enumValues.map { it.displayValue }.toTypedArray())
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

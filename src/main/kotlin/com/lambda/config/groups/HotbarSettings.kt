@@ -20,12 +20,14 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.util.NamedEnum
 
 class HotbarSettings(
     c: Configurable,
+    baseGroup: NamedEnum,
     priority: Priority = 0,
     vis: () -> Boolean = { true }
 ) : HotbarConfig(priority) {
-    override val keepTicks by c.setting("Keep Ticks", 3, 0..20, 1, "The number of ticks to keep the current hotbar selection active", " ticks", vis)
-    override var switchPause by c.setting("Switch Pause", 0, 0..20, 1, "The delay in ticks to pause actions after switching to the slot", " ticks", vis)
+    override val keepTicks by c.setting("Keep Ticks", 3, 0..20, 1, "The number of ticks to keep the current hotbar selection active", " ticks", vis).group(baseGroup)
+    override var switchPause by c.setting("Switch Pause", 0, 0..20, 1, "The delay in ticks to pause actions after switching to the slot", " ticks", vis).group(baseGroup)
 }

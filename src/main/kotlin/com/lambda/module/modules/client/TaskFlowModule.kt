@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 import com.lambda.util.world.raycast.InteractionMask
 
 object TaskFlowModule : Module(
@@ -33,18 +34,21 @@ object TaskFlowModule : Module(
     description = "Settings for task automation",
     tag = ModuleTag.CLIENT,
 ) {
-    enum class Page {
-        Build, Rotation, Interaction, Inventory, Debug
+    enum class Group(override val displayName: String): NamedEnum {
+        Build("Build"),
+        Rotation("Rotation"),
+        Interaction("Interaction"),
+        Inventory("Inventory"),
+        Debug("Debug")
     }
 
-    private val page by setting("Page", Page.Build)
-    val build = BuildSettings(this) { page == Page.Build }
-    val rotation = RotationSettings(this) { page == Page.Rotation }
-    val interact = InteractionSettings(this, InteractionMask.Both) { page == Page.Interaction }
-    val inventory = InventorySettings(this) { page == Page.Inventory }
+    val build = BuildSettings(this, Group.Build)
+    val rotation = RotationSettings(this, Group.Rotation)
+    val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Both)
+    val inventory = InventorySettings(this, Group.Inventory)
 
-    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.Debug }
-    val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001) { page == Page.Debug }
+    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree").group(Group.Debug)
+    val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001).group(Group.Debug)
 
     @Volatile
     var drawables = listOf<Drawable>()
