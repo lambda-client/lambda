@@ -20,6 +20,7 @@ package com.lambda.gui
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.path
 import com.mojang.blaze3d.opengl.GlStateManager
@@ -50,9 +51,6 @@ object DearImGui : Loadable {
     private var targetScale = 0f
 
     private fun updateScale(scale: Float) {
-        val scaleFactor = if (lastScale > 0) scale / lastScale else scale
-        ImGui.getStyle().scaleAllSizes(scaleFactor)
-
         io.fonts.clear()
         val baseFontSize = 13f
         io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale)
@@ -92,6 +90,8 @@ object DearImGui : Loadable {
 
         implGlfw.newFrame()
         implGl3.newFrame()
+
+        ClickGui.applyStyle(lastScale)
         ImGui.newFrame()
 
         ImGuiBuilder.block()
