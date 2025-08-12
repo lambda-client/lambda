@@ -39,16 +39,14 @@ class Vec3dSetting(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            inputVec3d(name, ::value as Vec3d) // wat da hell
-        }
+        inputVec3d(name, ::value as Vec3d) // wat da hell
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->

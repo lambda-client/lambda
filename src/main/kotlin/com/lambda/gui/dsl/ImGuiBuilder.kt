@@ -1163,12 +1163,6 @@ object ImGuiBuilder {
             block()
     }
 
-    @ImGuiDsl
-    inline fun colorButton(descId: String, col: FloatArray, flags: Int = ImGuiColorEditFlags.None, size: ImVec2 = ImVec2(), block: ProcedureBlock = {}) {
-        if (ImGui.colorButton(descId, col, flags, size))
-            block()
-    }
-
     /**
      * Creates a tree node.
      *
@@ -1601,9 +1595,9 @@ object ImGuiBuilder {
     }
 
     /**
-     * Places next item on the same line.
+     * Places the next item on the same line.
      *
-     * @param offsetFromStartX Offset from start
+     * @param offsetFromStartX Offset from the start
      * @param spacing Spacing between items
      */
     @ImGuiDsl

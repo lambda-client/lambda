@@ -38,10 +38,17 @@ object LambdaScreen : Screen(Text.of("Lambda GUI")) {
                 window(tag.name, flags = AlwaysAutoResize) {
                     ModuleRegistry.modules
                         .filter { it.tag == tag }
-                        .forEach { it.layout(this) }
+                        .forEach { with(it) { buildLayout() } }
                 }
             }
 
+        // ToDo
+        mainMenuBar {
+            menu("HUD") {
+                menuItem("ClickGUI", "Ctrl+Alt+C") {}
+            }
+        }
         ImGui.showDemoWindow()
+//        ImGui.showFontSelector("Font")
     }
 }

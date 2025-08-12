@@ -30,6 +30,7 @@ import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
@@ -41,34 +42,38 @@ object AntiAim : Module(
     description = "Rotates the player using the given configs",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val page by setting("Page", Page.General)
-    private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw") { page == Page.General }
+    private enum class Group(override val displayName: String) : NamedEnum {
+        General("General"),
+        Rotation("Rotation")
+    }
+
+    private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw").group(Group.General)
         .onValueChange { _, to ->
             if (to == YawMode.Custom) {
                 // To bypass recursion issue
                 setConfigCustomYaw(player.yaw)
             }
         }
-    private val spinMode by setting("Spin Mode", LeftRight.Right) { yaw == YawMode.Spin && page == Page.General }
-    private val sideMode by setting("Side Mode", LeftRight.Left) { yaw == YawMode.Sideways && page == Page.General }
-    private var customYaw by setting("Custom Yaw", 0f, -179f..180f, 1f) { yaw == YawMode.Custom && page == Page.General }
-    private val yawPlayerMode by setting("Yaw Player mode", PlayerMode.Closest) { yaw == YawMode.Player && page == Page.General }
+    private val spinMode by setting("Spin Mode", LeftRight.Right) { yaw == YawMode.Spin }.group(Group.General)
+    private val sideMode by setting("Side Mode", LeftRight.Left) { yaw == YawMode.Sideways }.group(Group.General)
+    private var customYaw by setting("Custom Yaw", 0f, -179f..180f, 1f) { yaw == YawMode.Custom }.group(Group.General)
+    private val yawPlayerMode by setting("Yaw Player mode", PlayerMode.Closest) { yaw == YawMode.Player }.group(Group.General)
 
-    private val pitch by setting("Pitch Mode", PitchMode.UpAndDown, "The mode used when setting the players pitch") { page == Page.General }
+    private val pitch by setting("Pitch Mode", PitchMode.UpAndDown, "The mode used when setting the players pitch").group(Group.General)
         .onValueChange { _, to ->
             if (to == PitchMode.Custom) {
                 // To bypass recursion issue
                 setConfigCustomPitch(player.pitch)
             }
         }
-    private val verticalMode by setting("Vertical Mode", VerticalMode.Up) { pitch == PitchMode.Vertical && page == Page.General }
-    private var customPitch by setting("Custom Pitch", 0f, -90f..90f, 1f) { pitch == PitchMode.Custom && page == Page.General }
-    private val pitchPlayerMode by setting("Pitch Player Mode", PlayerMode.Closest) { pitch == PitchMode.Player && page == Page.General }
+    private val verticalMode by setting("Vertical Mode", VerticalMode.Up) { pitch == PitchMode.Vertical }.group(Group.General)
+    private var customPitch by setting("Custom Pitch", 0f, -90f..90f, 1f) { pitch == PitchMode.Custom }.group(Group.General)
+    private val pitchPlayerMode by setting("Pitch Player Mode", PlayerMode.Closest) { pitch == PitchMode.Player }.group(Group.General)
 
-    private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { page == Page.General && yaw != YawMode.None }
-    private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { page == Page.General && pitch != PitchMode.None }
+    private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { yaw != YawMode.None }.group(Group.General)
+    private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { pitch != PitchMode.None }.group(Group.General)
 
-    private val rotation = RotationSettings(this) { page == Page.Rotation }
+    private val rotation = RotationSettings(this, Group.Rotation)
 
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f
@@ -213,10 +218,5 @@ object AntiAim : Module(
     private enum class VerticalMode {
         Up,
         Down
-    }
-
-    private enum class Page {
-        General,
-        Rotation
     }
 }

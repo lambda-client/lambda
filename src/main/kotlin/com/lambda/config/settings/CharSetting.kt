@@ -43,11 +43,9 @@ class CharSetting(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            // ToDo
-        }
+    override fun ImGuiBuilder.buildLayout() {
+        // ToDo
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

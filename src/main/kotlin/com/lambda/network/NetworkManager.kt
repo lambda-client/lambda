@@ -59,6 +59,6 @@ object NetworkManager : Configurable(UserConfig), Loadable {
 
         return auth.value
             ?.let { "Logged you in as ${it.data.name} (${it.data.uuid})" }
-            ?: "You are not authenticated"
+            ?: "NetworkManager: You are not authenticated"
     }
 }

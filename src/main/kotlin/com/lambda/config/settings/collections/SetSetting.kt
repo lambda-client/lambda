@@ -44,6 +44,19 @@ class SetSetting<T : Any>(
     private val strSetType =
         TypeToken.getParameterized(Set::class.java, String::class.java).type
 
+    override fun ImGuiBuilder.buildLayout() {
+        combo(name, "${value.size} item(s)") {
+            immutableSet
+                .forEach {
+                    val isSelected = value.contains(it)
+
+                    selectable(it.toString(), isSelected,
+                        flags = DontClosePopups)
+                    { if (isSelected) value.remove(it) else value.add(it) }
+                }
+        }
+    }
+
     // When serializing the list to json we do not want to serialize the elements' classes, but
     // their stringified representation.
     // If we do serialize the classes we'll run into missing type adapters errors by Gson.
@@ -57,20 +70,4 @@ class SetSetting<T : Any>(
 
         value = strSet
     }
-
-
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-            {
-                combo(name, "${value.size} item(s)") {
-                    immutableSet
-                        .forEach {
-                            val isSelected = value.contains(it)
-
-                            selectable(it.toString(), isSelected,
-                                flags = DontClosePopups)
-                            { if (isSelected) value.remove(it) else value.add(it) }
-                        }
-                }
-            }
 }

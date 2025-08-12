@@ -36,9 +36,7 @@ class MapSetting<K, V>(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            // ToDo
-        }
+    override fun ImGuiBuilder.buildLayout() {
+        // ToDo
+    }
 }

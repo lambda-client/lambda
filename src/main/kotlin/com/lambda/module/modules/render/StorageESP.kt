@@ -30,6 +30,7 @@ import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.outlineShape
 import com.lambda.util.math.setAlpha
@@ -59,20 +60,18 @@ object StorageESP : Module(
     description = "Render storage blocks/entities",
     tag = ModuleTag.RENDER,
 ) {
-    private val page by setting("Page", Page.Render)
-
     /* General settings */
-    private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering") { page == Page.General }
+    private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering").group(Group.General)
 
     /* Render settings */
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { page == Page.Render }.onValueSet { _, to -> if (!to) drawOutlines = true }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { page == Page.Render }.onValueSet { _, to -> if (!to) drawFaces = true }
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { page == Page.Render }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { page == Page.Render }
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueSet { _, to -> if (!to) drawOutlines = true }.group(Group.Render)
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueSet { _, to -> if (!to) drawFaces = true }.group(Group.Render)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").group(Group.Render)
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").group(Group.Render)
 
     /* Color settings */
-    private val useBlockColor by setting("Use Block Color", true, "Use the color of the block instead") { page == Page.Color }
-    private val alpha by setting("Alpha", 0.3, 0.1..1.0, 0.05) { page == Page.Color }
+    private val useBlockColor by setting("Use Block Color", true, "Use the color of the block instead").group(Group.Color)
+    private val alpha by setting("Alpha", 0.3, 0.1..1.0, 0.05).group(Group.Color)
 
     // TODO:
     //  val blockColors by setting("Block Colors", mapOf<String, Color>()) { page == Page.Color && !useBlockColor }
@@ -87,19 +86,19 @@ object StorageESP : Module(
     //    ... console.log(color & 0xFF)
     //    ... }
 
-    private val barrelColor by setting("Barrel Color", Color(143, 119, 72)) { page == Page.Color && !useBlockColor }
-    private val blastFurnaceColor by setting("Blast Furnace Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }
-    private val brewingStandColor by setting("Brewing Stand Color", Color(167, 167, 167)) { page == Page.Color && !useBlockColor }
-    private val trappedChestColor by setting("Trapped Chest Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
-    private val chestColor by setting("Chest Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
-    private val dispenserColor by setting("Dispenser Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }
-    private val enderChestColor by setting("Ender Chest Color", Color(127, 63, 178)) { page == Page.Color && !useBlockColor }
-    private val furnaceColor by setting("Furnace Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }
-    private val hopperColor by setting("Hopper Color", Color(76, 76, 76)) { page == Page.Color && !useBlockColor }
-    private val smokerColor by setting("Smoker Color", Color(112, 112, 112)) { page == Page.Color && !useBlockColor }
-    private val shulkerColor by setting("Shulker Color", Color(178, 76, 216)) { page == Page.Color && !useBlockColor }
-    private val itemFrameColor by setting("Item Frame Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
-    private val cartColor by setting("Minecart Color", Color(102, 127, 51)) { page == Page.Color && !useBlockColor }
+    private val barrelColor by setting("Barrel Color", Color(143, 119, 72)) { !useBlockColor }.group(Group.Color)
+    private val blastFurnaceColor by setting("Blast Furnace Color", Color(153, 153, 153)) { !useBlockColor }.group(Group.Color)
+    private val brewingStandColor by setting("Brewing Stand Color", Color(167, 167, 167)) { !useBlockColor }.group(Group.Color)
+    private val trappedChestColor by setting("Trapped Chest Color", Color(216, 127, 51)) { !useBlockColor }.group(Group.Color)
+    private val chestColor by setting("Chest Color", Color(216, 127, 51)) { !useBlockColor }.group(Group.Color)
+    private val dispenserColor by setting("Dispenser Color", Color(153, 153, 153)) { !useBlockColor }.group(Group.Color)
+    private val enderChestColor by setting("Ender Chest Color", Color(127, 63, 178)) { !useBlockColor }.group(Group.Color)
+    private val furnaceColor by setting("Furnace Color", Color(153, 153, 153)) { !useBlockColor }.group(Group.Color)
+    private val hopperColor by setting("Hopper Color", Color(76, 76, 76)) { !useBlockColor }.group(Group.Color)
+    private val smokerColor by setting("Smoker Color", Color(112, 112, 112)) { !useBlockColor }.group(Group.Color)
+    private val shulkerColor by setting("Shulker Color", Color(178, 76, 216)) { !useBlockColor }.group(Group.Color)
+    private val itemFrameColor by setting("Item Frame Color", Color(216, 127, 51)) { !useBlockColor }.group(Group.Color)
+    private val cartColor by setting("Minecart Color", Color(102, 127, 51)) { !useBlockColor }.group(Group.Color)
 
     private val entities = setOf(
         BarrelBlockEntity::class,
@@ -192,9 +191,9 @@ object StorageESP : Module(
             else -> null
         }
 
-    private enum class Page {
-        General,
-        Render,
-        Color
+    private enum class Group(override val displayName: String): NamedEnum {
+        General("General"),
+        Render("Render"),
+        Color("Color")
     }
 }

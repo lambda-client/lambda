@@ -34,14 +34,12 @@ open class FunctionSetting<T>(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            button(name) { value() }
+    override fun ImGuiBuilder.buildLayout() {
+        button(name) { value() }
 
-            sameLine()
-            helpMarker(description)
-        }
+        sameLine()
+        helpMarker(description)
+    }
 
     override fun toJson(): JsonElement = JsonNull.INSTANCE
     override fun loadFromJson(serialized: JsonElement) { value = defaultValue }

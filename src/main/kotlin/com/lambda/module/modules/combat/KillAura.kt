@@ -33,6 +33,7 @@ import com.lambda.interaction.request.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
+import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
@@ -48,23 +49,21 @@ object KillAura : Module(
     description = "Attacks entities",
     tag = ModuleTag.COMBAT,
 ) {
-    private val page by setting("Page", Page.Interaction)
-
     // Interact
-    private val interactionSettings = InteractionSettings(this, InteractionMask.Entity) { page == Page.Interaction }
-    private val interactSettings = InteractSettings(this) { page == Page.Interact }
+    private val interactionSettings = InteractionSettings(this, Group.Interaction, InteractionMask.Entity)
+    private val interactSettings = InteractSettings(this, Group.Interact)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage")
-    private val attackMode by setting("Attack Mode", AttackMode.Cooldown) { page == Page.Interact }
-    private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { page == Page.Interact && attackMode == AttackMode.Cooldown }
-    private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { page == Page.Interact && attackMode == AttackMode.Delay }
-    private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { page == Page.Interact && attackMode == AttackMode.Delay }
+    private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Interact)
+    private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.Interact)
+    private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.Interact)
+    private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.Interact)
 
     // Targeting
-    private val targeting = Targeting.Combat(this) { page == Page.Targeting }
+    private val targeting = Targeting.Combat(this, Group.Targeting)
 
     // Aiming
-    private val rotate by setting("Rotate", true) { page == Page.Aiming }
-    private val rotation = RotationSettings(this) { page == Page.Aiming && rotate }
+    private val rotate by setting("Rotate", true).group(Group.Aiming)
+    private val rotation = RotationSettings(this, Group.Aiming) { rotate }
 
     val target: LivingEntity?
         get() = targeting.target()
@@ -80,11 +79,11 @@ object KillAura : Module(
     private var lastOnGround = true
     private var onGroundTicks = 0
 
-    enum class Page {
-        Interaction,
-        Interact,
-        Targeting,
-        Aiming
+    enum class Group(override val displayName: String): NamedEnum {
+        Interaction("Interaction"),
+        Interact("Interact"),
+        Targeting("Targeting"),
+        Aiming("Aiming")
     }
 
     enum class AttackMode {

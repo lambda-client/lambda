@@ -39,6 +39,7 @@ import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakReque
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
@@ -53,28 +54,39 @@ object PacketMine : Module(
     description = "automatically breaks blocks, and does it faster",
     tag = ModuleTag.PLAYER
 ) {
-    private val page by setting("Page", Page.Build)
+    private enum class Group(override val displayName: String) : NamedEnum {
+        Build("General"),
+        Rotation("Rotation"),
+        Interaction("Interaction"),
+        Inventory("Interact"),
+        Hotbar("Hotbar")
+    }
 
-    private val build = BuildSettings(this) { page == Page.Build }
+    private enum class PacketMineGroup(override val displayName: String) : NamedEnum {
+        General("General"),
+        Cosmetic("Cosmetic")
+    }
+
+    private val build = BuildSettings(this, Group.Build)
     private val breakConfig = build.breaking
-    private val rotation = RotationSettings(this) { page == Page.Rotation }
-    private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
-    private val inventory = InventorySettings(this) { page == Page.Inventory }
-    private val hotbar = HotbarSettings(this) { page == Page.Hotbar }
+    private val rotation = RotationSettings(this, Group.Rotation)
+    private val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
+    private val inventory = InventorySettings(this, Group.Inventory)
+    private val hotbar = HotbarSettings(this, Group.Hotbar)
 
-    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }
-    private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block")
-    private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }
-    private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
+    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }.group(BuildSettings.Group.Break, PacketMineGroup.General)
+    private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(BuildSettings.Group.Break, PacketMineGroup.General)
+    private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(BuildSettings.Group.Break, PacketMineGroup.General)
+    private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(BuildSettings.Group.Break, PacketMineGroup.General)
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
-    private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
-    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued")
-    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }
-    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }
-    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }
-    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }
-    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }
-    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }
+    private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(BuildSettings.Group.Break, PacketMineGroup.General)
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
+    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
+    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
 
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -252,10 +264,6 @@ object PacketMine : Module(
         if (isEmpty()) return false
         forEach { if (it.any(predicate)) return true }
         return false
-    }
-
-    enum class Page {
-        Build, Rotation, Interaction, Inventory, Hotbar
     }
 
     enum class ReBreakMode {

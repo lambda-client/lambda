@@ -24,6 +24,7 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.dsl.ProcedureBlock
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
@@ -42,11 +43,9 @@ class BlockSetting(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            // ToDo
-        }
+    override fun ImGuiBuilder.buildLayout() {
+        // ToDo
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(blockState(name, registry)) { argument ->

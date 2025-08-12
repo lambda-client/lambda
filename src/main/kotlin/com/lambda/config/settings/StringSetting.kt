@@ -44,17 +44,15 @@ class StringSetting(
     description,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            if (multiline) inputTextMultiline(name, ::value, flags = flags)
-            else inputText(name, ::value, flags)
-        }
+        if (multiline) inputTextMultiline(name, ::value, flags = flags)
+        else inputText(name, ::value, flags)
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(greedyString(name)) { parameter ->

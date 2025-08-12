@@ -31,6 +31,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.NamedEnum
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -40,7 +41,11 @@ object FastBreak : Module(
     description = "Break blocks faster.",
     tag = ModuleTag.PLAYER,
 ) {
-    private val buildConfig = BuildSettings(this)
+    private enum class Group(override val displayName: String) : NamedEnum {
+        Build("Build")
+    }
+
+    private val buildConfig = BuildSettings(this, Group.Build)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 

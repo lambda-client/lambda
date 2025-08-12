@@ -20,18 +20,22 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
-import com.lambda.util.world.WorldUtils.internalGetEntities
-import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import kotlin.math.ceil
 import kotlin.sequences.filter
 
 object WorldUtils {
+    fun SafeContext.isLoaded(pos: BlockPos) =
+        world.chunkManager.isChunkLoaded(
+            ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z)
+        )
+
     /**
      * Gets all entities of type [T] within a specified distance from a position.
      *

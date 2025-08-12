@@ -31,6 +31,7 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.moveY
 import com.lambda.util.math.MathUtils.floorToInt
@@ -49,27 +50,25 @@ object HighwayTools : Module(
     description = "Auto highway builder",
     tag = ModuleTag.PLAYER,
 ) {
-    private val page by setting("Page", Page.Structure)
+    private val height by setting("Height", 4, 2..10, 1).group(Group.Structure)
+    private val width by setting("Width", 6, 1..30, 1).group(Group.Structure)
+    private val pavement by setting("Pavement", Material.Block, "Material for the pavement").group(Group.Structure)
+    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }.group(Group.Structure)
+    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }.group(Group.Structure)
+    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }.group(Group.Structure)
+    private val floor by setting("Floor", Material.None, "Material for the floor").group(Group.Structure)
+    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }.group(Group.Structure)
+    private val walls by setting("Walls", Material.None, "Material for the walls").group(Group.Structure)
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { walls == Material.Block }.group(Group.Structure)
+    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling").group(Group.Structure)
+    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }.group(Group.Structure)
+    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
+    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once").group(Group.Structure)
 
-    private val height by setting("Height", 4, 2..10, 1, "Height of the full tunnel tube including the pavement", " blocks") { page == Page.Structure }
-    private val width by setting("Width", 6, 1..30, 1, "Width of the full tunnel tube including the pavements rims", " blocks") { page == Page.Structure }
-    private val pavement by setting("Pavement", Material.Block, "Material for the pavement") { page == Page.Structure }
-    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1, "Height of the pavements rims where 0 is none", " blocks") { page == Page.Structure && pavement != Material.None }
-    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { page == Page.Structure && pavement != Material.None }
-    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { page == Page.Structure && pavement == Material.Block }
-    private val floor by setting("Floor", Material.None, "Material for the floor") { page == Page.Structure }
-    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { page == Page.Structure && floor == Material.Block }
-    private val walls by setting("Walls", Material.None, "Material for the walls") { page == Page.Structure }
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { page == Page.Structure && walls == Material.Block }
-    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling") { page == Page.Structure }
-    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { page == Page.Structure && ceiling == Material.Block }
-    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)", " blocks") { page == Page.Structure }
-    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once", " blocks") { page == Page.Structure }
-
-    private val build = BuildSettings(this) { page == Page.Build }
-    private val rotation = RotationSettings(this) { page == Page.Rotation }
-    private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
-    private val inventory = InventorySettings(this) { page == Page.Inventory }
+    private val build = BuildSettings(this, Group.Build)
+    private val rotation = RotationSettings(this, Group.Rotation)
+    private val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
+    private val inventory = InventorySettings(this, Group.Inventory)
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
@@ -85,8 +84,12 @@ object HighwayTools : Module(
         None, Solid
     }
 
-    enum class Page {
-        Structure, Build, Rotation, Interaction, Inventory
+    enum class Group(override val displayName: String): NamedEnum {
+        Structure("Structure"),
+        Build("Build"),
+        Rotation("Rotation"),
+        Interaction("Interaction"),
+        Inventory("Inventory"),
     }
 
     init {

@@ -46,16 +46,14 @@ class DoubleSetting(
     unit,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            inputDouble("##$name", ::value)
-        }
+        inputDouble("##$name", ::value)
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double(name, range.start, range.endInclusive)) { parameter ->

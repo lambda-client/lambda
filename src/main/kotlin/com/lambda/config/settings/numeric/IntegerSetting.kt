@@ -45,16 +45,14 @@ class IntegerSetting(
     unit,
     visibility
 ) {
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            inputInt("##$name", ::value)
-        }
+        slider("##$name", ::value, range.start, range.endInclusive, "%d$unit")
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer(name, range.start, range.endInclusive)) { parameter ->

@@ -67,6 +67,7 @@ import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
+import com.lambda.util.world.WorldUtils.isLoaded
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
@@ -133,7 +134,7 @@ object BuildSimulator {
         val acc = mutableSetOf<BuildResult>()
 
         /* the chunk is not loaded */
-        if (!world.isChunkLoaded(pos)) {
+        if (!isLoaded(pos)) {
             acc.add(BuildResult.ChunkNotLoaded(pos))
             return acc
         }

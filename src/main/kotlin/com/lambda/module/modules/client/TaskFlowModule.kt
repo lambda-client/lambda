@@ -19,6 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
@@ -27,6 +28,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 import com.lambda.util.world.raycast.InteractionMask
 
 object TaskFlowModule : Module(
@@ -34,20 +36,24 @@ object TaskFlowModule : Module(
     description = "Settings for task automation",
     tag = ModuleTag.CLIENT,
 ) {
-    enum class Page {
-        Build, Rotation, Interaction, Inventory, Hotbar, Debug
+    enum class Group(override val displayName: String): NamedEnum {
+        Build("Build"),
+        Rotation("Rotation"),
+        Interaction("Interaction"),
+        Inventory("Inventory"),
+        Hotbar("Hotbar"),
+        Debug("Debug")
     }
 
-    private val page by setting("Page", Page.Build)
-    val build = BuildSettings(this) { page == Page.Build }
-    val rotation = RotationSettings(this) { page == Page.Rotation }
-    val interaction = InteractionSettings(this, InteractionMask.Both) { page == Page.Interaction }
-    val inventory = InventorySettings(this) { page == Page.Inventory }
-    val hotbar = HotbarSettings(this) { page == Page.Hotbar }
+    val build = BuildSettings(this, Group.Build)
+    val rotation = RotationSettings(this, Group.Rotation)
+    val interaction = InteractionSettings(this, Group.Interaction, InteractionMask.Both)
+    val inventory = InventorySettings(this, Group.Inventory)
+    val hotbar = HotbarSettings(this, Group.Hotbar)
 
-    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.Debug }
-    val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001) { page == Page.Debug }
-    val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager") { page == Page.Debug }
+    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree").group(Group.Debug)
+    val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001).group(Group.Debug)
+    val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager").group(Group.Debug)
 
     @Volatile
     var drawables = listOf<Drawable>()

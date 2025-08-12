@@ -20,6 +20,8 @@ package com.lambda.gui
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.modules.client.ClickGui
+import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.path
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
@@ -32,15 +34,54 @@ import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL11.glViewport
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
+import kotlin.math.abs
 
 object DearImGui : Loadable {
     val implGlfw = ImGuiImplGlfw()
     val implGl3 = ImGuiImplGl3()
 
     val io: ImGuiIO get() = ImGui.getIO()
+    const val DEFAULT_FLAGS = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
+            ImGuiConfigFlags.NavEnableSetMousePos or // Move the cursor using the keyboard
+            ImGuiConfigFlags.DockingEnable
+
+    private var lastScale = 0f
+    private var lastScaleChangeTimestamp = 0L
+    private var scaleChanged = false
+    private var targetScale = 0f
+
+    private fun updateScale(scale: Float) {
+        io.fonts.clear()
+        val baseFontSize = 13f
+        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale)
+        io.fonts.build()
+
+        implGl3.createFontsTexture()
+    }
 
     fun render(block: ImGuiBuilder.() -> Unit) {
-        // Minecraft will not bind the framebuffer unless it is needed, so do it manually and hope Vulcan never gets real:tm:
+        val scale = (GuiSettings.scaleSetting / 100.0).toFloat()
+
+        if (lastScale == 0f) {
+            targetScale = scale
+            updateScale(targetScale)
+            lastScale = targetScale
+        }
+
+        if (scale > 0 && abs(scale - lastScale) > 0.001f) {
+            if (abs(scale - targetScale) > 0.001f) {
+                lastScaleChangeTimestamp = System.currentTimeMillis()
+                scaleChanged = true
+                targetScale = scale
+            }
+        }
+
+        if (scaleChanged && (lastScaleChangeTimestamp + 1000 < System.currentTimeMillis())) {
+            updateScale(targetScale)
+            lastScale = targetScale
+            scaleChanged = false
+        }
+
         val framebuffer = mc.framebuffer
         val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer((RenderSystem.getDevice() as GlBackend).framebufferManager, null)
 
@@ -49,6 +90,8 @@ object DearImGui : Loadable {
 
         implGlfw.newFrame()
         implGl3.newFrame()
+
+        ClickGui.applyStyle(lastScale)
         ImGui.newFrame()
 
         ImGuiBuilder.block()
@@ -68,13 +111,8 @@ object DearImGui : Loadable {
     init {
         ImGui.createContext()
 
-        io.configFlags = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
-                ImGuiConfigFlags.NavEnableSetMousePos or // Move the cursor using the keyboard
-                ImGuiConfigFlags.DockingEnable
-
+        io.configFlags = DEFAULT_FLAGS
         io.iniFilename = "lambda.ini"
-        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, 13f)
-        io.fonts.build()
 
         implGlfw.init(mc.window.handle, true)
         implGl3.init()

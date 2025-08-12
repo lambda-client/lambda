@@ -47,16 +47,14 @@ class LongSetting(
 ) {
     var intValue = value.toInt()
 
-    override val layout: ImGuiBuilder.() -> Unit
-        get() =
-        {
-            text(name)
+    override fun ImGuiBuilder.buildLayout() {
+        text(name)
 
-            sameLine()
-            helpMarker(description)
+        sameLine()
+        helpMarker(description)
 
-            inputInt("##$name", ::intValue) { value = it.toLong() }
-        }
+        inputInt("##$name", ::intValue) { value = it.toLong() }
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(long(name, range.start, range.endInclusive)) { parameter ->

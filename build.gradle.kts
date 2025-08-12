@@ -39,6 +39,7 @@ val mockitoKotlin       : String by project
 val mockitoInline       : String by project
 val mockkVersion        : String by project
 val spairVersion        : String by project
+val lwjglVersion        : String by project
 
 
 val libs = file("libs")
@@ -60,10 +61,17 @@ version = modVersion
 
 base.archivesName = modId
 
+// We need to force it using lwjgl 3.3.3 because of 3.3.4 poor support for Wayland protocol
+configurations.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.lwjgl") {
+            useVersion(lwjglVersion)
+        }
+    }
+}
+
 repositories {
     mavenLocal() // Allow the use of local repositories
-    maven("https://maven.shedaniel.me/") // Architectury
-    maven("https://maven.terraformersmc.com/releases/")
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://raw.githubusercontent.com/kotlin-graphics/mary/master")
@@ -106,7 +114,7 @@ loom {
             property("mixin.debug.export", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
-            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
+            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "<TOKEN>")
         }
     }
 }
@@ -204,6 +212,7 @@ tasks {
         outputs.upToDateWhen { false }
     }
 
+    // Visual debugger for OpenGL
     register<Exec>("renderDoc") {
         // You need renderdoc installed on your system and available in your environment variables in order
         // to use this task.

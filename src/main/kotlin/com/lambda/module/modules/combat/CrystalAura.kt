@@ -40,6 +40,7 @@ import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
+import com.lambda.util.NamedEnum
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
@@ -74,41 +75,37 @@ object CrystalAura : Module(
     description = "Automatically attacks entities with crystals",
     tag = ModuleTag.COMBAT,
 ) {
-    private val page by setting("Page", Page.General)
-
     /* General */
-    private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks") { page == Page.General }
-    private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks") { page == Page.General }
-    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms") { page == Page.General }
-    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms") { page == Page.General }
-    private val updateMode by setting("Update Mode", UpdateMode.Async) { page == Page.General }
-    private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { page == Page.General && updateMode == UpdateMode.Async }
-    private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { page == Page.General && updateMode == UpdateMode.Async }
+    private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks").group(Group.General)
+    private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks").group(Group.General)
+    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms").group(Group.General)
+    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms").group(Group.General)
+    private val updateMode by setting("Update Mode", UpdateMode.Async).group(Group.General)
+    private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }.group(Group.General)
+    private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }.group(Group.General)
     private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
-    private val debug by setting("Debug", false) { page == Page.General }
+    private val debug by setting("Debug", false).group(Group.General)
 
     /* Placement */
-    private val priorityMode by setting("Crystal Priority", Priority.Damage) { page == Page.Placement }
-    private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { page == Page.Placement && priorityMode == Priority.Advantage }
-    private val minTargetDamage by setting("Min Target Damage", 6.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals") { page == Page.Placement }
-    private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals") { page == Page.Placement }
+    private val priorityMode by setting("Crystal Priority", Priority.Damage).group(Group.Placement)
+    private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }.group(Group.Placement)
+    private val minTargetDamage by setting("Min Target Damage", 6.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals").group(Group.Placement)
+    private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals").group(Group.Placement)
     //private val minHealth by setting("Min Health", 10.0, 0.0..36.0, 0.5, "Minimum player health to use crystals") { page == Page.General }
-    private val oldPlace by setting("1.12 Placement", false) { page == Page.Placement }
+    private val oldPlace by setting("1.12 Placement", false).group(Group.Placement)
 
     /* Prediction */
-    private val prediction by setting("Prediction", PredictionMode.None) { page == Page.Prediction }
-
-    private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { page == Page.Prediction && prediction.onPacket }
-    private val placePostPause by setting("Place Post Pause", true) { page == Page.Prediction && prediction.onPacket }
-
-    private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { page == Page.Prediction && prediction.onPlace }
-    private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { page == Page.Prediction && prediction.onPlace }
+    private val prediction by setting("Prediction", PredictionMode.None).group(Group.Prediction)
+    private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }.group(Group.Prediction)
+    private val placePostPause by setting("Place Post Pause", true) { prediction.onPacket }.group(Group.Prediction)
+    private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }.group(Group.Prediction)
+    private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }.group(Group.Prediction)
 
     /* Targeting */
-    private val targeting = Targeting.Combat(this, 10.0) { page == Page.Targeting }
+    private val targeting = Targeting.Combat(this, Group.Targeting, 10.0)
 
     /* Rotation */
-    private val rotation = RotationSettings(this) { page == Page.Rotation }
+    private val rotation = RotationSettings(this, Group.Rotation)
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
@@ -549,12 +546,12 @@ object CrystalAura : Module(
             )
         }
 
-    private enum class Page {
-        General,
-        Placement,
-        Prediction,
-        Targeting,
-        Rotation
+    private enum class Group(override val displayName: String): NamedEnum {
+        General("General"),
+        Placement("Placement"),
+        Prediction("Prediction"),
+        Targeting("Targeting"),
+        Rotation("Rotation")
     }
 
     private enum class UpdateMode {

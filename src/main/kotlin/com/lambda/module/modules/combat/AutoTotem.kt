@@ -29,6 +29,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.util.Communication.info
+import com.lambda.util.NamedEnum
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -44,20 +45,18 @@ object AutoTotem : Module(
     description = "Swaps the your off-hand item to a totem",
     tag = ModuleTag.COMBAT,
 ) {
-    private val page by setting("Page", Page.General)
+    private val log by setting("Log Message", true).group(Group.General)
 
-    private val log by setting("Log Message", true) { page == Page.General }
+    private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold to swap", unit = " half-hearts").group(Group.General)
+    private val falls by setting("Falls", true, "Swap if the player will die of fall damage").group(Group.General)
+    private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before swapping", unit = " blocks") { falls }.group(Group.General)
+    private val crystals by setting("Crystals", true, "Swap if an End Crystal explosion would be lethal").group(Group.General)
+    private val creeper by setting("Creepers", true, "Swap when an ignited Creeper is nearby").group(Group.General)
+    private val players by setting("Players", false, "Swap if a nearby player is detected within the set distance").group(Group.General)
+    private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players to swap") { players }.group(Group.General)
+    private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { players }.group(Group.General)
 
-    private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold to swap", unit = " half-hearts") { page == Page.General }
-    private val falls by setting("Falls", true, "Swap if the player will die of fall damage") { page == Page.General }
-    private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before swapping", unit = " blocks") { page == Page.General && falls }
-    private val crystals by setting("Crystals", true, "Swap if an End Crystal explosion would be lethal") { page == Page.General }
-    private val creeper by setting("Creepers", true, "Swap when an ignited Creeper is nearby") { page == Page.General }
-    private val players by setting("Players", false, "Swap if a nearby player is detected within the set distance") { page == Page.General }
-    private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players to swap") { page == Page.General && players }
-    private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { page == Page.General && players }
-
-    private val inventory = InventorySettings(this) { page == Page.Inventory }
+    private val inventory = InventorySettings(this, Group.Inventory)
 
     init {
         listen<TickEvent.Pre> {
@@ -87,8 +86,8 @@ object AutoTotem : Module(
         FALL_DAMAGE({ falls && isFallDeadly() && player.fallDistance > fallDistance })
     }
 
-    enum class Page {
-        General,
-        Inventory,
+    enum class Group(override val displayName: String): NamedEnum {
+        General("General"),
+        Inventory("Inventory"),
     }
 }

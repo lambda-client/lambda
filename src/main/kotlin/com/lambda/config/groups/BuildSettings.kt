@@ -18,38 +18,41 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.util.NamedEnum
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.placing.PlaceConfig
 
 class BuildSettings(
     c: Configurable,
+    baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
 ) : BuildConfig {
-    enum class Page {
-        General, Break, Place, Interact
+    enum class Group(override val displayName: String) : NamedEnum {
+        General("General"),
+        Break("Break"),
+        Place("Place"),
+        Interact("Interact")
     }
-
-    private val page by c.setting("Build Page", Page.General, "Current page", vis)
 
     // General
-    override val pathing by c.setting("Pathing", true, "Path to blocks") { vis() && page == Page.General }
-    override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks") { vis() && page == Page.General && pathing }
-    override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks") { vis() && page == Page.General }
-    override val interactionsPerTick by c.setting("Interactions Per Tick", 5, 1..30, 1, "The amount of interactions that can happen per tick") { vis() && page == Page.General }
-    override val maxPendingInteractions by c.setting("Max Pending Interactions", 20, 1..30, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
+    override val pathing by c.setting("Pathing", true, "Path to blocks", vis).group(baseGroup, Group.General)
+    override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks", vis).group(baseGroup, Group.General)
+    override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis).group(baseGroup, Group.General)
+    override val interactionsPerTick by c.setting("Interactions Per Tick", 5, 1..30, 1, "The amount of interactions that can happen per tick", visibility = vis).group(baseGroup, Group.General)
+    override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response", visibility = vis).group(baseGroup, Group.General)
 
     // Breaking
-    override val breaking = BreakSettings(c) { page == Page.Break && vis() }
+    override val breaking = BreakSettings(c, Group.Break, vis)
 
     // Placing
-    override val placing = PlaceSettings(c) { page == Page.Place && vis() }
+    override val placing = PlaceSettings(c, Group.Place, vis)
 
     //Interacting
-    override val interacting = InteractSettings(c) { page == Page.Interact && vis() }
+    override val interacting = InteractSettings(c, Group.Interact, vis)
 
     override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") {
-        vis() && ((page == Page.Place && placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None)
-                || (page == Page.Break && breaking.breakConfirmation != BreakConfirmationMode.None)
-                || (page == Page.Interact && interacting.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None))
-    }
+        vis() && (placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None
+                || breaking.breakConfirmation != BreakConfirmationMode.None
+                || interacting.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None)
+    }.group(baseGroup, Group.Break, Group.Place, Group.Interact)
 }

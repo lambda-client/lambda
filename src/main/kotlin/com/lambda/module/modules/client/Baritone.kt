@@ -20,11 +20,17 @@ package com.lambda.module.modules.client
 import com.lambda.config.groups.RotationSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 
 object Baritone : Module(
     name = "Baritone",
     description = "Baritone configuration",
     tag = ModuleTag.CLIENT,
 ) {
-    val rotation = RotationSettings(this)
+    private enum class Group(override val displayName: String): NamedEnum {
+        GENERAL("General"),
+        ROTATION("Rotation")
+    }
+
+    val rotation = RotationSettings(this, Group.ROTATION)
 }
