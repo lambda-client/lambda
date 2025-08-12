@@ -19,6 +19,13 @@ package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
+import imgui.ImGui
+import imgui.ImGui.calcTextSize
+import imgui.ImGui.dummy
+import imgui.ImGui.textUnformatted
+import imgui.flag.ImGuiCol
+import imgui.flag.ImGuiHoveredFlags
 import java.text.NumberFormat
 import java.util.*
 import kotlin.reflect.KProperty
@@ -45,5 +52,49 @@ abstract class NumericSetting<T>(
 
     override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
         value = valueIn.coerceIn(range)
+    }
+
+    /**
+     * Subclasses must implement this to provide their specific slider widget.
+     */
+    protected abstract fun ImGuiBuilder.buildSlider()
+
+    override fun ImGuiBuilder.buildLayout() {
+        val showReset = isModified
+        val resetButtonText = "R"
+        val valueString = this@NumericSetting.toString()
+
+        buildSlider()
+
+        if (description.isNotBlank()) {
+            lambdaTooltip(description)
+        }
+
+        val itemRectMin = ImGui.getItemRectMin()
+        val itemRectMax = ImGui.getItemRectMax()
+        val textHeight = ImGui.getTextLineHeight()
+        val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
+        val labelWidth = calcTextSize(name).x
+        val valueWidth = calcTextSize(valueString).x
+
+        val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
+        val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
+
+        windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
+        if (labelEndPosX < valueStartPosX) {
+            windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
+        }
+
+        sameLine(0.0f, style.itemSpacing.x)
+        if (showReset) {
+            button("$resetButtonText##$name") {
+                reset()
+            }
+            onItemHover {
+                tooltip { text("Reset to default") }
+            }
+        } else {
+            dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
+        }
     }
 }

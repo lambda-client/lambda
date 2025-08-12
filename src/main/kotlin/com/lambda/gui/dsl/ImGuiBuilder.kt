@@ -133,18 +133,6 @@ object ImGuiBuilder {
     val isWindowCollapsed: Boolean get() = ImGui.isWindowCollapsed()
 
     /**
-     * Returns whether the current window is focused.
-     */
-    val isWindowFocused: Boolean get() = ImGui.isWindowFocused()
-    fun isWindowFocused(flags: Int = ImGuiWindowFlags.None) = ImGui.isWindowHovered(flags)
-
-    /**
-     * Returns whether the current window is hovered and not blocked by a popup/modal
-     */
-    val isWindowHovered: Boolean get() = ImGui.isWindowHovered()
-    fun isWindowHovered(flags: Int = ImGuiWindowFlags.None) = ImGui.isWindowHovered(flags)
-
-    /**
      * Returns the current window position in screen space
      *
      * It is unlikely you need to use this. Consider using current layout pos instead, GetScreenCursorPos().
@@ -167,25 +155,6 @@ object ImGuiBuilder {
     val windowViewport: ImGuiViewport get() = ImGui.getWindowViewport()
 
     /**
-     * Returns whether the last item hovered and usable (not blocked by a popup, etc.).
-     */
-    val isItemHovered: Boolean get() = ImGui.isItemHovered()
-    fun isItemHovered(flags: Int = ImGuiHoveredFlags.None) = ImGui.isItemHovered(flags)
-
-    /**
-     * Returns whether:
-     *  - A button is being held
-     *  - A text field being is edited
-     *  - The last item is being held and allows interaction
-     */
-    val isItemActive: Boolean get() = ImGui.isItemActive()
-
-    /**
-     * Returns whether the last item is focused via keyboard/gamepad navigation
-     */
-    val isItemFocused: Boolean get() = ImGui.isItemFocused()
-
-    /**
      * Returns whether any item hovered and usable (not blocked by a popup, etc.).
      */
     val isAnyItemHovered: Boolean get() = ImGui.isAnyItemHovered()
@@ -204,14 +173,64 @@ object ImGuiBuilder {
     val isAnyItemFocused: Boolean get() = ImGui.isAnyItemFocused()
 
     /**
+     * Executes the specified block if the current window is hovered, based on the provided flags.
+     *
+     * @param flags Optional flags to control the behavior of the hover state. The default value is `ImGuiWindowFlags.None`.
+     * @param block A lambda block of code to be executed when the window is hovered.
+     */
+    @ImGuiDsl
+    fun onWindowFocus(flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
+        if (ImGui.isWindowHovered(flags)) block() else Unit
+
+    /**
+     * Executes a given block of code when the current ImGui window is being hovered.
+     *
+     * @param flags Optional flag settings for specifying conditions under which the window hover is detected.
+     *              Defaults to `ImGuiWindowFlags.None`.
+     * @param block The block of code to execute when the hover condition is met.
+     */
+    @ImGuiDsl
+    fun onWindowHover(flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
+        if (ImGui.isWindowHovered(flags)) block() else Unit
+
+    /**
+     * Executes the given block of code if the current ImGui item is hovered.
+     *
+     * @param flags Customization flags for determining hover behavior. Defaults to `ImGuiHoveredFlags.None`.
+     * @param block The block of code to execute when the item is hovered.
+     */
+    @ImGuiDsl
+    fun onItemHover(flags: Int = ImGuiHoveredFlags.None, block: ProcedureBlock) =
+        if (ImGui.isItemHovered(flags)) block() else Unit
+
+    /**
+     * Executes the provided block of code if the current item is active in the ImGui context.
+     *
+     * @param block The block of code to be executed when the item is active.
+     */
+    @ImGuiDsl
+    fun onItemActive(block: ProcedureBlock) =
+        if (ImGui.isItemActive()) block() else Unit
+
+    /**
+     * Executes the given [block] when the currently active item in the ImGui interface gains focus.
+     *
+     * @param block The block of code to execute if the current item is focused.
+     */
+    @ImGuiDsl
+    fun onItemFocus(block: ProcedureBlock) =
+        if (ImGui.isItemFocused()) block() else Unit
+
+    /**
      * Returns whether the last hovered item is clicked on
      *
      * IsMouseClicked(mouseButton) && IsItemHovered()
      *
      * this is NOT equivalent to the behavior of e.g. Button(). Read comments in function definition.
      */
-    val isItemClicked: Boolean get() = ImGui.isItemClicked()
-    fun isItemClicked(button: Int = ImGuiMouseButton.Right) = ImGui.isItemClicked(button)
+    @ImGuiDsl
+    fun onItemClick(button: Int = ImGuiMouseButton.Right, block: ProcedureBlock) =
+        if (ImGui.isItemClicked(button)) block() else Unit
 
     /**
      * Returns whether:
@@ -353,7 +372,7 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun textCopyable(text: String) {
         text(text)
-        if (isItemHovered()) {
+        onItemHover {
             if (isMouseClicked(ImGuiMouseButton.Left)) {
                 setClipboardText(text)
             }
@@ -1402,6 +1421,22 @@ object ImGuiBuilder {
     }
 
     /**
+     * Displays a tooltip with the specified description when the current ImGui item is hovered.
+     *
+     * @param description The text content to display in the tooltip.
+     */
+    @ImGuiDsl
+    fun lambdaTooltip(description: String) {
+        onItemHover {
+            tooltip {
+                withTextWrapPos(fontSize * 35f) {
+                    textUnformatted(description)
+                }
+            }
+        }
+    }
+
+    /**
      * Creates a help marker with a tooltip.
      *
      * @param description Help text to display
@@ -1409,11 +1444,11 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun helpMarker(description: String, text: String = "(?)") {
         textDisabled(text)
-        if (isItemHovered()) {
+        onItemHover {
             tooltip {
-                pushTextWrapPos(fontSize * 35f)
-                textUnformatted(description)
-                popTextWrapPos()
+                withTextWrapPos(fontSize * 35f) {
+                    textUnformatted(description)
+                }
             }
         }
     }

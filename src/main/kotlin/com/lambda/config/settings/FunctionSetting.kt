@@ -25,7 +25,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 
 open class FunctionSetting<T>(
     override val name: String,
-    private val defaultValue: () -> T,
+    defaultValue: () -> T,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<() -> T>(

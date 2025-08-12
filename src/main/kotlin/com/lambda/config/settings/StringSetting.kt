@@ -33,7 +33,7 @@ import net.minecraft.command.CommandRegistryAccess
  */
 class StringSetting(
     override val name: String,
-    val defaultValue: String,
+    defaultValue: String,
     val multiline: Boolean = false,
     val flags: Int = ImGuiInputTextFlags.None,
     description: String,

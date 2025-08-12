@@ -46,13 +46,15 @@ class DoubleSetting(
     unit,
     visibility
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        text(name)
+    private var valueIndex: Int
+        get() = ((value - range.start) / step).toInt()
+        set(index) {
+            value = (range.start + index * step).coerceIn(range)
+        }
 
-        sameLine()
-        helpMarker(description)
-
-        inputDouble("##$name", ::value)
+    override fun ImGuiBuilder.buildSlider() {
+        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+        slider("##$name", ::valueIndex, 0, maxIndex, "")
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

@@ -45,13 +45,8 @@ class IntegerSetting(
     unit,
     visibility
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        text(name)
-
-        sameLine()
-        helpMarker(description)
-
-        slider("##$name", ::value, range.start, range.endInclusive, "%d$unit")
+    override fun ImGuiBuilder.buildSlider() {
+        slider("##$name", ::value, range.start, range.endInclusive, "")
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
