@@ -44,10 +44,6 @@ object ReBreakManager {
             }
         }
 
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            reBreak?.tickStats()
-        }
-
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
             reBreak = null
         }
