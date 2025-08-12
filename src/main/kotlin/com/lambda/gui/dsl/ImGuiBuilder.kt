@@ -1444,7 +1444,7 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun helpMarker(description: String, text: String = "(?)") {
         textDisabled(text)
-        onItemHover {
+        onItemHover(ImGuiHoveredFlags.Stationary) {
             tooltip {
                 withTextWrapPos(fontSize * 35f) {
                     textUnformatted(description)
