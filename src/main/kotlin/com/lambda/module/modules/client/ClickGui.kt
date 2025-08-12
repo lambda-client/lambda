@@ -63,7 +63,7 @@ object ClickGui : Module(
     val itemInnerSpacingX by setting("Item Inner Spacing X", 4.0f, 0.0f..20.0f, 0.1f).group(Group.Sizing)
     val itemInnerSpacingY by setting("Item Inner Spacing Y", 4.0f, 0.0f..20.0f, 0.1f).group(Group.Sizing)
     val indentSpacing by setting("Indent Spacing", 21.0f, 0.0f..50.0f, 0.1f).group(Group.Sizing)
-    val scrollbarSize by setting("Scrollbar Size", 14.0f, 0.0f..30.0f, 0.1f).group(Group.Sizing)
+    val scrollbarSize by setting("Scrollbar Size", 8.4f, 0.0f..30.0f, 0.1f).group(Group.Sizing)
     val grabMinSize by setting("Grab Min Size", 10.0f, 0.0f..30.0f, 0.1f).group(Group.Sizing)
     val windowBorderSize by setting("Window Border Size", 1.0f, 0.0f..5.0f, 0.1f).group(Group.Sizing)
     val childBorderSize by setting("Child Border Size", 1.0f, 0.0f..5.0f, 0.1f).group(Group.Sizing)
@@ -72,13 +72,13 @@ object ClickGui : Module(
     val tabBorderSize by setting("Tab Border Size", 0.0f, 0.0f..5.0f, 0.1f).group(Group.Sizing)
 
     // Rounding
-    val windowRounding by setting("Window Rounding", 0.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
+    val windowRounding by setting("Window Rounding", 4.6f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
     val childRounding by setting("Child Rounding", 0.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
-    val frameRounding by setting("Frame Rounding", 0.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
+    val frameRounding by setting("Frame Rounding", 4.2f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
     val popupRounding by setting("Popup Rounding", 0.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
     val scrollbarRounding by setting("Scrollbar Rounding", 9.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
-    val grabRounding by setting("Grab Rounding", 0.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
-    val tabRounding by setting("Tab Rounding", 4.0f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
+    val grabRounding by setting("Grab Rounding", 4.2f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
+    val tabRounding by setting("Tab Rounding", 4.2f, 0.0f..12.0f, 0.1f).group(Group.Rounding)
     val curveTessellationTol by setting("Curve Tessellation Tol", 1.25f, 0.1f..10.0f, 0.05f).group(Group.Rounding)
 
     // Font
@@ -140,7 +140,6 @@ object ClickGui : Module(
     val navWindowingHighlight by setting("Nav Windowing Highlight", Color(255, 255, 255, 179)).group(Group.Colors)
     val navWindowingDimBg by setting("Nav Windowing Dim Background", Color(204, 204, 204, 51)).group(Group.Colors)
     val modalWindowDimBg by setting("Modal Window Dim Background", Color(20, 20, 20, 89)).group(Group.Colors)
-
 
     val Screen?.hasInput: Boolean
         get() = this is ChatScreen ||

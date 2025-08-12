@@ -54,7 +54,7 @@ object SettingTest : Module(
     private val enumSetting by setting("Enum Setting", ExampleEnum.VALUE_ONE).group(Group.GENERIC)
 
     // Numeric
-    private val doubleSetting by setting("Double Setting", 3.14159, 0.0..100.0, 0.1, unit = " crumbs").group(Group.NUMERIC)
+    private val doubleSetting by setting("Double Setting", 3.14159, 0.0..100.0, 0.1, description = "Changes the crumbs count", unit = " crumbs").group(Group.NUMERIC)
     private val floatSetting by setting("Float Setting", 3.14f, 0.0f..100.0f, 0.1f, unit = " pies").group(Group.NUMERIC)
     private val integerSetting by setting("Integer Setting", 42, 0..1000, unit = " apples").group(Group.NUMERIC)
     private val longSetting by setting("Long Setting", 100000L, 0L..1000000L, 1000L, unit = " pizzas").group(Group.NUMERIC)

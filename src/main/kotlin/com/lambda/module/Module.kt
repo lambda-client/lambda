@@ -154,14 +154,13 @@ abstract class Module(
     }
 
     private fun ImGuiBuilder.renderGroup(settings: List<AbstractSetting<*>>, parentPath: List<NamedEnum>) {
-        // Render settings that are direct members of this group level
         settings.filter { it.groups.contains(parentPath) }.forEach { with(it) { buildLayout() } }
 
-        // Find all unique sub-groups at the next level
         val subGroupSettings = settings.filter { s -> s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath } }
         val subTabs = subGroupSettings
-            .flatMap { s -> s.groups.mapNotNull { path -> if (path.size > parentPath.size && path.subList(0, parentPath.size) == parentPath) path[parentPath.size] else null } }
-            .distinct()
+            .flatMap { s ->
+                s.groups.mapNotNull { path -> if (path.size > parentPath.size && path.subList(0, parentPath.size) == parentPath) path[parentPath.size] else null }
+            }.distinct()
 
         if (subTabs.isNotEmpty()) {
             val id = "##$name-tabs-${parentPath.joinToString("-") { it.displayName }}"
@@ -169,8 +168,9 @@ abstract class Module(
                 subTabs.forEach { tab ->
                     tabItem(tab.displayName) {
                         val newParentPath = parentPath + tab
-                        // Pass down only the settings relevant to this new branch
-                        val settingsForSubGroup = subGroupSettings.filter { s -> s.groups.any { it.size >= newParentPath.size && it.subList(0, newParentPath.size) == newParentPath } }
+                        val settingsForSubGroup = subGroupSettings.filter { s ->
+                            s.groups.any { it.size >= newParentPath.size && it.subList(0, newParentPath.size) == newParentPath }
+                        }
                         renderGroup(settingsForSubGroup, newParentPath)
                     }
                 }

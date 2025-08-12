@@ -17,9 +17,12 @@
 
 package com.lambda.gui
 
+import com.lambda.config.Configuration
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
 import net.minecraft.client.gui.DrawContext
@@ -42,10 +45,29 @@ object LambdaScreen : Screen(Text.of("Lambda GUI")) {
                 }
             }
 
-        // ToDo
         mainMenuBar {
+            menu("File") {
+                menuItem("Save Configs", "Ctrl+S") {
+                    Configuration.configurations.forEach { config ->
+                        config.trySave(true)
+                    }
+                    runSafe {
+                        info("Saved ${Configuration.configurations.size} configuration files.")
+                    }
+                }
+                menuItem("Load Configs", "Ctrl+L") {
+                    Configuration.configurations.forEach { config ->
+                        config.tryLoad()
+                    }
+                    runSafe {
+                        info("Loaded ${Configuration.configurations.size} configuration files.")
+                    }
+                }
+            }
             menu("HUD") {
-                menuItem("ClickGUI", "Ctrl+Alt+C") {}
+                menuItem("Open Editor", "Ctrl+Alt+C") {
+                    ImGui.showStyleEditor()
+                }
             }
         }
         ImGui.showDemoWindow()

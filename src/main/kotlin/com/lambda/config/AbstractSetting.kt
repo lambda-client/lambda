@@ -94,7 +94,7 @@ import kotlin.reflect.KProperty
  * @property visibility A function that determines whether the setting is visible.
  */
 abstract class AbstractSetting<T : Any>(
-    private val defaultValue: T,
+    internal val defaultValue: T,
     val type: Type,
     val description: String,
     val visibility: () -> Boolean,
@@ -169,7 +169,7 @@ abstract class AbstractSetting<T : Any>(
                 val valueString = value().value()
                 val parsed = try {
                     JsonParser.parseString("\"$valueString\"")
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     return@executeWithResult failure("$valueString is not a valid JSON string.")
                 }
                 val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return@executeWithResult failure("No config found for $name.")

@@ -51,14 +51,9 @@ class FloatSetting(
             value = (range.start + index * step).coerceIn(range)
         }
 
-    override fun ImGuiBuilder.buildLayout() {
-        text(name)
-
-        sameLine()
-        helpMarker(description)
-
+    override fun ImGuiBuilder.buildSlider() {
         val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##$name", ::valueIndex, 0, maxIndex, super.toString())
+        slider("##$name", ::valueIndex, 0, maxIndex, "")
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
