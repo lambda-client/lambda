@@ -87,7 +87,7 @@ object Scaffold : Module(
     private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05).group(Group.Rotation)
 
     private val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
-    private val interactConfig = InteractSettings(this, Group.Interact)
+    private val interactConfig = InteractSettings(this, listOf(Group.Interact))
 
     // Placement
     private var placeInfo: PlaceInfo? = null

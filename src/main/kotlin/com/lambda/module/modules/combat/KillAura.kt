@@ -51,7 +51,7 @@ object KillAura : Module(
 ) {
     // Interact
     private val interactionSettings = InteractionSettings(this, Group.Interaction, InteractionMask.Entity)
-    private val interactSettings = InteractSettings(this, Group.Interact)
+    private val interactSettings = InteractSettings(this, listOf(Group.Interact))
     private val swap by setting("Swap", true, "Swap to the item with the highest damage")
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Interact)
     private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.Interact)

@@ -55,17 +55,21 @@ object PacketMine : Module(
     tag = ModuleTag.PLAYER
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
-        Build("General"),
+        General("General"),
+        Build("Build"),
         Rotation("Rotation"),
         Interaction("Interaction"),
-        Inventory("Interact"),
-        Hotbar("Hotbar")
+        Inventory("Inventory"),
+        Hotbar("Hotbar"),
+        Render("Render")
     }
 
-    private enum class PacketMineGroup(override val displayName: String) : NamedEnum {
-        General("General"),
-        Cosmetic("Cosmetic")
-    }
+    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }.group(Group.General)
+    private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(Group.General)
+    private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.General)
+    private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(Group.General)
+        .onValueChange { _, to -> if (!to) queuePositions.clear() }
+    private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(Group.General)
 
     private val build = BuildSettings(this, Group.Build)
     private val breakConfig = build.breaking
@@ -74,20 +78,13 @@ object PacketMine : Module(
     private val inventory = InventorySettings(this, Group.Inventory)
     private val hotbar = HotbarSettings(this, Group.Hotbar)
 
-    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }.group(BuildSettings.Group.Break, PacketMineGroup.General)
-    private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(BuildSettings.Group.Break, PacketMineGroup.General)
-    private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(BuildSettings.Group.Break, PacketMineGroup.General)
-    private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(BuildSettings.Group.Break, PacketMineGroup.General)
-        .onValueChange { _, to -> if (!to) queuePositions.clear() }
-    private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(BuildSettings.Group.Break, PacketMineGroup.General)
-    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(BuildSettings.Group.Break, PacketMineGroup.Cosmetic)
-
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").group(Group.Render)
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.group(Group.Render)
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.group(Group.Render)
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.group(Group.Render)
+    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }.group(Group.Render)
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Render)
+    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Render)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 

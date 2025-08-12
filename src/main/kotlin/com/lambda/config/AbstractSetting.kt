@@ -150,6 +150,10 @@ abstract class AbstractSetting<T : Any>(
         listeners.add(ValueListener(false, block))
     }
 
+    fun group(path: List<NamedEnum>, vararg continuation: NamedEnum) = apply {
+        groups.add(path + continuation)
+    }
+
     fun group(vararg path: NamedEnum) = apply {
         groups.add(path.toList())
     }
