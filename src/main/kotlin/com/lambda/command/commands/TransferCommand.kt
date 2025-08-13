@@ -52,7 +52,7 @@ object TransferCommand : LambdaCommand(
                         val selection = selectStack(count) {
                             isItem(stack(ctx).value().item)
                         }
-                        containerWithMaterial(selection).forEachIndexed { i, container ->
+                        selection.containerWithMaterial().forEachIndexed { i, container ->
                             builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
                         }
                         builder.buildFuture()

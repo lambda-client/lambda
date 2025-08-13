@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,11 @@ import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
-import com.lambda.interaction.request.rotation.RotationManager;
+import com.lambda.interaction.request.rotating.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -50,6 +52,9 @@ import java.util.Objects;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
+
+    @Shadow
+    public Input input;
 
     @Shadow
     private boolean autoJumpEnabled;
@@ -90,6 +95,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
     void processMovement(Input input) {
         input.tick();
+        RotationManager.processRotations();
         RotationManager.BaritoneProcessor.processPlayerMovement(input);
         EventFlow.post(new MovementEvent.InputUpdate(input));
     }
@@ -134,14 +140,11 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
 
-    @Inject(method = "tick", at = @At(value = "HEAD"))
-    void onTickPre(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Player.Pre());
-    }
-
-    @Inject(method = "tick", at = @At(value = "RETURN"))
-    void onTickPost(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Player.Post());
+    @WrapMethod(method = "tick")
+    void onTick(Operation<Void> original) {
+        EventFlow.post(TickEvent.Player.Pre.INSTANCE);
+        original.call();
+        EventFlow.post(TickEvent.Player.Post.INSTANCE);
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
@@ -155,13 +158,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     }
 
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
-    void onSwingHandPre(Hand hand, CallbackInfo ci) {
+    void onSwing(Hand hand, CallbackInfo ci) {
         if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
-    }
-
-    @Inject(method = "updateHealth", at = @At("HEAD"))
-    public void damage(float health, CallbackInfo ci) {
-        EventFlow.post(new PlayerEvent.Damage(health));
     }
 
     @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
@@ -174,6 +172,11 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         }
 
         viewModel.adjustSwing(hand, instance);
+    }
+
+    @Inject(method = "updateHealth", at = @At("HEAD"))
+    public void damage(float health, CallbackInfo ci) {
+        EventFlow.post(new PlayerEvent.Damage(health));
     }
 
     /**

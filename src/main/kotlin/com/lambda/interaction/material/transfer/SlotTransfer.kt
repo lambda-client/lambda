@@ -17,12 +17,12 @@
 
 package com.lambda.interaction.material.transfer
 
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots

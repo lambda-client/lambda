@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.blueprint
 
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.collections.updatableLazy
 import com.lambda.util.extension.Structure
 import com.lambda.util.math.roundedBlockPos
@@ -53,29 +52,16 @@ abstract class Blueprint {
 
     fun isOutOfBounds(vec3d: Vec3d): Boolean = bounds.value?.contains(vec3d.roundedBlockPos) == false
 
-    val center get() = bounds.value?.center?.blockPos
+    val center get() = bounds.value?.center
 
     companion object {
         fun emptyStructure(): Structure = emptyMap()
 
-        fun Box.toStructure(targetState: TargetState): Structure =
-            BlockPos.stream(this)
-                .map { it.blockPos }
-                .toList()
-                .associateWith { targetState }
-
         fun BlockBox.toStructure(targetState: TargetState): Structure =
-            BlockPos.stream(this)
-                .map { it.blockPos }
-                .toList()
-                .associateWith { targetState }
+            BlockPos.stream(this).toList().associateWith { targetState }
 
         fun BlockPos.toStructure(targetState: TargetState): Structure =
-            setOf(this)
-                .associateWith { targetState }
-
-//        fun Schematic.fromSchematic() =
-//            this.blockMap.map { it.key to TargetState.BlockState(it.value) }.toMap()
+            setOf(this).associateWith { targetState }
 
         fun StructureTemplate.toStructure(): Structure =
             blockInfoLists

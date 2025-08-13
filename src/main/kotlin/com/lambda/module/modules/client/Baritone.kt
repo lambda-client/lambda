@@ -32,5 +32,5 @@ object Baritone : Module(
         ROTATION("Rotation")
     }
 
-    val rotation = RotationSettings(this, Group.ROTATION, Int.MAX_VALUE)
+    val rotation = RotationSettings(this, Group.ROTATION)
 }

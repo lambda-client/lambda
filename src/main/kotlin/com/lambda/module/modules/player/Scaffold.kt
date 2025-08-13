@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
@@ -30,18 +31,18 @@ import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifference
-import com.lambda.interaction.request.rotation.Rotation.Companion.dist
-import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
-import com.lambda.interaction.request.rotation.RotationManager.currentRotation
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
-import com.lambda.interaction.request.rotation.visibilty.blockHit
-import com.lambda.interaction.request.rotation.visibilty.lookAtHit
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.angleDifference
+import com.lambda.interaction.request.rotating.Rotation.Companion.dist
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
+import com.lambda.interaction.request.rotating.RotationManager.onRotate
+import com.lambda.interaction.request.rotating.RotationManager.activeRotation
+import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.request.rotating.visibilty.blockHit
+import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.TaskFlowModule
@@ -86,6 +87,7 @@ object Scaffold : Module(
     private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05).group(Group.Rotation)
 
     private val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
+    private val interactConfig = InteractSettings(this, listOf(Group.Interact))
 
     // Placement
     private var placeInfo: PlaceInfo? = null
@@ -116,6 +118,7 @@ object Scaffold : Module(
     private enum class Group(override val displayName: String): NamedEnum {
         General("General"),
         Rotation("Rotation"),
+        Interact("Interact"),
         Interaction("Interaction")
     }
 
@@ -215,14 +218,14 @@ object Scaffold : Module(
         val assumedYaw = assumeYawByDirection(moveYaw)
 
         // No need to rotate, already looking correctly
-        val lookingCorrectly = castRotation(currentRotation, info) != null
-        val isYawStable = angleDifference(currentRotation.yaw, assumedYaw) < YAW_THRESHOLD
-        if (lookingCorrectly && isYawStable) return currentRotation
+        val lookingCorrectly = castRotation(activeRotation, info) != null
+        val isYawStable = angleDifference(activeRotation.yaw, assumedYaw) < YAW_THRESHOLD
+        if (lookingCorrectly && isYawStable) return activeRotation
 
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
             val box = Box(info.clickPos)
-            val sides = if (TaskFlowModule.interact.checkSideVisibility) {
+            val sides = if (TaskFlowModule.interaction.checkSideVisibility) {
                 box.getVisibleSurfaces(eye)
             } else Direction.entries.toSet()
             scanSurfaces(
@@ -264,7 +267,7 @@ object Scaffold : Module(
 
         val optimalRotation = when {
             // Placing supporting block
-            info.placeSteps > 0 && !isDiagonal -> currentRotation
+            info.placeSteps > 0 && !isDiagonal -> activeRotation
 
             // Placing base block
             else -> assumedRotation
@@ -300,7 +303,7 @@ object Scaffold : Module(
         }
 
         // Run placement
-        placeBlock(blockResult ?: return, Hand.MAIN_HAND, interactionConfig.swingHand)
+        placeBlock(blockResult ?: return, Hand.MAIN_HAND, interactConfig.swingHand)
         renderInfo.add(info to currentTime)
     }
 
@@ -315,7 +318,7 @@ object Scaffold : Module(
         val isNearLedge = world.isBlockSpaceEmpty(player, predictedBox)*/
 
         val sneak = lastRotation?.let {
-            currentRotation dist it > YAW_THRESHOLD && player.isOnGround
+            activeRotation dist it > YAW_THRESHOLD && player.isOnGround
         } ?: (sneakTicks > 0 && placeInfoAge < 4)
 
         if (sneak) sneakTicks = 3

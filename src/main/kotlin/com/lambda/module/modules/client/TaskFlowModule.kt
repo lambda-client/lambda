@@ -18,6 +18,8 @@
 package com.lambda.module.modules.client
 
 import com.lambda.config.groups.BuildSettings
+import com.lambda.config.groups.HotbarSettings
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
@@ -39,16 +41,19 @@ object TaskFlowModule : Module(
         Rotation("Rotation"),
         Interaction("Interaction"),
         Inventory("Inventory"),
+        Hotbar("Hotbar"),
         Debug("Debug")
     }
 
     val build = BuildSettings(this, Group.Build)
     val rotation = RotationSettings(this, Group.Rotation)
-    val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Both)
+    val interaction = InteractionSettings(this, Group.Interaction, InteractionMask.Both)
     val inventory = InventorySettings(this, Group.Inventory)
+    val hotbar = HotbarSettings(this, Group.Hotbar)
 
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree").group(Group.Debug)
     val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001).group(Group.Debug)
+    val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager").group(Group.Debug)
 
     @Volatile
     var drawables = listOf<Drawable>()

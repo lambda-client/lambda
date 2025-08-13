@@ -18,11 +18,13 @@
 package com.lambda.util.item
 
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.item.Item
 import net.minecraft.item.Items
 
 object ItemUtils {
+
 
     val pickaxes = setOf(
         Items.WOODEN_PICKAXE,
@@ -105,6 +107,7 @@ object ItemUtils {
 
     val defaultDisposables = setOf(
         Blocks.DIRT,
+        Blocks.GRASS_BLOCK,
         Blocks.COBBLESTONE,
         Blocks.GRANITE,
         Blocks.DIORITE,
@@ -133,29 +136,19 @@ object ItemUtils {
 
             if (dubs > 0) {
                 append("$dubs dub")
-                if (dubs > 1) {
-                    append("s")
-                }
-                if (shulkers > 0 || remainingItems > 0) {
-                    append(" ")
-                }
+                if (dubs > 1) append("s")
+                if (shulkers > 0 || remainingItems > 0) append(" ")
             }
 
             if (shulkers > 0) {
                 append("$shulkers shulker")
-                if (shulkers > 1) {
-                    append("s")
-                }
-                if (remainingItems > 0) {
-                    append(" ")
-                }
+                if (shulkers > 1) append("s")
+                if (remainingItems > 0) append(" ")
             }
 
             if (remainingItems > 0) {
                 append("$remainingItems item")
-                if (remainingItems > 1) {
-                    append("s")
-                }
+                if (remainingItems > 1) append("s")
             }
         }
     }

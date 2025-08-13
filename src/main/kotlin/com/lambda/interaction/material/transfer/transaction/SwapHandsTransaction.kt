@@ -17,17 +17,16 @@
 
 package com.lambda.interaction.material.transfer.transaction
 
-import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.transfer.InventoryTransaction
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 class SwapHandsTransaction @Ta5kBuilder constructor() : InventoryTransaction() {
     override val name: String get() = "Swap Hand Stacks"
-    private var confirming = false
 
     init {
         listen<TickEvent.Pre> {
@@ -35,6 +34,9 @@ class SwapHandsTransaction @Ta5kBuilder constructor() : InventoryTransaction() {
                 failure("Spectators cannot swap hands")
                 return@listen
             }
+            val offhandStack = player.getStackInHand(Hand.OFF_HAND)
+            player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
+            player.setStackInHand(Hand.MAIN_HAND, offhandStack)
             connection.sendPacket(
                 PlayerActionC2SPacket(
                     PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
@@ -42,11 +44,6 @@ class SwapHandsTransaction @Ta5kBuilder constructor() : InventoryTransaction() {
                     Direction.DOWN
                 )
             )
-            confirming = true
-        }
-
-        listen<InventoryEvent.HotbarSlot.Sync> {
-            if (it.slot != player.inventory.selectedSlot) return@listen
             finish()
         }
     }

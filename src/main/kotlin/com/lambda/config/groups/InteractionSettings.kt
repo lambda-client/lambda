@@ -18,7 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.interaction.request.rotation.visibilty.PointSelection
+import com.lambda.interaction.request.rotating.visibilty.PointSelection
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.raycast.InteractionMask
 import kotlin.math.max
@@ -42,7 +42,7 @@ class InteractionSettings(
         return if (useDefaultReach) DEFAULT_ATTACK_REACH else attackReachSetting!!.value
     }
 
-    override val interactReach: Double get()  {
+    override val interactReach: Double get() {
         check(usage.block) {
             "Given interaction config has no place reach implementation"
         }
@@ -61,9 +61,6 @@ class InteractionSettings(
     override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", vis).group(baseGroup)
     override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis).group(baseGroup)
     override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", vis).group(baseGroup)
-
-    // Swing
-    override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", vis).group(baseGroup)
 
     companion object {
         const val DEFAULT_ATTACK_REACH = 3.0

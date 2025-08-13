@@ -20,8 +20,8 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.render.ViewModel;
+import com.lambda.interaction.request.rotating.RotationManager;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -128,7 +128,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
             return entity.getYaw();
         }
 
-        Float yaw = RotationManager.getRenderYaw();
+        Float yaw = RotationManager.getHeadYaw();
         return (yaw == null) ? entity.getYaw() : yaw;
     }
 
@@ -159,7 +159,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
             return entity.getYaw();
         }
 
-        Float yaw = RotationManager.getRenderYaw();
+        Float yaw = RotationManager.getHeadYaw();
         return (yaw == null) ? entity.getYaw() : yaw;
     }
 

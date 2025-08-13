@@ -18,6 +18,11 @@ accessible field net/minecraft/client/world/ClientChunkManager$ClientChunkMap ch
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingProgress F
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager blockBreakingCooldown I
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingPos Lnet/minecraft/util/math/BlockPos;
+accessible method net/minecraft/item/BlockItem place (Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z
+accessible method net/minecraft/item/BlockItem placeFromNbt (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;
+accessible method net/minecraft/item/BlockItem postPlacement (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Z
+accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/minecraft/block/BlockState;)Lnet/minecraft/sound/SoundEvent;
+accessible field net/minecraft/state/State owner Ljava/lang/Object;
 
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
@@ -36,6 +41,8 @@ accessible field net/minecraft/entity/player/PlayerInventory equipment Lnet/mine
 accessible method net/minecraft/client/network/ClientPlayerEntity applyMovementSpeedFactors (Lnet/minecraft/util/math/Vec2f;)Lnet/minecraft/util/math/Vec2f;
 accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
 accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
+accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
+accessible method net/minecraft/util/math/Direction listClosest (Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;)[Lnet/minecraft/util/math/Direction;
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
@@ -75,6 +82,8 @@ accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce 
 accessible method net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket <init> (IZLnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;)V
 accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket ATTACK Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
 accessible method net/minecraft/network/packet/BrandCustomPayload write (Lnet/minecraft/network/PacketByteBuf;)V
+accessible method net/minecraft/client/network/ClientPlayerInteractionManager sendSequencedPacket (Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/network/SequencedPacketCreator;)V
+accessible field net/minecraft/client/world/ClientWorld pendingUpdateManager Lnet/minecraft/client/network/PendingUpdateManager;
 
 # Math
 accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;

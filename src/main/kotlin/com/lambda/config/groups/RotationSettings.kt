@@ -18,9 +18,8 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.interaction.request.Priority
-import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.util.NamedEnum
 import kotlin.math.PI
 import kotlin.math.abs
@@ -32,16 +31,15 @@ import kotlin.random.Random
 class RotationSettings(
     c: Configurable,
     baseGroup: NamedEnum,
-    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : RotationConfig(priority) {
-    override var rotationMode by c.setting("Mode", RotationMode.Sync, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera, NONE - No rotation", vis).group(baseGroup)
+) : RotationConfig {
+    override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction", vis).group(baseGroup)
 
     /** How many ticks to keep the rotation before resetting */
-    override val keepTicks by c.setting("Keep Rotation", 3, 0..10, 1, "Ticks to keep rotation", " ticks") { rotate && vis() }.group(baseGroup)
+    override val keepTicks by c.setting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks") { rotate && vis() }.group(baseGroup)
 
     /** How many ticks to wait before resetting the rotation */
-    override val decayTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }.group(baseGroup)
+    override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }.group(baseGroup)
 
     /** Whether the rotation is instant */
     var instant by c.setting("Instant Rotation", true, "Instantly rotate") { rotate && vis() }.group(baseGroup)

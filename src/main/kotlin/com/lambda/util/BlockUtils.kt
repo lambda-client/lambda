@@ -18,6 +18,8 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
+import com.lambda.util.EnchantmentUtils.getEnchantment
+import com.lambda.util.player.gamemode
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock
 import net.minecraft.block.AbstractSignBlock
@@ -79,14 +81,19 @@ import net.minecraft.block.StructureBlock
 import net.minecraft.block.SweetBerryBushBlock
 import net.minecraft.block.TntBlock
 import net.minecraft.block.TrapdoorBlock
+import net.minecraft.enchantment.Enchantments
+import net.minecraft.entity.attribute.EntityAttributes
+import net.minecraft.entity.effect.StatusEffectUtil
+import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.EightWayDirection
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
+import net.minecraft.item.ItemStack
+import net.minecraft.registry.tag.FluidTags
+import net.minecraft.state.property.Property
+import net.minecraft.util.math.*
+import net.minecraft.world.BlockView
 
 object BlockUtils {
 
@@ -148,7 +155,7 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
-    val interactionClasses = setOf(
+    val interactionBlocks = setOf(
         AbstractCauldronBlock::class,
         AbstractFurnaceBlock::class,
         AbstractSignBlock::class,
@@ -221,10 +228,82 @@ object BlockUtils {
     fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
-    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
-        val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
-        return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
+    fun BlockState.matches(state: BlockState, ignoredProperties: Collection<Property<*>> = emptySet()) =
+         this.block == state.block && this.properties.all {
+             this[it] == state[it] || it in ignoredProperties
+        }
+
+    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
+        val ticksNeeded = 1 / (blockState.calcBlockBreakingDelta(player, world, blockPos) / breakThreshold)
+        return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
     }
+
+    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, item: ItemStack, breakThreshold: Float): Boolean {
+        val ticksNeeded = 1 / (blockState.calcItemBlockBreakingDelta(player, world, blockPos, item) / breakThreshold)
+        return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
+    }
+
+    fun BlockState.calcItemBlockBreakingDelta(
+        player: PlayerEntity,
+        world: BlockView,
+        blockPos: BlockPos,
+        item: ItemStack,
+        ignoreEfficiency: Boolean = false
+    ): Float {
+        val hardness = getHardness(world, blockPos)
+        return if (hardness == -1.0f) 0.0f else {
+            val harvestMultiplier = if (item.canHarvest(this)) 30 else 100
+            player.getItemBlockBreakingSpeed(this, item, ignoreEfficiency) / hardness / harvestMultiplier
+        }
+    }
+
+    fun ItemStack.canHarvest(blockState: BlockState) =
+        !blockState.isToolRequired || isSuitableFor(blockState)
+
+    fun PlayerEntity.getItemBlockBreakingSpeed(blockState: BlockState, item: ItemStack, ignoreEfficiency: Boolean = false): Float {
+        var speedMultiplier = item.getMiningSpeedMultiplier(blockState)
+        if (speedMultiplier > 1.0f) {
+            val level = if (ignoreEfficiency) 0 else item.getEnchantment(Enchantments.EFFICIENCY)
+            if (level > 0 && !item.isEmpty) {
+                speedMultiplier += (level * level + 1)
+            }
+        }
+
+        if (StatusEffectUtil.hasHaste(this)) {
+            speedMultiplier *= 1.0f + (StatusEffectUtil.getHasteAmplifier(this) + 1) * 0.2f
+        }
+
+        getStatusEffect(StatusEffects.MINING_FATIGUE)?.amplifier?.let { fatigue ->
+            val fatigueMultiplier = when (fatigue) {
+                0 -> 0.3f
+                1 -> 0.09f
+                2 -> 0.0027f
+                3 -> 8.1E-4f
+                else -> 8.1E-4f
+            }
+
+            speedMultiplier *= fatigueMultiplier
+        }
+
+        if (isSubmergedIn(FluidTags.WATER)) {
+            getAttributeInstance(EntityAttributes.SUBMERGED_MINING_SPEED)?.let { speed ->
+                speedMultiplier *= speed.getValue().toFloat()
+            }
+        }
+
+        if (!isOnGround) {
+            speedMultiplier /= 5.0f
+        }
+
+        return speedMultiplier
+    }
+
+    val BlockState.isEmpty get() = matches(emptyState)
+    val BlockState.isNotEmpty get() = !isEmpty
+    val BlockState.hasFluid get() = !fluidState.isEmpty
+    val BlockState.emptyState: BlockState get() = fluidState.blockState
+    fun isBroken(oldState: BlockState, newState: BlockState) = oldState.isNotEmpty && oldState.emptyState.matches(newState)
+    fun isNotBroken(oldState: BlockState, newState: BlockState) = !isBroken(oldState, newState)
 
     val Vec3i.blockPos: BlockPos get() = BlockPos(this)
     val Block.item: Item get() = asItem()

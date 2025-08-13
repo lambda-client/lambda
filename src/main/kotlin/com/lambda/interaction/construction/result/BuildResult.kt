@@ -19,17 +19,17 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Nameable
 import net.minecraft.block.BlockState
-import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -190,23 +190,30 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
     /**
      * Player has an inefficient tool equipped.
-     * @param neededItem The best tool for the block state.
+     * @param neededSelection The best tool for the block state.
      */
-    data class WrongItem(
+    data class WrongItemSelection(
         override val blockPos: BlockPos,
         val context: BuildContext,
-        val neededItem: Item,
+        val neededSelection: StackSelection,
         val currentItem: ItemStack,
         val inventory: InventoryConfig
     ) : Drawable, Resolvable, BuildResult() {
-        override val name: String get() = "Wrong item ($currentItem) for ${blockPos.toShortString()} need ${neededItem.name.string}"
+        override val name: String get() = "Wrong item ($currentItem) for ${blockPos.toShortString()} need $neededSelection"
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 25)
 
         override val pausesParent get() = true
 
-        override fun resolve() = neededItem.select()
-            .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededItem.name.string} anywhere.")
+        override fun resolve() =
+            neededSelection.let { selection ->
+                selection.transfer(MainHandContainer, inventory)
+                    ?: MaterialContainer.AwaitItemTask(
+                        "Couldn't find $neededSelection anywhere.",
+                        selection,
+                        inventory
+                    )
+            }
 
         override fun SafeContext.buildRenderer() {
             if (blockState(blockPos).isAir) {
@@ -218,7 +225,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
-                is WrongItem -> context.compareTo(other.context)
+                is WrongItemSelection -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
         }
@@ -242,8 +249,14 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val pausesParent get() = true
 
         override fun resolve() =
-            neededStack.select()
-                .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededStack.item.name.string} anywhere.")
+            neededStack.select().let { selection ->
+                selection.transfer(MainHandContainer, inventory)
+                    ?: MaterialContainer.AwaitItemTask(
+                        "Couldn't find ${neededStack.item.name.string} anywhere.",
+                        selection,
+                        inventory
+                    )
+            }
 
         override fun SafeContext.buildRenderer() {
             if (blockState(blockPos).isAir) {
@@ -255,7 +268,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
-                is WrongItem -> context.compareTo(other.context)
+                is WrongItemSelection -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
         }

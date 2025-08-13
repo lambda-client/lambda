@@ -17,7 +17,9 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.request.rotation.visibilty.PointSelection
+import com.lambda.interaction.request.rotating.visibilty.PointSelection
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 
 interface InteractionConfig {
     /**
@@ -59,8 +61,12 @@ interface InteractionConfig {
      */
     val pointSelection: PointSelection
 
-    /**
-     * Whether to swing the hand when interacting.
-     */
-    val swingHand: Boolean
+    enum class InteractConfirmationMode(
+        override val displayName: String,
+        override val description: String
+    ): NamedEnum, Describable {
+        None("No confirmation", "Send the interaction and don’t wait for the server. Lowest latency, but effects may briefly appear if the server rejects it."),
+        InteractThenAwait("Interact now, confirm later", "Show interaction effects immediately, then wait for the server to confirm. Feels instant while still verifying the result."),
+        AwaitThenInteract("Confirm first, then interact", "Wait for the server response before showing any effects. Most accurate and safe, but adds a short delay.")
+    }
 }

@@ -17,74 +17,50 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.config.groups.BuildConfig
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.threading.runSafe
+import com.lambda.interaction.request.Request.Companion.submit
+import com.lambda.interaction.request.hotbar.HotbarManager
+import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
-import net.minecraft.util.ActionResult
-import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 data class PlaceContext(
-    override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override val distance: Double,
+    override var hotbarIndex: Int,
+    override val blockPos: BlockPos,
+    override var cachedState: BlockState,
     override val expectedState: BlockState,
-    override val checkedState: BlockState,
-    override val hand: Hand,
-    override val expectedPos: BlockPos,
-    override val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
-    val primeDirection: Direction?,
-) : BuildContext {
+    val currentDirIsValid: Boolean = false
+) : BuildContext() {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
-
-    override fun interact(swingHand: Boolean) {
-        runSafe {
-            val actionResult = interaction.interactBlock(
-                player, hand, result
-            )
-
-            if (actionResult is ActionResult.Success) {
-                if (actionResult.swingSource() == ActionResult.SwingSource.CLIENT && swingHand) {
-                    player.swingHand(hand)
-                }
-
-                if (!player.getStackInHand(hand).isEmpty && player.isCreative) {
-                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
-                }
-            } else {
-                warn("Internal interaction failed with $actionResult")
-            }
-        }
-    }
 
     override fun compareTo(other: BuildContext) =
         when (other) {
             is PlaceContext -> compareBy<PlaceContext> {
-                BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
+                BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
             }.thenByDescending {
-                it.checkedState.fluidState.level
+                if (it.cachedState.fluidState.level != 0) it.blockPos.y else 0
+            }.thenByDescending {
+                it.cachedState.fluidState.level
             }.thenBy {
-                it.hand
-            }.thenBy {
-                it.sneak
+                it.sneak == (mc.player?.isSneaking ?: false)
             }.thenBy {
                 it.rotation.target.angleDistance
+            }.thenBy {
+                it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
                 it.distance
             }.thenBy {
@@ -95,9 +71,15 @@ data class PlaceContext(
         }
 
     override fun SafeContext.buildRenderer() {
-        withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
+        withState(expectedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
-    override fun shouldRotate(config: BuildConfig) = config.rotateForPlace
+    fun requestDependencies(request: PlaceRequest): Boolean {
+        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request.hotbar), false)
+        val validRotation = if (request.rotateForPlace) {
+            submit(rotation, false).done && currentDirIsValid
+        } else true
+        return hotbarRequest.done && validRotation
+    }
 }

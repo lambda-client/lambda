@@ -109,7 +109,7 @@ object HighwayTools : Module(
 
     private fun buildHighway() {
         runningTask = propagatingBlueprint {
-            if (distanceMoved < distance || distance < 0) {
+            if (distance !in 0..distanceMoved) {
                 var structure = emptyStructure()
                 val slice = generateSlice()
                 repeat(sliceSize) {
@@ -125,6 +125,7 @@ object HighwayTools : Module(
                 emptyStructure()
             }
         }.build(
+            collectDrops = build.collectDrops,
             build = build,
             rotation = rotation,
             interact = interact,
@@ -173,7 +174,7 @@ object HighwayTools : Module(
                 1,
             ).associateWith { target(pavement, pavementMaterial) }
 
-            if (cornerBlock == Corner.None) {
+            if (cornerBlock == Corner.None && rimHeight > 0) {
                 // Support for the left rim
                 structure += generateDirectionalTube(
                     orthogonal,

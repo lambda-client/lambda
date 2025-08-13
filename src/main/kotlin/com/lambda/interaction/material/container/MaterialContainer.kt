@@ -18,10 +18,15 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.context.SafeContext
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.task.Task
+import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -34,6 +39,8 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
+import com.lambda.util.item.ItemUtils.toItemCount
+import com.lambda.util.text.*
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
 
@@ -49,13 +56,13 @@ abstract class MaterialContainer(
         literal("\n")
         literal("Contains ")
         val available = materialAvailable(selection)
-        highlighted(if (available == Int.MAX_VALUE) "∞" else available.toString())
+        highlighted(if (available == Int.MAX_VALUE) "∞" else available.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
         literal("\n")
         literal("Could store ")
         val left = spaceAvailable(selection)
-        highlighted(if (left == Int.MAX_VALUE) "∞" else left.toString())
+        highlighted(if (left == Int.MAX_VALUE) "∞" else left.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
     }
@@ -88,6 +95,20 @@ abstract class MaterialContainer(
     class FailureTask(override val name: String) : Task<Unit>() {
         override fun SafeContext.onStart() {
             failure(name)
+        }
+    }
+
+    class AwaitItemTask(override val name: String, val selection: StackSelection, inventory: InventoryConfig) : Task<Unit>() {
+        init {
+            listen<TickEvent.Post> {
+                if (selection.findContainerWithMaterial(inventory) != null) {
+                    success()
+                }
+            }
+        }
+
+        override fun SafeContext.onStart() {
+            logError(name)
         }
     }
 

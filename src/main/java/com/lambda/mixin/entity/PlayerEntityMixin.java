@@ -20,7 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.request.rotation.RotationManager;
+import com.lambda.interaction.request.rotating.RotationManager;
 import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -42,7 +42,7 @@ public class PlayerEntityMixin {
             return instance.getYaw();
         }
 
-        Float yaw = RotationManager.getRenderYaw();
+        Float yaw = RotationManager.getHeadYaw();
         return (yaw != null) ? yaw : instance.getYaw();
     }
 

@@ -17,71 +17,70 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.threading.runSafe
-import com.lambda.util.world.raycast.RayCastUtils.distanceTo
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.request.breaking.BreakConfig
+import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.hotbar.HotbarManager
+import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
-import net.minecraft.util.Hand
+import net.minecraft.block.FallingBlock
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.random.Random
 
 data class BreakContext(
-    override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override val checkedState: BlockState,
-    override val targetState: TargetState,
-    override var hand: Hand,
-    val instantBreak: Boolean,
-) : BuildContext {
+    override var hotbarIndex: Int,
+    var itemSelection: StackSelection,
+    var instantBreak: Boolean,
+    override var cachedState: BlockState,
+    val sortMode: BreakConfig.SortMode
+) : BuildContext() {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
-    override fun interact(swingHand: Boolean) {
-        runSafe {
-            if (interaction.updateBlockBreakingProgress(result.blockPos, result.side)) {
-                if (player.isCreative) interaction.blockBreakingCooldown = 0
-                if (swingHand) player.swingHand(hand)
-            }
-        }
-    }
+    override val blockPos: BlockPos = result.blockPos
+    override val expectedState = cachedState.emptyState
 
-    override val expectedPos: BlockPos
-        get() = result.blockPos
-
-    override val distance: Double by lazy {
-        result.distanceTo(pov)
-    }
-
-    fun exposedSides(ctx: SafeContext) =
-        Direction.entries.filter {
-            ctx.world.isAir(result.blockPos.offset(it))
-        }
-
-    override val expectedState: BlockState = checkedState.fluidState.blockState
+    val random = Random.nextDouble()
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
-            is BreakContext -> compareBy<BreakContext> {
-                it.rotation.target.angleDistance
+            is BreakContext -> compareByDescending<BreakContext> {
+                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
+            }.thenBy {
+                it.instantBreak
+            }.thenBy {
+                when (sortMode) {
+                    BreakConfig.SortMode.Closest -> it.distance
+                    BreakConfig.SortMode.Farthest -> -it.distance
+                    BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
+                    BreakConfig.SortMode.Random -> it.random
+                }
+            }.thenBy {
+                it.hotbarIndex == HotbarManager.serverSlot
             }.compare(this, other)
 
             else -> 1
         }
     }
 
-    override fun shouldRotate(config: BuildConfig) = config.rotateForBreak
-
     override fun SafeContext.buildRenderer() {
-        withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
-        withState(checkedState, expectedPos, sideColor, result.side)
+        withState(cachedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side))
+        withState(cachedState, blockPos, sideColor, result.side)
     }
+
+    fun requestSwap(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean =
+        HotbarRequest(
+            hotbarIndex,
+            breakRequest.hotbar,
+            breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks)
+        ).submit(false).done
 }

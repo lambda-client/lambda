@@ -24,7 +24,7 @@ import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 object WorldColors : Module(
-    name = "World Colors",
+    name = "WorldColors",
     description = "Changes the color of the sky",
     tag = ModuleTag.RENDER,
 ) {

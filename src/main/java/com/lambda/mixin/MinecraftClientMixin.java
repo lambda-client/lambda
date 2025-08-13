@@ -24,15 +24,21 @@ import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.gui.DearImGui;
 import com.lambda.module.modules.player.Interact;
+import com.lambda.module.modules.player.PacketMine;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.RunArgs;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.util.Window;
+import net.minecraft.client.render.WorldRenderer;
+import net.minecraft.client.sound.SoundManager;
 import net.minecraft.util.thread.ThreadExecutor;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.Nullable;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -40,35 +46,60 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MinecraftClient.class)
+@Mixin(value = MinecraftClient.class, priority = Integer.MAX_VALUE)
 public class MinecraftClientMixin {
     @Shadow
     @Nullable
     public Screen currentScreen;
+    @Shadow
+    @Nullable
+    public HitResult crosshairTarget;
 
     @Inject(method = "close", at = @At("HEAD"))
     void closeImGui(CallbackInfo ci) {
         DearImGui.INSTANCE.destroy();
     }
 
-    @Inject(method = "tick", at = @At("HEAD"))
-    void onTickPre(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Pre());
+    @WrapMethod(method = "render")
+    void onLoopTick(boolean tick, Operation<Void> original) {
+        EventFlow.post(TickEvent.Render.Pre.INSTANCE);
+        original.call(tick);
+        EventFlow.post(TickEvent.Render.Post.INSTANCE);
     }
 
-    @Inject(method = "tick", at = @At("RETURN"))
-    void onTickPost(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Post());
+    @WrapMethod(method = "tick")
+    void onTick(Operation<Void> original) {
+        EventFlow.post(TickEvent.Pre.INSTANCE);
+        original.call();
+        EventFlow.post(TickEvent.Post.INSTANCE);
     }
 
-    @Inject(method = "render", at = @At("HEAD"))
-    void onLoopTickPre(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Render.Pre());
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;tick()V"))
+    void onNetwork(ClientPlayerInteractionManager instance, Operation<Void> original) {
+        EventFlow.post(TickEvent.Network.Pre.INSTANCE);
+        original.call(instance);
+        EventFlow.post(TickEvent.Network.Post.INSTANCE);
     }
 
-    @Inject(method = "render", at = @At("RETURN"))
-    void onLoopTickPost(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Render.Post());
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;handleInputEvents()V"))
+    void onInput(MinecraftClient instance, Operation<Void> original) {
+        EventFlow.post(TickEvent.Input.Pre.INSTANCE);
+        original.call(instance);
+        EventFlow.post(TickEvent.Input.Post.INSTANCE);
+    }
+
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
+    void onWorldRenderer(WorldRenderer instance, Operation<Void> original) {
+        EventFlow.post(TickEvent.WorldRender.Pre.INSTANCE);
+        original.call(instance);
+        EventFlow.post(TickEvent.WorldRender.Post.INSTANCE);
+    }
+
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/sound/SoundManager;tick(Z)V"))
+    void onSound(SoundManager instance, boolean paused, Operation<Void> original) {
+        EventFlow.post(TickEvent.Sound.Pre.INSTANCE);
+        original.call(instance, paused);
+        EventFlow.post(TickEvent.Sound.Post.INSTANCE);
     }
 
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")
@@ -100,8 +131,16 @@ public class MinecraftClientMixin {
         }
     }
 
+    @Redirect(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
+        if (this.crosshairTarget == null) return;
+        if (this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled()) {
+            instance.swingHand(hand);
+        }
+    }
+
     @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
-    boolean injectMultiActon(ClientPlayerInteractionManager instance) {
+    boolean redirectMultiActon(ClientPlayerInteractionManager instance) {
         if (instance == null) return true;
 
         if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction()) return false;

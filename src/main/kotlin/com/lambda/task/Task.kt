@@ -166,6 +166,7 @@ abstract class Task<Result> : Nameable, Muteable {
 
     @Ta5kBuilder
     fun cancel() {
+        runSafe { onCancel() }
         cancelSubTasks()
         if (this is RootTask) return
         if (state == State.COMPLETED || state == State.CANCELLED) return
@@ -184,9 +185,7 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun failure(message: String) {
-        failure(IllegalStateException(message))
-    }
+    fun failure(message: String) = failure(IllegalStateException(message))
 
     @Ta5kBuilder
     fun failure(

@@ -20,7 +20,7 @@ package com.lambda.mixin.baritone;
 import baritone.Baritone;
 import baritone.api.utils.Rotation;
 import baritone.utils.player.BaritonePlayerContext;
-import com.lambda.interaction.request.rotation.RotationManager;
+import com.lambda.interaction.request.rotating.RotationManager;
 import com.lambda.util.BaritoneUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,7 +42,7 @@ public class MixinBaritonePlayerContext {
 
         RotationManager rm = RotationManager.INSTANCE;
         cir.setReturnValue(new Rotation(
-                (float) rm.getCurrentRotation().getYaw(), (float) rm.getCurrentRotation().getPitch())
+                (float) rm.getActiveRotation().getYaw(), (float) rm.getActiveRotation().getPitch())
         );
     }
 }

@@ -19,15 +19,13 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
+import com.lambda.interaction.request.inventory.InventoryConfig
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -99,13 +97,16 @@ sealed class BreakResult : BuildResult() {
         override val pausesParent get() = true
 
         override fun resolve() =
-            findBestAvailableTool(blockState, inventory = inventory)
-                ?.select()
-                ?.transfer(MainHandContainer, inventory)
-                ?: selectStack {
-                    isItem(badItem).not()
-                }.transfer(MainHandContainer, inventory)
-                ?: MaterialContainer.FailureTask("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
+            selectStack {
+                isItem(badItem).not()
+            }.let { selection ->
+                selection.transfer(MainHandContainer, inventory)
+                    ?: MaterialContainer.AwaitItemTask(
+                        "Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.",
+                        selection,
+                        inventory
+                    )
+            }
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)
@@ -139,11 +140,11 @@ sealed class BreakResult : BuildResult() {
     /**
      * The block is blocked by another liquid block that first has to be submerged.
      */
-    data class BlockedByLiquid(
+    data class BlockedByFluid(
         override val blockPos: BlockPos,
         val blockState: BlockState,
     ) : Drawable, BreakResult() {
-        override val rank = Rank.BREAK_IS_BLOCKED_BY_LIQUID
+        override val rank = Rank.BREAK_IS_BLOCKED_BY_FLUID
         private val color = Color(50, 12, 112, 100)
 
         override fun SafeContext.buildRenderer() {

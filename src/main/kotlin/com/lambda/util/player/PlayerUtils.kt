@@ -17,12 +17,19 @@
 
 package com.lambda.util.player
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
+import net.minecraft.util.Hand
+
+val SafeContext.gamemode
+    get() = interaction.currentGameMode
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
     ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.isSneaking, entity.isSprinting).apply {
@@ -59,3 +66,22 @@ fun SafeContext.spawnFakePlayer(
     return entity
 }
 
+fun SafeContext.swingHand(swingType: BuildConfig.SwingType, hand: Hand) =
+    when (swingType) {
+        BuildConfig.SwingType.Vanilla -> {
+            swingHandClient(hand)
+            connection.sendPacket(HandSwingC2SPacket(hand))
+        }
+        BuildConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(hand))
+        BuildConfig.SwingType.Client -> swingHandClient(hand)
+    }
+
+fun SafeContext.swingHandClient(hand: Hand) {
+    if (!player.handSwinging || player.handSwingTicks >= player.handSwingDuration / 2 || player.handSwingTicks < 0) {
+        player.handSwingTicks = -1
+        player.handSwinging = true
+        player.preferredHand = hand
+    }
+}
+
+fun SafeContext.isItemOnCooldown(stack: ItemStack) = player.itemCooldownManager.isCoolingDown(stack)

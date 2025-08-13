@@ -18,37 +18,41 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
+import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.interaction.request.placing.PlaceConfig
 
 class BuildSettings(
     c: Configurable,
-    baseGroup: NamedEnum,
-    vis: () -> Boolean = { true }
+    vararg groupPath: NamedEnum,
+    vis: () -> Boolean = { true },
 ) : BuildConfig {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Break("Break"),
-        Place("Place")
+        Place("Place"),
+        Interact("Interact")
     }
 
     // General
-    override val pathing by c.setting("Pathing", true, "Path to blocks", vis).group(baseGroup, Group.General)
-    override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks", vis).group(baseGroup, Group.General)
-    override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis).group(baseGroup, Group.General)
-    override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response", visibility = vis).group(baseGroup, Group.General)
+    override val pathing by c.setting("Pathing", true, "Path to blocks", vis).group(*groupPath, Group.General)
+    override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks", vis).group(*groupPath, Group.General)
+    override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis).group(*groupPath, Group.General)
+    override val interactionsPerTick by c.setting("Interactions Per Tick", 5, 1..30, 1, "The amount of interactions that can happen per tick", visibility = vis).group(*groupPath, Group.General)
+    override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response", visibility = vis).group(*groupPath, Group.General)
 
     // Breaking
-    override val rotateForBreak by c.setting("Rotate For Break", true, "Rotate towards block while breaking", vis).group(baseGroup, Group.Break)
-    override val breakConfirmation by c.setting("Break Confirmation", false, "Wait for block break confirmation", vis).group(baseGroup, Group.Break)
-    override val breaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick", visibility = vis).group(baseGroup, Group.Break)
-    override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)", vis).group(baseGroup, Group.Break)
-    override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks", vis).group(baseGroup, Group.Break)
-    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, allSigns, "Blocks that wont be broken", vis).group(baseGroup, Group.Break)
+    override val breaking = BreakSettings(c, groupPath.toList() + Group.Break, vis)
 
     // Placing
-    override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing", vis).group(baseGroup, Group.Place)
-    override val placeConfirmation by c.setting("Place Confirmation", true, "Wait for block placement confirmation", vis).group(baseGroup, Group.Place)
-    override val placementsPerTick by c.setting("Instant Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", visibility = vis).group(baseGroup, Group.Place)
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (placeConfirmation || breakConfirmation) }.group(baseGroup, Group.Break).group(baseGroup, Group.Place)
+    override val placing = PlaceSettings(c, groupPath.toList() + Group.Place, vis)
+
+    //Interacting
+    override val interacting = InteractSettings(c, groupPath.toList() + Group.Interact, vis)
+
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") {
+        vis() && (placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None
+                || breaking.breakConfirmation != BreakConfirmationMode.None
+                || interacting.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None)
+    }.group(*groupPath, Group.Break, BreakSettings.Group.General).group(*groupPath, Group.Place).group(*groupPath, Group.Interact)
 }

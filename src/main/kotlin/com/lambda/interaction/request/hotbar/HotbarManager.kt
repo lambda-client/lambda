@@ -17,38 +17,95 @@
 
 package com.lambda.interaction.request.hotbar
 
-import com.lambda.core.Loadable
-import com.lambda.event.events.InventoryEvent
+import com.lambda.context.SafeContext
+import com.lambda.event.Event
+import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
 import com.lambda.threading.runSafe
 
-object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
+object HotbarManager : RequestHandler<HotbarRequest>(
+    1,
+    TickEvent.Pre,
+    TickEvent.Input.Pre,
+    TickEvent.Input.Post,
+    TickEvent.Player.Post,
+    onClose = { checkResetSwap() }
+) {
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
-    } ?: -1
+    } ?: 0
 
-    override fun load() = "Loaded Hotbar Manager"
+    private var swapsThisTick = 0
+    private var maxSwapsThisTick = 0
+    private var swapDelay = 0
 
-    init {
-        listen<InventoryEvent.HotbarSlot.Update> {
-            it.slot = currentRequest?.slot ?: return@listen
+    var activeRequest: HotbarRequest? = null
+
+    override fun load(): String {
+        super.load()
+
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            swapsThisTick = 0
+            if (swapDelay > 0) swapDelay--
+            val activeInfo = activeRequest ?: return@listen
+
+            activeInfo.swapPauseAge++
+            activeInfo.activeRequestAge++
+            activeInfo.keepTicks--
         }
 
-        listen<TickEvent.Pre> {
-            updateRequest()
+        return "Loaded Hotbar Manager"
+    }
+
+    override fun SafeContext.handleRequest(request: HotbarRequest) {
+        maxSwapsThisTick = request.swapsPerTick
+        swapDelay = swapDelay.coerceAtMost(request.swapDelay)
+
+        if (tickStage !in request.sequenceStageMask) return
+
+        val sameButLonger = activeRequest?.let { active ->
+            request.slot == active.slot && request.keepTicks >= active.keepTicks
+        } == true
+
+        if (sameButLonger) activeRequest?.let { current ->
+            request.swapPauseAge = current.swapPauseAge
+        } else run swap@ {
+            if (request.slot != activeRequest?.slot) {
+                if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
+
+                activeRequest?.let { current ->
+                    if (current.swappedThisTick && current.keeping) return
+                }
+
+                swapsThisTick++
+                swapDelay = request.swapDelay
+                return@swap
+            }
+
+            activeRequest?.let { current ->
+                request.swapPauseAge = current.swapPauseAge
+                if (current.swappedThisTick && current.keeping) return
+            }
         }
 
-        listen<TickEvent.Post> {
-            val request = currentRequest ?: return@listen
+        activeRequest = request
+        interaction.syncSelectedSlot()
+        return
+    }
 
-            request.keepTicks--
-            request.switchPause--
-
-            if (request.keepTicks <= 0) {
-                currentRequest = null
+    private fun SafeContext.checkResetSwap() {
+        activeRequest?.let { active ->
+            val canStopSwap = swapsThisTick < maxSwapsThisTick
+            if (active.keepTicks <= 0 && tickStage in active.sequenceStageMask && canStopSwap) {
+                activeRequest = null
+                interaction.syncSelectedSlot()
             }
         }
     }
+
+    override fun preEvent(): Event = UpdateManagerEvent.Hotbar.post()
 }

@@ -17,11 +17,4 @@
 
 package com.lambda.interaction.request
 
-abstract class RequestConfig <R : Request>(
-    val priority: Priority
-) {
-    protected abstract fun requestInternal(request: R)
-
-    fun request(request: R): R =
-        request.apply(::requestInternal)
-}
+interface RequestConfig

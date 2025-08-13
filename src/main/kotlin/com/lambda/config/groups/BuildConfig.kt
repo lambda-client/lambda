@@ -17,26 +17,33 @@
 
 package com.lambda.config.groups
 
-import net.minecraft.block.Block
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 
 interface BuildConfig {
     // General
     val pathing: Boolean
     val stayInRange: Boolean
     val collectDrops: Boolean
+    val interactionsPerTick: Int
     val maxPendingInteractions: Int
     val interactionTimeout: Int
 
     // Breaking
-    val rotateForBreak: Boolean
-    val breakConfirmation: Boolean
-    val breaksPerTick: Int
-    val breakWeakBlocks: Boolean
-    val forceSilkTouch: Boolean
-    val ignoredBlocks: Set<Block>
+    val breaking: BreakSettings
 
     // Placing
-    val rotateForPlace: Boolean
-    val placeConfirmation: Boolean
-    val placementsPerTick: Int
+    val placing: PlaceSettings
+
+    // Interacting
+    val interacting: InteractSettings
+
+    enum class SwingType(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        Vanilla("Vanilla", "Play the hand swing locally and also notify the server (default, looks and works as expected)."),
+        Server("Server", "Only notify the server to swing; local animation may not play unless the server echoes it."),
+        Client("Client", "Only play the local swing animation; does not notify the server (purely visual).")
+    }
 }

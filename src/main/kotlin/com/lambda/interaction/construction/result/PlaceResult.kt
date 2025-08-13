@@ -50,12 +50,11 @@ sealed class PlaceResult : BuildResult() {
             with(context) { buildRenderer() }
         }
 
-        override fun compareTo(other: ComparableResult<Rank>): Int {
-            return when (other) {
+        override fun compareTo(other: ComparableResult<Rank>) =
+            when (other) {
                 is Place -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
-        }
     }
 
     /**

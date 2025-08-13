@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
@@ -24,22 +25,22 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.interaction.request.rotation.RotationManager
-import com.lambda.interaction.request.rotation.visibilty.lookAtEntity
+import com.lambda.interaction.request.rotating.RotationManager
+import com.lambda.interaction.request.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
-import com.lambda.util.item.ItemStackUtils.itemAttackSpeed
+import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
-import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
+import net.minecraft.registry.tag.ItemTags
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
 
@@ -49,7 +50,8 @@ object KillAura : Module(
     tag = ModuleTag.COMBAT,
 ) {
     // Interact
-    private val interactionSettings = InteractionSettings(this, Group.Interact, InteractionMask.Entity)
+    private val interactionSettings = InteractionSettings(this, Group.Interaction, InteractionMask.Entity)
+    private val interactSettings = InteractSettings(this, listOf(Group.Interact))
     private val swap by setting("Swap", true, "Swap to the item with the highest damage")
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Interact)
     private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.Interact)
@@ -78,6 +80,7 @@ object KillAura : Module(
     private var onGroundTicks = 0
 
     enum class Group(override val displayName: String): NamedEnum {
+        Interaction("Interaction"),
         Interact("Interact"),
         Targeting("Targeting"),
         Aiming("Aiming")
@@ -98,9 +101,10 @@ object KillAura : Module(
         listen<TickEvent.Pre> {
             target?.let { entity ->
                 if (swap) {
-                    val selection = player.combined
-                        .maxBy { stack -> stack.attackDamage } // ToDo: Write our own enchantment utils
-                        .select()
+                    val selection = selectStack(
+                        sorter = compareByDescending { attackDamage(stack = it) }
+                    ) { isTag(ItemTags.SWORDS) }
+
 
                     if (!selection.selector(player.mainHandStack)) {
                         selection.transfer(MainHandContainer)
@@ -126,7 +130,7 @@ object KillAura : Module(
         // Cooldown check
         when (attackMode) {
             AttackMode.Cooldown -> {
-                if (player.lastAttackedTicks < 20/player.itemAttackSpeed + cooldownOffset) return
+                if (player.lastAttackedTicks < 20/player.attackSpeed() + cooldownOffset) return
             }
 
             AttackMode.Delay -> {
@@ -137,7 +141,7 @@ object KillAura : Module(
         // Rotation check
         run {
             if (!rotate) return@run
-            val angle = RotationManager.currentRotation
+            val angle = RotationManager.activeRotation
 
             if (interactionSettings.strictRayCast) {
                 val cast = angle.rayCast(interactionSettings.attackReach)
@@ -150,7 +154,7 @@ object KillAura : Module(
 
         // Attack
         interaction.attackEntity(player, target)
-        if (interactionSettings.swingHand) player.swingHand(Hand.MAIN_HAND)
+        if (interactSettings.swingHand) player.swingHand(Hand.MAIN_HAND)
 
         lastAttackTime = System.currentTimeMillis()
         hitDelay = (hitDelay1..hitDelay2).random() * 50

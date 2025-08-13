@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.result
 enum class Rank {
     // solvable
     BREAK_SUCCESS,
+    INTERACT_SUCCESS,
     PLACE_SUCCESS,
     WRONG_ITEM,
     BREAK_ITEM_CANT_MINE,
@@ -37,7 +38,7 @@ enum class Rank {
     BREAK_RESTRICTED,
     PLACE_NO_INTEGRITY,
     BREAK_SUBMERGE,
-    BREAK_IS_BLOCKED_BY_LIQUID,
+    BREAK_IS_BLOCKED_BY_FLUID,
     UNBREAKABLE,
     BREAK_NO_PERMISSION,
     PLACE_SCAFFOLD_EXCEEDED,

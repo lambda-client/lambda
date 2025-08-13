@@ -257,7 +257,7 @@ abstract class Configurable(
     inline fun <reified T : Any> setting(
         name: String,
         immutableList: Set<T>,
-        defaultValue: Set<T>,
+        defaultValue: Set<T> = immutableList,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
     ) = SetSetting(

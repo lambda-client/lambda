@@ -17,12 +17,17 @@
 
 package com.lambda.interaction.material
 
-import com.lambda.util.BlockUtils.item
+import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.enchantment.Enchantment
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.RegistryKey
+import net.minecraft.registry.tag.ItemTags
+import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import kotlin.reflect.KClass
 
@@ -31,6 +36,7 @@ import kotlin.reflect.KClass
  */
 class StackSelection {
     var selector: (ItemStack) -> Boolean = { true }
+    var comparator: Comparator<ItemStack>? = null
     var count: Int = DEFAULT_AMOUNT
     var inShulkerBox: Boolean = false
 
@@ -44,28 +50,24 @@ class StackSelection {
     val optimalStack: ItemStack?
         get() = itemStack ?: item?.let { ItemStack(it, count) }
 
-    val filterStack: (ItemStack) -> Boolean
-        get() = { stack ->
-            if (inShulkerBox) {
-                stack.shulkerBoxContents.any { selector(it) }
-            } else {
-                selector(stack)
-            }
+    fun filterStack(stack: ItemStack) =
+        if (inShulkerBox) stack.shulkerBoxContents.any { selector(it) }
+        else selector(stack)
+
+    fun filterSlot(slot: Slot) = filterStack(slot.stack)
+
+    fun filterStacks(stacks: List<ItemStack>): List<ItemStack> =
+        stacks.filter(::filterStack).let { filteredStacks ->
+            comparator?.run {
+                filteredStacks.sortedWith(this)
+            } ?: filteredStacks
         }
 
-    val filterSlot: (Slot) -> Boolean
-        get() = { slot ->
-            filterStack(slot.stack)
-        }
-
-    val filterStacks: (List<ItemStack>) -> List<ItemStack>
-        get() = {
-            it.filter(filterStack)
-        }
-
-    val filterSlots: (List<Slot>) -> List<Slot>
-        get() = { slots ->
-            slots.filter { filterSlot(it) }
+    fun filterSlots(slots: List<Slot>): List<Slot> =
+        slots.filter(::filterSlot).let { filteredSlots ->
+            comparator?.run {
+                filteredSlots.sortedWith { slot, slot2 -> compare(slot.stack, slot2.stack) }
+            } ?: filteredSlots
         }
 
     /**
@@ -102,9 +104,36 @@ class StackSelection {
      * @param item The [Item] to be matched.
      * @return A predicate that matches the [Item].
      */
+    @StackSelectionDsl
     fun isItem(item: Item): (ItemStack) -> Boolean {
         this.item = item
         return { it.item == item }
+    }
+
+    /**
+     * Returns a predicate that matches if the `ItemStack`'s item is one of the specified items in the collection.
+     *
+     * @param items The collection of `Item` instances to match against.
+     * @return A predicate that checks if the `ItemStack`'s item is contained in the provided collection.
+     */
+    @StackSelectionDsl
+    fun isOneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = { it.item in items }
+
+    /**
+     * Returns a predicate that checks if a given `ItemStack` exists within the provided collection of `ItemStack`s.
+     *
+     * @param stacks A collection of `ItemStack` instances to be checked against.
+     * @return A predicate that evaluates to `true` if the given `ItemStack` is within the specified collection, otherwise `false`.
+     */
+    @StackSelectionDsl
+    fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = { it in stacks }
+
+    @StackSelectionDsl
+    fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
+
+    @StackSelectionDsl
+    fun isTag(tag: TagKey<Item>): (ItemStack) -> Boolean {
+        return { it.isIn(tag) }
     }
 
     /**
@@ -112,6 +141,7 @@ class StackSelection {
      * @param T The instance of [Item] to be matched.
      * @return A predicate that matches the [Item].
      */
+    @StackSelectionDsl
     inline fun <reified T : Item> isItem(): (ItemStack) -> Boolean {
         itemClass = T::class
         return { it.item is T }
@@ -122,9 +152,10 @@ class StackSelection {
      * @param block The [Block] to be matched.
      * @return A predicate that matches the [Block].
      */
+    @StackSelectionDsl
     fun isBlock(block: Block): (ItemStack) -> Boolean {
-        item = block.item
-        return { it.item == block.item }
+        item = block.asItem()
+        return { it.item == block.asItem() }
     }
 
     /**
@@ -132,6 +163,7 @@ class StackSelection {
      * @param stack The [ItemStack] to be matched.
      * @return A predicate that matches the [ItemStack].
      */
+    @StackSelectionDsl
     fun isItemStack(stack: ItemStack): (ItemStack) -> Boolean {
         this.itemStack = stack
         return { ItemStack.areEqual(it, stack) }
@@ -142,6 +174,7 @@ class StackSelection {
      * @param damage The damage value to be matched.
      * @return A predicate that matches the damage value.
      */
+    @StackSelectionDsl
     fun hasDamage(damage: Int): (ItemStack) -> Boolean {
         this.damage = damage
         return { it.damage == damage }
@@ -153,21 +186,20 @@ class StackSelection {
      * @param level The level to be matched (if -1 will look for any level above 0).
      * @return A predicate that matches the [Enchantment] and `level`.
      */
-    fun hasEnchantment(enchantment: Enchantment, level: Int = -1): (ItemStack) -> Boolean = {
-        true
-
-        // TODO: Figure out what the fuck the new registry system is lmao
-        /*if (level < 0) {
-            EnchantmentHelper.getLevel(enchantment, it) > 0
+    @StackSelectionDsl
+    fun hasEnchantment(enchantment: RegistryKey<Enchantment>, level: Int = -1): (ItemStack) -> Boolean = {
+        if (level < 0) {
+            it.getEnchantment(enchantment) > 0
         } else {
-            EnchantmentHelper.getLevel(enchantment, it) == level
-        }*/
+            it.getEnchantment(enchantment) == level
+        }
     }
 
     /**
      * Returns the negation of the original predicate.
      * @return A new predicate that matches if the original predicate does not match.
      */
+    @StackSelectionDsl
     fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean {
         return { !this(it) }
     }
@@ -177,6 +209,7 @@ class StackSelection {
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if both inputs predicate match.
      */
+    @StackSelectionDsl
     infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
         return { this(it) && otherPredicate(it) }
     }
@@ -186,6 +219,7 @@ class StackSelection {
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if either input predicate matches.
      */
+    @StackSelectionDsl
     infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
         return { this(it) || otherPredicate(it) }
     }
@@ -199,6 +233,9 @@ class StackSelection {
     }
 
     companion object {
+        @DslMarker
+        annotation class StackSelectionDsl
+
         const val DEFAULT_AMOUNT = 1
         val FULL_SHULKERS: (ItemStack) -> Boolean = { stack ->
             stack.shulkerBoxContents.none { it.isEmpty }
@@ -207,9 +244,20 @@ class StackSelection {
             stack.shulkerBoxContents.all { it.isEmpty }
         }
         val EVERYTHING: (ItemStack) -> Boolean = { true }
+        val NOTHING: (ItemStack) -> Boolean = { false }
 
-        fun Item.select(): StackSelection = selectStack { isItem(this@select) }
-        fun ItemStack.select(): StackSelection = selectStack { isItemStack(this@select) }
+        @StackSelectionDsl
+        fun Item.select() = selectStack { isItem(this@select) }
+        @StackSelectionDsl
+        fun ItemStack.select() = selectStack { isItemStack(this@select) }
+        @StackSelectionDsl
+        @JvmName("selectStacks")
+        fun Collection<ItemStack>.select() = selectStack { isOneOfStacks(this@select) }
+        @StackSelectionDsl
+        @JvmName("selectItems")
+        fun Collection<Item>.select() = selectStack { isOneOfItems(this@select) }
+
+        @StackSelectionDsl
         fun ((ItemStack) -> Boolean).select() = selectStack { this@select }
 
         /**
@@ -218,12 +266,26 @@ class StackSelection {
          * @param block The predicate to be used to select the items.
          * @return A [StackSelection] with the given parameters.
          */
+        @StackSelectionDsl
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
             block: StackSelection.() -> (ItemStack) -> Boolean,
         ) = StackSelection().apply {
             selector = block()
+            this.count = count
+            this.inShulkerBox = inShulkerBox
+        }
+
+        @StackSelectionDsl
+        fun selectStack(
+            count: Int = DEFAULT_AMOUNT,
+            inShulkerBox: Boolean = false,
+            sorter: Comparator<ItemStack>? = null,
+            block: StackSelection.() -> (ItemStack) -> Boolean,
+        ) = StackSelection().apply {
+            selector = block()
+            comparator = sorter
             this.count = count
             this.inShulkerBox = inShulkerBox
         }

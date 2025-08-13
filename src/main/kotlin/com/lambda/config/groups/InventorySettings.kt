@@ -19,16 +19,26 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.util.NamedEnum
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.util.item.ItemUtils
 
 class InventorySettings(
     c: Configurable,
     baseGroup: NamedEnum,
-    vis: () -> Boolean = { true },
+    vis: () -> Boolean = { true }
 ) : InventoryConfig {
-    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, ItemUtils.defaultDisposables, "Items that will be ignored when checking for a free slot", vis).group(baseGroup)
-    override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest", vis).group(baseGroup)
-    override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones", vis).group(baseGroup)
-    override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from", vis).group(baseGroup)
-    override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to", vis).group(baseGroup)
+    enum class Group(override val displayName: String) : NamedEnum {
+        Container("Container"),
+        Access("Access")
+    }
+
+    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, ItemUtils.defaultDisposables, "Items that will be ignored when checking for a free slot", vis).group(baseGroup, Group.Container)
+    override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones", vis).group(baseGroup, Group.Container)
+    override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from", vis).group(baseGroup, Group.Container)
+    override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to", vis).group(baseGroup, Group.Container)
+
+    override val accessShulkerBoxes by c.setting("Access Shulker Boxes", true, "Allow access to the player's shulker boxes", vis).group(baseGroup, Group.Access)
+    override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest", vis).group(baseGroup, Group.Access)
+    override val accessChests by c.setting("Access Chests", false, "Allow access to the player's normal chests", vis).group(baseGroup, Group.Access)
+    override val accessStashes by c.setting("Access Stashes", false, "Allow access to the player's stashes", vis).group(baseGroup, Group.Access)
 }

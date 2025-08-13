@@ -17,38 +17,30 @@
 
 package com.lambda.mixin.entity;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.entity.player.PlayerEntity;
+import com.lambda.interaction.request.hotbar.HotbarManager;
+import com.lambda.interaction.request.hotbar.HotbarRequest;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
-import org.spongepowered.asm.mixin.Final;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static net.minecraft.entity.player.PlayerInventory.isValidHotbarIndex;
-
 @Mixin(PlayerInventory.class)
 public class PlayerInventoryMixin {
-    @Shadow @Final private DefaultedList<ItemStack> main;
+    @SuppressWarnings({"MixinAnnotationTarget", "UnresolvedMixinReference"})
+    @ModifyExpressionValue(method = "*", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/player/PlayerInventory;selectedSlot:I", opcode = Opcodes.GETFIELD))
+    private int modifySelectedSlot(int original) {
+        final HotbarRequest hotbarRequest = HotbarManager.INSTANCE.getActiveRequest();
+        if (hotbarRequest == null) return original;
+        return hotbarRequest.getSlot();
+    }
 
-    @Shadow @Final public PlayerEntity player;
-
-    @Inject(method = "getSelectedStack", at = @At(value = "HEAD"), cancellable = true)
-    public void handleSpoofedMainHandStack(CallbackInfoReturnable<ItemStack> cir) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        ClientPlayerInteractionManager interaction = mc.interactionManager;
-
-        if (player != mc.player || interaction == null) return;
-
-        int actualSlot = interaction.lastSelectedSlot;
-
-        cir.setReturnValue(
-                isValidHotbarIndex(actualSlot) ? main.get(actualSlot) : ItemStack.EMPTY
-        );
+    @Inject(method = "getSelectedSlot", at = @At("HEAD"), cancellable = true)
+    private void redirectGetSelectedSlot(CallbackInfoReturnable<Integer> cir) {
+        final HotbarRequest hotbarRequest = HotbarManager.INSTANCE.getActiveRequest();
+        if (hotbarRequest == null) return;
+        cir.setReturnValue(hotbarRequest.getSlot());
     }
 }

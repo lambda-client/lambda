@@ -41,7 +41,7 @@ import java.util.concurrent.CompletableFuture
  * @return The result of the block execution if the context is safe, null otherwise.
  */
 inline fun <T> runSafe(block: SafeContext.() -> T) =
-    ClientContext().toSafe()?.let { block(it) }
+    ClientContext().toSafe()?.run(block)
 
 /**
  * This function is used to execute a block of code on a new thread running asynchronously to the game thread.

@@ -20,7 +20,7 @@ package com.lambda.interaction.blockplace
 import com.lambda.context.SafeContext
 import com.lambda.interaction.blockplace.PlaceInteraction.canPlaceAt
 import com.lambda.interaction.blockplace.PlaceInteraction.isClickable
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.distSq
 import com.lambda.util.math.getHitVec

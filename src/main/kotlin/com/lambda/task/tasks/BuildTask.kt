@@ -21,12 +21,8 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
-import com.lambda.event.events.EntityEvent
-import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
@@ -35,10 +31,10 @@ import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.t
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.result.InteractResult
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
@@ -47,22 +43,23 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.interacting.InteractRequest
+import com.lambda.interaction.request.inventory.InventoryConfig
+import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.warn
 import com.lambda.util.Formatting.string
-import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
@@ -70,122 +67,63 @@ class BuildTask @Ta5kBuilder constructor(
     private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
     private val build: BuildConfig = TaskFlowModule.build,
     private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
     private val inventory: InventoryConfig = TaskFlowModule.inventory,
-) : Task<Unit>() {
+    private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
+) : Task<Structure>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
-    private val pendingInteractions = LimitedDecayQueue<BuildContext>(
-        build.maxPendingInteractions, build.interactionTimeout * 50L
-    ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
-    private var currentInteraction: BuildContext? = null
-    private val instantBreaks = mutableSetOf<BreakContext>()
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+    private val emptyPendingInteractionSlots
+        get() = (build.maxPendingInteractions - pendingInteractions.size).coerceAtLeast(0)
+    private val atMaxPendingInteractions
+        get() = pendingInteractions.size >= build.maxPendingInteractions
 
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
-//    private var goodPositions = setOf<BlockPos>()
+
+    private val onItemDrop: ((item: ItemEntity) -> Unit)?
+        get() = if (collectDrops) {
+            item -> dropsToCollect.add(item)
+        } else null
 
     override fun SafeContext.onStart() {
-        (blueprint as? PropagatingBlueprint)?.next()
+        iteratePropagating()
     }
 
     init {
         listen<TickEvent.Pre> {
-            currentInteraction?.let { context ->
-//                TaskFlowModule.drawables = listOf(context)
-                if (context.shouldRotate(build) && !context.rotation.done) return@let
-                if (context is PlaceContext && context.sneak && !player.isSneaking) return@let
-                context.interact(interact.swingHand)
-            }
-            instantBreaks.forEach { context ->
-                context.interact(interact.swingHand)
-                pendingInteractions.add(context)
-            }
-            instantBreaks.clear()
+            if (collectDrops()) return@listen
 
-            dropsToCollect.firstOrNull()?.let { itemDrop ->
-                if (!world.entities.contains(itemDrop)) {
-                    dropsToCollect.remove(itemDrop)
-                    BaritoneUtils.cancel()
-                    return@listen
-                }
+            val results = blueprint.simulate(player.eyePos, interactionConfig, rotation, inventory, build)
 
-                val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
-                if (noInventorySpace) {
-                    val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in TaskFlowModule.inventory.disposables
-                    } ?: run {
-                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
-                        return@listen
-                    }
-                    transfer(player.currentScreenHandler) {
-                        throwStack(stackToThrow.id)
-                    }.execute(this@BuildTask)
-                    return@listen
-                }
-
-                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-            }
-        }
-
-        listen<TickEvent.Post> {
-            (blueprint as? TickingBlueprint)?.tick()
-
-            if (finishOnDone && blueprint.structure.isEmpty()) {
-                failure("Structure is empty")
-                return@listen
-            }
-        }
-
-        onRotate {
-            if (collectDrops && dropsToCollect.isNotEmpty()) return@onRotate
-
-//            val sim = blueprint.simulation(interact, rotation, inventory)
-//            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
-//                sim.simulate(pos.toFastVec())
-//            }
-
-            // ToDo: Simulate for each pair player positions that work
-            val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
-
-            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
+            TaskFlowModule.drawables = results
+                .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
-//                .plus(sim.goodPositions())
 
-            if (build.breaksPerTick > 1) {
-                val instantResults = results.filterIsInstance<BreakResult.Break>()
-                    .filter { it.context.instantBreak }
-                    .sorted()
-                    .take(build.breaksPerTick)
+            val resultsNotBlocked = results
+                .filter { result -> pendingInteractions.none { it.blockPos == result.blockPos } }
+                .sorted()
 
-                instantBreaks.addAll(instantResults.map { it.context })
-
-                if (instantResults.isNotEmpty()) return@onRotate
-            }
-
-            val resultsWithoutPending = results.filterNot { result ->
-                result.blockPos in pendingInteractions.map { it.expectedPos }
-            }
-            val bestResult = resultsWithoutPending.minOrNull() ?: return@onRotate
+            val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
+            if (bestResult !is BuildResult.Contextual && pendingInteractions.isNotEmpty())
+                return@listen
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (pendingInteractions.isNotEmpty()) return@onRotate
-                    if (blueprint is PropagatingBlueprint) {
-                        blueprint.next()
-                        return@onRotate
-                    }
-                    if (finishOnDone) success()
+                    if (iteratePropagating()) return@listen
+
+                    if (finishOnDone) success(blueprint.structure)
                 }
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
-                    if (!build.pathing) return@onRotate
-                    val sim = blueprint.simulation(interact, rotation, inventory, build)
+                    if (!build.pathing) return@listen
+                    val sim = blueprint.simulation(interactionConfig, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
@@ -195,9 +133,53 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
+                    if (atMaxPendingInteractions) return@listen
+                    when (bestResult) {
+                        is BreakResult.Break -> {
+                            val breakResults = resultsNotBlocked.filterIsInstance<BreakResult.Break>()
+                            val requestContexts = arrayListOf<BreakContext>()
 
-                    currentInteraction = bestResult.context
+                            if (build.breaking.breaksPerTick > 1) {
+                                breakResults
+                                    .filter { it.context.instantBreak }
+                                    .take(emptyPendingInteractionSlots)
+                                    .let { instantBreakResults ->
+                                        requestContexts.addAll(instantBreakResults.map { it.context })
+                                    }
+                            }
+
+                            if (requestContexts.isEmpty()) {
+                                requestContexts.addAll(breakResults.map { it.context })
+                            }
+
+                            breakRequest(
+                                requestContexts, pendingInteractions, rotation, hotbar, interactionConfig, inventory, build,
+                            ) {
+                                onStop { breaks++ }
+                                onItemDrop?.let { onItemDrop ->
+                                    onItemDrop { onItemDrop(it) }
+                                }
+                            }.submit()
+                            return@listen
+                        }
+                        is PlaceResult.Place -> {
+                            val placeResults = resultsNotBlocked
+                                .filterIsInstance<PlaceResult.Place>()
+                                .distinctBy { it.blockPos }
+                                .take(emptyPendingInteractionSlots)
+
+                            PlaceRequest(placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions) { placements++ }.submit()
+                        }
+                        is InteractResult.Interact -> {
+                            val interactResults = resultsNotBlocked
+                                .filterIsInstance<InteractResult.Interact>()
+                                .distinctBy { it.blockPos }
+                                .take(emptyPendingInteractionSlots)
+                                .map { it.context }
+
+                            InteractRequest(interactResults, null, pendingInteractions, build.interacting, build, hotbar, rotation).submit()
+                        }
+                    }
                 }
 
                 is Resolvable -> {
@@ -206,53 +188,55 @@ class BuildTask @Ta5kBuilder constructor(
                     bestResult.resolve().execute(this@BuildTask)
                 }
             }
-
-            if (!build.rotateForPlace) return@onRotate
-            val rotateTo = currentInteraction?.rotation ?: return@onRotate
-
-            rotation.request(rotateTo)
         }
 
-        listen<MovementEvent.InputUpdate> {
-            val context = currentInteraction ?: return@listen
-            if (context !is PlaceContext) return@listen
-            if (context.sneak) it.input.sneaking = true
-        }
-
-        listen<WorldEvent.BlockUpdate.Client> { event ->
-            val context = currentInteraction ?: return@listen
-            if (context.expectedPos != event.pos) return@listen
-            currentInteraction = null
-            pendingInteractions.add(context)
-        }
-
-        listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
-            pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
-                pendingInteractions.remove(context)
-                if (!context.targetState.matches(event.newState, event.pos, world)) {
-                    this@BuildTask.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${context.targetState}")
-                    return@let
-                }
-                when (context) {
-                    is BreakContext -> breaks++
-                    is PlaceContext -> placements++
-                }
+        listen<TickEvent.Post> {
+            if (blueprint is TickingBlueprint) {
+                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
             }
-        }
 
-        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-        listen<EntityEvent.Update> {
-            if (!collectDrops) return@listen
-            if (it.entity !is ItemEntity) return@listen
-            pendingInteractions.find { context ->
-                val inRange = context.expectedPos.toCenterPos().isInRange(it.entity.pos, 0.5)
-                val correctMaterial = context.checkedState.block == it.entity.stack.item.block
-                inRange && correctMaterial
-            }?.let { context ->
-                dropsToCollect.add(it.entity)
+            if (finishOnDone && blueprint.structure.isEmpty()) {
+                failure("Structure is empty")
+                return@listen
             }
         }
     }
+
+    private fun SafeContext.collectDrops() =
+        dropsToCollect
+            .firstOrNull()
+            ?.let { itemDrop ->
+                if (pendingInteractions.isNotEmpty()) return@let true
+
+                if (!world.entities.contains(itemDrop)) {
+                    dropsToCollect.remove(itemDrop)
+                    BaritoneUtils.cancel()
+                    return@let true
+                }
+
+                val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
+                if (noInventorySpace) {
+                    val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
+                        it.stack.item.block in TaskFlowModule.inventory.disposables
+                    } ?: run {
+                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
+                        return@let true
+                    }
+                    transfer(player.currentScreenHandler) {
+                        throwStack(stackToThrow.id)
+                    }.execute(this@BuildTask)
+                    return@let true
+                }
+
+                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                return@let true
+            } ?: false
+
+    fun iteratePropagating() =
+        if (blueprint is PropagatingBlueprint) {
+            blueprint.next() ?: failure("Failed to propagate the next blueprint")
+            true
+        } else false
 
     companion object {
         @Ta5kBuilder
@@ -261,7 +245,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
             blueprint: () -> Blueprint,
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
@@ -272,7 +256,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
 
@@ -282,7 +266,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory)
 
@@ -293,7 +277,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = true,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
@@ -307,7 +291,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

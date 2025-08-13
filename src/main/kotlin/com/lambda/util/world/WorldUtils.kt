@@ -36,8 +36,6 @@ object WorldUtils {
             ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z)
         )
 
-    val BlockState.hasFluid get() = !fluidState.isEmpty
-
     /**
      * Gets all entities of type [T] within a specified distance from a position.
      *
