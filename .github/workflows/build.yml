@@ -3,7 +3,7 @@ name: Build Lambda
 on:
   push:
     branches:
-      - 'master'
+      - '1.21.5'
   pull_request:
 
 jobs:

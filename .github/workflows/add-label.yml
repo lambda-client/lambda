@@ -4,11 +4,11 @@ on:
   issues:
     types: [opened]
     branches:
-      - master
+      - '1.21.5'
   pull_request:
     types: [opened]
     branches:
-      - master
+      - '1.21.5'
 
 permissions:
   issues: write
