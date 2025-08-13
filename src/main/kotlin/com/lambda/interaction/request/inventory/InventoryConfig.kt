@@ -21,6 +21,8 @@ import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.RequestConfig
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 
 interface InventoryConfig : RequestConfig {
@@ -35,7 +37,7 @@ interface InventoryConfig : RequestConfig {
     val accessStashes: Boolean
 
     val containerSelection: ContainerSelection
-        get() = ContainerSelection.Companion.selectContainer {
+        get() = ContainerSelection.selectContainer {
             val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
                 addAll(MaterialContainer.Rank.entries)
                 if (!accessShulkerBoxes) remove(MaterialContainer.Rank.SHULKER_BOX)
@@ -46,9 +48,12 @@ interface InventoryConfig : RequestConfig {
             ofAnyType(*allowedContainers.toTypedArray())
         }
 
-    enum class Priority {
-        WithMinItems,
-        WithMaxItems;
+    enum class Priority(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        WithMinItems("With Min Items", "Pick containers with the fewest matching items (or least space) first; useful for topping off or clearing leftovers."),
+        WithMaxItems("With Max Items", "Pick containers with the most matching items (or most space) first; ideal for bulk moves with fewer transfers.");
 
         fun materialComparator(selection: StackSelection) =
             when (this) {

@@ -43,6 +43,8 @@ import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.*
 import com.lambda.interaction.request.breaking.BreakManager.activeRequest
 import com.lambda.interaction.request.breaking.BreakManager.breakInfos
 import com.lambda.interaction.request.breaking.BreakManager.breaks
@@ -56,10 +58,6 @@ import com.lambda.interaction.request.breaking.BreakManager.processNewBreaks
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakManager.simulateAbandoned
 import com.lambda.interaction.request.breaking.BreakManager.updateBreakProgress
-import com.lambda.interaction.request.breaking.BreakType.Primary
-import com.lambda.interaction.request.breaking.BreakType.ReBreak
-import com.lambda.interaction.request.breaking.BreakType.Secondary
-import com.lambda.interaction.request.breaking.BreakType.RedundantSecondary
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingActions
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
@@ -548,15 +546,15 @@ object BreakManager : RequestHandler<BreakRequest>(
      * Begins the post-break logic sequence for the given [info].
      *
      * [BreakConfirmationMode.None] Will assume the block has been broken server side, and will only persist
-     * the [info] if the requester has any un-triggered callbacks. E.G. if the block has broken, but the item hasn't dropped
+     * the [info] if the requester has any untriggered callbacks. E.g., if the block has broken, but the item hasn't dropped
      * and the requester has specified an itemDrop callback.
      *
-     * [BreakConfirmationMode.BreakThenAwait] Will perform all post block break actions, such as spawning break particles,
+     * [BreakConfirmationMode.BreakThenAwait] Will perform all post-block break actions, such as spawning break particles,
      * playing sounds, etc. However, it will store the [info] in the pending interaction collections before triggering the
      * [BreakInfo.internalOnBreak] callback, in case the server rejects the break.
      *
      * [BreakConfirmationMode.AwaitThenBreak] Will immediately place the [info] into the pending interaction collections.
-     * Once the server responds, confirming the break, the post break actions will take place, and the [BreakInfo.internalOnBreak]
+     * Once the server responds, confirming the break, the post-break actions will take place, and the [BreakInfo.internalOnBreak]
      * callback will be triggered.
      *
      * @see destroyBlock
@@ -662,7 +660,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun BreakType.nullify() =
         when (this) {
             Primary,
-            ReBreak -> primaryBreak = null
+            Rebreak -> primaryBreak = null
             else -> secondaryBreak = null
         }
 
@@ -686,7 +684,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 return false
             }
             val swing = config.swing
-            if (swing.isEnabled() && (swing != BreakConfig.SwingMode.End || info.type == ReBreak)) {
+            if (swing.isEnabled() && (swing != BreakConfig.SwingMode.End || info.type == Rebreak)) {
                 swingHand(config.swingType, Hand.MAIN_HAND)
             }
             return true
@@ -788,7 +786,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 return true
             }
             is ReBreakResult.ReBroke -> {
-                info.type = ReBreak
+                info.type = Rebreak
                 info.nullify()
                 info.request.onReBreak?.invoke(ctx.blockPos)
                 return true

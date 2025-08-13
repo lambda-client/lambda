@@ -109,7 +109,7 @@ object HighwayTools : Module(
 
     private fun buildHighway() {
         runningTask = propagatingBlueprint {
-            if (distanceMoved < distance || distance < 0) {
+            if (distance !in 0..distanceMoved) {
                 var structure = emptyStructure()
                 val slice = generateSlice()
                 repeat(sliceSize) {

@@ -20,6 +20,8 @@ package com.lambda.interaction.request.placing
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
 import com.lambda.interaction.request.RequestConfig
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 
 interface PlaceConfig : RequestConfig {
     val rotateForPlace: Boolean
@@ -35,17 +37,25 @@ interface PlaceConfig : RequestConfig {
     val swingType: BuildConfig.SwingType
     val sounds: Boolean
 
-    enum class AirPlaceMode {
-        None,
-        Standard,
-        Grim;
+    enum class AirPlaceMode(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        None("None", "Do not attempt air placements; only place against valid supports."),
+        Standard("Standard", "Try common air-place techniques for convenience; moderate compatibility."),
+        Grim("Grim", "Use grim specific air placing.")
+        ;
 
         fun isEnabled() = this != None
     }
 
-    enum class PlaceConfirmationMode {
-        None,
-        PlaceThenAwait,
-        AwaitThenPlace
+    enum class PlaceConfirmationMode(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        None("No confirmation", "Place immediately without waiting for the server; lowest latency, possible brief desync."),
+        PlaceThenAwait("Place now, confirm later", "Show placement right away, then wait for server confirmation to verify."),
+        AwaitThenPlace("Confirm first, then place", "Wait for server response before showing placement; most accurate, adds a short delay.")
     }
+
 }

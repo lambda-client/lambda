@@ -57,22 +57,11 @@ abstract class Blueprint {
     companion object {
         fun emptyStructure(): Structure = emptyMap()
 
-        fun Box.toStructure(targetState: TargetState): Structure =
-            BlockPos.stream(this)
-                .toList()
-                .associateWith { targetState }
-
         fun BlockBox.toStructure(targetState: TargetState): Structure =
-            BlockPos.stream(this)
-                .toList()
-                .associateWith { targetState }
+            BlockPos.stream(this).toList().associateWith { targetState }
 
         fun BlockPos.toStructure(targetState: TargetState): Structure =
-            setOf(this)
-                .associateWith { targetState }
-
-//        fun Schematic.fromSchematic() =
-//            this.blockMap.map { it.key to TargetState.BlockState(it.value) }.toMap()
+            setOf(this).associateWith { targetState }
 
         fun StructureTemplate.toStructure(): Structure =
             blockInfoLists

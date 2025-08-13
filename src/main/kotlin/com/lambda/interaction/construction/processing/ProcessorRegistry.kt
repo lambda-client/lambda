@@ -107,15 +107,14 @@ object ProcessorRegistry : Loadable {
 
     override fun load() = "Loaded ${processors.size} pre processors"
 
-    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? {
-        return if (this is TargetState.State) {
-            val targetState = this as? TargetState.State ?: return null
+    fun TargetState.getProcessingInfo(pos: BlockPos) =
+        if (this is TargetState.State) {
             val get: () -> PreProcessingInfo? = get@ {
                 val infoAccumulator = PreProcessingInfoAccumulator()
 
-                processors.forEach {
-                    if (!it.acceptsState(targetState.blockState)) return@forEach
-                    it.preProcess(targetState.blockState, pos, infoAccumulator)
+                processors.forEach { processor ->
+                    if (!processor.acceptsState(blockState)) return@forEach
+                    processor.preProcess(blockState, pos, infoAccumulator)
                     if (infoAccumulator.shouldBeOmitted) {
                         return@get null
                     }
@@ -123,11 +122,15 @@ object ProcessorRegistry : Loadable {
 
                 infoAccumulator.complete()
             }
-            if (isExemptFromCache(targetState)) get()
-            else processorCache.getOrPut(targetState.blockState, get)
-        } else PreProcessingInfo.DEFAULT
-    }
+            if (isExemptFromCache()) {
+                get()
+            } else {
+                processorCache.getOrPut(blockState, get)
+            }
+        } else {
+            PreProcessingInfo.DEFAULT
+        }
 
-    private fun isExemptFromCache(state: TargetState.State) =
-        state.blockState.block is SlabBlock && state.blockState.get(Properties.SLAB_TYPE) == SlabType.DOUBLE
+    private fun TargetState.State.isExemptFromCache() =
+        blockState.block is SlabBlock && blockState.get(Properties.SLAB_TYPE) == SlabType.DOUBLE
 }

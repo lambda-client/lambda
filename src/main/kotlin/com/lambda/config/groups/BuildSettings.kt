@@ -54,5 +54,5 @@ class BuildSettings(
         vis() && (placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None
                 || breaking.breakConfirmation != BreakConfirmationMode.None
                 || interacting.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None)
-    }.group(*groupPath, Group.Break).group(*groupPath, Group.Place).group(*groupPath, Group.Interact)
+    }.group(*groupPath, Group.Break, BreakSettings.Group.General).group(*groupPath, Group.Place).group(*groupPath, Group.Interact)
 }

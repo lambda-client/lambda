@@ -19,23 +19,35 @@ package com.lambda.interaction.request.rotating.visibilty
 
 import com.lambda.interaction.request.rotating.Rotation.Companion.dist
 import com.lambda.interaction.request.rotating.RotationManager
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.math.times
 
-enum class PointSelection(val select: (Collection<VisibilityChecker.CheckedHit>) -> VisibilityChecker.CheckedHit?) {
-    ByRotation({ hits ->
-        hits.minByOrNull {
-            RotationManager.activeRotation dist it.targetRotation
+enum class PointSelection(
+    override val displayName: String,
+    override val description: String,
+    val select: (Collection<VisibilityChecker.CheckedHit>) -> VisibilityChecker.CheckedHit?
+) : NamedEnum, Describable {
+    ByRotation(
+        "By Rotation",
+        "Choose the point that needs the least rotation from your current view (minimal camera turn).",
+        select = { hits ->
+            hits.minByOrNull { RotationManager.activeRotation dist it.targetRotation }
         }
-    }),
-    Optimum({ hits ->
-        val optimum = hits
-            .mapNotNull { it.hit.pos }
-            .reduceOrNull { acc, pos -> acc.add(pos) }
-            ?.times(1 / hits.size.toDouble())
+    ),
+    Optimum(
+        "Optimum",
+        "Choose the point closest to the average of all candidates (balanced and stable aim).",
+        select = { hits ->
+            val optimum = hits
+                .mapNotNull { it.hit.pos }
+                .reduceOrNull { acc, pos -> acc.add(pos) }
+                ?.times(1 / hits.size.toDouble())
 
-        optimum?.let {
-            hits.minByOrNull { it.hit.pos?.distSq(optimum) ?: 0.0 }
+            optimum?.let { center ->
+                hits.minByOrNull { it.hit.pos?.distSq(center) ?: 0.0 }
+            }
         }
-    })
+    )
 }

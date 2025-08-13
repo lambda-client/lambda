@@ -26,6 +26,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
@@ -57,13 +58,27 @@ class EnumSetting<T : Enum<T>>(
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        text(name)
+        val values = value.enumValues
+        val preview = value.displayValue
 
+        combo("##$name", preview = preview) {
+            values.forEachIndexed { idx, v ->
+                val isSelected = idx == index
+
+                selectable(v.displayValue, isSelected) {
+                    if (!isSelected) index = idx
+                }
+
+                (v as? Describable)?.let { lambdaTooltip(it.description) }
+            }
+        }
+
+        (value as? Describable)?.let { lambdaTooltip(it.description) }
         sameLine()
-        helpMarker(description)
-
-        combo("##$name", ::index, value.enumValues.map { it.displayValue }.toTypedArray())
+        text(name)
+        if (description.isNotBlank()) lambdaTooltip(description)
     }
+
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

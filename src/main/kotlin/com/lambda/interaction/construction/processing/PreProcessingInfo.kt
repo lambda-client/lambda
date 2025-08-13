@@ -17,51 +17,9 @@
 
 package com.lambda.interaction.construction.processing
 
-import com.lambda.interaction.construction.processing.ProcessorRegistry.postProcessedProperties
 import com.lambda.interaction.construction.verify.SurfaceScan
 import net.minecraft.state.property.Property
 import net.minecraft.util.math.Direction
-
-@DslMarker
-private annotation class InfoAccumulator
-
-@InfoAccumulator
-class PreProcessingInfoAccumulator(
-    override var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    override val ignore: MutableSet<Property<*>> = postProcessedProperties.toMutableSet(),
-    override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
-    override var shouldBeOmitted: Boolean = false
-) : PreProcessingInfo {
-    @InfoAccumulator
-    fun offerSurfaceScan(scan: SurfaceScan) {
-        if (scan.mode.priority > surfaceScan.mode.priority) {
-            surfaceScan = scan
-        }
-    }
-
-    @InfoAccumulator
-    fun addIgnores(vararg properties: Property<*>) {
-        ignore.addAll(properties)
-    }
-
-    @InfoAccumulator
-    fun retainSides(predicate: (Direction) -> Boolean) {
-        this.sides.retainAll(predicate)
-    }
-
-    @InfoAccumulator
-    fun retainSides(vararg sides: Direction) {
-        this.sides.retainAll(sides.toSet())
-    }
-
-    @InfoAccumulator
-    fun omitPlacement() {
-        shouldBeOmitted = true
-    }
-
-    @InfoAccumulator
-    fun complete() = this as PreProcessingInfo
-}
 
 interface PreProcessingInfo {
     val surfaceScan: SurfaceScan

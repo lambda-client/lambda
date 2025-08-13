@@ -50,10 +50,10 @@ object ReBreakManager {
     }
 
     fun offerReBreak(info: BreakInfo) {
-        if (!info.reBreakable) return
+        if (!info.rebreakable) return
 
         reBreak = info.apply {
-            type = BreakType.ReBreak
+            type = BreakInfo.BreakType.Rebreak
             breaking = true
             resetCallbacks()
         }
@@ -70,7 +70,7 @@ object ReBreakManager {
                 player.inventory.getStack(info.context.hotbarIndex)
             else player.mainHandStack
             val breakDelta = info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
-            reBreak.breakConfig.reBreak &&
+            reBreak.breakConfig.rebreak &&
                     info.context.blockPos == reBreak.context.blockPos &&
                     !reBreak.updatedThisTick &&
                     ((reBreak.breakingTicks - info.breakConfig.fudgeFactor) * breakDelta >= info.breakConfig.breakThreshold)

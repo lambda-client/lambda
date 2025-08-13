@@ -33,7 +33,7 @@ class RotationSettings(
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
 ) : RotationConfig {
-    override var rotationMode by c.setting("Mode", RotationMode.Sync, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera, NONE - No rotation", vis).group(baseGroup)
+    override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction", vis).group(baseGroup)
 
     /** How many ticks to keep the rotation before resetting */
     override val keepTicks by c.setting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks") { rotate && vis() }.group(baseGroup)

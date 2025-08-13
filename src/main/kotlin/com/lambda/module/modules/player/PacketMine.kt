@@ -39,6 +39,7 @@ import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakReque
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
@@ -64,7 +65,7 @@ object PacketMine : Module(
         Render("Render")
     }
 
-    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }.group(Group.General)
+    private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.rebreak }.group(Group.General)
     private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(Group.General)
     private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.General)
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(Group.General)
@@ -107,7 +108,6 @@ object PacketMine : Module(
         }
 
     private var reBreakPos: BlockPos? = null
-
     private var attackedThisTick = false
 
     init {
@@ -115,7 +115,10 @@ object PacketMine : Module(
             attackedThisTick = false
         }
 
-        listen<PlayerEvent.Attack.Block> { it.cancel() }
+        listen<PlayerEvent.Attack.Block> {
+            it.cancel()
+        }
+
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             val pos = event.pos
@@ -152,7 +155,7 @@ object PacketMine : Module(
         listen<TickEvent.Input.Post> {
             if (!attackedThisTick) {
                 requestBreakManager((breakPositions + queueSorted.flatten()).toList())
-                if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
+                if (!breakConfig.rebreak || (rebreakMode != RebreakMode.Auto && rebreakMode != RebreakMode.AutoConstant)) return@listen
                 val reBreak = reBreakPos ?: return@listen
                 requestBreakManager(listOf(reBreak), true)
             }
@@ -263,20 +266,29 @@ object PacketMine : Module(
         return false
     }
 
-    enum class ReBreakMode {
-        Manual,
-        Auto,
-        AutoConstant;
+    enum class RebreakMode(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        Manual("Manual", "Re-break only when you trigger it explicitly."),
+        Auto("Auto", "Automatically re-break when it’s beneficial or required."),
+        AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
     }
 
-    enum class QueueOrder {
-        Standard,
-        Reversed,
-        Closest
+    enum class QueueOrder(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        Standard("Standard", "Process in planned order (first in, first out)."),
+        Reversed("Reversed", "Process in reverse planned order (last in, first out)."),
+        Closest("Closest", "Process the closest targets first.")
     }
 
-    private enum class RenderMode {
-        State,
-        Box
+    private enum class RenderMode(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        State("State", "Render the actual block state for preview."),
+        Box("Box", "Render a simple box to show position and size.")
     }
 }

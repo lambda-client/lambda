@@ -42,7 +42,7 @@ class BreakSettings(
     // General
     override val breakMode by c.setting("Break Mode", BreakMode.Packet, visibility = vis).group(groupPath, Group.General)
     override val sorter by c.setting("Sorter", SortMode.Closest, "The order in which breaks are performed", visibility = vis).group(groupPath, Group.General)
-    override val reBreak by c.setting("ReBreak", true, "Re-breaks blocks after they've been broken once", visibility = vis).group(groupPath, Group.General)
+    override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once", visibility = vis).group(groupPath, Group.General)
 
     // Double break
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once", visibility = vis).group(groupPath, Group.General)

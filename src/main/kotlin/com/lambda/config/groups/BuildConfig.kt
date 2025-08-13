@@ -17,6 +17,9 @@
 
 package com.lambda.config.groups
 
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
+
 interface BuildConfig {
     // General
     val pathing: Boolean
@@ -35,9 +38,12 @@ interface BuildConfig {
     // Interacting
     val interacting: InteractSettings
 
-    enum class SwingType {
-        Vanilla,
-        Server,
-        Client
+    enum class SwingType(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        Vanilla("Vanilla", "Play the hand swing locally and also notify the server (default, looks and works as expected)."),
+        Server("Server", "Only notify the server to swing; local animation may not play unless the server echoes it."),
+        Client("Client", "Only play the local swing animation; does not notify the server (purely visual).")
     }
 }

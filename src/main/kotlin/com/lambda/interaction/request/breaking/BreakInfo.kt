@@ -20,6 +20,8 @@ package com.lambda.interaction.request.breaking
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 import com.lambda.util.OneSetPerTick
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
@@ -42,16 +44,16 @@ data class BreakInfo(
 
     // Pre Processing
     var shouldProgress = false
-    var couldReBreak by OneSetPerTick(false, true)
-    var shouldSwap by OneSetPerTick(false, true)
+    var couldReBreak by OneSetPerTick(value = false, throwOnLimitBreach = true)
+    var shouldSwap by OneSetPerTick(value = false, throwOnLimitBreach = true)
     var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
     var minSwapTicks by OneSetPerTick(0, true)
     var serverBreakTicks = 0
 
     // BreakInfo Specific
     var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }
-    var updatedPreProcessingThisTick by OneSetPerTick(false, true, true)
-    var progressedThisTick by OneSetPerTick(false, true, true)
+    var updatedPreProcessingThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true)
+    var progressedThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true)
 
     // Processing
     var breaking = false
@@ -59,7 +61,23 @@ data class BreakInfo(
     var breakingTicks by OneSetPerTick(0, true)
     var soundsCooldown by OneSetPerTick(0f, true)
     var vanillaInstantBreakable = false
-    val reBreakable get() = !vanillaInstantBreakable && type == BreakType.Primary
+    val rebreakable get() = !vanillaInstantBreakable && type == BreakType.Primary
+
+    enum class BreakType(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        Primary("Primary", "The main block you’re breaking right now."),
+        Secondary("Secondary", "A second block broken at the same time (when double‑break is enabled)."),
+        RedundantSecondary("Redundant Secondary", "A previously started secondary break that’s now ignored/monitored only (no new actions)."),
+        Rebreak("Rebreak", "Re-attempts a recent break to finish callbacks or correct state after updates.");
+
+        fun getBreakThreshold(breakConfig: BreakConfig) =
+            when (this) {
+                Primary -> breakConfig.breakThreshold
+                else -> 1.0f
+            }
+    }
 
     // Post Processing
     @Volatile
@@ -70,7 +88,7 @@ data class BreakInfo(
 
     @Synchronized
     fun internalOnBreak() {
-        if (type != BreakType.ReBreak) broken = true
+        if (type != BreakType.Rebreak) broken = true
         item?.let { item ->
             request.onItemDrop?.invoke(item)
         }
@@ -78,8 +96,8 @@ data class BreakInfo(
 
     @Synchronized
     fun internalOnItemDrop(item: ItemEntity) {
-        if (type != BreakType.ReBreak) this.item = item
-        if (broken || type == BreakType.ReBreak) {
+        if (type != BreakType.Rebreak) this.item = item
+        if (broken || type == BreakType.Rebreak) {
             request.onItemDrop?.invoke(item)
         }
     }
@@ -146,18 +164,5 @@ data class BreakInfo(
                 context.result.side,
                 sequence
             )
-        }
-}
-
-enum class BreakType() {
-    Primary,
-    Secondary,
-    RedundantSecondary,
-    ReBreak;
-
-    fun getBreakThreshold(breakConfig: BreakConfig) =
-        when (this) {
-            Primary -> breakConfig.breakThreshold
-            else -> 1.0f
         }
 }

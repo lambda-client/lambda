@@ -83,7 +83,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                         return@listen
                     }
 
-                    if (pending.type == BreakType.ReBreak) {
+                    if (pending.type == BreakInfo.BreakType.Rebreak) {
                         pending.context.cachedState = event.newState
                     } else {
                         this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")
@@ -93,7 +93,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 }
 
                 if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
-                    || (pending.type == BreakType.ReBreak && !pending.breakConfig.reBreak)
+                    || (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
                     ) {
                     destroyBlock(pending)
                 }
