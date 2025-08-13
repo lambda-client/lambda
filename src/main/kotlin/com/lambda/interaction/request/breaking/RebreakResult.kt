@@ -17,12 +17,12 @@
 
 package com.lambda.interaction.request.breaking
 
-sealed class ReBreakResult {
-    data object Ignored : ReBreakResult()
+sealed class RebreakResult {
+    data object Ignored : RebreakResult()
 
-    data object ReBroke : ReBreakResult()
+    data object Rebroke : RebreakResult()
 
     class StillBreaking(
         val breakInfo: BreakInfo
-    ) : ReBreakResult()
+    ) : RebreakResult()
 }

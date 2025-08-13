@@ -31,12 +31,12 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.Hand
 import net.minecraft.world.BlockView
 
-object ReBreakManager {
-    var reBreak: BreakInfo? = null
+object RebreakManager {
+    var rebreak: BreakInfo? = null
 
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
-            reBreak?.run {
+            rebreak?.run {
                 if (!progressedThisTick) {
                     breakingTicks++
                     progressedThisTick = true
@@ -45,14 +45,14 @@ object ReBreakManager {
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-            reBreak = null
+            rebreak = null
         }
     }
 
-    fun offerReBreak(info: BreakInfo) {
+    fun offerRebreak(info: BreakInfo) {
         if (!info.rebreakable) return
 
-        reBreak = info.apply {
+        rebreak = info.apply {
             type = BreakInfo.BreakType.Rebreak
             breaking = true
             resetCallbacks()
@@ -60,12 +60,12 @@ object ReBreakManager {
         info.request.onReBreakStart?.invoke(info.context.blockPos)
     }
 
-    fun clearReBreak() {
-        reBreak = null
+    fun clearRebreak() {
+        rebreak = null
     }
 
-    fun couldReBreak(info: BreakInfo, player: ClientPlayerEntity, world: BlockView) =
-        reBreak?.let { reBreak ->
+    fun couldRebreak(info: BreakInfo, player: ClientPlayerEntity, world: BlockView) =
+        rebreak?.let { reBreak ->
             val stack = if (info.breakConfig.swapMode.isEnabled())
                 player.inventory.getStack(info.context.hotbarIndex)
             else player.mainHandStack
@@ -78,7 +78,7 @@ object ReBreakManager {
 
     fun handleUpdate(ctx: BreakContext, breakRequest: BreakRequest) =
         runSafe {
-            val reBreak = this@ReBreakManager.reBreak ?: return@runSafe ReBreakResult.Ignored
+            val reBreak = this@RebreakManager.rebreak ?: return@runSafe RebreakResult.Ignored
 
             reBreak.updateInfo(ctx, breakRequest)
 
@@ -93,9 +93,9 @@ object ReBreakManager {
                     swingHand(reBreak.breakConfig.swingType, Hand.MAIN_HAND)
                 }
                 BreakManager.breaksThisTick++
-                ReBreakResult.ReBroke
+                RebreakResult.Rebroke
             } else {
-                ReBreakResult.StillBreaking(reBreak)
+                RebreakResult.StillBreaking(reBreak)
             }
         }
 }

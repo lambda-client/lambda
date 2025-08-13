@@ -52,12 +52,11 @@ data class PlaceContext(
             is PlaceContext -> compareBy<PlaceContext> {
                 BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
             }.thenByDescending {
-                if (it.cachedState.fluidState.level != 0) it.blockPos.y
-                else 0
+                if (it.cachedState.fluidState.level != 0) it.blockPos.y else 0
             }.thenByDescending {
                 it.cachedState.fluidState.level
             }.thenBy {
-                it.sneak == mc.player?.isSneaking
+                it.sneak == (mc.player?.isSneaking ?: false)
             }.thenBy {
                 it.rotation.target.angleDistance
             }.thenBy {

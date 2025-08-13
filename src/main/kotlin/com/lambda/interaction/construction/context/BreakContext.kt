@@ -47,7 +47,7 @@ data class BreakContext(
     private val sideColor = Color(222, 0, 0, 100)
 
     override val blockPos: BlockPos = result.blockPos
-    override val expectedState: BlockState = cachedState.emptyState
+    override val expectedState = cachedState.emptyState
 
     val random = Random.nextDouble()
 

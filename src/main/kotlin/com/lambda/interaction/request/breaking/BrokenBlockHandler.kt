@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -27,8 +26,9 @@ import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
-import com.lambda.interaction.request.breaking.ReBreakManager.reBreak
+import com.lambda.interaction.request.breaking.RebreakManager.rebreak
 import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.BlockUtils.isEmpty
@@ -51,13 +51,16 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     override val pendingActions = LimitedDecayQueue<BreakInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info ->
-        mc.world?.let { world ->
+        runSafe {
             val pos = info.context.blockPos
             val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
-            if (!loaded) return@let
+            if (!loaded) return@runSafe
 
-            if (!info.broken) warn("${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}")
-            else if (!TaskFlowModule.ignoreItemDropWarnings) warn("${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
+            if (!info.broken) {
+                warn("${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}")
+            } else if (!TaskFlowModule.ignoreItemDropWarnings) {
+                warn("${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
+            }
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
                 world.setBlockState(info.context.blockPos, info.context.cachedState)
@@ -71,7 +74,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             run {
                 pendingActions.firstOrNull { it.context.blockPos == event.pos }
-                    ?: if (reBreak?.context?.blockPos == event.pos) reBreak
+                    ?: if (rebreak?.context?.blockPos == event.pos) rebreak
                     else null
             }?.let { pending ->
                 val currentState = pending.context.cachedState
@@ -101,7 +104,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
                     if (lastPosStarted == pending.context.blockPos) {
-                        ReBreakManager.offerReBreak(pending)
+                        RebreakManager.offerRebreak(pending)
                     }
                 }
                 return@listen
@@ -112,7 +115,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             if (it.entity !is ItemEntity) return@listen
             run {
                 pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
-                    ?: reBreak?.let { info ->
+                    ?: rebreak?.let { info ->
                         return@run if (matchesBlockItem(info, it.entity)) info
                         else null
                     }
@@ -121,7 +124,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
                     if (lastPosStarted == pending.context.blockPos) {
-                        ReBreakManager.offerReBreak(pending)
+                        RebreakManager.offerRebreak(pending)
                     }
                 }
                 return@listen

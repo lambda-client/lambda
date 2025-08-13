@@ -17,21 +17,17 @@
 
 package com.lambda.interaction.request.placing
 
-import com.lambda.Lambda.mc
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.placing.PlaceManager.placeSound
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.matches
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
-import net.minecraft.block.BlockState
-import net.minecraft.util.math.BlockPos
-import net.minecraft.item.BlockItem
 
 object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
     override val pendingActions = LimitedDecayQueue<PlaceInfo>(
@@ -39,7 +35,9 @@ object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
         if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {
-            mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
+            runSafe {
+                world.setBlockState(it.context.blockPos, it.context.cachedState)
+            }
         }
         it.pendingInteractionsList.remove(it.context)
     }

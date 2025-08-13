@@ -145,7 +145,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     var lastPosStarted: BlockPos? = null
         set(value) {
-            if (value != field) ReBreakManager.clearReBreak()
+            if (value != field) RebreakManager.clearRebreak()
             field = value
         }
 
@@ -171,7 +171,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            if (event.pos == ReBreakManager.reBreak?.context?.blockPos) return@listen
+            if (event.pos == RebreakManager.rebreak?.context?.blockPos) return@listen
 
             breakInfos
                 .filterNotNull()
@@ -192,7 +192,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.request.onStop?.invoke(info.context.blockPos)
                     info.internalOnBreak()
                     if (info.callbacksCompleted)
-                        ReBreakManager.offerReBreak(info)
+                        RebreakManager.offerRebreak(info)
                     else info.startPending()
                     info.nullify()
                 }
@@ -203,7 +203,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (it.entity !is ItemEntity) return@listen
 
             // ToDo: Proper item drop prediction system
-            ReBreakManager.reBreak?.let { reBreak ->
+            RebreakManager.rebreak?.let { reBreak ->
                 if (matchesBlockItem(reBreak, it.entity)) return@listen
             }
 
@@ -523,7 +523,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
     }
 
-    private fun SafeContext.checkForCancels() {
+    private fun checkForCancels() {
         breakInfos
             .filterNotNull()
             .asSequence()
@@ -569,7 +569,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 if (!info.callbacksCompleted) {
                     info.startPending()
                 } else {
-                    ReBreakManager.offerReBreak(info)
+                    RebreakManager.offerRebreak(info)
                 }
             }
             BreakConfirmationMode.BreakThenAwait -> {
@@ -585,14 +585,14 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     private fun BreakInfo.updatePreProcessing(player: ClientPlayerEntity, world: BlockView) {
-        shouldProgress = !progressedThisTick &&
-                tickStage in breakConfig.breakStageMask &&
-                (rotated || type != Primary)
+        shouldProgress = !progressedThisTick
+                && tickStage in breakConfig.breakStageMask
+                && (rotated || type != Primary)
 
         if (updatedPreProcessingThisTick) return
         updatedPreProcessingThisTick = true
 
-        couldReBreak = ReBreakManager.couldReBreak(this, player, world)
+        couldReBreak = RebreakManager.couldRebreak(this, player, world)
         shouldSwap = shouldSwap(player, world)
 
         val cachedState = context.cachedState
@@ -602,8 +602,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val breakAmountNoEfficiency = cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack, ignoreEfficiency = true) * (breakingTicks + 1)
 
         minSwapTicks = if (breakAmount >= getBreakThreshold() || couldReBreak) {
-            val min = if (breakAmountNoEfficiency >= getBreakThreshold()) 0
-            else 1
+            val min = if (breakAmountNoEfficiency >= getBreakThreshold()) 0 else 1
             serverBreakTicks++
             min
         } else 0
@@ -633,19 +632,23 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun BreakInfo.cancelBreak() =
         runSafe {
             if (type == RedundantSecondary || abandoned) return@runSafe
-            if (type == Primary) {
-                nullify()
-                setBreakingTextureStage(player, world, -1)
-                abortBreakPacket(world, interaction)
-                request.onCancel?.invoke(context.blockPos)
-            } else if (type == Secondary) {
-                if (breakConfig.unsafeCancels) {
-                    type = RedundantSecondary
+            when (type) {
+                Primary -> {
+                    nullify()
                     setBreakingTextureStage(player, world, -1)
+                    abortBreakPacket(world, interaction)
                     request.onCancel?.invoke(context.blockPos)
-                } else {
-                    abandoned = true
                 }
+                Secondary -> {
+                    if (breakConfig.unsafeCancels) {
+                        type = RedundantSecondary
+                        setBreakingTextureStage(player, world, -1)
+                        request.onCancel?.invoke(context.blockPos)
+                    } else {
+                        abandoned = true
+                    }
+                }
+                else -> {}
             }
         }
 
@@ -659,8 +662,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun BreakType.nullify() =
         when (this) {
-            Primary,
-            Rebreak -> primaryBreak = null
+            Primary, Rebreak -> primaryBreak = null
             else -> secondaryBreak = null
         }
 
@@ -772,26 +774,28 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.startBreaking(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (info.couldReBreak) when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
-            is ReBreakResult.StillBreaking -> {
-                primaryBreak = reBreakResult.breakInfo.apply {
-                    type = Primary
-                    ReBreakManager.clearReBreak()
-                    request.onStart?.invoke(ctx.blockPos)
-                }
+        if (info.couldReBreak) {
+            when (val rebreakResult = RebreakManager.handleUpdate(info.context, info.request)) {
+                is RebreakResult.StillBreaking -> {
+                    primaryBreak = rebreakResult.breakInfo.apply {
+                        type = Primary
+                        RebreakManager.clearRebreak()
+                        request.onStart?.invoke(ctx.blockPos)
+                    }
 
-                primaryBreak?.let { primary ->
-                    updateBreakProgress(primary)
+                    primaryBreak?.let { primary ->
+                        updateBreakProgress(primary)
+                    }
+                    return true
                 }
-                return true
+                is RebreakResult.Rebroke -> {
+                    info.type = Rebreak
+                    info.nullify()
+                    info.request.onReBreak?.invoke(ctx.blockPos)
+                    return true
+                }
+                else -> {}
             }
-            is ReBreakResult.ReBroke -> {
-                info.type = Rebreak
-                info.nullify()
-                info.request.onReBreak?.invoke(ctx.blockPos)
-                return true
-            }
-            else -> {}
         }
 
         if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
