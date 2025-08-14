@@ -45,7 +45,7 @@ object FastBreak : Module(
         Build("Build")
     }
 
-    private val buildConfig = BuildSettings(this, Group.Build)
+    override val buildConfig = BuildSettings(this, Group.Build)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 

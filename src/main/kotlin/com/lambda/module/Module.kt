@@ -22,6 +22,7 @@ import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
+import com.lambda.context.Configured
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ClientEvent
@@ -31,6 +32,9 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.gui.DearImGui
 import com.lambda.gui.LambdaScreen
 import com.lambda.module.modules.client.ClickGui
@@ -118,7 +122,12 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
     autoDisable: Boolean = false
-) : Nameable, Muteable, Configurable(ModuleConfig) {
+) : Nameable,
+    Muteable,
+    Configurable(ModuleConfig),
+    Layout,
+    Configured by TaskFlowModule
+{
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
 

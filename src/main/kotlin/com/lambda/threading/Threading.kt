@@ -19,6 +19,7 @@ package com.lambda.threading
 
 import com.lambda.Lambda.mc
 import com.lambda.context.ClientContext
+import com.lambda.context.Configured
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
@@ -40,8 +41,10 @@ import java.util.concurrent.CompletableFuture
  * @param block The block of code to be executed within the safe context.
  * @return The result of the block execution if the context is safe, null otherwise.
  */
-inline fun <T> runSafe(block: SafeContext.() -> T) =
-    ClientContext().toSafe()?.run(block)
+inline fun <T> Any.runSafe(caller: Any = this, block: SafeContext.() -> T): T? {
+    val clientContext = if (caller is Configured) ClientContext(caller) else ClientContext()
+    return clientContext.toSafe()?.run(block)
+}
 
 /**
  * This function is used to execute a block of code on a new thread running asynchronously to the game thread.
@@ -146,7 +149,7 @@ inline fun runGameScheduled(crossinline block: () -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
+inline fun Any.runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
     runGameScheduled { runSafe { block() } }
 }
 
@@ -168,5 +171,5 @@ inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-suspend inline fun <T> awaitMainThread(noinline block: SafeContext.() -> T) =
+suspend inline fun <T> Any.awaitMainThread(noinline block: SafeContext.() -> T) =
     CompletableFuture.supplyAsync({ runSafe { block() } }, mc).await() ?: throw IllegalStateException("Unsafe")

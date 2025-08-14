@@ -69,7 +69,7 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
     // Grim
-    private val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
+    override val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
 
     private var prevTickJumping = false
 

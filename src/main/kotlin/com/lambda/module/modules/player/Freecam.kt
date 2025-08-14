@@ -59,7 +59,7 @@ object Freecam : Module(
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
     private val rotateToTarget by setting("Rotate to target", true)
 
-    private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+    override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
     private var lastPerspective = Perspective.FIRST_PERSON
     private var prevPosition: Vec3d = Vec3d.ZERO

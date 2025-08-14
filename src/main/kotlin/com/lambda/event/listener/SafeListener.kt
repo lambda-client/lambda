@@ -81,7 +81,7 @@ class SafeListener<T : Event>(
      * lead to race conditions when manipulating shared data.
      */
     override fun execute(event: T) {
-        runSafe {
+        runSafe(owner) {
             lastSignal = event
             function(event)
         }

@@ -17,6 +17,8 @@
 
 package com.lambda.context
 
+import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.module.modules.client.TaskFlowModule.interaction
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.network.ClientPlayerEntity
@@ -35,16 +37,22 @@ import net.minecraft.client.world.ClientWorld
  *
  * @function toSafe Converts the `ClientContext` to a `SafeContext` if all properties are not `null`, or returns `null` otherwise.
  */
-open class ClientContext : AbstractContext() {
-    final override val world: ClientWorld? = mc.world
-    final override val player: ClientPlayerEntity? = mc.player
-    final override val interaction: ClientPlayerInteractionManager? = mc.interactionManager
-    final override val connection: ClientPlayNetworkHandler? = mc.networkHandler
+class ClientContext(val configured: Configured = TaskFlowModule) {
+    val mc: MinecraftClient = MinecraftClient.getInstance()
+    val world: ClientWorld? = mc.world
+    val player: ClientPlayerEntity? = mc.player
+    val interaction: ClientPlayerInteractionManager? = mc.interactionManager
+    val connection: ClientPlayNetworkHandler? = mc.networkHandler
 
     fun toSafe(): SafeContext? {
-        if (world == null || player == null || interaction == null || connection == null) {
+        if (world == null || player == null || interaction == null || connection == null)
             return null
+        return object : SafeContext, Configured by configured {
+            override val mc = this@ClientContext.mc
+            override val world: ClientWorld = this@ClientContext.world
+            override val player: ClientPlayerEntity = this@ClientContext.player
+            override val interaction: ClientPlayerInteractionManager = this@ClientContext.interaction
+            override val connection: ClientPlayNetworkHandler = this@ClientContext.connection
         }
-        return SafeContext(world, player, interaction, connection)
     }
 }

@@ -58,7 +58,7 @@ object InventoryMove : Module(
     tag = ModuleTag.PLAYER,
 ) {
     private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick")
-    private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+    override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
     /**
      * Whether the current screen has text inputs or is null

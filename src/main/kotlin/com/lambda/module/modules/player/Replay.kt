@@ -100,7 +100,7 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    private val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
+    override val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
         override val rotationMode = if (lockCamera) RotationMode.Lock else RotationMode.Sync
     }
 
