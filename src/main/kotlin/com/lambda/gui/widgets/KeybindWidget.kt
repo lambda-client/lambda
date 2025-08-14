@@ -59,7 +59,8 @@ class KeybindWidget(
 
     fun ImGuiBuilder.build() {
         val current = valueGetter()
-        val translated = KeyCode.virtualMapUS(current.keyCode, 0)
+        val scancode = GLFW.glfwGetKeyScancode(current.keyCode)
+        val translated = KeyCode.virtualMapUS(current.keyCode, scancode)
         val preview = if (listening) "$label: Press any key…" else "$label: ${translated.prettyDisplay()}"
 
         if (listening) {
@@ -102,7 +103,15 @@ class KeybindWidget(
 
     private fun KeyCode.prettyDisplay(): String {
         if (this == KeyCode.UNBOUND) return "Unbound"
-        val name = GLFW.glfwGetKeyName(keyCode, 0)
-        return name?.ifBlank { null }?.uppercase() ?: this.name
+        if (keyCode == GLFW.GLFW_KEY_UNKNOWN) return name
+
+        val scancode = GLFW.glfwGetKeyScancode(keyCode)
+        val nameFromGlfw = if (scancode != 0) {
+            GLFW.glfwGetKeyName(GLFW.GLFW_KEY_UNKNOWN, scancode)
+        } else {
+            GLFW.glfwGetKeyName(keyCode, 0)
+        }
+
+        return nameFromGlfw?.takeIf { it.isNotBlank() }?.uppercase() ?: name
     }
 }
