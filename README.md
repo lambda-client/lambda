@@ -1,6 +1,6 @@
 # Lambda
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.4-lime?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.5-lime?style=for-the-badge&link=https://www.minecraft.net/)](https://www.minecraft.net/)
 [![License](https://img.shields.io/badge/License-GPL%20v3-blue?style=for-the-badge&link=https://www.gnu.org/licenses/gpl-3.0.en.html)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 <div align="center">
