@@ -101,39 +101,49 @@ object BreakManager : RequestHandler<BreakRequest>(
     onOpen = { processRequest(activeRequest); simulateAbandoned() },
     onClose = { checkForCancels() }
 ), PositionBlocking {
+    private val breakInfos = arrayOfNulls<BreakInfo>(2)
+
+    private val activeInfos
+        get() = breakInfos
+            .filterNotNull()
+            .filter { it.type != RedundantSecondary }
+
     private var primaryBreak: BreakInfo?
         get() = breakInfos[0]
         set(value) { breakInfos[0] = value }
+
     private var secondaryBreak: BreakInfo?
         get() = breakInfos[1]
         set(value) { breakInfos[1] = value }
-    private val breakInfos = arrayOfNulls<BreakInfo>(2)
+
+    private val abandonedBreak
+        get() = breakInfos[1].let { secondary ->
+            if (secondary?.abandoned == true && secondary.type != RedundantSecondary) secondary
+            else null
+        }
+
     val currentStackSelection
-        get() = breakInfos
+        get() = activeInfos
             .lastOrNull {
-                it != null && it.type != RedundantSecondary && (it.breakConfig.doubleBreak || it.type == Secondary)
+                it.breakConfig.doubleBreak || it.type == Secondary
             }?.context?.itemSelection
             ?: StackSelection.EVERYTHING.select()
 
-    private val pendingBreakCount get() = breakInfos.count { it != null } + pendingActions.size
+    private val pendingBreakCount get() = activeInfos.count() + pendingActions.size
     override val blockedPositions
-        get() = breakInfos.mapNotNull { it?.context?.blockPos } + pendingActions.map { it.context.blockPos }
+        get() = activeInfos.map { it.context.blockPos } + pendingActions.map { it.context.blockPos }
 
     private var activeRequest: BreakRequest? = null
 
     private var rotationRequest: RotationRequest? = null
     private val rotated get() = rotationRequest?.done != false
 
-    private var swapped = false
-        set(value) {
-            field = value
-            if (!value)
-                breakInfos.forEach { it?.serverBreakTicks = 0 }
-        }
+    var swappedThisTick = false
     var swappedStack: ItemStack = ItemStack.EMPTY
         set(value) {
             if (value != field)
                 breakInfos.forEach { it?.serverBreakTicks = 0 }
+            swappedThisTick = true
             field = value
         }
     private var breakCooldown = 0
@@ -161,6 +171,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         super.load()
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            if (!swappedThisTick) {
+                swappedStack = player.mainHandStack
+            } else swappedThisTick = false
             if (breakCooldown > 0) {
                 breakCooldown--
             }
@@ -257,7 +270,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
                     info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
-                    }.forEach boxes@{ box ->
+                    }.forEach boxes@ { box ->
                         val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
                         if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
                         if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
@@ -266,7 +279,8 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-            breakInfos.forEach { it?.nullify() }
+            primaryBreak = null
+            secondaryBreak = null
             breakCooldown = 0
         }
 
@@ -309,9 +323,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             // last break to be started
             run {
                 if (!handlePreProcessing()) return@run
-                breakInfos
-                    .filterNotNull()
-                    .filter { it.type != RedundantSecondary && it.updatedThisTick }
+                activeInfos
+                    .filter { it.updatedThisTick }
                     .asReversed()
                     .forEach { info ->
                         if (info.shouldProgress)
@@ -323,7 +336,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (instantBreaks.isEmpty() && breaks.isEmpty()) {
             activeRequest = null
         }
-        if (breaksThisTick > 0 || breakInfos.any { it != null && it.type != RedundantSecondary }) {
+        if (breaksThisTick > 0 || activeInfos.isNotEmpty()) {
             activeThisTick = true
         }
     }
@@ -379,7 +392,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @return if the break context can be accepted.
      */
     private fun SafeContext.canAccept(newCtx: BreakContext): Boolean {
-        if (breakInfos.none { it?.context?.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
+        if (activeInfos.none { it.context.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
 
         if (!currentStackSelection.filterStack(player.inventory.getStack(newCtx.hotbarIndex)))
             return false
@@ -391,9 +404,8 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     private fun SafeContext.handlePreProcessing(): Boolean {
-        breakInfos
-            .filterNotNull()
-            .filter { it.type != RedundantSecondary && it.updatedThisTick }
+        activeInfos
+            .filter { it.updatedThisTick }
             .let { infos ->
                 rotationRequest = infos.firstOrNull { info -> info.breakConfig.rotateForBreak }
                     ?.let { info ->
@@ -401,8 +413,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         rotation.submit(false)
                     }
 
-                if (breakInfos.none { it != null && it.type != RedundantSecondary }) {
-                    swapped = false
+                if (activeInfos.isEmpty()) {
                     swappedStack = player.mainHandStack
                     return true
                 }
@@ -412,14 +423,10 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
                 infos.firstOrNull()?.let { info ->
                     infos.firstOrNull { it.shouldSwap && it.shouldProgress }?.let { last ->
-                        if (!info.context.requestSwap(info.request, max(info.minSwapTicks, last.minSwapTicks))) {
-                            swapped = false
+                        if (!info.context.requestSwap(info.request, max(info.minSwapTicks, last.minSwapTicks)))
                             return false
-                        }
                         swappedStack = info.swapStack
-                        swapped = true
-                        info.serverBreakTicks++
-                        return true
+                        if (info.minSwapTicks > 0) info.serverBreakTicks++
                     }
                 }
             }
@@ -510,25 +517,21 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     private fun SafeContext.simulateAbandoned() {
         // Cancelled but double breaking so requires break manager to continue the simulation
-        breakInfos
-            .asSequence()
-            .filterNotNull()
-            .filter { it.abandoned && it.type != RedundantSecondary }
-            .forEach { info ->
-                with(info.request) {
-                    info.context.blockPos
-                        .toStructure(TargetState.Empty)
-                        .toBlueprint()
-                        .simulate(player.eyePos, interact, rotation, inventory, build)
-                        .asSequence()
-                        .filterIsInstance<BreakResult.Break>()
-                        .filter { canAccept(it.context) }
-                        .sorted()
-                        .let { sim ->
-                            info.updateInfo(sim.firstOrNull()?.context ?: return@forEach)
-                        }
-                }
+        abandonedBreak?.let { abandonedInfo ->
+            with (abandonedInfo.request) {
+                abandonedInfo.context.blockPos
+                    .toStructure(TargetState.Empty)
+                    .toBlueprint()
+                    .simulate(player.eyePos, interact, rotation, inventory, build)
+                    .asSequence()
+                    .filterIsInstance<BreakResult.Break>()
+                    .filter { canAccept(it.context) }
+                    .sorted()
+                    .let { sim ->
+                        abandonedInfo.updateInfo(sim.firstOrNull()?.context ?: return)
+                    }
             }
+        }
     }
 
     private fun checkForCancels() {
@@ -605,8 +608,14 @@ object BreakManager : RequestHandler<BreakRequest>(
         val cachedState = context.cachedState
         swapStack = player.inventory.getStack(context.hotbarIndex)
 
-        val breakAmount =
-            cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack) * (breakingTicks + 1)
+        val breakTicks = (breakingTicks + 1 - breakConfig.fudgeFactor).coerceAtLeast(1)
+        val breakAmount = cachedState.calcBreakDelta(
+            player,
+            world,
+            context.blockPos,
+            breakConfig,
+            swapStack
+        ) * breakTicks
         val breakAmountNoEfficiency = cachedState.calcBreakDelta(
             player,
             world,
@@ -614,13 +623,11 @@ object BreakManager : RequestHandler<BreakRequest>(
             breakConfig,
             swapStack,
             ignoreEfficiency = true
-        ) * (breakingTicks + 1)
+        ) * breakTicks
 
-        minSwapTicks = if (breakAmount >= getBreakThreshold() || couldReBreak) {
-            val min = if (breakAmountNoEfficiency >= getBreakThreshold()) 0 else 1
-            serverBreakTicks++
-            min
-        } else 0
+        minSwapTicks = if ((breakAmount >= getBreakThreshold() || couldReBreak == RebreakManager.RebreakPotential.Instant) &&
+            (breakAmountNoEfficiency < getBreakThreshold() || type == Secondary)) 1
+        else 0
     }
 
     /**
@@ -763,7 +770,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (overBreakThreshold && (!swapped || info.serverBreakTicks >= info.breakConfig.fudgeFactor)) {
+        if (overBreakThreshold && (info.serverBreakTicks >= info.breakConfig.fudgeFactor || info.minSwapTicks < 1)) {
             if (info.type == Primary) {
                 onBlockBreak(info)
                 info.stopBreakPacket(world, interaction)
@@ -789,7 +796,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.startBreaking(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (info.couldReBreak) {
+        if (info.couldReBreak.isPossible()) {
             when (val rebreakResult = RebreakManager.handleUpdate(info.context, info.request)) {
                 is RebreakResult.StillBreaking -> {
                     primaryBreak = rebreakResult.breakInfo.apply {
@@ -837,8 +844,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakDelta = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
         info.vanillaInstantBreakable = breakDelta >= 1
-        val serverSwapped = !swapped || info.serverBreakTicks >= info.breakConfig.fudgeFactor
-        if (notEmpty && (breakDelta >= info.getBreakThreshold() && serverSwapped)) {
+        if (notEmpty && (breakDelta >= info.getBreakThreshold() && (info.serverBreakTicks >= info.breakConfig.fudgeFactor || info.minSwapTicks < 1))) {
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {
