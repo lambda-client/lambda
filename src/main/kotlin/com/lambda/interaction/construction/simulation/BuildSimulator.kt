@@ -767,8 +767,11 @@ object BuildSimulator {
         val reachSq = interactionConfig.interactReach.pow(2)
 
         boxes.forEach { box ->
+            val sides = if (interactionConfig.checkSideVisibility) {
+                box.getVisibleSurfaces(eye).intersect(Direction.entries)
+            } else Direction.entries.toSet()
             // ToDo: Rewrite Rotation request system to allow support for all sim features and use the rotation finder
-            scanSurfaces(box, Direction.entries.toSet(), interactionConfig.resolution) { side, vec ->
+            scanSurfaces(box, sides, interactionConfig.resolution) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
                     return@scanSurfaces
