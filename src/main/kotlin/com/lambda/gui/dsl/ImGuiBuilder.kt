@@ -1427,24 +1427,8 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun lambdaTooltip(description: String) {
+        if (description.isBlank()) return
         onItemHover {
-            tooltip {
-                withTextWrapPos(fontSize * 35f) {
-                    textUnformatted(description)
-                }
-            }
-        }
-    }
-
-    /**
-     * Creates a help marker with a tooltip.
-     *
-     * @param description Help text to display
-     */
-    @ImGuiDsl
-    fun helpMarker(description: String, text: String = "(?)") {
-        textDisabled(text)
-        onItemHover(ImGuiHoveredFlags.Stationary) {
             tooltip {
                 withTextWrapPos(fontSize * 35f) {
                     textUnformatted(description)

@@ -45,7 +45,7 @@ class SetSetting<T : Any>(
         TypeToken.getParameterized(Set::class.java, String::class.java).type
 
     override fun ImGuiBuilder.buildLayout() {
-        combo(name, "${value.size} item(s)") {
+        combo("##$name", "$name: ${value.size} item(s)") {
             immutableSet
                 .forEach {
                     val isSelected = value.contains(it)

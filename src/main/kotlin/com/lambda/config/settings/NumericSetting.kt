@@ -65,10 +65,7 @@ abstract class NumericSetting<T>(
         val valueString = this@NumericSetting.toString()
 
         buildSlider()
-
-        if (description.isNotBlank()) {
-            lambdaTooltip(description)
-        }
+        lambdaTooltip(description)
 
         val itemRectMin = ImGui.getItemRectMin()
         val itemRectMax = ImGui.getItemRectMax()

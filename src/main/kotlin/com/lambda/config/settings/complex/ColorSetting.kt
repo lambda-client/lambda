@@ -44,12 +44,8 @@ class ColorSetting(
     visibility
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        text(name)
-
-        sameLine()
-        helpMarker(description)
-
-        colorEdit("##$name", ::value)
+        colorEdit(name, ::value)
+        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

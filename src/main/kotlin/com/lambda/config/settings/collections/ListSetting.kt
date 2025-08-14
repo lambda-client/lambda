@@ -46,7 +46,7 @@ class ListSetting<T : Any>(
         TypeToken.getParameterized(MutableList::class.java, String::class.java).type
 
     override fun ImGuiBuilder.buildLayout() {
-        combo(name, "${value.size} item(s)") {
+        combo("##$name", "$name: ${value.size} item(s)") {
             immutableList
                 .forEach {
                     val isSelected = value.contains(it)

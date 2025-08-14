@@ -31,6 +31,7 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
+import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.moveY
@@ -76,12 +77,21 @@ object HighwayTools : Module(
     private var currentPos = BlockPos.ORIGIN
     private var runningTask: Task<*>? = null
 
-    enum class Material {
-        None, Solid, Block
+    enum class Material(
+        override val displayName: String,
+        override val description: String
+    ): NamedEnum, Describable {
+        None("None", "Wont pave the highway"),
+        Solid("Solid", "Paves the highway with solid blocks. Will use any full block available. Useful if you only want to make sure that the highway is encased."),
+        Block("Block", "Paves the highway with a specific block. Will use the block you specified in the settings"),
     }
 
-    enum class Corner {
-        None, Solid
+    enum class Corner(
+        override val displayName: String,
+        override val description: String
+    ): NamedEnum, Describable {
+        None("None", "Wont fill the corner block of the highway pavement below the rims."),
+        Solid("Solid", "Fills the corner block of the highway pavement below the rims with solid blocks."),
     }
 
     enum class Group(override val displayName: String): NamedEnum {

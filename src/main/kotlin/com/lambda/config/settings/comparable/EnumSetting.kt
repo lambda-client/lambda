@@ -59,9 +59,9 @@ class EnumSetting<T : Enum<T>>(
 
     override fun ImGuiBuilder.buildLayout() {
         val values = value.enumValues
-        val preview = value.displayValue
+        val currentDisplay = value.displayValue
 
-        combo("##$name", preview = preview) {
+        combo("##$name", preview = "$name: $currentDisplay") {
             values.forEachIndexed { idx, v ->
                 val isSelected = idx == index
 
@@ -73,11 +73,9 @@ class EnumSetting<T : Enum<T>>(
             }
         }
 
-        (value as? Describable)?.let { lambdaTooltip(it.description) }
-        sameLine()
-        text(name)
-        if (description.isNotBlank()) lambdaTooltip(description)
+        lambdaTooltip(description)
     }
+
 
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

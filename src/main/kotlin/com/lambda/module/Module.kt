@@ -136,10 +136,11 @@ abstract class Module(
 
     override fun ImGuiBuilder.buildLayout() {
         checkbox("##-${this@Module}", ::isEnabled)
+        lambdaTooltip(description)
         sameLine()
-
         treeNode(name) {
-            group { // Use a group to ensure layout is calculated correctly.
+            lambdaTooltip(description)
+            group {
                 val visibleSettings = settings.filter { it.visibility() }
                 val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
 
@@ -148,9 +149,6 @@ abstract class Module(
                 renderGroup(grouped, emptyList())
             }
         }
-
-        sameLine()
-        helpMarker(description)
     }
 
     private fun ImGuiBuilder.renderGroup(settings: List<AbstractSetting<*>>, parentPath: List<NamedEnum>) {
