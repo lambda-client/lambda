@@ -21,9 +21,9 @@ import com.lambda.event.Event
 
 sealed class UpdateManagerEvent {
     data object Rotation : Event
-    data object Inventory: Event
+    data object Inventory : Event
     data object Hotbar : Event
     data object Break : Event
     data object Place : Event
-    data object Interact: Event
+    data object Interact : Event
 }

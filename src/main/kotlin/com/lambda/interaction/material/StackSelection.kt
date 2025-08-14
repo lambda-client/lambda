@@ -22,11 +22,9 @@ import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.Enchantment
-import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.RegistryKey
-import net.minecraft.registry.tag.ItemTags
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import kotlin.reflect.KClass
@@ -248,11 +246,14 @@ class StackSelection {
 
         @StackSelectionDsl
         fun Item.select() = selectStack { isItem(this@select) }
+
         @StackSelectionDsl
         fun ItemStack.select() = selectStack { isItemStack(this@select) }
+
         @StackSelectionDsl
         @JvmName("selectStacks")
         fun Collection<ItemStack>.select() = selectStack { isOneOfStacks(this@select) }
+
         @StackSelectionDsl
         @JvmName("selectItems")
         fun Collection<Item>.select() = selectStack { isOneOfItems(this@select) }

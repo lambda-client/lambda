@@ -38,82 +38,10 @@ package com.lambda.gui.dsl
 
 import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.util.math.Vec2d
-import imgui.ImDrawList
-import imgui.ImFont
-import imgui.ImGui
-import imgui.ImGui.begin
-import imgui.ImGui.beginChild
-import imgui.ImGui.beginDragDropSource
-import imgui.ImGui.beginDragDropTarget
-import imgui.ImGui.beginGroup
-import imgui.ImGui.beginMainMenuBar
-import imgui.ImGui.beginMenu
-import imgui.ImGui.beginMenuBar
-import imgui.ImGui.beginPopup
-import imgui.ImGui.beginPopupContextItem
-import imgui.ImGui.beginPopupContextVoid
-import imgui.ImGui.beginPopupContextWindow
-import imgui.ImGui.beginPopupModal
-import imgui.ImGui.beginTabBar
-import imgui.ImGui.beginTabItem
-import imgui.ImGui.beginTooltip
-import imgui.ImGui.calcTextSize
-import imgui.ImGui.collapsingHeader
-import imgui.ImGui.colorPicker4
-import imgui.ImGui.end
-import imgui.ImGui.endChild
-import imgui.ImGui.endDragDropSource
-import imgui.ImGui.endDragDropTarget
-import imgui.ImGui.endGroup
-import imgui.ImGui.endMainMenuBar
-import imgui.ImGui.endMenu
-import imgui.ImGui.endMenuBar
-import imgui.ImGui.endPopup
-import imgui.ImGui.endTabBar
-import imgui.ImGui.endTabItem
-import imgui.ImGui.endTooltip
-import imgui.ImGui.getColorU32
-import imgui.ImGui.getStyle
-import imgui.ImGui.isMouseClicked
-import imgui.ImGui.popFont
-import imgui.ImGui.popID
-import imgui.ImGui.popItemWidth
-import imgui.ImGui.popStyleColor
-import imgui.ImGui.popStyleVar
-import imgui.ImGui.popTextWrapPos
-import imgui.ImGui.pushFont
-import imgui.ImGui.pushID
-import imgui.ImGui.pushItemWidth
-import imgui.ImGui.pushStyleColor
-import imgui.ImGui.pushStyleVar
-import imgui.ImGui.pushTextWrapPos
-import imgui.ImGui.setClipboardText
-import imgui.ImGui.setCursorPosX
-import imgui.ImGui.textUnformatted
-import imgui.ImGui.treePop
-import imgui.ImGuiIO
-import imgui.ImGuiStyle
-import imgui.ImGuiTextFilter
-import imgui.ImGuiViewport
-import imgui.ImVec2
-import imgui.flag.ImDrawListFlags
-import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiColorEditFlags
-import imgui.flag.ImGuiComboFlags
-import imgui.flag.ImGuiDir
-import imgui.flag.ImGuiHoveredFlags
-import imgui.flag.ImGuiInputTextFlags
-import imgui.flag.ImGuiMouseButton
-import imgui.flag.ImGuiPopupFlags
-import imgui.flag.ImGuiSelectableFlags
-import imgui.flag.ImGuiTabBarFlags
-import imgui.flag.ImGuiTreeNodeFlags
-import imgui.flag.ImGuiWindowFlags
-import imgui.type.ImBoolean
-import imgui.type.ImDouble
-import imgui.type.ImFloat
-import imgui.type.ImInt
-import imgui.type.ImString
+import imgui.*
+import imgui.ImGui.*
+import imgui.flag.*
+import imgui.type.*
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
@@ -311,7 +239,12 @@ object ImGuiBuilder {
      * @see ImGuiWindowFlags
      */
     @ImGuiDsl
-    inline fun window(name: String, open: KMutableProperty0<Boolean>, flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
+    inline fun window(
+        name: String,
+        open: KMutableProperty0<Boolean>,
+        flags: Int = ImGuiWindowFlags.None,
+        block: ProcedureBlock
+    ) =
         withBool(open) { window(name, it, flags, block) }
 
     /**
@@ -325,7 +258,12 @@ object ImGuiBuilder {
      * @see ImGuiWindowFlags
      */
     @ImGuiDsl
-    inline fun window(name: String, open: ImBoolean? = null, flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) {
+    inline fun window(
+        name: String,
+        open: ImBoolean? = null,
+        flags: Int = ImGuiWindowFlags.None,
+        block: ProcedureBlock
+    ) {
         if (open != null) begin(name, open, flags)
         else begin(name, flags)
 
@@ -515,7 +453,12 @@ object ImGuiBuilder {
      * @param block Action to perform when selection changes
      */
     @ImGuiDsl
-    inline fun <T> radioButtons(label: String, current: KMutableProperty0<T>, items: List<Pair<String, T>>, block: (T) -> Unit = {}) {
+    inline fun <T> radioButtons(
+        label: String,
+        current: KMutableProperty0<T>,
+        items: List<Pair<String, T>>,
+        block: (T) -> Unit = {}
+    ) {
         text(label)
         indent()
         for ((itemLabel, itemValue) in items) {
@@ -1191,7 +1134,12 @@ object ImGuiBuilder {
      * @see ImGuiColorEditFlags
      */
     @ImGuiDsl
-    inline fun colorButton(descId: String, color: Color, flags: Int = ImGuiColorEditFlags.None, block: ProcedureBlock = {}) {
+    inline fun colorButton(
+        descId: String,
+        color: Color,
+        flags: Int = ImGuiColorEditFlags.None,
+        block: ProcedureBlock = {}
+    ) {
         val floats = floatArrayOf(0f, 0f, 0f, 0f)
         val (r, g, b, a) = color.getColorComponents(floats)
 
@@ -1477,7 +1425,11 @@ object ImGuiBuilder {
      * @param block Content of the popup
      */
     @ImGuiDsl
-    inline fun popupContextItem(strId: String = "", popupFlags: Int = ImGuiPopupFlags.MouseButtonRight, block: ProcedureBlock) {
+    inline fun popupContextItem(
+        strId: String = "",
+        popupFlags: Int = ImGuiPopupFlags.MouseButtonRight,
+        block: ProcedureBlock
+    ) {
         if (beginPopupContextItem(strId, popupFlags)) {
             block()
             endPopup()
@@ -1492,7 +1444,11 @@ object ImGuiBuilder {
      * @param block Content of the popup
      */
     @ImGuiDsl
-    inline fun popupContextWindow(strId: String = "", popupFlags: Int = ImGuiPopupFlags.MouseButtonRight, block: ProcedureBlock) {
+    inline fun popupContextWindow(
+        strId: String = "",
+        popupFlags: Int = ImGuiPopupFlags.MouseButtonRight,
+        block: ProcedureBlock
+    ) {
         if (beginPopupContextWindow(strId, popupFlags)) {
             block()
             endPopup()
@@ -1507,7 +1463,11 @@ object ImGuiBuilder {
      * @param block Content of the popup
      */
     @ImGuiDsl
-    inline fun popupContextVoid(strId: String = "", popupFlags: Int = ImGuiPopupFlags.MouseButtonRight, block: ProcedureBlock) {
+    inline fun popupContextVoid(
+        strId: String = "",
+        popupFlags: Int = ImGuiPopupFlags.MouseButtonRight,
+        block: ProcedureBlock
+    ) {
         if (beginPopupContextVoid(strId, popupFlags)) {
             block()
             endPopup()

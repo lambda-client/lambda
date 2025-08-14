@@ -44,7 +44,10 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType
-import com.lambda.interaction.request.breaking.BreakInfo.BreakType.*
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.activeRequest
 import com.lambda.interaction.request.breaking.BreakManager.breakInfos
 import com.lambda.interaction.request.breaking.BreakManager.breaks
@@ -87,9 +90,6 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.world.BlockView
-import kotlin.collections.firstOrNull
-import kotlin.collections.forEach
-import kotlin.collections.lastOrNull
 import kotlin.math.max
 
 object BreakManager : RequestHandler<BreakRequest>(
@@ -242,14 +242,22 @@ object BreakManager : RequestHandler<BreakRequest>(
                     val nextTicksProgress = (currentDelta + breakDelta) / adjustedThreshold
                     val interpolatedProgress = lerp(mc.partialTicks, currentProgress, nextTicksProgress)
 
-                    val fillColor = if (config.dynamicFillColor) lerp(interpolatedProgress, config.startFillColor, config.endFillColor)
+                    val fillColor = if (config.dynamicFillColor) lerp(
+                        interpolatedProgress,
+                        config.startFillColor,
+                        config.endFillColor
+                    )
                     else config.staticFillColor
-                    val outlineColor = if (config.dynamicOutlineColor) lerp(interpolatedProgress, config.startOutlineColor, config.endOutlineColor)
+                    val outlineColor = if (config.dynamicOutlineColor) lerp(
+                        interpolatedProgress,
+                        config.startOutlineColor,
+                        config.endOutlineColor
+                    )
                     else config.staticOutlineColor
 
                     info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
-                    }.forEach boxes@ { box ->
+                    }.forEach boxes@{ box ->
                         val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
                         if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
                         if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
@@ -507,7 +515,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filterNotNull()
             .filter { it.abandoned && it.type != RedundantSecondary }
             .forEach { info ->
-                with (info.request) {
+                with(info.request) {
                     info.context.blockPos
                         .toStructure(TargetState.Empty)
                         .toBlueprint()
@@ -537,8 +545,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }
                     info.progressedThisTick = true
                     info.breakingTicks++
-                }
-                else info.cancelBreak()
+                } else info.cancelBreak()
             }
     }
 
@@ -598,8 +605,16 @@ object BreakManager : RequestHandler<BreakRequest>(
         val cachedState = context.cachedState
         swapStack = player.inventory.getStack(context.hotbarIndex)
 
-        val breakAmount = cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack) * (breakingTicks + 1)
-        val breakAmountNoEfficiency = cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack, ignoreEfficiency = true) * (breakingTicks + 1)
+        val breakAmount =
+            cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack) * (breakingTicks + 1)
+        val breakAmountNoEfficiency = cachedState.calcBreakDelta(
+            player,
+            world,
+            context.blockPos,
+            breakConfig,
+            swapStack,
+            ignoreEfficiency = true
+        ) * (breakingTicks + 1)
 
         minSwapTicks = if (breakAmount >= getBreakThreshold() || couldReBreak) {
             val min = if (breakAmountNoEfficiency >= getBreakThreshold()) 0 else 1

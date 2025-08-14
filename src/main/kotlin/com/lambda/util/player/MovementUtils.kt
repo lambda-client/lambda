@@ -82,7 +82,10 @@ object MovementUtils {
         return newInput
     }
 
-    @Deprecated(message = "mergeFrom is deprecated in favor of Input.update", replaceWith = ReplaceWith("this.update()"))
+    @Deprecated(
+        message = "mergeFrom is deprecated in favor of Input.update",
+        replaceWith = ReplaceWith("this.update()")
+    )
     fun Input.mergeFrom(input: Input) {
         playerInput = input.playerInput
         movementVector = input.movementVector

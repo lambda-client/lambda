@@ -191,7 +191,7 @@ object StorageESP : Module(
             else -> null
         }
 
-    private enum class Group(override val displayName: String): NamedEnum {
+    private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Render("Render"),
         Color("Color")

@@ -85,7 +85,7 @@ interface BreakConfig : RequestConfig {
     enum class BreakMode(
         override val displayName: String,
         override val description: String
-    ): NamedEnum, Describable {
+    ) : NamedEnum, Describable {
         Vanilla("Vanilla", "Uses vanilla breaking"),
         Packet("Packet", "Breaks blocks using only using packets")
     }
@@ -93,7 +93,7 @@ interface BreakConfig : RequestConfig {
     enum class SortMode(
         override val displayName: String,
         override val description: String
-    ): NamedEnum, Describable {
+    ) : NamedEnum, Describable {
         Closest("Closest", "Breaks blocks closest to the player eye position"),
         Farthest("Farthest", "Breaks blocks farthest from the player eye position"),
         Rotation("Rotation", "Breaks blocks that are closest to the player rotation"),

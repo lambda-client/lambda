@@ -56,10 +56,10 @@ fun DynamicESPRenderer.buildFilled(
     val trb by lazy { vertex { vec3(pos12.x, pos12.y, pos11.z).vec3(pos22.x, pos22.y, pos21.z).color(color) } }
     val trf by lazy { vertex { vec3(pos12.x, pos12.y, pos12.z).vec3(pos22.x, pos22.y, pos22.z).color(color) } }
 
-    if (sides.hasDirection(DirectionMask.EAST))  buildQuad(brb, trb, trf, brf)
-    if (sides.hasDirection(DirectionMask.WEST))  buildQuad(blb, blf, tlf, tlb)
-    if (sides.hasDirection(DirectionMask.UP))    buildQuad(tlb, tlf, trf, trb)
-    if (sides.hasDirection(DirectionMask.DOWN))  buildQuad(blb, brb, brf, blf)
+    if (sides.hasDirection(DirectionMask.EAST)) buildQuad(brb, trb, trf, brf)
+    if (sides.hasDirection(DirectionMask.WEST)) buildQuad(blb, blf, tlf, tlb)
+    if (sides.hasDirection(DirectionMask.UP)) buildQuad(tlb, tlf, trf, trb)
+    if (sides.hasDirection(DirectionMask.DOWN)) buildQuad(blb, brb, brf, blf)
     if (sides.hasDirection(DirectionMask.SOUTH)) buildQuad(blf, brf, trf, tlf)
     if (sides.hasDirection(DirectionMask.NORTH)) buildQuad(blb, tlb, trb, brb)
 }
@@ -86,22 +86,22 @@ fun DynamicESPRenderer.buildOutline(
     val trb by lazy { vertex { vec3(pos12.x, pos12.y, pos11.z).vec3(pos22.x, pos22.y, pos21.z).color(color) } }
     val trf by lazy { vertex { vec3(pos12.x, pos12.y, pos12.z).vec3(pos22.x, pos22.y, pos22.z).color(color) } }
 
-    val hasEast  = sides.hasDirection(DirectionMask.EAST)
-    val hasWest  = sides.hasDirection(DirectionMask.WEST)
-    val hasUp    = sides.hasDirection(DirectionMask.UP)
-    val hasDown  = sides.hasDirection(DirectionMask.DOWN)
+    val hasEast = sides.hasDirection(DirectionMask.EAST)
+    val hasWest = sides.hasDirection(DirectionMask.WEST)
+    val hasUp = sides.hasDirection(DirectionMask.UP)
+    val hasDown = sides.hasDirection(DirectionMask.DOWN)
     val hasSouth = sides.hasDirection(DirectionMask.SOUTH)
     val hasNorth = sides.hasDirection(DirectionMask.NORTH)
 
-    if (outlineMode.check(hasUp, hasNorth))   buildLine(tlb, trb)
-    if (outlineMode.check(hasUp, hasSouth))   buildLine(tlf, trf)
-    if (outlineMode.check(hasUp, hasWest))    buildLine(tlb, tlf)
-    if (outlineMode.check(hasUp, hasEast))    buildLine(trf, trb)
+    if (outlineMode.check(hasUp, hasNorth)) buildLine(tlb, trb)
+    if (outlineMode.check(hasUp, hasSouth)) buildLine(tlf, trf)
+    if (outlineMode.check(hasUp, hasWest)) buildLine(tlb, tlf)
+    if (outlineMode.check(hasUp, hasEast)) buildLine(trf, trb)
 
     if (outlineMode.check(hasDown, hasNorth)) buildLine(blb, brb)
     if (outlineMode.check(hasDown, hasSouth)) buildLine(blf, brf)
-    if (outlineMode.check(hasDown, hasWest))  buildLine(blb, blf)
-    if (outlineMode.check(hasDown, hasEast))  buildLine(brb, brf)
+    if (outlineMode.check(hasDown, hasWest)) buildLine(blb, blf)
+    if (outlineMode.check(hasDown, hasEast)) buildLine(brb, brf)
 
     if (outlineMode.check(hasWest, hasNorth)) buildLine(tlb, blb)
     if (outlineMode.check(hasNorth, hasEast)) buildLine(trb, brb)

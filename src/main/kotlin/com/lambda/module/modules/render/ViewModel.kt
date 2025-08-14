@@ -154,7 +154,7 @@ object ViewModel : Module(
 
         if (fov == 70f) return
 
-        val fovRatio = tan(Math.toRadians(fov.toDouble()/2)).toFloat() / tan(Math.toRadians(70.0/2)).toFloat()
+        val fovRatio = tan(Math.toRadians(fov.toDouble() / 2)).toFloat() / tan(Math.toRadians(70.0 / 2)).toFloat()
 
         val matrix = matrices.peek().positionMatrix
 

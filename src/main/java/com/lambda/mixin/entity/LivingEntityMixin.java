@@ -20,8 +20,8 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.module.modules.render.ViewModel;
 import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.module.modules.render.ViewModel;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -34,11 +34,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
 
-    @Shadow
-    protected abstract float getJumpVelocity();
+    @Unique private final LivingEntity lambda$instance = (LivingEntity) (Object) this;
 
-    @Unique
-    private final LivingEntity lambda$instance = (LivingEntity) (Object) this;
+    @Shadow protected abstract float getJumpVelocity();
 
     /**
      * Overwrites the jump function to use our rotation and movements

@@ -18,16 +18,41 @@
 package com.lambda.graphics.buffer.frame
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.texture.TextureUtils
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL12C.GL_CLAMP_TO_EDGE
-import org.lwjgl.opengl.GL30C.*
-import sun.awt.geom.Curve.prev
+import org.lwjgl.opengl.GL30C.GL_COLOR_ATTACHMENT0
+import org.lwjgl.opengl.GL30C.GL_COLOR_BUFFER_BIT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_ATTACHMENT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_BUFFER_BIT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_COMPONENT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_COMPONENT32F
+import org.lwjgl.opengl.GL30C.GL_FLOAT
+import org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER
+import org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER_COMPLETE
+import org.lwjgl.opengl.GL30C.GL_LINEAR
+import org.lwjgl.opengl.GL30C.GL_RGBA
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_2D
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_MAG_FILTER
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_MIN_FILTER
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_WRAP_S
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_WRAP_T
+import org.lwjgl.opengl.GL30C.GL_UNSIGNED_BYTE
+import org.lwjgl.opengl.GL30C.glBindFramebuffer
+import org.lwjgl.opengl.GL30C.glCheckFramebufferStatus
+import org.lwjgl.opengl.GL30C.glClear
+import org.lwjgl.opengl.GL30C.glClearColor
+import org.lwjgl.opengl.GL30C.glClearDepth
+import org.lwjgl.opengl.GL30C.glFramebufferTexture2D
+import org.lwjgl.opengl.GL30C.glGenFramebuffers
+import org.lwjgl.opengl.GL30C.glGenTextures
+import org.lwjgl.opengl.GL30C.glTexImage2D
+import org.lwjgl.opengl.GL30C.glTexParameteri
 import java.nio.IntBuffer
 
 open class FrameBuffer(

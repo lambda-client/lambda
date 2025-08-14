@@ -301,116 +301,120 @@ object CrystalAura : Module(
         updateTimer.runIfPassed(updateDelay.milliseconds) {
             resetBlueprint()
 
-        // Build damage info
-        fun info(
-            pos: BlockPos, target: LivingEntity,
-            blocked: Boolean,
-            crystal: EndCrystalEntity? = null
-        ): Opportunity? {
-            val crystalPos = pos.crystalPosition
+            // Build damage info
+            fun info(
+                pos: BlockPos, target: LivingEntity,
+                blocked: Boolean,
+                crystal: EndCrystalEntity? = null
+            ): Opportunity? {
+                val crystalPos = pos.crystalPosition
 
-            // Calculate the damage to the target from the explosion of the crystal
-            val targetDamage = crystalDamage(crystalPos, target)
-            if (targetDamage < minTargetDamage) return null
+                // Calculate the damage to the target from the explosion of the crystal
+                val targetDamage = crystalDamage(crystalPos, target)
+                if (targetDamage < minTargetDamage) return null
 
-            // Calculate the self-damage for the player
-            val selfDamage = crystalDamage(crystalPos, player)
-            if (selfDamage > maxSelfDamage) return null
+                // Calculate the self-damage for the player
+                val selfDamage = crystalDamage(crystalPos, player)
+                if (selfDamage > maxSelfDamage) return null
 
-            if (priorityMode == Priority.Advantage && priorityMode.factor(targetDamage, selfDamage) < minDamageAdvantage) return null
+                if (priorityMode == Priority.Advantage && priorityMode.factor(
+                        targetDamage,
+                        selfDamage
+                    ) < minDamageAdvantage
+                ) return null
 
-            // Return the calculated damage info if conditions are met
-            return Opportunity(
-                pos.toImmutable(),
-                targetDamage,
-                selfDamage,
-                blocked,
-                crystal
-            )
-        }
-
-        // Extra checks for placement, because you may explode but not place in special cases(crystal in the air)
-        @Suppress("ConvertArgumentToSet")
-        fun placeInfo(
-            pos: BlockPos,
-            target: LivingEntity
-        ): Opportunity? {
-            // Check if crystals could be placed on the base block
-            val state = blockState(pos)
-            val isOfBlock = state.isOf(Blocks.OBSIDIAN) || state.isOf(Blocks.BEDROCK)
-            if (!isOfBlock) return null
-
-            // Check if the block above is air and other conditions for valid crystal placement
-            val above = pos.up()
-            if (!world.isAir(above)) return null
-            if (oldPlace && !world.isAir(above.up())) return null
-
-            // Exclude blocks blocked by entities
-            val crystalBox = pos.crystalBox
-
-            val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
-            val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
-            val otherEntities = entitiesNearby - crystals + player
-
-            if (otherEntities.any {
-                    it.boundingBox.intersects(crystalBox)
-                }) return null
-
-            // Placement collision checks
-            val baseCrystal = crystals.firstOrNull {
-                it.baseBlockPos == pos
+                // Return the calculated damage info if conditions are met
+                return Opportunity(
+                    pos.toImmutable(),
+                    targetDamage,
+                    selfDamage,
+                    blocked,
+                    crystal
+                )
             }
 
-            val crystalPlaceBox = pos.crystalPlaceHitBox
-            val blocked = baseCrystal == null && crystals.any {
-                it.boundingBox.intersects(crystalPlaceBox)
+            // Extra checks for placement, because you may explode but not place in special cases(crystal in the air)
+            @Suppress("ConvertArgumentToSet")
+            fun placeInfo(
+                pos: BlockPos,
+                target: LivingEntity
+            ): Opportunity? {
+                // Check if crystals could be placed on the base block
+                val state = blockState(pos)
+                val isOfBlock = state.isOf(Blocks.OBSIDIAN) || state.isOf(Blocks.BEDROCK)
+                if (!isOfBlock) return null
+
+                // Check if the block above is air and other conditions for valid crystal placement
+                val above = pos.up()
+                if (!world.isAir(above)) return null
+                if (oldPlace && !world.isAir(above.up())) return null
+
+                // Exclude blocks blocked by entities
+                val crystalBox = pos.crystalBox
+
+                val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
+                val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
+                val otherEntities = entitiesNearby - crystals + player
+
+                if (otherEntities.any {
+                        it.boundingBox.intersects(crystalBox)
+                    }) return null
+
+                // Placement collision checks
+                val baseCrystal = crystals.firstOrNull {
+                    it.baseBlockPos == pos
+                }
+
+                val crystalPlaceBox = pos.crystalPlaceHitBox
+                val blocked = baseCrystal == null && crystals.any {
+                    it.boundingBox.intersects(crystalPlaceBox)
+                }
+
+                return info(
+                    pos,
+                    target,
+                    blocked,
+                    baseCrystal
+                )
             }
 
-            return info(
-                pos,
-                target,
-                blocked,
-                baseCrystal
-            )
-        }
+            val range = max(placeRange, explodeRange) + 1
+            val rangeInt = range.ceilToInt()
 
-        val range = max(placeRange, explodeRange) + 1
-        val rangeInt = range.ceilToInt()
+            // Iterate through existing crystals
+            val crystalBase = BlockPos.Mutable()
+            fastEntitySearch<EndCrystalEntity>(range).forEach { crystal ->
+                crystalBase.set(crystal.x, crystal.y - 0.5, crystal.z)
+                damage += info(crystalBase, target, false, crystal) ?: return@forEach
+            }
 
-        // Iterate through existing crystals
-        val crystalBase = BlockPos.Mutable()
-        fastEntitySearch<EndCrystalEntity>(range).forEach { crystal ->
-            crystalBase.set(crystal.x, crystal.y - 0.5, crystal.z)
-            damage += info(crystalBase, target, false, crystal) ?: return@forEach
-        }
+            // Iterate through possible place positions and calculate damage information for each
+            BlockPos.iterateOutwards(player.blockPos.up(), rangeInt, rangeInt, rangeInt).forEach { pos ->
+                if (pos distSq player.pos > range * range) return@forEach
+                if (damage.any { info -> info.blockPos == pos }) return@forEach
 
-        // Iterate through possible place positions and calculate damage information for each
-        BlockPos.iterateOutwards(player.blockPos.up(), rangeInt, rangeInt, rangeInt).forEach { pos ->
-            if (pos distSq player.pos > range * range) return@forEach
-            if (damage.any { info -> info.blockPos == pos }) return@forEach
+                damage += placeInfo(pos, target) ?: return@forEach
+            }
 
-            damage += placeInfo(pos, target) ?: return@forEach
-        }
+            // Map opportunities
+            damage.forEach {
+                blueprint[it.blockPos] = it
+            }
 
-        // Map opportunities
-        damage.forEach {
-            blueprint[it.blockPos] = it
-        }
+            // Associate by actions
+            blueprint.values.forEach { opportunity ->
+                actionMap.getOrPut(opportunity.actionType, ::mutableListOf) += opportunity
 
-        // Associate by actions
-        blueprint.values.forEach { opportunity ->
-            actionMap.getOrPut(opportunity.actionType, ::mutableListOf) += opportunity
+                if (opportunity.actionType.priority > actionType.priority) {
+                    actionType = opportunity.actionType
+                }
+            }
 
-            if (opportunity.actionType.priority > actionType.priority) {
-                actionType = opportunity.actionType
+            // Select best action
+            activeOpportunity = actionMap[actionType]?.maxByOrNull {
+                it.priority
             }
         }
-
-        // Select best action
-        activeOpportunity = actionMap[actionType]?.maxByOrNull {
-            it.priority
-        }
-    }
 
     private fun resetBlueprint() {
         blueprint.clear()

@@ -221,9 +221,9 @@ object VisibilityChecker {
             val stepY = (endY - startY) / resolution
             val stepZ = (endZ - startZ) / resolution
 
-            (0..resolution).forEach outer@ { i ->
+            (0..resolution).forEach outer@{ i ->
                 val x = if (stepX != 0.0) startX + (stepX * i) else startX
-                (0..resolution).forEach inner@ { j ->
+                (0..resolution).forEach inner@{ j ->
                     val y = if (stepY != 0.0) startY + (stepY * j) else startY
                     val z = if (stepZ != 0.0) startZ + stepZ * ((if (stepX != 0.0) j else i)) else startZ
                     check(side, Vec3d(x, y, z))

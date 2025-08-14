@@ -27,16 +27,10 @@ import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.Describable
-import com.lambda.util.NamedEnum
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.extension.displayValue
-import imgui.ImColor
-import imgui.ImGui
-import imgui.ImVec2
-import imgui.flag.ImGuiSliderFlags.AlwaysClamp
 import net.minecraft.command.CommandRegistryAccess
-import java.awt.Color
 import kotlin.properties.Delegates
 
 /**
@@ -75,7 +69,6 @@ class EnumSetting<T : Enum<T>>(
 
         lambdaTooltip(description)
     }
-
 
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

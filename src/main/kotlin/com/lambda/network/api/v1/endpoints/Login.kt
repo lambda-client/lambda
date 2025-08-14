@@ -35,8 +35,8 @@ import io.ktor.http.*
  * @return result of [Authentication]
  */
 suspend fun login(username: String, hash: String) = runCatching {
-	LambdaHttp.post("${apiUrl}/api/$apiVersion/login") {
-		setBody("""{ "username": "$username", "hash": "$hash" }""")
-		contentType(ContentType.Application.Json)
-	}.body<Authentication>()
+    LambdaHttp.post("${apiUrl}/api/$apiVersion/login") {
+        setBody("""{ "username": "$username", "hash": "$hash" }""")
+        contentType(ContentType.Application.Json)
+    }.body<Authentication>()
 }

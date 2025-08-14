@@ -22,8 +22,8 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
 object GifTest : HudModule(
-    name    = "GifTest",
-    tag     = ModuleTag.CLIENT,
+    name = "GifTest",
+    tag = ModuleTag.CLIENT,
 ) {
     private val test = uploadGif("chika.gif")
 

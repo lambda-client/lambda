@@ -60,6 +60,9 @@ object EnchantmentUtils {
     /**
      * Iterates over all the enchantments of the given [net.minecraft.entity.LivingEntity]'s [EquipmentSlot]
      */
-    fun <T> LivingEntity.forEachSlot(vararg slots: EquipmentSlot, block: (entry: RegistryEntry<Enchantment>, level: Int) -> T) =
+    fun <T> LivingEntity.forEachSlot(
+        vararg slots: EquipmentSlot,
+        block: (entry: RegistryEntry<Enchantment>, level: Int) -> T
+    ) =
         slots.flatMap { getEquippedStack(it).forEachEnchantment(block) }
 }

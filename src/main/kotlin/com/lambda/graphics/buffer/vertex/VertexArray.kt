@@ -60,7 +60,7 @@ class VertexArray(
         )
     }
 
-    fun linkVbo(vbo: PersistentBuffer, block: VertexArray.() -> Unit = {  }) {
+    fun linkVbo(vbo: PersistentBuffer, block: VertexArray.() -> Unit = { }) {
         linkedVBO = vbo
 
         bind {

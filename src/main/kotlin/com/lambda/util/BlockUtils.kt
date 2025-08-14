@@ -92,7 +92,11 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.state.property.Property
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import net.minecraft.world.BlockView
 
 object BlockUtils {
@@ -229,8 +233,8 @@ object BlockUtils {
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
     fun BlockState.matches(state: BlockState, ignoredProperties: Collection<Property<*>> = emptySet()) =
-         this.block == state.block && this.properties.all {
-             this[it] == state[it] || it in ignoredProperties
+        this.block == state.block && this.properties.all {
+            this[it] == state[it] || it in ignoredProperties
         }
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
@@ -238,7 +242,12 @@ object BlockUtils {
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
     }
 
-    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, item: ItemStack, breakThreshold: Float): Boolean {
+    fun SafeContext.instantBreakable(
+        blockState: BlockState,
+        blockPos: BlockPos,
+        item: ItemStack,
+        breakThreshold: Float
+    ): Boolean {
         val ticksNeeded = 1 / (blockState.calcItemBlockBreakingDelta(player, world, blockPos, item) / breakThreshold)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
     }
@@ -260,7 +269,11 @@ object BlockUtils {
     fun ItemStack.canHarvest(blockState: BlockState) =
         !blockState.isToolRequired || isSuitableFor(blockState)
 
-    fun PlayerEntity.getItemBlockBreakingSpeed(blockState: BlockState, item: ItemStack, ignoreEfficiency: Boolean = false): Float {
+    fun PlayerEntity.getItemBlockBreakingSpeed(
+        blockState: BlockState,
+        item: ItemStack,
+        ignoreEfficiency: Boolean = false
+    ): Float {
         var speedMultiplier = item.getMiningSpeedMultiplier(blockState)
         if (speedMultiplier > 1.0f) {
             val level = if (ignoreEfficiency) 0 else item.getEnchantment(Enchantments.EFFICIENCY)
@@ -302,7 +315,9 @@ object BlockUtils {
     val BlockState.isNotEmpty get() = !isEmpty
     val BlockState.hasFluid get() = !fluidState.isEmpty
     val BlockState.emptyState: BlockState get() = fluidState.blockState
-    fun isBroken(oldState: BlockState, newState: BlockState) = oldState.isNotEmpty && oldState.emptyState.matches(newState)
+    fun isBroken(oldState: BlockState, newState: BlockState) =
+        oldState.isNotEmpty && oldState.emptyState.matches(newState)
+
     fun isNotBroken(oldState: BlockState, newState: BlockState) = !isBroken(oldState, newState)
 
     val Vec3i.blockPos: BlockPos get() = BlockPos(this)

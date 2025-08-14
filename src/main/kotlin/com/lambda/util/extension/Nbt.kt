@@ -47,15 +47,15 @@ fun NbtCompound.getVector(key: String): Optional<Vec3i> {
 
     val x = compound.getInt("x")
         .or { compound.getInt("X") }
-        .or { array.map { it[0] }}
+        .or { array.map { it[0] } }
 
     val y = compound.getInt("y")
         .or { compound.getInt("Y") }
-        .or { array.map { it[1] }}
+        .or { array.map { it[1] } }
 
     val z = compound.getInt("z")
         .or { compound.getInt("Z") }
-        .or { array.map { it[2] }}
+        .or { array.map { it[2] } }
 
     return if (x.isPresent && y.isPresent && z.isPresent) Optional.of(Vec3i(x.get(), y.get(), z.get()))
     else Optional.empty()

@@ -109,6 +109,7 @@ object DamageUtils {
         val modifier = getStatusEffect(JUMP_BOOST)?.amplifier?.plus(1.0) ?: 0.0
         return max(0.0, ceil((distance - 3.0 - modifier) * multiplier))
     }
+
     /**
      * Scales damage up or down based on the player resistances and other variables
      *
@@ -127,11 +128,14 @@ object DamageUtils {
             ?.filter { !isIn(it) }
             ?.map {
                 if (source is PersistentProjectileEntity
-                    && source.pierceLevel > 0) return@map 0.0
+                    && source.pierceLevel > 0
+                ) return@map 0.0
 
                 val horizontalAngle = if (position != null) {
-                    acos((entity.pos - position).horizontal.normalize()
-                        .dotProduct(entity.getRotationVector(0f, entity.headYaw)))
+                    acos(
+                        (entity.pos - position).horizontal.normalize()
+                            .dotProduct(entity.getRotationVector(0f, entity.headYaw))
+                    )
                 } else Math.PI
 
                 return@map itemComponent.getDamageReductionAmount(this, damage.toFloat(), horizontalAngle).toDouble()
@@ -143,7 +147,8 @@ object DamageUtils {
 
         if (entity.isAlwaysInvulnerableTo(this) ||
             entity.isDead ||
-            isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)) return 0.0
+            isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)
+        ) return 0.0
 
         if (isIn(IS_FREEZING) && entity.type.isIn(FREEZE_HURTS_EXTRA_TYPES))
             return amount * 5.0
@@ -151,8 +156,10 @@ object DamageUtils {
         if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
             return amount * 0.75
 
-        val appliedDamage = entity.applyArmorToDamage(this,
-            entity.modifyAppliedDamage(this, amount.toFloat())).toDouble()
+        val appliedDamage = entity.applyArmorToDamage(
+            this,
+            entity.modifyAppliedDamage(this, amount.toFloat())
+        ).toDouble()
 
         return if (entity is PlayerEntity && isScaledWithDifficulty)
             world.scaleDamage(appliedDamage) else appliedDamage

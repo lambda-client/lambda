@@ -29,7 +29,7 @@ class ParsedShader(path: String) {
     val methods = text.getMethods()
     val definitions = text.getDefinitions()
 
-    val attribs  = blocks.getBlock("attributes")
+    val attribs = blocks.getBlock("attributes")
     val uniforms = blocks.getBlock("uniforms")
     val exported = blocks.getBlock("export")
 
@@ -63,7 +63,10 @@ class ParsedShader(path: String) {
 
     companion object {
         private val blockRegex = Regex("""\s*(\w+)\s*\{(.*?)}\s*""", RegexOption.DOT_MATCHES_ALL)
-        private val methodRegex = Regex("""^\s*(\w+)\s+(\w+)\s*\((.*?)\)\s*\{(.*?)}#""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.MULTILINE))
+        private val methodRegex = Regex(
+            """^\s*(\w+)\s+(\w+)\s*\((.*?)\)\s*\{(.*?)}#""",
+            setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.MULTILINE)
+        )
 
         private val fieldRegex = Regex("""\s*(\w+(?:\s+\w+)*)\s+(\w+)\s*;\s*(#.*)?""")
         private val includeRegex = Regex("""^#include\s+"([\w-]+)"""", RegexOption.MULTILINE)

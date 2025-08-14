@@ -176,7 +176,8 @@ abstract class AbstractSetting<T : Any>(
                 } catch (_: Exception) {
                     return@executeWithResult failure("$valueString is not a valid JSON string.")
                 }
-                val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return@executeWithResult failure("No config found for $name.")
+                val config = Configuration.configurableBySetting(this@AbstractSetting)
+                    ?: return@executeWithResult failure("No config found for $name.")
                 val previous = this@AbstractSetting.value
                 try {
                     loadFromJson(parsed)

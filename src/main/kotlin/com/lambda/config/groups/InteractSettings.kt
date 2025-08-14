@@ -24,7 +24,7 @@ import com.lambda.util.NamedEnum
 class InteractSettings(
     c: Configurable,
     groupPath: List<NamedEnum> = emptyList(),
-    vis: () -> Boolean =  { true }
+    vis: () -> Boolean = { true }
 ) : InteractConfig {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis).group(groupPath)
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis).group(groupPath)

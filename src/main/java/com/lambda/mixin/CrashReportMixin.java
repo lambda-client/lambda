@@ -73,7 +73,7 @@ public class CrashReportMixin {
                     });
         }
 
-        list.add("\n"+"-".repeat(43)+"\n");
+        list.add("\n" + "-".repeat(43) + "\n");
 
         return original.call(type, list);
     }

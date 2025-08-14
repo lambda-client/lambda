@@ -40,7 +40,6 @@ import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.lwjgl.opengl.GLUtil
 import java.awt.Color
 import java.util.*
 
@@ -73,7 +72,9 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
         .create()
 
-    override fun onInitializeClient() { recordRenderCall {
-        LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
-    } }
+    override fun onInitializeClient() {
+        recordRenderCall {
+            LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
+        }
+    }
 }

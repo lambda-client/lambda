@@ -53,7 +53,8 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     ) { info ->
         runSafe {
             val pos = info.context.blockPos
-            val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
+            val loaded =
+                world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
             if (!loaded) return@runSafe
 
             if (!info.broken) {
@@ -97,7 +98,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 
                 if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
                     || (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
-                    ) {
+                ) {
                     destroyBlock(pending)
                 }
                 pending.internalOnBreak()

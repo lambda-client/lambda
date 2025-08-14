@@ -20,18 +20,16 @@ package com.lambda.module.hud
 import com.lambda.context.SafeContext
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.string
-import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
 object Coordinates : HudModule(
-    name        = "Coordinates",
+    name = "Coordinates",
     description = "Show your coordinates",
-    tag         = ModuleTag.CLIENT,
+    tag = ModuleTag.CLIENT,
 ) {
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)

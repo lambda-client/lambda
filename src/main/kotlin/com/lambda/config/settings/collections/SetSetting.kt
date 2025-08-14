@@ -50,8 +50,10 @@ class SetSetting<T : Any>(
                 .forEach {
                     val isSelected = value.contains(it)
 
-                    selectable(it.toString(), isSelected,
-                        flags = DontClosePopups)
+                    selectable(
+                        it.toString(), isSelected,
+                        flags = DontClosePopups
+                    )
                     { if (isSelected) value.remove(it) else value.add(it) }
                 }
         }

@@ -83,7 +83,10 @@ object DearImGui : Loadable {
         }
 
         val framebuffer = mc.framebuffer
-        val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer((RenderSystem.getDevice() as GlBackend).framebufferManager, null)
+        val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer(
+            (RenderSystem.getDevice() as GlBackend).framebufferManager,
+            null
+        )
 
         GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
         glViewport(0, 0, framebuffer.textureWidth, framebuffer.textureHeight)

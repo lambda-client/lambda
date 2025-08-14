@@ -34,9 +34,9 @@ object PropertyPrinter : Module(
             val file = FolderRegister.lambda.resolve("property-print").resolveFile("property-print.txt")
             file.parentFile.mkdirs()
             file.writeText("")
-            StateInfo.propertyFields.forEach properties@ { property ->
+            StateInfo.propertyFields.forEach properties@{ property ->
                 file.appendText("${property.value.name}\n")
-                Blocks::class.java.declaredFields.forEach blocks@ { field ->
+                Blocks::class.java.declaredFields.forEach blocks@{ field ->
                     field.isAccessible = true
                     val block = field.get(null)
                     if (!Block::class.java.isAssignableFrom(block::class.java)) return@blocks

@@ -19,14 +19,13 @@ package com.lambda.module.hud
 
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Formatting.string
 import com.lambda.util.NamedEnum
 import com.lambda.util.ServerTPS.averageMSPerTick
 
 object TPS : HudModule(
-    name        = "TPS",
+    name = "TPS",
     description = "Display the server's tick rate",
-    tag         = ModuleTag.CLIENT,
+    tag = ModuleTag.CLIENT,
 ) {
     private val format by setting("Tick format", TickFormat.TPS)
 

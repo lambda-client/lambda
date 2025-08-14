@@ -18,12 +18,11 @@
 package com.lambda.module.hud
 
 import com.lambda.module.HudModule
-import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 
 object ModuleList : HudModule(
-    name    = "ModuleList",
-    tag     = ModuleTag.CLIENT,
+    name = "ModuleList",
+    tag = ModuleTag.CLIENT,
 ) {
     override val isVisible: Boolean
         get() = false

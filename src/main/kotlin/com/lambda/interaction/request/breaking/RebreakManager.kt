@@ -69,7 +69,8 @@ object RebreakManager {
             val stack = if (info.breakConfig.swapMode.isEnabled())
                 player.inventory.getStack(info.context.hotbarIndex)
             else player.mainHandStack
-            val breakDelta = info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
+            val breakDelta =
+                info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
             reBreak.breakConfig.rebreak &&
                     info.context.blockPos == reBreak.context.blockPos &&
                     !reBreak.updatedThisTick &&

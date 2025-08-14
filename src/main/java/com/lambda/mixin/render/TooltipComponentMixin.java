@@ -17,18 +17,8 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.render.MapPreview;
-import net.minecraft.client.gui.tooltip.BundleTooltipComponent;
-import net.minecraft.client.gui.tooltip.ProfilesTooltipComponent;
 import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.item.tooltip.BundleTooltipData;
-import net.minecraft.item.tooltip.TooltipData;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import java.util.Objects;
 
 @Mixin(TooltipComponent.class)
 public interface TooltipComponentMixin {

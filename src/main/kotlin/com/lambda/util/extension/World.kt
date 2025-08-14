@@ -32,7 +32,10 @@ import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.World
 import java.awt.Color
 
-val SafeContext.worldName: String get() = when { mc.currentServerEntry != null -> "Multiplayer"; mc.isIntegratedServerRunning -> "Singleplayer"; else -> "Main Menu" }
+val SafeContext.worldName: String
+    get() = when {
+        mc.currentServerEntry != null -> "Multiplayer"; mc.isIntegratedServerRunning -> "Singleplayer"; else -> "Main Menu"
+    }
 val World?.isOverworld: Boolean get() = this?.registryKey == World.OVERWORLD
 val World?.isNether: Boolean get() = this?.registryKey == World.NETHER
 val World?.isEnd: Boolean get() = this?.registryKey == World.END

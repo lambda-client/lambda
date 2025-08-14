@@ -52,21 +52,15 @@ import java.util.Objects;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
-
-    @Shadow
-    public Input input;
-
-    @Shadow
-    private boolean autoJumpEnabled;
+    @Shadow public Input input;
+    @Shadow @Final protected MinecraftClient client;
+    @Shadow private boolean autoJumpEnabled;
 
     public ClientPlayerEntityMixin(ClientWorld world, GameProfile profile) {
         super(world, profile);
     }
 
-    @Shadow
-    protected abstract void autoJump(float dx, float dz);
-
-    @Shadow @Final protected MinecraftClient client;
+    @Shadow protected abstract void autoJump(float dx, float dz);
 
     /**
      * Post movement events and applies the modified player velocity

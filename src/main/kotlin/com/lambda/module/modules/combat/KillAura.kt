@@ -79,7 +79,7 @@ object KillAura : Module(
     private var lastOnGround = true
     private var onGroundTicks = 0
 
-    enum class Group(override val displayName: String): NamedEnum {
+    enum class Group(override val displayName: String) : NamedEnum {
         Interaction("Interaction"),
         Interact("Interact"),
         Targeting("Targeting"),
@@ -130,7 +130,7 @@ object KillAura : Module(
         // Cooldown check
         when (attackMode) {
             AttackMode.Cooldown -> {
-                if (player.lastAttackedTicks < 20/player.attackSpeed() + cooldownOffset) return
+                if (player.lastAttackedTicks < 20 / player.attackSpeed() + cooldownOffset) return
             }
 
             AttackMode.Delay -> {

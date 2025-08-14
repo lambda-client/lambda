@@ -18,8 +18,8 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.util.NamedEnum
 import com.lambda.interaction.request.inventory.InventoryConfig
+import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
 
 class InventorySettings(

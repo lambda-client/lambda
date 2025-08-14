@@ -38,7 +38,7 @@ object GuiSettings : Module(
     val colorHeight by setting("Shade Height", 200.0, 10.0..1000.0, 10.0).group(Group.Colors)
     val colorSpeed by setting("Color Speed", 1.0, 0.1..5.0, 0.1).group(Group.Colors)
 
-    enum class Group(override val displayName: String): NamedEnum {
+    enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Colors("Colors")
     }

@@ -20,6 +20,8 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
+import com.lambda.util.world.WorldUtils.internalGetEntities
+import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
@@ -27,6 +29,7 @@ import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
+import kotlin.collections.asSequence
 import kotlin.math.ceil
 import kotlin.sequences.filter
 

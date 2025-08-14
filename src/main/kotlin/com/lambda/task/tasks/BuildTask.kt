@@ -84,8 +84,8 @@ class BuildTask @Ta5kBuilder constructor(
     private val dropsToCollect = mutableSetOf<ItemEntity>()
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
-        get() = if (collectDrops) {
-            item -> dropsToCollect.add(item)
+        get() = if (collectDrops) { item ->
+            dropsToCollect.add(item)
         } else null
 
     override fun SafeContext.onStart() {
