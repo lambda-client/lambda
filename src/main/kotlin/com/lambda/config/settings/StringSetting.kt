@@ -45,13 +45,12 @@ class StringSetting(
     visibility
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        text(name)
-
-        sameLine()
-        helpMarker(description)
-
-        if (multiline) inputTextMultiline(name, ::value, flags = flags)
-        else inputText(name, ::value, flags)
+        if (multiline) {
+            inputTextMultiline(name, ::value, flags = flags)
+        } else {
+            inputText(name, ::value, flags)
+        }
+        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

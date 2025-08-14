@@ -31,7 +31,7 @@ class ClickCreativeStackTransaction @Ta5kBuilder constructor(
     private var confirming = false
 
     init {
-    	listen<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             if (confirming) return@listen
 
             interaction.clickCreativeStack(stack, slotId)

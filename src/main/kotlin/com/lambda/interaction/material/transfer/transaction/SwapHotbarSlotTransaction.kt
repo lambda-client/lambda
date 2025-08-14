@@ -27,7 +27,7 @@ class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
     override val name: String get() = "Selecting slot #$slot"
 
     init {
-    	listen<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             player.inventory.selectedSlot = slot
             finish()
         }

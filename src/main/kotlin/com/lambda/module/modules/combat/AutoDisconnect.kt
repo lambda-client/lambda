@@ -30,8 +30,8 @@ import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
-import com.lambda.util.extension.tickDelta
 import com.lambda.util.extension.fullHealth
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color

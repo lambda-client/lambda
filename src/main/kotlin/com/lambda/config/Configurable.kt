@@ -105,10 +105,10 @@ abstract class Configurable(
      * @return The created [BooleanSetting].
      */
     fun setting(
-        name        : String,
+        name: String,
         defaultValue: Boolean,
-        description : String        = "",
-        visibility  : () -> Boolean = { true },
+        description: String = "",
+        visibility: () -> Boolean = { true },
     ) = BooleanSetting(name, defaultValue, description, visibility).register()
 
     /**
@@ -128,11 +128,11 @@ abstract class Configurable(
      * @return The created [EnumSetting].
      */
     inline fun <reified T : Enum<T>> setting(
-        name        : String,
+        name: String,
         defaultValue: T,
-        description : String        = "",
+        description: String = "",
         noinline
-        visibility  : () -> Boolean = { true },
+        visibility: () -> Boolean = { true },
     ) = EnumSetting(name, defaultValue, description, visibility).register()
 
     /**
@@ -146,10 +146,10 @@ abstract class Configurable(
      * @return The created [CharSetting].
      */
     fun setting(
-        name        : String,
+        name: String,
         defaultValue: Char,
-        description : String        = "",
-        visibility  : () -> Boolean = { true },
+        description: String = "",
+        visibility: () -> Boolean = { true },
     ) = CharSetting(name, defaultValue, description, visibility).register()
 
     /**
@@ -167,12 +167,12 @@ abstract class Configurable(
      * @return The created [StringSetting].
      */
     fun setting(
-        name        : String,
+        name: String,
         defaultValue: String,
-        multiline   : Boolean       = false,
-        flags       : Int           = ImGuiInputTextFlags.None,
-        description : String        = "",
-        visibility  : () -> Boolean = { true },
+        multiline: Boolean = false,
+        flags: Int = ImGuiInputTextFlags.None,
+        description: String = "",
+        visibility: () -> Boolean = { true },
     ) = StringSetting(name, defaultValue, multiline, flags, description, visibility).register()
 
     /**

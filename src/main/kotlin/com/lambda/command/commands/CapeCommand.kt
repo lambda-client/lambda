@@ -33,7 +33,7 @@ object CapeCommand : LambdaCommand(
     name = "cape",
     usage = "set <id>",
     description = "Sets your cape",
-)  {
+) {
     override fun CommandBuilder.create() {
         required(literal("set")) {
             required(string("id")) { id ->

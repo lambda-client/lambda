@@ -139,7 +139,8 @@ data class BreakInfo(
 
     private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
         val swapMode = breakConfig.swapMode
-        val item = if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) player.inventory.getStack(context.hotbarIndex) else player.mainHandStack
+        val item =
+            if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) player.inventory.getStack(context.hotbarIndex) else player.mainHandStack
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
         val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
         return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1

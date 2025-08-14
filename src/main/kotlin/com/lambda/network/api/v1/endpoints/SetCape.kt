@@ -33,10 +33,10 @@ import io.ktor.http.*
  * @return nothing
  */
 suspend fun setCape(id: String) = runCatching {
-	val resp = LambdaHttp.put("$apiUrl/api/$apiVersion/cape?id=$id") {
-		bearerAuth(NetworkManager.accessToken)
-		contentType(ContentType.Application.Json)
-	}
+    val resp = LambdaHttp.put("$apiUrl/api/$apiVersion/cape?id=$id") {
+        bearerAuth(NetworkManager.accessToken)
+        contentType(ContentType.Application.Json)
+    }
 
-	check(resp.status == HttpStatusCode.OK)
+    check(resp.status == HttpStatusCode.OK)
 }

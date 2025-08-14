@@ -36,9 +36,7 @@ open class FunctionSetting<T>(
 ) {
     override fun ImGuiBuilder.buildLayout() {
         button(name) { value() }
-
-        sameLine()
-        helpMarker(description)
+        lambdaTooltip(description)
     }
 
     override fun toJson(): JsonElement = JsonNull.INSTANCE

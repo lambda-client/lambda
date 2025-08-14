@@ -24,7 +24,6 @@ import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
-import kotlin.jvm.java
 
 /**
  * @see [com.lambda.config.Configurable]
@@ -46,13 +45,15 @@ class ListSetting<T : Any>(
         TypeToken.getParameterized(MutableList::class.java, String::class.java).type
 
     override fun ImGuiBuilder.buildLayout() {
-        combo(name, "${value.size} item(s)") {
+        combo("##$name", "$name: ${value.size} item(s)") {
             immutableList
                 .forEach {
                     val isSelected = value.contains(it)
 
-                    selectable(it.toString(), isSelected,
-                        flags = DontClosePopups)
+                    selectable(
+                        it.toString(), isSelected,
+                        flags = DontClosePopups
+                    )
                     { if (isSelected) value.remove(it) else value.add(it) }
                 }
         }

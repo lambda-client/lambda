@@ -31,7 +31,7 @@ class ClickSlotTransaction @Ta5kBuilder constructor(
     override val name: String get() = "Click slot #$slotId with action $actionType and button $button"
 
     init {
-    	listen<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             try {
                 clickSlot(slotId, button, actionType)
             } catch (e: Exception) {

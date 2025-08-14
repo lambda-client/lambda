@@ -106,8 +106,10 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
                     when (event.kind()) {
                         ENTRY_DELETE -> remove(newPath.pathString)
                         ENTRY_CREATE -> {
-                            put(newPath.pathString,
-                                loadFileAndCreate(newPath, convert))
+                            put(
+                                newPath.pathString,
+                                loadFileAndCreate(newPath, convert)
+                            )
                         }
                     }
 

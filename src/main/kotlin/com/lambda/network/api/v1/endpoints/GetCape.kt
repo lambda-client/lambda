@@ -34,5 +34,5 @@ import java.util.*
  * @return results of cape
  */
 suspend fun getCape(uuid: UUID) = runCatching {
-	LambdaHttp.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
+    LambdaHttp.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
 }

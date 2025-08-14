@@ -120,7 +120,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
             .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
-        val pendingLimit =  (request.build.maxPendingInteractions - pendingActions.size).coerceAtLeast(0)
+        val pendingLimit = (request.build.maxPendingInteractions - pendingActions.size).coerceAtLeast(0)
         maxInteractionsThisTick = (request.build.interactionsPerTick.coerceAtMost(pendingLimit))
     }
 

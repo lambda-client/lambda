@@ -24,11 +24,6 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.dsl.ImGuiBuilder.helpMarker
-import com.lambda.gui.dsl.ImGuiBuilder.inputVec3i
-import com.lambda.gui.dsl.ImGuiBuilder.sameLine
-import com.lambda.gui.dsl.ImGuiBuilder.text
-import com.lambda.gui.dsl.ProcedureBlock
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -48,17 +43,9 @@ class BlockPosSetting(
     description,
     visibility
 ) {
-    private var x = "${value.x}"
-    private var y = value.y
-    private var z = value.z
-
     override fun ImGuiBuilder.buildLayout() {
-        text(name)
-
-        sameLine()
-        helpMarker(description)
-
-        inputVec3i("##$name", value) { value = it.blockPos }
+        inputVec3i(name, value) { value = it.blockPos }
+        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

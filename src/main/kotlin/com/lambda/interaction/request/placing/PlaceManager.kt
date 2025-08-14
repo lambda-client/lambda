@@ -166,7 +166,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
-        val pendingLimit =  (request.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
+        val pendingLimit = (request.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
         maxPlacementsThisTick = (request.placementsPerTick.coerceAtMost(pendingLimit))
     }
 

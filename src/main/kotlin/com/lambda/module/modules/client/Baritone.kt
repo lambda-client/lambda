@@ -27,7 +27,7 @@ object Baritone : Module(
     description = "Baritone configuration",
     tag = ModuleTag.CLIENT,
 ) {
-    private enum class Group(override val displayName: String): NamedEnum {
+    private enum class Group(override val displayName: String) : NamedEnum {
         GENERAL("General"),
         ROTATION("Rotation")
     }

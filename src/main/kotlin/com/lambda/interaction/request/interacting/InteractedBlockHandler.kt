@@ -46,7 +46,11 @@ object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { pending ->
                     if (!pending.context.expectedState.matches(event.newState)) {
-                        if (pending.context.cachedState.matches(event.newState, ProcessorRegistry.postProcessedProperties)) {
+                        if (pending.context.cachedState.matches(
+                                event.newState,
+                                ProcessorRegistry.postProcessedProperties
+                            )
+                        ) {
                             pending.context.cachedState = event.newState
                             return@listen
                         }

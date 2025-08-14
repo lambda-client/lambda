@@ -230,20 +230,20 @@ open class Texture {
 
     companion object {
         private val nativeMapping = mapOf(
-            GL_RED      to NativeImage.Format.LUMINANCE,
-            GL_GREEN    to NativeImage.Format.LUMINANCE,
-            GL_BLUE     to NativeImage.Format.LUMINANCE,
-            GL_RG       to NativeImage.Format.LUMINANCE_ALPHA,
-            GL_RGB      to NativeImage.Format.RGB,
-            GL_RGBA     to NativeImage.Format.RGBA,
+            GL_RED to NativeImage.Format.LUMINANCE,
+            GL_GREEN to NativeImage.Format.LUMINANCE,
+            GL_BLUE to NativeImage.Format.LUMINANCE,
+            GL_RG to NativeImage.Format.LUMINANCE_ALPHA,
+            GL_RGB to NativeImage.Format.RGB,
+            GL_RGBA to NativeImage.Format.RGBA,
         )
 
         private val bufferedMapping = mapOf(
-            TYPE_BYTE_BINARY    to GL_RED,
-            TYPE_BYTE_GRAY      to GL_RG,
-            TYPE_INT_RGB        to GL_RGB,
-            TYPE_INT_ARGB       to GL_RGBA,
-            TYPE_4BYTE_ABGR     to GL_BGRA,
+            TYPE_BYTE_BINARY to GL_RED,
+            TYPE_BYTE_GRAY to GL_RG,
+            TYPE_INT_RGB to GL_RGB,
+            TYPE_INT_ARGB to GL_RGBA,
+            TYPE_4BYTE_ABGR to GL_BGRA,
         )
     }
 }

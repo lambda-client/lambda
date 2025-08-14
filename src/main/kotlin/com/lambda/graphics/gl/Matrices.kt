@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,8 @@ package com.lambda.graphics.gl
 import com.lambda.Lambda.mc
 import net.minecraft.util.math.RotationAxis
 import net.minecraft.util.math.Vec3d
-import org.joml.*
+import org.joml.Matrix4d
+import org.joml.Matrix4f
 
 /**
  * A utility object for managing OpenGL transformation matrices.
@@ -171,7 +172,11 @@ object Matrices {
      * @param mode The rotation mode to apply. Defaults to [ProjRotationMode.TO_CAMERA].
      * @return A [Matrix4f] representing the world projection.
      */
-    fun buildWorldProjection(pos: Vec3d, scale: Double = 1.0, mode: ProjRotationMode = ProjRotationMode.TO_CAMERA): Matrix4f =
+    fun buildWorldProjection(
+        pos: Vec3d,
+        scale: Double = 1.0,
+        mode: ProjRotationMode = ProjRotationMode.TO_CAMERA
+    ): Matrix4f =
         Matrix4f().apply {
             val s = 0.025f * scale.toFloat()
 

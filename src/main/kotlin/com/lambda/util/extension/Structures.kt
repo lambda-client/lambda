@@ -48,8 +48,7 @@ fun StructureTemplate.readSponge(
     nbt: NbtCompound,
 ) {
     when (nbt.getInt("Version", 0) +
-            nbt.getCompoundOrEmpty("Schematic").getInt("Version", 0))
-    {
+            nbt.getCompoundOrEmpty("Schematic").getInt("Version", 0)) {
         1, 2 -> readSpongeV1(lookup, nbt)
         3 -> readSpongeV3(lookup, nbt)
         else -> throw IllegalStateException("Invalid sponge schematic version")

@@ -22,8 +22,8 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
 object Watermark : HudModule(
-    name    = "Watermark",
-    tag     = ModuleTag.CLIENT,
+    name = "Watermark",
+    tag = ModuleTag.CLIENT,
 ) {
     private val shade by setting("Shade", true)
 

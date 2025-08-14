@@ -19,7 +19,6 @@ package com.lambda.module.modules.client
 
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
@@ -36,7 +35,7 @@ object TaskFlowModule : Module(
     description = "Settings for task automation",
     tag = ModuleTag.CLIENT,
 ) {
-    enum class Group(override val displayName: String): NamedEnum {
+    enum class Group(override val displayName: String) : NamedEnum {
         Build("Build"),
         Rotation("Rotation"),
         Interaction("Interaction"),

@@ -109,7 +109,7 @@ object ProcessorRegistry : Loadable {
 
     fun TargetState.getProcessingInfo(pos: BlockPos) =
         if (this is TargetState.State) {
-            val get: () -> PreProcessingInfo? = get@ {
+            val get: () -> PreProcessingInfo? = get@{
                 val infoAccumulator = PreProcessingInfoAccumulator()
 
                 processors.forEach { processor ->

@@ -25,11 +25,11 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 object DirectionMask {
-    const val EAST  = 1 // X +
-    const val WEST  = 2 // X -
+    const val EAST = 1 // X +
+    const val WEST = 2 // X -
 
-    const val UP    = 4 // Y +
-    const val DOWN  = 8 // Y -
+    const val UP = 4 // Y +
+    const val DOWN = 8 // Y -
 
     const val SOUTH = 16 // Z +
     const val NORTH = 32 // Z -

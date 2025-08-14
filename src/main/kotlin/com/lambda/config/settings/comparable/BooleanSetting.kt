@@ -43,10 +43,7 @@ class BooleanSetting(
 ) {
     override fun ImGuiBuilder.buildLayout() {
         checkbox(name, ::value)
-
-        if (description.isNotEmpty()) {
-            lambdaTooltip(description)
-        }
+        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

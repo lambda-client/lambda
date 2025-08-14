@@ -63,11 +63,11 @@ public class ClientPlayNetworkHandlerMixin {
     /**
      * Sets displayedUnsecureChatWarning to {@link NoRender#getNoChatVerificationToast()}
      * <pre>{@code
-  	 * this.secureChatEnforced = packet.enforcesSecureChat();
+     * this.secureChatEnforced = packet.enforcesSecureChat();
      * if (this.serverInfo != null && !this.displayedUnsecureChatWarning && !this.isSecureChatEnforced()) {
-            SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
-            this.client.getToastManager().add(systemToast);
-            this.displayedUnsecureChatWarning = true;
+     * SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
+     * this.client.getToastManager().add(systemToast);
+     * this.displayedUnsecureChatWarning = true;
      * }
      * }</pre>
      */

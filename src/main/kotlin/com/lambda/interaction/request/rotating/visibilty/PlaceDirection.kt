@@ -27,20 +27,20 @@ enum class PlaceDirection(
     val rotation: Rotation,
     val vector: Vec3i,
 ) {
-    UpNorth  (-180.0, -90.0,  0,  1, -1),
-    UpSouth  (   0.0, -90.0,  0,  1,  1),
-    UpWest   (  90.0, -90.0,  1,  1,  0),
-    UpEast   ( -90.0, -90.0, -1,  1,  0),
+    UpNorth(-180.0, -90.0, 0, 1, -1),
+    UpSouth(0.0, -90.0, 0, 1, 1),
+    UpWest(90.0, -90.0, 1, 1, 0),
+    UpEast(-90.0, -90.0, -1, 1, 0),
 
-    DownNorth(-180.0,  90.0,  0, -1, -1),
-    DownSouth(   0.0,  90.0,  0, -1,  1),
-    DownWest (  90.0,  90.0,  1, -1,  0),
-    DownEast ( -90.0,  90.0, -1, -1,  0),
+    DownNorth(-180.0, 90.0, 0, -1, -1),
+    DownSouth(0.0, 90.0, 0, -1, 1),
+    DownWest(90.0, 90.0, 1, -1, 0),
+    DownEast(-90.0, 90.0, -1, -1, 0),
 
-    North    (-180.0,   0.0,  0,  0, -1),
-    South    (   0.0,   0.0,  0,  0,  1),
-    West     (  90.0,   0.0,  1,  0,  0),
-    East     ( -90.0,   0.0, -1,  0,  0);
+    North(-180.0, 0.0, 0, 0, -1),
+    South(0.0, 0.0, 0, 0, 1),
+    West(90.0, 0.0, 1, 0, 0),
+    East(-90.0, 0.0, -1, 0, 0);
 
     constructor(yaw: Double, pitch: Double, x: Int, y: Int, z: Int)
             : this(Rotation(yaw, pitch), Vec3i(x, y, z))

@@ -179,13 +179,16 @@ abstract class Configuration : Jsonable {
         //ToDo: Store owner in setting
         fun configurableBySetting(setting: AbstractSetting<*>) =
             configurables.find { it.settings.contains(setting) }
+
         fun configurableByName(name: String) =
             configurables.find { it.name == name }
+
         fun configurableByCommandName(name: String) =
             configurables.find { it.commandName == name }
 
         fun settingByName(configurable: Configurable, name: String) =
             configurable.settings.find { it.name == name }
+
         fun settingByCommandName(configurable: Configurable, name: String) =
             configurable.settings.find { it.commandName == name }
     }

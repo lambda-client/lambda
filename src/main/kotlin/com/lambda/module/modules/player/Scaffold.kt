@@ -36,8 +36,8 @@ import com.lambda.interaction.request.rotating.Rotation.Companion.angleDifferenc
 import com.lambda.interaction.request.rotating.Rotation.Companion.dist
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
-import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationManager.activeRotation
+import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
@@ -115,7 +115,7 @@ object Scaffold : Module(
     // Yaw values within this range will not make your movement unstable
     private const val YAW_THRESHOLD = 15.0
 
-    private enum class Group(override val displayName: String): NamedEnum {
+    private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Rotation("Rotation"),
         Interact("Interact"),

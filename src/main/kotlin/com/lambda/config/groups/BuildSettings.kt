@@ -18,9 +18,9 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.util.NamedEnum
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.placing.PlaceConfig
+import com.lambda.util.NamedEnum
 
 class BuildSettings(
     c: Configurable,

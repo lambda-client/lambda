@@ -33,7 +33,7 @@ object AttachmentPreProcessor : PlacementProcessor() {
 
     override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
         val attachment = state.get(Properties.ATTACHMENT) ?: return
-        with (accumulator) {
+        with(accumulator) {
             when (attachment) {
                 Attachment.FLOOR -> retainSides(Direction.DOWN)
                 Attachment.CEILING -> retainSides(Direction.UP)

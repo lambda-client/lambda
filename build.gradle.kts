@@ -16,30 +16,27 @@
  */
 
 import org.apache.tools.ant.taskdefs.condition.Os
-import org.gradle.internal.jvm.*
-import org.gradle.kotlin.dsl.dependencies
-import org.gradle.kotlin.dsl.provideDelegate
-import org.gradle.kotlin.dsl.register
+import org.gradle.internal.jvm.Jvm
 import java.util.*
 
-val modId               : String by project
-val mavenGroup          : String by project
-val modVersion          : String by project
-val minecraftVersion    : String by project
-val yarnMappings        : String by project
-val fabricLoaderVersion : String by project
-val fabricApiVersion    : String by project
-val kotlinFabricVersion : String by project
-val pngEncoderVersion   : String by project
-val discordIPCVersion   : String by project
-val classGraphVersion   : String by project
-val kotlinVersion       : String by project
-val ktorVersion         : String by project
-val mockitoKotlin       : String by project
-val mockitoInline       : String by project
-val mockkVersion        : String by project
-val spairVersion        : String by project
-val lwjglVersion        : String by project
+val modId: String by project
+val mavenGroup: String by project
+val modVersion: String by project
+val minecraftVersion: String by project
+val yarnMappings: String by project
+val fabricLoaderVersion: String by project
+val fabricApiVersion: String by project
+val kotlinFabricVersion: String by project
+val pngEncoderVersion: String by project
+val discordIPCVersion: String by project
+val classGraphVersion: String by project
+val kotlinVersion: String by project
+val ktorVersion: String by project
+val mockitoKotlin: String by project
+val mockitoInline: String by project
+val mockkVersion: String by project
+val spairVersion: String by project
+val lwjglVersion: String by project
 
 
 val libs = file("libs")
@@ -169,7 +166,11 @@ dependencies {
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
-    shadowLib("io.ktor:ktor-client-cio:$ktorVersion") { exclude(group = "org.jetbrains.kotlin"); exclude(group = "org.jetbrains.kotlinx"); exclude(group = "org.slf4j") }
+    shadowLib("io.ktor:ktor-client-cio:$ktorVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
+    }
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 

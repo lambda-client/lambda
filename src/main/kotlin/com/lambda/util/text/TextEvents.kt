@@ -154,7 +154,8 @@ object HoverEvents {
      *
      * @see HoverEvent.Action.SHOW_ENTITY
      */
-    fun showEntity(entityType: EntityType<*>, uuid: UUID, name: Text? = null) = ShowEntity(HoverEvent.EntityContent(entityType, uuid, name))
+    fun showEntity(entityType: EntityType<*>, uuid: UUID, name: Text? = null) =
+        ShowEntity(HoverEvent.EntityContent(entityType, uuid, name))
 
     /**
      * Creates a [HoverEvent] showing specified [text].

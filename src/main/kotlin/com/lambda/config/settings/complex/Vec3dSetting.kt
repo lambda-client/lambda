@@ -40,12 +40,8 @@ class Vec3dSetting(
     visibility
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        text(name)
-
-        sameLine()
-        helpMarker(description)
-
-        inputVec3d(name, ::value as Vec3d) // wat da hell
+        inputVec3d(name, ::value as Vec3d)
+        lambdaTooltip(description)
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

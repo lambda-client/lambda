@@ -83,7 +83,7 @@ sealed class InventoryEvent {
         val stack: ItemStack,
     ) : Event
 
-    abstract class HotbarSlot: Event {
+    abstract class HotbarSlot : Event {
 
         data class Request(var request: HotbarRequest? = null) : HotbarSlot()
 

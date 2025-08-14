@@ -34,7 +34,8 @@ object ItemStackUtils {
     /**
      * Returns the attack damage for the given [stack], the value is affected by potion effects and enchantments
      */
-    fun SafeContext.attackDamage(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) = entity.attackDamage(stack)
+    fun SafeContext.attackDamage(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) =
+        entity.attackDamage(stack)
 
     /**
      * Returns the attack damage for the given [stack], the value is affected by potion effects and enchantments
@@ -43,12 +44,14 @@ object ItemStackUtils {
         (stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
             .modifiers.find { it.attribute == EntityAttributes.ATTACK_DAMAGE }?.modifier?.value ?: 0.0) +
                 getAttributeValue(EntityAttributes.ATTACK_DAMAGE)
+
     /**
      * Returns the attack speed for the given [stack], the value is affected by potion effects
      *
      * The value represents the number of attacks-per-tick
      */
-    fun SafeContext.attackSpeed(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) = entity.attackSpeed(stack)
+    fun SafeContext.attackSpeed(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) =
+        entity.attackSpeed(stack)
 
     /**
      * Returns the attack speed for the given [stack], the value is affected by potion effects
@@ -63,15 +66,18 @@ object ItemStackUtils {
     /**
      * Returns the mining speed for the given [stack], the value is affected by potion effects and enchantments
      */
-    fun SafeContext.miningSpeed(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) = entity.miningSpeed(stack)
+    fun SafeContext.miningSpeed(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) =
+        entity.miningSpeed(stack)
 
     /**
      * Returns the mining speed for the given [stack], the value is affected by potion effects and enchantments
      */
     fun LivingEntity.miningSpeed(stack: ItemStack = mainHandStack) =
         (stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
-            .modifiers.find { it.attribute == EntityAttributes.MINING_EFFICIENCY ||
-                    it.attribute == EntityAttributes.SUBMERGED_MINING_SPEED }?.modifier?.value ?: 0.0) +
+            .modifiers.find {
+                it.attribute == EntityAttributes.MINING_EFFICIENCY ||
+                        it.attribute == EntityAttributes.SUBMERGED_MINING_SPEED
+            }?.modifier?.value ?: 0.0) +
                 if (isSubmergedInWater) getAttributeValue(EntityAttributes.SUBMERGED_MINING_SPEED)
                 else getAttributeValue(EntityAttributes.MINING_EFFICIENCY)
 

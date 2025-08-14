@@ -48,13 +48,10 @@ import java.util.stream.Stream;
 
 @Mixin(ChatInputSuggestor.class)
 public abstract class ChatInputSuggestorMixin {
-
-    @Shadow
-    @Final
-    TextFieldWidget textField;
-
-    @Shadow
-    private @Nullable CompletableFuture<Suggestions> pendingSuggestions;
+    @Unique private static final Pattern COLON_PATTERN = Pattern.compile("(:[a-zA-Z0-9_]+)");
+    @Unique private static final Pattern EMOJI_PATTERN = Pattern.compile("(:)([a-zA-Z0-9_]+)(:)");
+    @Shadow @Final TextFieldWidget textField;
+    @Shadow private @Nullable CompletableFuture<Suggestions> pendingSuggestions;
 
     @Shadow
     public abstract void show(boolean narrateFirstSuggestion);
@@ -114,12 +111,6 @@ public abstract class ChatInputSuggestorMixin {
             show(false);
         });
     }
-
-    @Unique
-    private static final Pattern COLON_PATTERN = Pattern.compile("(:[a-zA-Z0-9_]+)");
-
-    @Unique
-    private static final Pattern EMOJI_PATTERN = Pattern.compile("(:)([a-zA-Z0-9_]+)(:)");
 
     @Unique
     private int neoLambda$getLastColon(String input) {

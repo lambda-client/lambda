@@ -33,7 +33,7 @@ object BlockFacePreProcessor : PlacementProcessor() {
 
     override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
         val property = state.get(Properties.BLOCK_FACE) ?: return
-        with (accumulator) {
+        with(accumulator) {
             when (property) {
                 BlockFace.FLOOR -> retainSides(Direction.DOWN)
                 BlockFace.CEILING -> retainSides(Direction.UP)

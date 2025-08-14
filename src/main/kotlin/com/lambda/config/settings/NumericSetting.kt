@@ -23,9 +23,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.ImGui
 import imgui.ImGui.calcTextSize
 import imgui.ImGui.dummy
-import imgui.ImGui.textUnformatted
 import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiHoveredFlags
 import java.text.NumberFormat
 import java.util.*
 import kotlin.reflect.KProperty
@@ -65,10 +63,7 @@ abstract class NumericSetting<T>(
         val valueString = this@NumericSetting.toString()
 
         buildSlider()
-
-        if (description.isNotBlank()) {
-            lambdaTooltip(description)
-        }
+        lambdaTooltip(description)
 
         val itemRectMin = ImGui.getItemRectMin()
         val itemRectMax = ImGui.getItemRectMax()

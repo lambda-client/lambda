@@ -73,7 +73,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
 
         if (sameButLonger) activeRequest?.let { current ->
             request.swapPauseAge = current.swapPauseAge
-        } else run swap@ {
+        } else run swap@{
             if (request.slot != activeRequest?.slot) {
                 if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
 

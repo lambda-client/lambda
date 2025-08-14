@@ -22,12 +22,12 @@ import com.lambda.interaction.request.rotating.Rotation.Companion.lerp
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
-import kotlin.math.hypot
+import kotlin.test.assertTrue
 
 /**
  * Tests for the Rotation class
@@ -199,7 +199,7 @@ class RotationTest {
         // Check that the result is either -180 or 180 (they're equivalent)
         assertTrue(
             abs(midpoint.yaw - 180.0) < 0.001 ||
-            abs(midpoint.yaw + 180.0) < 0.001
+                    abs(midpoint.yaw + 180.0) < 0.001
         )
     }
 

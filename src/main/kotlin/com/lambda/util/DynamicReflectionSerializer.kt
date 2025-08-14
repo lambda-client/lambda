@@ -110,6 +110,7 @@ object DynamicReflectionSerializer : Loadable {
 
     fun <T : Any> KClass<T>.dynamicName(remap: Boolean) =
         if (remap) qualifiedName?.remappedName else simpleName
+
     fun <T : Any> KProperty1<T, *>.dynamicName(remap: Boolean) =
         if (remap) name.remappedName else name
 

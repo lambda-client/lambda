@@ -89,8 +89,7 @@ public class ClientConnectionMixin {
     }
 
     @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/listener/ClientPacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
-    private
-    <S extends ServerPacketListener, C extends ClientPacketListener>
+    private <S extends ServerPacketListener, C extends ClientPacketListener>
     void onConnect(
             String address,
             int port,
@@ -100,7 +99,8 @@ public class ClientConnectionMixin {
             ConnectionIntent intent,
             CallbackInfo ci
     ) {
-        if (EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, prePlayStateListener, intent)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, prePlayStateListener, intent)).isCanceled())
+            ci.cancel();
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))

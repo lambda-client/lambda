@@ -89,7 +89,9 @@ object TextureOwner {
      * @return The created texture object
      */
     fun Any.upload(path: String, mipmaps: Int = 1) =
-        Texture(path.readImage(), levels = mipmaps).also { textureMap.computeIfAbsent(this@upload) { mutableListOf() }.add(it) }
+        Texture(path.readImage(), levels = mipmaps).also {
+            textureMap.computeIfAbsent(this@upload) { mutableListOf() }.add(it)
+        }
 
     /**
      * Uploads a distance field texture from image data and associates it with the object
