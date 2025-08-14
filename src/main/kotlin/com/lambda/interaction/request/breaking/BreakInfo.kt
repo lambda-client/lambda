@@ -70,7 +70,7 @@ data class BreakInfo(
         Primary("Primary", "The main block you’re breaking right now."),
         Secondary("Secondary", "A second block broken at the same time (when double‑break is enabled)."),
         RedundantSecondary("Redundant Secondary", "A previously started secondary break that’s now ignored/monitored only (no new actions)."),
-        Rebreak("Rebreak", "Re-attempts a recent break to finish callbacks or correct state after updates.");
+        Rebreak("Rebreak", "A previously broken block which new breaks in the same position can compound progression on. Often rebreaking instantly.");
 
         fun getBreakThreshold(breakConfig: BreakConfig) =
             when (this) {
