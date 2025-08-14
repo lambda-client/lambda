@@ -35,7 +35,7 @@ object RebreakManager {
     var rebreak: BreakInfo? = null
 
     init {
-        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             rebreak?.run {
                 if (!progressedThisTick) {
                     breakingTicks++
@@ -70,11 +70,16 @@ object RebreakManager {
                 player.inventory.getStack(info.context.hotbarIndex)
             else player.mainHandStack
             val breakDelta = info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
-            reBreak.breakConfig.rebreak &&
+            val possible = reBreak.breakConfig.rebreak &&
                     info.context.blockPos == reBreak.context.blockPos &&
-                    !reBreak.updatedThisTick &&
-                    ((reBreak.breakingTicks - info.breakConfig.fudgeFactor) * breakDelta >= info.breakConfig.breakThreshold)
-        } == true
+                    !reBreak.updatedThisTick
+            val instant = (reBreak.breakingTicks - info.breakConfig.fudgeFactor) * breakDelta >= info.breakConfig.breakThreshold
+            when {
+                possible && instant -> RebreakPotential.Instant
+                possible -> RebreakPotential.PartialProgress
+                else -> RebreakPotential.None
+            }
+        } ?: RebreakPotential.None
 
     fun handleUpdate(ctx: BreakContext, breakRequest: BreakRequest) =
         runSafe {
@@ -98,4 +103,12 @@ object RebreakManager {
                 RebreakResult.StillBreaking(reBreak)
             }
         }
+
+    enum class RebreakPotential {
+        Instant,
+        PartialProgress,
+        None;
+
+        fun isPossible() = this == Instant || this == PartialProgress
+    }
 }

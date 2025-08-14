@@ -44,7 +44,7 @@ data class BreakInfo(
 
     // Pre Processing
     var shouldProgress = false
-    var couldReBreak by OneSetPerTick(value = false, throwOnLimitBreach = true)
+    var couldReBreak by OneSetPerTick(value = RebreakManager.RebreakPotential.None, throwOnLimitBreach = true)
     var shouldSwap by OneSetPerTick(value = false, throwOnLimitBreach = true)
     var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
     var minSwapTicks by OneSetPerTick(0, true)
@@ -118,7 +118,7 @@ data class BreakInfo(
         val item = player.inventory.getStack(context.hotbarIndex)
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
         val breakProgress = breakDelta * (breakingTicks + 1)
-        return if (couldReBreak)
+        return if (couldReBreak == RebreakManager.RebreakPotential.Instant)
             breakConfig.swapMode.isEnabled()
         else when (breakConfig.swapMode) {
             BreakConfig.SwapMode.None -> false
