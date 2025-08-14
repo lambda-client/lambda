@@ -18,7 +18,6 @@
 package com.lambda.context
 
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.module.modules.client.TaskFlowModule.interaction
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.network.ClientPlayerEntity
