@@ -62,7 +62,7 @@ object ImGuiBuilder {
     /**
      * Access the IO structure (mouse/keyboard/gamepad inputs, time, various configuration options/flags).
      */
-    val io: ImGuiIO get() = ImGui.getIO()
+    val io: ImGuiIO get() = getIO()
 
     /**
      * Access the Style structure (colors, sizes). Always use PushStyleCol(), PushStyleVar() to modify style mid-frame!
@@ -72,37 +72,37 @@ object ImGuiBuilder {
     /**
      * Get the compiled version string e.g. "1.80 WIP" (essentially the value for IMGUI_VERSION from the compiled version of imgui.cpp)
      */
-    val version: String get() = ImGui.getVersion()
+    val version: String get() = getVersion()
 
-    val isWindowAppearing: Boolean get() = ImGui.isWindowAppearing()
-    val isWindowCollapsed: Boolean get() = ImGui.isWindowCollapsed()
+    val isWindowAppearing: Boolean get() = isWindowAppearing()
+    val isWindowCollapsed: Boolean get() = isWindowCollapsed()
 
     /**
      * Returns the current window position in screen space
      *
      * It is unlikely you need to use this. Consider using current layout pos instead, GetScreenCursorPos().
      */
-    val windowPos: ImVec2 get() = ImGui.getWindowPos()
-    val windowX: Float get() = ImGui.getWindowPosX()
-    val windowY: Float get() = ImGui.getWindowPosY()
+    val windowPos: ImVec2 get() = getWindowPos()
+    val windowX: Float get() = getWindowPosX()
+    val windowY: Float get() = getWindowPosY()
 
     /**
      * Returns the current window size
      * It is unlikely you need to use this. Consider using GetScreenCursorPos() and GetContentRegionAvail() instead.
      */
-    val windowSize: ImVec2 get() = ImGui.getWindowSize()
-    val windowWidth: Float get() = ImGui.getWindowWidth()
-    val windowHeight: Float get() = ImGui.getWindowHeight()
+    val windowSize: ImVec2 get() = getWindowSize()
+    val windowWidth: Float get() = getWindowWidth()
+    val windowHeight: Float get() = getWindowHeight()
 
     /**
      * Returns the viewport associated to the current window.
      */
-    val windowViewport: ImGuiViewport get() = ImGui.getWindowViewport()
+    val windowViewport: ImGuiViewport get() = getWindowViewport()
 
     /**
      * Returns whether any item hovered and usable (not blocked by a popup, etc.).
      */
-    val isAnyItemHovered: Boolean get() = ImGui.isAnyItemHovered()
+    val isAnyItemHovered: Boolean get() = isAnyItemHovered()
 
     /**
      * Returns whether:
@@ -110,12 +110,12 @@ object ImGuiBuilder {
      *  - Any text field is being edited
      *  - Any item is being held and allows interaction
      */
-    val isAnyItemActive: Boolean get() = ImGui.isAnyItemActive()
+    val isAnyItemActive: Boolean get() = isAnyItemActive()
 
     /**
      * Returns whether any item is focused via keyboard/gamepad navigation
      */
-    val isAnyItemFocused: Boolean get() = ImGui.isAnyItemFocused()
+    val isAnyItemFocused: Boolean get() = isAnyItemFocused()
 
     /**
      * Executes the specified block if the current window is hovered, based on the provided flags.
@@ -125,7 +125,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun onWindowFocus(flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
-        if (ImGui.isWindowHovered(flags)) block() else Unit
+        if (isWindowHovered(flags)) block() else Unit
 
     /**
      * Executes a given block of code when the current ImGui window is being hovered.
@@ -136,7 +136,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun onWindowHover(flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
-        if (ImGui.isWindowHovered(flags)) block() else Unit
+        if (isWindowHovered(flags)) block() else Unit
 
     /**
      * Executes the given block of code if the current ImGui item is hovered.
@@ -146,7 +146,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun onItemHover(flags: Int = ImGuiHoveredFlags.None, block: ProcedureBlock) =
-        if (ImGui.isItemHovered(flags)) block() else Unit
+        if (isItemHovered(flags)) block() else Unit
 
     /**
      * Executes the provided block of code if the current item is active in the ImGui context.
@@ -155,7 +155,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun onItemActive(block: ProcedureBlock) =
-        if (ImGui.isItemActive()) block() else Unit
+        if (isItemActive()) block() else Unit
 
     /**
      * Executes the given [block] when the currently active item in the ImGui interface gains focus.
@@ -164,7 +164,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun onItemFocus(block: ProcedureBlock) =
-        if (ImGui.isItemFocused()) block() else Unit
+        if (isItemFocused()) block() else Unit
 
     /**
      * Returns whether the last hovered item is clicked on
@@ -175,51 +175,51 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun onItemClick(button: Int = ImGuiMouseButton.Right, block: ProcedureBlock) =
-        if (ImGui.isItemClicked(button)) block() else Unit
+        if (isItemClicked(button)) block() else Unit
 
     /**
      * Returns whether:
      *  - The last item modified its value in this frame
      *  - Was pressed
      */
-    val isItemEdited: Boolean get() = ImGui.isItemEdited()
+    val isItemEdited: Boolean get() = isItemEdited()
 
     /**
      * Returns whether the last item was made active.
      */
-    val isItemActivated: Boolean get() = ImGui.isItemActivated()
+    val isItemActivated: Boolean get() = isItemActivated()
 
     /**
      * Returns whether the last item was made inactive
      *
      * Useful for Undo/Redo patterns with widgets that require continuous editing.
      */
-    val isItemDeactivated: Boolean get() = ImGui.isItemDeactivated()
+    val isItemDeactivated: Boolean get() = isItemDeactivated()
 
     /**
      * Returns whether the last item was made inactive and its value was changed when active (e.g. Slider/Drag moved).
      *
      * Useful for Undo/Redo patterns with widgets that require continuous editing. Note that you may get false positives (some widgets such as Combo()/ListBox()/Selectable() will return true even when clicking an already selected item).
      */
-    val isItemDeactivatedAfterEdit: Boolean get() = ImGui.isItemDeactivatedAfterEdit()
+    val isItemDeactivatedAfterEdit: Boolean get() = isItemDeactivatedAfterEdit()
 
     /**
      * Returns whether the last item state toggled (set by TreeNode()).
      */
-    val isItemToggledOpen: Boolean get() = ImGui.isItemToggledOpen()
+    val isItemToggledOpen: Boolean get() = isItemToggledOpen()
 
     /**
      * Returns the ID of last item (~~ often same ImGui::GetID(label) beforehand)
      */
-    val itemID: Int get() = ImGui.getItemID()
+    val itemID: Int get() = getItemID()
 
 
-    val font: ImFont get() = ImGui.getFont()
+    val font: ImFont get() = getFont()
 
     /**
      * Returns the font size (= height in pixels) with the current scale applied.
      */
-    val fontSize: Int get() = ImGui.getFontSize()
+    val fontSize: Int get() = getFontSize()
 
 
     /**
@@ -490,9 +490,9 @@ object ImGuiBuilder {
         flags: Int = ImGuiComboFlags.None,
         block: () -> Unit = {},
     ) {
-        if (ImGui.beginCombo(label, preview, flags)) {
+        if (beginCombo(label, preview, flags)) {
             block()
-            ImGui.endCombo()
+            endCombo()
         }
     }
 
@@ -579,7 +579,7 @@ object ImGuiBuilder {
         flags: Int = 0,
         block: (ImFloat) -> Unit = {},
     ) {
-        if (ImGui.dragFloat(label, value.data, vSpeed, vMin, vMax, format, flags))
+        if (dragFloat(label, value.data, vSpeed, vMin, vMax, format, flags))
             block(value)
     }
 
@@ -618,7 +618,7 @@ object ImGuiBuilder {
         flags: Int = 0,
         block: (ImInt) -> Unit = {},
     ) {
-        if (ImGui.dragInt(label, value.data, vSpeed, vMin, vMax, format, flags))
+        if (dragInt(label, value.data, vSpeed, vMin, vMax, format, flags))
             block(value)
     }
 
@@ -654,7 +654,7 @@ object ImGuiBuilder {
         flags: Int = 0,
         block: (ImFloat) -> Unit = {},
     ) {
-        if (ImGui.sliderFloat(label, value.data, vMin, vMax, format, flags))
+        if (sliderFloat(label, value.data, vMin, vMax, format, flags))
             block(value)
     }
 
@@ -690,7 +690,7 @@ object ImGuiBuilder {
         flags: Int = 0,
         block: (ImInt) -> Unit = {},
     ) {
-        if (ImGui.sliderInt(label, value.data, vMin, vMax, format, flags))
+        if (sliderInt(label, value.data, vMin, vMax, format, flags))
             block(value)
     }
 
@@ -831,7 +831,7 @@ object ImGuiBuilder {
         flags: Int = ImGuiInputTextFlags.None,
         block: (ImFloat) -> Unit = {}
     ) {
-        if (ImGui.inputFloat(label, value, step, stepFast, format, flags))
+        if (inputFloat(label, value, step, stepFast, format, flags))
             block(value)
     }
 
@@ -853,7 +853,7 @@ object ImGuiBuilder {
         flags: Int = ImGuiInputTextFlags.None,
         block: (FloatArray) -> Unit = {}
     ) {
-        if (ImGui.inputFloat2(label, values, format, flags))
+        if (inputFloat2(label, values, format, flags))
             block(values)
     }
 
@@ -868,7 +868,7 @@ object ImGuiBuilder {
     ) {
         val floats = floatArrayOf(vec.x, vec.y)
 
-        if (ImGui.inputFloat2(label, floats, format, flags))
+        if (inputFloat2(label, floats, format, flags))
             block(Vec2f(floats[0], floats[1]))
     }
 
@@ -890,7 +890,7 @@ object ImGuiBuilder {
         flags: Int = ImGuiInputTextFlags.None,
         block: (FloatArray) -> Unit = {}
     ) {
-        if (ImGui.inputFloat3(label, values, format, flags))
+        if (inputFloat3(label, values, format, flags))
             block(values)
     }
 
@@ -912,7 +912,7 @@ object ImGuiBuilder {
         flags: Int = ImGuiInputTextFlags.None,
         block: (FloatArray) -> Unit = {}
     ) {
-        if (ImGui.inputFloat4(label, values, format, flags))
+        if (inputFloat4(label, values, format, flags))
             block(values)
     }
 
@@ -938,7 +938,7 @@ object ImGuiBuilder {
         flags: Int = ImGuiInputTextFlags.None,
         block: (Double) -> Unit = {},
     ) = withDouble(value) {
-        if (ImGui.inputDouble(label, it, step, stepFast, format, flags)) {
+        if (inputDouble(label, it, step, stepFast, format, flags)) {
             value.set(it.get())
             block(it.get())
         }
@@ -964,7 +964,7 @@ object ImGuiBuilder {
     ) {
         val doubles = floatArrayOf(vec.x.toFloat(), vec.y.toFloat())
 
-        if (ImGui.inputFloat3(label, doubles, format, flags))
+        if (inputFloat3(label, doubles, format, flags))
             block(Vec2d(doubles[0], doubles[1]))
     }
 
@@ -988,7 +988,7 @@ object ImGuiBuilder {
     ) {
         val doubles = floatArrayOf(vec.x.toFloat(), vec.y.toFloat(), vec.z.toFloat())
 
-        if (ImGui.inputFloat3(label, doubles, format, flags))
+        if (inputFloat3(label, doubles, format, flags))
             block(Vec3d(doubles[0].toDouble(), doubles[1].toDouble(), doubles[2].toDouble()))
     }
 
@@ -1071,7 +1071,7 @@ object ImGuiBuilder {
         val col = color.get()
         val components = col.getComponents(default)
 
-        if (ImGui.colorEdit4(label, components)) {
+        if (colorEdit4(label, components)) {
             val (r, g, b, a) = components
 
             color.set(Color(r, g, b, a))
@@ -1143,7 +1143,7 @@ object ImGuiBuilder {
         val floats = floatArrayOf(0f, 0f, 0f, 0f)
         val (r, g, b, a) = color.getColorComponents(floats)
 
-        if (ImGui.colorButton(descId, r, g, b, a, flags))
+        if (colorButton(descId, r, g, b, a, flags))
             block()
     }
 
@@ -1155,7 +1155,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     inline fun treeNode(label: String, block: ProcedureBlock) {
-        if (ImGui.treeNode(label)) {
+        if (treeNode(label)) {
             block()
             treePop()
         }
@@ -1170,7 +1170,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     inline fun treeNode(label: String, id: String, block: ProcedureBlock) {
-        if (ImGui.treeNode(label, id)) {
+        if (treeNode(label, id)) {
             block()
             treePop()
         }
@@ -1890,19 +1890,19 @@ object ImGuiBuilder {
      * Gets the current draw list for custom drawing.
      */
     @ImGuiDsl
-    val windowDrawList: ImDrawList get() = ImGui.getWindowDrawList()
+    val windowDrawList: ImDrawList get() = getWindowDrawList()
 
     /**
      * Gets the background draw list for custom drawing.
      */
     @ImGuiDsl
-    val getBackgroundDrawList: ImDrawList get() = ImGui.getBackgroundDrawList()
+    val getBackgroundDrawList: ImDrawList get() = getBackgroundDrawList()
 
     /**
      * Gets the foreground draw list for custom drawing.
      */
     @ImGuiDsl
-    val getForegroundDrawList: ImDrawList get() = ImGui.getForegroundDrawList()
+    val getForegroundDrawList: ImDrawList get() = getForegroundDrawList()
 
     /**
      * Creates a frame with optional border.
