@@ -1072,7 +1072,7 @@ object ImGuiBuilder {
         val components = col.getComponents(default)
 
         if (ImGui.colorEdit4(label, components)) {
-            val (r, b, g, a) = components
+            val (r, g, b, a) = components
 
             color.set(Color(r, g, b, a))
             block(col)
@@ -1102,7 +1102,7 @@ object ImGuiBuilder {
         val components = col.getComponents(default)
 
         if (colorPicker4(label, components, flags)) {
-            val (r, b, g, a) = components
+            val (r, g, b, a) = components
 
             color.set(Color(r, g, b, a))
             block(col)
