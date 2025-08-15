@@ -139,10 +139,11 @@ object BreakManager : RequestHandler<BreakRequest>(
     private val rotated get() = rotationRequest?.done != false
 
     var swappedThisTick = false
+    var heldTicks = 0
     var swappedStack: ItemStack = ItemStack.EMPTY
         set(value) {
             if (value != field)
-                breakInfos.forEach { it?.serverBreakTicks = 0 }
+                heldTicks = 0
             swappedThisTick = true
             field = value
         }
@@ -174,6 +175,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (!swappedThisTick) {
                 swappedStack = player.mainHandStack
             } else swappedThisTick = false
+            heldTicks++
             if (breakCooldown > 0) {
                 breakCooldown--
             }
@@ -229,9 +231,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         listen<RenderEvent.StaticESP> { event ->
             val activeStack = breakInfos
                 .filterNotNull()
-                .firstOrNull()?.let { info ->
-                    player.inventory.getStack(info.context.hotbarIndex)
-                } ?: return@listen
+                .firstOrNull()?.swapStack ?: return@listen
 
             breakInfos
                 .filterNotNull()
@@ -413,20 +413,18 @@ object BreakManager : RequestHandler<BreakRequest>(
                         rotation.submit(false)
                     }
 
-                if (activeInfos.isEmpty()) {
-                    swappedStack = player.mainHandStack
-                    return true
-                }
+                if (activeInfos.isEmpty()) return true
 
-                infos.forEach {
-                    it.updatePreProcessing(player, world)
-                }
+                infos.forEach { it.updatePreProcessing(player, world) }
+
+                if (swappedThisTick) return true
+
                 infos.firstOrNull()?.let { info ->
                     infos.firstOrNull { it.shouldSwap && it.shouldProgress }?.let { last ->
-                        if (!info.context.requestSwap(info.request, max(info.minSwapTicks, last.minSwapTicks)))
+                        val minSwapTicks = max(info.minSwapTicks, last.minSwapTicks)
+                        if (!info.context.requestSwap(info.request, minSwapTicks))
                             return false
-                        swappedStack = info.swapStack
-                        if (info.minSwapTicks > 0) info.serverBreakTicks++
+                        if (minSwapTicks > 0) swappedStack = info.swapStack
                     }
                 }
             }
@@ -602,11 +600,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (updatedPreProcessingThisTick) return
         updatedPreProcessingThisTick = true
 
+        swapStack = player.inventory.getStack(context.hotbarIndex)
         couldReBreak = RebreakManager.couldRebreak(this, player, world)
         shouldSwap = shouldSwap(player, world)
 
         val cachedState = context.cachedState
-        swapStack = player.inventory.getStack(context.hotbarIndex)
 
         val breakTicks = (breakingTicks + 1 - breakConfig.fudgeFactor).coerceAtLeast(1)
         val breakAmount = cachedState.calcBreakDelta(
@@ -770,7 +768,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (overBreakThreshold && (info.serverBreakTicks >= info.breakConfig.fudgeFactor || info.minSwapTicks < 1)) {
+        if (overBreakThreshold && heldTicks + 1 >= info.breakConfig.fudgeFactor) {
             if (info.type == Primary) {
                 onBlockBreak(info)
                 info.stopBreakPacket(world, interaction)
@@ -844,7 +842,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakDelta = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
         info.vanillaInstantBreakable = breakDelta >= 1
-        if (notEmpty && (breakDelta >= info.getBreakThreshold() && (info.serverBreakTicks >= info.breakConfig.fudgeFactor || info.minSwapTicks < 1))) {
+        if (notEmpty && breakDelta >= info.getBreakThreshold() && heldTicks + 1 >= info.breakConfig.fudgeFactor) {
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {

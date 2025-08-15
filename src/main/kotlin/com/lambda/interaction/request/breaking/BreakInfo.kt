@@ -48,7 +48,6 @@ data class BreakInfo(
     var shouldSwap by OneSetPerTick(value = false, throwOnLimitBreach = true)
     var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
     var minSwapTicks by OneSetPerTick(0, true)
-    var serverBreakTicks = 0
 
     // BreakInfo Specific
     var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }
@@ -115,8 +114,7 @@ data class BreakInfo(
     }
 
     fun shouldSwap(player: ClientPlayerEntity, world: BlockView): Boolean {
-        val item = player.inventory.getStack(context.hotbarIndex)
-        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
+        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack)
         val breakProgress = breakDelta * (breakingTicks + 1)
         return if (couldReBreak == RebreakManager.RebreakPotential.Instant)
             breakConfig.swapMode.isEnabled()
@@ -140,7 +138,7 @@ data class BreakInfo(
     private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
         val swapMode = breakConfig.swapMode
         val item =
-            if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) player.inventory.getStack(context.hotbarIndex) else player.mainHandStack
+            if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) swapStack else player.mainHandStack
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
         val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
         return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1

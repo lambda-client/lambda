@@ -67,7 +67,7 @@ object RebreakManager {
     fun couldRebreak(info: BreakInfo, player: ClientPlayerEntity, world: BlockView) =
         rebreak?.let { reBreak ->
             val stack = if (info.breakConfig.swapMode.isEnabled())
-                player.inventory.getStack(info.context.hotbarIndex)
+                info.swapStack
             else player.mainHandStack
             val breakDelta = info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
             val possible = reBreak.breakConfig.rebreak &&
