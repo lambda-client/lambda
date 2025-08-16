@@ -30,7 +30,7 @@ import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
-class KeyBindSetting(
+class KeybindSetting(
     override val name: String,
     defaultValue: KeyCode,
     description: String,

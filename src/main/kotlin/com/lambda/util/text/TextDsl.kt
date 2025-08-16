@@ -140,7 +140,7 @@ fun TextBuilder.literal(color: Color = Color.WHITE, value: String) {
  * @see StyleBuilder for action
  */
 @TextDsl
-fun TextBuilder.keyBind(key: String) {
+fun TextBuilder.keybind(key: String) {
     styleAndAppend(Text.keybind(key))
 }
 

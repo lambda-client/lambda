@@ -68,13 +68,13 @@ object SettingTest : Module(
     private val blockPosSetting by setting("Block Position", BlockPos(0, 0, 0)).group(Group.COMPLEX)
     private val blockSetting by setting("Block Setting", Blocks.OBSIDIAN).group(Group.COMPLEX)
     private val colorSetting by setting("Color Setting", Color.GREEN).group(Group.COMPLEX)
-    private val keyBindSetting by setting("Key Bind Setting", KeyCode.T).group(Group.COMPLEX)
+    private val keybindSetting by setting("Key Bind Setting", KeyCode.T).group(Group.COMPLEX)
 
     // Complex collections
     private val blockPosSet by setting("Block Position Set", setOf(BlockPos(0, 0, 0)), setOf(BlockPos(0, 0, 0))).group(Group.COMPLEX)
     private val blockList by setting("Block List", listOf(Blocks.OBSIDIAN), listOf(Blocks.OBSIDIAN)).group(Group.COMPLEX)
     private val colorMap by setting("Color Map", mapOf("Primary" to Color.GREEN)).group(Group.COMPLEX)
-    private val keyBindSet by setting("Key Bind Set", setOf(KeyCode.T), setOf(KeyCode.T)).group(Group.COMPLEX)
+    private val keybindSet by setting("Key Bind Set", setOf(KeyCode.T), setOf(KeyCode.T)).group(Group.COMPLEX)
 
     // Other
     private val unitSetting by setting("Unit Test", { this@SettingTest.info("Unit setting") }).group(Group.FUNCTIONAL)

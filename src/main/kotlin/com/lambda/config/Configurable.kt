@@ -33,7 +33,7 @@ import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.complex.ColorSetting
-import com.lambda.config.settings.complex.KeyBindSetting
+import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.config.settings.complex.Vec3dSetting
 import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.config.settings.numeric.FloatSetting
@@ -370,21 +370,21 @@ abstract class Configurable(
     ) = LongSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
-     * Creates a [KeyBindSetting] with the provided parameters and adds it to the [settings].
+     * Creates a [KeybindSetting] with the provided parameters and adds it to the [settings].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [KeyCode] value of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
-     * @return The created [KeyBindSetting].
+     * @return The created [KeybindSetting].
      */
     fun setting(
         name: String,
         defaultValue: KeyCode,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = KeyBindSetting(name, defaultValue, description, visibility).register()
+    ) = KeybindSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [ColorSetting] with the provided parameters and adds it to the [settings].
