@@ -35,6 +35,7 @@
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
+    "render.DebugRendererMixin",
     "render.ElytraFeatureRendererMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
