@@ -19,11 +19,18 @@ package com.lambda.mixin.render;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
+import com.lambda.graphics.RenderMain;
 import com.lambda.gui.DearImGui;
 import com.lambda.gui.LambdaScreen;
 import com.lambda.module.modules.client.ClickGui;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.render.WorldRenderer;
+import net.minecraft.client.util.ObjectAllocator;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -36,5 +43,24 @@ public class GameRendererMixin {
         if (EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled()) {
             info.cancel();
         }
+    }
+
+    /**
+     * Begins our 3d render after the game has rendered the world
+     * <pre>{@code
+     * float m = Math.max(h, (float)(Integer)this.client.options.getFov().getValue());
+     * Matrix4f matrix4f2 = this.getBasicProjectionMatrix(m);
+     * RenderSystem.setProjectionMatrix(matrix4f, ProjectionType.PERSPECTIVE);
+     * Quaternionf quaternionf = camera.getRotation().conjugate(new Quaternionf());
+     * Matrix4f matrix4f3 = (new Matrix4f()).rotation(quaternionf);
+     * this.client.worldRenderer.setupFrustum(camera.getPos(), matrix4f3, matrix4f2);
+     * this.client.worldRenderer.render(this.pool, renderTickCounter, bl, camera, this, matrix4f3, matrix4f);
+     * }</pre>
+     */
+    @WrapOperation(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;render(Lnet/minecraft/client/util/ObjectAllocator;Lnet/minecraft/client/render/RenderTickCounter;ZLnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/GameRenderer;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V"))
+    void onRenderWorld(WorldRenderer instance, ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, Matrix4f positionMatrix, Matrix4f projectionMatrix, Operation<Void> original) {
+        original.call(instance, allocator, tickCounter, renderBlockOutline, camera, gameRenderer, positionMatrix, projectionMatrix);
+
+        RenderMain.render3D(positionMatrix, projectionMatrix);
     }
 }
