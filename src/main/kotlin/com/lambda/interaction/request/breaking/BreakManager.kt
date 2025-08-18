@@ -43,7 +43,6 @@ import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
-import com.lambda.interaction.request.breaking.BreakInfo.BreakType
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -174,7 +173,8 @@ object BreakManager : RequestHandler<BreakRequest>(
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             if (!swappedThisTick) {
                 swappedStack = player.mainHandStack
-            } else swappedThisTick = false
+            }
+            swappedThisTick = false
             heldTicks++
             if (breakCooldown > 0) {
                 breakCooldown--
@@ -189,12 +189,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (event.pos == RebreakManager.rebreak?.context?.blockPos) return@listen
 
             breakInfos
-                .filterNotNull()
-                .firstOrNull { it.context.blockPos == event.pos }
+                .firstOrNull { it?.context?.blockPos == event.pos }
                 ?.let { info ->
-                    val currentState = info.context.cachedState
                     // if not broken
-                    if (isNotBroken(currentState, event.newState)) {
+                    if (isNotBroken(info.context.cachedState, event.newState)) {
                         // update the cached state
                         info.context.cachedState = event.newState
                         return@listen
@@ -321,8 +319,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
             // Reversed so that the breaking order feels natural to the user as the primary break is always the
             // last break to be started
-            run {
-                if (!handlePreProcessing()) return@run
+            if (handlePreProcessing()) {
                 activeInfos
                     .filter { it.updatedThisTick }
                     .asReversed()
@@ -360,8 +357,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filterNotNull()
             .forEach { info ->
                 newBreaks.find { ctx -> ctx.blockPos == info.context.blockPos && canAccept(ctx) }?.let { ctx ->
-                    if (!info.updatedThisTick || info.abandoned) {
-                        info.updateInfo(ctx, request)
+                    if ((!info.updatedThisTick || info.type == RedundantSecondary) || info.abandoned) {
                         if (info.type == RedundantSecondary)
                             info.request.onStart?.invoke(info.context.blockPos)
                         else if (info.abandoned) {
@@ -369,6 +365,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                             info.request.onStart?.invoke(info.context.blockPos)
                         } else
                             info.request.onUpdate?.invoke(info.context.blockPos)
+
+                        info.updateInfo(ctx, request)
                     }
                     newBreaks.remove(ctx)
                     return@forEach
@@ -417,14 +415,13 @@ object BreakManager : RequestHandler<BreakRequest>(
 
                 infos.forEach { it.updatePreProcessing(player, world) }
 
-                if (swappedThisTick) return true
-
                 infos.firstOrNull()?.let { info ->
-                    infos.firstOrNull { it.shouldSwap && it.shouldProgress }?.let { last ->
+                    infos.lastOrNull { it.shouldSwap && it.shouldProgress }?.let { last ->
                         val minSwapTicks = max(info.minSwapTicks, last.minSwapTicks)
                         if (!info.context.requestSwap(info.request, minSwapTicks))
                             return false
-                        if (minSwapTicks > 0) swappedStack = info.swapStack
+                        if (minSwapTicks > 0)
+                            swappedStack = info.swapStack
                     }
                 }
             }
@@ -540,7 +537,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .forEach { info ->
                 if (info.type == RedundantSecondary && !info.progressedThisTick) {
                     val cachedState = info.context.cachedState
-                    if (cachedState.isEmpty || cachedState.isAir) {
+                    if (cachedState.isEmpty) {
                         info.nullify()
                         return@forEach
                     }
@@ -675,13 +672,8 @@ object BreakManager : RequestHandler<BreakRequest>(
     /**
      * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnCancel] callback gets triggered
      */
-    private fun BreakInfo.nullify() = type.nullify()
-
-    /**
-     * Nullifies the [BreakInfo] reference in the [breakInfos] array based on the [BreakType]
-     */
-    private fun BreakType.nullify() =
-        when (this) {
+    private fun BreakInfo.nullify() =
+        when (type) {
             Primary, Rebreak -> primaryBreak = null
             else -> secondaryBreak = null
         }
@@ -726,7 +718,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val blockState = blockState(ctx.blockPos)
-        if (blockState.isEmpty || blockState.isAir) {
+        if (blockState.isEmpty) {
             info.nullify()
             info.request.onCancel?.invoke(ctx.blockPos)
             return false
