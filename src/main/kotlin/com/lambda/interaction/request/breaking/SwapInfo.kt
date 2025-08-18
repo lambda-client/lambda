@@ -26,15 +26,18 @@ import net.minecraft.item.ItemStack
 import net.minecraft.world.BlockView
 
 data class SwapInfo(
+    val type: BreakInfo.BreakType,
     val breakConfig: BreakConfig = TaskFlowModule.build.breaking,
     val swap: Boolean = false,
     val minKeepTicks: Int = 0,
 ) {
     val canCompleteBreak
-        get() = BreakManager.heldTicks >= breakConfig.serverSwapTicks
+        get() = BreakManager.heldTicks >= if (type == Primary)
+            breakConfig.serverSwapTicks
+        else breakConfig.serverSwapTicks.coerceAtLeast(2)
 
     companion object {
-        val EMPTY = SwapInfo()
+        val EMPTY = SwapInfo(Primary)
 
         fun getSwapInfo(
             info: BreakInfo,
@@ -46,7 +49,7 @@ data class SwapInfo(
             val breakDeltaNoEfficiency = context.cachedState
                 .calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack, ignoreEfficiency = true)
             val breakTicks = (if (rebreakPotential.isPossible()) RebreakManager.rebreak?.breakingTicks
-                ?: throw IllegalStateException("Rebreak was null when rebreak was considered possible")
+                ?: throw IllegalStateException("Rebreak BreakInfo was null when rebreak was considered possible")
             else breakingTicks).let {
                 // Plus one as this is calculated before this ticks progress is calculated and the breakingTicks are incremented
                 (it + 1) - breakConfig.fudgeFactor
@@ -54,14 +57,14 @@ data class SwapInfo(
             val threshold = getBreakThreshold()
 
             val minKeepTicks = run {
-                val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks)
-                val withinPrimarySwapRange = swapTickProgress >= threshold
                 if (type == Primary) {
+                    val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks)
                     val withoutEfficiency = breakDeltaNoEfficiency * breakTicks >= threshold
-                    if (withinPrimarySwapRange && !withoutEfficiency && swapStack.heldTicks < breakConfig.serverSwapTicks) 1
+                    if (swapTickProgress >= threshold && !withoutEfficiency && swapStack.heldTicks < breakConfig.serverSwapTicks) 1
                     else 0
                 } else {
-                    val withinSecondarySwapRange = withinPrimarySwapRange ||
+                    val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks.coerceAtLeast(2) - 1)
+                    val withinSecondarySwapRange = swapTickProgress >= threshold ||
                             (breakDelta * breakTicks >= threshold && breakDelta * (breakTicks - 1) < threshold)
                     if (withinSecondarySwapRange) 1 else 0
                 }
@@ -79,7 +82,7 @@ data class SwapInfo(
                 BreakConfig.SwapMode.Constant -> true
             }
 
-            return SwapInfo(breakConfig, swap, minKeepTicks)
+            return SwapInfo(info.type, breakConfig, swap, minKeepTicks)
         }
 
         private val ItemStack.heldTicks
