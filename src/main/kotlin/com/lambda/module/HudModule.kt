@@ -17,9 +17,7 @@
 
 package com.lambda.module
 
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.animation.AnimationTicker
+import com.lambda.gui.Layout
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 
@@ -30,14 +28,7 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-    background: Boolean = true
 ) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind) {
 
-    protected val animation = AnimationTicker()
-
-    init {
-        listen<TickEvent.Pre> {
-            animation.tick()
-        }
-    }
+    abstract val element: Layout
 }

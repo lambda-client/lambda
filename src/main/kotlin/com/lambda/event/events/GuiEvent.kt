@@ -15,18 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.event.events
 
-import com.lambda.graphics.texture.TextureOwner.uploadGif
-import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
+import com.lambda.event.Event
 
-object GifTest : HudModule(
-    name = "GifTest",
-    tag = ModuleTag.CLIENT,
-) {
-    private val test = uploadGif("chika.gif")
+sealed class GuiEvent {
+    /**
+     * Triggered when a new ImGui frame is created and the client
+     * is allowed to submit any command from this point until [EndFrame].
+     */
+    data object NewFrame : Event
 
-    init {
-    }
+    /**
+     * Triggered when the previous ImGui frame is ended and the client
+     * is able to perform OpenGL calls.
+     *
+     * By default, the game's framebuffer is bound.
+     */
+    data object EndFrame : Event
 }

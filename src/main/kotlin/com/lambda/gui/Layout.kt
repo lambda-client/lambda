@@ -20,10 +20,10 @@ package com.lambda.gui
 import com.lambda.gui.dsl.ImGuiBuilder
 
 /**
- * Represents a layout structure that can be built using an ImGui-based DSL.
- * Implementations of this interface define how the layout should be constructed
- * within the provided builder context.
+ * [Layout] defines a lambda that should execute in a [ImGuiBuilder] context
+ * during an ImGui frame
+ *
+ * Ideally, the [Layout] should call other layouts in order to build
+ * something meaningful.
  */
-interface Layout {
-    fun ImGuiBuilder.buildLayout()
-}
+typealias Layout = ImGuiBuilder.() -> Unit

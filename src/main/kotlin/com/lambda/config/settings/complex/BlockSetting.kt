@@ -42,9 +42,7 @@ class BlockSetting(
     description,
     visibility
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        // ToDo
-    }
+    override fun invoke(p1: ImGuiBuilder) = with(p1) {}
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(blockState(name, registry)) { argument ->

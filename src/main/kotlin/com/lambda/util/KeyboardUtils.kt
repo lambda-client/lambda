@@ -18,12 +18,22 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
+import com.lambda.core.Loadable
+import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import net.minecraft.client.util.InputUtil
 
-object KeyboardUtils {
+object KeyboardUtils : Loadable {
+    var lastEvent: KeyboardEvent.Press = KeyboardEvent.Press(0, 0, -1, 0)
+
     /**
      * Returns whether any of the key-codes (not scan-codes) are being pressed
      */
     fun SafeContext.isKeyPressed(vararg keys: Int) =
         keys.any { InputUtil.isKeyPressed(mc.window.handle, it) }
+
+    init {
+        // hacking imgui jni lib rn because it's missing a lot of native functions including i/o stuff
+        listenUnsafe<KeyboardEvent.Press> { lastEvent = it }
+    }
 }
