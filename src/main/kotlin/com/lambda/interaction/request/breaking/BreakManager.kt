@@ -772,6 +772,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }
 
                     primaryBreak?.let { primary ->
+                        if (!handlePreProcessing()) return false
                         updateBreakProgress(primary)
                     }
                     return true

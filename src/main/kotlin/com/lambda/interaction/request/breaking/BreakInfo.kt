@@ -20,6 +20,7 @@ package com.lambda.interaction.request.breaking
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -125,7 +126,8 @@ data class BreakInfo(
 
     fun getBreakThreshold() =
         when (type) {
-            Primary -> breakConfig.breakThreshold
+            Primary,
+            Rebreak-> breakConfig.breakThreshold
             else -> 1.0f
         }
 

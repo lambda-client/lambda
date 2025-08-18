@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakManager.currentStack
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -32,8 +33,8 @@ data class SwapInfo(
     val minKeepTicks: Int = 0,
 ) {
     val canCompleteBreak
-        get() = (BreakManager.heldTicks + 1) >= if (type == Primary) breakConfig.serverSwapTicks
-        else breakConfig.serverSwapTicks.coerceAtLeast(2)
+        get() = (BreakManager.heldTicks + 1) >= if (type == Primary || type == Rebreak) breakConfig.serverSwapTicks
+        else breakConfig.serverSwapTicks.coerceAtLeast(3)
 
     companion object {
         val EMPTY = SwapInfo(Primary)
@@ -63,7 +64,7 @@ data class SwapInfo(
                         !withoutEfficiency) 1
                     else 0
                 } else {
-                    val serverSwapTicks = breakConfig.serverSwapTicks.coerceAtLeast(2)
+                    val serverSwapTicks = breakConfig.serverSwapTicks.coerceAtLeast(3)
                     val swapTickProgress = breakDelta * (breakTicks + serverSwapTicks - 1)
                     if (swapTickProgress >= threshold && swapStack.heldTicks < serverSwapTicks) 1
                     else 0

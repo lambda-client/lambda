@@ -35,7 +35,7 @@ object RebreakManager {
     var rebreak: BreakInfo? = null
 
     init {
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE + 1) {
             rebreak?.run {
                 if (!progressedThisTick) {
                     breakingTicks++
@@ -89,7 +89,8 @@ object RebreakManager {
 
             val context = reBreak.context
             val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, reBreak.breakConfig)
-            return@runSafe if ((reBreak.breakingTicks - reBreak.breakConfig.fudgeFactor) * breakDelta >= reBreak.breakConfig.breakThreshold) {
+            val breakTicks = reBreak.breakingTicks - reBreak.breakConfig.fudgeFactor
+            return@runSafe if (breakTicks * breakDelta >= reBreak.getBreakThreshold() && reBreak.swapInfo.canCompleteBreak) {
                 if (reBreak.breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
                     destroyBlock(reBreak)
                 }
