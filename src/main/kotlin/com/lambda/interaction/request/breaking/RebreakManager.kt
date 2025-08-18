@@ -64,7 +64,7 @@ object RebreakManager {
         rebreak = null
     }
 
-    fun couldRebreak(info: BreakInfo, player: ClientPlayerEntity, world: BlockView) =
+    fun getRebreakPotential(info: BreakInfo, player: ClientPlayerEntity, world: BlockView) =
         rebreak?.let { reBreak ->
             val stack = if (info.breakConfig.swapMode.isEnabled())
                 info.swapStack
@@ -109,6 +109,6 @@ object RebreakManager {
         PartialProgress,
         None;
 
-        fun isPossible() = this == Instant || this == PartialProgress
+        fun isPossible() = this != None
     }
 }
