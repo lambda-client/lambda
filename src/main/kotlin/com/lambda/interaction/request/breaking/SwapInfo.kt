@@ -32,8 +32,7 @@ data class SwapInfo(
     val minKeepTicks: Int = 0,
 ) {
     val canCompleteBreak
-        get() = BreakManager.heldTicks >= if (type == Primary)
-            breakConfig.serverSwapTicks
+        get() = (BreakManager.heldTicks + 1) >= if (type == Primary) breakConfig.serverSwapTicks
         else breakConfig.serverSwapTicks.coerceAtLeast(2)
 
     companion object {
@@ -58,15 +57,16 @@ data class SwapInfo(
 
             val minKeepTicks = run {
                 if (type == Primary) {
-                    val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks)
+                    val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks - 1)
                     val withoutEfficiency = breakDeltaNoEfficiency * breakTicks >= threshold
-                    if (swapTickProgress >= threshold && !withoutEfficiency && swapStack.heldTicks < breakConfig.serverSwapTicks) 1
+                    if (swapTickProgress >= threshold &&
+                        !withoutEfficiency) 1
                     else 0
                 } else {
-                    val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks.coerceAtLeast(2) - 1)
-                    val withinSecondarySwapRange = swapTickProgress >= threshold ||
-                            (breakDelta * breakTicks >= threshold && breakDelta * (breakTicks - 1) < threshold)
-                    if (withinSecondarySwapRange) 1 else 0
+                    val serverSwapTicks = breakConfig.serverSwapTicks.coerceAtLeast(2)
+                    val swapTickProgress = breakDelta * (breakTicks + serverSwapTicks - 1)
+                    if (swapTickProgress >= threshold && swapStack.heldTicks < serverSwapTicks) 1
+                    else 0
                 }
             }
 
