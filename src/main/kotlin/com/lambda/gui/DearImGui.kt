@@ -90,7 +90,6 @@ object DearImGui : Loadable {
         )
 
         GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
-        glViewport(0, 0, framebuffer.textureWidth, framebuffer.textureHeight)
 
         implGlfw.newFrame()
         implGl3.newFrame()
@@ -103,8 +102,6 @@ object DearImGui : Loadable {
         GuiEvent.EndFrame.post()
 
         implGl3.renderDrawData(ImGui.getDrawData())
-
-        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
     }
 
     fun destroy() {

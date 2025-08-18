@@ -19,7 +19,6 @@ package com.lambda.module.hud
 
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.Layout
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
