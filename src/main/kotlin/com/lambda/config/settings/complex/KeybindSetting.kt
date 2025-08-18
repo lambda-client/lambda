@@ -23,8 +23,10 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.widgets.KeybindWidget
+import com.lambda.gui.widgets.keybindWidget
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
@@ -41,16 +43,8 @@ class KeybindSetting(
     description,
     visibility
 ) {
-    private val widget = KeybindWidget(
-        label = name,
-        description = description,
-        valueGetter = { value },
-        valueSetter = { value = it },
-    )
-
-    override fun ImGuiBuilder.buildLayout() {
-        with(widget) { build() }
-    }
+    private val widget = keybindWidget(name, description, ::value)
+    override fun invoke(p1: ImGuiBuilder) = widget(p1)
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

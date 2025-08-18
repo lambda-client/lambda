@@ -17,60 +17,14 @@
 
 package com.lambda.gui
 
-import com.lambda.config.Configuration
-import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
-import imgui.ImGui
-import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 
 
-object LambdaScreen : Screen(Text.of("Lambda GUI")) {
+object LambdaScreen : Screen(Text.of("")) {
     override fun shouldPause() = false
     override fun removed() = ClickGui.disable()
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
-
-    fun render() = DearImGui.render {
-        ModuleTag.defaults
-            .forEach { tag ->
-                window(tag.name, flags = AlwaysAutoResize) {
-                    ModuleRegistry.modules
-                        .filter { it.tag == tag }
-                        .forEach { with(it) { buildLayout() } }
-                }
-            }
-
-        mainMenuBar {
-            menu("File") {
-                menuItem("Save Configs", "Ctrl+S") {
-                    Configuration.configurations.forEach { config ->
-                        config.trySave(true)
-                    }
-                    runSafe {
-                        info("Saved ${Configuration.configurations.size} configuration files.")
-                    }
-                }
-                menuItem("Load Configs", "Ctrl+L") {
-                    Configuration.configurations.forEach { config ->
-                        config.tryLoad()
-                    }
-                    runSafe {
-                        info("Loaded ${Configuration.configurations.size} configuration files.")
-                    }
-                }
-            }
-            menu("HUD") {
-                menuItem("Open Editor", "Ctrl+Alt+C") {
-                    ImGui.showStyleEditor()
-                }
-            }
-        }
-        ImGui.showDemoWindow()
-//        ImGui.showFontSelector("Font")
-    }
 }

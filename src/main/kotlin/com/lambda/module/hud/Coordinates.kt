@@ -17,28 +17,38 @@
 
 package com.lambda.module.hud
 
-import com.lambda.context.SafeContext
+import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.dsl.ImGuiBuilder.textCopyable
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.string
+import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
 object Coordinates : HudModule(
-    name = "Coordinates",
+    name        = "Coordinates",
     description = "Show your coordinates",
-    tag = ModuleTag.CLIENT,
+    tag         = ModuleTag.HUD,
 ) {
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
     //override fun getText() = runSafe { "XYZ ${if (showDimension) world.dimensionName else ""} ${positionForDimension()}" } ?: ""
 
-    private fun SafeContext.positionForDimension() =
-        when {
-            world.isNether -> "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
-            else -> "${player.pos.asString(decimals)} [${player.netherCoord.x.string}; ${player.netherCoord.z.string}]"
+    override val element: Layout = {
+        runSafe {
+            val text = "XYZ ${if (showDimension) world.dimensionName else ""}"
+
+            val coord =
+                if (world.isNether) "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
+                else "${player.pos.asString(decimals)} [${player.netherCoord.x.string}; ${player.netherCoord.z.string}]"
+
+            textCopyable("$text $coord")
         }
+    }
 }

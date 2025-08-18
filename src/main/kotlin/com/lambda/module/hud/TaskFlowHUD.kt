@@ -17,12 +17,15 @@
 
 package com.lambda.module.hud
 
+import com.lambda.gui.Layout
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.RootTask
 
 object TaskFlowHUD : HudModule(
-    name = "TaskFlowHud",
-    tag = ModuleTag.CLIENT,
+    name    = "TaskFlowHud",
+    tag     = ModuleTag.HUD,
 ) {
-    //override fun getText() = RootTask.toString()
+    override val element: Layout =
+        { text(RootTask.toString()) }
 }

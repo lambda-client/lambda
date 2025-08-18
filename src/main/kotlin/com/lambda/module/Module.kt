@@ -134,7 +134,7 @@ abstract class Module(
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
 
-    override fun ImGuiBuilder.buildLayout() {
+    override fun invoke(p1: ImGuiBuilder) = with(p1) {
         checkbox("##-${this@Module}", ::isEnabled)
         lambdaTooltip(description)
         sameLine()
@@ -144,7 +144,7 @@ abstract class Module(
                 val visibleSettings = settings.filter { it.visibility() }
                 val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
 
-                ungrouped.forEach { with(it) { buildLayout() } }
+                ungrouped.forEach { it(this) }
 
                 renderGroup(grouped, emptyList())
             }
@@ -152,7 +152,7 @@ abstract class Module(
     }
 
     private fun ImGuiBuilder.renderGroup(settings: List<AbstractSetting<*>>, parentPath: List<NamedEnum>) {
-        settings.filter { it.groups.contains(parentPath) }.forEach { with(it) { buildLayout() } }
+        settings.filter { it.groups.contains(parentPath) }.forEach { it(this) }
 
         val subGroupSettings = settings.filter { s -> s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath } }
         val subTabs = subGroupSettings

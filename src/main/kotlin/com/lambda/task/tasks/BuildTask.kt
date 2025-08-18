@@ -94,6 +94,10 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
+            if (blueprint is TickingBlueprint) {
+                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
+            }
+
             if (collectDrops()) return@listen
 
             val results = blueprint.simulate(player.eyePos, interactionConfig, rotation, inventory, build)
@@ -191,10 +195,6 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Post> {
-            if (blueprint is TickingBlueprint) {
-                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
-            }
-
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
                 return@listen

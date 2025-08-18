@@ -17,24 +17,22 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.event.EventFlow;
-import com.lambda.event.events.RenderEvent;
 import com.lambda.gui.DearImGui;
-import com.lambda.gui.LambdaScreen;
-import com.lambda.module.modules.client.ClickGui;
-import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(GameRenderer.class)
-public class GameRendererMixin {
-    @Inject(method = "updateCrosshairTarget(F)V", at = @At("HEAD"), cancellable = true)
-    private void updateTargetedEntityInvoke(float tickDelta, CallbackInfo info) {
-        if (EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled()) {
-            info.cancel();
-        }
+@Mixin(InGameHud.class)
+public class InGameHudMixin {
+    /**
+     * Begins our 2d render after the game has rendered all 2d elements
+     */
+    @Inject(method = "render", at = @At("TAIL"))
+    private void onRender(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        DearImGui.INSTANCE.render();
     }
 }

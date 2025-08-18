@@ -19,7 +19,8 @@ package com.lambda.gui
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.event.EventFlow.post
+import com.lambda.event.events.GuiEvent
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.path
@@ -59,7 +60,7 @@ object DearImGui : Loadable {
         implGl3.createFontsTexture()
     }
 
-    fun render(block: ImGuiBuilder.() -> Unit) {
+    fun render() {
         val scale = (GuiSettings.scaleSetting / 100.0).toFloat()
 
         if (lastScale == 0f) {
@@ -97,9 +98,10 @@ object DearImGui : Loadable {
         ClickGui.applyStyle(lastScale)
         ImGui.newFrame()
 
-        ImGuiBuilder.block()
-
+        GuiEvent.NewFrame.post()
         ImGui.render()
+        GuiEvent.EndFrame.post()
+
         implGl3.renderDrawData(ImGui.getDrawData())
 
         GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)

@@ -44,7 +44,7 @@ class ListSetting<T : Any>(
     private val strListType =
         TypeToken.getParameterized(MutableList::class.java, String::class.java).type
 
-    override fun ImGuiBuilder.buildLayout() {
+    override fun invoke(p1: ImGuiBuilder) = with(p1) {
         combo("##$name", "$name: ${value.size} item(s)") {
             immutableList
                 .forEach {
@@ -53,8 +53,7 @@ class ListSetting<T : Any>(
                     selectable(
                         it.toString(), isSelected,
                         flags = DontClosePopups
-                    )
-                    { if (isSelected) value.remove(it) else value.add(it) }
+                    ) { if (isSelected) value.remove(it) else value.add(it) }
                 }
         }
     }

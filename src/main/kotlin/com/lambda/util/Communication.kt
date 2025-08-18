@@ -179,8 +179,8 @@ object Communication {
             }
             literal("Keybind: ")
             color(GuiSettings.primaryColor) {
-                if (module.keybind.keyCode != -1) {
-                    literal(module.keybind.keyCode.toString())
+                if (module.keybind.code != -1) {
+                    literal(module.keybind.code.toString())
                 } else {
                     literal("Unbound")
                 }

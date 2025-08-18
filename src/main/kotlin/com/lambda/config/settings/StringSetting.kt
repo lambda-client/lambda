@@ -44,7 +44,7 @@ class StringSetting(
     description,
     visibility
 ) {
-    override fun ImGuiBuilder.buildLayout() {
+    override fun invoke(p1: ImGuiBuilder) = with(p1) {
         if (multiline) {
             inputTextMultiline(name, ::value, flags = flags)
         } else {

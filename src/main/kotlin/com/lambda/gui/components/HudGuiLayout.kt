@@ -15,36 +15,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.gui.components
 
+import com.lambda.core.Loadable
+import com.lambda.event.events.GuiEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
-import imgui.flag.ImGuiCol
-import java.awt.Color
+import imgui.flag.ImGuiWindowFlags
 
-object ModuleList : HudModule(
-    name    = "ModuleList",
-    tag     = ModuleTag.HUD,
-) {
-    override val isVisible: Boolean
-        get() = false
+object HudGuiLayout : Loadable, Layout {
+    const val DEFAULT_HUD_FLAGS =
+        ImGuiWindowFlags.NoDecoration or
+                ImGuiWindowFlags.NoBackground or
+                ImGuiWindowFlags.AlwaysAutoResize
 
-    override val element: Layout = {
-        val enabled = ModuleRegistry.modules
+    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+        ModuleRegistry.modules
+            .filterIsInstance<HudModule>()
             .filter { it.isEnabled }
-            .filter { it.isVisible }
+            .forEach {
+                window("##${it.name}", flags = DEFAULT_HUD_FLAGS) { it.element(this) }
+            }
+    }
 
-        enabled.forEach {
-            text(it.name); sameLine()
-
-            val color =
-                if (it.keybind == KeyCode.UNBOUND) Color.RED
-                else Color.GREEN
-
-            withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
-        }
+    init {
+        listen<GuiEvent.NewFrame> { invoke(ImGuiBuilder) }
     }
 }

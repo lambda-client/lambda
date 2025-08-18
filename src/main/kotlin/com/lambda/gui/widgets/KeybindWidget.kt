@@ -17,101 +17,79 @@
 
 package com.lambda.gui.widgets
 
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImStorageDsl.imProperty
 import com.lambda.util.KeyCode
-import imgui.ImGui
+import com.lambda.util.KeyboardUtils
+import imgui.ImGui.isMouseClicked
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiMouseButton
 import org.lwjgl.glfw.GLFW
+import kotlin.reflect.KMutableProperty0
 
-class KeybindWidget(
-    private val label: String,
-    private val description: String = "",
-    private val valueGetter: () -> KeyCode,
-    private val valueSetter: (KeyCode) -> Unit,
-) {
-    private var listening = false
+fun keybindWidget(
+    label: String,
+    description: String,
+    value: KMutableProperty0<KeyCode>,
+): Layout = {
+    val key = value.get()
+    val scancode = if (key == KeyCode.UNBOUND) -69 else GLFW.glfwGetKeyScancode(key.code)
+    val translated = if (key == KeyCode.UNBOUND) key else KeyCode.virtualMapUS(key.code, scancode)
 
-    init {
-        listen<KeyboardEvent.Press> { event ->
-            if (!listening) return@listen
-            if (!event.isPressed) return@listen
-            val translated = event.translated
+    var listening by imProperty<Boolean>("$label-listening", false)
+    val preview = if (listening) "$label: Press any key…" else "$label: $translated"
 
-            when (translated.keyCode) {
-                GLFW.GLFW_KEY_ESCAPE -> {
-                    listening = false
-                }
-                GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_KEY_DELETE -> {
-                    valueSetter(KeyCode.UNBOUND)
-                    listening = false
-                }
-                else -> {
-                    valueSetter(translated)
-                    listening = false
+    if (listening) {
+        withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
+            withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
+                withStyleColor(ImGuiCol.ButtonActive, 0.20f, 0.50f, 0.95f, 1.00f) {
+                    button(preview)
                 }
             }
         }
+    } else {
+        button(preview) { listening = true }
     }
 
-    fun ImGuiBuilder.build() {
-        val current = valueGetter()
-        val scancode = GLFW.glfwGetKeyScancode(current.keyCode)
-        val translated = KeyCode.virtualMapUS(current.keyCode, scancode)
-        val preview = if (listening) "$label: Press any key…" else "$label: ${translated.prettyDisplay()}"
+    lambdaTooltip(
+        if (!listening)
+            description.ifBlank { "Click to set. Right-click to unbind. Esc cancels. Backspace/Delete unbinds." }
+        else
+            "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
+    )
 
-        if (listening) {
-            withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
-                withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
-                    withStyleColor(ImGuiCol.ButtonActive, 0.20f, 0.50f, 0.95f, 1.00f) {
-                        button(preview)
-                    }
-                }
+    onItemClick(ImGuiMouseButton.Right) {
+        value.set(KeyCode.UNBOUND)
+        listening = false
+    }
+
+    if (listening && !isAnyItemHovered && isMouseClicked(ImGuiMouseButton.Left)) {
+        listening = false
+    }
+
+    sameLine()
+    smallButton("Unbind") {
+        value.set(KeyCode.UNBOUND)
+        listening = false
+    }
+    onItemHover(ImGuiHoveredFlags.Stationary) {
+        lambdaTooltip("Clear binding")
+    }
+
+    val poll = KeyboardUtils.lastEvent
+    if (listening && poll.isPressed) {
+        val key = poll.translated
+        when (key) {
+            KeyCode.ESCAPE -> listening = false
+            KeyCode.BACKSPACE, KeyCode.DELETE -> {
+                value.set(KeyCode.UNBOUND)
+                listening = false
             }
-        } else {
-            button(preview) { listening = true }
+            else -> {
+                value.set(key)
+                listening = false
+            }
         }
-
-        lambdaTooltip(
-            if (!listening)
-                description.ifBlank { "Click to set. Right-click to unbind. Esc cancels. Backspace/Delete unbinds." }
-            else
-                "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
-        )
-
-        onItemClick(ImGuiMouseButton.Right) {
-            valueSetter(KeyCode.UNBOUND)
-            listening = false
-        }
-
-        if (listening && !isAnyItemHovered && ImGui.isMouseClicked(ImGuiMouseButton.Left)) {
-            listening = false
-        }
-
-        sameLine()
-        smallButton("Unbind") {
-            valueSetter(KeyCode.UNBOUND)
-            listening = false
-        }
-        onItemHover(ImGuiHoveredFlags.Stationary) {
-            lambdaTooltip("Clear binding")
-        }
-    }
-
-    private fun KeyCode.prettyDisplay(): String {
-        if (this == KeyCode.UNBOUND) return "Unbound"
-        if (keyCode == GLFW.GLFW_KEY_UNKNOWN) return name
-
-        val scancode = GLFW.glfwGetKeyScancode(keyCode)
-        val nameFromGlfw = if (scancode != 0) {
-            GLFW.glfwGetKeyName(GLFW.GLFW_KEY_UNKNOWN, scancode)
-        } else {
-            GLFW.glfwGetKeyName(keyCode, 0)
-        }
-
-        return nameFromGlfw?.takeIf { it.isNotBlank() }?.uppercase() ?: name
     }
 }

@@ -72,17 +72,12 @@ open class FrameBuffer(
     private var lastHeight = -1
 
     open fun write(block: () -> Unit): FrameBuffer {
-        // You're a real one dude https://github.com/FlorianMichael/fabric-imgui-example-mod/blob/1.21.5/src/main/java/de/florianmichael/imguiexample/imgui/ImGuiImpl.java
-        // Minecraft will not bind the framebuffer unless it is needed, so do it manually and hope Vulcan never gets real:tm:
-        val framebuffer = mc.framebuffer
-        val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer((RenderSystem.getDevice() as GlBackend).framebufferManager, null)
-
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
 
         update()
         block()
 
-        glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
         return this
     }
 
@@ -122,9 +117,7 @@ open class FrameBuffer(
 
         val fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER)
 
-        check(fboStatus == GL_FRAMEBUFFER_COMPLETE) {
-            "Framebuffer not complete: $fboStatus"
-        }
+        check(fboStatus == GL_FRAMEBUFFER_COMPLETE) { "Framebuffer not complete: $fboStatus" }
     }
 
     open fun bindColorTexture(slot: Int = 0): FrameBuffer {
