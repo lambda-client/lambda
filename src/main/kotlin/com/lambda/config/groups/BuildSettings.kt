@@ -39,7 +39,7 @@ class BuildSettings(
     override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks", vis).group(*groupPath, Group.General)
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis).group(*groupPath, Group.General)
     override val interactionsPerTick by c.setting("Interactions Per Tick", 5, 1..30, 1, "The amount of interactions that can happen per tick", visibility = vis).group(*groupPath, Group.General)
-    override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response", visibility = vis).group(*groupPath, Group.General)
+    override val maxPendingInteractions by c.setting("Max Pending Interactions", 15, 1..30, 1, "The maximum count of pending interactions to allow before pausing future interactions", visibility = vis).group(*groupPath, Group.General)
 
     // Breaking
     override val breaking = BreakSettings(c, groupPath.toList() + Group.Break, vis)
