@@ -27,8 +27,10 @@ import com.lambda.config.serializer.ItemStackSerializer
 import com.lambda.config.serializer.KeyCodeSerializer
 import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.threading.recordRenderCall
 import com.lambda.util.KeyCode
+import com.lambda.util.WindowIcons.setLambdaWindowIcon
 import com.mojang.authlib.GameProfile
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.loader.api.FabricLoader
@@ -75,6 +77,7 @@ object Lambda : ClientModInitializer {
     override fun onInitializeClient() {
         recordRenderCall {
             LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
+            if (ClickGui.setLambdaWindowIcon) setLambdaWindowIcon()
         }
     }
 }
