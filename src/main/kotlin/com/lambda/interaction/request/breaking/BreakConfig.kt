@@ -28,13 +28,14 @@ import java.awt.Color
 interface BreakConfig : RequestConfig {
     val breakMode: BreakMode
     val sorter: SortMode
-    val breakThreshold: Float
     val rebreak: Boolean
 
     val doubleBreak: Boolean
     val unsafeCancels: Boolean
 
+    val breakThreshold: Float
     val fudgeFactor: Int
+    val serverSwapTicks: Int
     //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
 //    abstract val desyncFix: Boolean
     val breakDelay: Int
