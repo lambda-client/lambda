@@ -315,9 +315,12 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see updateBreakProgress
      */
     private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
+        breakRequest?.let { request ->
+            if (request.fresh) populateFrom(request)
+        }
+
         repeat(2) {
             breakRequest?.let { request ->
-                if (request.fresh) populateFrom(request)
                 if (performInstantBreaks(request)) {
                     processNewBreaks(request)
                 }
