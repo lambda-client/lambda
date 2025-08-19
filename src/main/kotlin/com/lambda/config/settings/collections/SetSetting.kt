@@ -44,7 +44,7 @@ class SetSetting<T : Any>(
     private val strSetType =
         TypeToken.getParameterized(Set::class.java, String::class.java).type
 
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         combo("##$name", "$name: ${value.size} item(s)") {
             immutableSet
                 .forEach {

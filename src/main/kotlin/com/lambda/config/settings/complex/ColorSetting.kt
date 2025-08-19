@@ -43,7 +43,7 @@ class ColorSetting(
     description,
     visibility
 ) {
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         colorEdit(name, ::value)
         lambdaTooltip(description)
     }

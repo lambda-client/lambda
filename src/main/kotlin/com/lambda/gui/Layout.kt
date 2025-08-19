@@ -19,11 +19,6 @@ package com.lambda.gui
 
 import com.lambda.gui.dsl.ImGuiBuilder
 
-/**
- * [Layout] defines a lambda that should execute in a [ImGuiBuilder] context
- * during an ImGui frame
- *
- * Ideally, the [Layout] should call other layouts in order to build
- * something meaningful.
- */
-typealias Layout = ImGuiBuilder.() -> Unit
+interface Layout {
+    fun ImGuiBuilder.buildLayout()
+}

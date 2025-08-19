@@ -43,7 +43,7 @@ class BlockPosSetting(
     description,
     visibility
 ) {
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         inputVec3i(name, value) { value = it.blockPos }
         lambdaTooltip(description)
     }

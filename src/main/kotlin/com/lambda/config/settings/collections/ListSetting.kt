@@ -44,7 +44,7 @@ class ListSetting<T : Any>(
     private val strListType =
         TypeToken.getParameterized(MutableList::class.java, String::class.java).type
 
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         combo("##$name", "$name: ${value.size} item(s)") {
             immutableList
                 .forEach {

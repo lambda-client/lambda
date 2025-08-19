@@ -18,7 +18,7 @@
 package com.lambda.module.hud
 
 import com.lambda.graphics.texture.TextureOwner.upload
-import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
@@ -28,6 +28,12 @@ object Watermark : HudModule(
 ) {
     private val texture = upload("textures/lambda.png")
 
-    override val element: Layout =
-        { windowDrawList.addImage(texture.id.toLong(), texture.width.toFloat(), texture.height.toFloat(), 1f, 0f, 0f, 1f) }
+    override fun ImGuiBuilder.buildLayout() {
+        windowDrawList.addImage(
+            texture.id.toLong(),
+            texture.width.toFloat(),
+            texture.height.toFloat(),
+            1f, 0f, 0f, 1f
+        )
+    }
 }

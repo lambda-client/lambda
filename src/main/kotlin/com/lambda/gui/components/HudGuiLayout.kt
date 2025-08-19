@@ -20,28 +20,29 @@ package com.lambda.gui.components
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.Layout
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import imgui.flag.ImGuiWindowFlags
 
-object HudGuiLayout : Loadable, Layout {
+object HudGuiLayout : Loadable {
     const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or
                 ImGuiWindowFlags.NoBackground or
                 ImGuiWindowFlags.AlwaysAutoResize
 
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
-        ModuleRegistry.modules
-            .filterIsInstance<HudModule>()
-            .filter { it.isEnabled }
-            .forEach {
-                window("##${it.name}", flags = DEFAULT_HUD_FLAGS) { it.element(this) }
-            }
-    }
-
     init {
-        listen<GuiEvent.NewFrame> { invoke(ImGuiBuilder) }
+        listen<GuiEvent.NewFrame> {
+            buildLayout {
+                ModuleRegistry.modules
+                    .filterIsInstance<HudModule>()
+                    .filter { it.isEnabled }
+                    .forEach { hud ->
+                        window("##${hud.name}", flags = DEFAULT_HUD_FLAGS) {
+                            with(hud) { buildLayout() }
+                        }
+                    }
+            }
+        }
     }
 }
