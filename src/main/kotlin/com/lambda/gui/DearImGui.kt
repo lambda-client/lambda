@@ -26,6 +26,8 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.path
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
+import imgui.ImFontConfig
+import imgui.ImFontGlyphRangesBuilder
 import imgui.ImGui
 import imgui.ImGuiIO
 import imgui.flag.ImGuiConfigFlags
@@ -54,9 +56,13 @@ object DearImGui : Loadable {
     private fun updateScale(scale: Float) {
         io.fonts.clear()
         val baseFontSize = 13f
-        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale)
+        val glyphRanges = ImFontGlyphRangesBuilder().apply {
+            addRanges(io.fonts.glyphRangesDefault)
+            addRanges(io.fonts.glyphRangesGreek)
+            addChar('⤴') // U+2934 for external links
+        }.buildRanges()
+        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale, ImFontConfig(), glyphRanges)
         io.fonts.build()
-
         implGl3.createFontsTexture()
     }
 

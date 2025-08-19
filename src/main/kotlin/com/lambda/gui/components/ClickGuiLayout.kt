@@ -17,54 +17,45 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.Configuration
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
 
 object ClickGuiLayout : Loadable {
+    private val shownTags = ModuleTag.defaults.toMutableList()
+
     init {
         listen<GuiEvent.NewFrame> {
             if (!ClickGui.isEnabled) return@listen
 
             buildLayout {
-                ModuleTag.defaults
-                    .forEach { tag ->
-                        window(tag.name, flags = AlwaysAutoResize) {
-                            ModuleRegistry.modules
-                                .filter { it.tag == tag }
-                                .forEach { with(ModuleEntry(it)) { buildLayout() } }
-                        }
-                    }
+                shownTags.forEach { tag ->
+                    window(tag.name, flags = AlwaysAutoResize) {
+                        ModuleRegistry.modules
+                            .filter { it.tag == tag }
+                            .forEach { with(ModuleEntry(it)) { buildLayout() } }
 
-                mainMenuBar {
-                    menu("File") {
-                        menuItem("Save Configs", "Ctrl+S") {
-                            Configuration.configurations.forEach { config ->
-                                config.trySave(true)
-                            }
-                            runSafe {
-                                info("Saved ${Configuration.configurations.size} configuration files.")
-                            }
-                        }
-                        menuItem("Load Configs", "Ctrl+L") {
-                            Configuration.configurations.forEach { config ->
-                                config.tryLoad()
-                            }
-                            runSafe {
-                                info("Loaded ${Configuration.configurations.size} configuration files.")
+                        // ToDo: Add a proper context menu to the window
+                        popupContextWindow("lambda_window_ctx") {
+                            text("Window Menu")
+                            separator()
+                            menuItem("Close This Window") {
+                                // ToDo (Close under-cursor window):
+                                //  - Requires a mapping from ImGui window to your visibility flag.
+                                //  - Can be implemented if you track per-window IDs & vis flags.
                             }
                         }
                     }
                 }
+
+                buildMenuBar()
 
                 ImGui.showDemoWindow()
             }

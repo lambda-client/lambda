@@ -1496,10 +1496,10 @@ object ImGuiBuilder {
     inline fun popupModal(
         title: String,
         value: KMutableProperty0<Boolean>,
-        flags: Int = ImGuiPopupFlags.None,
+        windowFlags: Int = ImGuiWindowFlags.None,
         block: ProcedureBlock,
     ) {
-        if (withBool(value) { beginPopupModal(title, it, flags) }) {
+        if (withBool(value) { beginPopupModal(title, it, windowFlags) }) {
             block()
             endPopup()
         }
@@ -1508,10 +1508,10 @@ object ImGuiBuilder {
     @ImGuiDsl
     inline fun popupModal(
         title: String,
-        flags: Int = ImGuiPopupFlags.None,
+        windowFlags: Int = ImGuiWindowFlags.None,
         block: ProcedureBlock,
     ) {
-        if (beginPopupModal(title, flags)) {
+        if (beginPopupModal(title, windowFlags)) {
             block()
             endPopup()
         }
@@ -1913,6 +1913,36 @@ object ImGuiBuilder {
     val foregroundDrawList: ImDrawList get() = getForegroundDrawList()
 
     /**
+     * Represents the minimum X-coordinate of the current item's rectangle in the UI.
+     *
+     * This value is typically used to calculate the dimensions or positioning
+     * of graphical elements relative to the current UI item.
+     */
+    @ImGuiDsl
+    val itemRectMinX: Float get() = getItemRectMinX()
+
+    @ImGuiDsl
+    val itemRectMinY: Float get() = getItemRectMinY()
+
+    @ImGuiDsl
+    val itemRectMaxX: Float get() = getItemRectMaxX()
+
+    @ImGuiDsl
+    val itemRectMaxY: Float get() = getItemRectMaxY()
+
+    @ImGuiDsl
+    val frameHeight: Float get() = getFrameHeight()
+
+    @ImGuiDsl
+    val frameHeightWithSpacing: Float get() = getFrameHeightWithSpacing()
+
+    @ImGuiDsl
+    val windowContentRegionMaxX: Float get() = getWindowContentRegionMaxX()
+
+    @ImGuiDsl
+    val windowContentRegionMaxY: Float get() = getWindowContentRegionMaxY()
+
+    /**
      * Creates a frame with optional border.
      */
     @ImGuiDsl
@@ -1940,6 +1970,24 @@ object ImGuiBuilder {
                 getColorU32(ImGuiCol.Border), rounding, ImDrawListFlags.None, borderSize
             )
         }
+    }
+
+    @ImGuiDsl
+    var cursorPosX: Float get() = getCursorPosX(); set(value) {
+        setCursorPosX(value)
+    }
+
+    @ImGuiDsl
+    var cursorPosY: Float get() = getCursorPosY(); set(value) {
+        setCursorPosY(value)
+    }
+
+    @ImGuiDsl
+    fun imageHorizontallyCentered(textureId: Long, width: Float, height: Float) {
+        val contentW = getContentRegionAvail().x
+        val offsetX = (contentW - width) * 0.5f
+        cursorPosX += maxOf(0f, offsetX)
+        image(textureId, width, height)
     }
 
     @ImGuiDsl

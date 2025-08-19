@@ -34,6 +34,7 @@ import com.lambda.util.Nameable
  */
 data class ModuleTag(override val name: String) : Nameable {
     // Totally needs to be reworked
+    // ToDo: Add registry for tags
     companion object {
         val COMBAT = ModuleTag("Combat")
         val MOVEMENT = ModuleTag("Movement")

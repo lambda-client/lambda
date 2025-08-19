@@ -23,8 +23,8 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask
 
 object TaskFlowHUD : HudModule(
-    name    = "TaskFlowHud",
-    tag     = ModuleTag.HUD,
+    name = "TaskFlowHud",
+    tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
         text(RootTask.toString())

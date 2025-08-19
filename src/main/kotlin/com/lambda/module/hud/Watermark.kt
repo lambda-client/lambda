@@ -23,8 +23,8 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
 object Watermark : HudModule(
-    name    = "Watermark",
-    tag     = ModuleTag.HUD,
+    name = "Watermark",
+    tag = ModuleTag.HUD,
 ) {
     private val texture = upload("textures/lambda.png")
 
