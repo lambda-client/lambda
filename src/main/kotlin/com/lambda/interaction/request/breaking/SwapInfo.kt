@@ -34,7 +34,7 @@ data class SwapInfo(
 ) {
     val canCompleteBreak
         get() = (BreakManager.heldTicks + 1) >= if (type == Primary || type == Rebreak) breakConfig.serverSwapTicks
-        else breakConfig.serverSwapTicks.coerceAtLeast(2)
+        else breakConfig.serverSwapTicks.coerceAtLeast(3)
 
     companion object {
         val EMPTY = SwapInfo(Primary)
@@ -64,7 +64,7 @@ data class SwapInfo(
                         !withoutEfficiency) 1
                     else 0
                 } else {
-                    val serverSwapTicks = breakConfig.serverSwapTicks.coerceAtLeast(2)
+                    val serverSwapTicks = breakConfig.serverSwapTicks.coerceAtLeast(3)
                     val swapTickProgress = breakDelta * (breakTicks + serverSwapTicks - 1)
                     if (swapTickProgress >= threshold && swapStack.heldTicks < serverSwapTicks) 1
                     else 0
