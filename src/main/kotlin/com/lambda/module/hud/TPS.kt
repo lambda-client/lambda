@@ -17,7 +17,6 @@
 
 package com.lambda.module.hud
 
-import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
@@ -32,8 +31,9 @@ object TPS : HudModule(
 ) {
     private val format by setting("Tick format", TickFormat.TPS)
 
-    override val element: Layout =
-        { text("${format.displayName}: ${format.output().string}${format.unit}") }
+    override fun ImGuiBuilder.buildLayout() {
+        text("${format.displayName}: ${format.output().string}${format.unit}")
+    }
 
     @Suppress("unused")
     private enum class TickFormat(

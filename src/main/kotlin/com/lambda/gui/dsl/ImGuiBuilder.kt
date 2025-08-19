@@ -36,7 +36,10 @@
 
 package com.lambda.gui.dsl
 
+import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder.text
+import com.lambda.module.modules.client.ClickGui
+import com.lambda.threading.runSafe
 import com.lambda.util.math.Vec2d
 import imgui.*
 import imgui.ImGui.*
@@ -1393,13 +1396,18 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun lambdaTooltip(description: String) {
         if (description.isBlank()) return
-        onItemHover {
+        onItemHover(ClickGui.tooltipType.flag) {
             tooltip {
                 withTextWrapPos(fontSize * 35f) {
                     textUnformatted(description)
                 }
             }
         }
+    }
+
+    @ImGuiDsl
+    fun lambdaTooltip(description: () -> String) {
+        lambdaTooltip(description())
     }
 
     /**
@@ -1896,13 +1904,13 @@ object ImGuiBuilder {
      * Gets the background draw list for custom drawing.
      */
     @ImGuiDsl
-    val getBackgroundDrawList: ImDrawList get() = getBackgroundDrawList()
+    val backgroundDrawList: ImDrawList get() = getBackgroundDrawList()
 
     /**
      * Gets the foreground draw list for custom drawing.
      */
     @ImGuiDsl
-    val getForegroundDrawList: ImDrawList get() = getForegroundDrawList()
+    val foregroundDrawList: ImDrawList get() = getForegroundDrawList()
 
     /**
      * Creates a frame with optional border.
@@ -1932,5 +1940,10 @@ object ImGuiBuilder {
                 getColorU32(ImGuiCol.Border), rounding, ImDrawListFlags.None, borderSize
             )
         }
+    }
+
+    @ImGuiDsl
+    fun buildLayout(block: ProcedureBlock) {
+        block()
     }
 }

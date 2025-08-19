@@ -41,7 +41,7 @@ class BooleanSetting(
     description,
     visibility
 ) {
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         checkbox(name, ::value)
         lambdaTooltip(description)
     }

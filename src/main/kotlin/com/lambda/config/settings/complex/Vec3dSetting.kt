@@ -39,7 +39,7 @@ class Vec3dSetting(
     description,
     visibility
 ) {
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         inputVec3d(name, ::value as Vec3d) // what the fuck
         lambdaTooltip(description)
     }

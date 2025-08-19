@@ -17,9 +17,7 @@
 
 package com.lambda.module.hud
 
-import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.dsl.ImGuiBuilder.textCopyable
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -40,7 +38,7 @@ object Coordinates : HudModule(
 
     //override fun getText() = runSafe { "XYZ ${if (showDimension) world.dimensionName else ""} ${positionForDimension()}" } ?: ""
 
-    override val element: Layout = {
+    override fun ImGuiBuilder.buildLayout() {
         runSafe {
             val text = "XYZ ${if (showDimension) world.dimensionName else ""}"
 

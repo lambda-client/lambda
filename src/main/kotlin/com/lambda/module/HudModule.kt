@@ -28,7 +28,4 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind) {
-
-    abstract val element: Layout
-}
+) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout

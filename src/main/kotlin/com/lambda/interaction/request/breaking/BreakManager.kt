@@ -28,6 +28,7 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
@@ -227,7 +228,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 ?.internalOnItemDrop(it.entity)
         }
 
-        listen<RenderEvent.StaticESP> { event ->
+        listen<RenderEvent.DynamicESP> { event ->
             val activeStack = breakInfos
                 .filterNotNull()
                 .firstOrNull()?.swapStack ?: return@listen
@@ -270,9 +271,13 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
                     }.forEach boxes@ { box ->
-                        val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
-                        if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
-                        if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
+                        val interpolatedNow = interpolateBox(box, currentProgress, info.breakConfig)
+                        val interpolatedNext = interpolateBox(box, nextTicksProgress, info.breakConfig)
+                        val dynamicAABB = DynamicAABB()
+                        dynamicAABB.update(interpolatedNow)
+                        dynamicAABB.update(interpolatedNext)
+                        if (config.fill) event.renderer.buildFilled(dynamicAABB, fillColor)
+                        if (config.outline) event.renderer.buildOutline(dynamicAABB, outlineColor)
                     }
                 }
         }

@@ -17,7 +17,7 @@
 
 package com.lambda.module.hud
 
-import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
@@ -32,7 +32,7 @@ object ModuleList : HudModule(
     override val isVisible: Boolean
         get() = false
 
-    override val element: Layout = {
+    override fun ImGuiBuilder.buildLayout() {
         val enabled = ModuleRegistry.modules
             .filter { it.isEnabled }
             .filter { it.isVisible }

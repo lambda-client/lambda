@@ -34,7 +34,7 @@ open class FunctionSetting<T>(
     description,
     visibility
 ) {
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         button(name) { value() }
         lambdaTooltip(description)
     }
