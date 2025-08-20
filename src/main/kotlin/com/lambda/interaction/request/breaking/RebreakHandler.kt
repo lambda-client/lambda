@@ -25,7 +25,6 @@ import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.threading.runSafe
-import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.player.swingHand
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.Hand
@@ -69,7 +68,7 @@ object RebreakHandler {
             val stack = if (info.breakConfig.swapMode.isEnabled())
                 info.swapStack
             else player.mainHandStack
-            val breakDelta = info.context.cachedState.calcItemBlockBreakingDelta(player, world, info.context.blockPos, stack)
+            val breakDelta = info.context.cachedState.calcBreakDelta(player, world, info.context.blockPos, info.breakConfig, stack)
             val possible = reBreak.breakConfig.rebreak &&
                     info.context.blockPos == reBreak.context.blockPos &&
                     !reBreak.updatedThisTick

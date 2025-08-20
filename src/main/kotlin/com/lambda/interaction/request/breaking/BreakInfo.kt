@@ -21,7 +21,7 @@ import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
-import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.OneSetPerTick
@@ -29,7 +29,6 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.ItemEntity
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
@@ -115,11 +114,11 @@ data class BreakInfo(
         world.setBlockBreakingInfo(player.id, context.blockPos, stage)
     }
 
-    private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
+    private fun getBreakTextureProgress(player: ClientPlayerEntity, world: ClientWorld): Int {
         val swapMode = breakConfig.swapMode
         val item =
             if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) swapStack else player.mainHandStack
-        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
+        val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, item)
         val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
         return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
     }

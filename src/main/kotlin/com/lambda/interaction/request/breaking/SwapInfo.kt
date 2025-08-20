@@ -19,9 +19,9 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
+import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.request.breaking.BreakManager.currentStack
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.world.BlockView
@@ -45,9 +45,9 @@ data class SwapInfo(
             world: BlockView
         ): SwapInfo = with(info) {
             val breakDelta = context.cachedState
-                .calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack)
+                .calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack)
             val breakDeltaNoEfficiency = context.cachedState
-                .calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack, ignoreEfficiency = true)
+                .calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack, ignoreEfficiency = true)
 
             val threshold = getBreakThreshold()
 
