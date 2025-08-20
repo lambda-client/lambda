@@ -48,13 +48,17 @@ data class SwapInfo(
                 .calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack)
             val breakDeltaNoEfficiency = context.cachedState
                 .calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack, ignoreEfficiency = true)
+
+            val threshold = getBreakThreshold()
+
             val breakTicks = (if (rebreakPotential.isPossible()) RebreakManager.rebreak?.breakingTicks
                 ?: throw IllegalStateException("Rebreak BreakInfo was null when rebreak was considered possible")
             else breakingTicks).let {
                 // Plus one as this is calculated before this ticks progress is calculated and the breakingTicks are incremented
-                (it + 1) - breakConfig.fudgeFactor
+                (it + 1).let {
+                    if (breakDelta >= threshold) it else it - breakConfig.fudgeFactor
+                }
             }
-            val threshold = getBreakThreshold()
 
             val minKeepTicks = run {
                 if (type == Primary) {
