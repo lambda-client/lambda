@@ -176,9 +176,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             if (!swappedThisTick) {
                 currentStack = player.mainHandStack
+                heldTicks++
             }
             swappedThisTick = false
-            heldTicks++
             if (breakCooldown > 0) {
                 breakCooldown--
             }
@@ -430,8 +430,11 @@ object BreakManager : RequestHandler<BreakRequest>(
                         val minSwapTicks = max(info.swapInfo.minKeepTicks, last.swapInfo.minKeepTicks)
                         if (!info.context.requestSwap(info.request, minSwapTicks))
                             return false
-                        if (minSwapTicks > 0)
+                        if (minSwapTicks > 0) {
+                            val alreadySwapped = swappedThisTick
                             currentStack = info.swapStack
+                            if (!alreadySwapped) heldTicks++
+                        }
                     }
                 }
             }

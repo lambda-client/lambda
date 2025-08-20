@@ -33,7 +33,7 @@ data class SwapInfo(
     val minKeepTicks: Int = 0,
 ) {
     val canCompleteBreak
-        get() = (BreakManager.heldTicks + 1) >= if (type == Primary || type == Rebreak) breakConfig.serverSwapTicks
+        get() = BreakManager.heldTicks >= if (type == Primary || type == Rebreak) breakConfig.serverSwapTicks
         else breakConfig.serverSwapTicks.coerceAtLeast(3)
 
     companion object {
