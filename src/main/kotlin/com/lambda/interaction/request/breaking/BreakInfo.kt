@@ -21,6 +21,8 @@ import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -72,24 +74,21 @@ data class BreakInfo(
     }
 
     // Post Processing
-    @Volatile
     var broken = false; private set
     private var item: ItemEntity? = null
     val callbacksCompleted
-        @Synchronized get() = broken && (request.onItemDrop == null || item != null)
+        get() = broken && (request.onItemDrop == null || item != null)
 
-    @Synchronized
     fun internalOnBreak() {
-        if (type != BreakType.Rebreak) broken = true
+        if (type != Rebreak) broken = true
         item?.let { item ->
             request.onItemDrop?.invoke(item)
         }
     }
 
-    @Synchronized
     fun internalOnItemDrop(item: ItemEntity) {
-        if (type != BreakType.Rebreak) this.item = item
-        if (broken || type == BreakType.Rebreak) {
+        if (type != Rebreak) this.item = item
+        if (broken || type == Rebreak) {
             request.onItemDrop?.invoke(item)
         }
     }
@@ -98,7 +97,7 @@ data class BreakInfo(
         updatedThisTick = true
         this.context = context
         request?.let { this.request = it }
-        if (type == BreakType.RedundantSecondary) type = BreakType.Secondary
+        if (type == RedundantSecondary) type = Secondary
     }
 
     fun resetCallbacks() {
