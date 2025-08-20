@@ -157,7 +157,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     var lastPosStarted: BlockPos? = null
         set(value) {
-            if (value != field) RebreakManager.clearRebreak()
+            if (value != field) RebreakHandler.clearRebreak()
             field = value
         }
 
@@ -188,7 +188,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            if (event.pos == RebreakManager.rebreak?.context?.blockPos) return@listen
+            if (event.pos == RebreakHandler.rebreak?.context?.blockPos) return@listen
 
             breakInfos
                 .firstOrNull { it?.context?.blockPos == event.pos }
@@ -207,7 +207,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.request.onStop?.invoke(info.context.blockPos)
                     info.internalOnBreak()
                     if (info.callbacksCompleted)
-                        RebreakManager.offerRebreak(info)
+                        RebreakHandler.offerRebreak(info)
                     else info.startPending()
                     info.nullify()
                 }
@@ -218,7 +218,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (it.entity !is ItemEntity) return@listen
 
             // ToDo: Proper item drop prediction system
-            RebreakManager.rebreak?.let { reBreak ->
+            RebreakHandler.rebreak?.let { reBreak ->
                 if (matchesBlockItem(reBreak, it.entity)) return@listen
             }
 
@@ -583,7 +583,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 if (!info.callbacksCompleted) {
                     info.startPending()
                 } else {
-                    RebreakManager.offerRebreak(info)
+                    RebreakHandler.offerRebreak(info)
                 }
             }
             BreakConfirmationMode.BreakThenAwait -> {
@@ -607,7 +607,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         updatedPreProcessingThisTick = true
 
         swapStack = player.inventory.getStack(context.hotbarIndex)
-        rebreakPotential = RebreakManager.getRebreakPotential(this, player, world)
+        rebreakPotential = RebreakHandler.getRebreakPotential(this, player, world)
         swapInfo = getSwapInfo(this, player, world)
     }
 
@@ -771,11 +771,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         val ctx = info.context
 
         if (info.rebreakPotential.isPossible()) {
-            when (val rebreakResult = RebreakManager.handleUpdate(info.context, info.request)) {
+            when (val rebreakResult = RebreakHandler.handleUpdate(info.context, info.request)) {
                 is RebreakResult.StillBreaking -> {
                     primaryBreak = rebreakResult.breakInfo.apply {
                         type = Primary
-                        RebreakManager.clearRebreak()
+                        RebreakHandler.clearRebreak()
                         request.onStart?.invoke(ctx.blockPos)
                     }
 

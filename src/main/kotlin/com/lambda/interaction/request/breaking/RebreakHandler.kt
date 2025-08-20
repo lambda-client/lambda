@@ -31,7 +31,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.Hand
 import net.minecraft.world.BlockView
 
-object RebreakManager {
+object RebreakHandler {
     var rebreak: BreakInfo? = null
 
     init {
@@ -83,7 +83,7 @@ object RebreakManager {
 
     fun handleUpdate(ctx: BreakContext, breakRequest: BreakRequest) =
         runSafe {
-            val reBreak = this@RebreakManager.rebreak ?: return@runSafe RebreakResult.Ignored
+            val reBreak = this@RebreakHandler.rebreak ?: return@runSafe RebreakResult.Ignored
 
             reBreak.updateInfo(ctx, breakRequest)
 

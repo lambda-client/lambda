@@ -45,7 +45,7 @@ data class BreakInfo(
 
     // Pre Processing
     var shouldProgress = false
-    var rebreakPotential by OneSetPerTick(value = RebreakManager.RebreakPotential.None, throwOnLimitBreach = true)
+    var rebreakPotential by OneSetPerTick(value = RebreakHandler.RebreakPotential.None, throwOnLimitBreach = true)
     var swapInfo by OneSetPerTick(value = SwapInfo.EMPTY, throwOnLimitBreach = true)
     var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
 
