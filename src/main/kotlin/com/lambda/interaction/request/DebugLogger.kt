@@ -21,13 +21,21 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import imgui.ImGui
+import imgui.flag.ImGuiWindowFlags
 import java.awt.Color
 import java.util.*
 
-abstract class DebugLogger(name: String, description: String) : HudModule(name, description, ModuleTag.HUD) {
+abstract class DebugLogger(
+    name: String,
+    description: String
+) : HudModule(
+    name,
+    description,
+    ModuleTag.HUD,
+    customWindow = true
+) {
     private val logs = LinkedList<LogEntry>()
 
-    private val autoScroll by setting("Auto-Scroll", true, "Automatically scrolls to the bottom of the log")
     private val wrapText by setting("Wrap Text", false, "Wraps the text to the next line if it gets too long")
     private val showDebug by setting("Show Debug", true, "Shows debug logs")
     private val showSuccess by setting("Show Success", true, "Shows success logs")
@@ -55,31 +63,29 @@ abstract class DebugLogger(name: String, description: String) : HudModule(name, 
     fun error(message: String) = log(message, LogType.Error)
 
     override fun ImGuiBuilder.buildLayout() {
-        child("Log Content") {
-            if (wrapText) ImGui.pushTextWrapPos()
+        ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
+        window(name, flags = ImGuiWindowFlags.NoTitleBar) {
+            child("Log Content") {
+                if (wrapText) ImGui.pushTextWrapPos()
 
-            logs.forEach { logEntry ->
-                if (shouldDisplay(logEntry)) {
-                    when (val type = logEntry.type) {
-                        LogType.Debug -> textColored("[DEBUG]", type.color)
-                        LogType.Success -> textColored("[SUCCESS]", type.color)
-                        LogType.Warning -> textColored("[WARNING]", type.color)
-                        LogType.Error -> textColored("[ERROR]", type.color)
+                logs.forEach { logEntry ->
+                    if (shouldDisplay(logEntry)) {
+                        when (val type = logEntry.type) {
+                            LogType.Debug -> textColored("[DEBUG]", type.color)
+                            LogType.Success -> textColored("[SUCCESS]", type.color)
+                            LogType.Warning -> textColored("[WARNING]", type.color)
+                            LogType.Error -> textColored("[ERROR]", type.color)
+                        }
+
+                        sameLine()
+                        textColored(logEntry.message, logEntry.type.color)
                     }
-
-                    sameLine()
-                    textColored(logEntry.message, logEntry.type.color)
                 }
-            }
 
-            if (wrapText) ImGui.popTextWrapPos()
-
-            if (autoScroll) {
-                ImGui.setScrollHereY(1f)
+                if (wrapText) ImGui.popTextWrapPos()
             }
+            button("Clear") { clear() }
         }
-
-        button("Clear") { clear() }
     }
 
     fun shouldDisplay(logEntry: LogEntry) =

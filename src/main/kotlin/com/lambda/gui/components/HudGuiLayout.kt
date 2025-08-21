@@ -38,9 +38,11 @@ object HudGuiLayout : Loadable {
                     .filterIsInstance<HudModule>()
                     .filter { it.isEnabled }
                     .forEach { hud ->
-                        window("##${hud.name}", flags = DEFAULT_HUD_FLAGS) {
-                            with(hud) { buildLayout() }
-                        }
+                        if (!hud.customWindow)
+                            window("##${hud.name}", flags = DEFAULT_HUD_FLAGS) {
+                                with(hud) { buildLayout() }
+                            }
+                        else with(hud) { buildLayout() }
                     }
             }
         }
