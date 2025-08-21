@@ -36,6 +36,7 @@ abstract class DebugLogger(
 ) {
     private val logs = LinkedList<LogEntry>()
 
+    private val autoScroll by setting("Auto-Scroll", true, "Automatically scrolls to the bottom of the log")
     private val wrapText by setting("Wrap Text", false, "Wraps the text to the next line if it gets too long")
     private val showDebug by setting("Show Debug", true, "Shows debug logs")
     private val showSuccess by setting("Show Success", true, "Shows success logs")
@@ -49,6 +50,7 @@ abstract class DebugLogger(
                 }
             }
         }
+    private val backgroundAlpha by setting("Background Alpha", 0.3f, 0f..1f, 0.01f, "Sets the opacity for the elements background")
 
     private fun log(message: String, logColor: LogType) {
         logs.add(LogEntry(message, logColor))
@@ -64,8 +66,10 @@ abstract class DebugLogger(
 
     override fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
+        ImGui.setNextWindowBgAlpha(backgroundAlpha)
         window(name, flags = ImGuiWindowFlags.NoTitleBar) {
-            child("Log Content") {
+            val noScroll = if (autoScroll) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
+            child("Log Content",  extraFlags = noScroll) {
                 if (wrapText) ImGui.pushTextWrapPos()
 
                 logs.forEach { logEntry ->
@@ -83,6 +87,10 @@ abstract class DebugLogger(
                 }
 
                 if (wrapText) ImGui.popTextWrapPos()
+
+                if (autoScroll) {
+                    ImGui.setScrollHereY(1f)
+                }
             }
             button("Clear") { clear() }
         }
