@@ -58,9 +58,13 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             if (!loaded) return@runSafe
 
             if (!info.broken) {
-                warn("${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}")
+                val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
+                BreakManager.logger.error(message)
+                warn(message)
             } else if (!TaskFlowModule.ignoreItemDropWarnings) {
-                warn("${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
+                val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
+                BreakManager.logger.warn(message)
+                warn(message)
             }
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
@@ -90,7 +94,9 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                     if (pending.type == BreakInfo.BreakType.Rebreak) {
                         pending.context.cachedState = event.newState
                     } else {
-                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")
+                        val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
+                        BreakManager.logger.error(message)
+                        this@BrokenBlockHandler.warn(message)
                         pending.stopPending()
                     }
                     return@listen
