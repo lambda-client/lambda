@@ -67,9 +67,10 @@ abstract class DebugLogger(
     override fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
         ImGui.setNextWindowBgAlpha(backgroundAlpha)
-        window(name, flags = ImGuiWindowFlags.NoTitleBar) {
+        window(name, flags = ImGuiWindowFlags.NoCollapse) {
             val noScroll = if (autoScroll) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
-            child("Log Content",  extraFlags = noScroll) {
+            button("Clear") { clear() }
+            child("Log Content", extraFlags = noScroll) {
                 if (wrapText) ImGui.pushTextWrapPos()
 
                 logs.forEach { logEntry ->
@@ -92,7 +93,6 @@ abstract class DebugLogger(
                     ImGui.setScrollHereY(1f)
                 }
             }
-            button("Clear") { clear() }
         }
     }
 
