@@ -30,6 +30,8 @@ data class RotationRequest(
     override var decayTicks: Int = config.decayTicks,
     val speedMultiplier: Double = 1.0
 ) : Request(), RotationConfig by config {
+    override val requestID = ++requestCount
+
     var age = 0
 
     override val done: Boolean get() =
@@ -37,4 +39,8 @@ data class RotationRequest(
 
     override fun submit(queueIfClosed: Boolean): RotationRequest =
         RotationManager.request(this, queueIfClosed)
+
+    companion object {
+        var requestCount = 0
+    }
 }

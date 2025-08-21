@@ -18,6 +18,7 @@
 package com.lambda.interaction.request
 
 abstract class Request {
+    abstract val requestID: Int
     abstract val config: RequestConfig
     var fresh = true
 

@@ -38,20 +38,22 @@ class DebugLogger(name: String, description: String) : HudModule(
     private val showWarning = ImBoolean(true)
     private val showError = ImBoolean(true)
 
-    fun log(message: String, logColor: LogType) {
+    private fun log(message: String, logColor: LogType) {
         logs.add(LogEntry(message, logColor))
         if (logs.size > maxLogEntries) {
             logs.removeFirst()
         }
     }
 
-    fun logDebug(message: String) = log(message, LogType.Debug)
-    fun logSuccess(message: String) = log(message, LogType.Success)
-    fun logWarning(message: String) = log(message, LogType.Warning)
-    fun logError(message: String) = log(message, LogType.Error)
+    fun debug(message: String) = log(message, LogType.Debug)
+    fun success(message: String) = log(message, LogType.Success)
+    fun warning(message: String) = log(message, LogType.Warning)
+    fun error(message: String) = log(message, LogType.Error)
 
     override fun ImGuiBuilder.buildLayout() {
         checkbox("Auto-scroll", autoScroll)
+        sameLine()
+        checkbox("Wrap Text", wrapText)
         sameLine()
         checkbox("Debug", showDebug)
         sameLine()
@@ -76,6 +78,7 @@ class DebugLogger(name: String, description: String) : HudModule(
                     }
 
                     sameLine()
+                    textColored(logEntry.message, logEntry.type.color)
                 }
             }
 

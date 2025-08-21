@@ -25,6 +25,8 @@ class HotbarRequest(
     override var keepTicks: Int = config.keepTicks,
     override var swapPause: Int = config.swapPause
 ) : Request(), HotbarConfig by config {
+    override val requestID = ++requestCount
+
     var activeRequestAge = 0
     var swapPauseAge = 0
 
@@ -37,4 +39,8 @@ class HotbarRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         HotbarManager.request(this, queueIfClosed)
+
+    companion object {
+        var requestCount = 0
+    }
 }
