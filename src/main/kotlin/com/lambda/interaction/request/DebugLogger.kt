@@ -21,22 +21,26 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import imgui.ImGui
-import imgui.type.ImBoolean
 import java.awt.Color
 import java.util.*
 
-class DebugLogger(name: String, description: String) : HudModule(
-    name, description, ModuleTag.HUD
-) {
+abstract class DebugLogger(name: String, description: String) : HudModule(name, description, ModuleTag.HUD) {
     private val logs = LinkedList<LogEntry>()
-    private var maxLogEntries: Int = 100
 
-    private val autoScroll = ImBoolean(true)
-    private val wrapText = ImBoolean(false)
-    private val showDebug = ImBoolean(true)
-    private val showSuccess = ImBoolean(true)
-    private val showWarning = ImBoolean(true)
-    private val showError = ImBoolean(true)
+    private val autoScroll by setting("Auto-Scroll", true, "Automatically scrolls to the bottom of the log")
+    private val wrapText by setting("Wrap Text", false, "Wraps the text to the next line if it gets too long")
+    private val showDebug by setting("Show Debug", true, "Shows debug logs")
+    private val showSuccess by setting("Show Success", true, "Shows success logs")
+    private val showWarning by setting("Show Warning", true, "Shows warning logs")
+    private val showError by setting("Show Errors", true, "Shows error logs")
+    private val maxLogEntries by setting("Max Log Entries", 100, 1..1000, 1, "Maximum amount of entries in the log")
+        .onValueChange { from, to ->
+            if (to < from) {
+                while(logs.size > to) {
+                    logs.removeFirst()
+                }
+            }
+        }
 
     private fun log(message: String, logColor: LogType) {
         logs.add(LogEntry(message, logColor))
@@ -51,22 +55,8 @@ class DebugLogger(name: String, description: String) : HudModule(
     fun error(message: String) = log(message, LogType.Error)
 
     override fun ImGuiBuilder.buildLayout() {
-        checkbox("Auto-scroll", autoScroll)
-        sameLine()
-        checkbox("Wrap Text", wrapText)
-        sameLine()
-        checkbox("Debug", showDebug)
-        sameLine()
-        checkbox("Info", showSuccess)
-        sameLine()
-        checkbox("Warn", showWarning)
-        sameLine()
-        checkbox("Error", showError)
-
-        separator()
-
         child("Log Content") {
-            if (wrapText.get()) ImGui.pushTextWrapPos()
+            if (wrapText) ImGui.pushTextWrapPos()
 
             logs.forEach { logEntry ->
                 if (shouldDisplay(logEntry)) {
@@ -82,9 +72,9 @@ class DebugLogger(name: String, description: String) : HudModule(
                 }
             }
 
-            if (wrapText.get()) ImGui.popTextWrapPos()
+            if (wrapText) ImGui.popTextWrapPos()
 
-            if (autoScroll.get()) {
+            if (autoScroll) {
                 ImGui.setScrollHereY(1f)
             }
         }
@@ -94,10 +84,10 @@ class DebugLogger(name: String, description: String) : HudModule(
 
     fun shouldDisplay(logEntry: LogEntry) =
         when (logEntry.type) {
-            LogType.Debug -> showDebug.get()
-            LogType.Success -> showSuccess.get()
-            LogType.Warning -> showWarning.get()
-            LogType.Error -> showError.get()
+            LogType.Debug -> showDebug
+            LogType.Success -> showSuccess
+            LogType.Warning -> showWarning
+            LogType.Error -> showError
         }
 
     fun clear() = logs.clear()

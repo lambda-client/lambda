@@ -105,7 +105,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Player.Post,
     onOpen = { processRequest(activeRequest); simulateAbandoned() },
     onClose = { checkForCancels() }
-), PositionBlocking, Logger by BreakManagerDebug {
+), PositionBlocking, Logger {
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
 
     private val activeInfos
@@ -164,6 +164,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (value != field) RebreakHandler.clearRebreak()
             field = value
         }
+
+    override val logger = BreakManagerDebug
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,

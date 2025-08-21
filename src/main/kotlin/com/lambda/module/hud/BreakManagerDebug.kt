@@ -17,18 +17,9 @@
 
 package com.lambda.module.hud
 
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.interaction.request.DebugLogger
-import com.lambda.interaction.request.Logger
-import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
 
-object BreakManagerDebug : HudModule(
+object BreakManagerDebug : DebugLogger(
     "Break Manager Logger",
-    "Logs most of the actions performed in the break manager to aid in debugging",
-    ModuleTag.HUD
-), Logger {
-    override val logger = DebugLogger(name, description)
-
-    override fun ImGuiBuilder.buildLayout() = with(logger) { buildLayout() }
-}
+    "Logs most of the actions performed in the break manager to aid in debugging"
+)
