@@ -745,7 +745,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             ctx.blockPos,
             config
         ) * (info.breakingTicks - config.fudgeFactor)
-        logger.debug("${info.type} progress: $progress, breaking ticks: ${info.breakingTicks}")
+        logger.debug("${info.type} progress: $progress, breaking ticks: ${info.breakingTicks}, ${info.context.cachedState}")
 
         if (config.sounds) {
             if (info.soundsCooldown % 4.0f == 0.0f) {
@@ -774,7 +774,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val swing = config.swing
         if (progress >= info.getBreakThreshold() && info.swapInfo.canCompleteBreak) {
-            logger.success("Breaking ${info.type}")
+            logger.success("Breaking ${info.type} ${info.context.cachedState}")
             if (info.type == Primary) {
                 onBlockBreak(info)
                 info.stopBreakPacket(world, interaction)
@@ -804,7 +804,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             logger.debug("Handling potential rebreak")
             when (val rebreakResult = RebreakHandler.handleUpdate(info.context, info.request)) {
                 is RebreakResult.StillBreaking -> {
-                    logger.debug("Rebreak not complete")
+                    logger.debug("Rebreak not complete ${info.context.cachedState}")
                     primaryBreak = rebreakResult.breakInfo.apply {
                         type = Primary
                         RebreakHandler.clearRebreak()
@@ -818,7 +818,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     return true
                 }
                 is RebreakResult.Rebroke -> {
-                    logger.debug("Rebroke")
+                    logger.debug("Rebroke ${info.context.cachedState}")
                     info.type = Rebreak
                     info.nullify()
                     info.request.onReBreak?.invoke(ctx.blockPos)
@@ -852,11 +852,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         val progress = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
         info.vanillaInstantBreakable = progress >= 1 && info.swapInfo.canCompleteBreak
         if (progress >= info.getBreakThreshold() && info.swapInfo.canCompleteBreak) {
-            logger.success("Instantly breaking")
+            logger.success("Instantly breaking ${info.type} $blockState")
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {
-            logger.debug("Starting ${info.type}")
+            logger.debug("Starting ${info.type} $blockState")
             info.apply {
                 breaking = true
                 breakingTicks = 1
