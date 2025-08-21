@@ -15,17 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request
+package com.lambda.module.hud
 
-import com.lambda.util.reflections.getInstances
-import net.minecraft.util.math.BlockPos
+import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.interaction.request.DebugLogger
+import com.lambda.interaction.request.Logger
+import com.lambda.module.HudModule
+import com.lambda.module.tag.ModuleTag
 
-object ManagerUtils {
-    val managers = getInstances<RequestHandler<*>>()
-    val accumulatedManagerPriority = managers.map { it.stagePriority }.reduce { acc, priority -> acc + priority }
-    val positionBlockingManagers = getInstances<PositionBlocking>()
-    val loggingManagers = getInstances<Logger>()
+object BreakManagerDebug : HudModule(
+    "Break Manager Logger",
+    "Logs most of the actions performed in the break manager to aid in debugging",
+    ModuleTag.HUD
+), Logger {
+    override val logger = DebugLogger(name, description)
 
-    fun isPosBlocked(pos: BlockPos) =
-        positionBlockingManagers.any { manager -> manager.blockedPositions.any { blocked -> blocked == pos } }
+    override fun ImGuiBuilder.buildLayout() = with(logger) { buildLayout() }
 }

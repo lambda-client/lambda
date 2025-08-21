@@ -17,15 +17,6 @@
 
 package com.lambda.interaction.request
 
-import com.lambda.util.reflections.getInstances
-import net.minecraft.util.math.BlockPos
-
-object ManagerUtils {
-    val managers = getInstances<RequestHandler<*>>()
-    val accumulatedManagerPriority = managers.map { it.stagePriority }.reduce { acc, priority -> acc + priority }
-    val positionBlockingManagers = getInstances<PositionBlocking>()
-    val loggingManagers = getInstances<Logger>()
-
-    fun isPosBlocked(pos: BlockPos) =
-        positionBlockingManagers.any { manager -> manager.blockedPositions.any { blocked -> blocked == pos } }
+interface Logger {
+    val logger: DebugLogger
 }

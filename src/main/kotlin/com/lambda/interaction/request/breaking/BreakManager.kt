@@ -39,6 +39,7 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
@@ -69,6 +70,7 @@ import com.lambda.interaction.request.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.module.hud.BreakManagerDebug
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -102,7 +104,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Player.Post,
     onOpen = { processRequest(activeRequest); simulateAbandoned() },
     onClose = { checkForCancels() }
-), PositionBlocking {
+), PositionBlocking, Logger by BreakManagerDebug {
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
 
     private val activeInfos
