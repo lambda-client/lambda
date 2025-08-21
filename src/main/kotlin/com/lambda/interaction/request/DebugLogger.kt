@@ -63,6 +63,7 @@ abstract class DebugLogger(
     fun success(message: String) = log(message, LogType.Success)
     fun warning(message: String) = log(message, LogType.Warning)
     fun error(message: String) = log(message, LogType.Error)
+    fun system(message: String) = log(message, LogType.System)
 
     override fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
@@ -80,6 +81,7 @@ abstract class DebugLogger(
                             LogType.Success -> textColored("[SUCCESS]", type.color)
                             LogType.Warning -> textColored("[WARNING]", type.color)
                             LogType.Error -> textColored("[ERROR]", type.color)
+                            LogType.System -> textColored("[SYSTEM]", type.color)
                         }
 
                         sameLine()
@@ -102,10 +104,10 @@ abstract class DebugLogger(
             LogType.Success -> showSuccess
             LogType.Warning -> showWarning
             LogType.Error -> showError
+            LogType.System -> true
         }
 
     fun clear() = logs.clear()
-
 
     data class LogEntry(
         val message: String,
@@ -113,9 +115,10 @@ abstract class DebugLogger(
     )
 
     enum class LogType(val color: Color) {
-        Debug(Color.WHITE),
-        Success(Color.GREEN),
-        Warning(Color.YELLOW),
-        Error(Color.RED)
+        Debug(Color(255, 255, 255)),
+        Success(Color(70, 255, 70)),
+        Warning(Color(255, 255, 70)),
+        Error(Color(255, 70, 70)),
+        System(Color(70, 70, 255))
     }
 }

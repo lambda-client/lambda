@@ -147,4 +147,6 @@ data class BreakInfo(
                 sequence
             )
         }
+
+    override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }
