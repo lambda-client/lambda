@@ -22,12 +22,12 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.ofBox
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
@@ -152,9 +152,7 @@ object Scaffold : Module(
             updateSneaking()
         }
 
-        listen<RenderEvent.StaticESP> { event ->
-            buildRenderer(event)
-        }
+        onStaticRender { with(it) { buildRenderer() } }
 
         onEnable {
             placeInfo = null
@@ -324,7 +322,7 @@ object Scaffold : Module(
         if (sneak) sneakTicks = 3
     }
 
-    private fun buildRenderer(event: RenderEvent.StaticESP) {
+    private fun ShapeBuilder.buildRenderer() {
         val c = GuiSettings.primaryColor
 
         renderInfo.removeIf { info ->
@@ -340,13 +338,7 @@ object Scaffold : Module(
             val box = Box(info.placedPos)
             val alpha = transform(seconds, 0.0, 0.5, 1.0, 0.0).coerceIn(0.0, 1.0)
 
-            event.renderer.ofBox(
-                box,
-                c.multAlpha(0.3 * alpha),
-                c.multAlpha(alpha),
-                sides,
-                DirectionMask.OutlineMode.AND
-            )
+            box(box, c.multAlpha(0.3 * alpha), c.multAlpha(alpha), sides, DirectionMask.OutlineMode.AND)
 
             seconds > 1
         }

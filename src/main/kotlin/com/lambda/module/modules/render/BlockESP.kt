@@ -18,19 +18,17 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.buildFilledShape
-import com.lambda.graphics.renderer.esp.builders.buildOutlineShape
-import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.outlineShape
-import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -71,8 +69,7 @@ object BlockESP : Module(
         }
     }
 
-    private val esp = newChunkedESP { world, x, y, z ->
-        val position = fastVectorOf(x, y, z)
+    private val esp = newChunkedESP { world, position ->
         val state = world.getBlockState(position)
         if (state.block !in blocks) return@newChunkedESP
 
@@ -85,7 +82,7 @@ object BlockESP : Module(
         build(state, position.toBlockPos(), sides)
     }
 
-    private fun StaticESPRenderer.build(
+    private fun ShapeBuilder.build(
         state: BlockState,
         pos: BlockPos,
         sides: Int,
@@ -93,8 +90,8 @@ object BlockESP : Module(
         val shape = outlineShape(state, pos)
         val blockColor = blockColor(state, pos)
 
-        if (drawFaces) buildFilledShape(shape, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) buildOutlineShape(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        if (drawFaces) filled(shape, if (useBlockColor) blockColor else faceColor, sides)
+        if (drawOutlines) outline(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
     private fun rebuildMesh(from: Any, to: Any): Unit = esp.rebuild()

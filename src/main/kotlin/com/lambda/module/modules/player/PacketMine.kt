@@ -24,11 +24,9 @@ import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.esp.builders.buildFilled
-import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
@@ -161,8 +159,8 @@ object PacketMine : Module(
             }
         }
 
-        listen<RenderEvent.StaticESP> { event ->
-            if (!renderQueue) return@listen
+        onStaticRender {
+            if (!renderQueue) return@onStaticRender
             queueSorted.forEachIndexed { index, positions ->
                 positions.forEach { pos ->
                     val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)
@@ -173,8 +171,8 @@ object PacketMine : Module(
                     }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
                     boxes.forEach { box ->
-                        event.renderer.buildFilled(box, color)
-                        event.renderer.buildOutline(box, color.setAlpha(1.0))
+                        it.filled(box, color)
+                        it.outline(box, color.setAlpha(1.0))
                     }
                 }
             }

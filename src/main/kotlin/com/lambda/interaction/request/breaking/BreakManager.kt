@@ -22,14 +22,12 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
+import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.graphics.renderer.esp.builders.buildFilled
-import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
@@ -226,16 +224,16 @@ object BreakManager : RequestHandler<BreakRequest>(
                 ?.internalOnItemDrop(it.entity)
         }
 
-        listen<RenderEvent.StaticESP> { event ->
+        onStaticRender {
             val activeStack = breakInfos
                 .filterNotNull()
-                .firstOrNull()?.swapStack ?: return@listen
+                .firstOrNull()?.swapStack ?: return@onStaticRender
 
             breakInfos
                 .filterNotNull()
                 .forEach { info ->
                     val config = info.breakConfig
-                    if (!config.renders) return@listen
+                    if (!config.renders) return@onStaticRender
                     val swapMode = info.breakConfig.swapMode
                     val breakDelta = info.context.cachedState.calcBreakDelta(
                         player,
@@ -270,8 +268,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                         it.offset(info.context.blockPos)
                     }.forEach boxes@ { box ->
                         val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
-                        if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
-                        if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
+                        if (config.fill) it.filled(interpolated, fillColor)
+                        if (config.outline) it.outline(interpolated, outlineColor)
                     }
                 }
         }

@@ -20,8 +20,6 @@ package com.lambda.interaction.construction.result
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.include
-import com.lambda.graphics.renderer.esp.builders.buildFilled
-import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
@@ -34,7 +32,7 @@ interface Drawable {
     fun SafeContext.buildRenderer()
 
     fun SafeContext.withBox(box: Box, color: Color, mask: Int = DirectionMask.ALL) {
-        StaticESP.buildFilled(box, color, mask)
+        //StaticESP.filled(box, color, mask)
         //StaticESP.buildOutline(box, color, mask)
     }
 

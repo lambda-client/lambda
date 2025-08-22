@@ -17,14 +17,14 @@
 
 package com.lambda.graphics.renderer.esp
 
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
+import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
-import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.modules.client.StyleEditor
-import com.lambda.threading.awaitMainThread
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.fastVectorOf
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
 import net.minecraft.world.chunk.WorldChunk
@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
     owner: Any,
-    private val update: StaticESPRenderer.(World, Int, Int, Int) -> Unit
+    private val update: ShapeBuilder.(World, FastVector) -> Unit
 ) {
     private val rendererMap = ConcurrentHashMap<Long, EspChunk>()
     private val WorldChunk.renderer
@@ -64,12 +64,12 @@ class ChunkedESP private constructor(
             rendererMap.remove(event.chunk.pos.toLong())?.notifyChunks()
         }
 
-        owner.listenConcurrently<TickEvent.Pre> {
+        owner.onStaticRender { builder ->
             if (++ticks % StyleEditor.updateFrequency == 0) {
                 val polls = minOf(StyleEditor.rebuildsPerTick, rebuildQueue.size)
 
                 repeat(polls) {
-                    rebuildQueue.poll()?.rebuild()
+                    rebuildQueue.poll()?.rebuild(builder)
                 }
                 ticks = 0
             }
@@ -84,28 +84,16 @@ class ChunkedESP private constructor(
                 uploadQueue.poll()?.invoke()
             }
         }
-
-        owner.listen<RenderEvent.World> {
-            rendererMap.values.forEach {
-                it.renderer?.render()
-            }
-        }
     }
 
     companion object {
         fun Any.newChunkedESP(
-            update: StaticESPRenderer.(World, Int, Int, Int) -> Unit
-        ) = ChunkedESP(this, update)
+            update: ShapeBuilder.(World, FastVector) -> Unit
+        ) = ChunkedESP(this@newChunkedESP, update)
     }
 
     private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
-        var renderer: StaticESPRenderer? = null
-
-        private val chunkOffsets = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
-
-        val neighbors = chunkOffsets.map {
-            ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second)
-        }.toTypedArray()
+        val neighbors = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1).map { ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second) }
 
         fun notifyChunks() {
             neighbors.forEach {
@@ -117,24 +105,14 @@ class ChunkedESP private constructor(
             }
         }
 
-        suspend fun rebuild() {
-            val newRenderer = awaitMainThread { StaticESPRenderer() }
+        fun rebuild(builder: ShapeBuilder) =
+            iterateChunk { owner.update(builder, chunk.world, it) }
 
-            iterateChunk { x, y, z ->
-                owner.update(newRenderer, chunk.world, x, y, z)
-            }
-
-            owner.uploadQueue.add {
-                newRenderer.upload()
-                renderer = newRenderer
-            }
-        }
-
-        private fun iterateChunk(block: (Int, Int, Int) -> Unit) = chunk.apply {
+        inline fun iterateChunk(crossinline block: (FastVector) -> Unit) = chunk.apply {
             for (x in pos.startX..pos.endX) {
                 for (z in pos.startZ..pos.endZ) {
                     for (y in bottomY..height) {
-                        block(x, y, z)
+                        block(fastVectorOf(x, y, z))
                     }
                 }
             }

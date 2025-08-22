@@ -115,9 +115,6 @@ class VertexBuilder(
     fun collect(vararg indices: Int) =
         indices
 
-    fun use(block: VertexBuilder.() -> Unit) =
-        apply(block)
-
     /**
      * Creates a new vertex with specified attributes
      * @param block Configuration lambda for defining vertex attributes
