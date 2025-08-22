@@ -66,6 +66,7 @@ import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingActions
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
 import com.lambda.interaction.request.breaking.SwapInfo.Companion.getSwapInfo
+import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
@@ -428,8 +429,16 @@ object BreakManager : RequestHandler<BreakRequest>(
                 infos.firstOrNull()?.let { info ->
                     infos.lastOrNull { it.swapInfo.swap && it.shouldProgress }?.let { last ->
                         val minSwapTicks = max(info.swapInfo.minKeepTicks, last.swapInfo.minKeepTicks)
-                        if (!info.context.requestSwap(info.request, minSwapTicks))
+                        val hotbarRequest = with(info) {
+                            HotbarRequest(
+                                context.hotbarIndex,
+                                request.hotbar,
+                                request.hotbar.keepTicks.coerceAtLeast(minSwapTicks)
+                            ).submit(false)
+                        }
+                        if (!hotbarRequest.done) {
                             return false
+                        }
                         if (minSwapTicks > 0) {
                             val alreadySwapped = swappedThisTick
                             currentStack = info.swapStack
@@ -513,8 +522,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 return secondaryBreak
             }
 
-            primaryInfo.stopBreakPacket(world, interaction)
-            primaryInfo.makeSecondary()
+            secondaryBreak = primaryInfo.apply { type = Secondary }
+            secondaryBreak?.stopBreakPacket(world, interaction)
             return@let
         }
 
@@ -616,17 +625,6 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     /**
-     * Makes the [BreakInfo] a secondary if not already.
-     */
-    private fun BreakInfo.makeSecondary() {
-        if (secondaryBreak === this) return
-        secondaryBreak = this.apply {
-            type = Secondary
-        }
-        primaryBreak = null
-    }
-
-    /**
      * Attempts to cancel the break.
      *
      * Secondary blocks are monitored by the server, and keep breaking regardless of the clients actions.
@@ -715,12 +713,8 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         info.breakingTicks++
-        val progress = blockState.calcBreakDelta(
-            player,
-            world,
-            ctx.blockPos,
-            config
-        ) * (info.breakingTicks - config.fudgeFactor)
+        val breakDelta = blockState.calcBreakDelta(player, world, ctx.blockPos, config)
+        val progress = breakDelta * (info.breakingTicks - config.fudgeFactor)
 
         if (config.sounds) {
             if (info.soundsCooldown % 4.0f == 0.0f) {
@@ -748,7 +742,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (progress >= info.getBreakThreshold() && info.swapInfo.canCompleteBreak) {
+        if (progress >= info.getBreakThreshold() && info.swapInfo.validSwap) {
             if (info.type == Primary) {
                 onBlockBreak(info)
                 info.stopBreakPacket(world, interaction)
@@ -821,8 +815,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val progress = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
-        info.vanillaInstantBreakable = progress >= 1 && info.swapInfo.canCompleteBreak
-        if (progress >= info.getBreakThreshold() && info.swapInfo.canCompleteBreak) {
+
+        val instantBreakable = progress >= info.getBreakThreshold() && info.swapInfo.validSwap
+        info.vanillaInstantBreakable = progress >= 1 && info.swapInfo.validSwap
+
+        if (instantBreakable) {
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {
@@ -842,7 +839,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         info.startBreakPacket(world, interaction)
 
-        if (info.type == Secondary || (!info.vanillaInstantBreakable && progress >= info.breakConfig.breakThreshold)) {
+        if (info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)) {
             info.stopBreakPacket(world, interaction)
         }
 
@@ -854,10 +851,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         world: BlockView,
         pos: BlockPos,
         config: BreakConfig,
-        item: ItemStack? = null,
-        ignoreEfficiency: Boolean = false
+        item: ItemStack? = null
     ) = runSafe {
-        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack, ignoreEfficiency)
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.mainHandStack)
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
 //        if (config.desyncFix) {
 //            val nextTickPrediction = buildPlayerPrediction().next()
