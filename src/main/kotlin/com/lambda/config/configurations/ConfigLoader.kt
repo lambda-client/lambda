@@ -18,10 +18,13 @@
 package com.lambda.config.configurations
 
 import com.lambda.config.Configuration
-import com.lambda.util.FolderRegister
-import java.io.File
+import com.lambda.core.Loadable
 
-object UserConfig : Configuration() {
-    override val configName get() = "preferences"
-    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
+object ConfigLoader: Loadable {
+    override fun load(): String {
+        Configuration.configurations.forEach {
+            it.tryLoad()
+        }
+        return "Loaded ${Configuration.configurations.size} configurations"
+    }
 }

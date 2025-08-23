@@ -19,7 +19,7 @@ package com.lambda.network
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Configurable
-import com.lambda.config.configurations.UserConfig
+import com.lambda.config.configurations.LambdaConfig
 import com.lambda.core.Loadable
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.network.api.v1.models.Authentication.Data
@@ -27,7 +27,7 @@ import com.lambda.util.StringUtils.base64UrlDecode
 import com.lambda.util.StringUtils.json
 import com.lambda.util.collections.updatableLazy
 
-object NetworkManager : Configurable(UserConfig), Loadable {
+object NetworkManager : Configurable(LambdaConfig), Loadable {
     override val name = "network"
 
     var accessToken by setting("access_token", ""); private set
