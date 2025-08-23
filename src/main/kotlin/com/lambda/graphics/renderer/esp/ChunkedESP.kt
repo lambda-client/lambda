@@ -52,11 +52,11 @@ class ChunkedESP private constructor(
     }
 
     init {
-        listen<WorldEvent.BlockUpdate.Client> { world.getWorldChunk(it.pos).renderer.notifyChunks() }
+        //listen<WorldEvent.BlockUpdate.Client> { rebuildQueue.add(rendererMap[ChunkPos.toLong(it.pos)] ?: return@listen) }
         listen<WorldEvent.ChunkEvent.Load> { it.chunk.renderer.notifyChunks() }
         listen<WorldEvent.ChunkEvent.Unload> { rendererMap.remove(it.chunk.pos.toLong())?.notifyChunks() }
 
-        listenConcurrently<TickEvent.Pre> {
+        listenConcurrently<TickEvent.Post> {
             if (++ticks % StyleEditor.updateFrequency == 0) {
                 val polls = minOf(StyleEditor.rebuildsPerTick, rebuildQueue.size)
 
