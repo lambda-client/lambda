@@ -150,8 +150,8 @@ class DynamicByteBuffer private constructor(initialCapacity: Int) {
         val offset = position - pointer
 
         memCopy(pointer, newPointer, offset)
-        data = newBuffer
 
+        data = newBuffer
         pointer = newPointer
         position = newPointer + offset
         capacity = newCapacity
@@ -175,6 +175,13 @@ class DynamicByteBuffer private constructor(initialCapacity: Int) {
         position = newPointer
         capacity = newCapacity
     }
+
+    /**
+     * Returns the relative index of the first mismatch between this and the given buffer, otherwise -1 if no mismatch.
+     *
+     * @see [ByteBuffer.mismatch]
+     */
+    fun mismatch(other: DynamicByteBuffer) = data.mismatch(other.data)
 
     companion object {
         /**
