@@ -25,6 +25,6 @@ object ConfigLoader: Loadable {
         Configuration.configurations.forEach {
             it.tryLoad()
         }
-        return "Loaded ${Configuration.configurations.size} configurations"
+        return "Loading ${Configuration.configurations.size} configurations"
     }
 }
