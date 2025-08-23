@@ -64,7 +64,10 @@ object Freecam : Module(
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
     private val lerpPos: Vec3d
-        get() = prevPosition.interpolate(mc.partialTicks, position)
+        get() {
+            val tickProgress = mc.gameRenderer.camera.lastTickProgress
+            return prevPosition.interpolate(tickProgress, position)
+        }
 
     private var rotation: Rotation = Rotation.ZERO
     private var velocity: Vec3d = Vec3d.ZERO
