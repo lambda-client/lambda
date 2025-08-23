@@ -74,8 +74,7 @@ object Scaffold : Module(
     init {
         listen<TickEvent.Pre> {
             val beneath = player.blockPos.offset(Direction.DOWN, if (isKeyPressed(descend.code)) 2 else 1)
-            val placements = getPlacements(beneath)
-            if (placements == null) return@listen
+            val placements = getPlacements(beneath) ?: return@listen
             placements
                 .associate { it to TargetState.Solid }
                 .toBlueprint()
