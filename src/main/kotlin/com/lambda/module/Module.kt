@@ -24,6 +24,8 @@ import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
@@ -111,10 +113,10 @@ abstract class Module(
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
+    autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    private val keybindSetting = setting("Keybind", defaultKeybind)
-    val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") }, "Reset settings values to default.")
+    val keybindSetting = setting("Keybind", defaultKeybind) { false }
 
     open val isVisible: Boolean = true
 
@@ -142,6 +144,10 @@ abstract class Module(
 
         onEnableUnsafe { LambdaSound.MODULE_ON.play() }
         onDisableUnsafe { LambdaSound.MODULE_OFF.play() }
+
+        listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
+        listen<ClientEvent.Startup> { if (autoDisable) disable() }
+        listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
     }
 
     fun enable() {

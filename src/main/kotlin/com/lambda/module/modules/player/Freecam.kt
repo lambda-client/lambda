@@ -52,6 +52,7 @@ object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
     tag = ModuleTag.PLAYER,
+    autoDisable = true,
 ) {
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
@@ -144,10 +145,6 @@ object Freecam : Module(
             mc.crosshairTarget = rotation
                 .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
-        }
-
-        listen<ConnectionEvent.Disconnect> {
-            disable()
         }
     }
 }

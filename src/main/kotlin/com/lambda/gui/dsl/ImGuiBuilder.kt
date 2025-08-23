@@ -36,10 +36,8 @@
 
 package com.lambda.gui.dsl
 
-import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.threading.runSafe
 import com.lambda.util.math.Vec2d
 import imgui.*
 import imgui.ImGui.*

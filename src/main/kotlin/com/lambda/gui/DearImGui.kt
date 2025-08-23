@@ -43,6 +43,8 @@ object DearImGui : Loadable {
     val implGlfw = ImGuiImplGlfw()
     val implGl3 = ImGuiImplGl3()
 
+    const val EXTERNAL_LINK = '↗'
+
     val io: ImGuiIO get() = ImGui.getIO()
     const val DEFAULT_FLAGS = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
             ImGuiConfigFlags.NavEnableSetMousePos or // Move the cursor using the keyboard
@@ -59,7 +61,7 @@ object DearImGui : Loadable {
         val glyphRanges = ImFontGlyphRangesBuilder().apply {
             addRanges(io.fonts.glyphRangesDefault)
             addRanges(io.fonts.glyphRangesGreek)
-            addChar('⤴') // U+2934 for external links
+            addChar(EXTERNAL_LINK)
         }.buildRanges()
         io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale, ImFontConfig(), glyphRanges)
         io.fonts.build()

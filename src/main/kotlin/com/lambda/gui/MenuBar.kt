@@ -25,6 +25,7 @@ import com.lambda.config.Configuration
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
+import com.lambda.gui.DearImGui.EXTERNAL_LINK
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
@@ -35,9 +36,7 @@ import com.lambda.util.FolderRegister
 import com.mojang.blaze3d.platform.TextureUtil
 import imgui.ImGui
 import imgui.ImGui.closeCurrentPopup
-import imgui.ImGui.image
 import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiKey
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImString
@@ -54,17 +53,15 @@ object MenuBar {
 
     // ToDo: On pressing shift (or something else) open a quick search bar popup.
     //  - Search for modules, hud elements, and commands using levenshtein distance.
-    private val moduleSearch = ImString(64)
+    private val quickSearch = ImString(64)
 
     fun ImGuiBuilder.buildMenuBar() {
         mainMenuBar {
             lambdaMenu()
-            menu("View") { buildViewMenu() }
             menu("HUD") { buildHudMenu() }
             menu("Modules") { buildModulesMenu() }
-            menu("Config") { buildConfigMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
-            menu("Window") { buildWindowMenu() }
+            menu("Help") { buildHelpMenu() }
             buildGitHubReference()
         }
 
@@ -102,165 +99,6 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildLambdaMenu() {
-        menuItem("Documentation ⤴") {
-            Util.getOperatingSystem().open("$REPO_URL/wiki")
-        }
-        menuItem("Report Issue ⤴") {
-            mc.keyboard.clipboard = gatherDiagnostics()
-            info("Copied diagnostics to clipboard. Please paste it in a new issue on GitHub and click “Submit new issue”. Thank you!")
-            Util.getOperatingSystem().open("$REPO_URL/issues")
-        }
-        menuItem("Check for Updates ⤴") {
-            // ToDo:
-            //  - Check for a newer version, show availability & changelog, and allow opening release page.
-            //  - Needs UpdateManager
-            Util.getOperatingSystem().open("$REPO_URL/releases")
-        }
-        menuItem("About...") {
-            aboutRequested = true
-        }
-        separator()
-        menuItem("Close GUI", "Esc") { LambdaScreen.close() }
-        menuItem("Exit Client") { mc.scheduleStop() }
-    }
-
-    private fun ImGuiBuilder.buildViewMenu() {
-        menu("Module Tag Panels") {
-            // ToDo:
-            //  - For each tag, add a checkbox that toggles visibility of that tag's window (default: on).
-            ModuleTag.defaults.forEach { tag ->
-                menuItem(tag.name, selected = true) {
-                    // toggle tag window (requires a boolean per tag)
-                }
-            }
-        }
-        menuItem("Show Status Bar", selected = true) {
-            // ToDo:
-            //  - Toggle a bottom status bar window showing TPS/FPS/Ping/Active Profile/Enabled Modules/Unsaved marker.
-        }
-        separator()
-        menu("UI Scale") {
-            // ToDo:
-            //  - Apply selected scale (100/125/150/175/200%), update fonts via DearImGui.updateScale-like method.
-            listOf("100%", "125%", "150%", "175%", "200%").forEach { label ->
-                menuItem(label, selected = (label == "125%")) { /* set scale & rebuild fonts */ }
-            }
-        }
-        menu("Theme") {
-            // ToDo:
-            //  - Apply preset color palettes. "Custom..." opens the Style Editor panel.
-            listOf("Light", "Dark", "High Contrast", "Custom...").forEach { label ->
-                menuItem(label, selected = (label == "Dark")) {
-                    if (label.startsWith("Custom")) ImGui.showStyleEditor()
-                    else {
-                        // apply preset palette/colors here
-                    }
-                }
-            }
-        }
-        menu("Debug Overlays") {
-            // ToDo:
-            //  - FPS graph, Tick time, TPS, Packet counters; draw via foreground draw list; per-overlay opacity slider.
-            menuItem("FPS Graph", selected = false) {}
-            menuItem("Tick Time", selected = false) {}
-            menuItem("Server TPS", selected = false) {}
-            menuItem("Packet Counters", selected = false) {}
-        }
-    }
-
-    private fun ImGuiBuilder.buildHudMenu() {
-        menuItem("Copy HUD Layout") {
-            // ToDo:
-            //  - Serialize current HUD widget tree with positions/anchors/safe-margins to memory clipboard.
-        }
-        menuItem("Paste HUD Layout") {
-            // ToDo:
-            //  - Deserialize from clipboard and apply; if incompatible, show a non-blocking warning.
-        }
-        menuItem("Reset to Defaults") {
-            // ToDo:
-            //  - Reset the currently focused panel’s settings to defaults (confirmation modal).
-        }
-        separator()
-        menuItem("Keybind Manager...") {
-            // ToDo (Keybind Manager Window):
-            //  - Panel with search/filter; table columns: Action/Module | Current Key | Conflict | Change | Clear
-            //  - Conflict detector with "Auto-resolve" suggestions.
-        }
-        menuItem("Open Editor", "Ctrl+Alt+C") {
-            // ToDo (HUD Editor Window):
-            //  - Full-screen canvas with grid; left "Elements" list; right "Properties" inspector.
-            //  - Drag & drop, snap grid, lock/unlock, safe margins, anchors, multi-select & alignment tools.
-        }
-        menu("Add Widget") {
-            // ToDo:
-            //  - Populate from available HUD widgets. On click, add centered and select for property editing.
-            menuItem("Stats") {}
-            menuItem("Clock") {}
-            menuItem("Ping") {}
-            menuItem("Coordinates") {}
-            menuItem("Module List") {}
-        }
-        menu("Layouts") {
-            // ToDo:
-            //  - New/Save/Save As/Load/Import/Export layout actions; Toggle "Autosave on change".
-            menuItem("New...") {}
-            menuItem("Save") {}
-            menuItem("Save As...") {}
-            menuItem("Load...") {}
-            menuItem("Import...") {}
-            menuItem("Export...") {}
-            separator()
-            menuItem("Autosave on change", selected = true) {}
-        }
-        menuItem("Reset Layout") {
-            // ToDo:
-            //  - Confirm and restore the default HUD layout.
-        }
-        menuItem("Toggle Edit Handles", selected = true) {
-            // ToDo:
-            //  - Show/hide bounds, anchors, labels while in edit mode.
-        }
-    }
-
-    private fun ImGuiBuilder.buildModulesMenu() {
-        menuItem("Enable All") {
-            // ToDo:
-            //  - Confirmation modal. Then enable all modules.
-        }
-        menuItem("Disable All") {
-            // ToDo:
-            //  - Confirmation modal. Then disable all modules.
-        }
-        separator()
-        menuItem("Search Modules...", "Ctrl+K") {
-            // ToDo (Modules Search Window):
-            //  - Search input, tag filter dropdown, "enabled only" toggle.
-            //  - List rows: [Enable] Module | Tag | "Settings..." button to jump to module panel.
-        }
-        // By Tag → quick enable/disable per module
-        ModuleTag.defaults.forEach { tag ->
-            menu(tag.name) {
-                ModuleRegistry.modules
-                    .filter { it.tag == tag }
-                    .sortedBy { it.name.lowercase() }
-                    .forEach { module ->
-                        menuItem(module.name, selected = module.isEnabled) {
-                            if (module.isEnabled) module.disable() else module.enable()
-                        }
-                        // Optionally, offer a "Settings..." item to focus this module’s details UI.
-                    }
-            }
-        }
-        separator()
-        menuItem("Manage Module Presets...") {
-            // ToDo (Module Presets Window):
-            //  - Save/Load named sets of module states (and optionally settings) independent of profiles.
-            //  - Offer Import/Export and Delete. Provide "Apply (merge)" and "Apply (replace)" options.
-        }
-    }
-
-    private fun ImGuiBuilder.buildConfigMenu() {
         menuItem("New Profile...") {
             // ToDo (New Profile):
             //  - Open a modal "New Profile" with:
@@ -353,6 +191,105 @@ object MenuBar {
             //    Provider/Store Priorities.
             //  - Access group: Access Shulkers/Ender/Chests/Stashes toggles.
             //  - “Test Access” helper to simulate lookups.
+        }
+        separator()
+        menuItem("About...") {
+            aboutRequested = true
+        }
+        separator()
+        menuItem("Close GUI", "Esc") { LambdaScreen.close() }
+        menuItem("Exit Client") { mc.scheduleStop() }
+    }
+
+    private fun ImGuiBuilder.buildViewMenu() {
+
+        separator()
+        menu("UI Scale") {
+            // ToDo:
+            //  - Apply selected scale (100/125/150/175/200%), update fonts via DearImGui.updateScale-like method.
+            listOf("100%", "125%", "150%", "175%", "200%").forEach { label ->
+                menuItem(label, selected = (label == "125%")) { /* set scale & rebuild fonts */ }
+            }
+        }
+    }
+
+    private fun ImGuiBuilder.buildHudMenu() {
+        menuItem("Copy HUD Layout") {
+            // ToDo:
+            //  - Serialize current HUD widget tree with positions/anchors/safe-margins to memory clipboard.
+        }
+        menuItem("Paste HUD Layout") {
+            // ToDo:
+            //  - Deserialize from clipboard and apply; if incompatible, show a non-blocking warning.
+        }
+        menuItem("Reset to Defaults") {
+            // ToDo:
+            //  - Reset the currently focused panel’s settings to defaults (confirmation modal).
+        }
+        separator()
+        menuItem("Keybind Manager...") {
+            // ToDo (Keybind Manager Window):
+            //  - Panel with search/filter; table columns: Action/Module | Current Key | Conflict | Change | Clear
+            //  - Conflict detector with "Auto-resolve" suggestions.
+        }
+        menuItem("Open Editor", "Ctrl+Alt+C") {
+            // ToDo (HUD Editor Window):
+            //  - Full-screen canvas with grid; left "Elements" list; right "Properties" inspector.
+            //  - Drag & drop, snap grid, lock/unlock, safe margins, anchors, multi-select & alignment tools.
+        }
+        menu("Add Widget") {
+            // ToDo:
+            //  - Populate from available HUD widgets. On click, add centered and select for property editing.
+            menuItem("Stats") {}
+            menuItem("Clock") {}
+            menuItem("Ping") {}
+            menuItem("Coordinates") {}
+            menuItem("Module List") {}
+        }
+        menu("Layouts") {
+            // ToDo:
+            //  - New/Save/Save As/Load/Import/Export layout actions; Toggle "Autosave on change".
+            menuItem("New...") {}
+            menuItem("Save") {}
+            menuItem("Save As...") {}
+            menuItem("Load...") {}
+            menuItem("Import...") {}
+            menuItem("Export...") {}
+            separator()
+            menuItem("Autosave on change", selected = true) {}
+        }
+        menuItem("Reset Layout") {
+            // ToDo:
+            //  - Confirm and restore the default HUD layout.
+        }
+        menuItem("Toggle Edit Handles", selected = true) {
+            // ToDo:
+            //  - Show/hide bounds, anchors, labels while in edit mode.
+        }
+    }
+
+    private fun ImGuiBuilder.buildModulesMenu() {
+        menu("Module Tag") {
+            ModuleTag.defaults.forEach { tag ->
+                menuItem(tag.name, selected = ModuleTag.isTagShown(tag)) {
+                    ModuleTag.toggleTag(tag)
+                }
+            }
+        }
+        separator()
+        // By Tag → quick enable/disable per module
+        ModuleTag.defaults.forEach { tag ->
+            menu(tag.name) {
+                ModuleRegistry.modules
+                    .filter { it.tag == tag }
+                    .sortedBy { it.name.lowercase() }
+                    .forEach { module ->
+                        menuItem(module.name, selected = module.isEnabled) {
+                            if (module.isEnabled) module.disable() else module.enable()
+                        }
+                        // Optionally, offer a "Settings..." item to focus this module’s details UI.
+                    }
+            }
         }
     }
 
@@ -498,27 +435,33 @@ object MenuBar {
         } ?: menuItem("Debug (only available ingame)", enabled = false)
     }
 
-    private fun ImGuiBuilder.buildWindowMenu() {
-        menu("Layouts") {
+    private fun ImGuiBuilder.buildHelpMenu() {
+        menuItem("Quick Search...") {
             // ToDo:
-            //  - Save/Load/Restore default for the docking layout and window positions.
-            menuItem("Save Window Layout") {}
-            menuItem("Load Window Layout") {}
-            menuItem("Restore Default Window Layout") {}
+            //  - Search for modules, commands, and HUD widgets.
+            //  - Show matches in a search panel below the GUI.
+            //  - Support regex.
+            //  - Support levenshtein distance.
+            //  - Support multiple search terms.
+            //  - Support search history.
+            //  - Support search filters (by type, enabled/disabled, etc).
+            //  - Support search scopes (all/enabled/disabled).
+            //  - Support search shortcuts (Ctrl+F, Cmd+F, etc).
+            //  - Show match count in the search panel.
         }
-        menu("Panels") {
-            // ToDo:
-            //  - Provide toggles for common panels to quickly show/hide them.
-            menuItem("Modules Search", selected = false) {}
-            menuItem("Settings Inspector", selected = false) {}
-            menuItem("Logs/Console", selected = false) {}
-            menuItem("Network Inspector", selected = false) {}
-            menuItem("Task Flow Monitor", selected = false) {}
-            menuItem("Status Bar", selected = true) {}
+        menuItem("Documentation $EXTERNAL_LINK") {
+            Util.getOperatingSystem().open("$REPO_URL/wiki")
         }
-        menuItem("Close All Floating Windows") {
+        menuItem("Report Issue $EXTERNAL_LINK") {
+            mc.keyboard.clipboard = gatherDiagnostics()
+            info("Copied diagnostics to clipboard. Please paste it in a new issue on GitHub and click “Submit new issue”. Thank you!")
+            Util.getOperatingSystem().open("$REPO_URL/issues")
+        }
+        menuItem("Check for Updates $EXTERNAL_LINK") {
             // ToDo:
-            //  - Iterate and turn off visibility booleans for transient windows (search/inspector/etc.).
+            //  - Check for a newer version, show availability & changelog, and allow opening release page.
+            //  - Needs UpdateManager
+            Util.getOperatingSystem().open("$REPO_URL/releases")
         }
     }
 
@@ -558,7 +501,7 @@ object MenuBar {
                     ImGui.setClipboardText(gatherDiagnostics())
                 }
                 sameLine()
-                button("View License ⤴") {
+                button("View License $EXTERNAL_LINK") {
                     Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
                 }
                 sameLine()
@@ -583,7 +526,7 @@ object MenuBar {
                 withStyleColor(ImGuiCol.ButtonHovered, 0x22FFFFFF) {
                     withStyleColor(ImGuiCol.ButtonActive, 0x44FFFFFF) {
                         val clicked = ImGui.imageButton("##github", githubLogo.id.toLong(), iconSize, iconSize)
-                        lambdaTooltip("Open GitHub Repository ⤴")
+                        lambdaTooltip("Open GitHub Repository $EXTERNAL_LINK")
                         if (clicked) {
                             Util.getOperatingSystem().open(REPO_URL)
                         }

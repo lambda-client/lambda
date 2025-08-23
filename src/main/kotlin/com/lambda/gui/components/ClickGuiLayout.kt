@@ -24,13 +24,11 @@ import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
 
 object ClickGuiLayout : Loadable {
-    private val shownTags = ModuleTag.defaults.toMutableList()
-
     init {
         listen<GuiEvent.NewFrame> {
             if (!ClickGui.isEnabled) return@listen
@@ -41,17 +39,6 @@ object ClickGuiLayout : Loadable {
                         ModuleRegistry.modules
                             .filter { it.tag == tag }
                             .forEach { with(ModuleEntry(it)) { buildLayout() } }
-
-                        // ToDo: Add a proper context menu to the window
-                        popupContextWindow("lambda_window_ctx") {
-                            text("Window Menu")
-                            separator()
-                            menuItem("Close This Window") {
-                                // ToDo (Close under-cursor window):
-                                //  - Requires a mapping from ImGui window to your visibility flag.
-                                //  - Can be implemented if you track per-window IDs & vis flags.
-                            }
-                        }
                     }
                 }
 
