@@ -18,12 +18,16 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
+import net.minecraft.client.util.MacWindowUtil
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWImage
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import javax.imageio.ImageIO
 
 object WindowIcons {
     /**
@@ -86,19 +90,15 @@ object WindowIcons {
             }
 
             GLFW.GLFW_PLATFORM_COCOA -> {
-                // On macOS glfwSetWindowIcon is ignored; set dock icon instead if possible.
-                try {
-                    val largest = iconPaths
-                        .mapNotNull { runCatching { it.readImage() }.getOrNull() }
-                        .maxByOrNull { it.width * it.height }
-                        ?: return
+                val largest = iconPaths
+                    .mapNotNull { runCatching { it.readImage() }.getOrNull() }
+                    .maxByOrNull { it.width * it.height }
+                    ?: return
 
-                    // Try Minecraft's MacWindowUtil if present
-                    val klass = Class.forName("net.minecraft.client.util.MacWindowUtil")
-                    val method = klass.getMethod("setApplicationIconImage", BufferedImage::class.java)
-                    method.invoke(null, largest)
-                } catch (_: Throwable) {
-                    // Silently ignore if class isn't available; no safe fallback on macOS via GLFW.
+                MacWindowUtil.setApplicationIconImage {
+                    val baos = ByteArrayOutputStream()
+                    ImageIO.write(largest, "PNG", baos)
+                    ByteArrayInputStream(baos.toByteArray())
                 }
             }
 
