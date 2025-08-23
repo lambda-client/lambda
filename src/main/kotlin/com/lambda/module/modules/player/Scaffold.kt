@@ -61,6 +61,7 @@ object Scaffold : Module(
     }
 
     private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player").group(Group.General)
+    private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
     private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
     private val buildConfig = BuildSettings(this, Group.Build)
     private val rotationConfig = RotationSettings(this, Group.Rotation)
@@ -85,7 +86,7 @@ object Scaffold : Module(
                         .map { it.context }
                         .distinctBy { it.blockPos }
                         .sortedWith { o1, o2 -> getBridgeCompareBy(beneath).compare(o1, o2) }
-                    submit(PlaceRequest(contexts, buildConfig, rotationConfig, hotbarConfig, pendingActions))
+                    submit(PlaceRequest(contexts, pendingActions, buildConfig, hotbarConfig, rotationConfig))
                 }
         }
     }
@@ -95,11 +96,29 @@ object Scaffold : Module(
 
         return BlockPos
             .iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
+            .asSequence()
             .map { it.blockPos }
+            .run {
+                if (onlyBelow) filter { it.y <= beneath.y }
+                else this
+            }
+            .filter { placingCloserToCenter(it, beneath) }
+            .toList()
     }
 
     private fun getBridgeCompareBy(blockPos: BlockPos) =
         compareBy<PlaceContext> {
             it.blockPos.toCenterPos() distSq blockPos.toCenterPos()
         }
+
+    private fun SafeContext.placingCloserToCenter(blockPos: BlockPos, center: BlockPos): Boolean {
+        val potentials = mutableListOf<BlockPos>()
+        Direction.entries.forEach { direction ->
+            val offset = blockPos.offset(direction)
+            val offsetState = blockState(offset)
+            if (!offsetState.isReplaceable) potentials.add(offset)
+        }
+        val trueCenter = center.toCenterPos()
+        return potentials.any { it.toCenterPos() distSq trueCenter > blockPos.toCenterPos() distSq trueCenter }
+    }
 }

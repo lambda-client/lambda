@@ -162,7 +162,7 @@ class BuildTask @Ta5kBuilder constructor(
                                 .take(emptyPendingInteractionSlots)
                                 .map { it.context }
 
-                            PlaceRequest(placeResults, build, rotation, hotbar, pendingInteractions) { placements++ }.submit()
+                            PlaceRequest(placeResults, pendingInteractions, build, hotbar, rotation) { placements++ }.submit()
                         }
                         is InteractResult.Interact -> {
                             val interactResults = resultsNotBlocked

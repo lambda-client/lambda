@@ -30,13 +30,14 @@ import net.minecraft.util.math.BlockPos
 
 data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
-    val build: BuildConfig,
-    val rotation: RotationConfig,
-    val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
+    val build: BuildConfig,
+    val hotbar: HotbarConfig,
+    val rotation: RotationConfig,
     val onPlace: ((BlockPos) -> Unit)? = null
 ) : Request(), PlaceConfig by build.placing {
     override val config = build.placing
+
     override val done: Boolean
         get() = runSafe {
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }

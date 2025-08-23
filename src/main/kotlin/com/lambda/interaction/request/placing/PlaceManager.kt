@@ -78,7 +78,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
     private var shouldSneak = false
     private val validSneak: (player: ClientPlayerEntity) -> Boolean =
-        { player -> shouldSneak && !player.isSneaking }
+        { player -> !shouldSneak || player.isSneaking }
 
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
