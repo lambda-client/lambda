@@ -22,7 +22,9 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.modules.client.StyleEditor
+import com.lambda.threading.awaitMainThread
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import net.minecraft.util.math.ChunkPos
@@ -54,7 +56,7 @@ class ChunkedESP private constructor(
         listen<WorldEvent.ChunkEvent.Load> { it.chunk.renderer.notifyChunks() }
         listen<WorldEvent.ChunkEvent.Unload> { rendererMap.remove(it.chunk.pos.toLong())?.notifyChunks() }
 
-        owner.onStaticRender {
+        listenConcurrently<TickEvent.Pre> {
             if (++ticks % StyleEditor.updateFrequency == 0) {
                 val polls = minOf(StyleEditor.rebuildsPerTick, rebuildQueue.size)
 
@@ -64,8 +66,8 @@ class ChunkedESP private constructor(
             }
         }
 
-        owner.listen<RenderEvent.Upload> {
-            if (uploadQueue.isEmpty()) return@listen
+        owner.onStaticRender {
+            if (uploadQueue.isEmpty()) return@onStaticRender
 
             val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
 
@@ -98,19 +100,15 @@ class ChunkedESP private constructor(
             }
         }
 
-        fun rebuild() {
-            renderer = Treed(static = true)
+        suspend fun rebuild() {
+            renderer = awaitMainThread { Treed(static = true) }
 
-            chunkIterator { owner.update(builder, chunk.world, it) }
-
-            owner.uploadQueue.add { renderer.upload() }
-        }
-
-        inline fun chunkIterator(crossinline block: (FastVector) -> Unit) {
             for (x in chunk.pos.startX..chunk.pos.endX)
                 for (z in chunk.pos.startZ..chunk.pos.endZ)
                     for (y in chunk.bottomY..chunk.height)
-                        block(fastVectorOf(x, y, z))
+                        owner.update(builder, chunk.world, fastVectorOf(x, y, z))
+
+            owner.uploadQueue.add { renderer.upload() }
         }
     }
 }

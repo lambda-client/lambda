@@ -58,8 +58,8 @@ object StorageESP : Module(
     private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering").group(Group.General)
 
     /* Render settings */
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueSet { _, to -> if (!to) drawEdges = true }.group(Group.Render)
-    private var drawEdges: Boolean by setting("Draw Edges", true, "Draw edges of blocks").onValueSet { _, to -> if (!to) drawFaces = true }.group(Group.Render)
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueChange { _, to -> drawEdges = !to && !drawFaces }.group(Group.Render)
+    private var drawEdges: Boolean by setting("Draw Edges", true, "Draw edges of blocks").onValueChange { _, to -> drawFaces = !to && !drawEdges }.group(Group.Render)
     private val mode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").group(Group.Render)
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").group(Group.Render)
 

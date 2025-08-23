@@ -72,9 +72,6 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
         .create()
 
-    override fun onInitializeClient() {
-        recordRenderCall {
-            LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
-        }
-    }
+    override fun onInitializeClient() =
+        recordRenderCall { LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n") }
 }
