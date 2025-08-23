@@ -46,7 +46,6 @@
     "render.LivingEntityRendererMixin",
     "render.PlayerListHudMixin",
     "render.RenderLayersMixin",
-    "render.RenderSystemMixin",
     "render.ScreenHandlerMixin",
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
