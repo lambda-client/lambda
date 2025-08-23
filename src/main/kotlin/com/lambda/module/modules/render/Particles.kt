@@ -17,11 +17,50 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
+import com.lambda.graphics.gl.GlStateUtils.withDepth
+import com.lambda.graphics.gl.Matrices
+import com.lambda.graphics.gl.Matrices.buildWorldProjection
+import com.lambda.graphics.gl.Matrices.withVertexTransform
+import com.lambda.graphics.pipeline.VertexBuilder
+import com.lambda.graphics.pipeline.VertexPipeline
+import com.lambda.graphics.shader.Shader.Companion.shader
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.module.Module
+import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.colorSpeed
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.math.DOWN
+import com.lambda.util.math.MathUtils.random
+import com.lambda.util.math.UP
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
+import com.lambda.util.math.transform
+import com.lambda.util.player.MovementUtils.moveDelta
+import com.lambda.util.world.raycast.InteractionMask
+import com.mojang.blaze3d.opengl.GlConst.GL_ONE
+import com.mojang.blaze3d.opengl.GlConst.GL_SRC_ALPHA
+import net.minecraft.entity.Entity
+import net.minecraft.util.math.Vec3d
+import kotlin.math.sin
+
 // FixMe: Do not call render stuff in the initialization block
-/*object Particles : Module(
+object Particles : Module(
     name = "Particles",
     description = "Spawns fancy particles",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     // ToDo: resort, cleanup settings
     private val duration by setting("Duration", 5.0, 1.0..500.0, 1.0)
@@ -52,12 +91,10 @@ package com.lambda.module.modules.render
             particles.removeIf(Particle::update)
         }
 
-        listen<RenderEvent.World> {
+        listen<RenderEvent.Render> {
             // Todo: interpolated tickbased upload?
             val builder = pipeline.build()
-            particles.forEach {
-                it.build(builder)
-            }
+            particles.forEach { it.build(builder) }
 
             withBlendFunc(GL_SRC_ALPHA, GL_ONE) {
                 shader.use()
@@ -182,4 +219,4 @@ package com.lambda.module.modules.render
             }
         }
     }
-}*/
+}
