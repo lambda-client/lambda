@@ -91,7 +91,7 @@ object Scaffold : Module(
     }
 
     private fun SafeContext.getPlacements(beneath: BlockPos): List<BlockPos>? {
-        if (blockState(beneath).isSolidBlock(world, beneath)) return null
+        if (!blockState(beneath).isReplaceable) return null
 
         return BlockPos
             .iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
