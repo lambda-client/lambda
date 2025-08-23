@@ -55,16 +55,22 @@ object RenderMain {
 
             GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
 
-            Treed.clear()
-            RenderEvent.World().post()
-            Treed.upload()
-            Treed.render()
+            Treed.Static.render()
+            Treed.Dynamic.render()
+
+            RenderEvent.Render.post()
         }
     }
 
     init {
         listen<TickEvent.Post> {
-            //Treed.clear()
+            Treed.Static.clear()
+            Treed.Dynamic.clear()
+
+            RenderEvent.Upload.post()
+
+            Treed.Static.upload()
+            Treed.Dynamic.upload()
         }
     }
 }

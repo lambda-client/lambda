@@ -26,13 +26,13 @@ import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.graphics.renderer.esp.Treed
 
 fun Any.onStaticRender(block: SafeContext.(ShapeBuilder) -> Unit) =
-    listen<RenderEvent.World> { block(ShapeBuilder(Treed.staticFaceBuilder, Treed.staticEdgeBuilder)) }
-
+    listen<RenderEvent.Upload> { block(ShapeBuilder(Treed.Static.faceBuilder, Treed.Static.edgeBuilder)) }
 fun Any.onDynamicRender(block: SafeContext.(ShapeBuilder) -> Unit) =
-    listen<RenderEvent.World> { block(ShapeBuilder(Treed.dynamicFaceBuilder, Treed.dynamicEdgeBuilder)) }
+    listen<RenderEvent.Upload> { block(ShapeBuilder(Treed.Dynamic.faceBuilder, Treed.Dynamic.edgeBuilder)) }
 
 sealed class RenderEvent {
-    class World : Event
+    object Upload : Event
+    object Render : Event
 
     class UpdateTarget : ICancellable by Cancellable()
 }

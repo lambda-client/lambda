@@ -17,11 +17,11 @@
 
 package com.lambda.graphics.renderer.esp
 
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
@@ -37,9 +37,7 @@ class ChunkedESP private constructor(
 ) {
     private val rendererMap = ConcurrentHashMap<Long, EspChunk>()
     private val WorldChunk.renderer
-        get() = rendererMap.getOrPut(pos.toLong()) {
-            EspChunk(this, this@ChunkedESP)
-        }
+        get() = rendererMap.getOrPut(pos.toLong()) { EspChunk(this, this@ChunkedESP) }
 
     private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
     private val rebuildQueue = ConcurrentLinkedDeque<EspChunk>()
@@ -52,38 +50,29 @@ class ChunkedESP private constructor(
     }
 
     init {
-        listenConcurrently<WorldEvent.BlockUpdate.Client> { event ->
-            world.getWorldChunk(event.pos).renderer.notifyChunks()
-        }
+        listen<WorldEvent.BlockUpdate.Client> { world.getWorldChunk(it.pos).renderer.notifyChunks() }
+        listen<WorldEvent.ChunkEvent.Load> { it.chunk.renderer.notifyChunks() }
+        listen<WorldEvent.ChunkEvent.Unload> { rendererMap.remove(it.chunk.pos.toLong())?.notifyChunks() }
 
-        listenConcurrently<WorldEvent.ChunkEvent.Load> { event ->
-            event.chunk.renderer.notifyChunks()
-        }
-
-        listenConcurrently<WorldEvent.ChunkEvent.Unload> { event ->
-            rendererMap.remove(event.chunk.pos.toLong())?.notifyChunks()
-        }
-
-        owner.onStaticRender { builder ->
+        owner.onStaticRender {
             if (++ticks % StyleEditor.updateFrequency == 0) {
                 val polls = minOf(StyleEditor.rebuildsPerTick, rebuildQueue.size)
 
-                repeat(polls) {
-                    rebuildQueue.poll()?.rebuild(builder)
-                }
+                repeat(polls) { rebuildQueue.poll()?.rebuild() }
+
                 ticks = 0
             }
         }
 
-        owner.listen<TickEvent.Pre> {
+        owner.listen<RenderEvent.Upload> {
             if (uploadQueue.isEmpty()) return@listen
 
             val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
 
-            repeat(polls) {
-                uploadQueue.poll()?.invoke()
-            }
+            repeat(polls) { uploadQueue.poll()?.invoke() }
         }
+
+        owner.listen<RenderEvent.Render> { rendererMap.values.forEach { it.renderer.render() } }
     }
 
     companion object {
@@ -93,29 +82,35 @@ class ChunkedESP private constructor(
     }
 
     private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
-        val neighbors = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1).map { ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second) }
+        var renderer = Treed(static = true)
+        private val builder: ShapeBuilder
+            get() = ShapeBuilder(renderer.faceBuilder, renderer.edgeBuilder)
+
+        val neighbors = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
+            .map { ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second) }
 
         fun notifyChunks() {
             neighbors.forEach {
                 owner.rendererMap[it.toLong()]?.let {
-                    owner.rebuildQueue.apply {
-                        if (!contains(it)) add(it)
-                    }
+                    if (!owner.rebuildQueue.contains(it))
+                        owner.rebuildQueue.add(it)
                 }
             }
         }
 
-        fun rebuild(builder: ShapeBuilder) =
-            iterateChunk { owner.update(builder, chunk.world, it) }
+        fun rebuild() {
+            renderer = Treed(static = true)
 
-        inline fun iterateChunk(crossinline block: (FastVector) -> Unit) = chunk.apply {
-            for (x in pos.startX..pos.endX) {
-                for (z in pos.startZ..pos.endZ) {
-                    for (y in bottomY..height) {
+            chunkIterator { owner.update(builder, chunk.world, it) }
+
+            owner.uploadQueue.add { renderer.upload() }
+        }
+
+        inline fun chunkIterator(crossinline block: (FastVector) -> Unit) {
+            for (x in chunk.pos.startX..chunk.pos.endX)
+                for (z in chunk.pos.startZ..chunk.pos.endZ)
+                    for (y in chunk.bottomY..chunk.height)
                         block(fastVectorOf(x, y, z))
-                    }
-                }
-            }
         }
     }
 }

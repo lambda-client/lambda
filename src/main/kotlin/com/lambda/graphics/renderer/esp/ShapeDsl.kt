@@ -36,8 +36,8 @@ import java.awt.Color
 annotation class ShapeDsl
 
 class ShapeBuilder(
-    val faces: VertexBuilder,
-    val edges: VertexBuilder,
+    val faces: VertexBuilder = VertexBuilder(),
+    val edges: VertexBuilder = VertexBuilder(),
 ) {
     @ShapeDsl
     fun filled(

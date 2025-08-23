@@ -58,7 +58,7 @@ object Blink : Module(
     private var lastBox = Box(BlockPos.ORIGIN)
 
     init {
-        listen<RenderEvent.World> {
+        listen<RenderEvent.Upload> {
             val time = System.currentTimeMillis()
 
             if (isActive && time - lastUpdate < delay) return@listen

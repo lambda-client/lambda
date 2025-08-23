@@ -180,7 +180,7 @@ object CrystalAura : Module(
             updatesThisFrame = 0
         }
 
-        listen<RenderEvent.World> {
+        listen<RenderEvent.Upload> {
             if (!debug) return@listen
 
             Matrices.push {

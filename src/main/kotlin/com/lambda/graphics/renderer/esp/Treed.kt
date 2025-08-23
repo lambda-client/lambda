@@ -27,53 +27,42 @@ import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.extension.partialTicks
 
-object Treed {
-    val staticShader = shader("renderer/box_static")
-    val dynamicShader = shader("renderer/box_dynamic")
+open class Treed(static: Boolean) {
+    val shader = if (static) staticMode.first else dynamicMode.first
 
-    val staticFaces = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER)
-    val staticEdges = VertexPipeline(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER)
-    val dynamicFaces = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.DYNAMIC_RENDERER)
-    val dynamicEdges = VertexPipeline(VertexMode.LINES, VertexAttrib.Group.DYNAMIC_RENDERER)
+    val faces = VertexPipeline(VertexMode.TRIANGLES, if (static) staticMode.second else dynamicMode.second)
+    val edges = VertexPipeline(VertexMode.LINES, if (static) staticMode.second else dynamicMode.second)
 
-    // Vertex builders for shape building
-    var staticFaceBuilder = VertexBuilder(); private set
-    var dynamicFaceBuilder = VertexBuilder(); private set
-    var staticEdgeBuilder = VertexBuilder(); private set
-    var dynamicEdgeBuilder = VertexBuilder(); private set
+    var faceBuilder = VertexBuilder(); private set
+    var edgeBuilder = VertexBuilder(); private set
 
     fun upload() {
-        staticFaces.upload(staticFaceBuilder)
-        staticEdges.upload(staticEdgeBuilder)
-        dynamicFaces.upload(dynamicFaceBuilder)
-        dynamicEdges.upload(dynamicEdgeBuilder)
+        faces.upload(faceBuilder)
+        edges.upload(edgeBuilder)
     }
 
     fun render() {
-        staticShader.use()
-        staticShader["u_TickDelta"] = Lambda.mc.partialTicks
-        staticShader["u_CameraPosition"] = Lambda.mc.gameRenderer.camera.pos
+        shader.use()
+        shader["u_TickDelta"] = Lambda.mc.partialTicks
+        shader["u_CameraPosition"] = Lambda.mc.gameRenderer.camera.pos
 
-        GlStateUtils.withFaceCulling(staticFaces::render)
-        GlStateUtils.withLineWidth(StyleEditor.outlineWidth, staticEdges::render)
-
-        dynamicShader.use()
-        dynamicShader["u_TickDelta"] = Lambda.mc.partialTicks
-        dynamicShader["u_CameraPosition"] = Lambda.mc.gameRenderer.camera.pos
-
-        GlStateUtils.withFaceCulling(dynamicFaces::render)
-        GlStateUtils.withLineWidth(StyleEditor.outlineWidth, dynamicEdges::render)
+        GlStateUtils.withFaceCulling(faces::render)
+        GlStateUtils.withLineWidth(StyleEditor.outlineWidth, edges::render)
     }
 
     fun clear() {
-        staticFaces.clear()
-        staticEdges.clear()
-        dynamicFaces.clear()
-        dynamicEdges.clear()
+        faces.clear()
+        edges.clear()
 
-        staticFaceBuilder = VertexBuilder()
-        staticEdgeBuilder = VertexBuilder()
-        dynamicFaceBuilder = VertexBuilder()
-        dynamicEdgeBuilder = VertexBuilder()
+        faceBuilder = VertexBuilder()
+        edgeBuilder = VertexBuilder()
+    }
+
+    object Static : Treed(true)
+    object Dynamic : Treed(false)
+
+    companion object {
+        private val staticMode = shader("renderer/box_static") to VertexAttrib.Group.STATIC_RENDERER
+        private val dynamicMode = shader("renderer/box_dynamic") to VertexAttrib.Group.DYNAMIC_RENDERER
     }
 }
