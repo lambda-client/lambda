@@ -38,7 +38,6 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
@@ -850,7 +849,6 @@ object BuildSimulator {
         val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
             .asSequence()
             .flatten()
-            .filter { BreakManager.currentStackSelection.filterStack(it) }
             .let { containerStacks ->
                 var bestStack = ItemStack.EMPTY
                 var bestBreakDelta = -1f

@@ -36,7 +36,5 @@ class MapSetting<K, V>(
     description,
     visibility
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        // ToDo
-    }
+    override fun ImGuiBuilder.buildLayout() {}
 }

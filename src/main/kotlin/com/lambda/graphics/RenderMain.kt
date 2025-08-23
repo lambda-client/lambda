@@ -17,6 +17,7 @@
 
 package com.lambda.graphics
 
+import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
@@ -27,7 +28,12 @@ import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.math.Vec2d
+import com.mojang.blaze3d.opengl.GlStateManager
+import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.client.gl.GlBackend
+import net.minecraft.client.texture.GlTexture
 import org.joml.Matrix4f
+import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
 
 object RenderMain {
     val projectionMatrix = Matrix4f()
@@ -42,6 +48,14 @@ object RenderMain {
         projectionMatrix.set(projMatrix)
 
         setupGL {
+            val framebuffer = mc.framebuffer
+            val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer(
+                (RenderSystem.getDevice() as GlBackend).framebufferManager,
+                null
+            )
+
+            GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
+
             RenderEvent.World().post()
             StaticESP.render()
             DynamicESP.render()

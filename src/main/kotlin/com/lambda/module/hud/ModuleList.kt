@@ -17,21 +17,34 @@
 
 package com.lambda.module.hud
 
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
+import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.KeyCode
+import imgui.flag.ImGuiCol
+import java.awt.Color
 
 object ModuleList : HudModule(
-    name = "ModuleList",
-    tag = ModuleTag.CLIENT,
+    name    = "ModuleList",
+    tag     = ModuleTag.HUD,
 ) {
     override val isVisible: Boolean
         get() = false
 
-    /*override fun getText(): String {
+    override fun ImGuiBuilder.buildLayout() {
         val enabled = ModuleRegistry.modules
             .filter { it.isEnabled }
-            .filter { it.isVisible.value }
+            .filter { it.isVisible }
 
-        return enabled.joinToString("\n") { "${it.name} [${it.keybind.name}]" }
-    }*/
+        enabled.forEach {
+            text(it.name); sameLine()
+
+            val color =
+                if (it.keybind == KeyCode.UNBOUND) Color.RED
+                else Color.GREEN
+
+            withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+        }
+    }
 }

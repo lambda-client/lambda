@@ -15,18 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.config.configurations
 
-import com.lambda.graphics.texture.TextureOwner.uploadGif
-import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
+import com.lambda.config.Configuration
+import com.lambda.core.Loadable
 
-object GifTest : HudModule(
-    name = "GifTest",
-    tag = ModuleTag.CLIENT,
-) {
-    private val test = uploadGif("chika.gif")
-
-    init {
+object ConfigLoader: Loadable {
+    override fun load(): String {
+        Configuration.configurations.forEach {
+            it.tryLoad()
+        }
+        return "Loaded ${Configuration.configurations.size} configurations"
     }
 }

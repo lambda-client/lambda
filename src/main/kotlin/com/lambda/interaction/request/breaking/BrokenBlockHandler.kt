@@ -26,7 +26,7 @@ import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
-import com.lambda.interaction.request.breaking.RebreakManager.rebreak
+import com.lambda.interaction.request.breaking.RebreakHandler.rebreak
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
@@ -105,7 +105,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
                     if (lastPosStarted == pending.context.blockPos) {
-                        RebreakManager.offerRebreak(pending)
+                        RebreakHandler.offerRebreak(pending)
                     }
                 }
                 return@listen
@@ -125,7 +125,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
                     if (lastPosStarted == pending.context.blockPos) {
-                        RebreakManager.offerRebreak(pending)
+                        RebreakHandler.offerRebreak(pending)
                     }
                 }
                 return@listen

@@ -20,6 +20,7 @@ package com.lambda.mixin.render;
 import com.lambda.module.modules.render.WorldColors;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.biome.Biome;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -40,16 +41,22 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class BackgroundRendererMixin {
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getX()D"))
     private static double redirectRed(Vec3d baseColor) {
-        return WorldColors.backgroundColor(baseColor).getX();
+        return WorldColors.fogOfWarColor(baseColor).getX();
     }
 
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getY()D"))
     private static double redirectGreen(Vec3d baseColor) {
-        return WorldColors.backgroundColor(baseColor).getY();
+        return WorldColors.fogOfWarColor(baseColor).getY();
     }
 
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getZ()D"))
     private static double redirectBlue(Vec3d baseColor) {
-        return WorldColors.backgroundColor(baseColor).getZ();
+        return WorldColors.fogOfWarColor(baseColor).getZ();
     }
+
+    @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/Biome;getWaterFogColor()I"))
+    private static int redirectWaterFogColor(Biome biome) {
+        return WorldColors.waterFogColor(biome.getWaterFogColor());
+    }
+
 }

@@ -15,13 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.configurations
+package com.lambda.event.events
 
-import com.lambda.config.Configuration
-import com.lambda.util.FolderRegister
-import java.io.File
+import com.lambda.event.Event
 
-object UserConfig : Configuration() {
-    override val configName get() = "preferences"
-    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
+sealed class GuiEvent {
+    /**
+     * Triggered when a new ImGui frame is created and the client
+     * is allowed to submit any command from this point until [EndFrame].
+     */
+    data object NewFrame : Event
+
+    /**
+     * Triggered when the previous ImGui frame is ended and the client
+     * is able to perform OpenGL calls.
+     *
+     * By default, the game's framebuffer is bound.
+     */
+    data object EndFrame : Event
 }

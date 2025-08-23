@@ -44,7 +44,7 @@ class CharSetting(
     visibility
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        // ToDo
+
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

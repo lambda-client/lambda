@@ -29,7 +29,6 @@ import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStruc
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
-import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
@@ -94,6 +93,10 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
+            if (blueprint is TickingBlueprint) {
+                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
+            }
+
             if (collectDrops()) return@listen
 
             val results = blueprint.simulate(player.eyePos, interactionConfig, rotation, inventory, build)
@@ -136,24 +139,14 @@ class BuildTask @Ta5kBuilder constructor(
                     if (atMaxPendingInteractions) return@listen
                     when (bestResult) {
                         is BreakResult.Break -> {
-                            val breakResults = resultsNotBlocked.filterIsInstance<BreakResult.Break>()
-                            val requestContexts = arrayListOf<BreakContext>()
-
-                            if (build.breaking.breaksPerTick > 1) {
-                                breakResults
-                                    .filter { it.context.instantBreak }
-                                    .take(emptyPendingInteractionSlots)
-                                    .let { instantBreakResults ->
-                                        requestContexts.addAll(instantBreakResults.map { it.context })
-                                    }
-                            }
-
-                            if (requestContexts.isEmpty()) {
-                                requestContexts.addAll(breakResults.map { it.context })
-                            }
+                            val breakResults = resultsNotBlocked
+                                .filterIsInstance<BreakResult.Break>()
+                                .distinctBy { it.blockPos }
+                                .take(emptyPendingInteractionSlots)
+                                .map { it.context }
 
                             breakRequest(
-                                requestContexts, pendingInteractions, rotation, hotbar, interactionConfig, inventory, build,
+                                breakResults, pendingInteractions, rotation, hotbar, interactionConfig, inventory, build,
                             ) {
                                 onStop { breaks++ }
                                 onItemDrop?.let { onItemDrop ->
@@ -167,8 +160,9 @@ class BuildTask @Ta5kBuilder constructor(
                                 .filterIsInstance<PlaceResult.Place>()
                                 .distinctBy { it.blockPos }
                                 .take(emptyPendingInteractionSlots)
+                                .map { it.context }
 
-                            PlaceRequest(placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions) { placements++ }.submit()
+                            PlaceRequest(placeResults, build, rotation, hotbar, pendingInteractions) { placements++ }.submit()
                         }
                         is InteractResult.Interact -> {
                             val interactResults = resultsNotBlocked
@@ -191,10 +185,6 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Post> {
-            if (blueprint is TickingBlueprint) {
-                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
-            }
-
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
                 return@listen

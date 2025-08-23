@@ -53,8 +53,7 @@ class ListSetting<T : Any>(
                     selectable(
                         it.toString(), isSelected,
                         flags = DontClosePopups
-                    )
-                    { if (isSelected) value.remove(it) else value.add(it) }
+                    ) { if (isSelected) value.remove(it) else value.add(it) }
                 }
         }
     }

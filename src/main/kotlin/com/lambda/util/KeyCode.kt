@@ -18,8 +18,9 @@
 package com.lambda.util
 
 import org.lwjgl.glfw.GLFW
+import kotlin.text.indexOf
 
-enum class KeyCode(val keyCode: Int) {
+enum class KeyCode(val code: Int) {
     UNBOUND(GLFW.GLFW_KEY_UNKNOWN),
     SPACE(GLFW.GLFW_KEY_SPACE),
     APOSTROPHE(GLFW.GLFW_KEY_APOSTROPHE),
@@ -152,7 +153,7 @@ enum class KeyCode(val keyCode: Int) {
             GLFW.GLFW_KEY_PERIOD, GLFW.GLFW_KEY_SLASH, 0
         )
 
-        private val keyCodeMap = entries.associateBy { it.keyCode }
+        private val keyCodeMap = entries.associateBy { it.code }
         private val nameMap = entries.associateBy { it.name.lowercase() }
 
         /**
@@ -175,21 +176,25 @@ enum class KeyCode(val keyCode: Int) {
          * @param keyCode The key code to map.
          * @param scanCode The scan code of the key.
          * @return The corresponding [KeyCode].
+         *
+         * @see <a href="https://github.com/glfw/glfw/issues/1502#issuecomment-1005841055">ImGui impl
          */
         fun virtualMapUS(keyCode: Int, scanCode: Int): KeyCode {
             if (keyCode in GLFW.GLFW_KEY_KP_0..GLFW.GLFW_KEY_KP_EQUAL) return fromKeyCode(keyCode)
 
             val keyName = GLFW.glfwGetKeyName(keyCode, scanCode) ?: return fromKeyCode(keyCode)
 
-            return when (
+            return fromKeyCode(when (
                 val char = keyName.first()
             ) {
-                in '0'..'9' -> return fromKeyCode(GLFW.GLFW_KEY_0 + (char - '0'))
-                in 'A'..'Z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'A'))
-                in 'a'..'z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'a'))
-                in printablePool -> fromKeyCode(glfwPool[printablePool.indexOf(char)])
-                else -> fromKeyCode(keyCode)
-            }
+                in '0'..'9' -> GLFW.GLFW_KEY_0 + (char - '0')
+                in 'A'..'Z' -> GLFW.GLFW_KEY_A + (char - 'A')
+                in 'a'..'z' -> GLFW.GLFW_KEY_A + (char - 'a')
+                else -> {
+                    val i = printablePool.indexOf(keyName)
+                    if (i > 0) glfwPool[i] else keyCode
+                }
+            })
         }
     }
 }
