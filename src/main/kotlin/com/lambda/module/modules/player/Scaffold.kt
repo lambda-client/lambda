@@ -34,8 +34,11 @@ import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.KeyCode
+import com.lambda.util.KeyboardUtils.isKeyPressed
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.raycast.InteractionMask
+import net.minecraft.util.math.Direction
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object Scaffold : Module(
@@ -44,6 +47,7 @@ object Scaffold : Module(
     tag = ModuleTag.PLAYER,
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
+        General("General"),
         Build("Build"),
         Rotation("Rotation"),
         Interaction("Interaction"),
@@ -51,6 +55,7 @@ object Scaffold : Module(
         Inventory("Inventory")
     }
 
+    private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
     private val buildConfig = BuildSettings(this, Group.Build)
     private val rotationConfig = RotationSettings(this, Group.Rotation)
     private val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
@@ -63,7 +68,7 @@ object Scaffold : Module(
         listen<TickEvent.Pre> {
             player
                 .blockPos
-                .down()
+                .offset(Direction.DOWN, if (isKeyPressed(descend.code)) 2 else 1)
                 .toStructure(TargetState.Solid)
                 .toBlueprint()
                 .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
