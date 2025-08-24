@@ -63,26 +63,6 @@ abstract class Configuration : Jsonable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
-        // We need to implement a dependency graph of loadables and add functions to run before
-        // and/or after a given Loadable children class is initialized
-        //
-        // class Load1(
-        //     override val priority = 1000,
-        //     override val before = Load2,
-        // ) : Loadable {}
-        //
-        // class Load2(
-        //     override val priority = 1000,
-        // ) : Loadable {}
-        //
-        // class Load3(
-        //     override val priority = 1000,
-        //     override val after = Load2,
-        // ) : Loadable {}
-        //
-        // clientLifecycle<Load2>(shift = Pre) { event -> } // Will run before Load2
-        // clientLifecycle<Load2>(shift = Post) { event -> } // Will run after Load2
-        listenUnsafe<ClientEvent.Startup> { tryLoad() }
         listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         register()

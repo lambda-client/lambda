@@ -43,20 +43,21 @@ object BlockESP : Module(
     description = "Render block ESP",
     tag = ModuleTag.RENDER,
 ) {
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawOutlines = true }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawFaces = true }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueSet(::rebuildMesh)
+    // ToDo: Toggle searching, solve memory leak
+    private val searchBlocks by setting("Search Blocks", true, "Search for blocks around the player")
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks") { searchBlocks }.onValueSet(::rebuildMesh)
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawFaces = true }
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueSet(::rebuildMesh)
 
-    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead").onValueSet(::rebuildMesh)
-    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { drawFaces && !useBlockColor }.onValueSet(::rebuildMesh)
-    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { drawOutlines && !useBlockColor }.onValueSet(::rebuildMesh)
+    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueSet(::rebuildMesh)
+    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueSet(::rebuildMesh)
+    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueSet(::rebuildMesh)
 
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").onValueSet(::rebuildMesh)
-
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks").onValueSet(::rebuildMesh)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { searchBlocks }.onValueSet(::rebuildMesh)
 
     @JvmStatic
-    val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
+    val barrier by setting("Solid Barrier Block", true, "Render barrier blocks").onValueChange { _, _ -> mc.worldRenderer.reload() }
 
     // ToDo: I wanted to render this as a transparent / translucent block with a red tint.
     //  Like the red stained glass block without the texture sprite.

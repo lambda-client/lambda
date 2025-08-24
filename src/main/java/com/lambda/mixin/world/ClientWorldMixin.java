@@ -48,18 +48,21 @@ public class ClientWorldMixin {
     }
 
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)
-    private void getCloudsColorInject(float tickDelta, CallbackInfoReturnable<Vec3d> cir) {
+    private void getCloudsColorInject(float tickDelta, CallbackInfoReturnable<Integer> cir) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomClouds()) {
-            cir.setReturnValue(ColorKt.getVec3d(WorldColors.getCloudColor()));
+            int rgb = WorldColors.getCloudColor().getRGB() & 0xFFFFFF;
+            cir.setReturnValue(rgb);
         }
     }
 
     @Inject(method = "getSkyColor", at = @At("HEAD"), cancellable = true)
-    private void getSkyColorInject(Vec3d cameraPos, float tickDelta, CallbackInfoReturnable<Vec3d> cir) {
+    private void getSkyColorInject(Vec3d cameraPos, float tickDelta, CallbackInfoReturnable<Integer> cir) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomSky()) {
-            cir.setReturnValue(ColorKt.getVec3d(WorldColors.getSkyColor()));
+            int rgb = WorldColors.getSkyColor().getRGB() & 0xFFFFFF;
+            cir.setReturnValue(rgb);
         }
     }
+
 
     @Inject(method = "handleBlockUpdate", at = @At("HEAD"), cancellable = true)
     private void handleBlockUpdateInject(BlockPos pos, BlockState newState, int flags, CallbackInfo ci) {

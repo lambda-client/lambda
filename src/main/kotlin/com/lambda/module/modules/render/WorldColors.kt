@@ -25,7 +25,7 @@ import java.awt.Color
 
 object WorldColors : Module(
     name = "WorldColors",
-    description = "Changes the color of the sky",
+    description = "Changes the color of the sky, clouds and fog",
     tag = ModuleTag.RENDER,
 ) {
     @JvmStatic
@@ -35,10 +35,10 @@ object WorldColors : Module(
     val skyColor by setting("Sky Color", Color(255, 24, 75), "The color of your sky") { customSky }
 
     @JvmStatic
-    val customFog by setting("Custom Fog", false)
+    val customFogOfWar by setting("Custom Fog of War", false)
 
     @JvmStatic
-    val fogColor by setting("Fog Color", Color(255, 24, 75, 255), "The color of your fog") { customFog }
+    val fogOfWarColor by setting("Fog of War Color", Color(255, 24, 75, 255), "The color of your fog") { customFogOfWar }
 
     @JvmStatic
     val customClouds by setting("Custom Clouds", false)
@@ -47,6 +47,16 @@ object WorldColors : Module(
     val cloudColor by setting("Cloud Color", Color(255, 24, 75)) { customClouds }
 
     @JvmStatic
-    fun backgroundColor(base: Vec3d) =
-        if (customFog && isEnabled) fogColor.vec3d else base
+    val customWaterFog by setting("Custom Water Fog", true)
+
+    @JvmStatic
+    val waterFogColor by setting("Water Fog Color", Color(255, 24, 75, 255), "The color of your water fog") { customWaterFog }
+
+    @JvmStatic
+    fun fogOfWarColor(base: Vec3d) =
+        if (customFogOfWar && isEnabled) fogOfWarColor.vec3d else base
+
+    @JvmStatic
+    fun waterFogColor(base: Int): Int =
+        if (customWaterFog && isEnabled) this.waterFogColor.rgb else base
 }
