@@ -22,6 +22,7 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.components.QuickSearch.renderQuickSearch
+import com.lambda.gui.components.QuickSearchInputHandler
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
@@ -31,6 +32,9 @@ import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
 
 object ClickGuiLayout : Loadable {
     init {
+        // Ensure QuickSearchInputHandler is loaded
+        QuickSearchInputHandler
+        
         listen<GuiEvent.NewFrame> {
             if (!ClickGui.isEnabled) return@listen
 

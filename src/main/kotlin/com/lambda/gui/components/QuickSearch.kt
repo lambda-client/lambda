@@ -122,7 +122,7 @@ object QuickSearch {
                 val results = performSearch(query)
                 
                 if (results.isEmpty()) {
-                    textColored(0.7f, 0.7f, 0.7f, 1.0f, "No results found")
+                    textDisabled("No results found")
                 } else {
                     text("Results (${results.size}):")
                     child("SearchResults", 400f, 300f, true) {
@@ -138,12 +138,12 @@ object QuickSearch {
                             }
                             
                             sameLine()
-                            textColored(0.6f, 0.6f, 0.6f, 1.0f, "[${result.type.displayName}]")
+                            textDisabled("[${result.type.displayName}]")
                         }
                     }
                 }
             } else {
-                textColored(0.7f, 0.7f, 0.7f, 1.0f, "Type to search modules, settings, and commands...")
+                textDisabled("Type to search modules, settings, and commands...")
             }
 
             separator()
@@ -176,11 +176,12 @@ object QuickSearch {
     private fun searchModules(query: String, results: MutableList<SearchResult>) {
         // Direct name matches first
         ModuleRegistry.modules.forEach { module ->
-            if (module.name.lowercase().contains(query)) {
+            val moduleNameLower = module.name.lowercase()
+            if (moduleNameLower.contains(query) || moduleNameLower.startsWith(query)) {
                 results.add(SearchResult(
                     name = module.name,
                     type = SearchResultType.MODULE,
-                    description = module.description,
+                    description = "${module.description} (${if (module.isEnabled) "Enabled" else "Disabled"})",
                     action = { module.toggle() }
                 ))
             }
@@ -197,7 +198,7 @@ object QuickSearch {
                     results.add(SearchResult(
                         name = module.name,
                         type = SearchResultType.MODULE,
-                        description = module.description,
+                        description = "${module.description} (${if (module.isEnabled) "Enabled" else "Disabled"})",
                         action = { module.toggle() }
                     ))
                 }
@@ -207,35 +208,70 @@ object QuickSearch {
 
     private fun searchCommands(query: String, results: MutableList<SearchResult>) {
         CommandRegistry.commands.forEach { command ->
-            if (command.name.lowercase().contains(query) || 
+            val commandNameLower = command.name.lowercase()
+            if (commandNameLower.contains(query) || 
                 command.aliases.any { it.lowercase().contains(query) }) {
                 results.add(SearchResult(
                     name = command.name,
                     type = SearchResultType.COMMAND,
-                    description = command.description,
+                    description = "${command.description} (prefix: ${CommandRegistry.prefix})",
                     action = { 
-                        // For commands, we could open chat with the command prefix
-                        // but that's complex, so for now just show info
+                        // For commands, show info about usage
+                        println("Command: ${CommandRegistry.prefix}${command.name} - ${command.description}")
                     }
                 ))
+            }
+        }
+
+        // Add fuzzy matching for commands too
+        if (results.count { it.type == SearchResultType.COMMAND } < 5) {
+            val commandNames = CommandRegistry.commands.map { it.name }.toSet()
+            val similarNames = findSimilarStrings(query, commandNames, searchThreshold)
+            
+            similarNames.forEach { name ->
+                val command = CommandRegistry.commands.find { it.name == name }
+                if (command != null && results.none { it.name == name && it.type == SearchResultType.COMMAND }) {
+                    results.add(SearchResult(
+                        name = command.name,
+                        type = SearchResultType.COMMAND,
+                        description = "${command.description} (prefix: ${CommandRegistry.prefix})",
+                        action = { 
+                            println("Command: ${CommandRegistry.prefix}${command.name} - ${command.description}")
+                        }
+                    ))
+                }
             }
         }
     }
 
     private fun searchSettings(query: String, results: MutableList<SearchResult>) {
+        // Limit setting search to avoid too many results
+        var settingCount = 0
+        val maxSettings = 15
+        
         Configuration.configurations.forEach { config ->
+            if (settingCount >= maxSettings) return@forEach
+            
             config.configurables.forEach { configurable ->
+                if (settingCount >= maxSettings) return@forEach
+                
                 configurable.settings.forEach { setting ->
-                    if (setting.name.lowercase().contains(query)) {
+                    if (settingCount >= maxSettings) return@forEach
+                    
+                    val settingNameLower = setting.name.lowercase()
+                    val configurableName = configurable.name.lowercase()
+                    
+                    if (settingNameLower.contains(query) || configurableName.contains(query)) {
                         results.add(SearchResult(
                             name = "${configurable.name}.${setting.name}",
                             type = SearchResultType.SETTING,
-                            description = setting.description,
+                            description = setting.description.ifEmpty { "Setting in ${configurable.name}" },
                             action = {
-                                // For settings, we could navigate to the setting
-                                // but that's complex for now
+                                // For settings, show current value
+                                println("Setting: ${configurable.name}.${setting.name} = ${setting.value}")
                             }
                         ))
+                        settingCount++
                     }
                 }
             }
