@@ -34,7 +34,6 @@ import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.StringUtils.findSimilarStrings
 import imgui.ImGui
-import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiInputTextFlags
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
@@ -52,6 +51,13 @@ object QuickSearch {
 
     private const val MAX_RESULTS = 50
     private const val SIMILARITY_THRESHOLD = 3
+
+    private const val WINDOW_FLAGS = ImGuiWindowFlags.AlwaysAutoResize or
+            ImGuiWindowFlags.NoTitleBar or
+            ImGuiWindowFlags.NoMove or
+            ImGuiWindowFlags.NoResize or
+            ImGuiWindowFlags.NoScrollbar or
+            ImGuiWindowFlags.NoScrollWithMouse
 
     init {
         listenUnsafe<KeyboardEvent.Press> { event ->
@@ -158,26 +164,18 @@ object QuickSearch {
         if (!isOpen) return
         ImGui.openPopup("QuickSearch")
 
-        val windowFlags = ImGuiWindowFlags.AlwaysAutoResize or
-                ImGuiWindowFlags.NoTitleBar or
-                ImGuiWindowFlags.NoMove or
-                ImGuiWindowFlags.NoResize or
-                ImGuiWindowFlags.NoScrollbar or
-                ImGuiWindowFlags.NoScrollWithMouse
-
         ImGui.setNextFrameWantCaptureKeyboard(true)
 
-        val display = ImGui.getIO().displaySize
-        val maxW = display.x * 0.5f
-        val maxH = display.y * 0.5f
+        val maxW = io.displaySize.x * 0.5f
+        val maxH = io.displaySize.y * 0.5f
 
-        val popupX = (display.x - maxW) * 0.5f
-        val popupY = display.y * 0.3f
+        val popupX = (io.displaySize.x - maxW) * 0.5f
+        val popupY = io.displaySize.y * 0.3f
         ImGui.setNextWindowPos(popupX, popupY)
         ImGui.setNextWindowSize(maxW, 0f)
         ImGui.setNextWindowSizeConstraints(0f, 0f, maxW, maxH)
 
-        popupModal("QuickSearch", windowFlags) {
+        popupModal("QuickSearch", WINDOW_FLAGS) {
             // ToDo: Fix close with background click and escape
             if (ImGui.isKeyPressed(256)) { // ESC key
                 close()
@@ -198,8 +196,8 @@ object QuickSearch {
                 shouldFocus = false
             }
 
-            withItemWidth(ImGui.getContentRegionAvailX() * 0.98f) {
-                withStyleVar(ImGuiStyleVar.FramePadding, style.framePadding.x, style.framePadding.y * 1.35f) {
+            withItemWidth(ImGui.getContentRegionAvailX()) {
+                withStyleVar(ImGuiStyleVar.FramePadding, style.framePadding.x, style.framePadding.y) {
                     ImGui.inputTextWithHint(
                         "##qs-input",
                         "Type to search modules, settings, and commands...",
@@ -219,7 +217,7 @@ object QuickSearch {
             }
 
             val rowH = frameHeightWithSpacing
-            val topArea = ImGui.getCursorPosY() + style.windowPadding.y
+            val topArea = cursorPosY + style.windowPadding.y
             val listH = (results.size * rowH).coerceAtMost(maxH - topArea).coerceAtLeast(rowH)
 
             child("qs_rows", 0f, listH, false) {
