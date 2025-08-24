@@ -26,6 +26,7 @@ import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.DearImGui.EXTERNAL_LINK
+import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
@@ -50,10 +51,6 @@ object MenuBar {
     val headerLogo = upload("textures/lambda_text_color.png")
     val lambdaLogo = upload("textures/lambda.png")
     val githubLogo = upload("textures/github_logo.png")
-
-    // ToDo: On pressing shift (or something else) open a quick search bar popup.
-    //  - Search for modules, hud elements, and commands using levenshtein distance.
-    private val quickSearch = ImString(64)
 
     fun ImGuiBuilder.buildMenuBar() {
         mainMenuBar {
@@ -436,18 +433,8 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildHelpMenu() {
-        menuItem("Quick Search...") {
-            // ToDo:
-            //  - Search for modules, commands, and HUD widgets.
-            //  - Show matches in a search panel below the GUI.
-            //  - Support regex.
-            //  - Support levenshtein distance.
-            //  - Support multiple search terms.
-            //  - Support search history.
-            //  - Support search filters (by type, enabled/disabled, etc).
-            //  - Support search scopes (all/enabled/disabled).
-            //  - Support search shortcuts (Ctrl+F, Cmd+F, etc).
-            //  - Show match count in the search panel.
+        menuItem("Quick Search...", "Shift+Shift") {
+            QuickSearch.open()
         }
         menuItem("Documentation $EXTERNAL_LINK") {
             Util.getOperatingSystem().open("$REPO_URL/wiki")

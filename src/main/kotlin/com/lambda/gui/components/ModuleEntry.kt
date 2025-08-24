@@ -29,20 +29,8 @@ import imgui.flag.ImGuiCol
 
 class ModuleEntry(val module: Module): Layout {
     override fun ImGuiBuilder.buildLayout() {
-        if (module.isEnabled) {
-            withStyleColor(ImGuiCol.Header, 0.20f, 0.55f, 0.25f, 0.85f) {
-                withStyleColor(ImGuiCol.HeaderHovered, 0.25f, 0.65f, 0.30f, 0.90f) {
-                    withStyleColor(ImGuiCol.HeaderActive, 0.20f, 0.55f, 0.25f, 1.00f) {
-                        selectable(module.name, selected = true) {
-                            module.toggle()
-                        }
-                    }
-                }
-            }
-        } else {
-            selectable(module.name, selected = false) {
-                module.toggle()
-            }
+        selectable(module.name, selected = module.isEnabled) {
+            module.toggle()
         }
         lambdaTooltip(module.description)
 

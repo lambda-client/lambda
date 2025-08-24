@@ -44,6 +44,7 @@ object DearImGui : Loadable {
     val implGl3 = ImGuiImplGl3()
 
     const val EXTERNAL_LINK = '↗'
+    const val BREADCRUMB_SEPARATOR = '»'
 
     val io: ImGuiIO get() = ImGui.getIO()
     const val DEFAULT_FLAGS = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
@@ -62,6 +63,7 @@ object DearImGui : Loadable {
             addRanges(io.fonts.glyphRangesDefault)
             addRanges(io.fonts.glyphRangesGreek)
             addChar(EXTERNAL_LINK)
+            addChar(BREADCRUMB_SEPARATOR)
         }.buildRanges()
         io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale, ImFontConfig(), glyphRanges)
         io.fonts.build()
