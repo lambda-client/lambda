@@ -92,9 +92,7 @@ object QuickSearch {
                 shouldFocus = false
             }
 
-            if (inputText("##search", searchInput, ImGuiInputTextFlags.AutoSelectAll)) {
-                // Input changed, search will be updated below
-            }
+            val searchChanged = inputText("##search", searchInput, ImGuiInputTextFlags.AutoSelectAll)
 
             // Handle escape key to close (simplified)
             if (ImGui.isKeyPressed(256)) { // ImGuiKey.Escape
@@ -126,8 +124,9 @@ object QuickSearch {
                 } else {
                     text("Results (${results.size}):")
                     child("SearchResults", 400f, 300f, true) {
-                        results.forEach { result ->
-                            if (selectable("${result.name}##${result.type}")) {
+                        results.forEachIndexed { index, result ->
+                            val isSelected = index == 0 // Highlight first result
+                            if (selectable("${result.name}##${result.type}", isSelected)) {
                                 result.action()
                                 close()
                                 ImGui.closeCurrentPopup()
@@ -144,6 +143,11 @@ object QuickSearch {
                 }
             } else {
                 textDisabled("Type to search modules, settings, and commands...")
+                text("")
+                text("Examples:")
+                bulletText("'auto' - find AutoWalk, AutoTool, etc.")
+                bulletText("'gui' - find ClickGUI, GuiSettings, etc.")
+                bulletText("'speed' - find Speed module, speedSettings, etc.")
             }
 
             separator()
@@ -152,6 +156,9 @@ object QuickSearch {
                 close()
                 ImGui.closeCurrentPopup()
             }
+            
+            sameLine()
+            textDisabled("Tip: Press Shift+Shift to open quickly")
         }
     }
 
