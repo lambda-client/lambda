@@ -126,7 +126,7 @@ object QuickSearch {
                     child("SearchResults", 400f, 300f, true) {
                         results.forEachIndexed { index, result ->
                             val isSelected = index == 0 // Highlight first result
-                            if (selectable("${result.name}##${result.type}", isSelected)) {
+                            selectable("${result.name}##${result.type}", isSelected) {
                                 result.action()
                                 close()
                                 ImGui.closeCurrentPopup()
@@ -151,8 +151,8 @@ object QuickSearch {
             }
 
             separator()
-            
-            if (button("Close")) {
+
+            button("Close") {
                 close()
                 ImGui.closeCurrentPopup()
             }
