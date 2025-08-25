@@ -93,7 +93,7 @@ object Scaffold : Module(
         }
 
         listen<MovementEvent.Sneak> {
-            if (descend != KeyCode.LEFT_SHIFT && descend != KeyCode.RIGHT_SHIFT) return@listen
+            if (descend.code != mc.options.sneakKey.boundKey.code) return@listen
             it.sneak = false
         }
     }
