@@ -61,6 +61,7 @@ object Scaffold : Module(
     }
 
     private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks").group(Group.General)
+    private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
     private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != KeyCode.UNBOUND }.group(Group.General)
     private val buildConfig = BuildSettings(this, Group.Build)
@@ -104,7 +105,7 @@ object Scaffold : Module(
 
         return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
             .asSequence()
-            .filter { it.y <= beneath.y }
+            .filter { !onlyBelow || it.y <= beneath.y }
             .filter { blockState(it).isReplaceable }
             .map { it.blockPos }
             .toList()
