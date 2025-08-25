@@ -43,7 +43,6 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object Scaffold : Module(
@@ -74,8 +73,11 @@ object Scaffold : Module(
 
     init {
         listen<TickEvent.Pre> {
-            val offset = if (isKeyPressed(descend.code)) descendAmount + 1 else 1
-            val beneath = player.blockPos.offset(Direction.DOWN, offset)
+            val playerSupport = player.blockPos.down()
+            val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
+            if (alreadySupported) return@listen
+            val offset = if (isKeyPressed(descend.code)) descendAmount else 0
+            val beneath = playerSupport.down(offset)
             scaffoldPositions(beneath)
                 .associateWith { TargetState.Solid }
                 .toBlueprint()
