@@ -34,6 +34,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Diagnostics.gatherDiagnostics
 import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegister.minecraft
 import com.mojang.blaze3d.platform.TextureUtil
 import imgui.ImGui
 import imgui.ImGui.closeCurrentPopup
@@ -42,8 +43,10 @@ import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImString
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.client.Keyboard
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
+import java.nio.file.Path
 import java.util.Locale
 
 object MenuBar {
@@ -96,7 +99,7 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildLambdaMenu() {
-        menuItem("New Profile...") {
+        menuItem("New Profile...", enabled = false) {
             // ToDo (New Profile):
             //  - Open a modal "New Profile" with:
             //      [Profile Name] text input
@@ -105,29 +108,50 @@ object MenuBar {
             //  - On Create: instantiate and activate the profile, optionally copying values from current.
             //  - On Cancel: close modal with no changes.
         }
-        menuItem("Open Config Folder") {
-            Util.getOperatingSystem().open(FolderRegister.config)
+        menu("Open Folder") {
+            menuItem("Open Lambda Folder") {
+                Util.getOperatingSystem().open(FolderRegister.lambda)
+            }
+            menuItem("Open Config Folder") {
+                Util.getOperatingSystem().open(FolderRegister.config)
+            }
+            menuItem("Open Packet Logs Folder") {
+                Util.getOperatingSystem().open(FolderRegister.packetLogs)
+            }
+            menuItem("Open Replay Folder") {
+                Util.getOperatingSystem().open(FolderRegister.replay)
+            }
+            menuItem("Open Cache Folder") {
+                Util.getOperatingSystem().open(FolderRegister.cache)
+            }
+            menuItem("Open Capes Folder") {
+                Util.getOperatingSystem().open(FolderRegister.capes)
+            }
+            menuItem("Open Structures Folder") {
+                Util.getOperatingSystem().open(FolderRegister.structure)
+            }
+            menuItem("Open Maps Folder") {
+                Util.getOperatingSystem().open(FolderRegister.maps)
+            }
         }
         separator()
-        menuItem("Save All Configs", "Ctrl+S") {
-            // Save every configuration file and show a toast with the total count.
+        menuItem("Save Configs") {
             Configuration.configurations.forEach { it.trySave(true) }
-            runSafe { info("Saved ${Configuration.configurations.size} configuration files.") }
+            info("Saved ${Configuration.configurations.size} configuration files.")
         }
-        menuItem("Load All Configs", "Ctrl+L") {
-            // Load every configuration file and show a toast with the total count.
+        menuItem("Load Configs") {
             Configuration.configurations.forEach { it.tryLoad() }
-            runSafe { info("Loaded ${Configuration.configurations.size} configuration files.") }
+            info("Loaded ${Configuration.configurations.size} configuration files.")
         }
         separator()
-        menuItem("Import Profile...") {
+        menuItem("Import Profile...", enabled = false) {
             // ToDo (Import Profile):
             //  - Show a file picker for profile file(s).
             //  - Preview dialog: profile name, version, module count, settings count, includes HUD?
             //  - Provide options: Merge into Current / Replace Current.
             //  - Apply with progress/rollback on failure; toast result.
         }
-        menuItem("Export Current Profile...") {
+        menuItem("Export Current Profile...", enabled = false) {
             // ToDo (Export Profile):
             //  - File save modal with checkboxes:
             //      [Include HUD Layout] [Include Keybinds] [Include Backups Metadata]
@@ -137,57 +161,28 @@ object MenuBar {
             // ToDo (MRU Profiles):
             //  - Populate from a most-recently-used (MRU) list persisted in preferences.
             //  - On click: switch active profile (confirm if unsaved changes).
-            menuItem("Example Profile") {}
-        }
-        menuItem("Save All", "Ctrl+S") {
-            Configuration.configurations.forEach { it.trySave(true) }
-            runSafe { info("Saved ${Configuration.configurations.size} configuration files.") }
-        }
-        menuItem("Load All", "Ctrl+L") {
-            Configuration.configurations.forEach { it.tryLoad() }
-            runSafe { info("Loaded ${Configuration.configurations.size} configuration files.") }
+            menuItem("Example Profile", enabled = false) {}
         }
         separator()
         menu("Autosave Settings") {
             // ToDo:
             //  - Toggle autosave, set interval (1..60s), backup rotation count (0..20).
-            menuItem("Autosave on changes", selected = true) {}
-            menuItem("Autosave Interval: 10s") {}
-            menuItem("Rotate Backups: 5") {}
+            menuItem("Autosave on changes", selected = true, enabled = false) {}
+            menuItem("Autosave Interval: 10s", enabled = false) {}
+            menuItem("Rotate Backups: 5", enabled = false) {}
         }
         menu("Backup & Restore") {
             // ToDo:
             //  - “Create Backup Now” and “Manage/Restore Backups” UIs; list with timestamps/comments.
-            menuItem("Create Backup Now") {}
-            menuItem("Restore From Backup...") {}
-            menuItem("Manage Backups...") {}
+            menuItem("Create Backup Now", enabled = false) {}
+            menuItem("Restore From Backup...", enabled = false) {}
+            menuItem("Manage Backups...", enabled = false) {}
         }
-        menuItem("Profiles & Scopes...") {
+        menuItem("Profiles & Scopes...", enabled = false) {
             // ToDo (Profiles & Scopes Window):
             //  - Active Profile dropdown.
             //  - Scopes: Global / Per-Server / Per-World with enable overrides.
             //  - Show overridden-only list, origin badges, and precedence explanation.
-        }
-        menuItem("Module Settings Inspector...") {
-            // ToDo (Settings Inspector Window):
-            //  - Left: Tree (Tag → Module → Group).
-            //  - Right: Settings editor with search; filters (Changed-only, Overridden-only, Advanced).
-            //  - Reset group/module actions.
-        }
-        menuItem("Placement/Build Settings...") {
-            // ToDo (Placement Panel):
-            //  - Rotate For Place, Air Place Mode, Axis Rotate (conditional),
-            //  - Place Stage Mask (multi-select), Place Confirmation Mode,
-            //  - Max Pending Placements, Places Per Tick,
-            //  - Swing On Place + Swing Type, Place Sounds.
-            //  - Provide concise tooltips for trade-offs.
-        }
-        menuItem("Inventory Settings...") {
-            // ToDo (Inventory Panel):
-            //  - Container group: Disposables editor (list add/remove + defaults), Swap with Disposables,
-            //    Provider/Store Priorities.
-            //  - Access group: Access Shulkers/Ender/Chests/Stashes toggles.
-            //  - “Test Access” helper to simulate lookups.
         }
         separator()
         menuItem("About...") {
@@ -198,50 +193,11 @@ object MenuBar {
         menuItem("Exit Client") { mc.scheduleStop() }
     }
 
-    private fun ImGuiBuilder.buildViewMenu() {
-
-        separator()
-        menu("UI Scale") {
-            // ToDo:
-            //  - Apply selected scale (100/125/150/175/200%), update fonts via DearImGui.updateScale-like method.
-            listOf("100%", "125%", "150%", "175%", "200%").forEach { label ->
-                menuItem(label, selected = (label == "125%")) { /* set scale & rebuild fonts */ }
-            }
-        }
-    }
-
     private fun ImGuiBuilder.buildHudMenu() {
-        menuItem("Copy HUD Layout") {
-            // ToDo:
-            //  - Serialize current HUD widget tree with positions/anchors/safe-margins to memory clipboard.
-        }
-        menuItem("Paste HUD Layout") {
-            // ToDo:
-            //  - Deserialize from clipboard and apply; if incompatible, show a non-blocking warning.
-        }
-        menuItem("Reset to Defaults") {
-            // ToDo:
-            //  - Reset the currently focused panel’s settings to defaults (confirmation modal).
-        }
-        separator()
-        menuItem("Keybind Manager...") {
-            // ToDo (Keybind Manager Window):
-            //  - Panel with search/filter; table columns: Action/Module | Current Key | Conflict | Change | Clear
-            //  - Conflict detector with "Auto-resolve" suggestions.
-        }
-        menuItem("Open Editor", "Ctrl+Alt+C") {
+        menuItem("Open Editor") {
             // ToDo (HUD Editor Window):
             //  - Full-screen canvas with grid; left "Elements" list; right "Properties" inspector.
             //  - Drag & drop, snap grid, lock/unlock, safe margins, anchors, multi-select & alignment tools.
-        }
-        menu("Add Widget") {
-            // ToDo:
-            //  - Populate from available HUD widgets. On click, add centered and select for property editing.
-            menuItem("Stats") {}
-            menuItem("Clock") {}
-            menuItem("Ping") {}
-            menuItem("Coordinates") {}
-            menuItem("Module List") {}
         }
         menu("Layouts") {
             // ToDo:
@@ -254,10 +210,6 @@ object MenuBar {
             menuItem("Export...") {}
             separator()
             menuItem("Autosave on change", selected = true) {}
-        }
-        menuItem("Reset Layout") {
-            // ToDo:
-            //  - Confirm and restore the default HUD layout.
         }
         menuItem("Toggle Edit Handles", selected = true) {
             // ToDo:
@@ -295,23 +247,17 @@ object MenuBar {
             menuItem("Open Minecraft Folder") {
                 Util.getOperatingSystem().open(FolderRegister.minecraft)
             }
-            menuItem("Open Lambda Folder") {
-                Util.getOperatingSystem().open(FolderRegister.lambda)
+            menuItem("Open Saves Folder") {
+                Util.getOperatingSystem().open(mc.runDirectory.toPath().toAbsolutePath().resolve("saves").toFile())
             }
-            menuItem("Open Config Folder") {
-                Util.getOperatingSystem().open(FolderRegister.config)
+            menuItem("Open Screenshots Folder") {
+                Util.getOperatingSystem().open(mc.runDirectory.toPath().toAbsolutePath().resolve("screenshots").toFile())
             }
-            menuItem("Open Cache Folder") {
-                Util.getOperatingSystem().open(FolderRegister.cache)
+            menuItem("Open Resource Packs Folder") {
+                Util.getOperatingSystem().open(mc.runDirectory.toPath().toAbsolutePath().resolve("resourcepacks").toFile())
             }
-            menuItem("Open Capes Folder") {
-                Util.getOperatingSystem().open(FolderRegister.capes)
-            }
-            menuItem("Open Structures Folder") {
-                Util.getOperatingSystem().open(FolderRegister.structure)
-            }
-            menuItem("Open Maps Folder") {
-                Util.getOperatingSystem().open(FolderRegister.maps)
+            menuItem("Open Mods Folder") {
+                Util.getOperatingSystem().open(mc.runDirectory.toPath().toAbsolutePath().resolve("mods").toFile())
             }
         }
         separator()
@@ -331,40 +277,17 @@ object MenuBar {
                 }
             }
             menu("Debug Menu") {
-                menuItem(
-                    "Show Debug Menu", "F3",
-                    mc.debugHud.showDebugHud
-                ) { mc.debugHud.toggleDebugHud() }
-                menuItem(
-                    "Rendering Chart", "F3+1",
-                    mc.debugHud.renderingChartVisible
-                ) { mc.debugHud.toggleRenderingChart() }
-                menuItem(
-                    "Rendering & Tick Charts", "F3+2",
-                    mc.debugHud.renderingAndTickChartsVisible
-                ) { mc.debugHud.toggleRenderingAndTickCharts() }
-                menuItem(
-                    "Packet Size & Ping Charts", "F3+3",
-                    mc.debugHud.packetSizeAndPingChartsVisible
-                ) { mc.debugHud.togglePacketSizeAndPingCharts() }
-
-                separator()
-
-                menuItem("Reload Chunks", "F3+A") {
-                    mc.worldRenderer.reload()
+                menuItem("Show Advanced Tooltips", "F3+H", mc.options.advancedItemTooltips) {
+                    mc.options.advancedItemTooltips = !mc.options.advancedItemTooltips
+                    mc.options.write()
                 }
-                menuItem(
-                    "Show Chunk Borders", "F3+G",
-                    mc.debugRenderer.showChunkBorder
-                ) { mc.debugRenderer.toggleShowChunkBorder() }
+                menuItem("Show Chunk Borders", "F3+G", mc.debugRenderer.showChunkBorder) {
+                    mc.debugRenderer.toggleShowChunkBorder()
+                }
                 menuItem("Show Octree", selected = mc.debugRenderer.showOctree) {
                     mc.debugRenderer.toggleShowOctree()
                 }
-                menuItem(
-                    label = "Show Hitboxes",
-                    shortcut = "F3+B",
-                    selected = mc.entityRenderDispatcher.shouldRenderHitboxes()
-                ) {
+                menuItem("Show Hitboxes", "F3+B", mc.entityRenderDispatcher.shouldRenderHitboxes()) {
                     val now = !mc.entityRenderDispatcher.shouldRenderHitboxes()
                     mc.entityRenderDispatcher.setRenderHitboxes(now)
                 }
@@ -385,28 +308,6 @@ object MenuBar {
                 separator()
 
                 menuItem(
-                    label = "Advanced Tooltips",
-                    shortcut = "F3+H",
-                    selected = mc.options.advancedItemTooltips
-                ) {
-                    mc.options.advancedItemTooltips = !mc.options.advancedItemTooltips
-                    mc.options.write()
-                }
-                menuItem("Inspect (Copy Look At)", "F3+I") {
-                    // TODO: Implement precise copyLookAt(hasOp = player.hasPermissionLevel(2), raycastBlocksIfNotShift = !Screen.hasShiftDown())
-                    info("Inspect: Not yet implemented.")
-                }
-
-                separator()
-
-                menuItem("Start/Stop Profiler", "F3+L") {
-                    // TODO: Wire mc.toggleDebugProfiler with callback logging
-                    info("Profiler control: Not yet implemented.")
-                }
-
-                separator()
-
-                menuItem(
                     label = "Pause On Lost Focus",
                     shortcut = "F3+Esc",
                     selected = mc.options.pauseOnLostFocus
@@ -418,15 +319,42 @@ object MenuBar {
 
                 separator()
 
+                menuItem("Reload Resource Packs", "F3+T") {
+                    info("Reloading resource packs...")
+                    mc.reloadResources()
+                }
+
+                menuItem("Reload Chunks", "F3+A") {
+                    mc.worldRenderer.reload()
+                }
+
+                separator()
+
+                menuItem("Show Debug Menu", "F3", mc.debugHud.showDebugHud) {
+                    mc.debugHud.toggleDebugHud()
+                }
+                menuItem("Rendering Chart", "F3+1", mc.debugHud.renderingChartVisible) {
+                    mc.debugHud.toggleRenderingChart()
+                }
+                menuItem("Rendering & Tick Charts", "F3+2", mc.debugHud.renderingAndTickChartsVisible) {
+                    mc.debugHud.toggleRenderingAndTickCharts()
+                }
+                menuItem("Packet Size & Ping Charts", "F3+3", mc.debugHud.packetSizeAndPingChartsVisible) {
+                    mc.debugHud.togglePacketSizeAndPingCharts()
+                }
+
+                separator()
+
+                menuItem("Start/Stop Profiler", "F3+L") {
+                    mc.toggleDebugProfiler { message ->
+                        info(message)
+                    }
+                }
                 menuItem("Dump Dynamic Textures", "F3+S") {
                     val root = mc.runDirectory.toPath().toAbsolutePath()
                     val output = TextureUtil.getDebugTexturePath(root)
                     mc.textureManager.dumpDynamicTextures(output)
                     info("Dumped dynamic textures to: ${root.relativize(output)}")
-                }
-                menuItem("Reload Resource Packs", "F3+T") {
-                    info("Reloading resource packs...")
-                    mc.reloadResources()
                 }
             }
         } ?: menuItem("Debug (only available ingame)", enabled = false)

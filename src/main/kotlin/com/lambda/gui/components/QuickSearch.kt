@@ -40,6 +40,7 @@ import imgui.type.ImString
 import net.minecraft.client.gui.screen.ChatScreen
 import kotlin.math.max
 
+// ToDo: Add support for searching of menu bar entries
 object QuickSearch {
     private val searchInput = ImString(256)
     private var isOpen = false
