@@ -158,12 +158,12 @@ abstract class AbstractSetting<T : Any>(
         groups.add(path.toList())
     }
 
-    fun reset() {
-        if (value == defaultValue) {
+    fun reset(silent: Boolean = false) {
+        if (!silent && value == defaultValue) {
             ConfigCommand.info(notChangedMessage())
             return
         }
-        ConfigCommand.info(resetMessage(value, defaultValue))
+        if (!silent) ConfigCommand.info(resetMessage(value, defaultValue))
         value = defaultValue
     }
 

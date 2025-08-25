@@ -8,6 +8,7 @@ accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
 accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
 accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
+accessible method net/minecraft/client/MinecraftClient getWindowTitle ()Ljava/lang/String;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
@@ -43,6 +44,7 @@ accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
 accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
 accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
 accessible method net/minecraft/util/math/Direction listClosest (Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;)[Lnet/minecraft/util/math/Direction;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager gameMode Lnet/minecraft/world/GameMode;
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
@@ -89,6 +91,14 @@ accessible field net/minecraft/client/world/ClientWorld pendingUpdateManager Lne
 accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;
 accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraft/util/math/Vec3i;
 accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
+
+# Debug
+accessible field net/minecraft/client/gui/hud/DebugHud showDebugHud Z
+accessible field net/minecraft/client/gui/hud/DebugHud renderingChartVisible Z
+accessible field net/minecraft/client/gui/hud/DebugHud renderingAndTickChartsVisible Z
+accessible field net/minecraft/client/gui/hud/DebugHud packetSizeAndPingChartsVisible Z
+accessible field net/minecraft/client/render/debug/DebugRenderer showChunkBorder Z
+accessible field net/minecraft/client/render/debug/DebugRenderer showOctree Z
 
 # Other
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;

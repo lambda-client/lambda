@@ -29,7 +29,8 @@ object HudGuiLayout : Loadable {
     const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or
                 ImGuiWindowFlags.NoBackground or
-                ImGuiWindowFlags.AlwaysAutoResize
+                ImGuiWindowFlags.AlwaysAutoResize or
+                ImGuiWindowFlags.NoDocking
 
     init {
         listen<GuiEvent.NewFrame> {

@@ -29,24 +29,23 @@ import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
 object Coordinates : HudModule(
-    name        = "Coordinates",
+    name = "Coordinates",
     description = "Show your coordinates",
-    tag         = ModuleTag.HUD,
+    tag = ModuleTag.HUD,
 ) {
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
-    //override fun getText() = runSafe { "XYZ ${if (showDimension) world.dimensionName else ""} ${positionForDimension()}" } ?: ""
-
     override fun ImGuiBuilder.buildLayout() {
         runSafe {
-            val text = "XYZ ${if (showDimension) world.dimensionName else ""}"
-
-            val coord =
-                if (world.isNether) "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
-                else "${player.pos.asString(decimals)} [${player.netherCoord.x.string}; ${player.netherCoord.z.string}]"
-
-            textCopyable("$text $coord")
+            val pos = player.pos.asString(decimals)
+            val coord = if (world.isNether) {
+                "$pos [${player.overworldCoord.x.string}, ${player.overworldCoord.z.string}]"
+            } else {
+                "$pos [${player.netherCoord.x.string}, ${player.netherCoord.z.string}]"
+            }
+            val dimension = if (showDimension) " ${world.dimensionName}" else ""
+            textCopyable("$coord$dimension")
         }
     }
 }

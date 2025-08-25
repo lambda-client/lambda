@@ -68,7 +68,7 @@ object SettingTest : Module(
     private val blockPosSetting by setting("Block Position", BlockPos(0, 0, 0)).group(Group.COMPLEX)
     private val blockSetting by setting("Block Setting", Blocks.OBSIDIAN).group(Group.COMPLEX)
     private val colorSetting by setting("Color Setting", Color.GREEN).group(Group.COMPLEX)
-    private val keybindSetting by setting("Key Bind Setting", KeyCode.T).group(Group.COMPLEX)
+    private val keybindSettingTest by setting("Key Bind Setting", KeyCode.T).group(Group.COMPLEX)
 
     // Complex collections
     private val blockPosSet by setting("Block Position Set", setOf(BlockPos(0, 0, 0)), setOf(BlockPos(0, 0, 0))).group(Group.COMPLEX)

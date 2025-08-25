@@ -26,8 +26,8 @@ import imgui.flag.ImGuiCol
 import java.awt.Color
 
 object ModuleList : HudModule(
-    name    = "ModuleList",
-    tag     = ModuleTag.HUD,
+    name = "ModuleList",
+    tag = ModuleTag.HUD,
 ) {
     override val isVisible: Boolean
         get() = false
@@ -39,10 +39,7 @@ object ModuleList : HudModule(
 
         enabled.forEach {
             text(it.name); sameLine()
-
-            val color =
-                if (it.keybind == KeyCode.UNBOUND) Color.RED
-                else Color.GREEN
+            val color = if (it.keybind == KeyCode.UNBOUND) Color.RED else Color.GREEN
 
             withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
         }

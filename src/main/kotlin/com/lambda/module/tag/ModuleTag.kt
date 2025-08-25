@@ -34,6 +34,7 @@ import com.lambda.util.Nameable
  */
 data class ModuleTag(override val name: String) : Nameable {
     // Totally needs to be reworked
+    // ToDo: Add registry for tags
     companion object {
         val COMBAT = ModuleTag("Combat")
         val MOVEMENT = ModuleTag("Movement")
@@ -45,5 +46,17 @@ data class ModuleTag(override val name: String) : Nameable {
         val HUD = ModuleTag("Hud")
 
         val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, DEBUG, CLIENT, HUD)
+
+        val shownTags = defaults.toMutableSet()
+
+        fun toggleTag(tag: ModuleTag) {
+            if (shownTags.contains(tag)) {
+                shownTags.remove(tag)
+            } else {
+                shownTags.add(tag)
+            }
+        }
+
+        fun isTagShown(tag: ModuleTag) = shownTags.contains(tag)
     }
 }

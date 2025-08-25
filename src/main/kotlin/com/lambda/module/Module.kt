@@ -24,17 +24,23 @@ import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.gui.DearImGui
+import com.lambda.gui.LambdaScreen
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import imgui.ImGui
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -111,10 +117,10 @@ abstract class Module(
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
+    autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    private val keybindSetting = setting("Keybind", defaultKeybind)
-    val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") }, "Reset settings values to default.")
+    val keybindSetting = setting("Keybind", defaultKeybind) { false }
 
     open val isVisible: Boolean = true
 
@@ -132,7 +138,12 @@ abstract class Module(
             if (!event.isPressed) return@listen
             if (keybind == KeyCode.UNBOUND) return@listen
             if (event.translated != keybind) return@listen
-            if (mc.currentScreen != null) return@listen
+            if (mc.currentScreen != null) {
+                if (ClickGui.isEnabled && mc.currentScreen == LambdaScreen && !DearImGui.io.wantTextInput) {
+                    LambdaScreen.close()
+                }
+                return@listen
+            }
 
             toggle()
         }
@@ -142,6 +153,10 @@ abstract class Module(
 
         onEnableUnsafe { LambdaSound.MODULE_ON.play() }
         onDisableUnsafe { LambdaSound.MODULE_OFF.play() }
+
+        listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
+        listen<ClientEvent.Startup> { if (autoDisable) disable() }
+        listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
     }
 
     fun enable() {
