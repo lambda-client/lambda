@@ -47,6 +47,7 @@
     "render.PlayerListHudMixin",
     "render.RenderLayersMixin",
     "render.ScreenHandlerMixin",
+    "render.ScreenMixin",
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
     "render.TooltipComponentMixin",

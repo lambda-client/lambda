@@ -43,7 +43,8 @@ import kotlin.math.max
 // ToDo: Add support for searching of menu bar entries
 object QuickSearch {
     private val searchInput = ImString(256)
-    private var isOpen = false
+    var isOpen = false
+        private set
     private var shouldFocus = false
 
     private var lastShiftPressTime = 0L
@@ -128,21 +129,6 @@ object QuickSearch {
         ImGui.setNextWindowSizeConstraints(0f, 0f, maxW, maxH)
 
         popupModal("QuickSearch", WINDOW_FLAGS) {
-            // ToDo: Fix close with background click and escape
-            if (ImGui.isKeyPressed(256)) { // ESC key
-                close()
-                ImGui.closeCurrentPopup()
-                return@popupModal
-            }
-
-            //            val bgClick = (ImGui.isMouseClicked(0) || ImGui.isMouseClicked(1)) &&
-            //                    !ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow)
-            //            if (bgClick) {
-            //                close()
-            //                ImGui.closeCurrentPopup()
-            //                return@popupModal
-            //            }
-
             if (shouldFocus) {
                 ImGui.setKeyboardFocusHere()
                 shouldFocus = false
