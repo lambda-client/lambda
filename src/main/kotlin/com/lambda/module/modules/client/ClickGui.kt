@@ -41,6 +41,7 @@ object ClickGui : Module(
     description = "ImGui",
     tag = ModuleTag.CLIENT,
     defaultKeybind = KeyCode.Y,
+    autoDisable = true
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),

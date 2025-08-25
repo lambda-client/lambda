@@ -25,6 +25,7 @@ import com.lambda.config.Configurable
 import com.lambda.config.Configuration
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.gui.LambdaScreen
 import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
@@ -61,6 +62,7 @@ object QuickSearch {
 
     init {
         listenUnsafe<KeyboardEvent.Press> { event ->
+            if (mc.currentScreen !is LambdaScreen) return@listenUnsafe
             handleKeyPress(event)
         }
     }
