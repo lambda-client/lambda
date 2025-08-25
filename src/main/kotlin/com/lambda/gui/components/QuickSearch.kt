@@ -75,7 +75,13 @@ object QuickSearch {
         override val breadcrumb = "Module"
 
         override fun ImGuiBuilder.buildLayout() {
-            with(ModuleEntry(module)) { buildLayout() }
+            with(ModuleEntry(module)) {
+                buildLayout {
+                    withItemWidth(ImGui.getContentRegionAvailX()) {
+                        buildLayout()
+                    }
+                }
+            }
         }
     }
 
@@ -96,7 +102,13 @@ object QuickSearch {
         override val breadcrumb: String by lazy { buildSettingBreadcrumb(configurable.name, setting) }
 
         override fun ImGuiBuilder.buildLayout() {
-            with(setting) { buildLayout() }
+            with(setting) {
+                buildLayout {
+                    withItemWidth(ImGui.getContentRegionAvailX()) {
+                        buildLayout()
+                    }
+                }
+            }
         }
     }
 
