@@ -28,7 +28,7 @@ interface PlaceConfig : RequestConfig {
     val airPlace: AirPlaceMode
     val axisRotateSetting: Boolean
     val axisRotate
-        get() = rotateForPlace && airPlace.isEnabled() && axisRotateSetting
+        get() = rotateForPlace && airPlace.isEnabled && axisRotateSetting
     val placeStageMask: Set<Event>
     val placeConfirmationMode: PlaceConfirmationMode
     val maxPendingPlacements: Int
@@ -46,7 +46,7 @@ interface PlaceConfig : RequestConfig {
         Grim("Grim", "Use grim specific air placing.")
         ;
 
-        fun isEnabled() = this != None
+        val isEnabled get() = this != None
     }
 
     enum class PlaceConfirmationMode(
