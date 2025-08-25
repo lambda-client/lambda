@@ -3,7 +3,6 @@
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
-
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
@@ -32,13 +31,14 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
-import com.lambda.util.StringUtils.findSimilarStrings
+import com.lambda.util.StringUtils.levenshteinDistance
 import imgui.ImGui
 import imgui.flag.ImGuiInputTextFlags
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImString
 import net.minecraft.client.gui.screen.ChatScreen
+import kotlin.math.max
 
 object QuickSearch {
     private val searchInput = ImString(256)
@@ -50,7 +50,6 @@ object QuickSearch {
 
     private const val DOUBLE_SHIFT_WINDOW_MS = 500L
     private const val MAX_RESULTS = 50
-    private const val SIMILARITY_THRESHOLD = 3
     private const val WINDOW_FLAGS = ImGuiWindowFlags.AlwaysAutoResize or
             ImGuiWindowFlags.NoTitleBar or
             ImGuiWindowFlags.NoMove or
@@ -74,22 +73,6 @@ object QuickSearch {
         override fun ImGuiBuilder.buildLayout() {
             with(ModuleEntry(module)) { buildLayout() }
         }
-
-        companion object {
-            fun search(query: String): List<ModuleResult> {
-                val modules = ModuleRegistry.modules
-                val direct = modules.filter {
-                    it.name.lowercase().let { name -> name.startsWith(query) || name.contains(query) }
-                }
-
-                if (direct.isNotEmpty()) return direct.map(::ModuleResult)
-
-                val names = modules.map { it.name }.toSet()
-                val similar = findSimilarStrings(query, names, SIMILARITY_THRESHOLD)
-                return similar.mapNotNull { name -> modules.find { it.name == name } }
-                    .map(::ModuleResult)
-            }
-        }
     }
 
     private class CommandResult(val command: LambdaCommand) : SearchResult {
@@ -103,23 +86,6 @@ object QuickSearch {
                 textDisabled(command.description)
             }
         }
-
-        companion object {
-            fun search(query: String): List<CommandResult> {
-                val commands = CommandRegistry.commands
-                val direct = commands.filter {
-                    val name = it.name.lowercase()
-                    name.startsWith(query) || name.contains(query) || it.aliases.any { alias -> alias.lowercase().contains(query) }
-                }
-
-                if (direct.isNotEmpty()) return direct.map(::CommandResult)
-
-                val names = commands.map { it.name }.toSet()
-                val similar = findSimilarStrings(query, names, SIMILARITY_THRESHOLD)
-                return similar.mapNotNull { name -> commands.find { it.name == name } }
-                    .map(::CommandResult)
-            }
-        }
     }
 
     private class SettingResult(val setting: AbstractSetting<*>, val configurable: Configurable) : SearchResult {
@@ -127,20 +93,6 @@ object QuickSearch {
 
         override fun ImGuiBuilder.buildLayout() {
             with(setting) { buildLayout() }
-        }
-
-        companion object {
-            fun search(query: String) =
-                Configuration.configurations.flatMap { config ->
-                    config.configurables.flatMap { configurable ->
-                        val confNameL = configurable.name.lowercase()
-                        configurable.settings.filter { setting ->
-                            setting.visibility() && (setting.name.lowercase().contains(query))
-                        }.map { setting ->
-                            SettingResult(setting, configurable)
-                        }
-                    }
-                }
         }
     }
 
@@ -182,13 +134,13 @@ object QuickSearch {
                 return@popupModal
             }
 
-//            val bgClick = (ImGui.isMouseClicked(0) || ImGui.isMouseClicked(1)) &&
-//                    !ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow)
-//            if (bgClick) {
-//                close()
-//                ImGui.closeCurrentPopup()
-//                return@popupModal
-//            }
+            //            val bgClick = (ImGui.isMouseClicked(0) || ImGui.isMouseClicked(1)) &&
+            //                    !ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow)
+            //            if (bgClick) {
+            //                close()
+            //                ImGui.closeCurrentPopup()
+            //                return@popupModal
+            //            }
 
             if (shouldFocus) {
                 ImGui.setKeyboardFocusHere()
@@ -209,7 +161,7 @@ object QuickSearch {
             val query = searchInput.get().trim()
             if (query.isEmpty()) return@popupModal
 
-            val results = performSearch(query)
+            val results = SearchService.performSearch(query)
             if (results.isEmpty()) {
                 textDisabled("Nothing found.")
                 return@popupModal
@@ -235,10 +187,106 @@ object QuickSearch {
         }
     }
 
+    private object SearchService {
+        private data class RankedSearchResult(val result: SearchResult, val score: Int)
 
-    private fun performSearch(query: String) =
-        listOf(ModuleResult::search, CommandResult::search, SettingResult::search)
-            .flatMap { it(query.lowercase()) }.take(MAX_RESULTS)
+        private const val MODULE_PRIORITY_BONUS = 300
+        private const val COMMAND_PRIORITY_BONUS = 200
+
+        /**
+         * Calculates a relevance score for a query against a target string.
+         * Returns 0 for no match. Higher scores are better.
+         * The `lenient` flag adjusts the threshold for fuzzy matching.
+         */
+        private fun calculateScore(query: String, target: String, lenient: Boolean = false): Int {
+            if (query.isEmpty() || target.isEmpty()) return 0
+
+            // 1. Strong Matches (Exact, Prefix, Substring)
+            if (target == query) return 200
+            if (target.startsWith(query)) {
+                val completeness = (query.length * 50) / target.length
+                return 100 + completeness // Score: 101 - 150
+            }
+            if (target.contains(query)) {
+                val completeness = (query.length * 40) / target.length
+                return 50 + completeness // Score: 51 - 90
+            }
+
+            // 2. Weak Match (Fuzzy)
+            val distance = query.levenshteinDistance(target)
+            val strictThreshold = (query.length / 3).coerceAtLeast(1).coerceAtMost(4)
+            val lenientThreshold = (query.length / 2).coerceAtLeast(2).coerceAtMost(6)
+            val threshold = if (lenient) lenientThreshold else strictThreshold
+
+            return if (distance <= threshold) {
+                (50 - (distance * 10)).coerceAtLeast(1) // Score: 1-40
+            } else {
+                0
+            }
+        }
+
+        /**
+         * Performs a search and returns a list of ranked results. This is the internal
+         * implementation that can be run in strict or lenient mode.
+         */
+        private fun searchInternal(query: String, lenient: Boolean): List<RankedSearchResult> {
+            val lowerCaseQuery = query.lowercase()
+
+            val moduleResults = ModuleRegistry.modules.mapNotNull { module ->
+                val nameScore = calculateScore(lowerCaseQuery, module.name.lowercase(), lenient)
+                val tagScore = calculateScore(lowerCaseQuery, module.tag.name.lowercase(), lenient)
+                val bestScore = max(nameScore, tagScore)
+
+                if (bestScore > 0) {
+                    RankedSearchResult(ModuleResult(module), bestScore + MODULE_PRIORITY_BONUS)
+                } else null
+            }
+
+            val commandResults = CommandRegistry.commands.mapNotNull { command ->
+                val nameScore = calculateScore(lowerCaseQuery, command.name.lowercase(), lenient)
+                val aliasScore = command.aliases.maxOfOrNull { calculateScore(lowerCaseQuery, it.lowercase(), lenient) } ?: 0
+                val bestScore = max(nameScore, aliasScore)
+
+                if (bestScore > 0) {
+                    RankedSearchResult(CommandResult(command), bestScore + COMMAND_PRIORITY_BONUS)
+                } else null
+            }
+
+            val settingResults = Configuration.configurations.flatMap {
+                it.configurables.flatMap { configurable ->
+                    configurable.settings
+                        .filter { setting -> setting.visibility() }
+                        .mapNotNull { setting ->
+                            val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
+                            if (score > 0) RankedSearchResult(SettingResult(setting, configurable), score) else null
+                        }
+                }
+            }
+
+            return moduleResults + commandResults + settingResults
+        }
+
+        /**
+         * Main search entry point. It first attempts a strict search. If no results
+         * are found, it falls back to a more lenient fuzzy search.
+         */
+        fun performSearch(query: String): List<SearchResult> {
+            // First pass: strict search for high-quality matches.
+            val strictResults = searchInternal(query, lenient = false)
+            if (strictResults.isNotEmpty()) {
+                return strictResults
+                    .sortedByDescending { it.score }
+                    .map { it.result }
+                    .take(MAX_RESULTS)
+            }
+
+            // Second pass: if nothing was found, perform a more generous fuzzy search.
+            return searchInternal(query, lenient = true)
+                .sortedByDescending { it.score }
+                .map { it.result }
+                .take(MAX_RESULTS)
+        }
+    }
 
     private fun buildSettingBreadcrumb(configurableName: String, setting: AbstractSetting<*>): String {
         val group = setting.groups

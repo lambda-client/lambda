@@ -69,7 +69,7 @@ object StringUtils {
      * @receiver The string to compare.
      * @param rhs The string to compare against.
      */
-    private fun CharSequence.levenshteinDistance(rhs: CharSequence): Int {
+    fun CharSequence.levenshteinDistance(rhs: CharSequence): Int {
         if (this == rhs) {
             return 0
         }
