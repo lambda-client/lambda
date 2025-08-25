@@ -87,6 +87,7 @@ object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
     tag = ModuleTag.PLAYER,
+    autoDisable = true
 ) {
     private val record by setting("Record", KeyCode.R)
     private val play by setting("Play / Stop", KeyCode.C)

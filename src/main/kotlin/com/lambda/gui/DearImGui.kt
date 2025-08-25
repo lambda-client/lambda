@@ -26,6 +26,8 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.path
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
+import imgui.ImFontConfig
+import imgui.ImFontGlyphRangesBuilder
 import imgui.ImGui
 import imgui.ImGuiIO
 import imgui.flag.ImGuiConfigFlags
@@ -33,13 +35,16 @@ import imgui.gl3.ImGuiImplGl3
 import imgui.glfw.ImGuiImplGlfw
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
-import org.lwjgl.opengl.GL11.glViewport
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
 import kotlin.math.abs
 
 object DearImGui : Loadable {
     val implGlfw = ImGuiImplGlfw()
     val implGl3 = ImGuiImplGl3()
+
+    const val EXTERNAL_LINK = '↗'
+    const val BREADCRUMB_SEPARATOR = '»'
+    const val BASE_FONT_SCALE = 13f
 
     val io: ImGuiIO get() = ImGui.getIO()
     const val DEFAULT_FLAGS = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
@@ -52,11 +57,20 @@ object DearImGui : Loadable {
     private var targetScale = 0f
 
     private fun updateScale(scale: Float) {
-        io.fonts.clear()
-        val baseFontSize = 13f
-        io.fonts.addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, baseFontSize * scale)
-        io.fonts.build()
-
+        val glyphRanges = ImFontGlyphRangesBuilder().apply {
+            addRanges(io.fonts.glyphRangesDefault)
+            addRanges(io.fonts.glyphRangesGreek)
+            addChar(EXTERNAL_LINK)
+            addChar(BREADCRUMB_SEPARATOR)
+        }.buildRanges()
+        val fontConfig = ImFontConfig()
+        val size = BASE_FONT_SCALE * scale
+        with(io.fonts) {
+            clear()
+            addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, size, fontConfig, glyphRanges)
+            addFontFromFileTTF("fonts/MinecraftDefault-Regular.ttf".path, size, fontConfig, glyphRanges)
+            build()
+        }
         implGl3.createFontsTexture()
     }
 

@@ -15,15 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui
+package com.lambda.util
 
-import com.lambda.module.modules.client.ClickGui
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.Screen
-import net.minecraft.text.Text
+import com.lambda.module.ModuleRegistry.modules
 
-object LambdaScreen : Screen(Text.of("Lambda")) {
-    override fun shouldPause() = false
-    override fun removed() = ClickGui.disable()
-    override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
+object Diagnostics {
+    // ToDo: Expand this to include more information like version, etc.
+    fun gatherDiagnostics() = buildString {
+        modules.filter { it.isEnabled }
+            .forEach { module ->
+                append("\t${module.name}")
+                module.settings
+                    .filter { it.isModified }
+                    .forEach { setting ->
+                        append("\t\t${setting.name} -> ${setting.value}")
+                    }
+            }
+    }
 }

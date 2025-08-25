@@ -22,21 +22,34 @@ import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
+import com.lambda.util.KeyCode
+import imgui.ImGui
 import imgui.flag.ImGuiTabBarFlags
+import imgui.flag.ImGuiCol
 
 class ModuleEntry(val module: Module): Layout {
     override fun ImGuiBuilder.buildLayout() {
-        checkbox("##-$module", module::isEnabled)
+        selectable(module.name, selected = module.isEnabled) {
+            module.toggle()
+        }
         lambdaTooltip(module.description)
-        sameLine()
-        treeNode(module.name) {
-            lambdaTooltip(module.description)
+
+        ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+        popupContextItem("##ctx-${module.name}") {
             group {
-                val visibleSettings = module.settings.filter { it.visibility() }
+                with(module.keybindSetting) { buildLayout() }
+                sameLine()
+                smallButton("Reset") {
+                    module.settings.forEach { it.reset(silent = true) }
+                }
+                lambdaTooltip("Resets all settings for this module to their default values")
+            }
+            separator()
+            group {
+                val visibleSettings = module.settings.filter { it.visibility() } - module.keybindSetting
                 val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
 
                 ungrouped.forEach { with(it) { buildLayout() } }
-
                 renderGroup(grouped, emptyList())
             }
         }
