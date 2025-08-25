@@ -37,6 +37,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.KeyCode
 import com.lambda.util.KeyboardUtils.isKeyPressed
 import com.lambda.util.NamedEnum
@@ -81,11 +82,12 @@ object Scaffold : Module(
                 .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
                 .filterIsInstance<PlaceResult.Place>()
                 .let { results ->
-                    val contexts = results
+                    val context = results
                         .map { it.context }
                         .distinctBy { it.blockPos }
                         .sortedWith { o1, o2 -> getBridgeCompareBy(beneath).compare(o1, o2) }
-                    submit(PlaceRequest(contexts, pendingActions, buildConfig, hotbarConfig, rotationConfig))
+                        .firstOrNull() ?: return@listen
+                    submit(PlaceRequest(setOf(context), pendingActions, buildConfig, hotbarConfig, rotationConfig))
                 }
         }
     }
@@ -115,9 +117,11 @@ object Scaffold : Module(
         Direction.entries.forEach { direction ->
             val offset = blockPos.offset(direction)
             val offsetState = blockState(offset)
-            if (!offsetState.isReplaceable) potentials.add(offset)
+            if (offsetState.isNotEmpty) potentials.add(offset)
         }
         val trueCenter = center.toCenterPos()
-        return potentials.any { it.toCenterPos() distSq trueCenter > blockPos.toCenterPos() distSq trueCenter }
+        return potentials.isEmpty() || potentials.any {
+            it.toCenterPos() distSq trueCenter > blockPos.toCenterPos() distSq trueCenter
+        }
     }
 }
