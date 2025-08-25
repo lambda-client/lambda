@@ -194,7 +194,7 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildHudMenu() {
-        menuItem("Open Editor") {
+        menuItem("Open Editor", enabled = false) {
             // ToDo (HUD Editor Window):
             //  - Full-screen canvas with grid; left "Elements" list; right "Properties" inspector.
             //  - Drag & drop, snap grid, lock/unlock, safe margins, anchors, multi-select & alignment tools.
@@ -202,16 +202,16 @@ object MenuBar {
         menu("Layouts") {
             // ToDo:
             //  - New/Save/Save As/Load/Import/Export layout actions; Toggle "Autosave on change".
-            menuItem("New...") {}
-            menuItem("Save") {}
-            menuItem("Save As...") {}
-            menuItem("Load...") {}
-            menuItem("Import...") {}
-            menuItem("Export...") {}
+            menuItem("New...", enabled = false) {}
+            menuItem("Save", enabled = false) {}
+            menuItem("Save As...", enabled = false) {}
+            menuItem("Load...", enabled = false) {}
+            menuItem("Import...", enabled = false) {}
+            menuItem("Export...", enabled = false) {}
             separator()
-            menuItem("Autosave on change", selected = true) {}
+            menuItem("Autosave on change", selected = true, enabled = false) {}
         }
-        menuItem("Toggle Edit Handles", selected = true) {
+        menuItem("Toggle Edit Handles", selected = true, enabled = false) {
             // ToDo:
             //  - Show/hide bounds, anchors, labels while in edit mode.
         }
@@ -245,7 +245,7 @@ object MenuBar {
     private fun ImGuiBuilder.buildMinecraftMenu() {
         menu("Open Folder") {
             menuItem("Open Minecraft Folder") {
-                Util.getOperatingSystem().open(FolderRegister.minecraft)
+                Util.getOperatingSystem().open(minecraft)
             }
             menuItem("Open Saves Folder") {
                 Util.getOperatingSystem().open(mc.runDirectory.toPath().toAbsolutePath().resolve("saves").toFile())
