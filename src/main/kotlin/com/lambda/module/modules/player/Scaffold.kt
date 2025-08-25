@@ -23,11 +23,11 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
+import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
@@ -37,7 +37,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.KeyCode
 import com.lambda.util.KeyboardUtils.isKeyPressed
 import com.lambda.util.NamedEnum
@@ -61,9 +60,9 @@ object Scaffold : Module(
         Inventory("Inventory")
     }
 
-    private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player").group(Group.General)
-    private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
+    private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks").group(Group.General)
     private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
+    private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != KeyCode.UNBOUND }.group(Group.General)
     private val buildConfig = BuildSettings(this, Group.Build)
     private val rotationConfig = RotationSettings(this, Group.Rotation)
     private val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
@@ -74,54 +73,40 @@ object Scaffold : Module(
 
     init {
         listen<TickEvent.Pre> {
-            val beneath = player.blockPos.offset(Direction.DOWN, if (isKeyPressed(descend.code)) 2 else 1)
-            val placements = getPlacements(beneath) ?: return@listen
-            placements
-                .associate { it to TargetState.Solid }
+            val offset = if (isKeyPressed(descend.code)) descendAmount + 1 else 1
+            val beneath = player.blockPos.offset(Direction.DOWN, offset)
+            scaffoldPositions(beneath)
+                .associateWith { TargetState.Solid }
                 .toBlueprint()
                 .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
                 .filterIsInstance<PlaceResult.Place>()
-                .let { results ->
-                    val context = results
-                        .map { it.context }
-                        .distinctBy { it.blockPos }
-                        .sortedWith { o1, o2 -> getBridgeCompareBy(beneath).compare(o1, o2) }
-                        .firstOrNull() ?: return@listen
-                    submit(PlaceRequest(setOf(context), pendingActions, buildConfig, hotbarConfig, rotationConfig))
+                .minByOrNull { it.blockPos distSq beneath }
+                ?.let { result ->
+                    submit(PlaceRequest(
+                        setOf(result.context),
+                        pendingActions,
+                        buildConfig,
+                        hotbarConfig,
+                        rotationConfig
+                    ))
                 }
         }
+
+        listen<MovementEvent.Sneak> {
+            if (descend != KeyCode.LEFT_SHIFT && descend != KeyCode.RIGHT_SHIFT) return@listen
+            it.sneak = false
+        }
     }
 
-    private fun SafeContext.getPlacements(beneath: BlockPos): List<BlockPos>? {
-        if (!blockState(beneath).isReplaceable) return null
+    private fun SafeContext.scaffoldPositions(beneath: BlockPos): List<BlockPos> {
+        if (!blockState(beneath).isReplaceable) return emptyList()
+        if (buildConfig.placing.airPlace.isEnabled) return listOf(beneath)
 
-        return BlockPos
-            .iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
+        return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
             .asSequence()
+            .filter { it.y <= beneath.y }
+            .filter { blockState(it).isReplaceable }
             .map { it.blockPos }
-            .run {
-                if (onlyBelow) filter { it.y <= beneath.y }
-                else this
-            }
-            .filter { placingCloserToCenter(it, beneath) }
             .toList()
-    }
-
-    private fun getBridgeCompareBy(blockPos: BlockPos) =
-        compareBy<PlaceContext> {
-            it.blockPos.toCenterPos() distSq blockPos.toCenterPos()
-        }
-
-    private fun SafeContext.placingCloserToCenter(blockPos: BlockPos, center: BlockPos): Boolean {
-        val potentials = mutableListOf<BlockPos>()
-        Direction.entries.forEach { direction ->
-            val offset = blockPos.offset(direction)
-            val offsetState = blockState(offset)
-            if (offsetState.isNotEmpty) potentials.add(offset)
-        }
-        val trueCenter = center.toCenterPos()
-        return potentials.isEmpty() || potentials.any {
-            it.toCenterPos() distSq trueCenter > blockPos.toCenterPos() distSq trueCenter
-        }
     }
 }
