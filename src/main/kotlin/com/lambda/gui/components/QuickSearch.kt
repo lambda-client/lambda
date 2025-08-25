@@ -47,11 +47,10 @@ object QuickSearch {
 
     private var lastShiftPressTime = 0L
     private var lastShiftKeyCode = -1
-    private const val DOUBLE_SHIFT_WINDOW_MS = 500L
 
+    private const val DOUBLE_SHIFT_WINDOW_MS = 500L
     private const val MAX_RESULTS = 50
     private const val SIMILARITY_THRESHOLD = 3
-
     private const val WINDOW_FLAGS = ImGuiWindowFlags.AlwaysAutoResize or
             ImGuiWindowFlags.NoTitleBar or
             ImGuiWindowFlags.NoMove or
@@ -136,12 +135,12 @@ object QuickSearch {
                     config.configurables.flatMap { configurable ->
                         val confNameL = configurable.name.lowercase()
                         configurable.settings.filter { setting ->
-                            setting.visibility() && (setting.name.lowercase().contains(query) || confNameL.contains(query))
+                            setting.visibility() && (setting.name.lowercase().contains(query))
                         }.map { setting ->
                             SettingResult(setting, configurable)
                         }
                     }
-                }.take(15)
+                }
         }
     }
 
