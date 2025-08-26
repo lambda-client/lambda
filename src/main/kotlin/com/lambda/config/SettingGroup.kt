@@ -32,11 +32,11 @@ abstract class SettingGroup(
         return SettingDelegate<T, R>(settings, index)
     }
 
-    @Suppress("Unchecked_Cast")
     class SettingDelegate<T : AbstractSetting<R>, R : Any>(
         private val settings: List<AbstractSetting<*>>,
         val index: Int
     ) : ReadWriteProperty<Any?, R> {
+        @Suppress("Unchecked_Cast")
         val setting: T
             get() = settings[index] as T
 
