@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.interaction.request.interacting.InteractConfig
 import com.lambda.util.NamedEnum
 
@@ -25,9 +26,9 @@ class InteractSettings(
     c: Configurable,
     groupPath: List<NamedEnum> = emptyList(),
     vis: () -> Boolean = { true }
-) : InteractConfig {
-    override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis).group(groupPath)
-    override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis).group(groupPath)
-    override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swingHand }.group(groupPath)
-    override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractionConfig.InteractConfirmationMode.InteractThenAwait, "The style of confirmation for interactions", visibility = vis).group(groupPath)
+) : InteractConfig, SettingGroup(c) {
+    override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", register = false, visibility = vis).group(groupPath).index()
+    override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", register = false, visibility = vis).group(groupPath).index()
+    override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing", register = false) { vis() && swingHand }.group(groupPath).index()
+    override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractionConfig.InteractConfirmationMode.InteractThenAwait, "The style of confirmation for interactions", register = false, visibility = vis).group(groupPath).index()
 }

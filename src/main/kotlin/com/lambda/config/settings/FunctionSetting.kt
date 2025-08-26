@@ -24,13 +24,14 @@ import com.lambda.config.AbstractSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 
 open class FunctionSetting<T>(
-    override val name: String,
+    name: String,
     defaultValue: () -> T,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<() -> T>(
     defaultValue,
     TypeToken.get(defaultValue::class.java).type,
+    name,
     description,
     visibility
 ) {

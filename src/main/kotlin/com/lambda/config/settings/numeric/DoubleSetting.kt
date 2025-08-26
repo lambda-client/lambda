@@ -31,7 +31,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class DoubleSetting(
-    override val name: String,
+    name: String,
     defaultValue: Double,
     override val range: ClosedRange<Double>,
     override val step: Double,
@@ -42,6 +42,7 @@ class DoubleSetting(
     defaultValue,
     range,
     step,
+    name,
     description,
     unit,
     visibility

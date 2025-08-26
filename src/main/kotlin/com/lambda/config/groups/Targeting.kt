@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.interaction.request.rotating.Rotation.Companion.dist
@@ -54,39 +55,39 @@ abstract class Targeting(
     private val predicate: () -> Boolean = { true },
     private val defaultRange: Double,
     private val maxRange: Double,
-) : TargetingConfig {
+) : TargetingConfig, SettingGroup(owner) {
 
     /**
      * The range within which entities can be targeted. This value is configurable and constrained
      * between 1.0 and [maxRange].
      */
-    override val targetingRange by owner.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05) { predicate() }
+    override val targetingRange by owner.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05, register = false) { predicate() }.index()
 
     /**
      * Whether players are included in the targeting scope.
      */
-    override val players by owner.setting("Players", true) { predicate() }
+    override val players by owner.setting("Players", true, register = false) { predicate() }.index()
 
     /**
      * Whether friends are included in the targeting scope.
      * Requires [players] to be true.
      */
-    override val friends by owner.setting("Friends", false) { predicate() && players }
+    override val friends by owner.setting("Friends", false, register = false) { predicate() && players }.index()
 
     /**
      * Whether mobs are included in the targeting scope.
      */
-    private val mobs by owner.setting("Mobs", true) { predicate() }
+    private val mobs by owner.setting("Mobs", true, register = false) { predicate() }.index()
 
     /**
      * Whether hostile mobs are included in the targeting scope
      */
-    private val hostilesSetting by owner.setting("Hostiles", true) { predicate() && mobs }
+    private val hostilesSetting by owner.setting("Hostiles", true, register = false) { predicate() && mobs }.index()
 
     /**
      * Whether passive animals are included in the targeting scope
      */
-    private val animalsSetting by owner.setting("Animals", true) { predicate() && mobs }
+    private val animalsSetting by owner.setting("Animals", true, register = false) { predicate() && mobs }.index()
 
     /**
      * Indicates whether hostile entities are included in the targeting scope.
@@ -101,12 +102,12 @@ abstract class Targeting(
     /**
      * Whether invisible entities are included in the targeting scope.
      */
-    override val invisible by owner.setting("Invisible", true) { predicate() }
+    override val invisible by owner.setting("Invisible", true, register = false) { predicate() }.index()
 
     /**
      * Whether dead entities are included in the targeting scope.
      */
-    override val dead by owner.setting("Dead", false) { predicate() }
+    override val dead by owner.setting("Dead", false, register = true) { predicate() }.index()
 
     /**
      * Validates whether a given entity is targetable by the player based on current settings.
@@ -144,12 +145,12 @@ abstract class Targeting(
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by owner.setting("FOV Limit", 180, 5..180, 1) { predicate() }.group(baseGroup)
+        val fov by owner.setting("FOV Limit", 180, 5..180, register = false) { predicate() }.group(baseGroup).index()
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.DISTANCE].
          */
-        val priority by owner.setting("Priority", Priority.DISTANCE) { predicate() }.group(baseGroup)
+        val priority by owner.setting("Priority", Priority.DISTANCE, register = false) { predicate() }.group(baseGroup).index()
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.

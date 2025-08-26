@@ -25,7 +25,7 @@ import java.lang.reflect.Type
  * @see [com.lambda.config.Configurable]
  */
 class MapSetting<K, V>(
-    override val name: String,
+    name: String,
     defaultValue: MutableMap<K, V>,
     type: Type,
     description: String,
@@ -33,6 +33,7 @@ class MapSetting<K, V>(
 ) : AbstractSetting<MutableMap<K, V>>(
     defaultValue,
     type,
+    name,
     description,
     visibility
 ) {

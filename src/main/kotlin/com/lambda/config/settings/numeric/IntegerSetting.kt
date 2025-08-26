@@ -30,7 +30,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class IntegerSetting(
-    override val name: String,
+    name: String,
     defaultValue: Int,
     override val range: ClosedRange<Int>,
     override val step: Int = 1,
@@ -41,6 +41,7 @@ class IntegerSetting(
     defaultValue,
     range,
     step,
+    name,
     description,
     unit,
     visibility

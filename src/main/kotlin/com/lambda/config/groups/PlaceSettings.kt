@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.placing.PlaceConfig.AirPlaceMode
@@ -28,15 +29,15 @@ class PlaceSettings(
     c: Configurable,
     groupPath: List<NamedEnum> = emptyList(),
     vis: () -> Boolean = { true }
-) : PlaceConfig {
-    override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing", visibility = vis).group(groupPath)
-    override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = vis).group(groupPath)
-    override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { vis() && airPlace.isEnabled() }.group(groupPath)
-    override val placeStageMask by c.setting("Place Sequence Mode", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post), description = "The sub-tick timing at which break actions are performed", visibility = vis).group(groupPath)
-    override val placeConfirmationMode by c.setting("Place Confirmation", PlaceConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation", visibility = vis).group(groupPath)
-    override val maxPendingPlacements by c.setting("Max Pending Placements", 5, 0..30, 1, "The maximum amount of pending placements", visibility = vis).group(groupPath)
-    override val placementsPerTick by c.setting("Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", visibility = vis).group(groupPath)
-    override val swing by c.setting("Swing On Place", true, "Swings the players hand when placing", visibility = vis).group(groupPath)
-    override val swingType by c.setting("Place Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing }.group(groupPath)
-    override val sounds by c.setting("Place Sounds", true, "Plays the placing sounds", visibility = vis).group(groupPath)
+) : PlaceConfig, SettingGroup(c) {
+    override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing", register = false, visibility = vis).group(groupPath).index()
+    override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", register = false, visibility = vis).group(groupPath).index()
+    override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks", register = false) { vis() && airPlace.isEnabled() }.group(groupPath).index()
+    override val placeStageMask by c.setting("Place Sequence Mode", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post), description = "The sub-tick timing at which break actions are performed", register = false, visibility = vis).group(groupPath).index()
+    override val placeConfirmationMode by c.setting("Place Confirmation", PlaceConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation", register = false, visibility = vis).group(groupPath).index()
+    override val maxPendingPlacements by c.setting("Max Pending Placements", 5, 0..30, 1, "The maximum amount of pending placements", register = false, visibility = vis).group(groupPath).index()
+    override val placementsPerTick by c.setting("Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", register = false, visibility = vis).group(groupPath).index()
+    override val swing by c.setting("Swing On Place", true, "Swings the players hand when placing", register = false, visibility = vis).group(groupPath).index()
+    override val swingType by c.setting("Place Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing", register = false) { vis() && swing }.group(groupPath).index()
+    override val sounds by c.setting("Place Sounds", true, "Plays the placing sounds", register = false, visibility = vis).group(groupPath).index()
 }

@@ -31,13 +31,14 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class BooleanSetting(
-    override val name: String,
+    name: String,
     defaultValue: Boolean,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<Boolean>(
     defaultValue,
     TypeToken.get(Boolean::class.java).type,
+    name,
     description,
     visibility
 ) {

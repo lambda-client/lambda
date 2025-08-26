@@ -43,8 +43,7 @@ interface PlaceConfig : RequestConfig {
     ) : NamedEnum, Describable {
         None("None", "Do not attempt air placements; only place against valid supports."),
         Standard("Standard", "Try common air-place techniques for convenience; moderate compatibility."),
-        Grim("Grim", "Use grim specific air placing.")
-        ;
+        Grim("Grim", "Use grim specific air placing.");
 
         fun isEnabled() = this != None
     }
@@ -57,5 +56,4 @@ interface PlaceConfig : RequestConfig {
         PlaceThenAwait("Place now, confirm later", "Show placement right away, then wait for server confirmation to verify."),
         AwaitThenPlace("Confirm first, then place", "Wait for server response before showing placement; most accurate, adds a short delay.")
     }
-
 }

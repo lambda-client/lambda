@@ -29,13 +29,14 @@ import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
 
 class Vec3dSetting(
-    override val name: String,
+    name: String,
     defaultValue: Vec3d,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<Vec3d>(
     defaultValue,
     TypeToken.get(Vec3d::class.java).type,
+    name,
     description,
     visibility
 ) {

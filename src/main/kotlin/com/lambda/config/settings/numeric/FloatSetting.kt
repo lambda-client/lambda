@@ -30,7 +30,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class FloatSetting(
-    override val name: String,
+    name: String,
     defaultValue: Float,
     override val range: ClosedRange<Float>,
     override val step: Float = 1f,
@@ -41,6 +41,7 @@ class FloatSetting(
     defaultValue,
     range,
     step,
+    name,
     description,
     unit,
     visibility

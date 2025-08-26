@@ -96,8 +96,9 @@ import kotlin.reflect.KProperty
 abstract class AbstractSetting<T : Any>(
     internal val defaultValue: T,
     val type: Type,
-    val description: String,
-    val visibility: () -> Boolean,
+    override var name: String,
+    var description: String,
+    var visibility: () -> Boolean
 ) : Jsonable, Nameable, Layout {
     private val listeners = mutableListOf<ValueListener<T>>()
     val groups: MutableList<List<NamedEnum>> = mutableListOf()

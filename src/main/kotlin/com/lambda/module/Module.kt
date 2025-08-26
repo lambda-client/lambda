@@ -37,10 +37,8 @@ import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
-import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import imgui.ImGui
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -119,7 +117,7 @@ abstract class Module(
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
-    private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
+    private val isEnabledSetting = setting("Enabled", enabledByDefault, register = true) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
 
     open val isVisible: Boolean = true

@@ -32,7 +32,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class StringSetting(
-    override val name: String,
+    name: String,
     defaultValue: String,
     val multiline: Boolean = false,
     val flags: Int = ImGuiInputTextFlags.None,
@@ -41,6 +41,7 @@ class StringSetting(
 ) : AbstractSetting<String>(
     defaultValue,
     TypeToken.get(String::class.java).type,
+    name,
     description,
     visibility
 ) {

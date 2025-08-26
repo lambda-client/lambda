@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.util.NamedEnum
@@ -32,29 +33,29 @@ class RotationSettings(
     c: Configurable,
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
-) : RotationConfig {
-    override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction", vis).group(baseGroup)
+) : RotationConfig, SettingGroup(c) {
+    override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction", register = false, vis).group(baseGroup).index()
 
     /** How many ticks to keep the rotation before resetting */
-    override val keepTicks by c.setting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks") { rotate && vis() }.group(baseGroup)
+    override val keepTicks by c.setting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks", register = false) { rotate && vis() }.group(baseGroup).index()
 
     /** How many ticks to wait before resetting the rotation */
-    override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }.group(baseGroup)
+    override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks", register = false) { rotate && vis() }.group(baseGroup).index()
 
     /** Whether the rotation is instant */
-    var instant by c.setting("Instant Rotation", true, "Instantly rotate") { rotate && vis() }.group(baseGroup)
+    var instant by c.setting("Instant Rotation", true, "Instantly rotate", register = false) { rotate && vis() }.group(baseGroup).index()
 
     /**
      * The mean (average/base) value used to calculate rotation speed.
      * This value represents the center of the distribution.
      */
-    var mean by c.setting("Mean", 40.0, 1.0..120.0, 0.1, "Average rotation speed", unit = "°") { rotate && vis() && !instant }.group(baseGroup)
+    var mean by c.setting("Mean", 40.0, 1.0..120.0, 0.1, "Average rotation speed", unit = "°", register = false) { rotate && vis() && !instant }.group(baseGroup).index()
 
     /**
      * The standard deviation for the Gaussian distribution used to calculate rotation speed.
      * This value represents the spread of rotation speed.
      */
-    var spread by c.setting("Spread", 10.0, 0.0..60.0, 0.1, "Spread of rotation speeds", unit = "°") { rotate && vis() && !instant }.group(baseGroup)
+    var spread by c.setting("Spread", 10.0, 0.0..60.0, 0.1, "Spread of rotation speeds", unit = "°", register = false) { rotate && vis() && !instant }.group(baseGroup).index()
 
     /**
      * We must always provide turn speed to the interpolator because the player's yaw might exceed the -180 to 180 range.

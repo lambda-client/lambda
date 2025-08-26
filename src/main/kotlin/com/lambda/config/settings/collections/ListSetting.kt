@@ -29,7 +29,7 @@ import java.lang.reflect.Type
  * @see [com.lambda.config.Configurable]
  */
 class ListSetting<T : Any>(
-    override val name: String,
+    name: String,
     private val immutableList: List<T>,
     defaultValue: MutableList<T>,
     type: Type,
@@ -38,6 +38,7 @@ class ListSetting<T : Any>(
 ) : AbstractSetting<MutableList<T>>(
     defaultValue,
     type,
+    name,
     description,
     visibility
 ) {

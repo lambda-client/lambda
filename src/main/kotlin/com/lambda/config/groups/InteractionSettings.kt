@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.interaction.request.rotating.visibilty.PointSelection
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.raycast.InteractionMask
@@ -28,18 +29,18 @@ class InteractionSettings(
     baseGroup: NamedEnum,
     private val usage: InteractionMask,
     vis: () -> Boolean = { true },
-) : InteractionConfig {
+) : InteractionConfig, SettingGroup(c) {
     // Reach
-    private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", vis).group(baseGroup)
-    private val attackReachSetting = if (usage.entity) c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance") { vis() && !useDefaultReach }.group(baseGroup) else null
-    private val interactReachSetting = if (usage.block) c.setting("Interact Reach", DEFAULT_INTERACT_REACH, 1.0..10.0, 0.01, "Maximum block interaction distance") { vis() && !useDefaultReach }.group(baseGroup) else null
+    private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", register = false, vis).group(baseGroup).index()
+    private val attackReachSetting = if (usage.entity) c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance", register = false) { vis() && !useDefaultReach }.group(baseGroup).index() else null
+    private val interactReachSetting = if (usage.block) c.setting("Interact Reach", DEFAULT_INTERACT_REACH, 1.0..10.0, 0.01, "Maximum block interaction distance", register = false) { vis() && !useDefaultReach }.group(baseGroup).index() else null
 
     override val attackReach: Double get() {
         check(usage.entity) {
             "Given interaction config has no attack reach implementation"
         }
 
-        return if (useDefaultReach) DEFAULT_ATTACK_REACH else attackReachSetting!!.value
+        return if (useDefaultReach) DEFAULT_ATTACK_REACH else attackReachSetting!!.get()
     }
 
     override val interactReach: Double get() {
@@ -47,7 +48,7 @@ class InteractionSettings(
             "Given interaction config has no place reach implementation"
         }
 
-        return if (useDefaultReach) DEFAULT_INTERACT_REACH else interactReachSetting!!.value
+        return if (useDefaultReach) DEFAULT_INTERACT_REACH else interactReachSetting!!.get()
     }
 
     override val scanReach: Double get() = when (usage) {
@@ -57,10 +58,10 @@ class InteractionSettings(
     }
 
     // Point scan
-    override val strictRayCast by c.setting("Strict Raycast", true, "Whether to include the environment to the ray cast context", vis).group(baseGroup)
-    override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", vis).group(baseGroup)
-    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis).group(baseGroup)
-    override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", vis).group(baseGroup)
+    override val strictRayCast by c.setting("Strict Raycast", true, "Whether to include the environment to the ray cast context", register = false, vis).group(baseGroup).index()
+    override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", register = false, vis).group(baseGroup).index()
+    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", register = false, visibility = vis).group(baseGroup).index()
+    override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", register = false, vis).group(baseGroup).index()
 
     companion object {
         const val DEFAULT_ATTACK_REACH = 3.0

@@ -35,12 +35,14 @@ abstract class NumericSetting<T>(
     value: T,
     open val range: ClosedRange<T>,
     open val step: T,
+    name: String,
     description: String,
     val unit: String,
     visibility: () -> Boolean
 ) : AbstractSetting<T>(
     value,
     TypeToken.get(value::class.java).type,
+    name,
     description,
     visibility
 ) where T : Number, T : Comparable<T> {
