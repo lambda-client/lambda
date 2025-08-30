@@ -42,12 +42,12 @@ object MovementUtils {
     /**
      * The forward value is independent of the player's rotation; normalized between -1 and 1
      */
-    var Input.forward get() = movementVector.y; set(value) { movementVector = Vec2f(movementVector.x, value) }
+    var Input.forward get() = movementVector.y; set(value) { movementVector = Vec2f(movementVector.x, value).normalize() }
 
     /**
      * The forward value is independent of the player's rotation; normalized between -1 and 1
      */
-    var Input.strafe get() = movementVector.x; set(value) { movementVector = Vec2f(value, movementVector.y) }
+    var Input.strafe get() = movementVector.x; set(value) { movementVector = Vec2f(value, movementVector.y).normalize() }
     var Input.jumping get() = playerInput.jump; set(value) { update(jump = value) }
     var Input.sneaking get() = playerInput.sneak; set(value) { update(sneak = value) }
     var Input.sprinting get() = playerInput.sprint; set(value) { update(sprint = value) }
