@@ -17,13 +17,16 @@
 
 package com.lambda.util.item
 
-import com.lambda.context.SafeContext
 import com.lambda.util.collections.Cacheable.Companion.cacheable
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.AttributeModifiersComponent
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.attribute.EntityAttribute
+import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.entry.RegistryEntry
 
 object ItemStackUtils {
     // FixMe: Change this fucking retarded stuff when mojang wake up from their coma and realize they fucked this shit up
@@ -31,55 +34,42 @@ object ItemStackUtils {
     //  - Enchantments do not change attributes,
     //  - All enchantment utils are bound to the server
 
-    /**
-     * Returns the attack damage for the given [stack], the value is affected by potion effects and enchantments
-     */
-    fun SafeContext.attackDamage(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) =
-        entity.attackDamage(stack)
+    fun LivingEntity.attributeBaseValue(attribute: RegistryEntry<EntityAttribute>) =
+        if (attributes.hasAttribute(attribute)) getAttributeBaseValue(attribute) else 0.0
+
+    fun AttributeModifiersComponent.filteredApply(base: Double, slot: EquipmentSlot, vararg attributes: RegistryEntry<EntityAttribute>): Double =
+        modifiers.filter { attributes.contains(it.attribute) && it.slot.matches(slot) }
+            .foldRight(base) { entry, acc ->
+                val v = entry.modifier.value
+
+                acc + when (entry.modifier.operation) {
+                    EntityAttributeModifier.Operation.ADD_VALUE -> v
+                    EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE -> v * base
+                    EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL -> v * acc
+                }
+            }
+
 
     /**
      * Returns the attack damage for the given [stack], the value is affected by potion effects and enchantments
      */
     fun LivingEntity.attackDamage(stack: ItemStack = mainHandStack) =
-        (stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
-            .modifiers.find { it.attribute == EntityAttributes.ATTACK_DAMAGE }?.modifier?.value ?: 0.0) +
-                getAttributeValue(EntityAttributes.ATTACK_DAMAGE)
+        stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
+            .filteredApply(attributeBaseValue(EntityAttributes.ATTACK_DAMAGE), EquipmentSlot.MAINHAND, EntityAttributes.ATTACK_DAMAGE)
 
     /**
      * Returns the attack speed for the given [stack], the value is affected by potion effects
      *
      * The value represents the number of attacks-per-tick
-     */
-    fun SafeContext.attackSpeed(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) =
-        entity.attackSpeed(stack)
-
-    /**
-     * Returns the attack speed for the given [stack], the value is affected by potion effects
      *
-     * The value represents the number of attacks-per-tick
+     * To get the number of ticks per attack do the following:
+     * ```
+     * ticks = 1 / speed * 20
+     * ```
      */
     fun LivingEntity.attackSpeed(stack: ItemStack = mainHandStack) =
-        (stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
-            .modifiers.find { it.attribute == EntityAttributes.ATTACK_SPEED }?.modifier?.value ?: 0.0) +
-                getAttributeValue(EntityAttributes.ATTACK_SPEED)
-
-    /**
-     * Returns the mining speed for the given [stack], the value is affected by potion effects and enchantments
-     */
-    fun SafeContext.miningSpeed(entity: LivingEntity = player, stack: ItemStack = entity.mainHandStack) =
-        entity.miningSpeed(stack)
-
-    /**
-     * Returns the mining speed for the given [stack], the value is affected by potion effects and enchantments
-     */
-    fun LivingEntity.miningSpeed(stack: ItemStack = mainHandStack) =
-        (stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
-            .modifiers.find {
-                it.attribute == EntityAttributes.MINING_EFFICIENCY ||
-                        it.attribute == EntityAttributes.SUBMERGED_MINING_SPEED
-            }?.modifier?.value ?: 0.0) +
-                if (isSubmergedInWater) getAttributeValue(EntityAttributes.SUBMERGED_MINING_SPEED)
-                else getAttributeValue(EntityAttributes.MINING_EFFICIENCY)
+        stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, AttributeModifiersComponent.DEFAULT)
+            .filteredApply(attributeBaseValue(EntityAttributes.ATTACK_SPEED), EquipmentSlot.MAINHAND, EntityAttributes.ATTACK_SPEED)
 
     val ItemStack.spaceLeft get() = maxCount - count
     val ItemStack.hasSpace get() = spaceLeft > 0

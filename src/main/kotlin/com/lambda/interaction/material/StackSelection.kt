@@ -33,8 +33,8 @@ import kotlin.reflect.KClass
  * [StackSelection] is a class that holds a predicate for matching [ItemStack]s.
  */
 class StackSelection {
-    var selector: (ItemStack) -> Boolean = { true }
-    var comparator: Comparator<ItemStack>? = null
+    var selector: (ItemStack) -> Boolean = EVERYTHING
+    var comparator: Comparator<ItemStack> = NO_COMPARE
     var count: Int = DEFAULT_AMOUNT
     var inShulkerBox: Boolean = false
 
@@ -48,25 +48,22 @@ class StackSelection {
     val optimalStack: ItemStack?
         get() = itemStack ?: item?.let { ItemStack(it, count) }
 
+    /**
+     * Filters the given [stacks], sorts them with the [comparator] and returns the first value
+     */
+    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = filterStacks(stacks).firstOrNull()
+
     fun filterStack(stack: ItemStack) =
         if (inShulkerBox) stack.shulkerBoxContents.any { selector(it) }
         else selector(stack)
 
-    fun filterSlot(slot: Slot) = filterStack(slot.stack)
+    fun filterSlot(slot: Slot): Boolean = filterStack(slot.stack)
 
     fun filterStacks(stacks: List<ItemStack>): List<ItemStack> =
-        stacks.filter(::filterStack).let { filteredStacks ->
-            comparator?.run {
-                filteredStacks.sortedWith(this)
-            } ?: filteredStacks
-        }
+        stacks.filter(::filterStack).sortedWith(comparator)
 
     fun filterSlots(slots: List<Slot>): List<Slot> =
-        slots.filter(::filterSlot).let { filteredSlots ->
-            comparator?.run {
-                filteredSlots.sortedWith { slot, slot2 -> compare(slot.stack, slot2.stack) }
-            } ?: filteredSlots
-        }
+        slots.filter(::filterSlot).sortedWith { slot, slot2 -> comparator.compare(slot.stack, slot2.stack) }
 
     /**
      * returns a function that finds a shulker box to push matching items into.
@@ -235,14 +232,13 @@ class StackSelection {
         annotation class StackSelectionDsl
 
         const val DEFAULT_AMOUNT = 1
-        val FULL_SHULKERS: (ItemStack) -> Boolean = { stack ->
-            stack.shulkerBoxContents.none { it.isEmpty }
-        }
-        val EMPTY_SHULKERS: (ItemStack) -> Boolean = { stack ->
-            stack.shulkerBoxContents.all { it.isEmpty }
-        }
+
+        val FULL_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.none { it.isEmpty } }
+        val EMPTY_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.all { it.isEmpty } }
         val EVERYTHING: (ItemStack) -> Boolean = { true }
         val NOTHING: (ItemStack) -> Boolean = { false }
+
+        val NO_COMPARE: Comparator<ItemStack> = compareBy { 69-420 }
 
         @StackSelectionDsl
         fun Item.select() = selectStack { isItem(this@select) }
@@ -271,7 +267,7 @@ class StackSelection {
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
-            block: StackSelection.() -> (ItemStack) -> Boolean,
+            block: StackSelection.() -> (ItemStack) -> Boolean = { EVERYTHING },
         ) = StackSelection().apply {
             selector = block()
             this.count = count
@@ -282,8 +278,8 @@ class StackSelection {
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
-            sorter: Comparator<ItemStack>? = null,
-            block: StackSelection.() -> (ItemStack) -> Boolean,
+            sorter: Comparator<ItemStack> = NO_COMPARE,
+            block: StackSelection.() -> (ItemStack) -> Boolean = { EVERYTHING },
         ) = StackSelection().apply {
             selector = block()
             comparator = sorter
