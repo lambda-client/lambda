@@ -23,6 +23,7 @@ import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 import kotlin.random.Random.Default.nextDouble
 
 /**
@@ -46,7 +47,7 @@ fun ClosedRange<Float>.step(step: Float) = object : FloatIterator() {
 /**
  * Returns a random number within the range.
  */
-fun ClosedRange<Double>.random() = nextDouble(start, endInclusive)
+fun ClosedRange<Double>.random(random: Random = Random) = start + (endInclusive - start) * random.nextDouble()
 
 /**
  * Converts a value from one range to a normalized value between 0 and 1.
