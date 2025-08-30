@@ -22,15 +22,14 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.interpolate
 import com.lambda.util.math.plus
@@ -98,8 +97,8 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        onRotate {
-            if (!rotateToTarget) return@onRotate
+        listen<UpdateManagerEvent.Rotation> {
+            if (!rotateToTarget) return@listen
 
             mc.crosshairTarget?.let {
                 lookAtHit(it)?.requestBy(rotationConfig)

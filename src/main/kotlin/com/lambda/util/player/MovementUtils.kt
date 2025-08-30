@@ -20,7 +20,7 @@ package com.lambda.util.player
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.util.math.MathUtils.toDegree
-import com.lambda.util.math.MathUtils.toInt
+import com.lambda.util.math.MathUtils.toDouble
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
@@ -73,22 +73,8 @@ object MovementUtils {
     ): Input {
         if (assumeBaritone && player.input.handledByBaritone) return player.input
 
-        val newInput = KeyboardInput(mc.options)
-
-        if (!slowdownCheck) return newInput.apply { tick() }
-
-        newInput.movementVector = player.applyMovementSpeedFactors(player.input.movementVector)
-
-        return newInput
-    }
-
-    @Deprecated(
-        message = "mergeFrom is deprecated in favor of Input.update",
-        replaceWith = ReplaceWith("this.update()")
-    )
-    fun Input.mergeFrom(input: Input) {
-        playerInput = input.playerInput
-        movementVector = input.movementVector
+        // ToDo: Add slowdown
+        return KeyboardInput(mc.options).apply { tick() }
     }
 
     fun Input.update(
@@ -99,7 +85,6 @@ object MovementUtils {
         sprint: Boolean = playerInput.sprint,
     ) {
         val input = buildMovementInput(forward, strafe, jump, sneak, sprint)
-
         movementVector = input.movementVector
         playerInput = input.playerInput
     }
@@ -111,7 +96,7 @@ object MovementUtils {
         sneak: Boolean = false,
         sprint: Boolean = false,
     ) = Input().apply {
-        movementVector = Vec2f(strafe.toFloat(), forward.toFloat())
+        movementVector = Vec2f(strafe.toFloat(), forward.toFloat()).normalize()
         playerInput = PlayerInput(
             forward > 0.0,
             forward < 0.0,
@@ -127,7 +112,7 @@ object MovementUtils {
         update(0.0, 0.0, !vertical, !vertical, false)
 
     val Input.verticalMovement
-        get() = (playerInput.jump.toInt() - playerInput.sneak.toInt()).toDouble()
+        get() = jumping.toDouble() - sneaking.toDouble()
 
     private fun inputMoveOffset(
         moveForward: Double,

@@ -20,10 +20,10 @@ package com.lambda.module.modules.movement
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
@@ -130,14 +130,14 @@ object Speed : Module(
             }
         }
 
-        onRotate {
-            if (mode != Mode.GRIM_STRAFE) return@onRotate
-            if (!shouldWork()) return@onRotate
+        listen<UpdateManagerEvent.Rotation> {
+            if (mode != Mode.GRIM_STRAFE) return@listen
+            if (!shouldWork()) return@listen
 
             var yaw = player.yaw
             val input = newMovementInput()
 
-            if (!input.isInputting) return@onRotate
+            if (!input.isInputting) return@listen
 
             run {
                 if (!diagonal) return@run
