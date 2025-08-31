@@ -35,7 +35,4 @@ val LambdaResource.url: URL
     get() = Lambda::class.java.getResource("/assets/lambda/$this")
         ?: throw FileNotFoundException("File \"/assets/lambda/$this\" not found")
 
-val LambdaResource.path: String
-    get() = Paths.get(url.toURI()).toString()
-
 fun LambdaResource.readImage(): BufferedImage = ImageIO.read(this.stream)

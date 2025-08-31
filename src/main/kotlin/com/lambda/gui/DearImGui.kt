@@ -23,7 +23,7 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.GuiEvent
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
-import com.lambda.util.path
+import com.lambda.util.stream
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
 import imgui.ImFontConfig
@@ -67,8 +67,8 @@ object DearImGui : Loadable {
         val size = BASE_FONT_SCALE * scale
         with(io.fonts) {
             clear()
-            addFontFromFileTTF("fonts/FiraSans-Regular.ttf".path, size, fontConfig, glyphRanges)
-            addFontFromFileTTF("fonts/MinecraftDefault-Regular.ttf".path, size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("fonts/FiraSans-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("fonts/MinecraftDefault-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
             build()
         }
         implGl3.createFontsTexture()
