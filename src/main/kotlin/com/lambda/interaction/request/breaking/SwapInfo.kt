@@ -54,14 +54,10 @@ data class SwapInfo(
 
             val threshold = getBreakThreshold()
 
+            // Plus one as this is calculated before this ticks progress is calculated and the breakingTicks are incremented
             val breakTicks = (if (rebreakPotential.isPossible()) RebreakHandler.rebreak?.breakingTicks
                 ?: throw IllegalStateException("Rebreak BreakInfo was null when rebreak was considered possible")
-            else breakingTicks).let {
-                // Plus one as this is calculated before this ticks progress is calculated and the breakingTicks are incremented
-                (it + 1).let {
-                    if (breakDelta >= threshold || !info.breaking) it else (it - breakConfig.fudgeFactor)
-                }
-            }
+            else breakingTicks) + 1 - breakConfig.fudgeFactor
 
             val minKeepTicks = run {
                 if (type == Primary) {
