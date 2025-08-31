@@ -254,3 +254,15 @@ java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = mavenGroup
+            artifactId = modId
+            version = "$modVersion+$minecraftVersion"
+
+            from(components["java"])
+        }
+    }
+}
