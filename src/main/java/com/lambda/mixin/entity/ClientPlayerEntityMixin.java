@@ -170,7 +170,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @Inject(method = "updateHealth", at = @At("HEAD"))
     public void damage(float health, CallbackInfo ci) {
-        EventFlow.post(new PlayerEvent.Damage(health));
+        EventFlow.post(new PlayerEvent.Health(health));
     }
 
     /**

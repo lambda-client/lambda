@@ -93,7 +93,7 @@ object AutoDisconnect : Module(
             }
         }
 
-        listen<PlayerEvent.Damage> { event ->
+        listen<PlayerEvent.Health> { event ->
             if (!onDamage) return@listen
 
             val damageHandlers = listOf(
