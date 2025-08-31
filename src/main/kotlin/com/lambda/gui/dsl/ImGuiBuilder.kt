@@ -39,10 +39,127 @@ package com.lambda.gui.dsl
 import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.Vec2d
-import imgui.*
-import imgui.ImGui.*
-import imgui.flag.*
-import imgui.type.*
+import imgui.ImDrawList
+import imgui.ImFont
+import imgui.ImGui
+import imgui.ImGui.begin
+import imgui.ImGui.beginChild
+import imgui.ImGui.beginCombo
+import imgui.ImGui.beginDragDropSource
+import imgui.ImGui.beginDragDropTarget
+import imgui.ImGui.beginGroup
+import imgui.ImGui.beginMainMenuBar
+import imgui.ImGui.beginMenu
+import imgui.ImGui.beginMenuBar
+import imgui.ImGui.beginPopup
+import imgui.ImGui.beginPopupContextItem
+import imgui.ImGui.beginPopupContextVoid
+import imgui.ImGui.beginPopupContextWindow
+import imgui.ImGui.beginPopupModal
+import imgui.ImGui.beginTabBar
+import imgui.ImGui.beginTabItem
+import imgui.ImGui.beginTooltip
+import imgui.ImGui.calcTextSize
+import imgui.ImGui.collapsingHeader
+import imgui.ImGui.colorButton
+import imgui.ImGui.colorEdit4
+import imgui.ImGui.colorPicker4
+import imgui.ImGui.dragFloat
+import imgui.ImGui.dragInt
+import imgui.ImGui.end
+import imgui.ImGui.endChild
+import imgui.ImGui.endCombo
+import imgui.ImGui.endDragDropSource
+import imgui.ImGui.endDragDropTarget
+import imgui.ImGui.endGroup
+import imgui.ImGui.endMainMenuBar
+import imgui.ImGui.endMenu
+import imgui.ImGui.endMenuBar
+import imgui.ImGui.endPopup
+import imgui.ImGui.endTabBar
+import imgui.ImGui.endTabItem
+import imgui.ImGui.endTooltip
+import imgui.ImGui.getBackgroundDrawList
+import imgui.ImGui.getColorU32
+import imgui.ImGui.getFont
+import imgui.ImGui.getFontSize
+import imgui.ImGui.getForegroundDrawList
+import imgui.ImGui.getIO
+import imgui.ImGui.getItemID
+import imgui.ImGui.getStyle
+import imgui.ImGui.getVersion
+import imgui.ImGui.getWindowDrawList
+import imgui.ImGui.getWindowHeight
+import imgui.ImGui.getWindowPos
+import imgui.ImGui.getWindowPosX
+import imgui.ImGui.getWindowPosY
+import imgui.ImGui.getWindowSize
+import imgui.ImGui.getWindowViewport
+import imgui.ImGui.getWindowWidth
+import imgui.ImGui.inputDouble
+import imgui.ImGui.inputFloat
+import imgui.ImGui.inputFloat2
+import imgui.ImGui.inputFloat3
+import imgui.ImGui.inputFloat4
+import imgui.ImGui.isAnyItemActive
+import imgui.ImGui.isAnyItemFocused
+import imgui.ImGui.isAnyItemHovered
+import imgui.ImGui.isItemActivated
+import imgui.ImGui.isItemActive
+import imgui.ImGui.isItemClicked
+import imgui.ImGui.isItemDeactivated
+import imgui.ImGui.isItemDeactivatedAfterEdit
+import imgui.ImGui.isItemEdited
+import imgui.ImGui.isItemFocused
+import imgui.ImGui.isItemHovered
+import imgui.ImGui.isItemToggledOpen
+import imgui.ImGui.isMouseClicked
+import imgui.ImGui.isWindowAppearing
+import imgui.ImGui.isWindowCollapsed
+import imgui.ImGui.isWindowHovered
+import imgui.ImGui.popFont
+import imgui.ImGui.popID
+import imgui.ImGui.popItemWidth
+import imgui.ImGui.popStyleColor
+import imgui.ImGui.popStyleVar
+import imgui.ImGui.popTextWrapPos
+import imgui.ImGui.pushFont
+import imgui.ImGui.pushID
+import imgui.ImGui.pushItemWidth
+import imgui.ImGui.pushStyleColor
+import imgui.ImGui.pushStyleVar
+import imgui.ImGui.pushTextWrapPos
+import imgui.ImGui.setClipboardText
+import imgui.ImGui.setCursorPosX
+import imgui.ImGui.sliderFloat
+import imgui.ImGui.sliderInt
+import imgui.ImGui.textColored
+import imgui.ImGui.textUnformatted
+import imgui.ImGui.treeNode
+import imgui.ImGui.treePop
+import imgui.ImGuiIO
+import imgui.ImGuiStyle
+import imgui.ImGuiTextFilter
+import imgui.ImGuiViewport
+import imgui.ImVec2
+import imgui.flag.ImDrawListFlags
+import imgui.flag.ImGuiCol
+import imgui.flag.ImGuiColorEditFlags
+import imgui.flag.ImGuiComboFlags
+import imgui.flag.ImGuiDir
+import imgui.flag.ImGuiHoveredFlags
+import imgui.flag.ImGuiInputTextFlags
+import imgui.flag.ImGuiMouseButton
+import imgui.flag.ImGuiPopupFlags
+import imgui.flag.ImGuiSelectableFlags
+import imgui.flag.ImGuiTabBarFlags
+import imgui.flag.ImGuiTreeNodeFlags
+import imgui.flag.ImGuiWindowFlags
+import imgui.type.ImBoolean
+import imgui.type.ImDouble
+import imgui.type.ImFloat
+import imgui.type.ImInt
+import imgui.type.ImString
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
@@ -311,6 +428,22 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     fun text(text: String) = textUnformatted(text)
+
+    /**
+     * Text with coloring
+     *
+     * @param text The text to display
+     */
+    @ImGuiDsl
+    fun textColored(text: String, color: Color) = textColored(
+        getColorU32(
+            color.red / 255f,
+            color.green / 255f,
+            color.blue / 255f,
+            color.alpha / 255f
+        ),
+        text
+    )
 
     /**
      * Text with disabled coloring.

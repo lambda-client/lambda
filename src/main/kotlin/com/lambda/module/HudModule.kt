@@ -25,6 +25,7 @@ abstract class HudModule(
     name: String,
     description: String = "",
     tag: ModuleTag,
+    val customWindow: Boolean = false,
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,

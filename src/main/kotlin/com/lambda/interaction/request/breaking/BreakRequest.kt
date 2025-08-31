@@ -41,6 +41,8 @@ data class BreakRequest(
     val inventory: InventoryConfig = TaskFlowModule.inventory,
     val interact: InteractionConfig = TaskFlowModule.interaction
 ) : Request() {
+    override val requestID = ++requestCount
+
     override val config = build.breaking
     var onStart: ((BlockPos) -> Unit)? = null
     var onUpdate: ((BlockPos) -> Unit)? = null
@@ -111,6 +113,8 @@ data class BreakRequest(
     }
 
     companion object {
+        var requestCount = 0
+
         @BreakRequestBuilder
         fun breakRequest(
             contexts: Collection<BreakContext>,

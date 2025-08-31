@@ -15,22 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.inventory
+package com.lambda.module.hud
 
-import com.lambda.interaction.request.Request
+import com.lambda.interaction.request.DebugLogger
 
-class InventoryRequest(
-    override val config: InventoryConfig
-) : Request(), InventoryConfig by config {
-    override val requestID = ++requestCount
-
-    override val done: Boolean
-        get() = TODO("Not yet implemented")
-
-    override fun submit(queueIfClosed: Boolean) =
-        InventoryManager.request(this, queueIfClosed)
-
-    companion object {
-        var requestCount = 0
-    }
-}
+object BreakManagerDebug : DebugLogger(
+    "Break Manager Logger",
+    "Logs most of the actions performed in the break manager to aid in debugging"
+)

@@ -36,6 +36,8 @@ data class PlaceRequest(
     val rotation: RotationConfig,
     val onPlace: ((BlockPos) -> Unit)? = null
 ) : Request(), PlaceConfig by build.placing {
+    override val requestID = ++requestCount
+
     override val config = build.placing
 
     override val done: Boolean
@@ -45,4 +47,8 @@ data class PlaceRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         PlaceManager.request(this, queueIfClosed)
+
+    companion object {
+        var requestCount = 0
+    }
 }

@@ -36,9 +36,15 @@ data class InteractRequest(
     val hotbar: HotbarConfig,
     val rotation: RotationConfig
 ) : Request(), InteractConfig by config {
+    override val requestID = ++requestCount
+
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
 
     override fun submit(queueIfClosed: Boolean) =
         InteractionManager.request(this, queueIfClosed)
+
+    companion object {
+        var requestCount = 0
+    }
 }
