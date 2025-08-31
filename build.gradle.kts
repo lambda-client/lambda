@@ -160,9 +160,9 @@ dependencies {
 
     includeLib("io.github.spair:imgui-java-binding:$spairVersion")
     includeLib("io.github.spair:imgui-java-lwjgl3:$spairVersion")
-    runtimeOnly("io.github.spair:imgui-java-natives-windows:$spairVersion")
-    runtimeOnly("io.github.spair:imgui-java-natives-linux:$spairVersion")
-    runtimeOnly("io.github.spair:imgui-java-natives-macos:$spairVersion")
+    includeLib("io.github.spair:imgui-java-natives-windows:$spairVersion")
+    includeLib("io.github.spair:imgui-java-natives-linux:$spairVersion")
+    includeLib("io.github.spair:imgui-java-natives-macos:$spairVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
