@@ -27,8 +27,9 @@ import com.lambda.config.serializer.ItemStackSerializer
 import com.lambda.config.serializer.KeyCodeSerializer
 import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.threading.recordRenderCall
 import com.lambda.util.KeyCode
 import com.lambda.util.WindowIcons.setLambdaWindowIcon
 import com.mojang.authlib.GameProfile
@@ -75,10 +76,14 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
         .create()
 
-    override fun onInitializeClient() {
-        recordRenderCall {
+    override fun onInitializeClient() {} // nop
+
+    init {
+        // We want the opengl context to be created
+        listenOnceUnsafe<ClientEvent.Startup>(priority = Int.MAX_VALUE) {
             LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
             if (ClickGui.setLambdaWindowIcon) setLambdaWindowIcon()
+            true
         }
     }
 }
