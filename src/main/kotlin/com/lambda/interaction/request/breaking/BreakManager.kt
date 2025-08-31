@@ -41,6 +41,7 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
+import com.lambda.interaction.request.ManagerUtils.newTick
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
@@ -106,7 +107,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Player.Post,
     onOpen = {
         if (activeInfos.isNotEmpty() || breaks.isNotEmpty() || instantBreaks.isNotEmpty())
-            BreakManager.logger.system("Tick stage ${BreakManager.tickStage?.run { this::class.qualifiedName }}")
+            BreakManager.logger.newTick()
         processRequest(activeRequest)
         simulateAbandoned()
              },

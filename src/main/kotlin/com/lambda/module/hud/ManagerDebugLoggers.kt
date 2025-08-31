@@ -21,5 +21,30 @@ import com.lambda.interaction.request.DebugLogger
 
 object BreakManagerDebug : DebugLogger(
     "Break Manager Logger",
-    "Logs most of the actions performed in the break manager to aid in debugging"
+    "Logs actions performed in the break manager to aid in debugging"
+)
+
+object PlaceManagerDebug : DebugLogger(
+    "Place Manager Logger",
+    "Logs actions performed in the place manager to aid in debugging"
+)
+
+object InteractManagerDebug : DebugLogger(
+    "Interact Manager Logger",
+    "Logs actions performed in the interact manager to aid in debugging"
+)
+
+object RotationManagerDebug : DebugLogger(
+    "Rotation Manager Logger",
+    "Logs actions performed in the rotation manager to aid in debugging"
+)
+
+object HotbarManagerDebug : DebugLogger(
+    "Hotbar Manager Logger",
+    "Logs actions performed in the hotbar manager to aid in debugging"
+)
+
+object InventoryManagerDebug : DebugLogger(
+    "Inventory Manager Logger",
+    "Logs actions performed in the inventory manager to aid in debugging"
 )

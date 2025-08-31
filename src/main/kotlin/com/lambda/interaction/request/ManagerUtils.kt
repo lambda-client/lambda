@@ -25,6 +25,9 @@ object ManagerUtils {
     val accumulatedManagerPriority = managers.map { it.stagePriority }.reduce { acc, priority -> acc + priority }
     val positionBlockingManagers = getInstances<PositionBlocking>()
 
+    fun DebugLogger.newTick() =
+        system("------------- New Tick -------------")
+
     fun isPosBlocked(pos: BlockPos) =
         positionBlockingManagers.any { manager -> manager.blockedPositions.any { blocked -> blocked == pos } }
 }
