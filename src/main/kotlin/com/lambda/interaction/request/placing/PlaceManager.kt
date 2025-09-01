@@ -73,9 +73,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = {
-        activeRequest?.let { processRequest(it) }
         if (potentialPlacements.isNotEmpty())
             PlaceManager.logger.newStage(PlaceManager.tickStage)
+        activeRequest?.let { processRequest(it) }
     }
 ), PositionBlocking, Logger {
     private var activeRequest: PlaceRequest? = null
