@@ -41,7 +41,7 @@ import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingActions
 import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.placing.PlacedBlockHandler.startPending
-import com.lambda.module.hud.PlaceManagerDebug
+import com.lambda.module.hud.ManagerDebugLoggers.placeManagerLogger
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import com.lambda.util.player.MovementUtils.sneaking
@@ -90,7 +90,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
 
-    override val logger = PlaceManagerDebug
+    override val logger = placeManagerLogger
 
     fun Any.onPlace(
         alwaysListen: Boolean = false,

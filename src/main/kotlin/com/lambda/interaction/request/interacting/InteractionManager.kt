@@ -25,6 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
@@ -35,6 +36,7 @@ import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPe
 import com.lambda.interaction.request.interacting.InteractionManager.activeRequest
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
+import com.lambda.module.hud.ManagerDebugLoggers.interactionManagerLogger
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
@@ -47,7 +49,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = { activeRequest?.let { processRequest(it) } }
-), PositionBlocking {
+), PositionBlocking, Logger {
     private var activeRequest: InteractRequest? = null
     private var potentialInteractions = mutableListOf<InteractionContext>()
 
@@ -56,6 +58,8 @@ object InteractionManager : RequestHandler<InteractRequest>(
 
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
+
+    override val logger = interactionManagerLogger
 
     override fun load(): String {
         super.load()

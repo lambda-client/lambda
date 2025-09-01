@@ -73,7 +73,7 @@ import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.module.hud.BreakManagerDebug
+import com.lambda.module.hud.ManagerDebugLoggers.breakManagerLogger
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -107,7 +107,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Player.Post,
     onOpen = {
         if (activeInfos.isNotEmpty() || breaks.isNotEmpty() || instantBreaks.isNotEmpty())
-            BreakManager.logger.newTick()
+            BreakManager.logger.system("Tick stage ${BreakManager.tickStage?.run { this::class.qualifiedName }}")
         processRequest(activeRequest)
         simulateAbandoned()
              },
@@ -172,7 +172,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             field = value
         }
 
-    override val logger = BreakManagerDebug
+    override val logger = breakManagerLogger
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,
@@ -187,7 +187,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             if (activeInfos.isEmpty() && breaks.isEmpty() && instantBreaks.isEmpty()) return@listen
-            logger.system("------------- New Tick -------------")
+            logger.newTick()
         }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {

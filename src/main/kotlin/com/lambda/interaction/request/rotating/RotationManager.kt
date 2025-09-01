@@ -27,10 +27,12 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import com.lambda.interaction.request.rotating.visibilty.lookAt
+import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
@@ -53,13 +55,15 @@ object RotationManager : RequestHandler<RotationRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-) {
+), Logger {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
     var prevServerRotation = Rotation.ZERO
 
     var activeRequest: RotationRequest? = null
     private var changedThisTick = false
+
+    override val logger = rotationManagerLogger
 
     override fun load(): String {
         super.load()

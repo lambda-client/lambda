@@ -17,34 +17,68 @@
 
 package com.lambda.module.hud
 
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.interaction.request.DebugLogger
+import com.lambda.module.HudModule
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 
-object BreakManagerDebug : DebugLogger(
-    "Break Manager Logger",
-    "Logs actions performed in the break manager to aid in debugging"
-)
+@Suppress("Unused")
+object ManagerDebugLoggers : HudModule(
+    "Manager Debug Loggers",
+    "debug loggers for all action managers in lambda",
+    ModuleTag.HUD,
+    customWindow = true
+) {
+    enum class Group(override val displayName: String) : NamedEnum {
+        General("General"),
+        Break("Break"),
+        Place("Place"),
+        Interact("Interact"),
+        Rotation("Rotation"),
+        Hotbar("Hotbar"),
+        Inventory("Inventory")
+    }
 
-object PlaceManagerDebug : DebugLogger(
-    "Place Manager Logger",
-    "Logs actions performed in the place manager to aid in debugging"
-)
+    private val loggers = mutableMapOf<() -> Boolean, DebugLogger>()
 
-object InteractManagerDebug : DebugLogger(
-    "Interact Manager Logger",
-    "Logs actions performed in the interact manager to aid in debugging"
-)
+    val maxLogEntries by setting("Max Log Entries", 100, 1..1000, 1, "Maximum amount of entries in the log").group(Group.General)
+        .onValueChange { from, to ->
+            if (to < from) {
+                loggers.values.forEach { logger ->
+                    while(logger.logs.size > to) {
+                        logger.logs.removeFirst()
+                    }
+                }
+            }
+        }
 
-object RotationManagerDebug : DebugLogger(
-    "Rotation Manager Logger",
-    "Logs actions performed in the rotation manager to aid in debugging"
-)
+    private val showBreakManager by setting("Show Break Manager Logger", false).group(Group.Break)
+    val breakManagerLogger = DebugLogger("Break Manager Logger").store { showBreakManager }
 
-object HotbarManagerDebug : DebugLogger(
-    "Hotbar Manager Logger",
-    "Logs actions performed in the hotbar manager to aid in debugging"
-)
+    private val showPlaceManager by setting("Show Place Manager Logger", false).group(Group.Place)
+    val placeManagerLogger = DebugLogger("Place Manager Logger").store { showPlaceManager }
 
-object InventoryManagerDebug : DebugLogger(
-    "Inventory Manager Logger",
-    "Logs actions performed in the inventory manager to aid in debugging"
-)
+    private val showInteractionManager by setting("Show Interaction Manager Logger", false).group(Group.Interact)
+    val interactionManagerLogger = DebugLogger("Interaction Manager Logger").store { showInteractionManager }
+
+    private val showRotationManager by setting("Show Rotation Manager Logger", false).group(Group.Rotation)
+    val rotationManagerLogger = DebugLogger("Rotation Manager Logger").store { showRotationManager }
+
+    private val showHotbarManager by setting("Show Hotbar Manager Logger", false).group(Group.Hotbar)
+    val hotbarManagerLogger = DebugLogger("Hotbar Manager Logger").store { showHotbarManager }
+
+    private val showInventoryManager by setting("Show Inventory Manager Logger", false).group(Group.Inventory)
+    val inventoryManagerLogger = DebugLogger("Inventory Manager Logger").store { showInventoryManager }
+
+    private fun DebugLogger.store(show: () -> Boolean) =
+        also { loggers.put(show, this) }
+
+    override fun ImGuiBuilder.buildLayout() {
+        loggers.entries.forEach { entry ->
+            if (entry.key()) with(entry.value) {
+                buildLayout()
+            }
+        }
+    }
+}

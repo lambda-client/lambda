@@ -17,40 +17,30 @@
 
 package com.lambda.interaction.request
 
+import com.lambda.Lambda.mc
+import com.lambda.gui.LambdaScreen
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.hud.ManagerDebugLoggers.maxLogEntries
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags
+import imgui.type.ImBoolean
+import imgui.type.ImFloat
 import java.awt.Color
 import java.util.*
 
-abstract class DebugLogger(
-    name: String,
-    description: String
-) : HudModule(
-    name,
-    description,
-    ModuleTag.HUD,
-    customWindow = true
+class DebugLogger(
+    val name: String
 ) {
-    private val logs = LinkedList<LogEntry>()
+    private val autoScroll = ImBoolean(true)
+    private val wrapText = ImBoolean(true)
+    private val showDebug = ImBoolean(true)
+    private val showSuccess = ImBoolean(true)
+    private val showWarning = ImBoolean(true)
+    private val showError = ImBoolean(true)
+    private val showSystem = ImBoolean(true)
+    private val backgroundAlpha = ImFloat(0.3f)
 
-    private val autoScroll by setting("Auto-Scroll", true, "Automatically scrolls to the bottom of the log")
-    private val wrapText by setting("Wrap Text", false, "Wraps the text to the next line if it gets too long")
-    private val showDebug by setting("Show Debug", true, "Shows debug logs")
-    private val showSuccess by setting("Show Success", true, "Shows success logs")
-    private val showWarning by setting("Show Warning", true, "Shows warning logs")
-    private val showError by setting("Show Errors", true, "Shows error logs")
-    private val maxLogEntries by setting("Max Log Entries", 100, 1..1000, 1, "Maximum amount of entries in the log")
-        .onValueChange { from, to ->
-            if (to < from) {
-                while(logs.size > to) {
-                    logs.removeFirst()
-                }
-            }
-        }
-    private val backgroundAlpha by setting("Background Alpha", 0.3f, 0f..1f, 0.01f, "Sets the opacity for the elements background")
+    val logs = LinkedList<LogEntry>()
 
     private fun log(message: String, logColor: LogType) {
         logs.add(LogEntry(message, logColor))
@@ -65,14 +55,28 @@ abstract class DebugLogger(
     fun error(message: String) = log(message, LogType.Error)
     fun system(message: String) = log(message, LogType.System)
 
-    override fun ImGuiBuilder.buildLayout() {
+    fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
-        ImGui.setNextWindowBgAlpha(backgroundAlpha)
+        ImGui.setNextWindowBgAlpha(backgroundAlpha.get())
         window(name, flags = ImGuiWindowFlags.NoCollapse) {
-            val noScroll = if (autoScroll) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
-            button("Clear") { clear() }
+            val noScroll = if (autoScroll.get()) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
+            if (mc.currentScreen == LambdaScreen) {
+                checkbox("Auto-Scroll", autoScroll)
+                sameLine()
+                checkbox("Warp Text", wrapText)
+                sameLine()
+                checkbox("Show Debug", showDebug)
+                checkbox("Show Success", showSuccess)
+                sameLine()
+                checkbox("Show Warning", showWarning)
+                sameLine()
+                checkbox("Show Error", showError)
+                checkbox("Show System", showSystem)
+                slider("Background Alpha", backgroundAlpha, 0.0f, 1.0f)
+                button("Clear") { clear() }
+            }
             child("Log Content", extraFlags = noScroll) {
-                if (wrapText) ImGui.pushTextWrapPos()
+                if (wrapText.get()) ImGui.pushTextWrapPos()
 
                 logs.forEach { logEntry ->
                     if (shouldDisplay(logEntry)) {
@@ -89,9 +93,9 @@ abstract class DebugLogger(
                     }
                 }
 
-                if (wrapText) ImGui.popTextWrapPos()
+                if (wrapText.get()) ImGui.popTextWrapPos()
 
-                if (autoScroll) {
+                if (autoScroll.get()) {
                     ImGui.setScrollHereY(1f)
                 }
             }
@@ -100,11 +104,11 @@ abstract class DebugLogger(
 
     fun shouldDisplay(logEntry: LogEntry) =
         when (logEntry.type) {
-            LogType.Debug -> showDebug
-            LogType.Success -> showSuccess
-            LogType.Warning -> showWarning
-            LogType.Error -> showError
-            LogType.System -> true
+            LogType.Debug -> showDebug.get()
+            LogType.Success -> showSuccess.get()
+            LogType.Warning -> showWarning.get()
+            LogType.Error -> showError.get()
+            LogType.System -> showSystem.get()
         }
 
     fun clear() = logs.clear()

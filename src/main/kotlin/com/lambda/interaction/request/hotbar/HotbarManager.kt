@@ -23,8 +23,10 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
+import com.lambda.module.hud.ManagerDebugLoggers.hotbarManagerLogger
 import com.lambda.threading.runSafe
 
 object HotbarManager : RequestHandler<HotbarRequest>(
@@ -34,7 +36,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onClose = { checkResetSwap() }
-) {
+), Logger {
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
     } ?: 0
@@ -44,6 +46,8 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     private var swapDelay = 0
 
     var activeRequest: HotbarRequest? = null
+
+    override val logger = hotbarManagerLogger
 
     override fun load(): String {
         super.load()
