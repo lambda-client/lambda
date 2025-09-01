@@ -24,6 +24,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Logger
+import com.lambda.interaction.request.ManagerUtils.newStage
+import com.lambda.interaction.request.ManagerUtils.newTick
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
 import com.lambda.module.hud.ManagerDebugLoggers.hotbarManagerLogger
@@ -35,6 +37,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
+    onOpen = { if (HotbarManager.activeRequest != null) HotbarManager.logger.newStage(HotbarManager.tickStage) },
     onClose = { checkResetSwap() }
 ), Logger {
     val serverSlot get() = runSafe {
@@ -52,6 +55,11 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     override fun load(): String {
         super.load()
 
+        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+            if (activeRequest != null)
+                logger.newTick()
+        }
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
@@ -66,6 +74,8 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     override fun SafeContext.handleRequest(request: HotbarRequest) {
+        logger.debug("Handling request ${request.requestID}")
+
         maxSwapsThisTick = request.swapsPerTick
         swapDelay = swapDelay.coerceAtMost(request.swapDelay)
 
@@ -76,6 +86,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         } == true
 
         if (sameButLonger) activeRequest?.let { current ->
+            logger.debug("Request is the same as current, but longer or the same keep time")
             request.swapPauseAge = current.swapPauseAge
         } else run swap@{
             if (request.slot != activeRequest?.slot) {
@@ -97,6 +108,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         }
 
         activeRequest = request
+        logger.success("Set active request to ${request.requestID}")
         interaction.syncSelectedSlot()
         return
     }
@@ -105,6 +117,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         activeRequest?.let { active ->
             val canStopSwap = swapsThisTick < maxSwapsThisTick
             if (active.keepTicks <= 0 && tickStage in active.sequenceStageMask && canStopSwap) {
+                logger.debug("Clearing request and syncing slot")
                 activeRequest = null
                 interaction.syncSelectedSlot()
             }

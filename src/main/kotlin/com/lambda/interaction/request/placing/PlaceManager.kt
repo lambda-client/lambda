@@ -27,6 +27,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
+import com.lambda.interaction.request.ManagerUtils.newStage
 import com.lambda.interaction.request.ManagerUtils.newTick
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
@@ -74,7 +75,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     onOpen = {
         activeRequest?.let { processRequest(it) }
         if (potentialPlacements.isNotEmpty())
-            PlaceManager.logger.system("Tick stage ${PlaceManager.tickStage?.run { this::class.qualifiedName }}")
+            PlaceManager.logger.newStage(PlaceManager.tickStage)
     }
 ), PositionBlocking, Logger {
     private var activeRequest: PlaceRequest? = null
