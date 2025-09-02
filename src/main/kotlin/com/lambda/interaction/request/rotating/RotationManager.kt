@@ -71,6 +71,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             activeRequest?.let {
                 if (it.keepTicks <= 0 && it.decayTicks <= 0) {
+                    logger.debug("Clearing active request ${it.requestID}")
                     activeRequest = null
                 }
             }
@@ -102,6 +103,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     override fun SafeContext.handleRequest(request: RotationRequest) {
         activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
+            logger.debug("Accepting request ${request.requestID}")
             activeRequest = request
             updateActiveRotation()
             changedThisTick = true
@@ -147,9 +149,12 @@ object RotationManager : RequestHandler<RotationRequest>(
 
             serverRotation.slerp(rotationTo, turnSpeed).wrap()
         } ?: player.rotation
+
+        logger.debug("Active rotation set to $activeRotation")
     }
 
     private fun reset(rotation: Rotation) {
+        logger.debug("Resetting values")
         prevServerRotation = rotation
         serverRotation = rotation
         activeRotation = rotation
