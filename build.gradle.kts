@@ -71,7 +71,6 @@ repositories {
     mavenLocal() // Allow the use of local repositories
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
-    maven("https://raw.githubusercontent.com/kotlin-graphics/mary/master")
     mavenCentral()
 
     // Allow the use of local libraries
@@ -111,7 +110,7 @@ loom {
             property("mixin.debug.export", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
-            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "<TOKEN>")
+            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
         }
     }
 }
@@ -254,4 +253,16 @@ java {
 
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = mavenGroup
+            artifactId = modId
+            version = "$modVersion+$minecraftVersion"
+
+            from(components["java"])
+        }
+    }
 }

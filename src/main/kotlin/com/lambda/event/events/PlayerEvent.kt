@@ -52,11 +52,11 @@ sealed class PlayerEvent {
     ) : ICancellable by Cancellable()
 
     /**
-     * Represents a damage event for the player.
+     * Represents a health update for the player.
      *
-     * @property amount The amount of damage dealt.
+     * @property amount The new player health.
      */
-    data class Damage(val amount: Float) : Event
+    data class Health(val amount: Float) : Event
 
     sealed class Interact {
         /**
