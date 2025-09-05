@@ -9,6 +9,8 @@ transitive-accessible field net/minecraft/client/input/Input movementVector Lnet
 transitive-accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
 transitive-accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 transitive-accessible method net/minecraft/client/MinecraftClient getWindowTitle ()Ljava/lang/String;
+accessible field net/minecraft/client/option/KeyBinding KEYS_BY_ID Ljava/util/Map;
+accessible method net/minecraft/client/option/KeyBinding reset ()V
 
 # World
 transitive-accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
