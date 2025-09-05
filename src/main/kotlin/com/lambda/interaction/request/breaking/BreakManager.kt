@@ -94,7 +94,6 @@ import net.minecraft.util.math.Box
 import net.minecraft.world.BlockView
 import kotlin.math.max
 
-// ToDo: Fix root cause of breaks becoming redundant while the actual state is empty
 object BreakManager : RequestHandler<BreakRequest>(
     0,
     TickEvent.Pre,
@@ -469,10 +468,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (!rotated || tickStage !in request.config.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false
+            iterator.remove()
             if (!handlePreProcessing()) return false
 
             updateBreakProgress(breakInfo)
-            iterator.remove()
         }
         return true
     }
