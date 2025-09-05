@@ -465,7 +465,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         }
                         logger.debug("Submitting request for hotbar index ${info.context.hotbarIndex} with min swap ticks $minSwapTicks (${hotbarRequest.requestID})")
                         if (!hotbarRequest.done) {
-                            logger.warning("hotbar request failed (${hotbarRequest.requestID})")
+                            logger.warning("Hotbar request failed (${hotbarRequest.requestID})")
                             return false
                         }
                         if (minSwapTicks > 0) {

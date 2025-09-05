@@ -21,10 +21,13 @@ import com.lambda.Lambda.mc
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.hud.ManagerDebugLoggers.maxLogEntries
+import com.lambda.util.math.a
 import imgui.ImGui
+import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImBoolean
 import imgui.type.ImFloat
+import net.minecraft.util.math.BlockPos
 import java.awt.Color
 import java.util.*
 
@@ -42,18 +45,18 @@ class DebugLogger(
 
     val logs = LinkedList<LogEntry>()
 
-    private fun log(message: String, logColor: LogType) {
-        logs.add(LogEntry(message, logColor))
-        if (logs.size > maxLogEntries) {
+    private fun log(message: String, logColor: LogType, vararg extraContext: String?) {
+        if (logs.size + 1 > maxLogEntries) {
             logs.removeFirst()
         }
+        logs.add(LogEntry(message, logColor, *extraContext))
     }
 
-    fun debug(message: String) = log(message, LogType.Debug)
-    fun success(message: String) = log(message, LogType.Success)
-    fun warning(message: String) = log(message, LogType.Warning)
-    fun error(message: String) = log(message, LogType.Error)
-    fun system(message: String) = log(message, LogType.System)
+    fun debug(message: String, vararg extraContext: String?) = log(message, LogType.Debug, *extraContext)
+    fun success(message: String, vararg extraContext: String?) = log(message, LogType.Success, *extraContext)
+    fun warning(message: String, vararg extraContext: String?) = log(message, LogType.Warning, *extraContext)
+    fun error(message: String, vararg extraContext: String?) = log(message, LogType.Error, *extraContext)
+    fun system(message: String, vararg extraContext: String?) = log(message, LogType.System, *extraContext)
 
     fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
@@ -80,16 +83,30 @@ class DebugLogger(
 
                 logs.forEach { logEntry ->
                     if (shouldDisplay(logEntry)) {
-                        when (val type = logEntry.type) {
-                            LogType.Debug -> textColored("[DEBUG]", type.color)
-                            LogType.Success -> textColored("[SUCCESS]", type.color)
-                            LogType.Warning -> textColored("[WARNING]", type.color)
-                            LogType.Error -> textColored("[ERROR]", type.color)
-                            LogType.System -> textColored("[SYSTEM]", type.color)
+                        val type = logEntry.type
+                        val (logTypeStr, color) = when (type) {
+                            LogType.Debug -> Pair("[DEBUG]", type.color)
+                            LogType.Success -> Pair("[SUCCESS]", type.color)
+                            LogType.Warning -> Pair("[WARNING]", type.color)
+                            LogType.Error -> Pair("[ERROR]", type.color)
+                            LogType.System -> Pair("[SYSTEM]", type.color)
                         }
 
-                        sameLine()
-                        textColored(logEntry.message, logEntry.type.color)
+                        val floats = floatArrayOf(0f, 0f, 0f)
+                        val (r, g, b) = color.getColorComponents(floats)
+                        ImGui.pushStyleColor(ImGuiCol.Text, r, g, b, color.a.toFloat())
+                        if (logEntry.type == LogType.System) {
+                            text("$logTypeStr ${logEntry.message}")
+                        } else {
+                            treeNode("$logTypeStr ${logEntry.message}", logEntry.uuid) {
+                                logEntry.extraContext
+                                    .filterNotNull()
+                                    .forEach {
+                                        text(it)
+                                    }
+                            }
+                        }
+                        ImGui.popStyleColor()
                     }
                 }
 
@@ -113,16 +130,25 @@ class DebugLogger(
 
     fun clear() = logs.clear()
 
-    data class LogEntry(
+    class LogEntry(
         val message: String,
-        val type: LogType
-    )
+        val type: LogType,
+        vararg val extraContext: String?
+    ) {
+        val uuid = UUID.randomUUID().toString()
+        companion object {
+            fun BlockPos.toLogContext(): String {
+                val pos = if (this is BlockPos.Mutable) toImmutable() else this
+                return "Pos: ${pos.toShortString()}"
+            }
+        }
+    }
 
     enum class LogType(val color: Color) {
-        Debug(Color(255, 255, 255)),
-        Success(Color(70, 255, 70)),
-        Warning(Color(255, 255, 70)),
-        Error(Color(255, 70, 70)),
-        System(Color(70, 70, 255))
+        Debug(Color(1.0f, 1.0f, 1.0f, 1f)),
+        Success(Color(0.28f, 1.0f, 0.28f, 1f)),
+        Warning(Color(1.0f, 1.0f, 0.28f, 1f)),
+        Error(Color(1.0f, 0.28f, 0.28f, 1f)),
+        System(Color(0.28f, 0.28f, 1.0f, 1f))
     }
 }

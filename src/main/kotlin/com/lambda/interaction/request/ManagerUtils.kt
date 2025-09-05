@@ -30,7 +30,9 @@ object ManagerUtils {
         system("------------- New Tick -------------")
 
     fun DebugLogger.newStage(tickStage: Event?) =
-        system("Tick stage ${tickStage?.run { this::class.qualifiedName }}")
+        system("Tick stage ${tickStage?.run { this.toLogContext() }}")
+
+    fun Event.toLogContext() = this::class.qualifiedName?.substringAfter("com.lambda.event.events.")
 
     fun isPosBlocked(pos: BlockPos) =
         positionBlockingManagers.any { manager -> manager.blockedPositions.any { blocked -> blocked == pos } }
