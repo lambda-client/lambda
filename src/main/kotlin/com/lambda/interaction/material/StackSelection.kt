@@ -51,7 +51,7 @@ class StackSelection {
     /**
      * Filters the given [stacks], sorts them with the [comparator] and returns the first value
      */
-    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = filterStacks(stacks).firstOrNull()
+    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = stacks.minWithOrNull(comparator)
 
     fun filterStack(stack: ItemStack) =
         if (inShulkerBox) stack.shulkerBoxContents.any { selector(it) }
@@ -64,6 +64,38 @@ class StackSelection {
 
     fun filterSlots(slots: List<Slot>): List<Slot> =
         slots.filter(::filterSlot).sortedWith { slot, slot2 -> comparator.compare(slot.stack, slot2.stack) }
+
+    @StackSelectionDsl
+    fun <R : Comparable<R>> sortBy(selector: (ItemStack) -> R?): StackSelection = apply {
+        comparator = compareBy(selector)
+    }
+
+    @StackSelectionDsl
+    fun <R : Comparable<R>> sortByDescending(selector: (ItemStack) -> R?): StackSelection = apply {
+        comparator = compareByDescending(selector)
+    }
+
+    @StackSelectionDsl
+    fun <R : Comparable<R>> thenBy(selector: (ItemStack) -> R?): StackSelection = apply {
+        check(comparator != NO_COMPARE) { "No comparator specified" }
+        comparator = comparator.thenBy(selector)
+    }
+
+    @StackSelectionDsl
+    fun <R : Comparable<R>> thenByDescending(selector: (ItemStack) -> R?): StackSelection = apply {
+        check(comparator != NO_COMPARE) { "No comparator specified" }
+        comparator = comparator.thenByDescending(selector)
+    }
+
+    @StackSelectionDsl
+    fun sortWith(custom: Comparator<ItemStack>): StackSelection = apply {
+        comparator = custom
+    }
+
+    @StackSelectionDsl
+    fun reversed(): StackSelection = apply {
+        comparator = comparator.reversed()
+    }
 
     /**
      * returns a function that finds a shulker box to push matching items into.
@@ -237,8 +269,7 @@ class StackSelection {
         val EMPTY_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.all { it.isEmpty } }
         val EVERYTHING: (ItemStack) -> Boolean = { true }
         val NOTHING: (ItemStack) -> Boolean = { false }
-
-        val NO_COMPARE: Comparator<ItemStack> = compareBy { 69-420 }
+        val NO_COMPARE: Comparator<ItemStack> = Comparator { _, _ -> 0 }
 
         @StackSelectionDsl
         fun Item.select() = selectStack { isItem(this@select) }
@@ -256,23 +287,6 @@ class StackSelection {
 
         @StackSelectionDsl
         fun ((ItemStack) -> Boolean).select() = selectStack { this@select }
-
-        /**
-         * Builds a [StackSelection] with the given parameters.
-         * @param count The count of items to be selected.
-         * @param block The predicate to be used to select the items.
-         * @return A [StackSelection] with the given parameters.
-         */
-        @StackSelectionDsl
-        fun selectStack(
-            count: Int = DEFAULT_AMOUNT,
-            inShulkerBox: Boolean = false,
-            block: StackSelection.() -> (ItemStack) -> Boolean = { EVERYTHING },
-        ) = StackSelection().apply {
-            selector = block()
-            this.count = count
-            this.inShulkerBox = inShulkerBox
-        }
 
         @StackSelectionDsl
         fun selectStack(

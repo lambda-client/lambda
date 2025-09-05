@@ -104,8 +104,7 @@ object KillAura : Module(
         listen<TickEvent.Pre> {
             target?.let { entity ->
                 if (swap) {
-                    val selection =
-                        selectStack(sorter = compareByDescending { player.attackDamage(stack = it) })
+                    val selection = selectStack().sortByDescending { player.attackDamage(stack = it) }
 
                     if (!selection.bestItemMatch(player.hotbarAndStorage).equal(player.mainHandStack))
                         selection.transfer(MainHandContainer)?.run()
@@ -128,8 +127,7 @@ object KillAura : Module(
         }
 
         // Rotation check
-        run {
-            if (!rotate) return@run
+        if (rotate) {
             val angle = RotationManager.activeRotation
 
             if (interactionSettings.strictRayCast) {
