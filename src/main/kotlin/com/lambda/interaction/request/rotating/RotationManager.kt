@@ -29,7 +29,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
-import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
@@ -124,7 +123,6 @@ object RotationManager : RequestHandler<RotationRequest>(
         prevServerRotation = serverRotation
         serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
 
-        // Handle LOCK mode
         if (activeRequest?.rotationMode == RotationMode.Lock) {
             mc.player?.yaw = serverRotation.yawF
             mc.player?.pitch = serverRotation.pitchF
@@ -141,7 +139,8 @@ object RotationManager : RequestHandler<RotationRequest>(
             val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
             val turnSpeed = request.turnSpeed * speedMultiplier
 
-            serverRotation.slerp(rotationTo, turnSpeed).wrap()
+            // Important: do NOT wrap the result yaw; keep it continuous to match vanilla packets
+            serverRotation.slerp(rotationTo, turnSpeed)
         } ?: player.rotation
     }
 
@@ -219,10 +218,11 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
 
         @JvmStatic
-        fun processPlayerMovement(input: Input) = runSafe {
+        fun processInputs(input: Input) = runSafe {
             // The yaw relative to which the movement was constructed
             val baritoneYaw = baritoneContext?.target?.targetRotation?.value?.yaw
-            val strafeEvent = RotationEvent.StrafeInput(baritoneYaw ?: player.yaw.toDouble(), input)
+            val baseYaw = baritoneYaw ?: activeRotation.yaw
+            val strafeEvent = RotationEvent.StrafeInput(baseYaw, input)
             val movementYaw = strafeEvent.post().strafeYaw
 
             // No changes are needed, when we don't modify the yaw used to move the player

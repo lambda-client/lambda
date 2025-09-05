@@ -139,10 +139,7 @@ object Speed : Module(
 
             if (!input.isInputting) return@listen
 
-            run {
-                if (!diagonal) return@run
-                if (player.isOnGround && input.playerInput.jump) return@run
-
+            if (diagonal || !player.isOnGround || !input.playerInput.jump) {
                 val forward = input.roundedForward.toFloat()
                 var strafe = input.roundedStrafing.toFloat()
 
@@ -155,7 +152,7 @@ object Speed : Module(
             val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
 
             lookAt(
-                Rotation(moveYaw, 0.0)
+                Rotation(moveYaw, player.pitch.toDouble())
             ).requestBy(rotationConfig)
         }
 
