@@ -448,15 +448,11 @@ object ImGuiBuilder {
      * @param text The text to display
      */
     @ImGuiDsl
-    fun textColored(text: String, color: Color) = textColored(
-        getColorU32(
-            color.red / 255f,
-            color.green / 255f,
-            color.blue / 255f,
-            color.alpha / 255f
-        ),
-        text
-    )
+    fun textColored(text: String, color: Color) {
+        val floats = floatArrayOf(0f, 0f, 0f, 0f)
+        val (r, g, b, a) = color.getColorComponents(floats)
+        textColored(r, g, b, a, text)
+    }
 
     /**
      * Text with disabled coloring.
@@ -1317,7 +1313,7 @@ object ImGuiBuilder {
      */
     @ImGuiDsl
     inline fun treeNode(label: String, id: String, block: ProcedureBlock) {
-        if (treeNode(label, id)) {
+        if (treeNode(id, label)) {
             block()
             treePop()
         }
