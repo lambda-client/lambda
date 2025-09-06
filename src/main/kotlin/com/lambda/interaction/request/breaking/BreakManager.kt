@@ -464,12 +464,10 @@ object BreakManager : RequestHandler<BreakRequest>(
 
             if (!canAccept(ctx)) continue
 
-            rotationRequest = if (request.config.rotateForBreak) ctx.rotation.submit(false) else null
-            if (!rotated || tickStage !in request.config.breakStageMask) return false
-
             val breakInfo = initNewBreak(ctx, request) ?: return false
             iterator.remove()
             if (!handlePreProcessing()) return false
+            if (!rotated || tickStage !in request.config.breakStageMask) return false
 
             updateBreakProgress(breakInfo)
         }
@@ -516,10 +514,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 } else return null
             }
 
-            if (!primaryInfo.breaking) {
-                secondaryBreak = breakInfo.apply { type = Secondary }
-                return secondaryBreak
-            }
+            if (!primaryInfo.breaking) return null
 
             secondaryBreak = primaryInfo.apply { type = Secondary }
             secondaryBreak?.stopBreakPacket(world, interaction)
