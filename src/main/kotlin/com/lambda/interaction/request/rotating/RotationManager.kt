@@ -221,7 +221,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         fun processInputs(input: Input) = runSafe {
             // The yaw relative to which the movement was constructed
             val baritoneYaw = baritoneContext?.target?.targetRotation?.value?.yaw
-            val baseYaw = baritoneYaw ?: activeRotation.yaw
+            val baseYaw = baritoneYaw ?: player.yaw.toDouble()
             val strafeEvent = RotationEvent.StrafeInput(baseYaw, input)
             val movementYaw = strafeEvent.post().strafeYaw
 
