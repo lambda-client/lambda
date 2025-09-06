@@ -28,8 +28,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import static com.lambda.Lambda.getMc;
-
 @Mixin(Keyboard.class)
 public class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"))
@@ -39,11 +37,9 @@ public class KeyboardMixin {
 
     @Inject(method = "onKey", at = @At("RETURN"))
     private void onKeyTail(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
-        if (InventoryMove.INSTANCE.isDisabled() || InventoryMove.hasInputOrNull(getMc().currentScreen)) return;
-        if (InventoryMove.isKeyMovementRelated(key)) {
-            InputUtil.Key fromCode = InputUtil.fromKeyCode(key, scancode);
-            KeyBinding.setKeyPressed(fromCode, action != 0);
-        }
+        if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
+        InputUtil.Key fromCode = InputUtil.fromKeyCode(key, scancode);
+        KeyBinding.setKeyPressed(fromCode, action != 0);
     }
 
     @Inject(method = "onChar", at = @At("HEAD"))

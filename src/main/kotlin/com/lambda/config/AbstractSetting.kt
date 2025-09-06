@@ -158,6 +158,12 @@ abstract class AbstractSetting<T : Any>(
         groups.add(path.toList())
     }
 
+    fun group(path: NamedEnum?) = apply {
+        if (path != null) {
+            groups.add(listOf(path))
+        }
+    }
+
     fun reset(silent: Boolean = false) {
         if (!silent && value == defaultValue) {
             ConfigCommand.info(notChangedMessage())

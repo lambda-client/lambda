@@ -30,9 +30,9 @@ import com.lambda.util.KeyboardUtils.isKeyPressed
 import com.lambda.util.math.MathUtils.toFloatSign
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
+import net.minecraft.client.gui.screen.ingame.AbstractCommandBlockScreen
+import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
-import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
-import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
 import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2
 import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4
@@ -51,9 +51,24 @@ object InventoryMove : Module(
     private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
     private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
+    @JvmStatic
+    val shouldMove get() = isEnabled && !mc.currentScreen.hasInputOrNull
+
+    /**
+     * Whether the current screen has text inputs or is null
+     */
+    @JvmStatic
+    val Screen?.hasInputOrNull: Boolean
+        get() = this is ChatScreen ||
+                this is AbstractSignEditScreen ||
+                this is AnvilScreen ||
+                this is AbstractCommandBlockScreen ||
+                this is LambdaScreen ||
+                this == null
+
     init {
         onRotate {
-            if (!arrowKeys || hasInputOrNull(mc.currentScreen)) return@onRotate
+            if (!arrowKeys || mc.currentScreen.hasInputOrNull) return@onRotate
 
             val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
                     isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
@@ -65,18 +80,6 @@ object InventoryMove : Module(
             ).requestBy(rotationConfig)
         }
     }
-
-    /**
-     * Whether the current screen has text inputs or is null
-     */
-    @JvmStatic
-    fun hasInputOrNull(screen: Screen?) =
-        screen is ChatScreen ||
-                screen is SignEditScreen ||
-                screen is AnvilScreen ||
-                screen is CommandBlockScreen ||
-                screen is LambdaScreen ||
-                screen == null
 
     @JvmStatic
     fun isKeyMovementRelated(key: Int): Boolean {
