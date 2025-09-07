@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.simulation
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
@@ -71,8 +72,8 @@ data class Simulation(
         .map { PossiblePos(it.key.toBlockPos(), it.value.count { it.rank.ordinal < 4 }) }
 
     class PossiblePos(val pos: BlockPos, val interactions: Int) : Drawable {
-        override fun SafeContext.buildRenderer() {
-            withBox(Vec3d.ofBottomCenter(pos).playerBox(), Color(0, 255, 0, 50))
+        override fun ShapeBuilder.buildRenderer() {
+            box(Vec3d.ofBottomCenter(pos).playerBox(), Color(0, 255, 0, 50), Color(0, 255, 0, 50))
         }
     }
 

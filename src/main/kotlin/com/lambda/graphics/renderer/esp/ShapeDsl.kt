@@ -17,9 +17,9 @@
 
 package com.lambda.graphics.renderer.esp
 
-import com.lambda.context.SafeContext
 import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.max
 import com.lambda.util.extension.min
@@ -98,33 +98,33 @@ class ShapeBuilder(
     }
 
     @ShapeDsl
-    fun SafeContext.filled(
+    fun filled(
         pos     : BlockPos,
         state   : BlockState,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-    ) = faces.apply {
+    ) = runSafe { faces.apply {
         val shape = state.getOutlineShape(world, pos)
         filled(shape, color, sides)
-    }
+    } }
 
     @ShapeDsl
-    fun SafeContext.filled(
+    fun filled(
         pos     : BlockPos,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-    ) = faces.apply {
+    ) = runSafe { faces.apply {
         val shape = blockState(pos).getOutlineShape(world, pos)
         filled(shape, color, sides)
-    }
+    } }
 
     @ShapeDsl
-    fun SafeContext.filled(
+    fun filled(
         pos     : BlockPos,
         entity  : BlockEntity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-    ) {
+    ) = runSafe {
         val shape = outlineShape(entity.cachedState, pos)
         filled(shape, color, sides)
     }
@@ -236,36 +236,36 @@ class ShapeBuilder(
     }
 
     @ShapeDsl
-    fun SafeContext.outline(
+    fun outline(
         pos     : BlockPos,
         state   : BlockState,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) {
+    ) = runSafe {
         val shape = state.getOutlineShape(world, pos)
         outline(shape, color, sides, mode)
     }
 
     @ShapeDsl
-    fun SafeContext.outline(
+    fun outline(
         pos     : BlockPos,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) {
+    ) = runSafe {
         val shape = blockState(pos).getOutlineShape(world, pos)
         outline(shape, color, sides, mode)
     }
 
     @ShapeDsl
-    fun SafeContext.outline(
+    fun outline(
         pos     : BlockPos,
         entity  : BlockEntity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) {
+    ) = runSafe {
         val shape = outlineShape(entity.cachedState, pos)
         outline(shape, color, sides, mode)
     }
@@ -293,6 +293,32 @@ class ShapeBuilder(
 
     @ShapeDsl
     fun box(
+        pos     : BlockPos,
+        state   : BlockState,
+        filled  : Color,
+        outline : Color,
+        sides   : Int = DirectionMask.ALL,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+    ) = runSafe {
+        val shape = state.getOutlineShape(world, pos)
+        filled(shape, filled, sides)
+        outline(shape, outline, sides, mode)
+    }
+
+    @ShapeDsl
+    fun box(
+        pos     : BlockPos,
+        filled  : Color,
+        outline : Color,
+        sides   : Int = DirectionMask.ALL,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+    ) = runSafe {
+        filled(pos, filled, sides)
+        outline(pos, outline, sides, mode)
+    }
+
+    @ShapeDsl
+    fun box(
         box     : DynamicAABB,
         filled  : Color,
         outline : Color,
@@ -316,23 +342,23 @@ class ShapeBuilder(
     }
 
     @ShapeDsl
-    fun SafeContext.box(
+    fun box(
         entity  : BlockEntity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) {
+    ) = runSafe {
         filled(entity.pos, entity, color, sides)
         outline(entity.pos, entity, color, sides, mode)
     }
 
     @ShapeDsl
-    fun SafeContext.box(
+    fun box(
         entity  : Entity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) {
+    ) = runSafe {
         filled(entity.boundingBox, color, sides)
         outline(entity.boundingBox, color, sides, mode)
     }

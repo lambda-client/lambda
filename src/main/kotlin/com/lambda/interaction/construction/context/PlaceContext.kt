@@ -21,6 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
@@ -70,9 +72,8 @@ data class PlaceContext(
             else -> 1
         }
 
-    override fun SafeContext.buildRenderer() {
-        withState(expectedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
-        withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
+    override fun ShapeBuilder.buildRenderer() {
+        box(blockPos, expectedState, baseColor, sideColor, result.side.mask)
     }
 
     fun requestDependencies(request: PlaceRequest): Boolean {

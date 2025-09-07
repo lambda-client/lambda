@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.result
 
 import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.InteractionContext
 import net.minecraft.util.math.BlockPos
 
@@ -28,7 +29,7 @@ sealed class InteractResult : BuildResult() {
     ) : Contextual, Drawable, InteractResult() {
         override val rank = Rank.INTERACT_SUCCESS
 
-        override fun SafeContext.buildRenderer() {
+        override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
 
