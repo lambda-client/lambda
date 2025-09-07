@@ -54,10 +54,8 @@ import com.lambda.interaction.request.breaking.BreakManager.breaks
 import com.lambda.interaction.request.breaking.BreakManager.canAccept
 import com.lambda.interaction.request.breaking.BreakManager.checkForCancels
 import com.lambda.interaction.request.breaking.BreakManager.initNewBreak
-import com.lambda.interaction.request.breaking.BreakManager.instantBreaks
 import com.lambda.interaction.request.breaking.BreakManager.maxBreaksThisTick
-import com.lambda.interaction.request.breaking.BreakManager.performInstantBreaks
-import com.lambda.interaction.request.breaking.BreakManager.processNewBreaks
+import com.lambda.interaction.request.breaking.BreakManager.processNewBreak
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakManager.simulateAbandoned
 import com.lambda.interaction.request.breaking.BreakManager.updateBreakProgress
@@ -154,7 +152,6 @@ object BreakManager : RequestHandler<BreakRequest>(
     private var maxBreaksThisTick = 0
 
     private var breaks = mutableListOf<BreakContext>()
-    private var instantBreaks = mutableListOf<BreakContext>()
 
     var lastPosStarted: BlockPos? = null
         set(value) {
@@ -184,7 +181,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
             activeRequest = null
             breaks = mutableListOf()
-            instantBreaks = mutableListOf()
             breaksThisTick = 0
         }
 
@@ -312,7 +308,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * or the player needs to swap to a different hotbar slot.
      *
      * @see performInstantBreaks
-     * @see processNewBreaks
+     * @see processNewBreak
      * @see updateBreakProgress
      */
     private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
@@ -320,29 +316,37 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (request.fresh) populateFrom(request)
         }
 
-        repeat(2) {
-            breakRequest?.let { request ->
-                if (performInstantBreaks(request)) {
-                    processNewBreaks(request)
-                }
-            }
+        var noNew = false
+        var noProgression = false
+
+        while (true) {
+            noNew = breakRequest?.let { request ->
+                !processNewBreak(request)
+            } != false
 
             // Reversed so that the breaking order feels natural to the user as the primary break is always the
             // last break to be started
-            if (handlePreProcessing()) {
+            noProgression = if (handlePreProcessing()) {
                 activeInfos
-                    .filter { it.updatedThisTick }
+                    .filter { it.updatedThisTick && it.shouldProgress }
                     .asReversed()
-                    .forEach { info ->
-                        if (info.shouldProgress)
-                            updateBreakProgress(info)
+                    .run {
+                        if (isEmpty()) {
+                            true
+                        } else {
+                            forEach { info ->
+                                updateBreakProgress(info)
+                            }
+                            false
+                        }
                     }
-            }
+            } else true
+
+            if (noNew && noProgression) break
         }
 
-        if (instantBreaks.isEmpty() && breaks.isEmpty()) {
-            activeRequest = null
-        }
+        if (breaks.isEmpty()) activeRequest = null
+
         if (breaksThisTick > 0 || activeInfos.isNotEmpty()) {
             activeThisTick = true
         }
@@ -383,12 +387,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
             }
 
-        instantBreaks = newBreaks
-            .filter { it.instantBreak }
-            .toMutableList()
-
         breaks = newBreaks
-            .filter { !it.instantBreak }
+            .sortedByDescending { it.instantBreak }
             .toMutableList()
 
         val breakConfig = request.config
@@ -451,47 +451,21 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     /**
-     * Attempts to break as many [BreakContext]'s as possible from the [instantBreaks] collection within this tick.
-     *
-     * @return false if a break could not be performed.
-     */
-    private fun SafeContext.performInstantBreaks(request: BreakRequest): Boolean {
-        val iterator = instantBreaks.iterator()
-        while (iterator.hasNext()) {
-            if (breaksThisTick + 1 > maxBreaksThisTick) return false
-
-            val ctx = iterator.next()
-
-            if (!canAccept(ctx)) continue
-
-            val breakInfo = initNewBreak(ctx, request) ?: return false
-            iterator.remove()
-            if (!handlePreProcessing()) return false
-            if (!rotated || tickStage !in request.config.breakStageMask) return false
-
-            updateBreakProgress(breakInfo)
-        }
-        return true
-    }
-
-    /**
      * Attempts to start breaking as many [BreakContext]'s from the [breaks] collection as possible.
      *
      * @return false if a context cannot be started or the maximum active breaks has been reached.
      *
      * @see initNewBreak
      */
-    private fun SafeContext.processNewBreaks(request: BreakRequest): Boolean {
-        val iterator = breaks.iterator()
-        while (iterator.hasNext()) {
-            val ctx = iterator.next()
-
-            if (!canAccept(ctx)) continue
+    private fun SafeContext.processNewBreak(request: BreakRequest): Boolean {
+        breaks.forEach { ctx ->
+            if (!canAccept(ctx)) return@forEach
 
             initNewBreak(ctx, request) ?: return false
-            iterator.remove()
+            breaks.remove(ctx)
+            return true
         }
-        return true
+        return false
     }
 
     /**
