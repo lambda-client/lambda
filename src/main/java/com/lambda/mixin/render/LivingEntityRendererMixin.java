@@ -23,10 +23,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
 import net.minecraft.entity.LivingEntity;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-import java.util.Objects;
+import static com.lambda.util.math.LinearKt.lerp;
 
 // This mixin's purpose is to set the player's pitch the current render pitch to correctly show the rotation
 // regardless of the camera position
@@ -48,9 +49,12 @@ public class LivingEntityRendererMixin {
      * }</pre>
      */
     @WrapOperation(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F"))
-    private float wrapGetLerpedPitch(LivingEntity instance, float v, Operation<Float> original) {
-        return (instance == Lambda.getMc().player)
-                ? Objects.requireNonNullElse(RotationManager.getHeadPitch(), original.call(instance, v))
-                : original.call(instance, v);
+    private float wrapGetLerpedPitch(LivingEntity livingEntity, float v, Operation<Float> original) {
+        Float headPitch = RotationManager.getHeadPitch();
+        if (livingEntity != Lambda.getMc().player || headPitch == null) {
+            return original.call(livingEntity, v);
+        }
+
+        return lerp(v, RotationManager.getPrevServerRotation().getPitchF(), headPitch);
     }
 }

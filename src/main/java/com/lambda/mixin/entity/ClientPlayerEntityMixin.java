@@ -37,7 +37,6 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.MovementType;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -60,78 +59,48 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         super(world, profile);
     }
 
-    @Shadow protected abstract void autoJump(float dx, float dz);
-
-    /**
-     * Post movement events and applies the modified player velocity
-     */
-    @Inject(method = "move", at = @At("HEAD"), cancellable = true)
-    void onMove(MovementType movementType, Vec3d movement, CallbackInfo ci) {
-        ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        ci.cancel();
-
-        float prevX = (float) self.getX();
-        float prevZ = (float) self.getZ();
-
+    @Redirect(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"))
+    private void emitMovementEvents(AbstractClientPlayerEntity instance, MovementType movementType, Vec3d movement) {
         EventFlow.post(new MovementEvent.Player.Pre(movementType, movement));
         super.move(movementType, movement);
         EventFlow.post(new MovementEvent.Player.Post(movementType, movement));
-
-        float deltaX = (float) self.getX() - prevX;
-        float deltaZ = (float) self.getZ() - prevZ;
-
-        this.autoJump(deltaX, deltaZ);
-        this.distanceMoved = this.distanceMoved + MathHelper.hypot(deltaX, deltaZ) * 0.6F;
     }
 
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
     void processMovement(Input input) {
         input.tick();
         RotationManager.processRotations();
-        RotationManager.BaritoneProcessor.processPlayerMovement(input);
+        RotationManager.redirectStrafeInputs(input);
         EventFlow.post(new MovementEvent.InputUpdate(input));
-    }
-
-    /**
-     * Posts the {@link MovementEvent.Sprint} event
-     * <pre>{@code
-     * if (this.isSprinting()) {
-     *     boolean bl8 = !this.input.hasForwardMovement() || !this.canSprint();
-     *     boolean bl9 = bl8 || this.horizontalCollision && !this.collidedSoftly || this.isTouchingWater() && !this.isSubmergedInWater();
-     *     if (this.isSwimming()) {
-     *         if (!this.isOnGround() && !this.input.sneaking && bl8 || !this.isTouchingWater()) {
-     *             this.setSprinting(false);
-     *         }
-     *     } else if (bl9) {
-     *         this.setSprinting(false);
-     *     }
-     * }
-     * }</pre>
-     */
-    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
-    boolean isSprinting(ClientPlayerEntity entity) {
-        return EventFlow.post(new MovementEvent.Sprint(entity.isSprinting())).getSprint();
-    }
-
-    @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
-    void redirectSneaking(CallbackInfoReturnable<Boolean> cir) {
-        ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        if (self.input == null) return;
-        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
     }
 
     /**
      * Overwrites the movement packet update function to use our code
      */
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
-    void sendBegin(CallbackInfo ci) {
+    void sendLambdaMovement(CallbackInfo ci) {
         ci.cancel();
         PlayerPacketManager.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
+    }
+
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSneakingPacket()V"))
+    void sendSneakingPacket(ClientPlayerEntity entity) {
+        PlayerPacketManager.sendSneakPackets();
+    }
+
+    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
+    boolean isSprinting(ClientPlayerEntity entity) {
+        return EventFlow.post(new MovementEvent.Sprint(entity.isSprinting())).getSprint();
+    }
+
+    @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
+    void injectSneakingInput(CallbackInfoReturnable<Boolean> cir) {
+        ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
+        if (self != Lambda.getMc().player) return;
+
+        if (self.input == null) return;
+        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
     }
 
     @WrapMethod(method = "tick")

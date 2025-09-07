@@ -22,15 +22,11 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedOrderedSet
 import com.lambda.util.math.approximate
-import com.lambda.util.math.component1
-import com.lambda.util.math.component2
-import com.lambda.util.math.component3
-import com.lambda.util.player.MovementUtils.motionX
-import com.lambda.util.player.MovementUtils.motionZ
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
@@ -46,6 +42,7 @@ object PlayerPacketManager {
     var lastSprint = false
     var lastSneak = false
     var lastOnGround = false
+    var lastHorizontalCollision = false
 
     private var sendTicks = 0
 
@@ -57,7 +54,6 @@ object PlayerPacketManager {
                 RotationManager.activeRotation,
                 player.isOnGround,
                 player.isSprinting,
-                player.isSneaking,
                 player.horizontalCollision,
             ).post {
                 updatePlayerPackets(this)
@@ -65,72 +61,59 @@ object PlayerPacketManager {
         }
     }
 
+    @JvmStatic
+    fun sendSneakPackets() {
+        runSafe {
+            val sneaking = player.isSneaking
+            if (sneaking == lastSneak) return@runSafe
+            val mode = if (sneaking) {
+                ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY
+            } else {
+                ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY
+            }
+            connection.sendPacket(ClientCommandC2SPacket(player, mode))
+            lastSneak = sneaking
+        }
+    }
+
     private fun SafeContext.updatePlayerPackets(new: PlayerPacketEvent.Pre) {
         configurations.add(new)
 
         reportSprint(lastSprint, new.isSprinting)
-        reportSneak(lastSneak, new.isSneaking)
 
         if (mc.cameraEntity != player) return
 
-        val rotation = new.rotation
         val position = new.position
-        val (yaw, pitch) = rotation.float
+        val (yaw, pitch) = new.rotation
         val onGround = new.onGround
         val isCollidingHorizontally = new.isCollidingHorizontally
 
-        if (player.hasVehicle()) {
-            connection.sendPacket(
-                Full(
-                    player.motionX,
-                    -999.0,
-                    player.motionZ,
-                    yaw,
-                    pitch,
-                    onGround,
-                    isCollidingHorizontally,
-                )
-            )
+        val updatePosition = position.approximate(lastPosition) || ++sendTicks >= 20
+        val updateRotation = lastRotation.yaw != yaw || lastRotation.pitch != pitch
 
-            return
-        }
-
-        val updatePosition = position.approximate(lastPosition, 2.0E-4) || ++sendTicks >= 20
-        // has to be different in float precision
-        val updateRotation = !rotation.equalFloat(lastRotation)
-
-        val (x, y, z) = position
-
-        val packet = when {
-            updatePosition && updateRotation ->
-                Full(x, y, z, yaw, pitch, onGround, isCollidingHorizontally)
-
-            updatePosition ->
-                PositionAndOnGround(x, y, z, onGround, isCollidingHorizontally)
-
-            updateRotation ->
-                LookAndOnGround(yaw, pitch, onGround, isCollidingHorizontally)
-
-            lastOnGround != onGround ->
+        when {
+            updatePosition && updateRotation -> Full(position, yaw.toFloat(), pitch.toFloat(), onGround, isCollidingHorizontally)
+            updatePosition -> PositionAndOnGround(position, onGround, isCollidingHorizontally)
+            updateRotation -> LookAndOnGround(yaw.toFloat(), pitch.toFloat(), onGround, isCollidingHorizontally)
+            lastOnGround != onGround || lastHorizontalCollision != isCollidingHorizontally -> {
                 OnGroundOnly(onGround, isCollidingHorizontally)
-
+            }
             else -> null
-        }
-
-        packet?.let {
+        }?.let {
             PlayerPacketEvent.Send(it).postChecked {
                 connection.sendPacket(this.packet)
 
                 if (updatePosition) {
-                    sendTicks = 0
                     lastPosition = position
+                    sendTicks = 0
                 }
 
                 if (updateRotation) {
-                    lastRotation = rotation
+                    lastRotation = new.rotation
                 }
 
                 lastOnGround = onGround
+                lastHorizontalCollision = isCollidingHorizontally
             }
         }
 
@@ -151,19 +134,6 @@ object PlayerPacketManager {
 
         connection.sendPacket(ClientCommandC2SPacket(player, state))
         lastSprint = new
-    }
-
-    fun SafeContext.reportSneak(previous: Boolean, new: Boolean) {
-        if (previous == new) return
-
-        val state = if (new) {
-            ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY
-        } else {
-            ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY
-        }
-
-        connection.sendPacket(ClientCommandC2SPacket(player, state))
-        lastSneak = new
     }
 }
 

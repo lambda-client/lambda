@@ -36,7 +36,7 @@ public class MixinLookBehavior {
         LookBehavior instance = ((LookBehavior) (Object) this);
         if (instance.baritone != BaritoneUtils.getPrimary()) return;
 
-        RotationManager.BaritoneProcessor.handleBaritoneRotation(rotation.getYaw(), rotation.getPitch());
+        RotationManager.handleBaritoneRotation(rotation.getYaw(), rotation.getPitch());
         ci.cancel();
     }
 

@@ -108,40 +108,29 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
             // Calculate the wrapped difference to ensure we take the shortest path
             val yawDiff = wrap(other.yaw - this.yaw)
-            val pitchDiff = wrap(other.pitch - this.pitch)
+            val pitchDiff = other.pitch - this.pitch
 
-            // Apply the delta to the wrapped difference
-            val yaw = wrap(this.yaw + delta * yawDiff)
-            val pitch = wrap(this.pitch + delta * pitchDiff)
+            // Apply without wrapping the absolute yaw (keep it continuous)
+            val yaw = this.yaw + delta * yawDiff
+            val pitch = (this.pitch + delta * pitchDiff).coerceIn(-90.0, 90.0)
 
             return Rotation(yaw, pitch)
         }
 
         fun Rotation.slerp(other: Rotation, speed: Double): Rotation {
             val yawDiff = wrap(other.yaw - yaw)
-            val pitchDiff = wrap(other.pitch - pitch)
+            val pitchDiff = other.pitch - pitch
 
-            val diff = hypot(yawDiff, pitchDiff)
+            val diff = hypot(yawDiff, pitchDiff).let { if (it == 0.0) 1.0 else it }
 
             val yawSpeed = abs(yawDiff / diff) * speed
             val pitchSpeed = abs(pitchDiff / diff) * speed
 
-            val yaw = wrap(yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed))
-            val pitch = wrap(pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed))
+            // Apply without wrapping the absolute yaw (keep it continuous)
+            val yaw = yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed)
+            val pitch = (pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed)).coerceIn(-90.0, 90.0)
 
             return Rotation(yaw, pitch)
-        }
-
-        fun Rotation.fixSensitivity(prev: Rotation): Rotation {
-            val f = mc.options.mouseSensitivity.value * 0.6 + 0.2
-            val gcd = f * f * f * 8.0 * 0.15F
-
-            val r1 = Vec2d(prev.yaw, prev.pitch)
-            val r2 = Vec2d(this.yaw, this.pitch)
-            val delta = ((r2 - r1) / gcd).roundToInt() * gcd
-            val fixed = r1 + delta
-
-            return Rotation(fixed.x, fixed.y.coerceIn(-90.0, 90.0))
         }
 
         fun Vec3d.rotationTo(vec: Vec3d): Rotation {
@@ -152,8 +141,9 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             val yawRad = atan2(diffZ, diffX)
             val pitchRad = -atan2(diffY, hypot(diffX, diffZ))
 
-            val yaw = wrap(yawRad.toDegree() - 90.0)
-            val pitch = wrap(pitchRad.toDegree())
+            // Target yaw can be normalized; our slerp keeps absolute yaw continuous
+            val yaw = yawRad.toDegree() - 90.0
+            val pitch = pitchRad.toDegree().coerceIn(-90.0, 90.0)
 
             return Rotation(yaw, pitch)
         }

@@ -22,14 +22,12 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
-import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
@@ -41,10 +39,11 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.round
-import kotlin.math.sign
 import kotlin.math.sin
 
 object RotationManager : RequestHandler<RotationRequest>(
@@ -56,6 +55,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 ) {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
+    @JvmStatic
     var prevServerRotation = Rotation.ZERO
 
     var activeRequest: RotationRequest? = null
@@ -120,11 +120,95 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
+    @JvmStatic
+    fun handleBaritoneRotation(yaw: Float, pitch: Float) {
+        lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
+    }
+
+    @JvmStatic
+    fun redirectStrafeInputs(input: Input) = runSafe {
+        val movementYaw = movementYaw ?: return@runSafe
+        val playerYaw = player.yaw
+
+        if (movementYaw.minus(playerYaw).rem(360f).let { it * it } < 0.001f) return@runSafe
+
+        val originalStrafe = input.movementVector.x
+        val originalForward = input.movementVector.y
+
+        if (originalStrafe == 0.0f && originalForward == 0.0f) return@runSafe
+
+        val deltaYawRad = (playerYaw - movementYaw).toRadian()
+
+        val cos = cos(deltaYawRad)
+        val sin = sin(deltaYawRad)
+        val newStrafe = originalStrafe * cos - originalForward * sin
+        val newForward = originalStrafe * sin + originalForward * cos
+
+        val angle = atan2(newStrafe.toDouble(), newForward.toDouble())
+
+        // Define the boundaries for our 8 sectors (in radians). Each sector is 45 degrees (PI/4).
+        val sector = (PI / 4.0).toFloat()
+        val boundary = (PI / 8.0).toFloat() // The halfway point between sectors (22.5 degrees)
+
+        var pressForward = false
+        var pressBackward = false
+        var pressLeft = false
+        var pressRight = false
+
+        // Determine which 45-degree sector the angle falls into and set the corresponding keys.
+        when {
+            angle > -boundary && angle <= boundary -> {
+                pressForward = true
+            }
+            angle > boundary && angle <= boundary + sector -> {
+                pressForward = true
+                pressLeft = true
+            }
+            angle > boundary + sector && angle <= boundary + 2 * sector -> {
+                pressLeft = true
+            }
+            angle > boundary + 2 * sector && angle <= boundary + 3 * sector -> {
+                pressBackward = true
+                pressLeft = true
+            }
+            angle > boundary + 3 * sector || angle <= -(boundary + 3 * sector) -> {
+                pressBackward = true
+            }
+            angle > -(boundary + 3 * sector) && angle <= -(boundary + 2 * sector) -> {
+                pressBackward = true
+                pressRight = true
+            }
+            angle > -(boundary + 2 * sector) && angle <= -(boundary + sector) -> {
+                pressRight = true
+            }
+            angle > -(boundary + sector) && angle <= -boundary -> {
+                pressForward = true
+                pressRight = true
+            }
+        }
+
+        input.playerInput = PlayerInput(
+            pressForward,
+            pressBackward,
+            pressLeft,
+            pressRight,
+            input.playerInput.jump(),
+            input.playerInput.sneak(),
+            input.playerInput.sprint()
+        )
+
+        val x = multiplier(input.playerInput.left(), input.playerInput.right())
+        val y = multiplier(input.playerInput.forward(), input.playerInput.backward())
+        input.movementVector = Vec2f(x, y).normalize()
+    }
+
+    private fun multiplier(positive: Boolean, negative: Boolean) =
+        ((if (positive) 1 else 0) - (if (negative) 1 else 0)).toFloat()
+
     fun onRotationSend() {
         prevServerRotation = serverRotation
-        serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
+        serverRotation = activeRotation
 
-        // Handle LOCK mode
         if (activeRequest?.rotationMode == RotationMode.Lock) {
             mc.player?.yaw = serverRotation.yawF
             mc.player?.pitch = serverRotation.pitchF
@@ -141,7 +225,8 @@ object RotationManager : RequestHandler<RotationRequest>(
             val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
             val turnSpeed = request.turnSpeed * speedMultiplier
 
-            serverRotation.slerp(rotationTo, turnSpeed).wrap()
+            // Important: do NOT wrap the result yaw; keep it continuous to match vanilla packets
+            serverRotation.slerp(rotationTo, turnSpeed)
         } ?: player.rotation
     }
 
@@ -195,81 +280,6 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
-    }
-
-    object BaritoneProcessor {
-        private var baritoneContext: RotationRequest? = null
-
-        private val movementYawList = arrayOf(
-            0.0, 45.0,
-            90.0, 135.0,
-            180.0, 225.0,
-            270.0, 315.0,
-        )
-
-        @JvmStatic
-        fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            baritoneContext = lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
-        }
-
-        init {
-            listenUnsafe<TickEvent.Pre> {
-                baritoneContext = null
-            }
-        }
-
-        @JvmStatic
-        fun processPlayerMovement(input: Input) = runSafe {
-            // The yaw relative to which the movement was constructed
-            val baritoneYaw = baritoneContext?.target?.targetRotation?.value?.yaw
-            val strafeEvent = RotationEvent.StrafeInput(baritoneYaw ?: player.yaw.toDouble(), input)
-            val movementYaw = strafeEvent.post().strafeYaw
-
-            // No changes are needed, when we don't modify the yaw used to move the player
-            // val config = currentContext?.config ?: return@runSafe
-            // if (config.rotationMode == RotationMode.SILENT && !input.handledByBaritone && baritoneContext == null) return@runSafe
-
-            // Sign it to remove previous speed modifier
-            input.hasForwardMovement()
-            val signForward = sign(input.movementVector.y)
-            val signStrafe = sign(input.movementVector.x)
-
-            // No changes are needed when no inputs are pressed
-            if (signForward <= 1.0E-5f && signStrafe <= 1.0E-5F) return@runSafe
-
-            // Actual yaw used by the physics engine
-            var actualYaw = activeRotation.yaw
-
-            if (activeRequest?.rotationMode == RotationMode.Silent) {
-                actualYaw = player.yaw.toDouble()
-            }
-
-            val yawRad = (movementYaw - actualYaw).toRadian()
-
-            val cosDelta = cos(yawRad)
-            val sinDelta = sin(yawRad)
-
-            val newX = signStrafe * cosDelta - signForward * sinDelta
-            val newZ = signForward * cosDelta + signStrafe * sinDelta
-
-            // Apply new movement
-            input.apply {
-                movementVector = Vec2f(
-                    round(newX).toFloat(),
-                    round(newZ).toFloat(),
-                )
-            }
-
-            baritoneYaw ?: return@runSafe
-
-            // Makes baritone movement safe
-            // when yaw difference is too big to compensate it by modifying keyboard input
-            val minYawDist = movementYawList
-                .map { activeRotation.yaw + it } // all possible movement directions (including diagonals)
-                .minOf { Rotation.angleDifference(it, baritoneYaw) }
-
-            if (minYawDist > 5.0) input.movementVector = Vec2f.ZERO
-        }
     }
 
     override fun preEvent() = UpdateManagerEvent.Rotation.post()

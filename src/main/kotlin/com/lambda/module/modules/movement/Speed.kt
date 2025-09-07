@@ -57,10 +57,6 @@ object Speed : Module(
 
     // Grim
     private val diagonal by setting("Diagonal", true) { mode == Mode.GRIM_STRAFE }
-    private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
-    private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0 }
-    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
-    private val grimMaxSpeed by setting("Max Speed", 1.0, 0.2..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
 
     // NCP
     private val strict by setting("Strict", true) { mode == Mode.NCP_STRAFE }
@@ -68,15 +64,11 @@ object Speed : Module(
     private val ncpAutoJump by setting("Auto Jump", false) { mode == Mode.NCP_STRAFE }
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
-    // Grim
     private val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
 
-    private var prevTickJumping = false
-
-    // NCP
+    // NCP state variables
     const val NCP_BASE_SPEED = 0.2873
     private const val NCP_AIR_DECAY = 0.9937
-
     private var ncpPhase = NCPPhase.SLOWDOWN
     private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
@@ -99,9 +91,8 @@ object Speed : Module(
                 return@listen
             }
 
-            when (mode) {
-                Mode.GRIM_STRAFE -> handleGrim()
-                Mode.NCP_STRAFE -> handleStrafe()
+            if (mode == Mode.NCP_STRAFE) {
+                handleStrafe()
             }
         }
 
@@ -119,68 +110,25 @@ object Speed : Module(
             if (mode == Mode.NCP_STRAFE && shouldWork()) it.cancel()
         }
 
-        listen<MovementEvent.InputUpdate>(Int.MIN_VALUE) {
+        listen<UpdateManagerEvent.Rotation> {
             if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listen
 
-            // Delay jumping key state by 1 tick to let the rotation predict jump timing
-            it.input.apply {
-                val jump = jumping
-                jumping = prevTickJumping
-                prevTickJumping = jump
-            }
-        }
-
-        listen<UpdateManagerEvent.Rotation> {
-            if (mode != Mode.GRIM_STRAFE) return@listen
-            if (!shouldWork()) return@listen
-
-            var yaw = player.yaw
             val input = newMovementInput()
-
             if (!input.isInputting) return@listen
 
-            run {
-                if (!diagonal) return@run
-                if (player.isOnGround && input.playerInput.jump) return@run
-
-                val forward = input.roundedForward.toFloat()
-                var strafe = input.roundedStrafing.toFloat()
-
-                if (strafe == 0f) strafe = -1f
-                if (forward == 0f) strafe *= -1
-
-                yaw -= 45 * strafe
-            }
-
-            val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
+            val intendedMoveYaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
+            val targetYaw = if (diagonal && !(input.playerInput.jump && player.isOnGround)) {
+                intendedMoveYaw - 45.0f
+            } else intendedMoveYaw
 
             lookAt(
-                Rotation(moveYaw, 0.0)
+                Rotation(targetYaw, player.pitch.toDouble())
             ).requestBy(rotationConfig)
         }
 
         onEnable {
             reset()
         }
-    }
-
-    private fun SafeContext.handleGrim() {
-        if (!isInputting) return
-        if (player.moveDelta > grimMaxSpeed) return
-
-        var boostAmount = 0.0
-
-        boostAmount += entitySearch<LivingEntity>(3.0) {
-            player.boundingBox.expand(1.0) in it.boundingBox && it !is ArmorStandEntity
-        }.sumOf { 0.08 * grimEntityBoost }
-
-        if (grimBoatBoost > 0.0) {
-            boostAmount += entitySearch<BoatEntity>(4.0) {
-                player.boundingBox in it.boundingBox.expand(0.01)
-            }.sumOf { grimBoatBoost }
-        }
-
-        addSpeed(boostAmount)
     }
 
     private fun SafeContext.handleStrafe() {
@@ -230,13 +178,8 @@ object Speed : Module(
         if (player.abilities.flying || player.isElytraFlying || player.isTouchingWater || player.isInLava) return false
 
         return when (mode) {
-            Mode.GRIM_STRAFE -> {
-                !player.input.handledByBaritone && !TargetStrafe.isActive
-            }
-
-            Mode.NCP_STRAFE -> {
-                !player.isSneaking
-            }
+            Mode.GRIM_STRAFE -> !player.input.handledByBaritone
+            Mode.NCP_STRAFE -> !player.isSneaking
         }
     }
 
