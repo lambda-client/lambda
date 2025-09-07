@@ -60,14 +60,6 @@ object RotationManager : RequestHandler<RotationRequest>(
     var activeRequest: RotationRequest? = null
     private var changedThisTick = false
 
-    fun Any.onRotate(
-        alwaysListen: Boolean = false,
-        priority: Int = 0,
-        block: SafeContext.() -> Unit
-    )  = this.listen<UpdateManagerEvent.Rotation>(priority, alwaysListen) {
-        block()
-    }
-
     override fun load(): String {
         super.load()
 
