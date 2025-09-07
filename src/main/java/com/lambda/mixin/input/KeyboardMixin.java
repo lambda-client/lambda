@@ -19,7 +19,10 @@ package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.KeyboardEvent;
+import com.lambda.module.modules.player.InventoryMove;
 import net.minecraft.client.Keyboard;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -30,6 +33,13 @@ public class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"))
     private void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
         EventFlow.post(new KeyboardEvent.Press(key, scancode, action, modifiers));
+    }
+
+    @Inject(method = "onKey", at = @At("RETURN"))
+    private void onKeyTail(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
+        if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
+        InputUtil.Key fromCode = InputUtil.fromKeyCode(key, scancode);
+        KeyBinding.setKeyPressed(fromCode, action != 0);
     }
 
     @Inject(method = "onChar", at = @At("HEAD"))
