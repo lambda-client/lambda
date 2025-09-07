@@ -17,15 +17,16 @@
 
 package com.lambda.module.hud
 
-import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask
 
 object TaskFlowHUD : HudModule(
-    name    = "TaskFlowHud",
-    tag     = ModuleTag.HUD,
+    name = "TaskFlowHud",
+    tag = ModuleTag.HUD,
 ) {
-    override val element: Layout =
-        { text(RootTask.toString()) }
+    override fun ImGuiBuilder.buildLayout() {
+        text(RootTask.toString())
+    }
 }

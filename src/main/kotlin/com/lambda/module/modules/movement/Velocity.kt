@@ -30,8 +30,7 @@ object Velocity : Module(
 ) {
     private val knockback by setting("Knockback", true)
 
-    private val explosionSetting by setting("Explosion", true)
-    @JvmStatic val explosion get() = isEnabled && explosionSetting
+    @JvmStatic val explosion by setting("Explosion", true)
 
     init {
         listen<PacketEvent.Receive.Pre> { event ->

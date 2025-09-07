@@ -26,6 +26,8 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.ClientPacket
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
@@ -39,11 +41,11 @@ object PacketDelay : Module(
     description = "Delays packets client-bound & server-bound",
     tag = ModuleTag.NETWORK,
 ) {
-    private val mode by setting("Mode", Mode.STATIC)
-    private val networkScope by setting("Network Scope", Direction.BOTH)
-    private val packetScope by setting("Packet Scope", PacketType.ANY)
-    private val inboundDelay by setting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.OUTBOUND }
-    private val outboundDelay by setting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.INBOUND }
+    private val mode by setting("Mode", Mode.Static, description = "How the delay is applied: Static queues packets until a flush; Pulse delays each packet individually.")
+    private val networkScope by setting("Network Scope", Direction.Both, description = "Which direction(s) to affect: inbound (server → you), outbound (you → server), or both.")
+    private val packetScope by setting("Packet Scope", PacketType.Any, description = "What packets to delay. Choose all packets or a specific packet type.")
+    private val inboundDelay by setting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms", description = "Time to delay packets received from the server before processing.") { networkScope != Direction.Outbound }
+    private val outboundDelay by setting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms", description = "Time to delay packets sent to the server before sending.") { networkScope != Direction.Inbound }
 
     private var outboundPool = ConcurrentLinkedDeque<ServerPacket>()
     private var inboundPool = ConcurrentLinkedDeque<ClientPacket>()
@@ -52,7 +54,7 @@ object PacketDelay : Module(
 
     init {
         listen<RenderEvent.Upload> {
-            if (mode != Mode.STATIC) return@listen
+            if (mode != Mode.Static) return@listen
 
             flushPools(System.currentTimeMillis())
         }
@@ -61,12 +63,12 @@ object PacketDelay : Module(
             if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
-                Mode.STATIC -> {
+                Mode.Static -> {
                     outboundPool.add(event.packet)
                     event.cancel()
                 }
 
-                Mode.PULSE -> {
+                Mode.Pulse -> {
                     runConcurrent {
                         delay(outboundDelay)
                         runGameScheduled {
@@ -82,12 +84,12 @@ object PacketDelay : Module(
             if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
-                Mode.STATIC -> {
+                Mode.Static -> {
                     inboundPool.add(event.packet)
                     event.cancel()
                 }
 
-                Mode.PULSE -> {
+                Mode.Pulse -> {
                     runConcurrent {
                         delay(inboundDelay)
                         runGameScheduled {
@@ -128,10 +130,30 @@ object PacketDelay : Module(
         }
     }
 
-    enum class Mode { STATIC, PULSE, }
-    enum class Direction { BOTH, INBOUND, OUTBOUND }
-    enum class PacketType(val filter: (Packet<*>) -> Boolean) {
-        ANY({ true }),
-        KEEP_ALIVE({ it is KeepAliveC2SPacket })
+    enum class Mode(
+        override val displayName: String,
+        override val description: String,
+    ) : NamedEnum, Describable {
+        Static("Static", "Queue packets and release them in bursts based on your delay. Useful for batching traffic."),
+        Pulse("Pulse", "Apply a per-packet delay before it is sent/processed. Useful for smoothing timing.")
     }
+
+    enum class Direction(
+        override val displayName: String,
+        override val description: String,
+    ) : NamedEnum, Describable {
+        Both("Both", "Affects both outbound (client → server) and inbound (server → client) packets."),
+        Inbound("Inbound", "Affects only packets received from the server."),
+        Outbound("Outbound", "Affects only packets sent to the server.")
+    }
+
+    enum class PacketType(
+        override val displayName: String,
+        override val description: String,
+        val filter: (Packet<*>) -> Boolean,
+    ) : NamedEnum, Describable {
+        Any("Any", "Delay every packet regardless of type.", { true }),
+        KeepAlive("Keep-Alive", "Delay only KeepAlive packets (useful for simulating higher ping).", { it is KeepAliveC2SPacket })
+    }
+
 }

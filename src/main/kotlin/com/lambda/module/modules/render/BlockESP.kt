@@ -19,9 +19,6 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
@@ -29,12 +26,9 @@ import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.outlineShape
-import com.lambda.util.world.blockSearch
-import com.lambda.util.world.distSq
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -47,17 +41,18 @@ object BlockESP : Module(
     description = "Render block ESP",
     tag = ModuleTag.RENDER,
 ) {
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
+    // ToDo: Toggle searching, solve memory leak
+    private val searchBlocks by setting("Search Blocks", true, "Search for blocks around the player")
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks") { searchBlocks }.onValueChange(::rebuildMesh)
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)
 
-    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead").onValueChange(::rebuildMesh)
-    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
-    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
+    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
+    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
 
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").onValueChange(::rebuildMesh)
-
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks").onValueChange(::rebuildMesh)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { searchBlocks }.onValueChange(::rebuildMesh)
 
     @JvmStatic
     val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")

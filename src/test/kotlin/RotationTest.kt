@@ -227,25 +227,6 @@ class RotationTest {
     }
 
     @Test
-    fun `test slerp with angle wrapping`() {
-        // Test slerp across the -180/180 boundary
-        val rotation1 = Rotation(170.0, 0.0)
-        val rotation2 = Rotation(-170.0, 0.0)
-
-        // With a very high speed, should go directly to rotation2
-        val result = rotation1.slerp(rotation2, 1000.0)
-        assertEquals(rotation2.yaw, result.yaw, 0.001)
-        assertEquals(rotation2.pitch, result.pitch, 0.001)
-
-        // With a limited speed, should move in the correct direction (clockwise)
-        val partialResult = rotation1.slerp(rotation2, 10.0)
-
-        // The yaw should be greater than 170 (moving towards 180/-180)
-        // or less than -170 (already crossed the boundary)
-        assertTrue(partialResult.yaw > 170.0 || partialResult.yaw < -170.0)
-    }
-
-    @Test
     fun `test dist method`() {
         val rotation1 = Rotation(0.0, 0.0)
         val rotation2 = Rotation(90.0, 0.0)

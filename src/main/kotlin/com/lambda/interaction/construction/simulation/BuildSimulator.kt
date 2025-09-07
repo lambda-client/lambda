@@ -38,7 +38,6 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
@@ -204,7 +203,7 @@ object BuildSimulator {
                 val validHits = mutableListOf<CheckedHit>()
                 val blockedHits = mutableSetOf<Vec3d>()
                 val misses = mutableSetOf<Vec3d>()
-                val airPlace = placing && place.airPlace.isEnabled()
+                val airPlace = placing && place.airPlace.isEnabled
 
                 boxes.forEach { box ->
                     val refinedSides = if (interactionConfig.checkSideVisibility) {
@@ -397,13 +396,13 @@ object BuildSimulator {
         if (!currentState.isReplaceable && !statePromoting) return acc
 
         preProcessing.sides.forEach { neighbor ->
-            val hitPos = if (!place.airPlace.isEnabled() && (currentState.isEmpty || statePromoting))
+            val hitPos = if (!place.airPlace.isEnabled && (currentState.isEmpty || statePromoting))
                 pos.offset(neighbor)
             else pos
             val hitSide = neighbor.opposite
 
             val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos).let { outlineShape ->
-                if (!outlineShape.isEmpty || !place.airPlace.isEnabled()) outlineShape
+                if (!outlineShape.isEmpty || !place.airPlace.isEnabled) outlineShape
                 else VoxelShapes.fullCube()
             }
             if (voxelShape.isEmpty) return@forEach
@@ -434,10 +433,10 @@ object BuildSimulator {
                     val hit = if (interactionConfig.strictRayCast) {
                         val rayCast = newRotation.rayCast(interactionConfig.interactReach, eye)
                         when {
-                            rayCast != null && (!place.airPlace.isEnabled() || eye distSq rayCast.pos <= distSquared) ->
+                            rayCast != null && (!place.airPlace.isEnabled || eye distSq rayCast.pos <= distSquared) ->
                                 rayCast.blockResult
 
-                            place.airPlace.isEnabled() -> {
+                            place.airPlace.isEnabled -> {
                                 val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
                                 BlockHitResult(hitVec, hitSide, hitPos, false)
                             }
@@ -850,7 +849,6 @@ object BuildSimulator {
         val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
             .asSequence()
             .flatten()
-            .filter { BreakManager.currentStackSelection.filterStack(it) }
             .let { containerStacks ->
                 var bestStack = ItemStack.EMPTY
                 var bestBreakDelta = -1f

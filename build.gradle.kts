@@ -71,7 +71,6 @@ repositories {
     mavenLocal() // Allow the use of local repositories
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
-    maven("https://raw.githubusercontent.com/kotlin-graphics/mary/master")
     mavenCentral()
 
     // Allow the use of local libraries
@@ -111,7 +110,7 @@ loom {
             property("mixin.debug.export", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
-            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "<TOKEN>")
+            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
         }
     }
 }
@@ -160,9 +159,9 @@ dependencies {
 
     includeLib("io.github.spair:imgui-java-binding:$spairVersion")
     includeLib("io.github.spair:imgui-java-lwjgl3:$spairVersion")
-    runtimeOnly("io.github.spair:imgui-java-natives-windows:$spairVersion")
-    runtimeOnly("io.github.spair:imgui-java-natives-linux:$spairVersion")
-    runtimeOnly("io.github.spair:imgui-java-natives-macos:$spairVersion")
+    includeLib("io.github.spair:imgui-java-natives-windows:$spairVersion")
+    includeLib("io.github.spair:imgui-java-natives-linux:$spairVersion")
+    includeLib("io.github.spair:imgui-java-natives-macos:$spairVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
@@ -254,4 +253,16 @@ java {
 
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = mavenGroup
+            artifactId = modId
+            version = "$modVersion+$minecraftVersion"
+
+            from(components["java"])
+        }
+    }
 }

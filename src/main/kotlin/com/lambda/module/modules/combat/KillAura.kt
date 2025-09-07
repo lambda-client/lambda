@@ -36,10 +36,13 @@ import com.lambda.task.RootTask.run
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
+import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.random
+import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.registry.tag.ItemTags
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
@@ -52,7 +55,7 @@ object KillAura : Module(
     // Interact
     private val interactionSettings = InteractionSettings(this, Group.Interaction, InteractionMask.Entity)
     private val interactSettings = InteractSettings(this, listOf(Group.Interact))
-    private val swap by setting("Swap", true, "Swap to the item with the highest damage")
+    private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.Interact)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Interact)
     private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.Interact)
     private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.Interact)
@@ -101,20 +104,10 @@ object KillAura : Module(
         listen<TickEvent.Pre> {
             target?.let { entity ->
                 if (swap) {
-                    val selection = selectStack(
-                        sorter = compareByDescending { attackDamage(stack = it) }
-                    ) { isTag(ItemTags.SWORDS) }
+                    val selection = selectStack().sortByDescending { player.attackDamage(stack = it) }
 
-
-                    if (!selection.selector(player.mainHandStack)) {
-                        selection.transfer(MainHandContainer)
-                            ?.finally {
-                                // Wait until the rotation has a hit result on the entity
-                                if (lookAtEntity(entity).requestBy(rotation).done) runAttack(entity)
-                            }?.run()
-
-                        return@listen
-                    }
+                    if (!selection.bestItemMatch(player.hotbarAndStorage).equal(player.mainHandStack))
+                        selection.transfer(MainHandContainer)?.run()
                 }
 
                 // Wait until the rotation has a hit result on the entity
@@ -129,18 +122,12 @@ object KillAura : Module(
     private fun SafeContext.runAttack(target: LivingEntity) {
         // Cooldown check
         when (attackMode) {
-            AttackMode.Cooldown -> {
-                if (player.lastAttackedTicks < 20 / player.attackSpeed() + cooldownOffset) return
-            }
-
-            AttackMode.Delay -> {
-                if (System.currentTimeMillis() - lastAttackTime < hitDelay) return
-            }
+            AttackMode.Cooldown -> if (player.lastAttackedTicks < 1 / player.attackSpeed() * 20 + cooldownOffset) return
+            AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return
         }
 
         // Rotation check
-        run {
-            if (!rotate) return@run
+        if (rotate) {
             val angle = RotationManager.activeRotation
 
             if (interactionSettings.strictRayCast) {

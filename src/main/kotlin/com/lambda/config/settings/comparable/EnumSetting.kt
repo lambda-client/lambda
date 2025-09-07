@@ -51,7 +51,7 @@ class EnumSetting<T : Enum<T>>(
         value = value.enumValues[to % value.enumValues.size]
     }
 
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         val values = value.enumValues
         val currentDisplay = value.displayValue
 

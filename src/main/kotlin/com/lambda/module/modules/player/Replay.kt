@@ -31,10 +31,10 @@ import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
@@ -87,6 +87,7 @@ object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
     tag = ModuleTag.PLAYER,
+    autoDisable = true
 ) {
     private val record by setting("Record", KeyCode.R)
     private val play by setting("Play / Stop", KeyCode.C)
@@ -178,7 +179,7 @@ object Replay : Module(
             }
         }
 
-        onRotate {
+        listen<UpdateManagerEvent.Rotation> {
             when (state) {
                 State.RECORDING -> {
                     buffer?.rotation?.add(player.rotation)

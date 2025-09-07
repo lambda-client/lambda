@@ -22,8 +22,7 @@ import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 
-
-object LambdaScreen : Screen(Text.of("")) {
+object LambdaScreen : Screen(Text.of("Lambda")) {
     override fun shouldPause() = false
     override fun removed() = ClickGui.disable()
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}

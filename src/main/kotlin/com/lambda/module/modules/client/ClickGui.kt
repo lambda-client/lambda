@@ -20,15 +20,20 @@ package com.lambda.module.modules.client
 import com.lambda.gui.LambdaScreen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Describable
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
+import com.lambda.util.WindowIcons.setLambdaWindowIcon
 import imgui.ImGui
 import imgui.flag.ImGuiCol
+import imgui.flag.ImGuiHoveredFlags
+import net.minecraft.SharedConstants
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
+import net.minecraft.client.util.Icons
 import java.awt.Color
 
 object ClickGui : Module(
@@ -36,6 +41,7 @@ object ClickGui : Module(
     description = "ImGui",
     tag = ModuleTag.CLIENT,
     defaultKeybind = KeyCode.Y,
+    autoDisable = true
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
@@ -45,9 +51,30 @@ object ClickGui : Module(
         Font("Font")
     }
 
+    enum class TooltipType(
+        override val displayName: String,
+        override val description: String,
+        val flag: Int
+    ) : NamedEnum, Describable {
+        Stationary("Stationary", "Show tooltip after the mouse stays still for a brief moment (~0.15s). Once shown, you can keep moving over the same item/window without waiting again.", ImGuiHoveredFlags.Stationary),
+        NoDelay("No Delay", "Show tooltip immediately when hovering (no waiting).", ImGuiHoveredFlags.DelayNone),
+        ShortDelay("Short Delay", "Show tooltip after a short delay (~0.15s), and only after the mouse has been still briefly on the item.", ImGuiHoveredFlags.DelayShort),
+        LongDelay("Long Delay", "Show tooltip after a longer delay (~0.40s), and only after the mouse has been still briefly on the item.", ImGuiHoveredFlags.DelayNormal)
+    }
+
     // General
     val alpha by setting("Alpha", 1.0f, 0.0f..1.0f, 0.01f).group(Group.General)
     val disabledAlpha by setting("Disabled Alpha", 0.6f, 0.0f..1.0f, 0.01f).group(Group.General)
+    val tooltipType by setting("Tooltip Type", TooltipType.Stationary, description = "When to show the tooltip.").group(Group.General)
+    val setLambdaWindowIcon by setting("Set Lambda Window Icon", true).group(Group.General).onValueChange { _, to ->
+        if (to) {
+            setLambdaWindowIcon()
+        } else {
+            val icon = if (SharedConstants.getGameVersion().isStable) Icons.RELEASE else Icons.SNAPSHOT
+            mc.window.setIcon(mc.defaultResourcePack, icon)
+        }
+    }
+    val setLambdaWindowTitle by setting("Set Lambda Window Title", true).group(Group.General)
 
     // Sizing
     val windowPaddingX by setting("Window Padding X", 8.0f, 0.0f..20.0f, 0.1f).group(Group.Sizing)

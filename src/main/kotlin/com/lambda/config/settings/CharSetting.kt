@@ -43,7 +43,9 @@ class CharSetting(
     description,
     visibility
 ) {
-    override fun invoke(p1: ImGuiBuilder) {}
+    override fun ImGuiBuilder.buildLayout() {
+
+    }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

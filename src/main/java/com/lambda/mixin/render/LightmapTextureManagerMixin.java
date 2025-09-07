@@ -48,6 +48,6 @@ public class LightmapTextureManagerMixin {
 
     @Inject(method = "getDarkness", at = @At("HEAD"), cancellable = true)
     private void getDarknessFactor(LivingEntity entity, float factor, float tickProgress, CallbackInfoReturnable<Float> cir) {
-        if (NoRender.getNoDarkness()) cir.setReturnValue(0.0f);
+        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) cir.setReturnValue(0.0f);
     }
 }

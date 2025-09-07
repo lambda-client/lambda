@@ -19,7 +19,11 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
-import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
+import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
+import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.OneSetPerTick
@@ -27,11 +31,9 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.ItemEntity
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
-import net.minecraft.world.BlockView
 
 data class BreakInfo(
     override var context: BreakContext,
@@ -44,10 +46,9 @@ data class BreakInfo(
 
     // Pre Processing
     var shouldProgress = false
-    var couldReBreak by OneSetPerTick(value = RebreakManager.RebreakPotential.None, throwOnLimitBreach = true)
-    var shouldSwap by OneSetPerTick(value = false, throwOnLimitBreach = true)
+    var rebreakPotential by OneSetPerTick(value = RebreakHandler.RebreakPotential.None, throwOnLimitBreach = true)
+    var swapInfo by OneSetPerTick(value = SwapInfo.EMPTY, throwOnLimitBreach = true)
     var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
-    var minSwapTicks by OneSetPerTick(0, true)
 
     // BreakInfo Specific
     var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }
@@ -60,7 +61,7 @@ data class BreakInfo(
     var breakingTicks by OneSetPerTick(0, true)
     var soundsCooldown by OneSetPerTick(0f, true)
     var vanillaInstantBreakable = false
-    val rebreakable get() = !vanillaInstantBreakable && type == BreakType.Primary
+    val rebreakable get() = !vanillaInstantBreakable && type == Primary
 
     enum class BreakType(
         override val displayName: String,
@@ -70,33 +71,24 @@ data class BreakInfo(
         Secondary("Secondary", "A second block broken at the same time (when double‑break is enabled)."),
         RedundantSecondary("Redundant Secondary", "A previously started secondary break that’s now ignored/monitored only (no new actions)."),
         Rebreak("Rebreak", "A previously broken block which new breaks in the same position can compound progression on. Often rebreaking instantly.");
-
-        fun getBreakThreshold(breakConfig: BreakConfig) =
-            when (this) {
-                Primary -> breakConfig.breakThreshold
-                else -> 1.0f
-            }
     }
 
     // Post Processing
-    @Volatile
     var broken = false; private set
     private var item: ItemEntity? = null
     val callbacksCompleted
-        @Synchronized get() = broken && (request.onItemDrop == null || item != null)
+        get() = broken && (request.onItemDrop == null || item != null)
 
-    @Synchronized
     fun internalOnBreak() {
-        if (type != BreakType.Rebreak) broken = true
+        if (type != Rebreak) broken = true
         item?.let { item ->
             request.onItemDrop?.invoke(item)
         }
     }
 
-    @Synchronized
     fun internalOnItemDrop(item: ItemEntity) {
-        if (type != BreakType.Rebreak) this.item = item
-        if (broken || type == BreakType.Rebreak) {
+        if (type != Rebreak) this.item = item
+        if (broken || type == Rebreak) {
             request.onItemDrop?.invoke(item)
         }
     }
@@ -105,26 +97,12 @@ data class BreakInfo(
         updatedThisTick = true
         this.context = context
         request?.let { this.request = it }
-        if (type == BreakType.RedundantSecondary) type = BreakType.Secondary
+        if (type == RedundantSecondary) type = Secondary
     }
 
     fun resetCallbacks() {
         broken = false
         item = null
-    }
-
-    fun shouldSwap(player: ClientPlayerEntity, world: BlockView): Boolean {
-        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, swapStack)
-        val breakProgress = breakDelta * (breakingTicks + 1)
-        return if (couldReBreak == RebreakManager.RebreakPotential.Instant)
-            breakConfig.swapMode.isEnabled()
-        else when (breakConfig.swapMode) {
-            BreakConfig.SwapMode.None -> false
-            BreakConfig.SwapMode.Start -> !breaking
-            BreakConfig.SwapMode.End -> breakProgress >= getBreakThreshold()
-            BreakConfig.SwapMode.StartAndEnd -> !breaking || breakProgress >= getBreakThreshold()
-            BreakConfig.SwapMode.Constant -> true
-        }
     }
 
     fun setBreakingTextureStage(
@@ -135,16 +113,21 @@ data class BreakInfo(
         world.setBlockBreakingInfo(player.id, context.blockPos, stage)
     }
 
-    private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
+    private fun getBreakTextureProgress(player: ClientPlayerEntity, world: ClientWorld): Int {
         val swapMode = breakConfig.swapMode
         val item =
             if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) swapStack else player.mainHandStack
-        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, item)
+        val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, item)
         val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
         return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
     }
 
-    fun getBreakThreshold() = type.getBreakThreshold(breakConfig)
+    fun getBreakThreshold() =
+        when (type) {
+            Primary,
+            Rebreak-> breakConfig.breakThreshold
+            else -> 1.0f
+        }
 
     fun startBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
         breakPacket(Action.START_DESTROY_BLOCK, world, interaction)

@@ -30,7 +30,6 @@ sealed class PlayerPacketEvent {
         var rotation: Rotation,
         var onGround: Boolean,
         var isSprinting: Boolean,
-        var isSneaking: Boolean,
         var isCollidingHorizontally: Boolean,
     ) : ICancellable by Cancellable()
 

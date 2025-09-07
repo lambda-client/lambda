@@ -22,15 +22,14 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.interpolate
 import com.lambda.util.math.plus
@@ -52,6 +51,7 @@ object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
     tag = ModuleTag.PLAYER,
+    autoDisable = true,
 ) {
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
@@ -64,7 +64,10 @@ object Freecam : Module(
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
     private val lerpPos: Vec3d
-        get() = prevPosition.interpolate(mc.partialTicks, position)
+        get() {
+            val tickProgress = mc.gameRenderer.camera.lastTickProgress
+            return prevPosition.interpolate(tickProgress, position)
+        }
 
     private var rotation: Rotation = Rotation.ZERO
     private var velocity: Vec3d = Vec3d.ZERO
@@ -94,8 +97,8 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        onRotate {
-            if (!rotateToTarget) return@onRotate
+        listen<UpdateManagerEvent.Rotation> {
+            if (!rotateToTarget) return@listen
 
             mc.crosshairTarget?.let {
                 lookAtHit(it)?.requestBy(rotationConfig)
@@ -141,10 +144,6 @@ object Freecam : Module(
             mc.crosshairTarget = rotation
                 .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
-        }
-
-        listen<ConnectionEvent.Disconnect> {
-            disable()
         }
     }
 }

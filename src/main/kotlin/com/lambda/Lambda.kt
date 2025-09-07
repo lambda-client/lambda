@@ -27,8 +27,11 @@ import com.lambda.config.serializer.ItemStackSerializer
 import com.lambda.config.serializer.KeyCodeSerializer
 import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
-import com.lambda.threading.recordRenderCall
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.KeyCode
+import com.lambda.util.WindowIcons.setLambdaWindowIcon
 import com.mojang.authlib.GameProfile
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.loader.api.FabricLoader
@@ -49,6 +52,7 @@ object Lambda : ClientModInitializer {
     const val MOD_ID = "lambda"
     const val SYMBOL = "λ"
     const val APP_ID = "1221289599427416127"
+    const val REPO_URL = "https://github.com/lambda-client/lambda"
     val VERSION: String = FabricLoader.getInstance()
         .getModContainer("lambda").orElseThrow()
         .metadata.version.friendlyString
@@ -72,6 +76,14 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
         .create()
 
-    override fun onInitializeClient() =
-        recordRenderCall { LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n") }
+    override fun onInitializeClient() {} // nop
+
+    init {
+        // We want the opengl context to be created
+        listenOnceUnsafe<ClientEvent.Startup>(priority = Int.MAX_VALUE) {
+            LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
+            if (ClickGui.setLambdaWindowIcon) setLambdaWindowIcon()
+            true
+        }
+    }
 }

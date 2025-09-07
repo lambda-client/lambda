@@ -73,7 +73,7 @@ public class ClientPlayNetworkHandlerMixin {
      */
     @Redirect(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(ClientPlayNetworkHandler clientPlayNetworkHandler) {
-        return NoRender.getNoChatVerificationToast();
+        return NoRender.getNoChatVerificationToast() && NoRender.INSTANCE.isEnabled();
     }
 
     /**
@@ -101,7 +101,7 @@ public class ClientPlayNetworkHandlerMixin {
      */
     @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;playerKnockback()Ljava/util/Optional;"), cancellable = true)
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (Velocity.getExplosion()) ci.cancel();
+        if (Velocity.getExplosion() && Velocity.INSTANCE.isEnabled()) ci.cancel();
     }
 
     /**
@@ -109,6 +109,6 @@ public class ClientPlayNetworkHandlerMixin {
      */
     @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;addParticleClient(Lnet/minecraft/particle/ParticleEffect;DDDDDD)V"), cancellable = true)
     void injectParticles(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (NoRender.getNoExplosion()) ci.cancel();
+        if (NoRender.getNoExplosion() && NoRender.INSTANCE.isEnabled()) ci.cancel();
     }
 }

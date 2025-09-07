@@ -57,7 +57,7 @@ abstract class NumericSetting<T>(
      */
     protected abstract fun ImGuiBuilder.buildSlider()
 
-    override fun invoke(p1: ImGuiBuilder) = with(p1) {
+    override fun ImGuiBuilder.buildLayout() {
         val showReset = isModified
         val resetButtonText = "R"
         val valueString = this@NumericSetting.toString()
