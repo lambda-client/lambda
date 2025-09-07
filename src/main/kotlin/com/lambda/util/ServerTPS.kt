@@ -28,9 +28,6 @@ object ServerTPS {
     private val updateHistory = LimitedDecayQueue<Long>(61, 60000)
     private var lastUpdate = 0L
 
-    val averageMSPerTick: Double
-        get() = (if (updateHistory.isEmpty()) 1000.0 else updateHistory.average()) / 20
-
     init {
         listen<PacketEvent.Receive.Pre>(priority = 10000) {
             if (it.packet !is WorldTimeUpdateS2CPacket) return@listen
@@ -47,5 +44,20 @@ object ServerTPS {
             updateHistory.clear()
             lastUpdate = 0
         }
+    }
+
+    fun recentData(tickFormat: TickFormat = TickFormat.MSPT) =
+        updateHistory.map { tickFormat.value(it).toFloat() }.toFloatArray()
+
+    @Suppress("unused")
+    enum class TickFormat(
+        val value: (Long) -> Double,
+        override val displayName: String,
+        val unit: String = ""
+    ) : NamedEnum {
+        TPS({ it / 50.0 }, "TPS"),
+        MSPT({ it / 20.0 }, "MSPT", " ms"),
+        Normalized({ 50.0 / it }, "TPS"),
+        Percentage({ it / 100.0 }, "TPS", "%")
     }
 }

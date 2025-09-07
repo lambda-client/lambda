@@ -21,29 +21,41 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Formatting.string
-import com.lambda.util.NamedEnum
-import com.lambda.util.ServerTPS.averageMSPerTick
+import com.lambda.util.ServerTPS
+import com.lambda.util.ServerTPS.recentData
+import imgui.ImVec2
 
 object TPS : HudModule(
     name = "TPS",
     description = "Display the server's tick rate",
     tag = ModuleTag.HUD,
 ) {
-    private val format by setting("Tick format", TickFormat.TPS)
+    private val format by setting("Tick format", ServerTPS.TickFormat.TPS)
+    private val showGraph by setting("Show TPS Graph", false)
+    private val graphHeight by setting("Graph Height", 40f, 10f..200f, 1f)
+    private val graphWidth by setting("Graph Width", 200f, 10f..500f, 1f)
+    private val graphStride by setting("Graph Stride", 1, 1..20, 1)
 
     override fun ImGuiBuilder.buildLayout() {
-        text("${format.displayName}: ${format.output().string}${format.unit}")
-    }
+        val data = recentData(format)
+        if (data.isEmpty()) {
+            text("No ${format.displayName} data yet")
+            return
+        }
+        val current = data.last()
+        val avg = data.average().toFloat()
+        if (!showGraph) {
+            text("${format.displayName}: ${avg.string}${format.unit}")
+            return
+        }
+        val overlay = "${format.displayName}: cur ${current.string} | avg ${avg.string}"
 
-    @Suppress("unused")
-    private enum class TickFormat(
-        val output: () -> Double,
-        override val displayName: String,
-        val unit: String = ""
-    ) : NamedEnum {
-        TPS({ 1000 / averageMSPerTick }, "TPS"),
-        MSPT({ averageMSPerTick }, "MSPT", " ms"),
-        Normalized({ 50 / averageMSPerTick }, "TPS"),
-        Percentage({ 5000 / averageMSPerTick }, "TPS", "%")
+        plotLines(
+            label = "##TPSPlot",
+            values = data,
+            overlayText = overlay,
+            graphSize = ImVec2(graphWidth, graphHeight),
+            stride = graphStride
+        )
     }
 }
