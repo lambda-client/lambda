@@ -1272,7 +1272,7 @@ object ImGuiBuilder {
      * @param scaleMin Minimum scale value
      * @param scaleMax Maximum scale value
      * @param graphSize Size of the graph
-     * @param stride Stride between values
+     * @param stride Sample decimation step (>= 1). Use 0/1 for contiguous data.
      */
     @ImGuiDsl
     fun plotLines(
@@ -1283,8 +1283,17 @@ object ImGuiBuilder {
         scaleMin: Float = Float.MAX_VALUE,
         scaleMax: Float = Float.MAX_VALUE,
         graphSize: ImVec2 = ImVec2(),
-        stride: Int = 1,
-    ) = ImGui.plotLines(label, values, valuesOffset, overlayText, scaleMin, scaleMax, graphSize, stride)
+        stride: Int = 0,
+    ) {
+        val (src, sMin, sMax) = preparePlotSeries(values, stride, scaleMin, scaleMax)
+        val count = src.size
+        val offset = if (count == 0) 0 else valuesOffset.coerceIn(0, count - 1)
+        if (count < 2) {
+            plotLines(label, floatArrayOf(), 0, 0, overlayText, sMin, sMax, graphSize.x, graphSize.y)
+            return
+        }
+        plotLines(label, src, count, offset, overlayText, sMin, sMax, graphSize.x, graphSize.y)
+    }
 
     /**
      * Creates a plot of histogram values.
@@ -1296,7 +1305,7 @@ object ImGuiBuilder {
      * @param scaleMin Minimum scale value
      * @param scaleMax Maximum scale value
      * @param graphSize Size of the graph
-     * @param stride Stride between values
+     * @param stride Sample decimation step (>= 1). Use 0/1 for contiguous data.
      */
     @ImGuiDsl
     fun plotHistogram(
@@ -1307,8 +1316,61 @@ object ImGuiBuilder {
         scaleMin: Float = Float.MAX_VALUE,
         scaleMax: Float = Float.MAX_VALUE,
         graphSize: ImVec2 = ImVec2(),
-        stride: Int = 1,
-    ) = ImGui.plotHistogram(label, values, valuesOffset, overlayText, scaleMin, scaleMax, graphSize, stride)
+        stride: Int = 0,
+    ) {
+        val (src, sMin, sMax) = preparePlotSeries(values, stride, scaleMin, scaleMax)
+        val count = src.size
+        val offset = if (count == 0) 0 else valuesOffset.coerceIn(0, count - 1)
+        if (count < 1) {
+            plotHistogram(label, floatArrayOf(), 0, 0, overlayText, sMin, sMax, graphSize.x, graphSize.y)
+            return
+        }
+        plotHistogram(label, src, count, offset, overlayText, sMin, sMax, graphSize.x, graphSize.y)
+    }
+
+    private fun preparePlotSeries(
+        values: FloatArray,
+        stride: Int,
+        scaleMin: Float,
+        scaleMax: Float
+    ): Triple<FloatArray, Float, Float> {
+        val contiguous = (stride <= 1)
+        val src = if (contiguous) {
+            values
+        } else {
+            val outSize = (values.size + stride - 1) / stride
+            val out = FloatArray(outSize)
+            var i = 0
+            var j = 0
+            while (i < values.size) {
+                out[j++] = values[i]
+                i += stride
+            }
+            out
+        }
+        var sMin = scaleMin
+        var sMax = scaleMax
+        if (sMin == Float.MAX_VALUE && sMax == Float.MAX_VALUE) {
+            var minV = Float.POSITIVE_INFINITY
+            var maxV = Float.NEGATIVE_INFINITY
+            for (v in src) if (v.isFinite()) {
+                if (v < minV) minV = v
+                if (v > maxV) maxV = v
+            }
+            if (!minV.isFinite() || !maxV.isFinite()) {
+                minV = 0f; maxV = 1f
+            }
+            if (minV == maxV) {
+                val base = if (minV == 0f) 1f else kotlin.math.abs(minV)
+                val pad = base * 0.01f
+                minV -= pad
+                maxV += pad
+            }
+            sMin = minV
+            sMax = maxV
+        }
+        return Triple(src, sMin, sMax)
+    }
 
     /**
      * Creates a main menu bar.
@@ -1485,7 +1547,7 @@ object ImGuiBuilder {
      *
      * @param title Title of the modal
      * @param value Boolean reference to control visibility
-     * @param flags Additional window flags
+     * @param windowFlags Additional window flags
      * @param block Content of the modal
      *
      * @see ImGuiPopupFlags

@@ -15,25 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.hud
+package com.lambda.gui.snap
 
-import com.lambda.graphics.texture.TextureOwner.upload
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
-import imgui.ImGui
-
-object Watermark : HudModule(
-    name = "Watermark",
-    tag = ModuleTag.HUD,
-    enabledByDefault = true,
-) {
-    private val texture = upload("textures/lambda.png")
-    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
-
-    override fun ImGuiBuilder.buildLayout() {
-        val width = texture.width * scale
-        val height = texture.height * scale
-        ImGui.image(texture.id.toLong(), width, height)
-    }
+data class RectF(val x: Float, val y: Float, val w: Float, val h: Float) {
+    val left get() = x
+    val right get() = x + w
+    val top get() = y
+    val bottom get() = y + h
+    val cx get() = x + w * 0.5f
+    val cy get() = y + h * 0.5f
 }
