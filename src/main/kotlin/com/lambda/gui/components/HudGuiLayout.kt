@@ -56,7 +56,6 @@ object HudGuiLayout : Loadable {
         val kindY: Guide.Kind?
     )
 
-    // Precomputed Float PI values to avoid repeated conversions
     private const val PI_F = PI.toFloat()
     private const val HALF_PI_F = (0.5f * PI).toFloat()
     private const val THREE_HALVES_PI_F = (1.5f * PI).toFloat()
@@ -106,7 +105,6 @@ object HudGuiLayout : Loadable {
                             )
                         }
                         with(hud) { buildLayout() }
-                        // Rounded-corner only outline; pull parameters from settings
                         if (ClickGui.isEnabled) {
                             drawHudOutline(
                                 draw = foregroundDrawList,

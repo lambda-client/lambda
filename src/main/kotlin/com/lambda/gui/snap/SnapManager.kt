@@ -87,18 +87,26 @@ object SnapManager {
         val bestScreenX = Best(); val bestScreenY = Best()
         val bestGridX = Best(); val bestGridY = Best()
 
-        fun considerX(g: Guide, point: Float, out: Best) {
+        fun consider(g: Guide, point: Float, out: Best) {
             val dist = abs(point - g.pos)
             if (dist <= max(1f, thresholdFor(g.kind))) {
                 val sc = score(dist, g.strength)
                 if (sc < out.s) { out.s = sc; out.d = g.pos - point; out.p = g.pos; out.k = g.kind }
             }
         }
-        fun considerY(g: Guide, point: Float, out: Best) {
-            val dist = abs(point - g.pos)
-            if (dist <= max(1f, thresholdFor(g.kind))) {
-                val sc = score(dist, g.strength)
-                if (sc < out.s) { out.s = sc; out.d = g.pos - point; out.p = g.pos; out.k = g.kind }
+
+        fun processAxis(
+            g: Guide,
+            points: FloatArray,
+            tier: String,
+            elem: Best,
+            screen: Best,
+            grid: Best
+        ) {
+            when (tier) {
+                "elem" -> for (p in points) consider(g, p, elem)
+                "screen" -> for (p in points) consider(g, p, screen)
+                "grid" -> for (p in points) consider(g, p, grid)
             }
         }
 
@@ -113,20 +121,12 @@ object SnapManager {
 
             when (g.orientation) {
                 Guide.Orientation.Vertical -> {
-                    val pts = floatArrayOf(proposed.left, proposed.cx, proposed.right)
-                    when (tier) {
-                        "elem" -> for (p in pts) considerX(g, p, bestElemX)
-                        "screen" -> for (p in pts) considerX(g, p, bestScreenX)
-                        "grid" -> for (p in pts) considerX(g, p, bestGridX)
-                    }
+                    val points = floatArrayOf(proposed.left, proposed.cx, proposed.right)
+                    processAxis(g, points, tier, bestElemX, bestScreenX, bestGridX)
                 }
                 Guide.Orientation.Horizontal -> {
-                    val pts = floatArrayOf(proposed.top, proposed.cy, proposed.bottom)
-                    when (tier) {
-                        "elem" -> for (p in pts) considerY(g, p, bestElemY)
-                        "screen" -> for (p in pts) considerY(g, p, bestScreenY)
-                        "grid" -> for (p in pts) considerY(g, p, bestGridY)
-                    }
+                    val points = floatArrayOf(proposed.top, proposed.cy, proposed.bottom)
+                    processAxis(g, points, tier, bestElemY, bestScreenY, bestGridY)
                 }
             }
         }
