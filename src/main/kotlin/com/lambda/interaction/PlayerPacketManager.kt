@@ -22,6 +22,7 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedOrderedSet
@@ -87,7 +88,7 @@ object PlayerPacketManager {
         val onGround = new.onGround
         val isCollidingHorizontally = new.isCollidingHorizontally
 
-        val updatePosition = position.approximate(lastPosition, 2.0E-4) || ++sendTicks >= 20
+        val updatePosition = position.approximate(lastPosition) || ++sendTicks >= 20
         val updateRotation = lastRotation.yaw != yaw || lastRotation.pitch != pitch
 
         when {

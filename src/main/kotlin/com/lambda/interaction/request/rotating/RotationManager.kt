@@ -22,7 +22,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -39,11 +38,13 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
+import net.minecraft.client.input.KeyboardInput
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.round
-import kotlin.math.sign
 import kotlin.math.sin
 
 object RotationManager : RequestHandler<RotationRequest>(
@@ -116,6 +117,102 @@ object RotationManager : RequestHandler<RotationRequest>(
         activeRequest?.let {
             if (it.keepTicks-- > 0) return@let
             it.decayTicks--
+        }
+    }
+
+    @JvmStatic
+    fun handleBaritoneRotation(yaw: Float, pitch: Float) {
+        lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
+    }
+
+    @JvmStatic
+    fun redirectStrafeInputs(input: Input) = runSafe {
+        val movementYaw = movementYaw ?: return@runSafe
+        val playerYaw = player.yaw
+
+        if (movementYaw.minus(playerYaw).rem(360f).let { it * it } < 0.001f) return@runSafe
+
+        val originalStrafe = input.movementVector.x
+        val originalForward = input.movementVector.y
+
+        if (originalStrafe == 0.0f && originalForward == 0.0f) return@runSafe
+
+        val deltaYawRad = (playerYaw - movementYaw).toRadian()
+
+        val cos = cos(deltaYawRad)
+        val sin = sin(deltaYawRad)
+        // This is the IDEAL movement vector in the server-side entity's frame of reference
+        val newStrafe = originalStrafe * cos - originalForward * sin
+        val newForward = originalStrafe * sin + originalForward * cos
+
+        // --- ANGLE SNAPPING LOGIC ---
+        // Instead of simple thresholds, we find the closest of the 8 possible directions.
+
+        // Get the angle of the ideal vector. atan2 gives us an angle in radians.
+        // Note: Minecraft input vector's +Y is forward, +X is left.
+        val angle = atan2(newStrafe.toDouble(), newForward.toDouble())
+
+        // Define the boundaries for our 8 sectors (in radians). Each sector is 45 degrees (PI/4).
+        val sector = (PI / 4.0).toFloat()
+        val boundary = (PI / 8.0).toFloat() // The halfway point between sectors (22.5 degrees)
+
+        var pressForward = false
+        var pressBackward = false
+        var pressLeft = false
+        var pressRight = false
+
+        // Determine which 45-degree sector the angle falls into and set the corresponding keys.
+        if (angle > -boundary && angle <= boundary) {
+            // Forward
+            pressForward = true
+        } else if (angle > boundary && angle <= boundary + sector) {
+            // Forward-Left
+            pressForward = true
+            pressLeft = true
+        } else if (angle > boundary + sector && angle <= boundary + 2 * sector) {
+            // Left
+            pressLeft = true
+        } else if (angle > boundary + 2 * sector && angle <= boundary + 3 * sector) {
+            // Backward-Left
+            pressBackward = true
+            pressLeft = true
+        } else if (angle > boundary + 3 * sector || angle <= -(boundary + 3 * sector)) {
+            // Backward
+            pressBackward = true
+        } else if (angle > -(boundary + 3 * sector) && angle <= -(boundary + 2 * sector)) {
+            // Backward-Right
+            pressBackward = true
+            pressRight = true
+        } else if (angle > -(boundary + 2 * sector) && angle <= -(boundary + sector)) {
+            // Right
+            pressRight = true
+        } else if (angle > -(boundary + sector) && angle <= -boundary) {
+            // Forward-Right
+            pressForward = true
+            pressRight = true
+        }
+
+        // --- Update Minecraft's input objects ---
+        input.playerInput = PlayerInput(
+            pressForward,
+            pressBackward,
+            pressLeft,
+            pressRight,
+            input.playerInput.jump(),
+            input.playerInput.sneak(),
+            input.playerInput.sprint()
+        )
+
+        val f = getMovementMultiplier(input.playerInput.forward(), input.playerInput.backward())
+        val g = getMovementMultiplier(input.playerInput.left(), input.playerInput.right())
+        input.movementVector = Vec2f(g, f).normalize()
+    }
+
+    private fun getMovementMultiplier(positive: Boolean, negative: Boolean): Float {
+        return if (positive == negative) {
+            0.0f
+        } else {
+            if (positive) 1.0f else -1.0f
         }
     }
 
@@ -194,82 +291,6 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
-    }
-
-    object BaritoneProcessor {
-        private var baritoneContext: RotationRequest? = null
-
-        private val movementYawList = arrayOf(
-            0.0, 45.0,
-            90.0, 135.0,
-            180.0, 225.0,
-            270.0, 315.0,
-        )
-
-        @JvmStatic
-        fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            baritoneContext = lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
-        }
-
-        init {
-            listenUnsafe<TickEvent.Pre> {
-                baritoneContext = null
-            }
-        }
-
-        @JvmStatic
-        fun processInputs(input: Input) = runSafe {
-            // The yaw relative to which the movement was constructed
-            val baritoneYaw = baritoneContext?.target?.targetRotation?.value?.yaw
-            val baseYaw = baritoneYaw ?: player.yaw.toDouble()
-            val strafeEvent = RotationEvent.StrafeInput(baseYaw, input)
-            val movementYaw = strafeEvent.post().strafeYaw
-
-            // No changes are needed, when we don't modify the yaw used to move the player
-            // val config = currentContext?.config ?: return@runSafe
-            // if (config.rotationMode == RotationMode.SILENT && !input.handledByBaritone && baritoneContext == null) return@runSafe
-
-            // Sign it to remove previous speed modifier
-            input.hasForwardMovement()
-            val signForward = sign(input.movementVector.y)
-            val signStrafe = sign(input.movementVector.x)
-
-            // No changes are needed when no inputs are pressed
-            if (signForward <= 1.0E-5f && signStrafe <= 1.0E-5F) return@runSafe
-
-            // Actual yaw used by the physics engine
-            var actualYaw = activeRotation.yaw
-
-            if (activeRequest?.rotationMode == RotationMode.Silent) {
-                actualYaw = player.yaw.toDouble()
-            }
-
-            val yawRad = (movementYaw - actualYaw).toRadian()
-
-            val cosDelta = cos(yawRad)
-            val sinDelta = sin(yawRad)
-
-            val newX = signStrafe * cosDelta - signForward * sinDelta
-            val newZ = signForward * cosDelta + signStrafe * sinDelta
-
-            // Apply new movement
-            input.apply {
-                movementVector = Vec2f(
-                    round(newX).toFloat(),
-                    round(newZ).toFloat(),
-                )
-            }
-
-            baritoneYaw ?: return@runSafe
-
-            // Makes baritone movement safe
-            // when yaw difference is too big to compensate it by modifying keyboard input
-            val minYawDist = movementYawList
-                .map { activeRotation.yaw + it } // all possible movement directions (including diagonals)
-                .minOf { Rotation.angleDifference(it, baritoneYaw) }
-
-            if (minYawDist > 5.0) input.movementVector = Vec2f.ZERO
-        }
     }
 
     override fun preEvent() = UpdateManagerEvent.Rotation.post()

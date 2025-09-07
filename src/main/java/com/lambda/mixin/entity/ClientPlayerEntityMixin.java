@@ -70,7 +70,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     void processMovement(Input input) {
         input.tick();
         RotationManager.processRotations();
-        RotationManager.BaritoneProcessor.processInputs(input);
+        RotationManager.redirectStrafeInputs(input);
         EventFlow.post(new MovementEvent.InputUpdate(input));
     }
 
