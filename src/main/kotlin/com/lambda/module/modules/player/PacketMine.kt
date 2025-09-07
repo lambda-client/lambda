@@ -171,8 +171,7 @@ object PacketMine : Module(
                     }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
                     boxes.forEach { box ->
-                        it.filled(box, color)
-                        it.outline(box, color.setAlpha(1.0))
+                        it.box(box, color, color.setAlpha(1.0))
                     }
                 }
             }

@@ -25,6 +25,7 @@ import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
+import com.lambda.event.events.onDynamicRender
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
@@ -215,16 +216,16 @@ object BreakManager : RequestHandler<BreakRequest>(
                 ?.internalOnItemDrop(it.entity)
         }
 
-        onStaticRender {
+        onDynamicRender {
             val activeStack = breakInfos
                 .filterNotNull()
-                .firstOrNull()?.swapStack ?: return@onStaticRender
+                .firstOrNull()?.swapStack ?: return@onDynamicRender
 
             breakInfos
                 .filterNotNull()
                 .forEach { info ->
                     val config = info.breakConfig
-                    if (!config.renders) return@onStaticRender
+                    if (!config.renders) return@onDynamicRender
                     val swapMode = info.breakConfig.swapMode
                     val breakDelta = info.context.cachedState.calcBreakDelta(
                         player,
