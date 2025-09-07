@@ -49,12 +49,12 @@ public class LivingEntityRendererMixin {
      * }</pre>
      */
     @WrapOperation(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F"))
-    private float wrapGetLerpedPitch(LivingEntity instance, float v, Operation<Float> original) {
-        @Nullable
+    private float wrapGetLerpedPitch(LivingEntity livingEntity, float v, Operation<Float> original) {
         Float headPitch = RotationManager.getHeadPitch();
-        if (instance != Lambda.getMc().player || headPitch == null)
-            return original.call(instance, v);
+        if (livingEntity != Lambda.getMc().player || headPitch == null) {
+            return original.call(livingEntity, v);
+        }
 
-        return lerp(v, RotationManager.INSTANCE.getPrevServerRotation().getPitchF(), headPitch);
+        return lerp(v, RotationManager.getPrevServerRotation().getPitchF(), headPitch);
     }
 }

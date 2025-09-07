@@ -55,6 +55,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 ) {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
+    @JvmStatic
     var prevServerRotation = Rotation.ZERO
 
     var activeRequest: RotationRequest? = null
@@ -155,34 +156,35 @@ object RotationManager : RequestHandler<RotationRequest>(
         var pressRight = false
 
         // Determine which 45-degree sector the angle falls into and set the corresponding keys.
-        if (angle > -boundary && angle <= boundary) {
-            // Forward
-            pressForward = true
-        } else if (angle > boundary && angle <= boundary + sector) {
-            // Forward-Left
-            pressForward = true
-            pressLeft = true
-        } else if (angle > boundary + sector && angle <= boundary + 2 * sector) {
-            // Left
-            pressLeft = true
-        } else if (angle > boundary + 2 * sector && angle <= boundary + 3 * sector) {
-            // Backward-Left
-            pressBackward = true
-            pressLeft = true
-        } else if (angle > boundary + 3 * sector || angle <= -(boundary + 3 * sector)) {
-            // Backward
-            pressBackward = true
-        } else if (angle > -(boundary + 3 * sector) && angle <= -(boundary + 2 * sector)) {
-            // Backward-Right
-            pressBackward = true
-            pressRight = true
-        } else if (angle > -(boundary + 2 * sector) && angle <= -(boundary + sector)) {
-            // Right
-            pressRight = true
-        } else if (angle > -(boundary + sector) && angle <= -boundary) {
-            // Forward-Right
-            pressForward = true
-            pressRight = true
+        when {
+            angle > -boundary && angle <= boundary -> {
+                pressForward = true
+            }
+            angle > boundary && angle <= boundary + sector -> {
+                pressForward = true
+                pressLeft = true
+            }
+            angle > boundary + sector && angle <= boundary + 2 * sector -> {
+                pressLeft = true
+            }
+            angle > boundary + 2 * sector && angle <= boundary + 3 * sector -> {
+                pressBackward = true
+                pressLeft = true
+            }
+            angle > boundary + 3 * sector || angle <= -(boundary + 3 * sector) -> {
+                pressBackward = true
+            }
+            angle > -(boundary + 3 * sector) && angle <= -(boundary + 2 * sector) -> {
+                pressBackward = true
+                pressRight = true
+            }
+            angle > -(boundary + 2 * sector) && angle <= -(boundary + sector) -> {
+                pressRight = true
+            }
+            angle > -(boundary + sector) && angle <= -boundary -> {
+                pressForward = true
+                pressRight = true
+            }
         }
 
         input.playerInput = PlayerInput(
@@ -205,7 +207,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     fun onRotationSend() {
         prevServerRotation = serverRotation
-        serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
+        serverRotation = activeRotation
 
         if (activeRequest?.rotationMode == RotationMode.Lock) {
             mc.player?.yaw = serverRotation.yawF
