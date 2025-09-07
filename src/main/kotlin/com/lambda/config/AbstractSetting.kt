@@ -159,9 +159,7 @@ abstract class AbstractSetting<T : Any>(
     }
 
     fun group(path: NamedEnum?) = apply {
-        if (path != null) {
-            groups.add(listOf(path))
-        }
+        path?.let { groups.add(listOf(it)) }
     }
 
     fun reset(silent: Boolean = false) {
