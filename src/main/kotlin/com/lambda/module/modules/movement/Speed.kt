@@ -35,7 +35,6 @@ import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
-import com.lambda.util.player.MovementUtils.jumping
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.MovementUtils.newMovementInput
@@ -43,8 +42,6 @@ import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
 import com.lambda.util.world.entitySearch
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.vehicle.BoatEntity
 
 object Speed : Module(
@@ -56,13 +53,14 @@ object Speed : Module(
     val mode by setting("Mode", Mode.GRIM_STRAFE).onValueChange { _, _ -> reset() }
 
     // Grim
-    private val diagonal by setting("Diagonal", true) { mode == Mode.GRIM_STRAFE }
+    private val diagonal by setting("Diagonal", true).group(Mode.GRIM_STRAFE)
+    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.7, 0.01).group(Mode.GRIM_STRAFE)
 
     // NCP
-    private val strict by setting("Strict", true) { mode == Mode.NCP_STRAFE }
-    private val lowerJump by setting("Lower Jump", true) { mode == Mode.NCP_STRAFE }
-    private val ncpAutoJump by setting("Auto Jump", false) { mode == Mode.NCP_STRAFE }
-    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
+    private val strict by setting("Strict", true).group(Mode.NCP_STRAFE)
+    private val lowerJump by setting("Lower Jump", true).group(Mode.NCP_STRAFE)
+    private val ncpAutoJump by setting("Auto Jump", false).group(Mode.NCP_STRAFE)
+    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01).group(Mode.NCP_STRAFE)
 
     private val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
 
@@ -91,8 +89,9 @@ object Speed : Module(
                 return@listen
             }
 
-            if (mode == Mode.NCP_STRAFE) {
-                handleStrafe()
+            when (mode) {
+                Mode.NCP_STRAFE -> handleStrafe()
+                Mode.GRIM_STRAFE -> handleGrim()
             }
         }
 
@@ -131,6 +130,20 @@ object Speed : Module(
         }
     }
 
+    private fun SafeContext.handleGrim() {
+        var grimSpeed = 0.0
+
+        if (grimBoatBoost > 0.0) {
+            grimSpeed += entitySearch<BoatEntity>(4.0) {
+                player.boundingBox in it.boundingBox.expand(0.01)
+            }.sumOf { grimBoatBoost }
+        }
+
+        addSpeed(
+            if (isInputting) grimSpeed else 0.0
+        )
+    }
+
     private fun SafeContext.handleStrafe() {
         val shouldJump = player.input.playerInput.jump || (ncpAutoJump && isInputting)
 
@@ -162,9 +175,7 @@ object Speed : Module(
             ncpSpeed = NCP_BASE_SPEED
         }
 
-        ncpSpeed = ncpSpeed
-            .coerceAtMost(1.0)
-            .coerceAtLeast(NCP_BASE_SPEED)
+        ncpSpeed = ncpSpeed.coerceIn(1.0..NCP_BASE_SPEED)
 
         val moveSpeed = if (isInputting) ncpSpeed else {
             ncpSpeed = NCP_BASE_SPEED
