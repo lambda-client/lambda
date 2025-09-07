@@ -48,7 +48,7 @@ object TPS : HudModule(
             text("${format.displayName}: ${avg.string}${format.unit}")
             return
         }
-        val overlay = "${format.displayName}: cur ${current.string} | avg ${avg.string}"
+        val overlay = "cur ${current.string}${format.unit} | avg ${avg.string}${format.unit}"
 
         plotLines(
             label = "##TPSPlot",

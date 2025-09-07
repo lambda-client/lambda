@@ -53,11 +53,12 @@ object ServerTPS {
     enum class TickFormat(
         val value: (Long) -> Double,
         override val displayName: String,
+        override val description: String,
         val unit: String = ""
-    ) : NamedEnum {
-        TPS({ it / 50.0 }, "TPS"),
-        MSPT({ it / 20.0 }, "MSPT", " ms"),
-        Normalized({ 50.0 / it }, "TPS"),
-        Percentage({ it / 100.0 }, "TPS", "%")
+    ) : NamedEnum, Describable {
+        TPS({ it / 50.0 }, "TPS", "Ticks Per Second", " t/s"),
+        MSPT({ it / 20.0 }, "MSPT", "Milliseconds Per Tick", " ms/t"),
+        Normalized({ it / 1000.0 }, "nTPS", "Normalized Ticks Per Second"),
+        Percentage({ it / 10.0 }, "TPS%", "Deviation from 20 TPS","%")
     }
 }
