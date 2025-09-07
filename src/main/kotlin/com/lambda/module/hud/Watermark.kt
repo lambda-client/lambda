@@ -21,19 +21,19 @@ import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import imgui.ImGui
 
 object Watermark : HudModule(
     name = "Watermark",
     tag = ModuleTag.HUD,
+    enabledByDefault = true,
 ) {
     private val texture = upload("textures/lambda.png")
+    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
 
     override fun ImGuiBuilder.buildLayout() {
-        windowDrawList.addImage(
-            texture.id.toLong(),
-            texture.width.toFloat(),
-            texture.height.toFloat(),
-            1f, 0f, 0f, 1f
-        )
+        val width = texture.width * scale
+        val height = texture.height * scale
+        ImGui.image(texture.id.toLong(), width, height)
     }
 }
