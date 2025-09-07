@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.result
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
 import net.minecraft.block.BlockState
@@ -46,7 +47,7 @@ sealed class PlaceResult : BuildResult() {
     ) : Contextual, Drawable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
 
-        override fun SafeContext.buildRenderer() {
+        override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
 
@@ -77,8 +78,8 @@ sealed class PlaceResult : BuildResult() {
         override val rank = Rank.PLACE_NO_INTEGRITY
         private val color = Color(252, 3, 3, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withState(expected, blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, expected, color, color)
         }
     }
 

@@ -19,7 +19,8 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
@@ -44,7 +45,7 @@ sealed class BreakResult : BuildResult() {
     ) : Drawable, Contextual, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
 
-        override fun SafeContext.buildRenderer() {
+        override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
 
@@ -68,8 +69,8 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BREAK_NOT_EXPOSED
         private val color = Color(46, 0, 0, 30)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color, side)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color, side.mask)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -108,8 +109,8 @@ sealed class BreakResult : BuildResult() {
                     )
             }
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -132,8 +133,8 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BREAK_SUBMERGE
         private val color = Color(114, 27, 255, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 
@@ -147,8 +148,8 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BREAK_IS_BLOCKED_BY_FLUID
         private val color = Color(50, 12, 112, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 
@@ -164,8 +165,8 @@ sealed class BreakResult : BuildResult() {
 
         override val goal = GoalInverted(GoalBlock(blockPos))
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 }

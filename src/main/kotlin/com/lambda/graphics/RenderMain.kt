@@ -25,8 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
-import com.lambda.graphics.renderer.esp.global.DynamicESP
-import com.lambda.graphics.renderer.esp.global.StaticESP
+import com.lambda.graphics.renderer.esp.Treed
 import com.lambda.util.math.Vec2d
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
@@ -56,21 +55,22 @@ object RenderMain {
 
             GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
 
-            RenderEvent.World().post()
-            StaticESP.render()
-            DynamicESP.render()
+            Treed.Static.render()
+            Treed.Dynamic.render()
+
+            RenderEvent.Render.post()
         }
     }
 
     init {
         listen<TickEvent.Post> {
-            StaticESP.clear()
-            RenderEvent.StaticESP().post()
-            StaticESP.upload()
+            Treed.Static.clear()
+            Treed.Dynamic.clear()
 
-            DynamicESP.clear()
-            RenderEvent.DynamicESP().post()
-            DynamicESP.upload()
+            RenderEvent.Upload.post()
+
+            Treed.Static.upload()
+            Treed.Dynamic.upload()
         }
     }
 }

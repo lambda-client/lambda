@@ -18,15 +18,10 @@
 package com.lambda.module.modules.render
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.events.onStaticRender
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.buildFilled
-import com.lambda.graphics.renderer.esp.builders.buildFilledShape
-import com.lambda.graphics.renderer.esp.builders.buildOutline
-import com.lambda.graphics.renderer.esp.builders.buildOutlineShape
-import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -52,7 +47,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.vehicle.AbstractMinecartEntity
 import net.minecraft.entity.vehicle.MinecartEntity
-import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
 object StorageESP : Module(
@@ -64,14 +58,15 @@ object StorageESP : Module(
     private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering").group(Group.General)
 
     /* Render settings */
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueSet { _, to -> if (!to) drawOutlines = true }.group(Group.Render)
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueSet { _, to -> if (!to) drawFaces = true }.group(Group.Render)
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").group(Group.Render)
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueChange { _, to -> drawEdges = !to && !drawFaces }.group(Group.Render)
+    private var drawEdges: Boolean by setting("Draw Edges", true, "Draw edges of blocks").onValueChange { _, to -> drawFaces = !to && !drawEdges }.group(Group.Render)
+    private val mode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").group(Group.Render)
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").group(Group.Render)
 
     /* Color settings */
     private val useBlockColor by setting("Use Block Color", true, "Use the color of the block instead").group(Group.Color)
-    private val alpha by setting("Alpha", 0.3, 0.1..1.0, 0.05).group(Group.Color)
+    private val facesAlpha by setting("Faces Alpha", 0.3, 0.1..1.0, 0.05).group(Group.Color)
+    private val edgesAlpha by setting("Edges Alpha", 0.3, 0.1..1.0, 0.05).group(Group.Color)
 
     // TODO:
     //  val blockColors by setting("Block Colors", mapOf<String, Color>()) { page == Page.Color && !useBlockColor }
@@ -118,15 +113,15 @@ object StorageESP : Module(
     )
 
     init {
-        listen<RenderEvent.StaticESP> { event ->
+        onStaticRender { builder ->
             blockEntitySearch<BlockEntity>(distance)
                 .filter { it::class in entities }
-                .forEach { event.renderer.build(it, it.pos, excludedSides(it)) }
+                .forEach { with(builder) { build(it, excludedSides(it)) } }
 
             val mineCarts = entitySearch<AbstractMinecartEntity>(distance)
             val itemFrames = entitySearch<ItemFrameEntity>(distance)
             (mineCarts + itemFrames)
-                .forEach { event.renderer.build(it, DirectionMask.ALL) }
+                .forEach { with(builder) { build(it, DirectionMask.ALL) } } // FixMe: Exclude entity shape sides
         }
     }
 
@@ -144,32 +139,32 @@ object StorageESP : Module(
         } else DirectionMask.ALL
     }
 
-    private fun StaticESPRenderer.build(
+    private fun ShapeBuilder.build(
         block: BlockEntity,
-        pos: BlockPos,
         sides: Int,
     ) = runSafe {
-        val color = if (useBlockColor) {
-            blockColor(block.cachedState, pos)
-        } else getBlockEntityColor(block) ?: return@runSafe
-        val shape = outlineShape(block.cachedState, pos)
+        val color =
+            if (useBlockColor) blockColor(block.cachedState, block.pos)
+            else block.color ?: return@runSafe
 
-        if (drawFaces) buildFilledShape(shape, color.setAlpha(alpha), sides)
-        if (drawOutlines) buildOutlineShape(shape, color, sides, outlineMode)
+        val shape = outlineShape(block.cachedState, block.pos)
+
+        if (drawFaces) filled(shape, color.setAlpha(facesAlpha), sides)
+        if (drawEdges) outline(shape, color.setAlpha(edgesAlpha), sides, mode)
     }
 
-    private fun StaticESPRenderer.build(
+    private fun ShapeBuilder.build(
         entity: Entity,
         sides: Int,
     ) = runSafe {
-        val color = getEntityColor(entity) ?: return@runSafe
+        val color = entity.color ?: return@runSafe
 
-        if (drawFaces) buildFilled(entity.boundingBox, color.setAlpha(alpha), sides)
-        if (drawOutlines) buildOutline(entity.boundingBox, color, sides, outlineMode)
+        if (drawFaces) filled(entity.boundingBox, color.setAlpha(facesAlpha), sides)
+        if (drawEdges) outline(entity.boundingBox, color.setAlpha(edgesAlpha), sides, mode)
     }
 
-    private fun getBlockEntityColor(block: BlockEntity?) =
-        when (block) {
+    private val BlockEntity?.color get() =
+        when (this) {
             is BarrelBlockEntity -> barrelColor
             is BlastFurnaceBlockEntity -> blastFurnaceColor
             is BrewingStandBlockEntity -> brewingStandColor
@@ -184,8 +179,8 @@ object StorageESP : Module(
             else -> null
         }
 
-    private fun getEntityColor(entity: Entity?) =
-        when (entity) {
+    private val Entity?.color get() =
+        when (this) {
             is AbstractMinecartEntity -> cartColor
             is ItemFrameEntity -> itemFrameColor
             else -> null

@@ -53,7 +53,7 @@ object PacketDelay : Module(
     private var inboundLastUpdate = 0L
 
     init {
-        listen<RenderEvent.World> {
+        listen<RenderEvent.Upload> {
             if (mode != Mode.Static) return@listen
 
             flushPools(System.currentTimeMillis())
