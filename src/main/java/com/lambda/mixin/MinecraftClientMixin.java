@@ -52,6 +52,7 @@ public class MinecraftClientMixin {
     @Shadow
     @Nullable
     public Screen currentScreen;
+
     @Shadow
     @Nullable
     public HitResult crosshairTarget;
@@ -135,6 +136,19 @@ public class MinecraftClientMixin {
         }
     }
 
+    @Redirect(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
+    private void redirectUnPressAll() {
+        if (!InventoryMove.getShouldMove()) {
+            KeyBinding.unpressAll();
+            return;
+        }
+        KeyBinding.KEYS_BY_ID.values().forEach(bind -> {
+            if (!InventoryMove.isKeyMovementRelated(bind.boundKey.getCode())) {
+                bind.reset();
+            }
+        });
+    }
+
     @Redirect(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
     private void redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
         if (this.crosshairTarget == null) return;
@@ -156,18 +170,5 @@ public class MinecraftClientMixin {
         if (!Interact.INSTANCE.isEnabled()) return;
 
         itemUseCooldown = Interact.getPlaceDelay();
-    }
-
-    @Redirect(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
-    private void redirectUnPressAll() {
-        if (InventoryMove.getShouldMove()) {
-            KeyBinding.unpressAll();
-            return;
-        }
-        for (KeyBinding bind : KeyBinding.KEYS_BY_ID.values()) {
-            if (!InventoryMove.isKeyMovementRelated(bind.boundKey.getCode())) {
-                bind.reset();
-            }
-        }
     }
 }

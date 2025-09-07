@@ -35,6 +35,13 @@ public class KeyboardMixin {
         EventFlow.post(new KeyboardEvent.Press(key, scancode, action, modifiers));
     }
 
+    @Inject(method = "onKey", at = @At("RETURN"))
+    private void onKeyTail(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
+        if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
+        InputUtil.Key fromCode = InputUtil.fromKeyCode(key, scancode);
+        KeyBinding.setKeyPressed(fromCode, action != 0);
+    }
+
     @Inject(method = "onChar", at = @At("HEAD"))
     private void onChar(long window, int codePoint, int modifiers, CallbackInfo ci) {
         char[] chars = Character.toChars(codePoint);
@@ -42,12 +49,5 @@ public class KeyboardMixin {
         for (char c : chars) {
             EventFlow.post(new KeyboardEvent.Char(c));
         }
-    }
-
-    @Inject(method = "onKey", at = @At("RETURN"))
-    private void onKeyTail(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
-        if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
-        InputUtil.Key fromCode = InputUtil.fromKeyCode(key, scancode);
-        KeyBinding.setKeyPressed(fromCode, action != 0);
     }
 }

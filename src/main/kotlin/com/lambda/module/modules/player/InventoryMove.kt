@@ -18,18 +18,15 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.RotationSettings
-import com.lambda.event.events.UpdateManagerEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.request.rotating.RotationManager.onRotate
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyboardUtils.isKeyPressed
-import com.lambda.util.NamedEnum
 import com.lambda.util.math.MathUtils.toFloatSign
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
@@ -70,8 +67,8 @@ object InventoryMove : Module(
                 this == null
 
     init {
-        listen<UpdateManagerEvent.Rotation> {
-            if (!arrowKeys || mc.currentScreen.hasInputOrNull) return@listen
+        onRotate {
+            if (!arrowKeys || mc.currentScreen.hasInputOrNull) return@onRotate
 
             val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
                     isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
