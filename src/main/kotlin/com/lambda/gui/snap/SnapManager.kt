@@ -51,6 +51,10 @@ object SnapManager {
         elementRects[id] = rect
     }
 
+    fun unregisterElement(id: String) {
+        elementRects.remove(id)
+    }
+
     private fun addElementGuides(sourceId: String, r: RectF) {
         if (snapEnabled && snapToEdges) {
             frameGuides += SnapGuide(Guide(Guide.Orientation.Vertical, r.left, 100, Guide.Kind.ElementEdge), sourceId)

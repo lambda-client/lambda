@@ -78,9 +78,11 @@ object HudGuiLayout : Loadable {
                 pendingPositions.clear()
                 snapOverlays.clear()
 
-                val huds = ModuleRegistry.modules
+                val (huds, notShown) = ModuleRegistry.modules
                     .filterIsInstance<HudModule>()
-                    .filter { it.isEnabled }
+                    .partition { it.isEnabled }
+
+                notShown.forEach { SnapManager.unregisterElement(it.name) }
 
                 if (ClickGui.isEnabled && activeDragHudName == null && mousePressedThisFrame) {
                     tryBeginDrag(huds)
@@ -106,17 +108,9 @@ object HudGuiLayout : Loadable {
                         }
                         with(hud) { buildLayout() }
                         if (ClickGui.isEnabled) {
-                            drawHudOutline(
-                                draw = foregroundDrawList,
-                                x = windowPos.x,
-                                y = windowPos.y,
-                                w = windowSize.x,
-                                h = windowSize.y
-                            )
+                            drawHudOutline(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                         }
-                        val p = windowPos
-                        val s = windowSize
-                        val rect = RectF(p.x, p.y, s.x, s.y)
+                        val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                         SnapManager.registerElement(hud.name, rect)
                         lastBounds[hud.name] = rect
                     }
