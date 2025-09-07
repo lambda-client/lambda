@@ -38,7 +38,6 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
-import net.minecraft.client.input.KeyboardInput
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec2f
@@ -141,15 +140,9 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         val cos = cos(deltaYawRad)
         val sin = sin(deltaYawRad)
-        // This is the IDEAL movement vector in the server-side entity's frame of reference
         val newStrafe = originalStrafe * cos - originalForward * sin
         val newForward = originalStrafe * sin + originalForward * cos
 
-        // --- ANGLE SNAPPING LOGIC ---
-        // Instead of simple thresholds, we find the closest of the 8 possible directions.
-
-        // Get the angle of the ideal vector. atan2 gives us an angle in radians.
-        // Note: Minecraft input vector's +Y is forward, +X is left.
         val angle = atan2(newStrafe.toDouble(), newForward.toDouble())
 
         // Define the boundaries for our 8 sectors (in radians). Each sector is 45 degrees (PI/4).
@@ -192,7 +185,6 @@ object RotationManager : RequestHandler<RotationRequest>(
             pressRight = true
         }
 
-        // --- Update Minecraft's input objects ---
         input.playerInput = PlayerInput(
             pressForward,
             pressBackward,
@@ -203,18 +195,13 @@ object RotationManager : RequestHandler<RotationRequest>(
             input.playerInput.sprint()
         )
 
-        val f = getMovementMultiplier(input.playerInput.forward(), input.playerInput.backward())
-        val g = getMovementMultiplier(input.playerInput.left(), input.playerInput.right())
-        input.movementVector = Vec2f(g, f).normalize()
+        val x = multiplier(input.playerInput.left(), input.playerInput.right())
+        val y = multiplier(input.playerInput.forward(), input.playerInput.backward())
+        input.movementVector = Vec2f(x, y).normalize()
     }
 
-    private fun getMovementMultiplier(positive: Boolean, negative: Boolean): Float {
-        return if (positive == negative) {
-            0.0f
-        } else {
-            if (positive) 1.0f else -1.0f
-        }
-    }
+    private fun multiplier(positive: Boolean, negative: Boolean) =
+        ((if (positive) 1 else 0) - (if (negative) 1 else 0)).toFloat()
 
     fun onRotationSend() {
         prevServerRotation = serverRotation
