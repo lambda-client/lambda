@@ -159,14 +159,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             field = value
         }
 
-    fun Any.onBreak(
-        alwaysListen: Boolean = false,
-        priority: Int = 0,
-        block: SafeContext.() -> Unit
-    ) = this.listen<UpdateManagerEvent.Break>(priority, alwaysListen) {
-        block()
-    }
-
     override fun load(): String {
         super.load()
 
