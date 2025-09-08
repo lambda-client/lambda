@@ -496,8 +496,10 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
+            if (tickStage !in primaryInfo.breakConfig.breakStageMask) return null
+
             if (!primaryInfo.breakConfig.doubleBreak || secondaryBreak != null) {
-                if (!primaryInfo.updatedThisTick && tickStage in primaryInfo.breakConfig.breakStageMask) {
+                if (!primaryInfo.updatedThisTick) {
                     primaryInfo.cancelBreak()
                     return@let
                 } else return null
