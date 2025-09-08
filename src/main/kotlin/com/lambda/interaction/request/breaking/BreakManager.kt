@@ -26,10 +26,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onDynamicRender
-import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
@@ -216,7 +214,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 ?.internalOnItemDrop(it.entity)
         }
 
-        onDynamicRender {
+        onDynamicRender { render ->
             val activeStack = breakInfos
                 .filterNotNull()
                 .firstOrNull()?.swapStack ?: return@onDynamicRender
@@ -261,11 +259,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }.forEach boxes@ { box ->
                         val interpolatedNow = interpolateBox(box, currentProgress, info.breakConfig)
                         val interpolatedNext = interpolateBox(box, nextTicksProgress, info.breakConfig)
-                        val dynamicAABB = DynamicAABB()
-                        dynamicAABB.update(interpolatedNow)
-                        dynamicAABB.update(interpolatedNext)
-                        if (config.fill) it.filled(dynamicAABB, fillColor)
-                        if (config.outline) it.outline(dynamicAABB, outlineColor)
+                        val renderBox = lerp(mc.partialTicks, interpolatedNow, interpolatedNext)
+                        if (config.fill) render.filled(renderBox, fillColor)
+                        if (config.outline) render.outline(renderBox, outlineColor)
                     }
                 }
         }
