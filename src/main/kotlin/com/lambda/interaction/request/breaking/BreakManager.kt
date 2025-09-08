@@ -101,7 +101,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = {
-        if (activeInfos.isNotEmpty() || breaks.isNotEmpty() || instantBreaks.isNotEmpty())
+        if (activeInfos.isNotEmpty() || breaks.isNotEmpty())
             BreakManager.logger.newStage(BreakManager.tickStage)
         processRequest(activeRequest)
         simulateAbandoned()
@@ -172,7 +172,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         super.load()
 
         listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
-            if (activeInfos.isEmpty() && breaks.isEmpty() && instantBreaks.isEmpty()) return@listen
+            if (activeInfos.isEmpty() && breaks.isEmpty()) return@listen
             logger.newTick()
         }
 

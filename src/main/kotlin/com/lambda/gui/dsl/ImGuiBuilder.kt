@@ -129,6 +129,7 @@ import imgui.ImGui.isMouseClicked
 import imgui.ImGui.isWindowAppearing
 import imgui.ImGui.isWindowCollapsed
 import imgui.ImGui.isWindowHovered
+import imgui.ImGui.plotHistogram
 import imgui.ImGui.popFont
 import imgui.ImGui.popID
 import imgui.ImGui.popItemWidth
@@ -178,6 +179,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import java.awt.Color
 import kotlin.reflect.KMutableProperty0
+import imgui.ImGui.plotLines
 
 typealias ProcedureBlock = ImGuiBuilder.() -> Unit
 typealias WrappedBlock<In, Out> = ImGuiBuilder.(In) -> Out
