@@ -22,6 +22,8 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -37,9 +39,11 @@ import com.lambda.util.extension.rotation
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
+import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.PlayerInput
+import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.Vec2f
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -77,6 +81,29 @@ object RotationManager : RequestHandler<RotationRequest>(
                 request.age++
             }
             changedThisTick = false
+        }
+
+        listen<RenderEvent.UpdateTarget> {
+            if (activeRequest == null) return@listen
+            it.cancel()
+
+            val eye = player.eyePos
+            val entityHit = player.rotation.rayCast(player.entityInteractionRange, eye).orMiss
+            mc.targetedEntity = (entityHit as? EntityHitResult)?.entity
+            val blockHit = player.rotation.rayCast(player.blockInteractionRange, eye).orMiss
+            mc.crosshairTarget = blockHit
+        }
+
+        listen<PlayerEvent.Interact.Block> {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Interact.Entity> {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Interact.Item> {
+            activeRotation = player.rotation
         }
 
         listen<PacketEvent.Receive.Post>(priority = Int.MIN_VALUE) { event ->
