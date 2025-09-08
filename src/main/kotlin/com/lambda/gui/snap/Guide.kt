@@ -15,8 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.global
+package com.lambda.gui.snap
 
-import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
-
-object StaticESP : StaticESPRenderer()
+data class Guide(
+    val orientation: Orientation,
+    val pos: Float,
+    val strength: Int,
+    val kind: Kind
+) {
+    enum class Orientation { Vertical, Horizontal }
+    enum class Kind { ElementEdge, ElementCenter, ScreenCenter, Grid }
+}

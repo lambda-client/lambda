@@ -18,10 +18,8 @@
 package com.lambda.graphics.pipeline
 
 import com.lambda.graphics.buffer.Buffer.Companion.createPipelineBuffer
-import com.lambda.graphics.buffer.DynamicByteBuffer
 import com.lambda.graphics.buffer.DynamicByteBuffer.Companion.dynamicByteBuffer
 import com.lambda.graphics.gl.kibibyte
-import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.MemoryUtil.memCopy
 
 /**
@@ -64,7 +62,7 @@ class PersistentBuffer(
         }
 
         if (snapshotData > 0 && snapshot.capacity >= byteBuffer.bytesPut) {
-            if (memcmp(snapshot, byteBuffer, uploadOffset, dataCount)) return
+            if (snapshot.mismatch(byteBuffer) >= 0) return
         }
 
         glBuffer.update(uploadOffset, dataCount, dataStart)
@@ -90,30 +88,4 @@ class PersistentBuffer(
     }
 
     fun use(block: () -> Unit) = glBuffer.bind { block() }
-
-    private fun memcmp(a: DynamicByteBuffer, b: DynamicByteBuffer, position: Long, size: Long): Boolean {
-        if (a.capacity != b.capacity) return false
-
-        val end = position + size
-        var head = position
-
-        // Process the aligned bytes in chunks of 8 until we've reached the end
-        while (head + 8 <= end) {
-            val first = MemoryUtil.memGetLong(a.pointer + head)
-            val second = MemoryUtil.memGetLong(b.pointer + head)
-            if (first != second) return false
-
-            head += 8
-        }
-
-        while (head < end) {
-            val first = MemoryUtil.memGetByte(a.pointer + head)
-            val second = MemoryUtil.memGetByte(b.pointer + head)
-            if (first != second) return false
-
-            head++
-        }
-
-        return true
-    }
 }

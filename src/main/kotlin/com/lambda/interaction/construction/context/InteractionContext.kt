@@ -17,16 +17,14 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.interacting.InteractRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
-import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -61,9 +59,8 @@ class InteractionContext(
             else -> 1
         }
 
-    override fun SafeContext.buildRenderer() {
-        withState(expectedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
-        withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
+    override fun ShapeBuilder.buildRenderer() {
+        box(blockPos, expectedState, baseColor, sideColor, result.side.mask)
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {

@@ -97,8 +97,9 @@ inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) 
  *
  * @param block The task to be executed on the game's main thread.
  */
-inline fun recordRenderCall(crossinline block: () -> Unit) =
+inline fun recordRenderCall(crossinline block: () -> Unit) {
     mc.renderTaskQueue.add { block() }
+}
 
 /**
  * Executes a given task on the game's main thread.

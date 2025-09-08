@@ -22,8 +22,8 @@ import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.events.onStaticRender
+import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -58,10 +58,8 @@ object TaskFlowModule : Module(
     var drawables = listOf<Drawable>()
 
     init {
-        listen<RenderEvent.StaticESP> {
-            drawables.toList().forEach { res ->
-                with(res) { buildRenderer() }
-            }
+        onStaticRender {
+            with(it) { drawables.forEach { with(it) { buildRenderer() } } }
         }
     }
 }

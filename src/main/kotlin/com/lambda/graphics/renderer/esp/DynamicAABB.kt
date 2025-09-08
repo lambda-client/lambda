@@ -26,6 +26,8 @@ class DynamicAABB {
     private var prev: Box? = null
     private var curr: Box? = null
 
+    val pair get() = prev?.let { prev -> curr?.let { curr -> prev to curr } }
+
     fun update(box: Box): DynamicAABB {
         prev = curr ?: box
         curr = box
@@ -36,16 +38,6 @@ class DynamicAABB {
     fun reset() {
         prev = null
         curr = null
-    }
-
-    fun getBoxPair(): Pair<Box, Box>? {
-        prev?.let { previous ->
-            curr?.let { current ->
-                return previous to current
-            }
-        }
-
-        return null
     }
 
     companion object {

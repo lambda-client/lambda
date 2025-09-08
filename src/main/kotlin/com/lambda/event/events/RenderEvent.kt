@@ -17,22 +17,22 @@
 
 package com.lambda.event.events
 
+import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.graphics.renderer.esp.global.DynamicESP
-import com.lambda.graphics.renderer.esp.global.StaticESP
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.graphics.renderer.esp.Treed
+
+fun Any.onStaticRender(block: SafeContext.(ShapeBuilder) -> Unit) =
+    listen<RenderEvent.Upload> { block(ShapeBuilder(Treed.Static.faceBuilder, Treed.Static.edgeBuilder)) }
+fun Any.onDynamicRender(block: SafeContext.(ShapeBuilder) -> Unit) =
+    listen<RenderEvent.Upload> { block(ShapeBuilder(Treed.Dynamic.faceBuilder, Treed.Dynamic.edgeBuilder)) }
 
 sealed class RenderEvent {
-    class World : Event
-
-    class StaticESP : Event {
-        val renderer = StaticESP
-    }
-
-    class DynamicESP : Event {
-        val renderer = DynamicESP
-    }
+    object Upload : Event
+    object Render : Event
 
     class UpdateTarget : ICancellable by Cancellable()
 }

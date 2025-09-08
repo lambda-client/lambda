@@ -15,18 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.blockplace
+package com.lambda.gui.snap
 
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
-
-data class PlaceInfo(
-    val clickPos: BlockPos,
-    val clickSide: Direction,
-    val placedPos: BlockPos,
-    val hitVec: Vec3d,
-
-    val eyeDistanceSq: Double,
-    val placeSteps: Int,
-)
+data class RectF(val x: Float, val y: Float, val w: Float, val h: Float) {
+    val left get() = x
+    val right get() = x + w
+    val top get() = y
+    val bottom get() = y + h
+    val cx get() = x + w * 0.5f
+    val cy get() = y + h * 0.5f
+}

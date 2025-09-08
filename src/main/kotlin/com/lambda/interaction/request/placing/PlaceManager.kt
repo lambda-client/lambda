@@ -93,14 +93,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
     override val logger = placeManagerLogger
 
-    fun Any.onPlace(
-        alwaysListen: Boolean = false,
-        priority: Int = 0,
-        block: SafeContext.() -> Unit
-    ) = this.listen<UpdateManagerEvent.Place>(priority, alwaysListen) {
-        block()
-    }
-
     override fun load(): String {
         super.load()
 

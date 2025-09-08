@@ -29,8 +29,8 @@ import org.joml.Vector4d
 class VertexBuilder(
     private val direct: VertexPipeline? = null
 ) {
-    val vertices by lazy { mutableListOf<Attribute>() }
-    val indices by lazy { mutableListOf<Int>() }
+    val vertices by lazy(LazyThreadSafetyMode.PUBLICATION) { mutableListOf<Attribute>() }
+    val indices by lazy(LazyThreadSafetyMode.PUBLICATION) { mutableListOf<Int>() }
 
     private var verticesCounter = 0
 
@@ -114,9 +114,6 @@ class VertexBuilder(
      */
     fun collect(vararg indices: Int) =
         indices
-
-    fun use(block: VertexBuilder.() -> Unit) =
-        apply(block)
 
     /**
      * Creates a new vertex with specified attributes

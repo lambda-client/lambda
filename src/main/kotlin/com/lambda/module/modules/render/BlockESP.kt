@@ -18,19 +18,17 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.buildFilledShape
-import com.lambda.graphics.renderer.esp.builders.buildOutlineShape
-import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.outlineShape
-import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -45,19 +43,19 @@ object BlockESP : Module(
 ) {
     // ToDo: Toggle searching, solve memory leak
     private val searchBlocks by setting("Search Blocks", true, "Search for blocks around the player")
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks") { searchBlocks }.onValueSet(::rebuildMesh)
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawOutlines = true }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawFaces = true }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueSet(::rebuildMesh)
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks") { searchBlocks }.onValueChange(::rebuildMesh)
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)
 
-    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueSet(::rebuildMesh)
-    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueSet(::rebuildMesh)
-    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueSet(::rebuildMesh)
+    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
+    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
 
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { searchBlocks }.onValueSet(::rebuildMesh)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { searchBlocks }.onValueChange(::rebuildMesh)
 
     @JvmStatic
-    val barrier by setting("Solid Barrier Block", true, "Render barrier blocks").onValueChange { _, _ -> mc.worldRenderer.reload() }
+    val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
 
     // ToDo: I wanted to render this as a transparent / translucent block with a red tint.
     //  Like the red stained glass block without the texture sprite.
@@ -66,14 +64,7 @@ object BlockESP : Module(
     @JvmStatic
     val model: BlockStateModel get() = mc.bakedModelManager.missingModel
 
-    init {
-        onToggle {
-            if (barrier) mc.worldRenderer.reload()
-        }
-    }
-
-    private val esp = newChunkedESP { world, x, y, z ->
-        val position = fastVectorOf(x, y, z)
+    private val esp = newChunkedESP { world, position ->
         val state = world.getBlockState(position)
         if (state.block !in blocks) return@newChunkedESP
 
@@ -86,7 +77,7 @@ object BlockESP : Module(
         build(state, position.toBlockPos(), sides)
     }
 
-    private fun StaticESPRenderer.build(
+    private fun ShapeBuilder.build(
         state: BlockState,
         pos: BlockPos,
         sides: Int,
@@ -94,9 +85,9 @@ object BlockESP : Module(
         val shape = outlineShape(state, pos)
         val blockColor = blockColor(state, pos)
 
-        if (drawFaces) buildFilledShape(shape, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) buildOutlineShape(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        if (drawFaces) filled(shape, if (useBlockColor) blockColor else faceColor, sides)
+        if (drawOutlines) outline(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
-    private fun rebuildMesh(from: Any, to: Any): Unit = esp.rebuild()
+    private fun rebuildMesh(ctx: SafeContext, from: Any, to: Any): Unit = esp.rebuild()
 }

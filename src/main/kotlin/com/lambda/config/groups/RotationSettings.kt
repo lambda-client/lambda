@@ -30,7 +30,7 @@ import kotlin.random.Random
 
 class RotationSettings(
     c: Configurable,
-    baseGroup: NamedEnum,
+    baseGroup: NamedEnum? = null,
     vis: () -> Boolean = { true }
 ) : RotationConfig {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction", vis).group(baseGroup)

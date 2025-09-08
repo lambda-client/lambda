@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
-import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -27,12 +27,10 @@ import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Nameable
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
@@ -81,8 +79,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val goal = GoalBlock(blockPos)
 
-        override fun SafeContext.buildRenderer() {
-            withBox(Box(blockPos), color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -104,8 +102,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val rank = Rank.BREAK_RESTRICTED
         private val color = Color(255, 0, 0, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 
@@ -122,8 +120,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val rank get() = Rank.BREAK_NO_PERMISSION
         private val color = Color(255, 0, 0, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 
@@ -138,8 +136,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val rank = Rank.OUT_OF_WORLD
         private val color = Color(3, 148, 252, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 
@@ -156,8 +154,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val rank = Rank.UNBREAKABLE
         private val color = Color(11, 11, 11, 100)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
     }
 
@@ -176,8 +174,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val rank = Rank.NOT_VISIBLE
         private val color = Color(46, 0, 0, 80)
 
-        override fun SafeContext.buildRenderer() {
-            withBox(Box(blockPos), color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -215,12 +213,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
                     )
             }
 
-        override fun SafeContext.buildRenderer() {
-            if (blockState(blockPos).isAir) {
-                withBox(Box(blockPos), color)
-            } else {
-                withPos(blockPos, color)
-            }
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -258,12 +252,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
                     )
             }
 
-        override fun SafeContext.buildRenderer() {
-            if (blockState(blockPos).isAir) {
-                withBox(Box(blockPos), color)
-            } else {
-                withPos(blockPos, color)
-            }
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -295,8 +285,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val goal = GoalNear(blockPos, 3)
 
-        override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+        override fun ShapeBuilder.buildRenderer() {
+            box(blockPos, color, color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

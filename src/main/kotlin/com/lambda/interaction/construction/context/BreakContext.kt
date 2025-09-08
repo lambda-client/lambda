@@ -17,12 +17,14 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.request.breaking.BreakConfig
+import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
+import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
@@ -70,8 +72,7 @@ data class BreakContext(
         }
     }
 
-    override fun SafeContext.buildRenderer() {
-        withState(cachedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side))
-        withState(cachedState, blockPos, sideColor, result.side)
+    override fun ShapeBuilder.buildRenderer() {
+        box(blockPos, cachedState, baseColor, sideColor, DirectionMask.ALL.exclude(result.side))
     }
 }

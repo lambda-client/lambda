@@ -23,34 +23,22 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils
 import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.pipeline.VertexPipeline
-import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.extension.partialTicks
 
-open class ESPRenderer(tickedMode: Boolean) {
-    val shader: Shader
+open class Treed(static: Boolean) {
+    val shader = if (static) staticMode.first else dynamicMode.first
 
-    val faces: VertexPipeline
-    var faceBuilder: VertexBuilder
+    val faces = VertexPipeline(VertexMode.TRIANGLES, if (static) staticMode.second else dynamicMode.second)
+    val edges = VertexPipeline(VertexMode.LINES, if (static) staticMode.second else dynamicMode.second)
 
-    val outlines: VertexPipeline
-    var outlineBuilder: VertexBuilder
-
-    init {
-        val mode = if (tickedMode) dynamicMode else staticMode
-        shader = mode.first
-
-        faces = VertexPipeline(VertexMode.TRIANGLES, mode.second)
-        faceBuilder = faces.build()
-
-        outlines = VertexPipeline(VertexMode.LINES, mode.second)
-        outlineBuilder = outlines.build()
-    }
+    var faceBuilder = VertexBuilder(); private set
+    var edgeBuilder = VertexBuilder(); private set
 
     fun upload() {
         faces.upload(faceBuilder)
-        outlines.upload(outlineBuilder)
+        edges.upload(edgeBuilder)
     }
 
     fun render() {
@@ -59,23 +47,22 @@ open class ESPRenderer(tickedMode: Boolean) {
         shader["u_CameraPosition"] = Lambda.mc.gameRenderer.camera.pos
 
         GlStateUtils.withFaceCulling(faces::render)
-        GlStateUtils.withLineWidth(StyleEditor.outlineWidth, outlines::render)
+        GlStateUtils.withLineWidth(StyleEditor.outlineWidth, edges::render)
     }
 
     fun clear() {
         faces.clear()
-        outlines.clear()
-        faceBuilder = faces.build()
-        outlineBuilder = outlines.build()
+        edges.clear()
+
+        faceBuilder = VertexBuilder()
+        edgeBuilder = VertexBuilder()
     }
 
-    companion object {
-        private val staticMode = shader(
-            "renderer/box_static"
-        ) to VertexAttrib.Group.STATIC_RENDERER
+    object Static : Treed(true)
+    object Dynamic : Treed(false)
 
-        private val dynamicMode = shader(
-            "renderer/box_dynamic"
-        ) to VertexAttrib.Group.DYNAMIC_RENDERER
+    companion object {
+        private val staticMode = shader("renderer/box_static") to VertexAttrib.Group.STATIC_RENDERER
+        private val dynamicMode = shader("renderer/box_dynamic") to VertexAttrib.Group.DYNAMIC_RENDERER
     }
 }
