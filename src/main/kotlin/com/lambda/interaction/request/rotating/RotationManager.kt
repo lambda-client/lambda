@@ -108,23 +108,23 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
 
         // Override user interactions with max priority
-        listen<PlayerEvent.Interact.Block> {
+        listen<PlayerEvent.Interact.Block>(priority = Int.MAX_VALUE) {
             activeRotation = player.rotation
         }
 
-        listen<PlayerEvent.Attack.Block> {
+        listen<PlayerEvent.Attack.Block>(priority = Int.MAX_VALUE) {
             activeRotation = player.rotation
         }
 
-        listen<PlayerEvent.Interact.Entity> {
+        listen<PlayerEvent.Interact.Entity>(priority = Int.MAX_VALUE) {
             activeRotation = player.rotation
         }
 
-        listen<PlayerEvent.Attack.Entity> {
+        listen<PlayerEvent.Attack.Entity>(priority = Int.MAX_VALUE) {
             activeRotation = player.rotation
         }
 
-        listen<PlayerEvent.Interact.Item> {
+        listen<PlayerEvent.Interact.Item>(priority = Int.MAX_VALUE) {
             activeRotation = player.rotation
         }
 
