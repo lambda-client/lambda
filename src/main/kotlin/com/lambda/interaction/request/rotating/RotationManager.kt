@@ -94,18 +94,6 @@ object RotationManager : RequestHandler<RotationRequest>(
             mc.crosshairTarget = blockHit
         }
 
-        listen<PlayerEvent.Interact.Block> {
-            activeRotation = player.rotation
-        }
-
-        listen<PlayerEvent.Interact.Entity> {
-            activeRotation = player.rotation
-        }
-
-        listen<PlayerEvent.Interact.Item> {
-            activeRotation = player.rotation
-        }
-
         listen<PacketEvent.Receive.Post>(priority = Int.MIN_VALUE) { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
@@ -117,6 +105,27 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
             reset(Rotation.ZERO)
+        }
+
+        // Override user interactions with max priority
+        listen<PlayerEvent.Interact.Block> {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Attack.Block> {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Interact.Entity> {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Attack.Entity> {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Interact.Item> {
+            activeRotation = player.rotation
         }
 
         return "Loaded Rotation Manager"
