@@ -45,12 +45,12 @@ data class SwapInfo(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Swap Info:")
-            pushTab()
-            value("Type", type)
-            value("Swap", swap)
-            value("Min Keep Ticks", minKeepTicks)
-            value("Valid Swap", validSwap)
+            group("Swap Info") {
+                value("Type", type)
+                value("Swap", swap)
+                value("Min Keep Ticks", minKeepTicks)
+                value("Valid Swap", validSwap)
+            }
         }
 
     companion object {

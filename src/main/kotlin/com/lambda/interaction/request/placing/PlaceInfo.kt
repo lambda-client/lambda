@@ -32,11 +32,11 @@ data class PlaceInfo(
 ) : ActionInfo, LogContext {
     override fun toLogContext() =
         buildLogContext {
-            text("Place Info:")
-            pushTab()
-            text(context.toLogContext())
-            text("Callbacks:")
-            pushTab()
-            value("onPlace", onPlace != null)
+            group("Place Info") {
+                text(context.toLogContext())
+                group("Callbacks") {
+                    value("onPlace", onPlace != null)
+                }
+            }
         }
 }

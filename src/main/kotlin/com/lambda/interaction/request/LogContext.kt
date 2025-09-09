@@ -17,6 +17,9 @@
 
 package com.lambda.interaction.request
 
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
+
 interface LogContext {
     fun toLogContext(): String
 
@@ -24,16 +27,32 @@ interface LogContext {
         @DslMarker
         private annotation class LogContextDsl
 
+        fun BlockPos.toLogContext(): String {
+            val pos = if (this is BlockPos.Mutable) toImmutable() else this
+            return buildLogContext {
+                value("Block Pos", pos.toShortString())
+            }
+        }
+
+        fun BlockHitResult.toLogContext() =
+            buildLogContext {
+                group("Block Hit Result") {
+                    value("Side", side)
+                    value("Block Pos", blockPos)
+                    value("Pos", pos)
+                }
+            }
+
         @LogContextDsl
-        fun buildLogContext(builder: LogContextBuilder.() -> Unit): String =
-            LogContextBuilder().apply(builder).build()
+        fun buildLogContext(tabMin: Int = 0, builder: LogContextBuilder.() -> Unit): String =
+            LogContextBuilder(tabMin).apply(builder).build()
 
         private fun LogContextBuilder.build() = logContext
 
-        class LogContextBuilder {
+        class LogContextBuilder(val tabMin: Int = 0) {
             var logContext = ""
 
-            private var tabs = 0
+            private var tabs = tabMin
 
             @LogContextDsl
             fun sameLine() =
@@ -56,6 +75,12 @@ interface LogContext {
             }
 
             @LogContextDsl
+            fun group(name: String, builder: LogContextBuilder.() -> Unit) {
+                text("$name:")
+                text(LogContextBuilder(tabs + 1).apply(builder).build())
+            }
+
+            @LogContextDsl
             fun pushTab() {
                 tabs++
             }
@@ -63,6 +88,7 @@ interface LogContext {
             @LogContextDsl
             fun popTab() {
                 tabs--
+                if (tabs < tabMin) throw IllegalStateException("Cannot reduce tabs beneath the minimum tab count")
             }
         }
     }

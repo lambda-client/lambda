@@ -48,10 +48,10 @@ data class InteractRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Interact Request:")
-            pushTab()
-            value("Request ID", requestID)
-            value("Contexts", contexts.size)
+            group("Interact Request") {
+                value("Request ID", requestID)
+                value("Contexts", contexts.size)
+            }
         }
 
     companion object {

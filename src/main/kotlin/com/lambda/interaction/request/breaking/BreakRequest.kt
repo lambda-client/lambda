@@ -62,19 +62,19 @@ data class BreakRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Break Request")
-            pushTab()
-            value("Request ID", requestID)
-            value("Contexts", contexts.size)
-            text("Callbacks:")
-            pushTab()
-            value("onStart", onStart != null)
-            value("onUpdate", onUpdate != null)
-            value("onStop", onStop != null)
-            value("onCancel", onCancel != null)
-            value("onItemDrop", onItemDrop != null)
-            value("onReBreakStart", onReBreakStart != null)
-            value("onReBreak", onReBreak != null)
+            group("Break Request") {
+                value("Request ID", requestID)
+                value("Contexts", contexts.size)
+                group("Callbacks") {
+                    value("onStart", onStart != null)
+                    value("onUpdate", onUpdate != null)
+                    value("onStop", onStop != null)
+                    value("onCancel", onCancel != null)
+                    value("onItemDrop", onItemDrop != null)
+                    value("onReBreakStart", onReBreakStart != null)
+                    value("onReBreak", onReBreak != null)
+                }
+            }
         }
 
     @DslMarker

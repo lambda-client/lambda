@@ -34,9 +34,9 @@ class InventoryRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Inventory Request:")
-            pushTab()
-            value("Request ID", requestID)
+            group("Inventory Request") {
+                value("Request ID", requestID)
+            }
         }
 
     companion object {

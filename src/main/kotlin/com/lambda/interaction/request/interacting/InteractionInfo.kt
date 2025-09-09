@@ -30,8 +30,8 @@ data class InteractionInfo(
 ) : ActionInfo, InteractConfig by config, LogContext {
     override fun toLogContext() =
         buildLogContext {
-            text("Interaction Info:")
-            pushTab()
-            text(context.toLogContext())
+            group("Interaction Info") {
+                text(context.toLogContext())
+            }
         }
 }

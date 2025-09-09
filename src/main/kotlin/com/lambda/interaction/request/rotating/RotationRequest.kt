@@ -44,15 +44,15 @@ data class RotationRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Rotation Request:")
-            pushTab()
-            value("Request ID", requestID)
-            value("Rotation Mode", rotationMode)
-            value("Turn Speed", turnSpeed)
-            value("Keep Ticks", keepTicks)
-            value("Decay Ticks", decayTicks)
-            value("Speed Multiplier", speedMultiplier)
-            value("Age", age)
+            group("Rotation Request") {
+                value("Request ID", requestID)
+                value("Rotation Mode", rotationMode)
+                value("Turn Speed", turnSpeed)
+                value("Keep Ticks", keepTicks)
+                value("Decay Ticks", decayTicks)
+                value("Speed Multiplier", speedMultiplier)
+                value("Age", age)
+            }
         }
 
     companion object {

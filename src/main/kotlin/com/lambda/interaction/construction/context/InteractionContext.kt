@@ -19,9 +19,9 @@ package com.lambda.interaction.construction.context
 
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
-import com.lambda.interaction.request.DebugLogger.LogEntry.Companion.toLogContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.toLogContext
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
@@ -74,13 +74,13 @@ class InteractionContext(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Interaction Context:")
-            pushTab()
-            text(blockPos.toLogContext())
-            text(result.toLogContext())
-            text(rotation.toLogContext())
-            value("Hotbar Index", hotbarIndex)
-            value("Cached State", cachedState)
-            value("Expected State", expectedState)
+            group("Interaction Context") {
+                text(blockPos.toLogContext())
+                text(result.toLogContext())
+                text(rotation.toLogContext())
+                value("Hotbar Index", hotbarIndex)
+                value("Cached State", cachedState)
+                value("Expected State", expectedState)
+            }
         }
 }

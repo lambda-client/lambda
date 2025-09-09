@@ -44,14 +44,14 @@ class HotbarRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Hotbar Request:")
-            pushTab()
-            value("Request ID", requestID)
-            value("Slot", slot)
-            value("Keep Ticks", keepTicks)
-            value("Swap Pause", swapPause)
-            value("Swap Pause Age", swapPauseAge)
-            value("Active Request Age", activeRequestAge)
+            group("Hotbar Request") {
+                value("Request ID", requestID)
+                value("Slot", slot)
+                value("Keep Ticks", keepTicks)
+                value("Swap Pause", swapPause)
+                value("Swap Pause Age", swapPauseAge)
+                value("Active Request Age", activeRequestAge)
+            }
         }
 
     companion object {

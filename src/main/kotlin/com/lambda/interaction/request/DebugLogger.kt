@@ -138,23 +138,6 @@ class DebugLogger(
         vararg val extraContext: String?
     ) {
         val uuid = UUID.randomUUID().toString()
-        companion object {
-            fun BlockPos.toLogContext(): String {
-                val pos = if (this is BlockPos.Mutable) toImmutable() else this
-                return buildLogContext {
-                    value("Block Pos", pos.toShortString())
-                }
-            }
-
-            fun BlockHitResult.toLogContext() =
-                buildLogContext {
-                    text("Block Hit Result:")
-                    pushTab()
-                    value("Side", side)
-                    value("Block Pos", blockPos)
-                    value("Pos", pos)
-                }
-        }
     }
 
     enum class LogType(val color: Color) {

@@ -21,9 +21,9 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.request.DebugLogger.LogEntry.Companion.toLogContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.toLogContext
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.rotating.RotationRequest
@@ -79,15 +79,15 @@ data class BreakContext(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Break Context:")
-            pushTab()
-            text(blockPos.toLogContext())
-            text(result.toLogContext())
-            text(rotation.toLogContext())
-            value("Hotbar Index", hotbarIndex)
-            value("Instant Break", instantBreak)
-            value("Cached State", cachedState)
-            value("Expected State", expectedState)
-            value("Sort Mode", sortMode)
+            group("Break Context") {
+                text(blockPos.toLogContext())
+                text(result.toLogContext())
+                text(rotation.toLogContext())
+                value("Hotbar Index", hotbarIndex)
+                value("Instant Break", instantBreak)
+                value("Cached State", cachedState)
+                value("Expected State", expectedState)
+                value("Sort Mode", sortMode)
+            }
         }
 }

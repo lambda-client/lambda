@@ -52,10 +52,10 @@ data class PlaceRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("PlaceRequest:")
-            pushTab()
-            value("Request ID", requestID)
-            value("Contexts", contexts.size)
+            group("PlaceRequest") {
+                value("Request ID", requestID)
+                value("Contexts", contexts.size)
+            }
         }
 
     companion object {
