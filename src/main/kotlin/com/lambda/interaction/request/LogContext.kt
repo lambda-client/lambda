@@ -66,10 +66,12 @@ interface LogContext {
                 logContext += "$text\n"
             }
 
+            @LogContextDsl
             fun value(name: String, value: Any) {
                 text("$name: $value")
             }
 
+            @LogContextDsl
             fun value(name: String, value: String) {
                 text("$name: $value")
             }
