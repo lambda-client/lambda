@@ -17,11 +17,13 @@
 
 package com.lambda.interaction.request.inventory
 
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.Request
 
 class InventoryRequest(
     override val config: InventoryConfig
-) : Request(), InventoryConfig by config {
+) : Request(), InventoryConfig by config, LogContext {
     override val requestID = ++requestCount
 
     override val done: Boolean
@@ -29,6 +31,13 @@ class InventoryRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         InventoryManager.request(this, queueIfClosed)
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Inventory Request:")
+            pushTab()
+            text("Request ID: $requestID")
+        }
 
     companion object {
         var requestCount = 0
