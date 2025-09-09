@@ -20,9 +20,17 @@ package com.lambda.interaction.request.interacting
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.ActionInfo
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 
 data class InteractionInfo(
     override val context: InteractionContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
     private val config: InteractConfig
-) : ActionInfo, InteractConfig by config
+) : ActionInfo, InteractConfig by config, LogContext {
+    override fun toLogContext() =
+        buildLogContext {
+            text("Interaction Info:")
+            pushTab()
+        }
+}
