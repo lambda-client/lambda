@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.request.rotating
 
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.rotating.visibilty.RotationTarget
 import com.lambda.threading.runSafe
@@ -29,7 +31,7 @@ data class RotationRequest(
     override var keepTicks: Int = config.keepTicks,
     override var decayTicks: Int = config.decayTicks,
     val speedMultiplier: Double = 1.0
-) : Request(), RotationConfig by config {
+) : Request(), RotationConfig by config, LogContext {
     override val requestID = ++requestCount
 
     var age = 0
@@ -39,6 +41,19 @@ data class RotationRequest(
 
     override fun submit(queueIfClosed: Boolean): RotationRequest =
         RotationManager.request(this, queueIfClosed)
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Rotation Request:")
+            pushTab()
+            text("Request ID: $requestID")
+            text("Rotation Mode: $rotationMode")
+            text("Turn Speed: $turnSpeed")
+            text("Keep Ticks: $keepTicks")
+            text("Decay Ticks: $decayTicks")
+            text("Speed Multiplier: $speedMultiplier")
+            text("Age: $age")
+        }
 
     companion object {
         var requestCount = 0
