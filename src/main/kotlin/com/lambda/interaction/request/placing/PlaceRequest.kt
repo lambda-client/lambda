@@ -20,6 +20,8 @@ package com.lambda.interaction.request.placing
 import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -35,7 +37,7 @@ data class PlaceRequest(
     val hotbar: HotbarConfig,
     val rotation: RotationConfig,
     val onPlace: ((BlockPos) -> Unit)? = null
-) : Request(), PlaceConfig by build.placing {
+) : Request(), PlaceConfig by build.placing, LogContext {
     override val requestID = ++requestCount
 
     override val config = build.placing
@@ -47,6 +49,14 @@ data class PlaceRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         PlaceManager.request(this, queueIfClosed)
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("PlaceRequest:")
+            pushTab()
+            text("Request ID: $requestID")
+            text("Contexts: ${contexts.size}")
+        }
 
     companion object {
         var requestCount = 0
