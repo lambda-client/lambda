@@ -47,10 +47,10 @@ data class SwapInfo(
         buildLogContext {
             text("Swap Info:")
             pushTab()
-            text("Type: $type")
-            text("Swap: $swap")
-            text("Min Keep Ticks: $minKeepTicks")
-            text("Valid Swap: $validSwap")
+            value("Type", type)
+            value("Swap", swap)
+            value("Min Keep Ticks", minKeepTicks)
+            value("Valid Swap", validSwap)
         }
 
     companion object {

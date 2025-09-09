@@ -76,11 +76,11 @@ class InteractionContext(
         buildLogContext {
             text("Interaction Context:")
             pushTab()
-            text("Block Pos: ${blockPos.toLogContext()}")
+            text(blockPos.toLogContext())
             text(result.toLogContext())
             text(rotation.toLogContext())
-            text("Hotbar Index: $hotbarIndex")
-            text("Cached State: $cachedState")
-            text("Expected State: $expectedState")
+            value("Hotbar Index", hotbarIndex)
+            value("Cached State", cachedState)
+            value("Expected State", expectedState)
         }
 }

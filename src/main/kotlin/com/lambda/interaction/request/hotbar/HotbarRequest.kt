@@ -46,12 +46,12 @@ class HotbarRequest(
         buildLogContext {
             text("Hotbar Request:")
             pushTab()
-            text("Request ID: $requestID")
-            text("Slot: $slot")
-            text("Keep Ticks: $keepTicks")
-            text("Swap Pause: $swapPause")
-            text("Swap Pause Age: $swapPauseAge")
-            text("Active Request Age: $activeRequestAge")
+            value("Request ID", requestID)
+            value("Slot", slot)
+            value("Keep Ticks", keepTicks)
+            value("Swap Pause", swapPause)
+            value("Swap Pause Age", swapPauseAge)
+            value("Active Request Age", activeRequestAge)
         }
 
     companion object {

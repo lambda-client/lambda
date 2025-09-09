@@ -37,6 +37,6 @@ data class PlaceInfo(
             text(context.toLogContext())
             text("Callbacks:")
             pushTab()
-            text("onPlace: ${onPlace != null}")
+            value("onPlace", onPlace != null)
         }
 }

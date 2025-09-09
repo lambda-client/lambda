@@ -64,17 +64,17 @@ data class BreakRequest(
         buildLogContext {
             text("Break Request")
             pushTab()
-            text("Request ID: $requestID")
-            text("Contexts: ${contexts.size}")
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
             text("Callbacks:")
             pushTab()
-            text("onStart: ${onStart != null}")
-            text("onUpdate: ${onUpdate != null}")
-            text("onStop: ${onStop != null}")
-            text("onCancel: ${onCancel != null}")
-            text("onItemDrop: ${onItemDrop != null}")
-            text("onReBreakStart: ${onReBreakStart != null}")
-            text("onReBreak: ${onReBreak != null}")
+            value("onStart", onStart != null)
+            value("onUpdate", onUpdate != null)
+            value("onStop", onStop != null)
+            value("onCancel", onCancel != null)
+            value("onItemDrop", onItemDrop != null)
+            value("onReBreakStart", onReBreakStart != null)
+            value("onReBreak", onReBreak != null)
         }
 
     @DslMarker

@@ -141,16 +141,18 @@ class DebugLogger(
         companion object {
             fun BlockPos.toLogContext(): String {
                 val pos = if (this is BlockPos.Mutable) toImmutable() else this
-                return "Pos: ${pos.toShortString()}"
+                return buildLogContext {
+                    value("Block Pos", pos.toShortString())
+                }
             }
 
             fun BlockHitResult.toLogContext() =
                 buildLogContext {
                     text("Block Hit Result:")
                     pushTab()
-                    text("Side: $side")
-                    text("Block Pos: $blockPos")
-                    text("Pos: $pos")
+                    value("Side", side)
+                    value("Block Pos", blockPos)
+                    value("Pos", pos)
                 }
         }
     }

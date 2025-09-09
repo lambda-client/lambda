@@ -46,13 +46,13 @@ data class RotationRequest(
         buildLogContext {
             text("Rotation Request:")
             pushTab()
-            text("Request ID: $requestID")
-            text("Rotation Mode: $rotationMode")
-            text("Turn Speed: $turnSpeed")
-            text("Keep Ticks: $keepTicks")
-            text("Decay Ticks: $decayTicks")
-            text("Speed Multiplier: $speedMultiplier")
-            text("Age: $age")
+            value("Request ID", requestID)
+            value("Rotation Mode", rotationMode)
+            value("Turn Speed", turnSpeed)
+            value("Keep Ticks", keepTicks)
+            value("Decay Ticks", decayTicks)
+            value("Speed Multiplier", speedMultiplier)
+            value("Age", age)
         }
 
     companion object {

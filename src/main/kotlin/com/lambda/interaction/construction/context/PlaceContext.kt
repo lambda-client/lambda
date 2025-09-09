@@ -87,14 +87,14 @@ data class PlaceContext(
         buildLogContext {
             text("Place Context:")
             pushTab()
-            text("Block Pos: ${blockPos.toLogContext()}")
+            text(blockPos.toLogContext())
             text(result.toLogContext())
             text(rotation.toLogContext())
-            text("Hotbar Index: $hotbarIndex")
-            text("Cached State: $cachedState")
-            text("Expected State: $expectedState")
-            text("Sneak: $sneak")
-            text("Inside Block: $insideBlock")
-            text("Current Dir Is Invalid: $currentDirIsValid")
+            value("Hotbar Index", hotbarIndex)
+            value("Cached State", cachedState)
+            value("Expected State", expectedState)
+            value("Sneak", sneak)
+            value("Inside Block", insideBlock)
+            value("Current Dir Is Invalid", currentDirIsValid)
         }
 }

@@ -36,7 +36,7 @@ class InventoryRequest(
         buildLogContext {
             text("Inventory Request:")
             pushTab()
-            text("Request ID: $requestID")
+            value("Request ID", requestID)
         }
 
     companion object {

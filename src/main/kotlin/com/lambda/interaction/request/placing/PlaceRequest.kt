@@ -54,8 +54,8 @@ data class PlaceRequest(
         buildLogContext {
             text("PlaceRequest:")
             pushTab()
-            text("Request ID: $requestID")
-            text("Contexts: ${contexts.size}")
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
         }
 
     companion object {
