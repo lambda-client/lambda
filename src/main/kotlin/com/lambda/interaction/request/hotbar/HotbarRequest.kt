@@ -44,7 +44,7 @@ class HotbarRequest(
 
     override fun toLogContext() =
         buildLogContext {
-            text("Hotbar Request")
+            text("Hotbar Request:")
             pushTab()
             text("Request ID: $requestID")
             text("Slot: $slot")

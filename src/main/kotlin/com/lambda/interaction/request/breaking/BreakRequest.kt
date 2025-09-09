@@ -21,6 +21,8 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.inventory.InventoryConfig
@@ -40,7 +42,7 @@ data class BreakRequest(
     val rotation: RotationConfig = TaskFlowModule.rotation,
     val inventory: InventoryConfig = TaskFlowModule.inventory,
     val interact: InteractionConfig = TaskFlowModule.interaction
-) : Request() {
+) : Request(), LogContext {
     override val requestID = ++requestCount
 
     override val config = build.breaking
@@ -57,6 +59,23 @@ data class BreakRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         BreakManager.request(this, queueIfClosed)
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Break Request")
+            pushTab()
+            text("Request ID: $requestID")
+            text("Contexts: ${contexts.size}")
+            text("Callbacks:")
+            pushTab()
+            text("onStart: ${onStart != null}")
+            text("onUpdate: ${onUpdate != null}")
+            text("onStop: ${onStop != null}")
+            text("onCancel: ${onCancel != null}")
+            text("onItemDrop: ${onItemDrop != null}")
+            text("onReBreakStart: ${onReBreakStart != null}")
+            text("onReBreak: ${onReBreak != null}")
+        }
 
     @DslMarker
     annotation class BreakRequestBuilder
