@@ -19,6 +19,9 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
+import com.lambda.interaction.request.DebugLogger.LogEntry.Companion.toLogContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -39,7 +42,7 @@ data class BreakInfo(
     override var context: BreakContext,
     var type: BreakType,
     var request: BreakRequest
-) : ActionInfo {
+) : ActionInfo, LogContext {
     // Delegates
     val breakConfig get() = request.build.breaking
     override val pendingInteractionsList get() = request.pendingInteractions
@@ -146,6 +149,29 @@ data class BreakInfo(
                 context.result.side,
                 sequence
             )
+        }
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Break Info:")
+            pushTab()
+            text("Type: $type")
+            text("Pos: ${context.blockPos.toLogContext()}")
+            text("Details:")
+            pushTab()
+            text("Should Progress: $shouldProgress")
+            text("Rebreak Potential: $rebreakPotential")
+            text(swapInfo.toLogContext())
+            text("Swap Stack: $swapStack")
+            text("Updated This Tick: $updatedThisTick")
+            text("Updated Pre-Processing This Tick: $updatedPreProcessingThisTick")
+            text("Progressed This Tick: $progressedThisTick")
+            text("Breaking: $breaking")
+            text("Abandoned: $abandoned")
+            text("Breaking Ticks: $breakingTicks")
+            text("Sounds Cooldown: $soundsCooldown")
+            text("Vanilla Instant Breakable: $vanillaInstantBreakable")
+            text("Rebreakable: $rebreakable")
         }
 
     override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"

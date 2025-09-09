@@ -18,6 +18,8 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.Lambda.mc
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
@@ -32,13 +34,23 @@ data class SwapInfo(
     private val breakConfig: BreakConfig = TaskFlowModule.build.breaking,
     val swap: Boolean = false,
     val minKeepTicks: Int = 0,
-) {
+) : LogContext {
     val validSwap
         get() = run {
             val serverSwapTicks = if (type == Primary || type == Rebreak) breakConfig.serverSwapTicks
             else breakConfig.serverSwapTicks.coerceAtLeast(3)
 
             (mc.player?.mainHandStack?.heldTicks ?: return false) >= serverSwapTicks
+        }
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Swap Info:")
+            pushTab()
+            text("Type: $type")
+            text("Swap: $swap")
+            text("Min Keep Ticks: $minKeepTicks")
+            text("Valid Swap: $validSwap")
         }
 
     companion object {
