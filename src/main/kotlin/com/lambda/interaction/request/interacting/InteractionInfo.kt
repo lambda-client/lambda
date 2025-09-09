@@ -32,5 +32,6 @@ data class InteractionInfo(
         buildLogContext {
             text("Interaction Info:")
             pushTab()
+            text(context.toLogContext())
         }
 }

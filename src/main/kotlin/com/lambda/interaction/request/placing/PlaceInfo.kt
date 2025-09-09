@@ -34,6 +34,7 @@ data class PlaceInfo(
         buildLogContext {
             text("Place Info:")
             pushTab()
+            text(context.toLogContext())
             text("Callbacks:")
             pushTab()
             text("onPlace: ${onPlace != null}")

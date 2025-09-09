@@ -20,6 +20,7 @@ package com.lambda.interaction.request
 import com.lambda.Lambda.mc
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.module.hud.ManagerDebugLoggers.maxLogEntries
 import com.lambda.util.math.a
 import imgui.ImGui
@@ -27,6 +28,7 @@ import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImBoolean
 import imgui.type.ImFloat
+import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
 import java.util.*
@@ -141,6 +143,15 @@ class DebugLogger(
                 val pos = if (this is BlockPos.Mutable) toImmutable() else this
                 return "Pos: ${pos.toShortString()}"
             }
+
+            fun BlockHitResult.toLogContext() =
+                buildLogContext {
+                    text("Block Hit Result:")
+                    pushTab()
+                    text("Side: $side")
+                    text("Block Pos: $blockPos")
+                    text("Pos: $pos")
+                }
         }
     }
 

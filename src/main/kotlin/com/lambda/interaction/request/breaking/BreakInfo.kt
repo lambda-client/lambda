@@ -157,6 +157,7 @@ data class BreakInfo(
             pushTab()
             text("Type: $type")
             text("Pos: ${context.blockPos.toLogContext()}")
+            text(context.toLogContext())
             text("Details:")
             pushTab()
             text("Should Progress: $shouldProgress")

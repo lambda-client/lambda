@@ -18,18 +18,17 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.interaction.request.DebugLogger.LogEntry.Companion.toLogContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
-import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -45,7 +44,7 @@ data class PlaceContext(
     val sneak: Boolean,
     val insideBlock: Boolean,
     val currentDirIsValid: Boolean = false
-) : BuildContext() {
+) : BuildContext(), LogContext {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
 
@@ -83,4 +82,19 @@ data class PlaceContext(
         } else true
         return hotbarRequest.done && validRotation
     }
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Place Context:")
+            pushTab()
+            text("Block Pos: ${blockPos.toLogContext()}")
+            text(result.toLogContext())
+            text(rotation.toLogContext())
+            text("Hotbar Index: $hotbarIndex")
+            text("Cached State: $cachedState")
+            text("Expected State: $expectedState")
+            text("Sneak: $sneak")
+            text("Inside Block: $insideBlock")
+            text("Current Dir Is Invalid: $currentDirIsValid")
+        }
 }

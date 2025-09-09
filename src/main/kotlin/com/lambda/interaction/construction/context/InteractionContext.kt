@@ -19,6 +19,9 @@ package com.lambda.interaction.construction.context
 
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.interaction.request.DebugLogger.LogEntry.Companion.toLogContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
@@ -36,7 +39,7 @@ class InteractionContext(
     override var hotbarIndex: Int,
     override var cachedState: BlockState,
     override val expectedState: BlockState,
-) : BuildContext() {
+) : BuildContext(), LogContext {
     private val baseColor = Color(35, 254, 79, 25)
     private val sideColor = Color(35, 254, 79, 100)
 
@@ -68,4 +71,16 @@ class InteractionContext(
         val validRotation = if (request.rotate) submit(rotation, false).done else true
         return hotbarRequest.done && validRotation
     }
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Interaction Context:")
+            pushTab()
+            text("Block Pos: ${blockPos.toLogContext()}")
+            text(result.toLogContext())
+            text(rotation.toLogContext())
+            text("Hotbar Index: $hotbarIndex")
+            text("Cached State: $cachedState")
+            text("Expected State: $expectedState")
+        }
 }

@@ -21,10 +21,11 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.request.DebugLogger.LogEntry.Companion.toLogContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
-import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
@@ -42,7 +43,7 @@ data class BreakContext(
     var instantBreak: Boolean,
     override var cachedState: BlockState,
     val sortMode: BreakConfig.SortMode
-) : BuildContext() {
+) : BuildContext(), LogContext {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
@@ -75,4 +76,18 @@ data class BreakContext(
     override fun ShapeBuilder.buildRenderer() {
         box(blockPos, cachedState, baseColor, sideColor, DirectionMask.ALL.exclude(result.side))
     }
+
+    override fun toLogContext() =
+        buildLogContext {
+            text("Break Context:")
+            pushTab()
+            text("Block Pos: ${blockPos.toLogContext()}")
+            text(result.toLogContext())
+            text(rotation.toLogContext())
+            text("Hotbar Index: $hotbarIndex")
+            text("Instant Break: $instantBreak")
+            text("Cached State: $cachedState")
+            text("Expected State: $expectedState")
+            text("Sort Mode: $sortMode")
+        }
 }
