@@ -37,7 +37,7 @@ interface LogContext {
 
             @LogContextDsl
             fun sameLine() =
-                logContext.replace("\n", " ")
+                logContext.replace("\n", "")
 
             @LogContextDsl
             fun text(text: String) {
