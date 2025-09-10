@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.rotating
 
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.rotating.visibilty.RotationTarget
 import com.lambda.threading.runSafe
@@ -42,18 +42,17 @@ data class RotationRequest(
     override fun submit(queueIfClosed: Boolean): RotationRequest =
         RotationManager.request(this, queueIfClosed)
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Rotation Request") {
-                value("Request ID", requestID)
-                value("Rotation Mode", rotationMode)
-                value("Turn Speed", turnSpeed)
-                value("Keep Ticks", keepTicks)
-                value("Decay Ticks", decayTicks)
-                value("Speed Multiplier", speedMultiplier)
-                value("Age", age)
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Rotation Request") {
+            value("Request ID", requestID)
+            value("Rotation Mode", rotationMode)
+            value("Turn Speed", turnSpeed)
+            value("Keep Ticks", keepTicks)
+            value("Decay Ticks", decayTicks)
+            value("Speed Multiplier", speedMultiplier)
+            value("Age", age)
         }
+    }
 
     companion object {
         var requestCount = 0

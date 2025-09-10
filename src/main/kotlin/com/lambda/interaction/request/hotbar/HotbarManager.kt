@@ -74,7 +74,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     override fun SafeContext.handleRequest(request: HotbarRequest) {
-        logger.debug("Handling request:", request.toLogContext())
+        logger.debug("Handling request:", request)
 
         maxSwapsThisTick = request.swapsPerTick
         swapDelay = swapDelay.coerceAtMost(request.swapDelay)
@@ -87,7 +87,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
 
         if (sameButLonger) activeRequest?.let { current ->
             request.swapPauseAge = current.swapPauseAge
-            logger.debug("Request is the same as current, but longer or the same keep time", request.toLogContext())
+            logger.debug("Request is the same as current, but longer or the same keep time", request)
         } else run swap@{
             if (request.slot != activeRequest?.slot) {
                 if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
@@ -108,7 +108,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         }
 
         activeRequest = request
-        logger.success("Set active request", request.toLogContext())
+        logger.success("Set active request", request)
         interaction.syncSelectedSlot()
         return
     }
@@ -117,7 +117,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         activeRequest?.let { active ->
             val canStopSwap = swapsThisTick < maxSwapsThisTick
             if (active.keepTicks <= 0 && tickStage in active.sequenceStageMask && canStopSwap) {
-                logger.debug("Clearing request and syncing slot", activeRequest?.toLogContext())
+                logger.debug("Clearing request and syncing slot", activeRequest)
                 activeRequest = null
                 interaction.syncSelectedSlot()
             }

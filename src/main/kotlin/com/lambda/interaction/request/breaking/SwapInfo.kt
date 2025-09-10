@@ -19,7 +19,7 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.Lambda.mc
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
@@ -43,15 +43,14 @@ data class SwapInfo(
             (mc.player?.mainHandStack?.heldTicks ?: return false) >= serverSwapTicks
         }
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Swap Info") {
-                value("Type", type)
-                value("Swap", swap)
-                value("Min Keep Ticks", minKeepTicks)
-                value("Valid Swap", validSwap)
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Swap Info") {
+            value("Type", type)
+            value("Swap", swap)
+            value("Min Keep Ticks", minKeepTicks)
+            value("Valid Swap", validSwap)
         }
+    }
 
     companion object {
         val EMPTY = SwapInfo(Primary)

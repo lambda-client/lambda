@@ -22,7 +22,7 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -46,13 +46,12 @@ data class InteractRequest(
     override fun submit(queueIfClosed: Boolean) =
         InteractionManager.request(this, queueIfClosed)
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Interact Request") {
-                value("Request ID", requestID)
-                value("Contexts", contexts.size)
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Interact Request") {
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
         }
+    }
 
     companion object {
         var requestCount = 0

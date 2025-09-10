@@ -22,7 +22,7 @@ import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.inventory.InventoryConfig
@@ -60,22 +60,21 @@ data class BreakRequest(
     override fun submit(queueIfClosed: Boolean) =
         BreakManager.request(this, queueIfClosed)
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Break Request") {
-                value("Request ID", requestID)
-                value("Contexts", contexts.size)
-                group("Callbacks") {
-                    value("onStart", onStart != null)
-                    value("onUpdate", onUpdate != null)
-                    value("onStop", onStop != null)
-                    value("onCancel", onCancel != null)
-                    value("onItemDrop", onItemDrop != null)
-                    value("onReBreakStart", onReBreakStart != null)
-                    value("onReBreak", onReBreak != null)
-                }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Break Request") {
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
+            group("Callbacks") {
+                value("onStart", onStart != null)
+                value("onUpdate", onUpdate != null)
+                value("onStop", onStop != null)
+                value("onCancel", onCancel != null)
+                value("onItemDrop", onItemDrop != null)
+                value("onReBreakStart", onReBreakStart != null)
+                value("onReBreak", onReBreak != null)
             }
         }
+    }
 
     @DslMarker
     annotation class BreakRequestBuilder

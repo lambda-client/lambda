@@ -21,8 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
-import com.lambda.interaction.request.LogContext.Companion.toLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
+import com.lambda.interaction.request.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
@@ -83,18 +83,17 @@ data class PlaceContext(
         return hotbarRequest.done && validRotation
     }
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Place Context") {
-                text(blockPos.toLogContext())
-                text(result.toLogContext())
-                text(rotation.toLogContext())
-                value("Hotbar Index", hotbarIndex)
-                value("Cached State", cachedState)
-                value("Expected State", expectedState)
-                value("Sneak", sneak)
-                value("Inside Block", insideBlock)
-                value("Current Dir Is Invalid", currentDirIsValid)
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Place Context") {
+            text(blockPos.getLogContextBuilder())
+            text(result.getLogContextBuilder())
+            text(rotation.getLogContextBuilder())
+            value("Hotbar Index", hotbarIndex)
+            value("Cached State", cachedState)
+            value("Expected State", expectedState)
+            value("Sneak", sneak)
+            value("Inside Block", insideBlock)
+            value("Current Dir Is Invalid", currentDirIsValid)
         }
+    }
 }

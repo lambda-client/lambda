@@ -21,7 +21,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import net.minecraft.util.math.BlockPos
 
 data class PlaceInfo(
@@ -30,13 +30,12 @@ data class PlaceInfo(
     val onPlace: ((BlockPos) -> Unit)?,
     val placeConfig: PlaceConfig
 ) : ActionInfo, LogContext {
-    override fun toLogContext() =
-        buildLogContext {
-            group("Place Info") {
-                text(context.toLogContext())
-                group("Callbacks") {
-                    value("onPlace", onPlace != null)
-                }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Place Info") {
+            text(context.getLogContextBuilder())
+            group("Callbacks") {
+                value("onPlace", onPlace != null)
             }
         }
+    }
 }

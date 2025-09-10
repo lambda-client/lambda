@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.inventory
 
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 
 class InventoryRequest(
@@ -32,12 +32,11 @@ class InventoryRequest(
     override fun submit(queueIfClosed: Boolean) =
         InventoryManager.request(this, queueIfClosed)
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Inventory Request") {
-                value("Request ID", requestID)
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Inventory Request") {
+            value("Request ID", requestID)
         }
+    }
 
     companion object {
         var requestCount = 0

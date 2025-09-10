@@ -20,7 +20,7 @@ package com.lambda.interaction.request.breaking
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -150,28 +150,27 @@ data class BreakInfo(
             )
         }
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("Break Info") {
-                value("Type", type)
-                text(context.toLogContext())
-                group("Details") {
-                    value("Should Progress", shouldProgress)
-                    value("Rebreak Potential", rebreakPotential)
-                    text(swapInfo.toLogContext())
-                    value("Swap Stack", swapStack)
-                    value("Updated This Tick", updatedThisTick)
-                    value("Updated Pre-Processing This Tick", updatedPreProcessingThisTick)
-                    value("Progressed This Tick", progressedThisTick)
-                    value("Breaking", breaking)
-                    value("Abandoned", abandoned)
-                    value("Breaking Ticks", breakingTicks)
-                    value("Sounds Cooldown", soundsCooldown)
-                    value("Vanilla Instant Breakable", vanillaInstantBreakable)
-                    value("Rebreakable", rebreakable)
-                }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Break Info") {
+            value("Type", type)
+            text(context.getLogContextBuilder())
+            group("Details") {
+                value("Should Progress", shouldProgress)
+                value("Rebreak Potential", rebreakPotential)
+                text(swapInfo.getLogContextBuilder())
+                value("Swap Stack", swapStack)
+                value("Updated This Tick", updatedThisTick)
+                value("Updated Pre-Processing This Tick", updatedPreProcessingThisTick)
+                value("Progressed This Tick", progressedThisTick)
+                value("Breaking", breaking)
+                value("Abandoned", abandoned)
+                value("Breaking Ticks", breakingTicks)
+                value("Sounds Cooldown", soundsCooldown)
+                value("Vanilla Instant Breakable", vanillaInstantBreakable)
+                value("Rebreakable", rebreakable)
             }
         }
+    }
 
     override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }

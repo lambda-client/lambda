@@ -28,8 +28,6 @@ import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImBoolean
 import imgui.type.ImFloat
-import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.math.BlockPos
 import java.awt.Color
 import java.util.*
 
@@ -47,18 +45,33 @@ class DebugLogger(
 
     val logs = LinkedList<LogEntry>()
 
-    private fun log(message: String, logColor: LogType, vararg extraContext: String?) {
+    private fun log(message: String, logColor: LogType, extraContext: List<String?>) {
         if (logs.size + 1 > maxLogEntries) {
             logs.removeFirst()
         }
-        logs.add(LogEntry(message, logColor, *extraContext))
+        logs.add(LogEntry(message, logColor, extraContext.filterNotNull()))
     }
 
-    fun debug(message: String, vararg extraContext: String?) = log(message, LogType.Debug, *extraContext)
-    fun success(message: String, vararg extraContext: String?) = log(message, LogType.Success, *extraContext)
-    fun warning(message: String, vararg extraContext: String?) = log(message, LogType.Warning, *extraContext)
-    fun error(message: String, vararg extraContext: String?) = log(message, LogType.Error, *extraContext)
-    fun system(message: String, vararg extraContext: String?) = log(message, LogType.System, *extraContext)
+    fun debug(message: String) = log(message, LogType.Debug, emptyList())
+    fun debug(message: String, vararg extraContext: String?) = log(message, LogType.Debug, extraContext.toList())
+    fun debug(message: String, vararg extraContext: LogContext?) =
+        log(message, LogType.Debug, extraContext.filterNotNull().map { buildLogContext(builder = it.getLogContextBuilder()) })
+    fun success(message: String) = log(message, LogType.Success, emptyList())
+    fun success(message: String, vararg extraContext: String?) = log(message, LogType.Success, extraContext.toList())
+    fun success(message: String, vararg extraContext: LogContext?) =
+        log(message, LogType.Success, extraContext.filterNotNull().map { buildLogContext(builder = it.getLogContextBuilder()) })
+    fun warning(message: String) = log(message, LogType.Warning, emptyList())
+    fun warning(message: String, vararg extraContext: String?) = log(message, LogType.Warning, extraContext.toList())
+    fun warning(message: String, vararg extraContext: LogContext?) =
+        log(message, LogType.Warning, extraContext.filterNotNull().map { buildLogContext(builder = it.getLogContextBuilder()) })
+    fun error(message: String) = log(message, LogType.Error, emptyList())
+    fun error(message: String, vararg extraContext: String?) = log(message, LogType.Error, extraContext.toList())
+    fun error(message: String, vararg extraContext: LogContext?) =
+        log(message, LogType.Error, extraContext.filterNotNull().map { buildLogContext(builder = it.getLogContextBuilder()) })
+    fun system(message: String) = log(message, LogType.System, emptyList())
+    fun system(message: String, vararg extraContext: String?) = log(message, LogType.System, extraContext.toList())
+    fun system(message: String, vararg extraContext: LogContext?) =
+        log(message, LogType.System, extraContext.filterNotNull().map { buildLogContext(builder = it.getLogContextBuilder()) })
 
     fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
@@ -135,7 +148,7 @@ class DebugLogger(
     class LogEntry(
         val message: String,
         val type: LogType,
-        vararg val extraContext: String?
+        val extraContext: Collection<String?>
     ) {
         val uuid = UUID.randomUUID().toString()
     }

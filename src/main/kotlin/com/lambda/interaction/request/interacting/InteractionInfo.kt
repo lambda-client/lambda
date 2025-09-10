@@ -21,17 +21,16 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 
 data class InteractionInfo(
     override val context: InteractionContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
     private val config: InteractConfig
 ) : ActionInfo, InteractConfig by config, LogContext {
-    override fun toLogContext() =
-        buildLogContext {
-            group("Interaction Info") {
-                text(context.toLogContext())
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Interaction Info") {
+            text(context.getLogContextBuilder())
         }
+    }
 }

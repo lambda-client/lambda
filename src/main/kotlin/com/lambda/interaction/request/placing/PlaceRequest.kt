@@ -21,7 +21,7 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.LogContext
-import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -50,13 +50,12 @@ data class PlaceRequest(
     override fun submit(queueIfClosed: Boolean) =
         PlaceManager.request(this, queueIfClosed)
 
-    override fun toLogContext() =
-        buildLogContext {
-            group("PlaceRequest") {
-                value("Request ID", requestID)
-                value("Contexts", contexts.size)
-            }
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("PlaceRequest") {
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
         }
+    }
 
     companion object {
         var requestCount = 0

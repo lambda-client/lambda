@@ -21,27 +21,24 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 
 interface LogContext {
-    fun toLogContext(): String
+    fun getLogContextBuilder(): LogContextBuilder.() -> Unit
 
     companion object {
         @DslMarker
         private annotation class LogContextDsl
 
-        fun BlockPos.toLogContext(): String {
+        fun BlockPos.getLogContextBuilder(): LogContextBuilder.() -> Unit {
             val pos = if (this is BlockPos.Mutable) toImmutable() else this
-            return buildLogContext {
-                value("Block Pos", pos.toShortString())
-            }
+            return { value("Block Pos", pos.toShortString()) }
         }
 
-        fun BlockHitResult.toLogContext() =
-            buildLogContext {
-                group("Block Hit Result") {
-                    value("Side", side)
-                    value("Block Pos", blockPos)
-                    value("Pos", pos)
-                }
+        fun BlockHitResult.getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+            group("Block Hit Result") {
+                value("Side", side)
+                value("Block Pos", blockPos)
+                value("Pos", pos)
             }
+        }
 
         @LogContextDsl
         fun buildLogContext(tabMin: Int = 0, builder: LogContextBuilder.() -> Unit): String =
@@ -61,9 +58,13 @@ interface LogContext {
             @LogContextDsl
             fun text(text: String) {
                 repeat(tabs) {
-                    logContext += "\t"
+                    logContext += "----"
                 }
                 logContext += "$text\n"
+            }
+
+            fun text(builder: LogContextBuilder.() -> Unit) {
+                logContext += LogContextBuilder(tabs).apply(builder).build()
             }
 
             @LogContextDsl
@@ -78,8 +79,9 @@ interface LogContext {
 
             @LogContextDsl
             fun group(name: String, builder: LogContextBuilder.() -> Unit) {
-                text("$name:")
-                text(LogContextBuilder(tabs + 1).apply(builder).build())
+                text("$name {")
+                logContext += LogContextBuilder(tabs + 1).apply(builder).build()
+                text("}")
             }
 
             @LogContextDsl
