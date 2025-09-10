@@ -29,10 +29,12 @@ import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.ClickGui
+import imgui.ImColor
 import imgui.ImGui
 import imgui.ImDrawList
 import imgui.flag.ImDrawListFlags
 import imgui.flag.ImGuiWindowFlags
+import imgui.flag.ImGuiStyleVar
 import kotlin.math.PI
 
 object HudGuiLayout : Loadable {
@@ -98,26 +100,46 @@ object HudGuiLayout : Loadable {
                         ImGui.setNextWindowPos(override.first, override.second)
                     }
 
-                    val hudFlags = if (ClickGui.isEnabled) DEFAULT_HUD_FLAGS else {
-                        DEFAULT_HUD_FLAGS or ImGuiWindowFlags.NoMove
+                    val bg = hud.backgroundColor
+                    val hasBg = bg.alpha > 0
+                    val baseFlags = if (hasBg) {
+                        DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
+                    } else DEFAULT_HUD_FLAGS
+                    val hudFlags = if (!ClickGui.isEnabled) {
+                        baseFlags or ImGuiWindowFlags.NoMove
+                    } else baseFlags
+
+                    val pushedColor = if (hasBg) {
+                        val packed = ImColor.rgba(bg.red, bg.green, bg.blue, bg.alpha)
+                        ImGui.pushStyleColor(imgui.flag.ImGuiCol.WindowBg, packed)
+                        true
+                    } else {
+                        false
                     }
 
-                    window("##${hud.name}", flags = hudFlags) {
-                        val vis = snapOverlays[hud.name]
-                        if (vis != null) {
-                            SnapManager.drawSnapLines(
-                                foregroundDrawList,
-                                vis.snapX, vis.kindX,
-                                vis.snapY, vis.kindY
-                            )
+                    val outlineWidth = if (hud.outline) hud.outlineWidth else 0f
+                    withStyleVar(ImGuiStyleVar.WindowBorderSize, outlineWidth) {
+                        window("##${hud.name}", flags = hudFlags) {
+                            val vis = snapOverlays[hud.name]
+                            if (vis != null) {
+                                SnapManager.drawSnapLines(
+                                    foregroundDrawList,
+                                    vis.snapX, vis.kindX,
+                                    vis.snapY, vis.kindY
+                                )
+                            }
+                            with(hud) { buildLayout() }
+                            if (ClickGui.isEnabled) {
+                                drawHudCornerArcs(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+                            }
+                            val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+                            SnapManager.registerElement(hud.name, rect)
+                            lastBounds[hud.name] = rect
                         }
-                        with(hud) { buildLayout() }
-                        if (ClickGui.isEnabled) {
-                            drawHudOutline(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
-                        }
-                        val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
-                        SnapManager.registerElement(hud.name, rect)
-                        lastBounds[hud.name] = rect
+                    }
+
+                    if (pushedColor) {
+                        ImGui.popStyleColor()
                     }
                 }
             }
@@ -154,7 +176,7 @@ object HudGuiLayout : Loadable {
         snapOverlays[id] = SnapVisual(snap.snapX, snap.snapY, snap.kindX, snap.kindY)
     }
 
-    private fun ImGuiBuilder.drawHudOutline(draw: ImDrawList, x: Float, y: Float, w: Float, h: Float) {
+    private fun ImGuiBuilder.drawHudCornerArcs(draw: ImDrawList, x: Float, y: Float, w: Float, h: Float) {
         val baseRadius = GuiSettings.hudOutlineCornerRadius
         val rounding = if (baseRadius > 0f) baseRadius else style.windowRounding
         val inflate = GuiSettings.hudOutlineCornerInflate
