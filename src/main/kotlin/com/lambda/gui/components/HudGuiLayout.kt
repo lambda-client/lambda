@@ -71,7 +71,7 @@ object HudGuiLayout : Loadable {
                 val mousePressedThisFrame = mouseDown && !mouseWasDown
                 val mouseReleasedThisFrame = !mouseDown && mouseWasDown
                 mouseWasDown = mouseDown
-                if (mouseReleasedThisFrame) {
+                if (mouseReleasedThisFrame || !ClickGui.isEnabled) {
                     activeDragHudName = null
                 }
 
@@ -97,7 +97,12 @@ object HudGuiLayout : Loadable {
                     if (override != null) {
                         ImGui.setNextWindowPos(override.first, override.second)
                     }
-                    window("##${hud.name}", flags = DEFAULT_HUD_FLAGS) {
+
+                    val hudFlags = if (ClickGui.isEnabled) DEFAULT_HUD_FLAGS else {
+                        DEFAULT_HUD_FLAGS or ImGuiWindowFlags.NoMove
+                    }
+
+                    window("##${hud.name}", flags = hudFlags) {
                         val vis = snapOverlays[hud.name]
                         if (vis != null) {
                             SnapManager.drawSnapLines(
