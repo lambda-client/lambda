@@ -52,8 +52,13 @@ interface LogContext {
             private var tabs = tabMin
 
             @LogContextDsl
-            fun sameLine() =
-                logContext.replace("\n", "")
+            fun sameLine() {
+                val length = logContext.length
+                val first = logContext[length - 2]
+                val second = logContext[length - 1]
+                if (first != '\\' || second != 'n') throw IllegalStateException("String does not end in a new line")
+                logContext = logContext.removeRange(length - 2, length - 1)
+            }
 
             @LogContextDsl
             fun text(text: String) {
