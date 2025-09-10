@@ -30,6 +30,7 @@ import imgui.ImFontConfig
 import imgui.ImFontGlyphRangesBuilder
 import imgui.ImGui
 import imgui.ImGuiIO
+import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiConfigFlags
 import imgui.gl3.ImGuiImplGl3
 import imgui.glfw.ImGuiImplGlfw
@@ -122,10 +123,12 @@ object DearImGui : Loadable {
         implGlfw.shutdown()
         implGl3.shutdown()
         ImGui.destroyContext()
+        ImPlot.destroyContext()
     }
 
     init {
         ImGui.createContext()
+        ImPlot.createContext()
 
         io.configFlags = DEFAULT_FLAGS
         io.iniFilename = "lambda.ini"

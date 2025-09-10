@@ -27,6 +27,7 @@ import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import imgui.ImGui
+import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
 
 object ClickGuiLayout : Loadable {
@@ -47,6 +48,7 @@ object ClickGuiLayout : Loadable {
                 renderQuickSearch()
 
                 ImGui.showDemoWindow()
+                ImPlot.showDemoWindow()
             }
         }
     }
