@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -52,17 +53,17 @@ inline fun <T> runSafe(block: SafeContext.() -> T) =
  *
  * @param block The block of code to be executed concurrently.
  */
-inline fun runConcurrent(scheduler: CoroutineDispatcher = Dispatchers.Default, crossinline block: suspend () -> Unit) =
+inline fun runConcurrent(scheduler: CoroutineDispatcher = Dispatchers.Default, crossinline block: suspend CoroutineScope.() -> Unit) =
     EventFlow.lambdaScope.launch(scheduler) {
         block()
     }
 
-inline fun runIO(crossinline block: suspend () -> Unit) =
+inline fun runIO(crossinline block: suspend CoroutineScope.() -> Unit) =
     runConcurrent(Dispatchers.IO) {
         block()
     }
 
-inline fun taskContext(crossinline block: suspend () -> Unit) =
+inline fun taskContext(crossinline block: suspend CoroutineScope.() -> Unit) =
     EventFlow.lambdaScope.launch {
         block()
     }
