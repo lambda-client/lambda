@@ -17,6 +17,7 @@
 
 package com.lambda.mixin;
 
+import com.lambda.core.TimerManager;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.InventoryEvent;
@@ -170,5 +171,15 @@ public class MinecraftClientMixin {
         if (!Interact.INSTANCE.isEnabled()) return;
 
         itemUseCooldown = Interact.getPlaceDelay();
+    }
+
+    @WrapMethod(method = "getTargetMillisPerTick")
+    float getTargetMillisPerTick(float millis, Operation<Float> original) {
+        var length = TimerManager.INSTANCE.getLength();
+
+        if (length == TimerManager.DEFAULT_LENGTH)
+            return original.call(millis);
+        else
+            return (float) TimerManager.INSTANCE.getLength();
     }
 }
