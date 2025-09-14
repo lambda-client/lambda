@@ -26,6 +26,7 @@ import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.DearImGui.EXTERNAL_LINK
+import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.ModuleRegistry
@@ -194,26 +195,11 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildHudMenu() {
-        menuItem("Open Editor", enabled = false) {
-            // ToDo (HUD Editor Window):
-            //  - Full-screen canvas with grid; left "Elements" list; right "Properties" inspector.
-            //  - Drag & drop, snap grid, lock/unlock, safe margins, anchors, multi-select & alignment tools.
+        menuItem(if (HudGuiLayout.isLocked) "Unlock" else "Lock") {
+            HudGuiLayout.isLocked = !HudGuiLayout.isLocked
         }
-        menu("Layouts") {
-            // ToDo:
-            //  - New/Save/Save As/Load/Import/Export layout actions; Toggle "Autosave on change".
-            menuItem("New...", enabled = false) {}
-            menuItem("Save", enabled = false) {}
-            menuItem("Save As...", enabled = false) {}
-            menuItem("Load...", enabled = false) {}
-            menuItem("Import...", enabled = false) {}
-            menuItem("Export...", enabled = false) {}
-            separator()
-            menuItem("Autosave on change", selected = true, enabled = false) {}
-        }
-        menuItem("Toggle Edit Handles", selected = true, enabled = false) {
-            // ToDo:
-            //  - Show/hide bounds, anchors, labels while in edit mode.
+        menuItem(if (HudGuiLayout.isShownInGUI) "Hide" else "Show") {
+            HudGuiLayout.isShownInGUI = !HudGuiLayout.isShownInGUI
         }
     }
 

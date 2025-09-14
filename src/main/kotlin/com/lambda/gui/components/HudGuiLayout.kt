@@ -36,6 +36,7 @@ import imgui.flag.ImDrawListFlags
 import imgui.flag.ImGuiWindowFlags
 import imgui.flag.ImGuiStyleVar
 import kotlin.math.PI
+import kotlin.math.max
 
 object HudGuiLayout : Loadable {
     const val DEFAULT_HUD_FLAGS =
@@ -51,6 +52,9 @@ object HudGuiLayout : Loadable {
     private val pendingPositions = mutableMapOf<String, Pair<Float, Float>>()
     private val snapOverlays = mutableMapOf<String, SnapVisual>()
 
+    var isShownInGUI = true
+    var isLocked = false
+
     private data class SnapVisual(
         val snapX: Float?,
         val snapY: Float?,
@@ -65,6 +69,8 @@ object HudGuiLayout : Loadable {
 
     init {
         listen<GuiEvent.NewFrame> {
+            if (ClickGui.isEnabled && !isShownInGUI) return@listen
+
             buildLayout {
                 val vp = ImGui.getMainViewport()
                 SnapManager.beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
@@ -73,7 +79,8 @@ object HudGuiLayout : Loadable {
                 val mousePressedThisFrame = mouseDown && !mouseWasDown
                 val mouseReleasedThisFrame = !mouseDown && mouseWasDown
                 mouseWasDown = mouseDown
-                if (mouseReleasedThisFrame || !ClickGui.isEnabled) {
+
+                if (mouseReleasedThisFrame || !ClickGui.isEnabled || isLocked) {
                     activeDragHudName = null
                 }
 
@@ -86,12 +93,11 @@ object HudGuiLayout : Loadable {
 
                 notShown.forEach { SnapManager.unregisterElement(it.name) }
 
-                if (ClickGui.isEnabled && activeDragHudName == null && mousePressedThisFrame) {
-                    tryBeginDrag(huds)
-                }
-
-                if (ClickGui.isEnabled && activeDragHudName != null && mouseDown) {
-                    updateDragAndSnapping()
+                val canDrag = ClickGui.isEnabled && !isLocked
+                if (canDrag) {
+                    if (activeDragHudName == null && mousePressedThisFrame) { tryBeginDrag(huds) }
+                    if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
+                    if (activeDragHudName != null) drawDragGrid()
                 }
 
                 huds.forEach { hud ->
@@ -105,7 +111,7 @@ object HudGuiLayout : Loadable {
                     val baseFlags = if (hasBg) {
                         DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
                     } else DEFAULT_HUD_FLAGS
-                    val hudFlags = if (!ClickGui.isEnabled) {
+                    val hudFlags = if (!ClickGui.isEnabled || isLocked) {
                         baseFlags or ImGuiWindowFlags.NoMove
                     } else baseFlags
 
@@ -129,7 +135,7 @@ object HudGuiLayout : Loadable {
                                 )
                             }
                             with(hud) { buildLayout() }
-                            if (ClickGui.isEnabled) {
+                            if (canDrag) {
                                 drawHudCornerArcs(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                             }
                             val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
@@ -176,11 +182,38 @@ object HudGuiLayout : Loadable {
         snapOverlays[id] = SnapVisual(snap.snapX, snap.snapY, snap.kindX, snap.kindY)
     }
 
+    private fun ImGuiBuilder.drawDragGrid() {
+        if (!GuiSettings.snapEnabled || !GuiSettings.snapToGrid) return
+        val vp = ImGui.getMainViewport()
+        val step = max(4f, GuiSettings.gridSize * io.fontGlobalScale)
+        if (step <= 0f) return
+
+        val x0 = vp.posX
+        val y0 = vp.posY
+        val x1 = vp.posX + vp.sizeX
+        val y1 = vp.posY + vp.sizeY
+
+        val draw = backgroundDrawList
+        val col = ImColor.rgba(255, 255, 255, 28)
+        val thickness = 1f
+
+        var x = x0
+        while (x <= x1 + 0.5f) {
+            draw.addLine(x, y0, x, y1, col, thickness)
+            x += step
+        }
+        var y = y0
+        while (y <= y1 + 0.5f) {
+            draw.addLine(x0, y, x1, y, col, thickness)
+            y += step
+        }
+    }
+
     private fun ImGuiBuilder.drawHudCornerArcs(draw: ImDrawList, x: Float, y: Float, w: Float, h: Float) {
         val baseRadius = GuiSettings.hudOutlineCornerRadius
         val rounding = if (baseRadius > 0f) baseRadius else style.windowRounding
         val inflate = GuiSettings.hudOutlineCornerInflate
-        // Soft halo corners (gray, slightly smaller)
+        // Soft halo corners
         drawCornerArcs(
             draw,
             x, y, w, h,
