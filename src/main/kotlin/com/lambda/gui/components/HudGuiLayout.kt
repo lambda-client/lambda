@@ -17,10 +17,12 @@
 
 package com.lambda.gui.components
 
+import com.lambda.config.Configurable
+import com.lambda.config.configurations.HudConfig
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.components.ModuleEntry.Companion.buildModuleSettingsContext
+import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.gui.snap.Guide
@@ -28,18 +30,46 @@ import com.lambda.gui.snap.RectF
 import com.lambda.gui.snap.SnapManager
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.ClickGui
+import com.lambda.util.NamedEnum
 import imgui.ImColor
 import imgui.ImGui
 import imgui.ImDrawList
 import imgui.flag.ImDrawListFlags
 import imgui.flag.ImGuiWindowFlags
 import imgui.flag.ImGuiStyleVar
+import java.awt.Color
 import kotlin.math.PI
 import kotlin.math.max
 
-object HudGuiLayout : Loadable {
+object HudGuiLayout : Loadable, Configurable(HudConfig) {
+    override val name = "HUD"
+
+    enum class Group(override val displayName: String) : NamedEnum {
+        Snapping("Snapping"),
+        HudOutline("HUD Outline")
+    }
+
+    // Snapping
+    val snapEnabled by setting("Enable Snapping", true, "Master toggle for HUD snapping").group(Group.Snapping)
+    val gridSize by setting("Grid Size", 16f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }.group(Group.Snapping)
+    val snapToEdges by setting("Snap To Element Edges", true) { snapEnabled }.group(Group.Snapping)
+    val snapToCenters by setting("Snap To Element Centers", true) { snapEnabled }.group(Group.Snapping)
+    val snapToScreenCenter by setting("Snap To Screen Center", true) { snapEnabled }.group(Group.Snapping)
+    val snapToGrid by setting("Snap To Grid", true) { snapEnabled }.group(Group.Snapping)
+    val snapDistanceElement by setting("Snap Distance (Elements)", 20f, 1f..48f, 1f, "Distance threshold in px") { snapEnabled }.group(Group.Snapping)
+    val snapDistanceScreen by setting("Snap Distance (Screen Center)", 14f, 1f..48f, 1f) { snapEnabled }.group(Group.Snapping)
+    val snapDistanceGrid by setting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }.group(Group.Snapping)
+    val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled }.group(Group.Snapping)
+
+    // HUD Outline
+    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.0f..24.0f, 0.5f).group(Group.HudOutline)
+    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90)).group(Group.HudOutline)
+    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200)).group(Group.HudOutline)
+    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f).group(Group.HudOutline)
+    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f).group(Group.HudOutline)
+    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc").group(Group.HudOutline)
+
     const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or
                 ImGuiWindowFlags.NoBackground or
@@ -78,7 +108,7 @@ object HudGuiLayout : Loadable {
                         }
                         separator()
                         menu("HUD Settings") {
-                            buildModuleSettingsContext(GuiSettings)
+                            buildConfigSettingsContext(this@HudGuiLayout)
                         }
                     }
                     return@buildLayout
@@ -162,7 +192,7 @@ object HudGuiLayout : Loadable {
                         SnapManager.unregisterElement(hud.name)
                     }
                     separator()
-                    buildModuleSettingsContext(hud)
+                    buildConfigSettingsContext(hud)
                 }
 
                 if (ClickGui.isEnabled && !isLocked) {
@@ -189,20 +219,20 @@ object HudGuiLayout : Loadable {
             }
             separator()
             menu("HUD Settings") {
-                buildModuleSettingsContext(GuiSettings)
+                buildConfigSettingsContext(this@HudGuiLayout)
             }
             separator()
             if (notShown.isEmpty()) {
                 textDisabled("No hidden HUD elements")
             } else {
-                text("Add HUD Element:")
-                separator()
-                notShown.sortedBy { it.name.lowercase() }.forEach { hud ->
-                    menuItem("+ ${hud.name}") {
-                        val mx = io.mousePos.x
-                        val my = io.mousePos.y
-                        hud.enable()
-                        pendingPositions[hud.name] = mx to my
+                menu("Add HUD Element") {
+                    notShown.sortedBy { it.name.lowercase() }.forEach { hud ->
+                        menuItem("+ ${hud.name}") {
+                            val mx = io.mousePos.x
+                            val my = io.mousePos.y
+                            hud.enable()
+                            pendingPositions[hud.name] = mx to my
+                        }
                     }
                 }
             }
@@ -240,9 +270,9 @@ object HudGuiLayout : Loadable {
     }
 
     private fun ImGuiBuilder.drawDragGrid() {
-        if (!GuiSettings.snapEnabled || !GuiSettings.snapToGrid) return
+        if (!snapEnabled || !snapToGrid) return
         val vp = ImGui.getMainViewport()
-        val step = max(4f, GuiSettings.gridSize * io.fontGlobalScale)
+        val step = max(4f, gridSize * io.fontGlobalScale)
         if (step <= 0f) return
 
         val x0 = vp.posX
@@ -267,24 +297,24 @@ object HudGuiLayout : Loadable {
     }
 
     private fun ImGuiBuilder.drawHudCornerArcs(draw: ImDrawList, x: Float, y: Float, w: Float, h: Float) {
-        val baseRadius = GuiSettings.hudOutlineCornerRadius
+        val baseRadius = hudOutlineCornerRadius
         val rounding = if (baseRadius > 0f) baseRadius else style.windowRounding
-        val inflate = GuiSettings.hudOutlineCornerInflate
+        val inflate = hudOutlineCornerInflate
         // Soft halo corners
         drawCornerArcs(
             draw,
             x, y, w, h,
             (rounding + inflate).coerceAtLeast(0f),
-            GuiSettings.hudOutlineHaloColor.rgb,
-            GuiSettings.hudOutlineHaloThickness
+            hudOutlineHaloColor.rgb,
+            hudOutlineHaloThickness
         )
         // Crisp inner corner arcs
         drawCornerArcs(
             draw,
             x, y, w, h,
             rounding.coerceAtLeast(0f),
-            GuiSettings.hudOutlineBorderColor.rgb,
-            GuiSettings.hudOutlineBorderThickness
+            hudOutlineBorderColor.rgb,
+            hudOutlineBorderThickness
         )
     }
 

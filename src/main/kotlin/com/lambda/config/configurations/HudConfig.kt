@@ -15,24 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.components
+package com.lambda.config.configurations
 
-import com.lambda.gui.Layout
-import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
-import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.module.Module
-import imgui.ImGui
+import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
+import java.io.File
 
-class ModuleEntry(val module: Module): Layout {
-    override fun ImGuiBuilder.buildLayout() {
-        selectable(module.name, selected = module.isEnabled) {
-            module.toggle()
-        }
-        lambdaTooltip(module.description)
-
-        ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
-        popupContextItem("##ctx-${module.name}") {
-            buildConfigSettingsContext(module)
-        }
-    }
+object HudConfig : Configuration() {
+    override val configName get() = "hud"
+    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
 }
