@@ -52,7 +52,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
 
     // Snapping
     val snapEnabled by setting("Enable Snapping", true, "Master toggle for HUD snapping").group(Group.Snapping)
-    val gridSize by setting("Grid Size", 16f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }.group(Group.Snapping)
+    val gridSize by setting("Grid Size", 25f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }.group(Group.Snapping)
     val snapToEdges by setting("Snap To Element Edges", true) { snapEnabled }.group(Group.Snapping)
     val snapToCenters by setting("Snap To Element Centers", true) { snapEnabled }.group(Group.Snapping)
     val snapToScreenCenter by setting("Snap To Screen Center", true) { snapEnabled }.group(Group.Snapping)
@@ -82,6 +82,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     private val lastBounds = mutableMapOf<String, RectF>()
     private val pendingPositions = mutableMapOf<String, Pair<Float, Float>>()
     private val snapOverlays = mutableMapOf<String, SnapVisual>()
+    private var mousePressedThisFrameGlobal = false
 
     var isShownInGUI = true
     var isLocked = false
@@ -121,6 +122,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 val mousePressedThisFrame = mouseDown && !mouseWasDown
                 val mouseReleasedThisFrame = !mouseDown && mouseWasDown
                 mouseWasDown = mouseDown
+                mousePressedThisFrameGlobal = mousePressedThisFrame
 
                 if (mouseReleasedThisFrame || !ClickGui.isEnabled || isLocked) {
                     activeDragHudName = null
@@ -138,9 +140,8 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 registerContextMenu(notShown)
 
                 if (ClickGui.isEnabled && !isLocked) {
-                    if (activeDragHudName == null && mousePressedThisFrame) { tryBeginDrag(huds) }
-                    if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
-                    if (activeDragHudName != null) drawDragGrid()
+                     if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
+                     if (activeDragHudName != null) drawDragGrid()
                 }
 
                 huds.forEach { hud ->
@@ -176,6 +177,14 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val outlineWidth = if (hud.outline) hud.outlineWidth else 0f
         withStyleVar(ImGuiStyleVar.WindowBorderSize, outlineWidth) {
             window("##${hud.name}", flags = hudFlags) {
+                if (ClickGui.isEnabled && !isLocked && activeDragHudName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
+                    val mx = io.mousePos.x
+                    val my = io.mousePos.y
+                    activeDragHudName = hud.name
+                    dragOffsetX = mx - windowPos.x
+                    dragOffsetY = my - windowPos.y
+                }
+
                 val vis = snapOverlays[hud.name]
                 if (vis != null) {
                     SnapManager.drawSnapLines(
@@ -218,10 +227,6 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 isShownInGUI = !isShownInGUI
             }
             separator()
-            menu("HUD Settings") {
-                buildConfigSettingsContext(this@HudGuiLayout)
-            }
-            separator()
             if (notShown.isEmpty()) {
                 textDisabled("No hidden HUD elements")
             } else {
@@ -236,20 +241,9 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     }
                 }
             }
-        }
-    }
-
-    private fun ImGuiBuilder.tryBeginDrag(huds: List<HudModule>) {
-        val mx = io.mousePos.x
-        val my = io.mousePos.y
-        huds.forEach { hud ->
-            val r = lastBounds[hud.name] ?: return@forEach
-            val inside = mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h
-            if (inside) {
-                activeDragHudName = hud.name
-                dragOffsetX = mx - r.x
-                dragOffsetY = my - r.y
-                return
+            separator()
+            menu("HUD Settings") {
+                buildConfigSettingsContext(this@HudGuiLayout)
             }
         }
     }

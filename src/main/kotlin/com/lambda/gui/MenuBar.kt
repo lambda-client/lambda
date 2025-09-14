@@ -28,6 +28,7 @@ import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.DearImGui.EXTERNAL_LINK
 import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
+import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
@@ -197,6 +198,10 @@ object MenuBar {
         }
         menuItem(if (HudGuiLayout.isShownInGUI) "Hide" else "Show") {
             HudGuiLayout.isShownInGUI = !HudGuiLayout.isShownInGUI
+        }
+        separator()
+        menu("HUD Settings") {
+            buildConfigSettingsContext(HudGuiLayout)
         }
     }
 
