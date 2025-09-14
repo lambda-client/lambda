@@ -142,7 +142,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun SafeContext.processRequest(request: PlaceRequest) {
-        logger.debug("Processing request (${request.requestID}) at tick stage ${tickStage?.run { this::class.qualifiedName }}")
+        logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
 
@@ -153,20 +153,25 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
             if (ctx.sneak) shouldSneak = true
             if (!ctx.requestDependencies(request)) {
-                logger.warning("Dependencies failed for ${request.requestID}")
+                logger.warning("Dependencies failed for context", ctx, request)
                 return
             }
             if (!validSneak(player)) return
             //            if (tickStage !in request.build.placing.placeStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
-            if (!actionResult.isAccepted) warn("Placement interaction failed with $actionResult")
+            if (!actionResult.isAccepted) {
+                logger.warning("Placement interaction failed with $actionResult", ctx, request)
+                warn("Placement interaction failed with $actionResult")
+            }
             placementsThisTick++
             iterator.remove()
         }
         if (potentialPlacements.isEmpty()) {
-            if (activeRequest != null) logger.debug("Clearing active request")
-            activeRequest = null
+            if (activeRequest != null) {
+                logger.debug("Clearing active request", activeRequest)
+                activeRequest = null
+            }
         }
     }
 
@@ -177,7 +182,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see isPosBlocked
      */
     private fun populateFrom(request: PlaceRequest) {
-        logger.debug("Populating from request (${request.requestID})")
+        logger.debug("Populating from request", request)
         setPendingConfigs(request.build)
         potentialPlacements = request.contexts
             .filter { !isPosBlocked(it.blockPos) }
@@ -197,11 +202,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         interaction.syncSelectedSlot()
         val hitResult = placeContext.result
         if (!world.worldBorder.contains(hitResult.blockPos)) {
-            logger.error("Placement position outside the world border at ${placeContext.blockPos.toShortString()}")
+            logger.error("Placement position outside the world border", placeContext, request)
             return ActionResult.FAIL
         }
         if (gamemode == GameMode.SPECTATOR) {
-            logger.error("Player is in spectator mode")
+            logger.error("Player is in spectator mode", placeContext, request)
             return ActionResult.PASS
         }
         return interactBlockInternal(placeContext, request, request.build.placing, hand, hitResult)
@@ -224,13 +229,13 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!cantInteract) {
             val blockState = blockState(hitResult.blockPos)
             if (!connection.hasFeature(blockState.block.requiredFeatures)) {
-                logger.error("Required features not met for $blockState")
+                logger.error("Required features not met for $blockState", placeContext, request)
                 return ActionResult.FAIL
             }
 
             val actionResult = blockState.onUse(world, player, hitResult)
             if (actionResult.isAccepted) {
-                logger.error("Block state ($blockState) onUse not accepted")
+                logger.error("Block state ($blockState) onUse not accepted", placeContext, request)
                 return actionResult
             }
         }
@@ -270,12 +275,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         val cantModifyWorld = !player.abilities.allowModifyWorld
         val cantPlaceOn = !itemStack.canPlaceOn(cachedBlockPosition)
         if (cantModifyWorld && cantPlaceOn) {
-            logger.error("Cannot modify world")
+            logger.error("Cannot modify world", placeContext, request)
             return ActionResult.PASS
         }
 
         val item = (itemStack.item as? BlockItem) ?: run {
-            logger.error("Item ${itemStack.item.name} is not a block item")
+            logger.error("Item ${itemStack.item.name} is not a block item", placeContext, request)
             return ActionResult.PASS
         }
 
@@ -297,20 +302,20 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         context: ItemPlacementContext
     ): ActionResult {
         if (!item.block.isEnabled(world.enabledFeatures)) {
-            logger.error("Block ${item.block.name} is not enabled")
+            logger.error("Block ${item.block.name} is not enabled", placeContext, request)
             return ActionResult.FAIL
         }
         if (!context.canPlace()) {
-            logger.error("Cannot place at ${placeContext.blockPos} with current state ${placeContext.cachedState}")
+            logger.error("Cannot place at ${placeContext.blockPos} with current state ${placeContext.cachedState}", placeContext, request)
             return ActionResult.FAIL
         }
 
         val itemPlacementContext = item.getPlacementContext(context) ?: run {
-            logger.error("Could not retrieve item placement context")
+            logger.error("Could not retrieve item placement context", placeContext, request)
             return ActionResult.FAIL
         }
         val blockState = item.getPlacementState(itemPlacementContext) ?: run {
-            logger.error("Could not retrieve placement state")
+            logger.error("Could not retrieve placement state", placeContext, request)
             return ActionResult.FAIL
         }
 
@@ -347,7 +352,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         //  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
         //  rules are not called.
         if (!item.place(itemPlacementContext, blockState)) {
-            logger.error("Could not place block client side at ${placeContext.blockPos} with placement state ${placeContext.expectedState}")
+            logger.error("Could not place block client side at ${placeContext.blockPos} with placement state ${placeContext.expectedState}", placeContext, request)
             return ActionResult.FAIL
         }
 
@@ -365,7 +370,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             request.onPlace?.invoke(placeContext.blockPos)
         }
 
-        logger.success("Placed ${placeContext.expectedState} at ${placeContext.blockPos}")
+        logger.success("Placed ${placeContext.expectedState} at ${placeContext.blockPos}", placeContext, request)
 
         return ActionResult.SUCCESS
     }
