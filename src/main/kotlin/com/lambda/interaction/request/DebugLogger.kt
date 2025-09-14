@@ -17,32 +17,26 @@
 
 package com.lambda.interaction.request
 
-import com.lambda.Lambda.mc
-import com.lambda.gui.LambdaScreen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.interaction.request.LogContext.Companion.buildLogContext
+import com.lambda.module.hud.ManagerDebugLoggers.autoScroll
 import com.lambda.module.hud.ManagerDebugLoggers.maxLogEntries
+import com.lambda.module.hud.ManagerDebugLoggers.showDebug
+import com.lambda.module.hud.ManagerDebugLoggers.showError
+import com.lambda.module.hud.ManagerDebugLoggers.showSuccess
+import com.lambda.module.hud.ManagerDebugLoggers.showSystem
+import com.lambda.module.hud.ManagerDebugLoggers.showWarning
+import com.lambda.module.hud.ManagerDebugLoggers.wrapText
 import com.lambda.util.math.a
 import imgui.ImGui
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiWindowFlags
-import imgui.type.ImBoolean
-import imgui.type.ImFloat
 import java.awt.Color
 import java.util.*
 
 class DebugLogger(
     val name: String
 ) {
-    private val autoScroll = ImBoolean(true)
-    private val wrapText = ImBoolean(true)
-    private val showDebug = ImBoolean(true)
-    private val showSuccess = ImBoolean(true)
-    private val showWarning = ImBoolean(true)
-    private val showError = ImBoolean(true)
-    private val showSystem = ImBoolean(true)
-    private val backgroundAlpha = ImFloat(0.3f)
-
     val logs = LinkedList<LogEntry>()
 
     private fun log(message: String, logColor: LogType, extraContext: List<String?>) {
@@ -75,25 +69,10 @@ class DebugLogger(
 
     fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
-        ImGui.setNextWindowBgAlpha(backgroundAlpha.get())
-        val noScroll = if (autoScroll.get()) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
-        if (mc.currentScreen == LambdaScreen) {
-            checkbox("Auto-Scroll", autoScroll)
-            sameLine()
-            checkbox("Warp Text", wrapText)
-            sameLine()
-            checkbox("Show Debug", showDebug)
-            checkbox("Show Success", showSuccess)
-            sameLine()
-            checkbox("Show Warning", showWarning)
-            sameLine()
-            checkbox("Show Error", showError)
-            checkbox("Show System", showSystem)
-            slider("Background Alpha", backgroundAlpha, 0.0f, 1.0f)
-            button("Clear") { clear() }
-        }
-        child("Log Content", extraFlags = noScroll) {
-            if (wrapText.get()) ImGui.pushTextWrapPos()
+        var flags = if (autoScroll) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
+        flags = flags or ImGuiWindowFlags.NoBackground
+        child("Log Content", extraFlags = flags) {
+            if (wrapText) ImGui.pushTextWrapPos()
 
             logs.forEach { logEntry ->
                 if (shouldDisplay(logEntry)) {
@@ -124,9 +103,9 @@ class DebugLogger(
                 }
             }
 
-            if (wrapText.get()) ImGui.popTextWrapPos()
+            if (wrapText) ImGui.popTextWrapPos()
 
-            if (autoScroll.get()) {
+            if (autoScroll) {
                 ImGui.setScrollHereY(1f)
             }
         }
@@ -134,11 +113,11 @@ class DebugLogger(
 
     fun shouldDisplay(logEntry: LogEntry) =
         when (logEntry.type) {
-            LogType.Debug -> showDebug.get()
-            LogType.Success -> showSuccess.get()
-            LogType.Warning -> showWarning.get()
-            LogType.Error -> showError.get()
-            LogType.System -> showSystem.get()
+            LogType.Debug -> showDebug
+            LogType.Success -> showSuccess
+            LogType.Warning -> showWarning
+            LogType.Error -> showError
+            LogType.System -> showSystem
         }
 
     fun clear() = logs.clear()
