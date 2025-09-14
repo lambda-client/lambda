@@ -36,8 +36,8 @@
 
 package com.lambda.gui.dsl
 
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.dsl.ImGuiBuilder.text
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.Vec2d
 import imgui.*
 import imgui.ImGui.*
@@ -1456,7 +1456,7 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun lambdaTooltip(description: String) {
         if (description.isBlank()) return
-        onItemHover(ClickGui.tooltipType.flag) {
+        onItemHover(ClickGuiLayout.tooltipType.flag) {
             tooltip {
                 withTextWrapPos(fontSize * 35f) {
                     textUnformatted(description)

@@ -26,6 +26,7 @@ import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.DearImGui.EXTERNAL_LINK
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
@@ -58,6 +59,7 @@ object MenuBar {
         mainMenuBar {
             lambdaMenu()
             menu("HUD") { buildHudMenu() }
+            menu("GUI") { buildGuiMenu() }
             menu("Modules") { buildModulesMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
             menu("Help") { buildHelpMenu() }
@@ -203,6 +205,10 @@ object MenuBar {
         menu("HUD Settings") {
             buildConfigSettingsContext(HudGuiLayout)
         }
+    }
+
+    private fun ImGuiBuilder.buildGuiMenu() {
+        buildConfigSettingsContext(ClickGuiLayout)
     }
 
     private fun ImGuiBuilder.buildModulesMenu() {

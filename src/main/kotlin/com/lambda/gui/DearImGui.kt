@@ -21,8 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.GuiEvent
-import com.lambda.module.modules.client.ClickGui
-import com.lambda.module.modules.client.GuiSettings
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.util.stream
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
@@ -76,7 +75,7 @@ object DearImGui : Loadable {
     }
 
     fun render() {
-        val scale = (GuiSettings.scaleSetting / 100.0).toFloat()
+        val scale = (ClickGuiLayout.scaleSetting / 100.0).toFloat()
 
         if (lastScale == 0f) {
             targetScale = scale
@@ -109,7 +108,7 @@ object DearImGui : Loadable {
         implGlfw.newFrame()
         implGl3.newFrame()
 
-        ClickGui.applyStyle(lastScale)
+        ClickGuiLayout.applyStyle(lastScale)
         ImGui.newFrame()
 
         GuiEvent.NewFrame.post()

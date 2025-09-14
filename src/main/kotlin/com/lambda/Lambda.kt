@@ -29,7 +29,7 @@ import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
-import com.lambda.module.modules.client.ClickGui
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.util.KeyCode
 import com.lambda.util.WindowIcons.setLambdaWindowIcon
 import com.mojang.authlib.GameProfile
@@ -82,7 +82,7 @@ object Lambda : ClientModInitializer {
         // We want the opengl context to be created
         listenOnceUnsafe<ClientEvent.Startup>(priority = Int.MAX_VALUE) {
             LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
-            if (ClickGui.setLambdaWindowIcon) setLambdaWindowIcon()
+            if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
             true
         }
     }

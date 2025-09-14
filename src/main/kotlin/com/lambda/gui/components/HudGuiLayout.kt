@@ -30,7 +30,6 @@ import com.lambda.gui.snap.RectF
 import com.lambda.gui.snap.SnapManager
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.NamedEnum
 import imgui.ImColor
 import imgui.ImGui
@@ -102,7 +101,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     init {
         listen<GuiEvent.NewFrame> {
             buildLayout {
-                if (ClickGui.isEnabled && !isShownInGUI) {
+                if (ClickGuiLayout.open && !isShownInGUI) {
                     popupContextVoid("##hud-background") {
                         menuItem(if (isShownInGUI) "Hide HUD" else "Show HUD") {
                             isShownInGUI = !isShownInGUI
@@ -110,6 +109,9 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                         separator()
                         menu("HUD Settings") {
                             buildConfigSettingsContext(this@HudGuiLayout)
+                        }
+                        menu("GUI Settings") {
+                            buildConfigSettingsContext(ClickGuiLayout)
                         }
                     }
                     return@buildLayout
@@ -124,7 +126,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 mouseWasDown = mouseDown
                 mousePressedThisFrameGlobal = mousePressedThisFrame
 
-                if (mouseReleasedThisFrame || !ClickGui.isEnabled || isLocked) {
+                if (mouseReleasedThisFrame || !ClickGuiLayout.open || isLocked) {
                     activeDragHudName = null
                 }
 
@@ -139,7 +141,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
 
                 registerContextMenu(notShown)
 
-                if (ClickGui.isEnabled && !isLocked) {
+                if (ClickGuiLayout.open && !isLocked) {
                      if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
                      if (activeDragHudName != null) drawDragGrid()
                 }
@@ -162,7 +164,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val baseFlags = if (hasBg) {
             DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
         } else DEFAULT_HUD_FLAGS
-        val hudFlags = if (!ClickGui.isEnabled || isLocked) {
+        val hudFlags = if (!ClickGuiLayout.open || isLocked) {
             baseFlags or ImGuiWindowFlags.NoMove
         } else baseFlags
 
@@ -177,7 +179,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val outlineWidth = if (hud.outline) hud.outlineWidth else 0f
         withStyleVar(ImGuiStyleVar.WindowBorderSize, outlineWidth) {
             window("##${hud.name}", flags = hudFlags) {
-                if (ClickGui.isEnabled && !isLocked && activeDragHudName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
+                if (ClickGuiLayout.open && !isLocked && activeDragHudName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
                     val mx = io.mousePos.x
                     val my = io.mousePos.y
                     activeDragHudName = hud.name
@@ -204,7 +206,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     buildConfigSettingsContext(hud)
                 }
 
-                if (ClickGui.isEnabled && !isLocked) {
+                if (ClickGuiLayout.open && !isLocked) {
                     drawHudCornerArcs(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                 }
                 val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
@@ -244,6 +246,9 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
             separator()
             menu("HUD Settings") {
                 buildConfigSettingsContext(this@HudGuiLayout)
+            }
+            menu("GUI Settings") {
+                buildConfigSettingsContext(ClickGuiLayout)
             }
         }
     }

@@ -24,9 +24,7 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.shader.Shader
-import com.lambda.module.modules.client.GuiSettings
-import com.lambda.module.modules.client.GuiSettings.primaryColor
-import com.lambda.module.modules.client.GuiSettings.secondaryColor
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
@@ -59,11 +57,11 @@ open class AbstractGUIRenderer(
 
         shader["u_Shade"] = shade.toInt().toDouble()
         if (shade) {
-            shader["u_ShadeTime"] = GLFW.glfwGetTime() * GuiSettings.colorSpeed * 5.0
-            shader["u_ShadeColor1"] = primaryColor
-            shader["u_ShadeColor2"] = secondaryColor
+            shader["u_ShadeTime"] = GLFW.glfwGetTime() * ClickGuiLayout.colorSpeed * 5.0
+            shader["u_ShadeColor1"] = ClickGuiLayout.primaryColor
+            shader["u_ShadeColor2"] = ClickGuiLayout.secondaryColor
 
-            shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+            shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(ClickGuiLayout.colorWidth, ClickGuiLayout.colorHeight)
         }
 
         pipeline.apply {
