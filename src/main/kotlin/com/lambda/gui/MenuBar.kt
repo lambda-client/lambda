@@ -31,6 +31,7 @@ import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.interaction.BaritoneManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.LambdaAPI
@@ -136,6 +137,9 @@ object MenuBar {
             }
             menu("Lambda API Settings") {
                 buildConfigSettingsContext(LambdaAPI)
+            }
+            menu("Baritone Settings") {
+                buildConfigSettingsContext(BaritoneManager)
             }
         }
         separator()

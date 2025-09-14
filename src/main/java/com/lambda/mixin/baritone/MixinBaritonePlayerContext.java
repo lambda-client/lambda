@@ -20,8 +20,8 @@ package com.lambda.mixin.baritone;
 import baritone.Baritone;
 import baritone.api.utils.Rotation;
 import baritone.utils.player.BaritonePlayerContext;
+import com.lambda.interaction.BaritoneManager;
 import com.lambda.interaction.request.rotating.RotationManager;
-import com.lambda.util.BaritoneUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,7 +38,7 @@ public class MixinBaritonePlayerContext {
     // Let baritone know the actual rotation
     @Inject(method = "playerRotations", at = @At("HEAD"), cancellable = true, remap = false)
     void syncRotationWithBaritone(CallbackInfoReturnable<Rotation> cir) {
-        if (baritone != BaritoneUtils.getPrimary()) return;
+        if (baritone != BaritoneManager.getPrimary()) return;
 
         RotationManager rm = RotationManager.INSTANCE;
         cir.setReturnValue(new Rotation(
