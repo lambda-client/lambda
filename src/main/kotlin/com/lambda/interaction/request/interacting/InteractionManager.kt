@@ -98,7 +98,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
     }
 
     fun SafeContext.processRequest(request: InteractRequest) {
-        logger.debug("Processing request ${request.requestID}")
+        logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
 
@@ -110,7 +110,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
             val ctx = iterator.next()
 
             if (!ctx.requestDependencies(request)) {
-                logger.warning("Dependencies failed for ${request.requestID}")
+                logger.warning("Dependencies failed for interaction", ctx, request)
                 return
             }
 
@@ -130,12 +130,12 @@ object InteractionManager : RequestHandler<InteractRequest>(
             request.onInteract?.invoke(ctx.blockPos)
             interactionsThisTick++
             iterator.remove()
-            logger.success("Placed ${ctx.expectedState} at ${ctx.blockPos}")
+            logger.success("interacted with ${ctx.cachedState} at ${ctx.blockPos}, changing to ${ctx.expectedState}", ctx, request)
         }
     }
 
     private fun populateFrom(request: InteractRequest) {
-        logger.debug("Populating from request ${request.requestID}")
+        logger.debug("Populating from request", request)
         setPendingConfigs(request.build)
         potentialInteractions = request.contexts
             .filter { !isPosBlocked(it.blockPos) }
