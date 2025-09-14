@@ -33,6 +33,8 @@ import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
+import com.lambda.network.LambdaAPI
+import com.lambda.network.NetworkManager
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Diagnostics.gatherDiagnostics
@@ -100,15 +102,43 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildLambdaMenu() {
-        menuItem("New Profile...", enabled = false) {
-            // ToDo (New Profile):
-            //  - Open a modal "New Profile" with:
-            //      [Profile Name] text input
-            //      [Template] combo: Empty / Recommended Defaults / Copy from Current
-            //      [Include HUD Layout] checkbox
-            //  - On Create: instantiate and activate the profile, optionally copying values from current.
-            //  - On Cancel: close modal with no changes.
+        menu("Safe Config...") {
+            menuItem("Save All Configs") {
+                Configuration.configurations.forEach { it.trySave(true) }
+                info("Saved ${Configuration.configurations.size} configuration files.")
+            }
+            Configuration.configurations.forEach { config ->
+                menuItem("Save ${config.configName}") {
+                    config.trySave(true)
+                    info("Saved ${config.configName}")
+                }
+            }
         }
+        menu("Load Config...") {
+            menuItem("Load All Configs") {
+                Configuration.configurations.forEach { it.tryLoad() }
+                info("Loaded ${Configuration.configurations.size} configuration files.")
+            }
+            Configuration.configurations.forEach { config ->
+                menuItem("Load ${config.configName}") {
+                    config.tryLoad()
+                    info("Loaded ${config.configName}")
+                }
+            }
+        }
+        separator()
+        menu("Settings") {
+            menu("HUD Settings") {
+                buildConfigSettingsContext(HudGuiLayout)
+            }
+            menu("GUI Settings") {
+                buildConfigSettingsContext(ClickGuiLayout)
+            }
+            menu("Lambda API Settings") {
+                buildConfigSettingsContext(LambdaAPI)
+            }
+        }
+        separator()
         menu("Open Folder") {
             menuItem("Open Lambda Folder") {
                 Util.getOperatingSystem().open(FolderRegister.lambda)
@@ -136,15 +166,15 @@ object MenuBar {
             }
         }
         separator()
-        menuItem("Save Configs") {
-            Configuration.configurations.forEach { it.trySave(true) }
-            info("Saved ${Configuration.configurations.size} configuration files.")
+        menuItem("New Profile...", enabled = false) {
+            // ToDo (New Profile):
+            //  - Open a modal "New Profile" with:
+            //      [Profile Name] text input
+            //      [Template] combo: Empty / Recommended Defaults / Copy from Current
+            //      [Include HUD Layout] checkbox
+            //  - On Create: instantiate and activate the profile, optionally copying values from current.
+            //  - On Cancel: close modal with no changes.
         }
-        menuItem("Load Configs") {
-            Configuration.configurations.forEach { it.tryLoad() }
-            info("Loaded ${Configuration.configurations.size} configuration files.")
-        }
-        separator()
         menuItem("Import Profile...", enabled = false) {
             // ToDo (Import Profile):
             //  - Show a file picker for profile file(s).
@@ -188,6 +218,9 @@ object MenuBar {
         separator()
         menuItem("About...") {
             aboutRequested = true
+        }
+        menuItem("Developer Mode", selected = ClickGuiLayout.developerMode) {
+            ClickGuiLayout.developerMode = !ClickGuiLayout.developerMode
         }
         separator()
         menuItem("Close GUI", "Esc") { LambdaScreen.close() }

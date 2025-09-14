@@ -45,7 +45,7 @@ data class ModuleTag(override val name: String) : Nameable {
         val DEBUG = ModuleTag("Debug")
         val HUD = ModuleTag("Hud")
 
-        val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, DEBUG, CLIENT, HUD)
+        val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, CLIENT, HUD)
 
         val shownTags = defaults.toMutableSet()
 

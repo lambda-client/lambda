@@ -311,10 +311,8 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val rounding = if (baseRadius > 0f) baseRadius else style.windowRounding
         val inflate = hudOutlineCornerInflate
 
-        // Disable window clipping for these strokes while keeping window Z-order
         draw.pushClipRectFullScreen()
 
-        // Slightly grow the visual size so arcs feel bigger
         val haloRadius = (rounding + inflate + 0.5f * hudOutlineHaloThickness + 1.0f).coerceAtLeast(0f)
         val borderRadius = (rounding + 0.5f * hudOutlineBorderThickness + 0.75f).coerceAtLeast(0f)
 

@@ -20,7 +20,7 @@ package com.lambda.util
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
-import com.lambda.module.modules.client.Network
+import com.lambda.network.LambdaAPI
 import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FolderRegister.cache
 import com.lambda.util.extension.resolveFile
@@ -76,8 +76,8 @@ object DynamicReflectionSerializer : Loadable {
     private const val INDENT = 2
 
     private val mappings = runBlocking {
-        "${Network.mappings}/${Network.GAME_VERSION}"
-            .downloadIfNotPresent(cache.resolveFile(Network.GAME_VERSION))
+        "${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}"
+            .downloadIfNotPresent(cache.resolveFile(LambdaAPI.GAME_VERSION))
             .map { file ->
                 val standardMappings = file.readLines()
                     .map { it.split(' ') }

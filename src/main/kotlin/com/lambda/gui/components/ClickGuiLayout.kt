@@ -30,6 +30,7 @@ import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.components.QuickSearch.renderQuickSearch
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.tag.ModuleTag
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
@@ -54,6 +55,7 @@ import java.awt.Color
 object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     override val name = "GUI"
     var open = false
+    var developerMode = false
     val keybind by setting("Keybind", KeyCode.Y) { false }
 
     private enum class Group(override val displayName: String) : NamedEnum {
@@ -193,7 +195,10 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
             if (!open) return@listen
 
             buildLayout {
-                shownTags.forEach { tag ->
+                val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
+                if (tags.isEmpty()) return@buildLayout
+
+                tags.forEach { tag ->
                     window(tag.name, flags = AlwaysAutoResize) {
                         ModuleRegistry.modules
                             .filter { it.tag == tag }
@@ -204,8 +209,10 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                 buildMenuBar()
                 renderQuickSearch()
 
-                ImGui.showDemoWindow()
-                ImPlot.showDemoWindow()
+                if (developerMode) {
+                    ImGui.showDemoWindow()
+                    ImPlot.showDemoWindow()
+                }
             }
         }
 
