@@ -136,11 +136,9 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 val (huds, notShown) = ModuleRegistry.modules
                     .filterIsInstance<HudModule>()
                     .partition { it.isEnabled }
-
                 notShown.forEach { SnapManager.unregisterElement(it.name) }
 
-                registerContextMenu(notShown)
-
+                if (ClickGuiLayout.open) registerContextMenu(notShown)
                 if (ClickGuiLayout.open && !isLocked) {
                      if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
                      if (activeDragHudName != null) drawDragGrid()
