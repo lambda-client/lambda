@@ -28,8 +28,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.request.Logger
 import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.visibilty.lookAt
@@ -75,7 +75,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             activeRequest?.let {
                 if (it.keepTicks <= 0 && it.decayTicks <= 0) {
-                    logger.debug("Clearing active request ${it.requestID}")
+                    logger.debug("Clearing active request", it)
                     activeRequest = null
                 }
             }
@@ -139,7 +139,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     override fun SafeContext.handleRequest(request: RotationRequest) {
         activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
-            logger.debug("Accepting request ${request.requestID}")
+            logger.debug("Accepting request", request)
             activeRequest = request
             updateActiveRotation()
             changedThisTick = true
@@ -271,11 +271,11 @@ object RotationManager : RequestHandler<RotationRequest>(
             serverRotation.slerp(rotationTo, turnSpeed)
         } ?: player.rotation
 
-        logger.debug("Active rotation set to $activeRotation")
+        logger.debug("Active rotation set to $activeRotation", activeRequest)
     }
 
     private fun reset(rotation: Rotation) {
-        logger.debug("Resetting values")
+        logger.debug("Resetting values with rotation $rotation")
         prevServerRotation = rotation
         serverRotation = rotation
         activeRotation = rotation
