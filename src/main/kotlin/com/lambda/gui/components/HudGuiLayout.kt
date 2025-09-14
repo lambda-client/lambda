@@ -207,7 +207,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 }
 
                 if (ClickGuiLayout.open && !isLocked) {
-                    drawHudCornerArcs(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+                    drawHudCornerArcs(windowDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                 }
                 val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                 SnapManager.registerElement(hud.name, rect)
@@ -262,8 +262,19 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val targetY = my - dragOffsetY
         val proposed = RectF(targetX, targetY, last.w, last.h)
         val snap = SnapManager.computeSnap(proposed, id)
-        val finalX = targetX + snap.dx
-        val finalY = targetY + snap.dy
+        var finalX = targetX + snap.dx
+        var finalY = targetY + snap.dy
+
+        // Clamp to viewport so the HUD cannot go off-screen
+        val vp = ImGui.getMainViewport()
+        val minX = vp.posX
+        val minY = vp.posY
+        val maxX = vp.posX + vp.sizeX - last.w
+        val maxY = vp.posY + vp.sizeY - last.h
+
+        finalX = if (last.w >= vp.sizeX) minX else finalX.coerceIn(minX, maxX)
+        finalY = if (last.h >= vp.sizeY) minY else finalY.coerceIn(minY, maxY)
+
         pendingPositions[id] = finalX to finalY
         snapOverlays[id] = SnapVisual(snap.snapX, snap.snapY, snap.kindX, snap.kindY)
     }
@@ -299,11 +310,19 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val baseRadius = hudOutlineCornerRadius
         val rounding = if (baseRadius > 0f) baseRadius else style.windowRounding
         val inflate = hudOutlineCornerInflate
+
+        // Disable window clipping for these strokes while keeping window Z-order
+        draw.pushClipRectFullScreen()
+
+        // Slightly grow the visual size so arcs feel bigger
+        val haloRadius = (rounding + inflate + 0.5f * hudOutlineHaloThickness + 1.0f).coerceAtLeast(0f)
+        val borderRadius = (rounding + 0.5f * hudOutlineBorderThickness + 0.75f).coerceAtLeast(0f)
+
         // Soft halo corners
         drawCornerArcs(
             draw,
             x, y, w, h,
-            (rounding + inflate).coerceAtLeast(0f),
+            haloRadius,
             hudOutlineHaloColor.rgb,
             hudOutlineHaloThickness
         )
@@ -311,10 +330,12 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         drawCornerArcs(
             draw,
             x, y, w, h,
-            rounding.coerceAtLeast(0f),
+            borderRadius,
             hudOutlineBorderColor.rgb,
             hudOutlineBorderThickness
         )
+
+        draw.popClipRect()
     }
 
     private fun drawCornerArcs(
