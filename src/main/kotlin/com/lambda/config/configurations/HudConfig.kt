@@ -15,28 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.network.api.v1.endpoints
+package com.lambda.config.configurations
 
-import com.lambda.network.LambdaAPI.apiUrl
-import com.lambda.network.LambdaAPI.apiVersion
-import com.lambda.network.LambdaHttp
-import com.lambda.network.NetworkManager
-import io.ktor.client.request.*
-import io.ktor.http.*
+import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
+import java.io.File
 
-/**
- * Sets the currently authenticated player's cape
- *
- * Example:
- *  - id: galaxy
- *
- * @return nothing
- */
-suspend fun setCape(id: String) = runCatching {
-    val resp = LambdaHttp.put("$apiUrl/api/$apiVersion/cape?id=$id") {
-        bearerAuth(NetworkManager.accessToken)
-        contentType(ContentType.Application.Json)
-    }
-
-    check(resp.status == HttpStatusCode.OK)
+object HudConfig : Configuration() {
+    override val configName get() = "hud"
+    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
 }

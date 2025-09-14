@@ -34,10 +34,9 @@ import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.shader.Shader.Companion.shader
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.module.Module
-import com.lambda.module.modules.client.GuiSettings
-import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.DOWN
@@ -183,7 +182,7 @@ object Particles : Module(
 
         fun build(builder: VertexBuilder) = builder.apply {
             val smoothAge = age + mc.partialTicks
-            val colorTicks = smoothAge * 0.1 / colorSpeed
+            val colorTicks = smoothAge * 0.1 / ClickGuiLayout.colorSpeed
 
             val alpha = when {
                 smoothAge < fadeTicks -> smoothAge / fadeTicks
@@ -195,7 +194,7 @@ object Particles : Module(
                 }
             }
 
-            val (c1, c2) = GuiSettings.primaryColor to GuiSettings.secondaryColor
+            val (c1, c2) = ClickGuiLayout.primaryColor to ClickGuiLayout.secondaryColor
             val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
 
             val position = lerp(mc.partialTicks, prevPos, position)

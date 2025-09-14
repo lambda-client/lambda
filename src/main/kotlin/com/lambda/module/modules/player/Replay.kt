@@ -33,12 +33,12 @@ import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundManager.playSound
@@ -208,11 +208,11 @@ object Replay : Module(
                             val index = recordings.indexOf(saving)
                             this@Replay.info(buildText {
                                 literal("Auto saved #")
-                                color(GuiSettings.primaryColor) { literal("$index") }
+                                color(ClickGuiLayout.primaryColor) { literal("$index") }
                                 literal(" of ")
-                                color(GuiSettings.primaryColor) { literal(saving.duration.toString()) }
+                                color(ClickGuiLayout.primaryColor) { literal(saving.duration.toString()) }
                                 literal(" at ")
-                                color(GuiSettings.primaryColor) { literal(saving.endPos.asString(1)) }
+                                color(ClickGuiLayout.primaryColor) { literal(saving.endPos.asString(1)) }
                                 playMessage(saving)
                                 saveMessage(saving)
                                 pruneMessage(saving)
@@ -230,9 +230,9 @@ object Replay : Module(
                             buffer = playback?.duplicate()
                             this@Replay.info(buildText {
                                 if (repeats > 0) {
-                                    color(GuiSettings.primaryColor) { literal("[$repeats / $loops]") }
+                                    color(ClickGuiLayout.primaryColor) { literal("[$repeats / $loops]") }
                                 } else {
-                                    color(GuiSettings.primaryColor) { literal("[$repeats/∞]") }
+                                    color(ClickGuiLayout.primaryColor) { literal("[$repeats/∞]") }
                                 }
                                 literal(" Replay looped.")
                             })
@@ -243,7 +243,7 @@ object Replay : Module(
                                 state = State.INACTIVE
                                 this@Replay.info(buildText {
                                     literal("Replay finished after ")
-                                    color(GuiSettings.primaryColor) { literal(playback?.duration.toString()) }
+                                    color(ClickGuiLayout.primaryColor) { literal(playback?.duration.toString()) }
                                     literal(".")
                                 })
                                 return@listen
@@ -268,9 +268,9 @@ object Replay : Module(
 
         info(buildText {
             literal("Recording #${recordings.indexOf(deserialized)} ")
-            color(GuiSettings.primaryColor) { literal(file.nameWithoutExtension) }
+            color(ClickGuiLayout.primaryColor) { literal(file.nameWithoutExtension) }
             literal(" loaded. Duration: ")
-            color(GuiSettings.primaryColor) { literal(deserialized.duration.toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(deserialized.duration.toString()) }
             playMessage(deserialized)
             pruneMessage(deserialized)
         })
@@ -299,9 +299,9 @@ object Replay : Module(
         playback = recording
         info(buildText {
             literal("Replaying recording #")
-            color(GuiSettings.primaryColor) { literal(index.toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(index.toString()) }
             literal(" of ")
-            color(GuiSettings.primaryColor) { literal(recording.duration.toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(recording.duration.toString()) }
         })
         return CommandResult.success()
     }
@@ -315,13 +315,13 @@ object Replay : Module(
         recordings.add(pruned)
         info(buildText {
             literal("Shortened recording #")
-            color(GuiSettings.primaryColor) { literal(recordings.indexOf(toShorten).toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(recordings.indexOf(toShorten).toString()) }
             literal(" of ")
-            color(GuiSettings.primaryColor) { literal(toShorten.duration.toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(toShorten.duration.toString()) }
             literal(" to new recording #")
-            color(GuiSettings.primaryColor) { literal(recordings.indexOf(pruned).toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(recordings.indexOf(pruned).toString()) }
             literal(" of ")
-            color(GuiSettings.primaryColor) { literal(pruned.duration.toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(pruned.duration.toString()) }
             playMessage(pruned)
             saveMessage(pruned)
         })
@@ -337,7 +337,7 @@ object Replay : Module(
                     buffer = it.duplicate()
                     info(buildText {
                         literal("Replaying most recent recording #${recordings.indexOf(it)}. Duration: ")
-                        color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
+                        color(ClickGuiLayout.primaryColor) { literal(it.duration.toString()) }
                     })
                 } ?: run {
                     this@Replay.warn("No recording to replay.")
@@ -381,9 +381,9 @@ object Replay : Module(
         recordings.add(rec)
         this@Replay.info(buildText {
             literal("Stopped recording #")
-            color(GuiSettings.primaryColor) { literal("${recordings.indexOf(rec)}") }
+            color(ClickGuiLayout.primaryColor) { literal("${recordings.indexOf(rec)}") }
             literal(" of ")
-            color(GuiSettings.primaryColor) { literal(rec.duration.toString()) }
+            color(ClickGuiLayout.primaryColor) { literal(rec.duration.toString()) }
             literal(".")
             playMessage(rec)
             saveMessage(rec)
@@ -398,9 +398,9 @@ object Replay : Module(
                 recordings.add(checkRec)
                 this@Replay.info(buildText {
                     literal("Checkpoint #")
-                    color(GuiSettings.primaryColor) { literal("${recordings.indexOf(checkRec)}") }
+                    color(ClickGuiLayout.primaryColor) { literal("${recordings.indexOf(checkRec)}") }
                     literal(" created at ")
-                    color(GuiSettings.primaryColor) { literal(checkRec.endPos.asString(0)) }
+                    color(ClickGuiLayout.primaryColor) { literal(checkRec.endPos.asString(0)) }
                     literal(".")
                     playMessage(checkRec)
                     saveMessage(checkRec)
@@ -419,9 +419,9 @@ object Replay : Module(
         playMode = PlayMode.entries[(playMode.ordinal + 1) % PlayMode.entries.size]
         info(buildText {
             literal("Set play mode to ")
-            color(GuiSettings.primaryColor) { literal(playMode.name) }
+            color(ClickGuiLayout.primaryColor) { literal(playMode.name) }
             literal(" (previously ")
-            color(GuiSettings.primaryColor) { literal(oldMode.name) }
+            color(ClickGuiLayout.primaryColor) { literal(oldMode.name) }
             literal(")")
         })
     }
@@ -441,30 +441,30 @@ object Replay : Module(
 
             this@Replay.info(buildText {
                 literal("Saved recording #")
-                color(GuiSettings.primaryColor) { literal("${recordings.indexOf(recording)}") }
+                color(ClickGuiLayout.primaryColor) { literal("${recordings.indexOf(recording)}") }
                 literal(" of ")
-                color(GuiSettings.primaryColor) { literal(recording.duration.toString()) }
+                color(ClickGuiLayout.primaryColor) { literal(recording.duration.toString()) }
                 literal(" in file ")
-                color(GuiSettings.primaryColor) { literal(name) }
+                color(ClickGuiLayout.primaryColor) { literal(name) }
                 val filePath = file.toPath().pathString
                 hoverEvent(HoverEvents.showText(buildText {
                     literal("Open file ")
-                    color(GuiSettings.primaryColor) { literal(filePath) }
+                    color(ClickGuiLayout.primaryColor) { literal(filePath) }
                 })) {
                     clickEvent(ClickEvents.openFile(filePath)) {
                         literal(" [")
-                        color(GuiSettings.secondaryColor) { literal("OPEN FILE") }
+                        color(ClickGuiLayout.secondaryColor) { literal("OPEN FILE") }
                         literal("]")
                     }
                 }
                 val parentPath = file.parentFile.toPath().pathString
                 hoverEvent(HoverEvents.showText(buildText {
                     literal("Open folder ")
-                    color(GuiSettings.primaryColor) { literal(parentPath) }
+                    color(ClickGuiLayout.primaryColor) { literal(parentPath) }
                 })) {
                     clickEvent(ClickEvents.openFile(parentPath)) {
                         literal(" [")
-                        color(GuiSettings.secondaryColor) { literal("OPEN FOLDER") }
+                        color(ClickGuiLayout.secondaryColor) { literal("OPEN FOLDER") }
                         literal("]")
                     }
                 }
@@ -475,12 +475,12 @@ object Replay : Module(
     private fun TextBuilder.playMessage(recording: Recording) {
         hoverEvent(HoverEvents.showText(buildText {
             literal("Click to replay recording #")
-            color(GuiSettings.primaryColor) { literal("${recordings.indexOf(recording)}") }
+            color(ClickGuiLayout.primaryColor) { literal("${recordings.indexOf(recording)}") }
             literal(".")
         })) {
             clickEvent(ClickEvents.suggestCommand(";replay play ${recordings.indexOf(recording)}")) {
                 literal(" [")
-                color(GuiSettings.secondaryColor) {
+                color(ClickGuiLayout.secondaryColor) {
                     literal("PLAY")
                 }
                 literal("]")
@@ -493,17 +493,17 @@ object Replay : Module(
 
         hoverEvent(HoverEvents.showText(buildText {
             literal(" Recording can be shortened by ")
-            color(GuiSettings.primaryColor) {
+            color(ClickGuiLayout.primaryColor) {
                 literal(recording.pruneTimesave.toString())
             }
             literal(" by removing idles and cyclic paths.")
         })) {
             clickEvent(ClickEvents.suggestCommand(";replay prune ${recordings.indexOf(recording)}")) {
                 literal(" [")
-                color(GuiSettings.secondaryColor) {
+                color(ClickGuiLayout.secondaryColor) {
                     literal("PRUNE ")
                 }
-                color(GuiSettings.primaryColor) {
+                color(ClickGuiLayout.primaryColor) {
                     literal("${recording.pruneTimesave}")
                 }
                 literal("]")
@@ -514,12 +514,12 @@ object Replay : Module(
     private fun TextBuilder.saveMessage(recording: Recording) {
         hoverEvent(HoverEvents.showText(buildText {
             literal("Click to save recording #")
-            color(GuiSettings.primaryColor) { literal("${recordings.indexOf(recording)}") }
+            color(ClickGuiLayout.primaryColor) { literal("${recordings.indexOf(recording)}") }
             literal(".")
         })) {
             clickEvent(ClickEvents.suggestCommand(";replay save ${recordings.indexOf(recording)} ${getTime(fileFormatter).sanitizeForFilename()}")) {
                 literal(" [")
-                color(GuiSettings.secondaryColor) { literal("SAVE") }
+                color(ClickGuiLayout.secondaryColor) { literal("SAVE") }
                 literal("]")
             }
         }
@@ -539,7 +539,7 @@ object Replay : Module(
         }
         this@Replay.info(buildText {
             literal("Postprocessing finished. Shortened recording by ")
-            color(GuiSettings.primaryColor) { literal((duration - pruned.duration).toString()) }
+            color(ClickGuiLayout.primaryColor) { literal((duration - pruned.duration).toString()) }
             literal(".")
         })
         return pruned

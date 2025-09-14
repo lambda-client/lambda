@@ -24,9 +24,9 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.StringUtils.capitalize
@@ -151,7 +151,7 @@ object Communication {
             if (command.usage.isNotBlank()) {
                 literal("\n")
                 literal("Usage: ")
-                color(GuiSettings.primaryColor) {
+                color(ClickGuiLayout.primaryColor) {
                     literal(command.usage)
                 }
             }
@@ -159,7 +159,7 @@ object Communication {
                 literal("\n")
                 literal("Aliases: ")
                 joinToText(command.aliases) {
-                    color(GuiSettings.primaryColor) {
+                    color(ClickGuiLayout.primaryColor) {
                         literal(it)
                     }
                 }
@@ -178,7 +178,7 @@ object Communication {
                 literal("\n")
             }
             literal("Keybind: ")
-            color(GuiSettings.primaryColor) {
+            color(ClickGuiLayout.primaryColor) {
                 if (module.keybind.code != -1) {
                     literal(module.keybind.code.toString())
                 } else {

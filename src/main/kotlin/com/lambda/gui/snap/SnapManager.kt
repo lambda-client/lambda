@@ -1,12 +1,15 @@
 package com.lambda.gui.snap
 
-import com.lambda.module.modules.client.GuiSettings
-import com.lambda.module.modules.client.GuiSettings.gridSize
-import com.lambda.module.modules.client.GuiSettings.snapEnabled
-import com.lambda.module.modules.client.GuiSettings.snapToCenters
-import com.lambda.module.modules.client.GuiSettings.snapToEdges
-import com.lambda.module.modules.client.GuiSettings.snapToGrid
-import com.lambda.module.modules.client.GuiSettings.snapToScreenCenter
+import com.lambda.gui.components.HudGuiLayout.gridSize
+import com.lambda.gui.components.HudGuiLayout.snapDistanceElement
+import com.lambda.gui.components.HudGuiLayout.snapDistanceGrid
+import com.lambda.gui.components.HudGuiLayout.snapDistanceScreen
+import com.lambda.gui.components.HudGuiLayout.snapEnabled
+import com.lambda.gui.components.HudGuiLayout.snapLineColor
+import com.lambda.gui.components.HudGuiLayout.snapToCenters
+import com.lambda.gui.components.HudGuiLayout.snapToEdges
+import com.lambda.gui.components.HudGuiLayout.snapToGrid
+import com.lambda.gui.components.HudGuiLayout.snapToScreenCenter
 import imgui.ImDrawList
 import kotlin.math.abs
 import kotlin.math.max
@@ -78,9 +81,9 @@ object SnapManager {
     )
 
     private fun thresholdFor(kind: Guide.Kind): Float = when (kind) {
-        Guide.Kind.ElementEdge, Guide.Kind.ElementCenter -> GuiSettings.snapDistanceElement * scale
-        Guide.Kind.ScreenCenter -> GuiSettings.snapDistanceScreen * scale
-        Guide.Kind.Grid -> GuiSettings.snapDistanceGrid * scale
+        Guide.Kind.ElementEdge, Guide.Kind.ElementCenter -> snapDistanceElement * scale
+        Guide.Kind.ScreenCenter -> snapDistanceScreen * scale
+        Guide.Kind.Grid -> snapDistanceGrid * scale
     }
 
     private fun score(dist: Float, strength: Int): Float = dist - strength * 0.08f
@@ -161,7 +164,7 @@ object SnapManager {
         val showY = kindY == Guide.Kind.ElementEdge || kindY == Guide.Kind.ElementCenter
         if (!showX && !showY) return
 
-        val col = GuiSettings.snapLineColor.rgb
+        val col = snapLineColor.rgb
         val thick = 2f
         if (showX && snapX != null) draw.addLine(snapX, 0f, snapX, viewH, col, thick)
         if (showY && snapY != null) draw.addLine(0f, snapY, viewW, snapY, col, thick)

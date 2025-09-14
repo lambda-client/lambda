@@ -31,16 +31,11 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.gui.DearImGui
-import com.lambda.gui.LambdaScreen
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
-import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import imgui.ImGui
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -138,12 +133,7 @@ abstract class Module(
             if (!event.isPressed) return@listen
             if (keybind == KeyCode.UNBOUND) return@listen
             if (event.translated != keybind) return@listen
-            if (mc.currentScreen != null) {
-                if (ClickGui.isEnabled && mc.currentScreen == LambdaScreen && !DearImGui.io.wantTextInput) {
-                    LambdaScreen.close()
-                }
-                return@listen
-            }
+            if (mc.currentScreen != null) return@listen
 
             toggle()
         }

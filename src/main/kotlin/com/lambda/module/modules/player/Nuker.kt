@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -25,7 +26,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.util.math.BlockPos
@@ -56,7 +56,7 @@ object Nuker : Module(
                     .filter { !instantOnly || blockState(it).getHardness(world, it) <= TaskFlowModule.build.breaking.breakThreshold }
                     .filter { pos ->
                         if (!baritoneSelection) true
-                        else BaritoneUtils.primary.selectionManager.selections.any {
+                        else BaritoneManager.primary.selectionManager.selections.any {
                             val min = it.min()
                             val max = it.max()
                             pos.x >= min.x && pos.x <= max.x

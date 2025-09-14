@@ -18,6 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.event.events.onStaticRender
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -26,7 +27,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -62,7 +62,7 @@ object WorldEater : Module(
             runningTask?.cancel()
             runningTask = null
             work.clear()
-            BaritoneUtils.cancel()
+            BaritoneManager.cancel()
         }
 
         onStaticRender { it.outline(Box.enclosing(pos1, pos2), Color.BLUE) }

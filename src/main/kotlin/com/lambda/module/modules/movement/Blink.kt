@@ -23,8 +23,8 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.PacketUtils.handlePacketSilently
@@ -68,7 +68,7 @@ object Blink : Module(
         }
 
         onDynamicRender {
-            val color = GuiSettings.primaryColor
+            val color = ClickGuiLayout.primaryColor
             it.box(box.update(lastBox), color.setAlpha(0.3), color)
         }
 

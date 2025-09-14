@@ -29,6 +29,7 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.Logger
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.visibilty.lookAt
@@ -164,7 +165,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     @JvmStatic
     fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-        lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
+        lookAt(Rotation(yaw, pitch)).requestBy(BaritoneManager.rotation)
     }
 
     @JvmStatic

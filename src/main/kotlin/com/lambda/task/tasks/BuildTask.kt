@@ -24,6 +24,7 @@ import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
@@ -50,7 +51,6 @@ import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
-import com.lambda.util.BaritoneUtils
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
@@ -128,11 +128,11 @@ class BuildTask @Ta5kBuilder constructor(
                     if (!build.pathing) return@listen
                     val sim = blueprint.simulation(interactionConfig, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
-                    BaritoneUtils.setGoalAndPath(goal)
+                    BaritoneManager.setGoalAndPath(goal)
                 }
 
                 is Navigable -> {
-                    if (build.pathing) BaritoneUtils.setGoalAndPath(bestResult.goal)
+                    if (build.pathing) BaritoneManager.setGoalAndPath(bestResult.goal)
                 }
 
                 is BuildResult.Contextual -> {
@@ -200,7 +200,7 @@ class BuildTask @Ta5kBuilder constructor(
 
                 if (!world.entities.contains(itemDrop)) {
                     dropsToCollect.remove(itemDrop)
-                    BaritoneUtils.cancel()
+                    BaritoneManager.cancel()
                     return@let true
                 }
 
@@ -218,7 +218,7 @@ class BuildTask @Ta5kBuilder constructor(
                     return@let true
                 }
 
-                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                BaritoneManager.setGoalAndPath(GoalBlock(itemDrop.blockPos))
                 return@let true
             } ?: false
 

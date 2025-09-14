@@ -28,6 +28,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.KeyCode
@@ -72,7 +73,7 @@ object QuickSearch {
     }
 
     private class ModuleResult(val module: Module) : SearchResult {
-        override val breadcrumb = "Module"
+        override val breadcrumb = if (module is HudModule) "HUD" else "Module"
 
         override fun ImGuiBuilder.buildLayout() {
             with(ModuleEntry(module)) {
@@ -192,6 +193,7 @@ object QuickSearch {
         private data class RankedSearchResult(val result: SearchResult, val score: Int)
 
         private const val MODULE_PRIORITY_BONUS = 300
+        private const val HUD_MODULE_PRIORITY_BONUS = 270
         private const val COMMAND_PRIORITY_BONUS = 200
 
         /**
@@ -239,7 +241,10 @@ object QuickSearch {
                 val bestScore = max(nameScore, tagScore)
 
                 if (bestScore > 0) {
-                    RankedSearchResult(ModuleResult(module), bestScore + MODULE_PRIORITY_BONUS)
+                    when(module) {
+                        is HudModule -> RankedSearchResult(ModuleResult(module), bestScore + HUD_MODULE_PRIORITY_BONUS)
+                        else -> RankedSearchResult(ModuleResult(module), bestScore + MODULE_PRIORITY_BONUS)
+                    }
                 } else null
             }
 

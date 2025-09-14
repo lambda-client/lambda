@@ -45,6 +45,7 @@ class LongSetting(
     unit,
     visibility
 ) {
+    // ToDo: No worky for super large numbers
     private var valueIndex: Int
         get() = ((value - range.start) / step).toInt()
         set(index) {

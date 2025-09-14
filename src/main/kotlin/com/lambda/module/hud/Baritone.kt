@@ -15,22 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.client
+package com.lambda.module.hud
 
-import com.lambda.config.groups.RotationSettings
-import com.lambda.module.Module
+import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
 
-object Baritone : Module(
+object Baritone : HudModule(
     name = "Baritone",
-    description = "Baritone configuration",
-    tag = ModuleTag.CLIENT,
+    description = "Look inside of Baritones head",
+    tag = ModuleTag.HUD,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        GENERAL("General"),
-        ROTATION("Rotation")
-    }
+    override fun ImGuiBuilder.buildLayout() {
 
-    val rotation = RotationSettings(this, Group.ROTATION)
+    }
 }

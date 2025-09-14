@@ -21,6 +21,7 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -29,7 +30,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -113,7 +113,7 @@ object HighwayTools : Module(
             runningTask?.cancel()
             runningTask = null
             distanceMoved = 0
-            BaritoneUtils.cancel()
+            BaritoneManager.cancel()
         }
     }
 
