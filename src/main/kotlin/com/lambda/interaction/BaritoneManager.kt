@@ -120,7 +120,7 @@ object BaritoneManager : Configurable(LambdaConfig) {
             setting("Mine Goal Update Interval", mineGoalUpdateInterval.value, 0..10000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> mineGoalUpdateInterval.value = it }
             setting("Max Cached World Scan Count", maxCachedWorldScanCount.value, 0..100000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> maxCachedWorldScanCount.value = it }
             setting("Mine Max Ore Locations Count", mineMaxOreLocationsCount.value, 0..100000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> mineMaxOreLocationsCount.value = it }
-            setting("Cached Chunks Expiry Seconds", cachedChunksExpirySeconds.value, 0L..86400L).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> cachedChunksExpirySeconds.value = it }
+            setting("Cached Chunks Expiry Seconds", cachedChunksExpirySeconds.value, -1L..86400L).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> cachedChunksExpirySeconds.value = it }
             setting("Y Level Box Size", yLevelBoxSize.value, 0.0..256.0).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> yLevelBoxSize.value = it }
             setting("Extend Cache On Threshold", extendCacheOnThreshold.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> extendCacheOnThreshold.value = it }
             setting("Cancel On Goal Invalidation", cancelOnGoalInvalidation.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> cancelOnGoalInvalidation.value = it }
@@ -190,7 +190,7 @@ object BaritoneManager : Configurable(LambdaConfig) {
             setting("Right Click Speed", rightClickSpeed.value, 0..10).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> rightClickSpeed.value = it }
             setting("Block Reach Distance", blockReachDistance.value, 0f..10f, 0.1f).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> blockReachDistance.value = it }
             setting("Block Break Speed", blockBreakSpeed.value, 0..10).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> blockBreakSpeed.value = it }
-            setting("Random Looking 1.13", randomLooking113.value, 0.0..1.0, 0.01).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> randomLooking113.value = it }
+            setting("Random Looking 1.13", randomLooking113.value, 0.0..5.0, 0.01).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> randomLooking113.value = it }
             setting("Random Looking", randomLooking.value, 0.0..1.0, 0.01).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> randomLooking.value = it }
             setting("Free Look", freeLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> freeLook.value = it }
             setting("Block Free Look", blockFreeLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> blockFreeLook.value = it }
@@ -214,20 +214,20 @@ object BaritoneManager : Configurable(LambdaConfig) {
             setting("Path Cutoff Factor", pathCutoffFactor.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> pathCutoffFactor.value = it }
             setting("Break Correct Block Penalty Multiplier", breakCorrectBlockPenaltyMultiplier.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> breakCorrectBlockPenaltyMultiplier.value = it }
             setting("Place Incorrect Block Penalty Multiplier", placeIncorrectBlockPenaltyMultiplier.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> placeIncorrectBlockPenaltyMultiplier.value = it }
-            setting("Cost Heuristic", costHeuristic.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> costHeuristic.value = it }
+            setting("Cost Heuristic", costHeuristic.value, 0.0..10.0, 0.001).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> costHeuristic.value = it }
 
             setting("Item Saver", itemSaver.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> itemSaver.value = it }
             setting("Item Saver Threshold", itemSaverThreshold.value, 0..100).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> itemSaverThreshold.value = it }
             setting("Prefer Silk Touch", preferSilkTouch.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> preferSilkTouch.value = it }
             setting("Mine Scan Dropped Items", mineScanDroppedItems.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> mineScanDroppedItems.value = it }
-            setting("Mine Drop Loiter Duration MS Thanks Louca", mineDropLoiterDurationMSThanksLouca.value, 0L..600000L).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> mineDropLoiterDurationMSThanksLouca.value = it }
+            setting("Mine Drop Loiter Duration", mineDropLoiterDurationMSThanksLouca.value, 0L..600000L, unit = " ms").group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> mineDropLoiterDurationMSThanksLouca.value = it }
             setting("Legit Mine", legitMine.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> legitMine.value = it }
             setting("Legit Mine Y Level", legitMineYLevel.value, 0..256).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> legitMineYLevel.value = it }
             setting("Legit Mine Include Diagonals", legitMineIncludeDiagonals.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> legitMineIncludeDiagonals.value = it }
             setting("Force Internal Mining", forceInternalMining.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> forceInternalMining.value = it }
             setting("Internal Mining Air Exception", internalMiningAirException.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> internalMiningAirException.value = it }
-            setting("Min Y Level While Mining", minYLevelWhileMining.value, 0..256).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> minYLevelWhileMining.value = it }
-            setting("Max Y Level While Mining", maxYLevelWhileMining.value, 0..256).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> maxYLevelWhileMining.value = it }
+            setting("Min Y Level While Mining", minYLevelWhileMining.value, 0..2048).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> minYLevelWhileMining.value = it }
+            setting("Max Y Level While Mining", maxYLevelWhileMining.value, 0..2048).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> maxYLevelWhileMining.value = it }
             setting("Allow Only Exposed Ores", allowOnlyExposedOres.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> allowOnlyExposedOres.value = it }
             setting("Allow Only Exposed Ores Distance", allowOnlyExposedOresDistance.value, 0..16).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> allowOnlyExposedOresDistance.value = it }
             setting("Replant Crops", replantCrops.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> replantCrops.value = it }
@@ -315,7 +315,7 @@ object BaritoneManager : Configurable(LambdaConfig) {
             // ELYTRA
             setting("Simulation Ticks", elytraSimulationTicks.value, 0..200).group(Group.Elytra).onValueChange { _, it -> elytraSimulationTicks.value = it }
             setting("Pitch Range", elytraPitchRange.value, 0..90).group(Group.Elytra).onValueChange { _, it -> elytraPitchRange.value = it }
-            setting("Firework Speed", elytraFireworkSpeed.value, 0.0..5.0, 0.05).group(Group.Elytra).onValueChange { _, it -> elytraFireworkSpeed.value = it }
+            setting("Firework Speed", elytraFireworkSpeed.value, 0.0..3.0, 0.1).group(Group.Elytra).onValueChange { _, it -> elytraFireworkSpeed.value = it }
             setting("Firework Setback Use Delay", elytraFireworkSetbackUseDelay.value, 0..600).group(Group.Elytra).onValueChange { _, it -> elytraFireworkSetbackUseDelay.value = it }
             setting("Minimum Avoidance", elytraMinimumAvoidance.value, 0.0..10.0, 0.1).group(Group.Elytra).onValueChange { _, it -> elytraMinimumAvoidance.value = it }
             setting("Conserve Fireworks", elytraConserveFireworks.value).group(Group.Elytra).onValueChange { _, it -> elytraConserveFireworks.value = it }
@@ -323,7 +323,7 @@ object BaritoneManager : Configurable(LambdaConfig) {
             setting("Render Hitbox Raytraces", elytraRenderHitboxRaytraces.value).group(Group.Elytra).onValueChange { _, it -> elytraRenderHitboxRaytraces.value = it }
             setting("Render Simulation", elytraRenderSimulation.value).group(Group.Elytra).onValueChange { _, it -> elytraRenderSimulation.value = it }
             setting("Auto Jump", elytraAutoJump.value).group(Group.Elytra).onValueChange { _, it -> elytraAutoJump.value = it }
-            setting("Nether Seed", elytraNetherSeed.value, -9_000_000_000_000_000L..9_000_000_000_000_000L).group(Group.Elytra).onValueChange { _, it -> elytraNetherSeed.value = it }
+            setting("Nether Seed", elytraNetherSeed.value, Long.MIN_VALUE..Long.MAX_VALUE).group(Group.Elytra).onValueChange { _, it -> elytraNetherSeed.value = it }
             setting("Predict Terrain", elytraPredictTerrain.value).group(Group.Elytra).onValueChange { _, it -> elytraPredictTerrain.value = it }
             setting("Auto Swap", elytraAutoSwap.value).group(Group.Elytra).onValueChange { _, it -> elytraAutoSwap.value = it }
             setting("Minimum Durability", elytraMinimumDurability.value, 0..432).group(Group.Elytra).onValueChange { _, it -> elytraMinimumDurability.value = it }
