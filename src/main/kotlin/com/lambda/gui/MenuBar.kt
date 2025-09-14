@@ -42,12 +42,9 @@ import imgui.ImGui.closeCurrentPopup
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
-import imgui.type.ImString
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.client.Keyboard
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
-import java.nio.file.Path
 import java.util.Locale
 
 object MenuBar {

@@ -36,6 +36,15 @@ class ModuleEntry(val module: Module): Layout {
 
         ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
         popupContextItem("##ctx-${module.name}") {
+            buildModuleSettingsContext(module)
+        }
+    }
+
+    companion object {
+        /**
+         * Builds the settings context popup content for a given module.
+         */
+        fun ImGuiBuilder.buildModuleSettingsContext(module: Module) {
             group {
                 with(module.keybindSetting) { buildLayout() }
                 sameLine()
@@ -45,35 +54,41 @@ class ModuleEntry(val module: Module): Layout {
                 lambdaTooltip("Resets all settings for this module to their default values")
             }
             separator()
-            group {
-                val visibleSettings = module.settings.filter { it.visibility() } - module.keybindSetting
-                val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
-
-                ungrouped.forEach { with(it) { buildLayout() } }
-                renderGroup(grouped, emptyList())
-            }
+            val visibleSettings = module.settings.filter { it.visibility() } - module.keybindSetting
+            val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
+            ungrouped.forEach { with(it) { buildLayout() } }
+            renderGroup(grouped, emptyList(), module)
         }
-    }
 
-    private fun ImGuiBuilder.renderGroup(settings: List<AbstractSetting<*>>, parentPath: List<NamedEnum>) {
-        settings.filter { it.groups.contains(parentPath) }.forEach { with(it) { buildLayout() } }
+        private fun ImGuiBuilder.renderGroup(
+            settings: List<AbstractSetting<*>>,
+            parentPath: List<NamedEnum>,
+            module: Module
+        ) {
+            settings.filter { it.groups.contains(parentPath) }.forEach { with(it) { buildLayout() } }
 
-        val subGroupSettings = settings.filter { s -> s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath } }
-        val subTabs = subGroupSettings
-            .flatMap { s ->
-                s.groups.mapNotNull { path -> if (path.size > parentPath.size && path.subList(0, parentPath.size) == parentPath) path[parentPath.size] else null }
-            }.distinct()
+            val subGroupSettings = settings.filter { s ->
+                s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath }
+            }
+            val subTabs = subGroupSettings
+                .flatMap { s ->
+                    s.groups.mapNotNull { path ->
+                        if (path.size > parentPath.size && path.subList(0, parentPath.size) == parentPath)
+                            path[parentPath.size] else null
+                    }
+                }.distinct()
 
-        if (subTabs.isNotEmpty()) {
-            val id = "##${module.name}-tabs-${parentPath.joinToString("-") { it.displayName }}"
-            tabBar(id, ImGuiTabBarFlags.FittingPolicyResizeDown) {
-                subTabs.forEach { tab ->
-                    tabItem(tab.displayName) {
-                        val newParentPath = parentPath + tab
-                        val settingsForSubGroup = subGroupSettings.filter { s ->
-                            s.groups.any { it.size >= newParentPath.size && it.subList(0, newParentPath.size) == newParentPath }
+            if (subTabs.isNotEmpty()) {
+                val id = "##${module.name}-tabs-${parentPath.joinToString("-") { it.displayName }}"
+                tabBar(id, ImGuiTabBarFlags.FittingPolicyResizeDown) {
+                    subTabs.forEach { tab ->
+                        tabItem(tab.displayName) {
+                            val newParentPath = parentPath + tab
+                            val settingsForSubGroup = subGroupSettings.filter { s ->
+                                s.groups.any { it.size >= newParentPath.size && it.subList(0, newParentPath.size) == newParentPath }
+                            }
+                            renderGroup(settingsForSubGroup, newParentPath, module)
                         }
-                        renderGroup(settingsForSubGroup, newParentPath)
                     }
                 }
             }

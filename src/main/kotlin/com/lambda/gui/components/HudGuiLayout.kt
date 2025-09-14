@@ -20,6 +20,7 @@ package com.lambda.gui.components
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.components.ModuleEntry.Companion.buildModuleSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.gui.snap.Guide
@@ -69,9 +70,20 @@ object HudGuiLayout : Loadable {
 
     init {
         listen<GuiEvent.NewFrame> {
-            if (ClickGui.isEnabled && !isShownInGUI) return@listen
-
             buildLayout {
+                if (ClickGui.isEnabled && !isShownInGUI) {
+                    popupContextVoid("##hud-background") {
+                        menuItem(if (isShownInGUI) "Hide HUD" else "Show HUD") {
+                            isShownInGUI = !isShownInGUI
+                        }
+                        separator()
+                        menu("HUD Settings") {
+                            buildModuleSettingsContext(GuiSettings)
+                        }
+                    }
+                    return@buildLayout
+                }
+
                 val vp = ImGui.getMainViewport()
                 SnapManager.beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
 
@@ -93,59 +105,104 @@ object HudGuiLayout : Loadable {
 
                 notShown.forEach { SnapManager.unregisterElement(it.name) }
 
-                val canDrag = ClickGui.isEnabled && !isLocked
-                if (canDrag) {
+                registerContextMenu(notShown)
+
+                if (ClickGui.isEnabled && !isLocked) {
                     if (activeDragHudName == null && mousePressedThisFrame) { tryBeginDrag(huds) }
                     if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
                     if (activeDragHudName != null) drawDragGrid()
                 }
 
                 huds.forEach { hud ->
-                    val override = pendingPositions[hud.name]
-                    if (override != null) {
-                        ImGui.setNextWindowPos(override.first, override.second)
+                    registerHudElement(hud)
+                }
+            }
+        }
+    }
+
+    private fun ImGuiBuilder.registerHudElement(hud: HudModule) {
+        val override = pendingPositions[hud.name]
+        if (override != null) {
+            ImGui.setNextWindowPos(override.first, override.second)
+        }
+
+        val bg = hud.backgroundColor
+        val hasBg = bg.alpha > 0
+        val baseFlags = if (hasBg) {
+            DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
+        } else DEFAULT_HUD_FLAGS
+        val hudFlags = if (!ClickGui.isEnabled || isLocked) {
+            baseFlags or ImGuiWindowFlags.NoMove
+        } else baseFlags
+
+        val pushedColor = if (hasBg) {
+            val packed = ImColor.rgba(bg.red, bg.green, bg.blue, bg.alpha)
+            ImGui.pushStyleColor(imgui.flag.ImGuiCol.WindowBg, packed)
+            true
+        } else {
+            false
+        }
+
+        val outlineWidth = if (hud.outline) hud.outlineWidth else 0f
+        withStyleVar(ImGuiStyleVar.WindowBorderSize, outlineWidth) {
+            window("##${hud.name}", flags = hudFlags) {
+                val vis = snapOverlays[hud.name]
+                if (vis != null) {
+                    SnapManager.drawSnapLines(
+                        foregroundDrawList,
+                        vis.snapX, vis.kindX,
+                        vis.snapY, vis.kindY
+                    )
+                }
+                with(hud) { buildLayout() }
+
+                popupContextWindow("##ctx-${hud.name}") {
+                    menuItem("Remove HUD Element") {
+                        hud.disable()
+                        SnapManager.unregisterElement(hud.name)
                     }
+                    separator()
+                    buildModuleSettingsContext(hud)
+                }
 
-                    val bg = hud.backgroundColor
-                    val hasBg = bg.alpha > 0
-                    val baseFlags = if (hasBg) {
-                        DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
-                    } else DEFAULT_HUD_FLAGS
-                    val hudFlags = if (!ClickGui.isEnabled || isLocked) {
-                        baseFlags or ImGuiWindowFlags.NoMove
-                    } else baseFlags
+                if (ClickGui.isEnabled && !isLocked) {
+                    drawHudCornerArcs(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+                }
+                val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+                SnapManager.registerElement(hud.name, rect)
+                lastBounds[hud.name] = rect
+            }
+        }
 
-                    val pushedColor = if (hasBg) {
-                        val packed = ImColor.rgba(bg.red, bg.green, bg.blue, bg.alpha)
-                        ImGui.pushStyleColor(imgui.flag.ImGuiCol.WindowBg, packed)
-                        true
-                    } else {
-                        false
-                    }
+        if (pushedColor) {
+            ImGui.popStyleColor()
+        }
+    }
 
-                    val outlineWidth = if (hud.outline) hud.outlineWidth else 0f
-                    withStyleVar(ImGuiStyleVar.WindowBorderSize, outlineWidth) {
-                        window("##${hud.name}", flags = hudFlags) {
-                            val vis = snapOverlays[hud.name]
-                            if (vis != null) {
-                                SnapManager.drawSnapLines(
-                                    foregroundDrawList,
-                                    vis.snapX, vis.kindX,
-                                    vis.snapY, vis.kindY
-                                )
-                            }
-                            with(hud) { buildLayout() }
-                            if (canDrag) {
-                                drawHudCornerArcs(foregroundDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
-                            }
-                            val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
-                            SnapManager.registerElement(hud.name, rect)
-                            lastBounds[hud.name] = rect
-                        }
-                    }
-
-                    if (pushedColor) {
-                        ImGui.popStyleColor()
+    private fun ImGuiBuilder.registerContextMenu(notShown: List<HudModule>) {
+        popupContextVoid("##hud-background") {
+            menuItem(if (isLocked) "Unlock HUD" else "Lock HUD") {
+                isLocked = !isLocked
+            }
+            menuItem(if (isShownInGUI) "Hide HUD" else "Show HUD") {
+                isShownInGUI = !isShownInGUI
+            }
+            separator()
+            menu("HUD Settings") {
+                buildModuleSettingsContext(GuiSettings)
+            }
+            separator()
+            if (notShown.isEmpty()) {
+                textDisabled("No hidden HUD elements")
+            } else {
+                text("Add HUD Element:")
+                separator()
+                notShown.sortedBy { it.name.lowercase() }.forEach { hud ->
+                    menuItem("+ ${hud.name}") {
+                        val mx = io.mousePos.x
+                        val my = io.mousePos.y
+                        hud.enable()
+                        pendingPositions[hud.name] = mx to my
                     }
                 }
             }
