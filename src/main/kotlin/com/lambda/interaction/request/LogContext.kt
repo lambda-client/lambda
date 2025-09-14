@@ -35,7 +35,7 @@ interface LogContext {
         fun BlockHitResult.getLogContextBuilder(): LogContextBuilder.() -> Unit = {
             group("Block Hit Result") {
                 value("Side", side)
-                value("Block Pos", blockPos)
+                text(blockPos.getLogContextBuilder())
                 value("Pos", pos)
             }
         }

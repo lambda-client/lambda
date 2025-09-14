@@ -76,60 +76,58 @@ class DebugLogger(
     fun ImGuiBuilder.buildLayout() {
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
         ImGui.setNextWindowBgAlpha(backgroundAlpha.get())
-        window(name, flags = ImGuiWindowFlags.NoCollapse) {
-            val noScroll = if (autoScroll.get()) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
-            if (mc.currentScreen == LambdaScreen) {
-                checkbox("Auto-Scroll", autoScroll)
-                sameLine()
-                checkbox("Warp Text", wrapText)
-                sameLine()
-                checkbox("Show Debug", showDebug)
-                checkbox("Show Success", showSuccess)
-                sameLine()
-                checkbox("Show Warning", showWarning)
-                sameLine()
-                checkbox("Show Error", showError)
-                checkbox("Show System", showSystem)
-                slider("Background Alpha", backgroundAlpha, 0.0f, 1.0f)
-                button("Clear") { clear() }
-            }
-            child("Log Content", extraFlags = noScroll) {
-                if (wrapText.get()) ImGui.pushTextWrapPos()
+        val noScroll = if (autoScroll.get()) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
+        if (mc.currentScreen == LambdaScreen) {
+            checkbox("Auto-Scroll", autoScroll)
+            sameLine()
+            checkbox("Warp Text", wrapText)
+            sameLine()
+            checkbox("Show Debug", showDebug)
+            checkbox("Show Success", showSuccess)
+            sameLine()
+            checkbox("Show Warning", showWarning)
+            sameLine()
+            checkbox("Show Error", showError)
+            checkbox("Show System", showSystem)
+            slider("Background Alpha", backgroundAlpha, 0.0f, 1.0f)
+            button("Clear") { clear() }
+        }
+        child("Log Content", extraFlags = noScroll) {
+            if (wrapText.get()) ImGui.pushTextWrapPos()
 
-                logs.forEach { logEntry ->
-                    if (shouldDisplay(logEntry)) {
-                        val type = logEntry.type
-                        val (logTypeStr, color) = when (type) {
-                            LogType.Debug -> Pair("[DEBUG]", type.color)
-                            LogType.Success -> Pair("[SUCCESS]", type.color)
-                            LogType.Warning -> Pair("[WARNING]", type.color)
-                            LogType.Error -> Pair("[ERROR]", type.color)
-                            LogType.System -> Pair("[SYSTEM]", type.color)
-                        }
-
-                        val floats = floatArrayOf(0f, 0f, 0f)
-                        val (r, g, b) = color.getColorComponents(floats)
-                        ImGui.pushStyleColor(ImGuiCol.Text, r, g, b, color.a.toFloat())
-                        if (logEntry.type == LogType.System) {
-                            text("$logTypeStr ${logEntry.message}")
-                        } else {
-                            treeNode("$logTypeStr ${logEntry.message}", logEntry.uuid) {
-                                logEntry.extraContext
-                                    .filterNotNull()
-                                    .forEach {
-                                        text(it)
-                                    }
-                            }
-                        }
-                        ImGui.popStyleColor()
+            logs.forEach { logEntry ->
+                if (shouldDisplay(logEntry)) {
+                    val type = logEntry.type
+                    val (logTypeStr, color) = when (type) {
+                        LogType.Debug -> Pair("[DEBUG]", type.color)
+                        LogType.Success -> Pair("[SUCCESS]", type.color)
+                        LogType.Warning -> Pair("[WARNING]", type.color)
+                        LogType.Error -> Pair("[ERROR]", type.color)
+                        LogType.System -> Pair("[SYSTEM]", type.color)
                     }
-                }
 
-                if (wrapText.get()) ImGui.popTextWrapPos()
-
-                if (autoScroll.get()) {
-                    ImGui.setScrollHereY(1f)
+                    val floats = floatArrayOf(0f, 0f, 0f)
+                    val (r, g, b) = color.getColorComponents(floats)
+                    ImGui.pushStyleColor(ImGuiCol.Text, r, g, b, color.a.toFloat())
+                    if (logEntry.type == LogType.System) {
+                        text("$logTypeStr ${logEntry.message}")
+                    } else {
+                        treeNode("$logTypeStr ${logEntry.message}", logEntry.uuid) {
+                            logEntry.extraContext
+                                .filterNotNull()
+                                .forEach {
+                                    text(it)
+                                }
+                        }
+                    }
+                    ImGui.popStyleColor()
                 }
+            }
+
+            if (wrapText.get()) ImGui.popTextWrapPos()
+
+            if (autoScroll.get()) {
+                ImGui.setScrollHereY(1f)
             }
         }
     }

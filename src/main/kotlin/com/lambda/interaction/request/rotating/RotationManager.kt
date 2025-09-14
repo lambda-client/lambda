@@ -34,7 +34,6 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
-import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.partialTicks
