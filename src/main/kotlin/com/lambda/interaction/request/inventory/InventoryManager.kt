@@ -21,10 +21,12 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.interaction.request.Logger
 
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.request.inventory.InventoryManager.processRequest
+import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
 
 object InventoryManager : RequestHandler<InventoryRequest>(
     1,
@@ -33,8 +35,10 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = { activeRequest?.let { processRequest(it) } }
-) {
+), Logger {
     var activeRequest: InventoryRequest? = null
+
+    override val logger = inventoryManagerLogger
 
     override fun load(): String {
         super.load()

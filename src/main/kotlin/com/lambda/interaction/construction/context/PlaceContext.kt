@@ -18,18 +18,17 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
+import com.lambda.interaction.request.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
-import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -45,7 +44,7 @@ data class PlaceContext(
     val sneak: Boolean,
     val insideBlock: Boolean,
     val currentDirIsValid: Boolean = false
-) : BuildContext() {
+) : BuildContext(), LogContext {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
 
@@ -82,5 +81,19 @@ data class PlaceContext(
             submit(rotation, false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
+    }
+
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Place Context") {
+            text(blockPos.getLogContextBuilder())
+            text(result.getLogContextBuilder())
+            text(rotation.getLogContextBuilder())
+            value("Hotbar Index", hotbarIndex)
+            value("Cached State", cachedState)
+            value("Expected State", expectedState)
+            value("Sneak", sneak)
+            value("Inside Block", insideBlock)
+            value("Current Dir Is Invalid", currentDirIsValid)
+        }
     }
 }

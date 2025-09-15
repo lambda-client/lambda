@@ -17,17 +17,6 @@
 
 package com.lambda.interaction.request
 
-abstract class Request {
-    abstract val requestID: Int
-    abstract val config: RequestConfig
-    var fresh = true
-
-    abstract val done: Boolean
-
-    abstract fun submit(queueIfClosed: Boolean = true): Request
-
-    companion object {
-        fun submit(request: Request, queueIfClosed: Boolean = true) =
-            request.submit(queueIfClosed)
-    }
+interface Logger {
+    val logger: DebugLogger
 }

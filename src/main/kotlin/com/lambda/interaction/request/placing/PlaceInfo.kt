@@ -20,6 +20,8 @@ package com.lambda.interaction.request.placing
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.ActionInfo
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import net.minecraft.util.math.BlockPos
 
 data class PlaceInfo(
@@ -27,4 +29,13 @@ data class PlaceInfo(
     override val pendingInteractionsList: MutableCollection<BuildContext>,
     val onPlace: ((BlockPos) -> Unit)?,
     val placeConfig: PlaceConfig
-) : ActionInfo
+) : ActionInfo, LogContext {
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Place Info") {
+            text(context.getLogContextBuilder())
+            group("Callbacks") {
+                value("onPlace", onPlace != null)
+            }
+        }
+    }
+}

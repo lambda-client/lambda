@@ -21,6 +21,8 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.inventory.InventoryConfig
@@ -40,7 +42,9 @@ data class BreakRequest(
     val rotation: RotationConfig = TaskFlowModule.rotation,
     val inventory: InventoryConfig = TaskFlowModule.inventory,
     val interact: InteractionConfig = TaskFlowModule.interaction
-) : Request() {
+) : Request(), LogContext {
+    override val requestID = ++requestCount
+
     override val config = build.breaking
     var onStart: ((BlockPos) -> Unit)? = null
     var onUpdate: ((BlockPos) -> Unit)? = null
@@ -55,6 +59,22 @@ data class BreakRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         BreakManager.request(this, queueIfClosed)
+
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Break Request") {
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
+            group("Callbacks") {
+                value("onStart", onStart != null)
+                value("onUpdate", onUpdate != null)
+                value("onStop", onStop != null)
+                value("onCancel", onCancel != null)
+                value("onItemDrop", onItemDrop != null)
+                value("onReBreakStart", onReBreakStart != null)
+                value("onReBreak", onReBreak != null)
+            }
+        }
+    }
 
     @DslMarker
     annotation class BreakRequestBuilder
@@ -111,6 +131,8 @@ data class BreakRequest(
     }
 
     companion object {
+        var requestCount = 0
+
         @BreakRequestBuilder
         fun breakRequest(
             contexts: Collection<BreakContext>,
