@@ -33,6 +33,7 @@ import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ChestBlock
@@ -53,32 +54,32 @@ class PlaceContainer @Ta5kBuilder constructor(
     override val name: String get() = "Placing container ${startStack.name.string}"
 
     override fun SafeContext.onStart() {
-        tickingBlueprint { current ->
-            if (current.isNotEmpty() &&
-                (current.all { it.value.matches(blockState(it.key), it.key, world) } ||
-                ManagerUtils.positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }))
-            {
-                return@tickingBlueprint current
+        val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
+            .map { it.blockPos }
+            .asSequence()
+            .filter { !ManagerUtils.isPosBlocked(it) }
+            .flatMap {
+                it.toStructure(TargetState.Stack(startStack))
+                    .toBlueprint()
+                    .simulate(player.eyePos)
             }
 
-            val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
-                .flatMap {
-                    it.toStructure(TargetState.Stack(startStack))
-                        .toBlueprint()
-                        .simulate(player.eyePos)
-                }
+        // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
+        val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
+             canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
+        }
+        val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
+            canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
+        }
+        val containerPosition = (succeeds + wrongStacks).minOrNull()?.blockPos
+        val structure = containerPosition
+            ?.toStructure(TargetState.Stack(startStack))
+            ?.toBlueprint() ?: run {
+                failure("Couldn't find a valid container position")
+                return@onStart
+            }
 
-            // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
-            val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-                canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
-            }
-            val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
-                canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
-            }
-            (succeeds + wrongStacks).minOrNull()
-                ?.blockPos
-                ?.toStructure(TargetState.Stack(startStack))
-        }.build(
+        structure.build(
             finishOnDone = true,
             collectDrops = false,
             build = build,
@@ -86,11 +87,7 @@ class PlaceContainer @Ta5kBuilder constructor(
             interact = interact,
             inventory = inventory
         ).finally {
-            val pos = it.keys.firstOrNull() ?: run {
-                failure("The returned structure was empty")
-                return@finally
-            }
-            success(pos)
+            success(containerPosition)
         }.execute(this@PlaceContainer)
     }
 

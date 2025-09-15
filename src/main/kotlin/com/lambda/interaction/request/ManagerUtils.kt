@@ -35,5 +35,5 @@ object ManagerUtils {
     fun Event.toLogContext() = this::class.qualifiedName?.substringAfter("com.lambda.event.events.")
 
     fun isPosBlocked(pos: BlockPos) =
-        positionBlockingManagers.any { manager -> manager.blockedPositions.any { blocked -> blocked == pos } }
+        positionBlockingManagers.any { pos in it.blockedPositions }
 }
