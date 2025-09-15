@@ -18,6 +18,8 @@
 package com.lambda.module.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.interaction.BaritoneManager.primary
+import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
@@ -27,6 +29,11 @@ object Baritone : HudModule(
     tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
-
+        primary.customGoalProcess.goal?.let {
+            when(it) {
+                is BuildGoal -> text("Lambda Simulation: ${it.sim}")
+                else -> text("Baritone: $it")
+            }
+        } ?: text("No Baritone Process Running")
     }
 }

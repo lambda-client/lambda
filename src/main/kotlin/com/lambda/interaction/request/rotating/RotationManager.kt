@@ -63,6 +63,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     var serverRotation = Rotation.ZERO
     @JvmStatic
     var prevServerRotation = Rotation.ZERO
+    var baritoneRequest: RotationRequest? = null
 
     var activeRequest: RotationRequest? = null
     private var changedThisTick = false
@@ -163,12 +164,16 @@ object RotationManager : RequestHandler<RotationRequest>(
     }
 
     @JvmStatic
-    fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-        lookAt(Rotation(yaw, pitch)).requestBy(BaritoneManager.rotation)
+    fun handleBaritoneRotation(yaw: Float) {
+        runSafe {
+            baritoneRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager.rotation)
+        }
     }
 
     @JvmStatic
     fun redirectStrafeInputs(input: Input) = runSafe {
+        if (activeRequest == baritoneRequest) return@runSafe
+
         val movementYaw = movementYaw ?: return@runSafe
         val playerYaw = player.yaw
 

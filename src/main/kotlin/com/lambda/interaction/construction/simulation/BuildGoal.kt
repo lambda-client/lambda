@@ -23,7 +23,7 @@ import com.lambda.util.world.toFastVec
 import net.minecraft.util.math.BlockPos
 
 class BuildGoal(
-    private val sim: Simulation,
+    val sim: Simulation,
     blocked: BlockPos
 ) : Goal {
     private val blockedVec = blocked.toFastVec()
