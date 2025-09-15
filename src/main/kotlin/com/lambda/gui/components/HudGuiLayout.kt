@@ -32,11 +32,11 @@ import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.NamedEnum
 import imgui.ImColor
-import imgui.ImGui
 import imgui.ImDrawList
+import imgui.ImGui
 import imgui.flag.ImDrawListFlags
-import imgui.flag.ImGuiWindowFlags
 import imgui.flag.ImGuiStyleVar
+import imgui.flag.ImGuiWindowFlags
 import java.awt.Color
 import kotlin.math.PI
 import kotlin.math.max
@@ -62,7 +62,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled }.group(Group.Snapping)
 
     // HUD Outline
-    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.0f..24.0f, 0.5f).group(Group.HudOutline)
+    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f).group(Group.HudOutline)
     val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90)).group(Group.HudOutline)
     val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200)).group(Group.HudOutline)
     val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f).group(Group.HudOutline)
