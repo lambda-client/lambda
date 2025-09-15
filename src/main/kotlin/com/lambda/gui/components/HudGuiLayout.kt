@@ -195,17 +195,17 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 }
                 with(hud) { buildLayout() }
 
-                popupContextWindow("##ctx-${hud.name}") {
-                    menuItem("Remove HUD Element") {
-                        hud.disable()
-                        SnapManager.unregisterElement(hud.name)
+                if (ClickGuiLayout.open) {
+                    popupContextWindow("##ctx-${hud.name}") {
+                        menuItem("Remove HUD Element") {
+                            hud.disable()
+                            SnapManager.unregisterElement(hud.name)
+                        }
+                        separator()
+                        buildConfigSettingsContext(hud)
                     }
-                    separator()
-                    buildConfigSettingsContext(hud)
-                }
 
-                if (ClickGuiLayout.open && !isLocked) {
-                    drawHudCornerArcs(windowDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+                    if (!isLocked) drawHudCornerArcs(windowDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                 }
                 val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                 SnapManager.registerElement(hud.name, rect)
