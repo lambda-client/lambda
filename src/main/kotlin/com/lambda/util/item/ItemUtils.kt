@@ -23,8 +23,6 @@ import net.minecraft.item.Item
 import net.minecraft.item.Items
 
 object ItemUtils {
-
-
     val pickaxes = setOf(
         Items.WOODEN_PICKAXE,
         Items.STONE_PICKAXE,
