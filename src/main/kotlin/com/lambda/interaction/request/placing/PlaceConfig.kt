@@ -57,5 +57,4 @@ interface PlaceConfig : RequestConfig {
         PlaceThenAwait("Place now, confirm later", "Show placement right away, then wait for server confirmation to verify."),
         AwaitThenPlace("Confirm first, then place", "Wait for server response before showing placement; most accurate, adds a short delay.")
     }
-
 }

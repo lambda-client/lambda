@@ -113,6 +113,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
                 logger.warning("Dependencies failed for interaction", ctx, request)
                 return
             }
+            if (tickStage !in request.interactStageMask) return
 
             if (request.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None) {
                 InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
