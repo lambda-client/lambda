@@ -18,6 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.player.Freecam;
+import com.lambda.module.modules.render.CameraTweaks;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.WorldRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,6 +35,6 @@ public class WorldRendererMixin {
 
     @ModifyArg(method = "render(Lnet/minecraft/client/util/ObjectAllocator;Lnet/minecraft/client/render/RenderTickCounter;ZLnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/GameRenderer;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;setupTerrain(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/Frustum;ZZ)V"), index = 3)
     private boolean renderSetupTerrainModifyArg(boolean hasForcedFrustum) {
-        return Freecam.INSTANCE.isEnabled() || hasForcedFrustum;
+        return Freecam.INSTANCE.isEnabled() || CameraTweaks.INSTANCE.isEnabled() || hasForcedFrustum;
     }
 }
