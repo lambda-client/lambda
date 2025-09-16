@@ -48,10 +48,10 @@ val World?.dimensionName: String
     }
 
 fun SafeContext.collisionShape(state: BlockState, pos: BlockPos): VoxelShape =
-    state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+    state.getCollisionShape(world, pos).offset(pos)
 
-fun SafeContext.outlineShape(state: BlockState, pos: BlockPos): VoxelShape =
-    state.getOutlineShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
+    state.getOutlineShape(world, pos).offset(pos)
 
 fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =
     Color(state.getMapColor(world, pos).color)

@@ -27,6 +27,7 @@ import com.lambda.util.extension.outlineShape
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
@@ -104,8 +105,12 @@ class ShapeBuilder(
         color   : Color,
         sides   : Int = DirectionMask.ALL,
     ) = runSafe { faces.apply {
-        val shape = state.getOutlineShape(world, pos)
-        filled(shape, color, sides)
+        val shape = outlineShape(state, pos)
+        if (shape.isEmpty) {
+            filled(Box(pos), color, sides)
+        } else {
+            filled(shape, color, sides)
+        }
     } }
 
     @ShapeDsl
@@ -113,10 +118,7 @@ class ShapeBuilder(
         pos     : BlockPos,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-    ) = runSafe { faces.apply {
-        val shape = blockState(pos).getOutlineShape(world, pos)
-        filled(shape, color, sides)
-    } }
+    ) = runSafe { faces.apply { filled(pos, blockState(pos), color, sides) } }
 
     @ShapeDsl
     fun filled(
@@ -124,10 +126,7 @@ class ShapeBuilder(
         entity  : BlockEntity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-    ) = runSafe {
-        val shape = outlineShape(entity.cachedState, pos)
-        filled(shape, color, sides)
-    }
+    ) = filled(pos, entity.cachedState, color, sides)
 
     @ShapeDsl
     fun filled(
@@ -243,8 +242,12 @@ class ShapeBuilder(
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
     ) = runSafe {
-        val shape = state.getOutlineShape(world, pos)
-        outline(shape, color, sides, mode)
+        val shape = outlineShape(state, pos)
+        if (shape.isEmpty) {
+            outline(Box(pos), color, sides, mode)
+        } else {
+            outline(shape, color, sides, mode)
+        }
     }
 
     @ShapeDsl
@@ -253,10 +256,7 @@ class ShapeBuilder(
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) = runSafe {
-        val shape = blockState(pos).getOutlineShape(world, pos)
-        outline(shape, color, sides, mode)
-    }
+    ) = runSafe { outline(pos, blockState(pos), color, sides, mode) }
 
     @ShapeDsl
     fun outline(
@@ -265,10 +265,7 @@ class ShapeBuilder(
         color   : Color,
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
-    ) = runSafe {
-        val shape = outlineShape(entity.cachedState, pos)
-        outline(shape, color, sides, mode)
-    }
+    ) = runSafe { outline(pos, entity.cachedState, color, sides, mode) }
 
     @ShapeDsl
     fun outline(
@@ -300,9 +297,8 @@ class ShapeBuilder(
         sides   : Int = DirectionMask.ALL,
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
     ) = runSafe {
-        val shape = state.getOutlineShape(world, pos)
-        filled(shape, filled, sides)
-        outline(shape, outline, sides, mode)
+        filled(pos, state, filled, sides)
+        outline(pos, state, outline, sides, mode)
     }
 
     @ShapeDsl
