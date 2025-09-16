@@ -722,6 +722,11 @@ object BuildSimulator {
             }
 
             if (affectedFluids.isNotEmpty()) {
+                affectedFluids.forEach { (liquidPos, liquidState) ->
+                    val submerge = checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
+                    acc.add(BreakResult.Submerge(liquidPos, liquidState, submerge))
+                    acc.addAll(submerge)
+                }
                 acc.add(BreakResult.BlockedByFluid(pos, state))
                 return acc
             }
