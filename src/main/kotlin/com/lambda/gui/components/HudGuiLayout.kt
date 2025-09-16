@@ -100,6 +100,8 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
 
     init {
         listen<GuiEvent.NewFrame> {
+            if (mc.options.hudHidden) return@listen
+
             buildLayout {
                 if (ClickGuiLayout.open && !isShownInGUI) {
                     popupContextVoid("##hud-background") {
