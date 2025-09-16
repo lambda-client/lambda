@@ -64,31 +64,32 @@ class PlaceContainer @Ta5kBuilder constructor(
                     .simulate(player.eyePos)
             }
 
-        // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
-        val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-             canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
+        val options = results.filterIsInstance<PlaceResult.Place>().filter {
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
+        } + results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
-        val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
+        val containerPosition = options.filter {
+            // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
+            it.blockPos.y == player.blockPos.y
+        }.minOrNull()?.blockPos ?: run {
+            failure("Couldn't find a valid container placement position for ${startStack.name.string}")
+            return@onStart
         }
-        val containerPosition = (succeeds + wrongStacks).minOrNull()?.blockPos
-        val structure = containerPosition
-            ?.toStructure(TargetState.Stack(startStack))
-            ?.toBlueprint() ?: run {
-                failure("Couldn't find a valid container position")
-                return@onStart
-            }
 
-        structure.build(
-            finishOnDone = true,
-            collectDrops = false,
-            build = build,
-            rotation = rotation,
-            interact = interact,
-            inventory = inventory
-        ).finally {
-            success(containerPosition)
-        }.execute(this@PlaceContainer)
+        containerPosition
+            .toStructure(TargetState.Stack(startStack))
+            .toBlueprint()
+            .build(
+                finishOnDone = true,
+                collectDrops = false,
+                build = build,
+                rotation = rotation,
+                interact = interact,
+                inventory = inventory
+            ).finally {
+                success(containerPosition)
+            }.execute(this@PlaceContainer)
     }
 
     private fun SafeContext.canBeOpened(
@@ -99,7 +100,6 @@ class PlaceContainer @Ta5kBuilder constructor(
         Items.ENDER_CHEST -> {
             !ChestBlock.isChestBlocked(world, blockPos)
         }
-
         in shulkerBoxes -> {
             val box = ShulkerEntity
                 .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
@@ -108,7 +108,6 @@ class PlaceContainer @Ta5kBuilder constructor(
 
             world.isSpaceEmpty(box)
         }
-
         else -> false
     }
 }
