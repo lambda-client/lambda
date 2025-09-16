@@ -28,6 +28,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
@@ -274,11 +275,11 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
                     }.forEach boxes@ { box ->
-                        val interpolatedNow = interpolateBox(box, currentProgress, info.breakConfig)
-                        val interpolatedNext = interpolateBox(box, nextTicksProgress, info.breakConfig)
-                        val renderBox = lerp(mc.partialTicks, interpolatedNow, interpolatedNext)
-                        if (config.fill) render.filled(renderBox, fillColor)
-                        if (config.outline) render.outline(renderBox, outlineColor)
+                        val dynamicAABB = DynamicAABB()
+                        val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
+                        dynamicAABB.update(interpolated)
+                        if (config.fill) render.filled(dynamicAABB, fillColor)
+                        if (config.outline) render.outline(dynamicAABB, outlineColor)
                     }
                 }
         }
