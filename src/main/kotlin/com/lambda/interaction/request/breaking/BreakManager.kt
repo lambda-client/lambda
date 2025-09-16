@@ -56,7 +56,7 @@ import com.lambda.interaction.request.breaking.BreakManager.breaks
 import com.lambda.interaction.request.breaking.BreakManager.canAccept
 import com.lambda.interaction.request.breaking.BreakManager.checkForCancels
 import com.lambda.interaction.request.breaking.BreakManager.initNewBreak
-import com.lambda.interaction.request.breaking.BreakManager.maxBreaksThisTick
+import com.lambda.interaction.request.breaking.BreakManager.maxInstantBreaksThisTick
 import com.lambda.interaction.request.breaking.BreakManager.processNewBreak
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakManager.simulateAbandoned
@@ -156,8 +156,8 @@ object BreakManager : RequestHandler<BreakRequest>(
     var heldTicks = 0
     var swappedThisTick = false
     private var breakCooldown = 0
-    var breaksThisTick = 0
-    private var maxBreaksThisTick = 0
+    var instantBreaksThisTick = 0
+    private var maxInstantBreaksThisTick = 0
 
     private var breaks = mutableListOf<BreakContext>()
 
@@ -188,7 +188,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
             activeRequest = null
             breaks = mutableListOf()
-            breaksThisTick = 0
+            instantBreaksThisTick = 0
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
@@ -355,7 +355,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (activeRequest != null) logger.debug("Clearing active request", activeRequest)
             activeRequest = null
         }
-        if (breaksThisTick > 0 || activeInfos.isNotEmpty()) {
+        if (instantBreaksThisTick > 0 || activeInfos.isNotEmpty()) {
             activeThisTick = true
         }
     }
@@ -363,7 +363,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     /**
      * Filters the requests [BreakContext]s, and iterates over the [breakInfos] collection looking for matches
      * in positions. If a match is found, the [BreakInfo] is updated with the new context. Otherwise, the break is cancelled.
-     * The [instantBreaks] and [breaks] collections are then populated with the new appropriate contexts, and the [maxBreaksThisTick]
+     * The [instantBreaks] and [breaks] collections are then populated with the new appropriate contexts, and the [maxInstantBreaksThisTick]
      * value is set.
      *
      * @see canAccept
@@ -406,7 +406,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakConfig = request.config
         val pendingLimit = (breakConfig.maxPendingBreaks - pendingBreakCount).coerceAtLeast(0)
-        maxBreaksThisTick = breakConfig.breaksPerTick.coerceAtMost(pendingLimit)
+        maxInstantBreaksThisTick = breakConfig.breaksPerTick.coerceAtMost(pendingLimit)
     }
 
     /**
@@ -414,6 +414,8 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun SafeContext.canAccept(newCtx: BreakContext): Boolean {
         if (activeInfos.none { it.context.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
+
+        if (newCtx.instantBreak && instantBreaksThisTick > maxInstantBreaksThisTick) return false
 
         if (!currentStackSelection.filterStack(player.inventory.getStack(newCtx.hotbarIndex)))
             return false
@@ -595,7 +597,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 info.startPending()
             }
         }
-        breaksThisTick++
+        instantBreaksThisTick++
         info.nullify()
     }
 
@@ -822,6 +824,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             logger.success("Instant breaking", info)
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
+            instantBreaksThisTick++
         } else {
             logger.debug("Starting break", info)
             info.apply {

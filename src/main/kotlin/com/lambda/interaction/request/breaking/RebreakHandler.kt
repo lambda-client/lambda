@@ -97,7 +97,7 @@ object RebreakHandler {
                 if (reBreak.breakConfig.swing.isEnabled()) {
                     swingHand(reBreak.breakConfig.swingType, Hand.MAIN_HAND)
                 }
-                BreakManager.breaksThisTick++
+                BreakManager.instantBreaksThisTick++
                 RebreakResult.Rebroke
             } else {
                 RebreakResult.StillBreaking(reBreak)
