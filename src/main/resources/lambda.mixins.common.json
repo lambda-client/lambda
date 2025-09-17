@@ -44,6 +44,7 @@
     "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
+    "render.ParticleManagerMixin",
     "render.PlayerListHudMixin",
     "render.RenderLayersMixin",
     "render.ScreenHandlerMixin",

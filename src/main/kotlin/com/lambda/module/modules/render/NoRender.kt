@@ -19,6 +19,8 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.reflections.scanResult
+import net.minecraft.client.particle.Particle
 import net.minecraft.client.render.BackgroundRenderer.StatusEffectFogModifier
 import net.minecraft.entity.effect.StatusEffects
 
@@ -27,6 +29,23 @@ object NoRender : Module(
     description = "Disables rendering of certain things",
     tag = ModuleTag.RENDER,
 ) {
+    private val particleMap = mutableMapOf<String, String>().apply {
+        val subClasses = scanResult
+            .getSubclasses(Particle::class.java)
+            .filter { !it.isAbstract }
+        subClasses
+            .forEach { particle ->
+                val fullStr = particle.name
+                if (!fullStr.startsWith("net.minecraft")) return@forEach
+                val value = fullStr
+                    .replace("net.minecraft.client.particle.", "")
+                    .replace("$", " - ")
+                    .replace("Particle", "")
+                    .replace("(?<!\\s)[A-Z]".toRegex(), " $0")
+                put(particle.simpleName, value)
+            }
+    } as Map<String, String>
+
     @JvmStatic val noBlindness by setting("No Blindness", true)
     @JvmStatic val noDarkness by setting("No Darkness", true)
     @JvmStatic val noBurning by setting("No Burning Overlay", true)
@@ -34,7 +53,11 @@ object NoRender : Module(
     @JvmStatic val noUnderwater by setting("No Underwater Overlay", true)
     @JvmStatic val noInWall by setting("No In Wall Overlay", true)
     @JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true)
-    @JvmStatic val noExplosion by setting("No Explosions", true)
+    @JvmStatic val particles by setting("Particles", particleMap.values.toSet(), description = "Particles to omit from rendering")
+
+    @JvmStatic
+    fun shouldOmitParticle(particle: Particle) =
+        isEnabled && particleMap[particle.javaClass.simpleName] in particles
 
     @JvmStatic
     fun shouldAcceptFog(modifier: StatusEffectFogModifier) =
