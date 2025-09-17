@@ -19,12 +19,15 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import net.minecraft.client.render.BackgroundRenderer.StatusEffectFogModifier
+import net.minecraft.entity.effect.StatusEffects
 
 object NoRender : Module(
     name = "NoRender",
     description = "Disables rendering of certain things",
     tag = ModuleTag.RENDER,
 ) {
+    @JvmStatic val noBlindness by setting("No Blindness", true)
     @JvmStatic val noDarkness by setting("No Darkness", true)
     @JvmStatic val noBurning by setting("No Burning Overlay", true)
     @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", -0.3, -0.8..0.0, 0.1) { !noBurning }
@@ -32,4 +35,13 @@ object NoRender : Module(
     @JvmStatic val noInWall by setting("No In Wall Overlay", true)
     @JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true)
     @JvmStatic val noExplosion by setting("No Explosions", true)
+
+    @JvmStatic
+    fun shouldAcceptFog(modifier: StatusEffectFogModifier) =
+        when {
+            isDisabled -> true
+            modifier.statusEffect == StatusEffects.BLINDNESS && noBlindness -> false
+            modifier.statusEffect == StatusEffects.DARKNESS && noDarkness -> false
+            else -> true
+        }
 }
