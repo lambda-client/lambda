@@ -60,8 +60,8 @@ data class SwapInfo(
 
             val minKeepTicks = run {
                 if (type == Primary) {
-                    val swapTickProgress = breakDelta * (breakTicks + request.hotbar.swapPause - 1).coerceAtLeast(1)
-                    if (swapTickProgress >= threshold && request.hotbar.swapPause > 0) 1
+                    val swapTickProgress = breakDelta * (breakTicks + request.config.serverSwapTicks - 1).coerceAtLeast(1)
+                    if (swapTickProgress >= threshold && request.config.serverSwapTicks > 0) 1
                     else 0
                 } else {
                     val serverSwapTicks = request.hotbar.swapPause.coerceAtLeast(3)

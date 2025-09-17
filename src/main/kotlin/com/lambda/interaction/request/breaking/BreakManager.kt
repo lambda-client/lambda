@@ -435,7 +435,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                                 context.hotbarIndex,
                                 request.hotbar,
                                 request.hotbar.keepTicks.coerceAtLeast(minSwapTicks),
-                                request.hotbar.swapPause - 1
+                                request.config.serverSwapTicks - 1
                             ).submit(false)
                         }
                         logger.debug("Submitted hotbar request", hotbarRequest)
