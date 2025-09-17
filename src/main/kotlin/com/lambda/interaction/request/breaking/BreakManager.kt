@@ -429,13 +429,14 @@ object BreakManager : RequestHandler<BreakRequest>(
 
                 infos.firstOrNull()?.let { info ->
                     infos.lastOrNull { it.swapInfo.swap && it.shouldProgress }?.let { last ->
-                        val minSwapTicks = max(info.swapInfo.minKeepTicks, last.swapInfo.minKeepTicks)
+                        val minKeepTicks = if (info.swapInfo.longSwap || last.swapInfo.longSwap) 1 else 0
+                        val serverSwapTicks = max(info.breakConfig.serverSwapTicks, last.breakConfig.serverSwapTicks)
                         hotbarRequest = with(info) {
                             HotbarRequest(
                                 context.hotbarIndex,
                                 request.hotbar,
-                                request.hotbar.keepTicks.coerceAtLeast(minSwapTicks),
-                                request.config.serverSwapTicks - 1
+                                request.hotbar.keepTicks.coerceAtLeast(minKeepTicks),
+                                serverSwapTicks - 1
                             ).submit(false)
                         }
                         logger.debug("Submitted hotbar request", hotbarRequest)
@@ -656,16 +657,12 @@ object BreakManager : RequestHandler<BreakRequest>(
         info.progressedThisTick = true
 
         if (!info.breaking) {
-            if (!startBreaking(info)) {
+            return if (startBreaking(info)) true
+            else {
                 info.nullify()
                 info.request.onCancel?.invoke(ctx.blockPos)
-                return false
+                false
             }
-            val swing = config.swing
-            if (swing.isEnabled() && (swing != BreakConfig.SwingMode.End || info.type == Rebreak)) {
-                swingHand(config.swingType, Hand.MAIN_HAND)
-            }
-            return true
         }
 
         if (config.swapMode == BreakConfig.SwapMode.Constant && !swapped) return true
@@ -677,9 +674,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             lastPosStarted = ctx.blockPos
             onBlockBreak(info)
             info.startBreakPacket(world, interaction)
-            if (config.swing.isEnabled()) {
-                swingHand(config.swingType, Hand.MAIN_HAND)
-            }
+            if (config.swing.isEnabled()) swingHand(config.swingType, Hand.MAIN_HAND)
             return true
         }
 
@@ -786,6 +781,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             onBlockBreak(info)
             info.startBreakPacket(world, interaction)
             breakCooldown = info.breakConfig.breakDelay
+            val swing = info.breakConfig.swing
+            if (swing.isEnabled()) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
             return true
         }
         if (info.breaking) return false
@@ -829,6 +826,11 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         if (info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)) {
             info.stopBreakPacket(world, interaction)
+        }
+
+        val swing = info.breakConfig.swing
+        if (swing.isEnabled() && (swing != BreakConfig.SwingMode.End || instantBreakable)) {
+            swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
         }
 
         return true

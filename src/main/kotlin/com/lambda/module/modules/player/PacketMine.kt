@@ -195,8 +195,17 @@ object PacketMine : Module(
         breakRequest(
             breakContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
         ) {
-            onStart { queuePositions.removePos(it); addBreak(it) }
-            onUpdate { queuePositions.removePos(it) }
+            onStart { queuePositions.removePos(it)
+                if (breakPositions.none { pos -> pos == it }) {
+                    addBreak(it)
+                }
+            }
+            onUpdate {
+                queuePositions.removePos(it)
+                if (breakPositions.none { pos -> pos == it }) {
+                    addBreak(it)
+                }
+            }
             onStop { removeBreak(it); breaks++ }
             onCancel { removeBreak(it, true) }
             onReBreakStart { reBreakPos = it }
