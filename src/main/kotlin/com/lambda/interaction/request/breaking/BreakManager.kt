@@ -229,6 +229,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             breakInfos
                 .filterNotNull()
                 .forEach { info ->
+                    if (!info.breaking) return@forEach
+
                     val config = info.breakConfig
                     if (!config.renders) return@onDynamicRender
                     val swapMode = info.breakConfig.swapMode
