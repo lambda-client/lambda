@@ -51,7 +51,6 @@ class BreakSettings(
     // Fixes / Delays
     override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken", visibility = vis).group(groupPath, Group.General)
     override val fudgeFactor by c.setting("Fudge Factor", 1, 0..5, 1, "The number of ticks to add to the break time, usually to account for server lag", visibility = vis).group(groupPath, Group.General)
-    override val serverSwapTicks by c.setting("Server Swap", 2, 0..5, 1, "The number of ticks to give the server time to recognize the player attributes on the swapped item", " tick(s)", visibility = vis).group(groupPath, Group.General)
 //    override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { vis() && page == Page.General }
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)", visibility = vis).group(groupPath, Group.General)
 

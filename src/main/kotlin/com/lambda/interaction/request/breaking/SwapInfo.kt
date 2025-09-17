@@ -17,38 +17,26 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.Lambda.mc
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
-import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
-import com.lambda.interaction.request.breaking.BreakManager.currentStack
+import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.item.ItemStack
 import net.minecraft.world.BlockView
 
 data class SwapInfo(
     private val type: BreakInfo.BreakType,
-    private val breakConfig: BreakConfig = TaskFlowModule.build.breaking,
+    private val hotbarConfig: HotbarConfig = TaskFlowModule.hotbar,
     val swap: Boolean = false,
     val minKeepTicks: Int = 0,
 ) : LogContext {
-    val validSwap
-        get() = run {
-            val serverSwapTicks = if (type == Primary || type == Rebreak) breakConfig.serverSwapTicks
-            else breakConfig.serverSwapTicks.coerceAtLeast(3)
-
-            (mc.player?.mainHandStack?.heldTicks ?: return false) >= serverSwapTicks
-        }
-
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Swap Info") {
             value("Type", type)
             value("Swap", swap)
             value("Min Keep Ticks", minKeepTicks)
-            value("Valid Swap", validSwap)
         }
     }
 
@@ -72,11 +60,11 @@ data class SwapInfo(
 
             val minKeepTicks = run {
                 if (type == Primary) {
-                    val swapTickProgress = breakDelta * (breakTicks + breakConfig.serverSwapTicks - 1).coerceAtLeast(1)
-                    if (swapTickProgress >= threshold) 1
+                    val swapTickProgress = breakDelta * (breakTicks + request.hotbar.swapPause - 1).coerceAtLeast(1)
+                    if (swapTickProgress >= threshold && request.hotbar.swapPause > 0) 1
                     else 0
                 } else {
-                    val serverSwapTicks = breakConfig.serverSwapTicks.coerceAtLeast(3)
+                    val serverSwapTicks = request.hotbar.swapPause.coerceAtLeast(3)
                     val swapTickProgress = breakDelta * (breakTicks + serverSwapTicks - 1).coerceAtLeast(1)
                     if (swapTickProgress >= threshold) 1
                     else 0
@@ -95,12 +83,7 @@ data class SwapInfo(
                 BreakConfig.SwapMode.Constant -> true
             }
 
-            return SwapInfo(info.type, breakConfig, swap, minKeepTicks)
+            return SwapInfo(info.type, request.hotbar, swap, minKeepTicks)
         }
-
-        private val ItemStack.heldTicks
-            get() = if (this == currentStack)
-                BreakManager.heldTicks
-            else 0
     }
 }

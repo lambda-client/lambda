@@ -89,7 +89,7 @@ object RebreakHandler {
             val context = reBreak.context
             val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, reBreak.breakConfig)
             val breakTicks = reBreak.breakingTicks - reBreak.breakConfig.fudgeFactor
-            return@runSafe if (breakTicks * breakDelta >= reBreak.getBreakThreshold() && reBreak.swapInfo.validSwap) {
+            return@runSafe if (breakTicks * breakDelta >= reBreak.getBreakThreshold() && BreakManager.swapped) {
                 if (reBreak.breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
                     destroyBlock(reBreak)
                 }

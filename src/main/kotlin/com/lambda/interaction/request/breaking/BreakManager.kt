@@ -143,18 +143,12 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     private var activeRequest: BreakRequest? = null
 
+    private var hotbarRequest: HotbarRequest? = null
+    val swapped get() = hotbarRequest?.done != false
+
     private var rotationRequest: RotationRequest? = null
     private val rotated get() = rotationRequest?.done != false
 
-    var currentStack: ItemStack = ItemStack.EMPTY
-        set(value) {
-            if (value != field)
-                heldTicks = 0
-            swappedThisTick = true
-            field = value
-        }
-    var heldTicks = 0
-    var swappedThisTick = false
     private var breakCooldown = 0
     var instantBreaksThisTick = 0
     private var maxInstantBreaksThisTick = 0
@@ -178,11 +172,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            if (!swappedThisTick) {
-                currentStack = player.mainHandStack
-                heldTicks++
-            }
-            swappedThisTick = false
             if (breakCooldown > 0) {
                 breakCooldown--
             }
@@ -332,21 +321,18 @@ object BreakManager : RequestHandler<BreakRequest>(
 
             // Reversed so that the breaking order feels natural to the user as the primary break is always the
             // last break to be started
-            noProgression = if (handlePreProcessing()) {
+            handlePreProcessing()
+            noProgression =
                 activeInfos
                     .filter { it.updatedThisTick && it.shouldProgress }
                     .asReversed()
                     .run {
-                        if (isEmpty()) {
-                            true
-                        } else {
-                            forEach { info ->
-                                updateBreakProgress(info)
-                            }
+                        if (isEmpty()) true
+                        else {
+                            forEach { updateBreakProgress(it) }
                             false
                         }
                     }
-            } else true
 
             if (noNew && noProgression) break
         }
@@ -426,7 +412,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         return blockState.isNotEmpty && hardness != 600f && hardness != -1f
     }
 
-    private fun SafeContext.handlePreProcessing(): Boolean {
+    private fun SafeContext.handlePreProcessing() {
         activeInfos
             .filter { it.updatedThisTick }
             .let { infos ->
@@ -437,35 +423,30 @@ object BreakManager : RequestHandler<BreakRequest>(
                         rotation.submit(false)
                     }
 
-                if (activeInfos.isEmpty()) return true
+                if (activeInfos.isEmpty()) return
 
                 infos.forEach { it.updatePreProcessing(player, world) }
 
                 infos.firstOrNull()?.let { info ->
                     infos.lastOrNull { it.swapInfo.swap && it.shouldProgress }?.let { last ->
                         val minSwapTicks = max(info.swapInfo.minKeepTicks, last.swapInfo.minKeepTicks)
-                        val hotbarRequest = with(info) {
+                        hotbarRequest = with(info) {
                             HotbarRequest(
                                 context.hotbarIndex,
                                 request.hotbar,
-                                request.hotbar.keepTicks.coerceAtLeast(minSwapTicks)
+                                request.hotbar.keepTicks.coerceAtLeast(minSwapTicks),
+                                request.hotbar.swapPause - 1
                             ).submit(false)
                         }
                         logger.debug("Submitted hotbar request", hotbarRequest)
-                        if (!hotbarRequest.done) {
-                            logger.warning("Hotbar request failed", hotbarRequest)
-                            return false
-                        }
-                        if (minSwapTicks > 0) {
-                            val alreadySwapped = swappedThisTick
-                            currentStack = info.swapStack
-                            if (!alreadySwapped) heldTicks++
-                        }
+                        return
                     }
                 }
             }
 
-        return true
+        hotbarRequest = null
+
+        return
     }
 
     /**
@@ -687,6 +668,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
 
+        if (config.swapMode == BreakConfig.SwapMode.Constant && !swapped) return true
+
         val hitResult = ctx.result
 
         if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
@@ -739,7 +722,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (progress >= info.getBreakThreshold() && info.swapInfo.validSwap) {
+        if (progress >= info.getBreakThreshold() && swapped) {
             logger.success("Breaking", info)
             if (info.type == Primary) {
                 onBlockBreak(info)
@@ -778,7 +761,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }
 
                     primaryBreak?.let { primary ->
-                        if (!handlePreProcessing()) return false
+                        handlePreProcessing()
                         updateBreakProgress(primary)
                     }
                     return true
@@ -817,11 +800,12 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val progress = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
 
-        val instantBreakable = progress >= info.getBreakThreshold() && info.swapInfo.validSwap
-        info.vanillaInstantBreakable = progress >= 1 && info.swapInfo.validSwap
+        if (!swapped) return true
 
+        val instantBreakable = progress >= info.getBreakThreshold() && swapped
         if (instantBreakable) {
             logger.success("Instant breaking", info)
+            info.vanillaInstantBreakable = progress >= 1 && swapped
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
             instantBreaksThisTick++
