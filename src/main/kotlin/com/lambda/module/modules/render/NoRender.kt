@@ -21,6 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
+import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
 import net.minecraft.client.render.BackgroundRenderer.StatusEffectFogModifier
 import net.minecraft.entity.Entity
@@ -38,6 +39,7 @@ object NoRender : Module(
         .filter { !it.isAbstract && it.name.startsWith("net.minecraft") }
 
     private val particleMap = createParticleNameMap()
+    private val blockEntityMap = createBlockEntityNameMap()
     private val playerEntityMap = createEntityNameMap("net.minecraft.client.network.")
     private val bossEntityMap = createEntityNameMap("net.minecraft.entity.boss.")
     private val decorationEntityMap = createEntityNameMap("net.minecraft.entity.decoration.")
@@ -63,6 +65,7 @@ object NoRender : Module(
     private val projectileEntities by setting("Projectile Entities", projectileEntityMap.values.toSet(), emptySet(), "Projectile entities to omit from rendering")
     private val vehicleEntities by setting("Vehicle Entities", vehicleEntityMap.values.toSet(), emptySet(), "Vehicle entities to omit from rendering")
     private val miscEntities by setting("Misc Entities", miscEntityMap.values.toSet(), emptySet(), "Miscellaneous entities to omit from rendering")
+    private val blockEntities by setting("Block Entities", blockEntityMap.values.toSet(), emptySet(), "Block entities to omit from rendering")
 
     private fun createParticleNameMap(): Map<String, String> {
         val subClasses = scanResult
@@ -73,6 +76,13 @@ object NoRender : Module(
 
     private fun createEntityNameMap(directory: String, strictDir: Boolean = false): Map<String, String> {
         return createNameMap(entities, directory, "Entity", strictDir)
+    }
+
+    private fun createBlockEntityNameMap(): Map<String, String> {
+        val subClasses = scanResult
+            .getSubclasses(BlockEntity::class.java)
+            .filter { !it.isAbstract }
+        return createNameMap(subClasses.asSequence(), "net.minecraft.block.entity", "BlockEntity")
     }
 
     private fun createNameMap(
@@ -109,7 +119,7 @@ object NoRender : Module(
     @JvmStatic
     fun shouldOmitEntity(entity: Entity): Boolean {
         val simpleName = entity.javaClass.simpleName
-        return when (entity.type.spawnGroup) {
+        return isEnabled && when (entity.type.spawnGroup) {
             SpawnGroup.MISC ->
                 miscEntityMap[simpleName] in miscEntities ||
                         playerEntityMap[simpleName] in playerEntities ||
@@ -128,6 +138,10 @@ object NoRender : Module(
             SpawnGroup.MONSTER -> mobEntityMap[simpleName] in mobEntities
         }
     }
+
+    @JvmStatic
+    fun shouldOmitBlockEntity(blockEntity: BlockEntity) =
+        isEnabled && blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities
 
     @JvmStatic
     fun shouldAcceptFog(modifier: StatusEffectFogModifier) =

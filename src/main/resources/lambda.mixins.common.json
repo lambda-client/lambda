@@ -28,6 +28,7 @@
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",
     "render.BackgroundRendererMixin",
+    "render.BlockEntityRenderDispatcherMixin",
     "render.BlockRenderManagerMixin",
     "render.CameraMixin",
     "render.CapeFeatureRendererMixin",
