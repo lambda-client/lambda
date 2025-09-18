@@ -27,6 +27,7 @@
     "network.HandshakeC2SPacketMixin",
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",
+    "render.AbstractSignBlockEntityRendererMixin",
     "render.BackgroundRendererMixin",
     "render.BlockEntityRenderDispatcherMixin",
     "render.BlockRenderManagerMixin",
