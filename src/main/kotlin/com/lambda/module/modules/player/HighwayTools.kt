@@ -18,6 +18,8 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.groups.BuildSettings
+import com.lambda.config.groups.EatSettings
+import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
@@ -70,6 +72,8 @@ object HighwayTools : Module(
     private val rotation = RotationSettings(this, Group.Rotation)
     private val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
     private val inventory = InventorySettings(this, Group.Inventory)
+    private val hotbar = HotbarSettings(this, Group.Hotbar)
+    private val eat = EatSettings(this, Group.Eat)
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
@@ -100,6 +104,8 @@ object HighwayTools : Module(
         Rotation("Rotation"),
         Interaction("Interaction"),
         Inventory("Inventory"),
+        Hotbar("Hotbar"),
+        Eat("Eat")
     }
 
     init {
@@ -140,6 +146,8 @@ object HighwayTools : Module(
             rotation = rotation,
             interact = interact,
             inventory = inventory,
+            hotbar = hotbar,
+            eat = eat,
         ).run()
     }
 

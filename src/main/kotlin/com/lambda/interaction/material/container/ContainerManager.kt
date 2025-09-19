@@ -110,18 +110,18 @@ object ContainerManager : Loadable {
         containerSelection: ContainerSelection = inventory.containerSelection,
     ): List<MaterialContainer> =
         container()
-            .sortedWith(inventory.providerPriority.materialComparator(this))
             .filter { it.materialAvailable(this) >= count }
             .filter { containerSelection.matches(it) }
+            .sortedWith(inventory.providerPriority.materialComparator(this))
 
     fun containerWithSpace(
         selection: StackSelection,
         inventory: InventoryConfig = TaskFlowModule.inventory,
     ): List<MaterialContainer> =
         container()
-            .sortedWith(inventory.providerPriority.spaceComparator(selection))
             .filter { it.spaceAvailable(selection) >= selection.count }
             .filter { inventory.containerSelection.matches(it) }
+            .sortedWith(inventory.providerPriority.spaceComparator(selection))
 
     fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
         inventory.disposables.any { container.materialAvailable(it.asItem().select()) > 0 }

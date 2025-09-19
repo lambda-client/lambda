@@ -61,6 +61,7 @@ import com.lambda.util.BlockUtils.hasFluid
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
@@ -85,6 +86,13 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
+import net.minecraft.item.Items
+import net.minecraft.registry.tag.ItemTags.DIAMOND_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.GOLD_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.IRON_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.NETHERITE_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.STONE_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.WOODEN_TOOL_MATERIALS
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -396,9 +404,8 @@ object BuildSimulator {
         if (!currentState.isReplaceable && !statePromoting) return acc
 
         preProcessing.sides.forEach { neighbor ->
-            val hitPos = if (!place.airPlace.isEnabled && (currentState.isEmpty || statePromoting))
-                pos.offset(neighbor)
-            else pos
+            val hitPos = if (!place.airPlace.isEnabled && (currentState.isAir || statePromoting))
+                pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
 
             val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos).let { outlineShape ->
@@ -644,7 +651,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (!breaking.breakWeakBlocks && state.block.hardness == 0f && state.isNotEmpty) {
+        if (!breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir && state.isNotEmpty) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -831,13 +838,24 @@ object BuildSimulator {
                 state.calcItemBlockBreakingDelta(player, world, pos, it)
             }
         ) {
-            run {
-                if (breaking.suitableToolsOnly) isSuitableForBreaking(state)
-                else StackSelection.EVERYTHING
-            } and if (breaking.forceSilkTouch) {
-                hasEnchantment(Enchantments.AQUA_AFFINITY)
-            } else if (breaking.forceFortunePickaxe) {
-                hasEnchantment(Enchantments.FORTUNE, breaking.minFortuneLevel)
+            isTool() and if (breaking.suitableToolsOnly) {
+                isSuitableForBreaking(state)
+            } else StackSelection.EVERYTHING and if (breaking.forceSilkTouch) {
+                hasEnchantment(Enchantments.SILK_TOUCH)
+            } else StackSelection.EVERYTHING and if (breaking.forceFortunePickaxe) {
+                hasEnchantment(Enchantments.FORTUNE)
+            } else StackSelection.EVERYTHING and if (!breaking.useWoodenTools) {
+                hasTag(WOODEN_TOOL_MATERIALS).not()
+            } else StackSelection.EVERYTHING and if (!breaking.useStoneTools) {
+                hasTag(STONE_TOOL_MATERIALS).not()
+            } else StackSelection.EVERYTHING and if (!breaking.useIronTools) {
+                hasTag(IRON_TOOL_MATERIALS).not()
+            } else StackSelection.EVERYTHING and if (!breaking.useDiamondTools) {
+                hasTag(DIAMOND_TOOL_MATERIALS).not()
+            } else StackSelection.EVERYTHING and if (!breaking.useGoldTools) {
+                hasTag(GOLD_TOOL_MATERIALS).not()
+            } else StackSelection.EVERYTHING and if (!breaking.useNetheriteTools) {
+                hasTag(NETHERITE_TOOL_MATERIALS).not()
             } else StackSelection.EVERYTHING
         }
 
@@ -851,7 +869,8 @@ object BuildSimulator {
             return acc
         }
 
-        val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
+        val swapStack = swapCandidates
+            .map { it.matchingStacks(stackSelection) }
             .asSequence()
             .flatten()
             .let { containerStacks ->

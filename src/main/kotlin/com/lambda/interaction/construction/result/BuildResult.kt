@@ -92,7 +92,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     }
 
     /**
-     * The player has no permission to interact with the block. (E.g.: Spectator mode)
+     * The player has no permission to interact with the block. (E.g.: Adventure mode)
      * @param blockPos The position of the block that is restricted.
      */
     data class Restricted(
@@ -204,14 +204,12 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val pausesParent get() = true
 
         override fun resolve() =
-            neededSelection.let { selection ->
-                selection.transfer(MainHandContainer, inventory)
-                    ?: MaterialContainer.AwaitItemTask(
-                        "Couldn't find $neededSelection anywhere.",
-                        selection,
-                        inventory
-                    )
-            }
+            neededSelection.transfer(MainHandContainer, inventory)
+                ?: MaterialContainer.AwaitItemTask(
+                    "Couldn't find $neededSelection anywhere.",
+                    neededSelection,
+                    inventory
+                )
 
         override fun ShapeBuilder.buildRenderer() {
             box(blockPos, color, color)

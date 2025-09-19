@@ -256,23 +256,23 @@ object BlockUtils {
         player: PlayerEntity,
         world: BlockView,
         blockPos: BlockPos,
-        item: ItemStack
+        stack: ItemStack
     ): Float {
         val hardness = getHardness(world, blockPos)
         return if (hardness == -1.0f) 0.0f else {
-            val harvestMultiplier = if (item.canHarvest(this)) 30 else 100
-            player.getItemBlockBreakingSpeed(this, item) / hardness / harvestMultiplier
+            val harvestMultiplier = if (stack.canHarvest(this)) 30 else 100
+            player.getItemBlockBreakingSpeed(this, stack) / hardness / harvestMultiplier
         }
     }
 
-    fun ItemStack.canHarvest(blockState: BlockState) =
-        !blockState.isToolRequired || isSuitableFor(blockState)
+    fun ItemStack.canHarvest(state: BlockState) =
+        !state.isToolRequired || isSuitableFor(state)
 
     fun PlayerEntity.getItemBlockBreakingSpeed(
-        blockState: BlockState,
+        state: BlockState,
         item: ItemStack
     ): Float {
-        var speedMultiplier = item.getMiningSpeedMultiplier(blockState)
+        var speedMultiplier = item.getMiningSpeedMultiplier(state)
         if (speedMultiplier > 1.0f) {
             speedMultiplier += item.getEnchantment(Enchantments.EFFICIENCY).let {
                 if (it > 0) (it * it) + 1
@@ -299,7 +299,7 @@ object BlockUtils {
         speedMultiplier *= getAttributeValue(EntityAttributes.BLOCK_BREAK_SPEED).toFloat()
         if (isSubmergedIn(FluidTags.WATER)) {
             getAttributeInstance(EntityAttributes.SUBMERGED_MINING_SPEED)?.let { speed ->
-                speedMultiplier *= speed.getValue().toFloat()
+                speedMultiplier *= speed.value.toFloat()
             }
         }
 

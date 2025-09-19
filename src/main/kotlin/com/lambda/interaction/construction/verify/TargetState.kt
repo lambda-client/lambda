@@ -46,8 +46,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             pos: BlockPos,
             world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.isEmpty
+        ) = state.isEmpty
 
         override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             ItemStack.EMPTY
@@ -63,8 +62,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             pos: BlockPos,
             world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.isAir
+        ) = state.isAir
 
         override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             ItemStack.EMPTY

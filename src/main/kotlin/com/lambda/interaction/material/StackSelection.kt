@@ -17,13 +17,18 @@
 
 package com.lambda.interaction.material
 
+import com.lambda.interaction.material.StackSelection.Companion.StackSelectionDsl
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
+import net.minecraft.component.ComponentType
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.item.ToolMaterial
+import net.minecraft.item.consume.UseAction
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
@@ -32,6 +37,7 @@ import kotlin.reflect.KClass
 /**
  * [StackSelection] is a class that holds a predicate for matching [ItemStack]s.
  */
+@StackSelectionDsl
 class StackSelection {
     var selector: (ItemStack) -> Boolean = EVERYTHING
     var comparator: Comparator<ItemStack> = NO_COMPARE
@@ -53,6 +59,8 @@ class StackSelection {
      */
     fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = stacks.minWithOrNull(comparator)
 
+    fun matches(stack: ItemStack): Boolean = filterStack(stack)
+
     fun filterStack(stack: ItemStack) =
         if (inShulkerBox) stack.shulkerBoxContents.any { selector(it) }
         else selector(stack)
@@ -65,34 +73,28 @@ class StackSelection {
     fun filterSlots(slots: List<Slot>): List<Slot> =
         slots.filter(::filterSlot).sortedWith { slot, slot2 -> comparator.compare(slot.stack, slot2.stack) }
 
-    @StackSelectionDsl
     fun <R : Comparable<R>> sortBy(selector: (ItemStack) -> R?): StackSelection = apply {
         comparator = compareBy(selector)
     }
 
-    @StackSelectionDsl
     fun <R : Comparable<R>> sortByDescending(selector: (ItemStack) -> R?): StackSelection = apply {
         comparator = compareByDescending(selector)
     }
 
-    @StackSelectionDsl
     fun <R : Comparable<R>> thenBy(selector: (ItemStack) -> R?): StackSelection = apply {
         check(comparator != NO_COMPARE) { "No comparator specified" }
         comparator = comparator.thenBy(selector)
     }
 
-    @StackSelectionDsl
     fun <R : Comparable<R>> thenByDescending(selector: (ItemStack) -> R?): StackSelection = apply {
         check(comparator != NO_COMPARE) { "No comparator specified" }
         comparator = comparator.thenByDescending(selector)
     }
 
-    @StackSelectionDsl
     fun sortWith(custom: Comparator<ItemStack>): StackSelection = apply {
         comparator = custom
     }
 
-    @StackSelectionDsl
     fun reversed(): StackSelection = apply {
         comparator = comparator.reversed()
     }
@@ -131,7 +133,6 @@ class StackSelection {
      * @param item The [Item] to be matched.
      * @return A predicate that matches the [Item].
      */
-    @StackSelectionDsl
     fun isItem(item: Item): (ItemStack) -> Boolean {
         this.item = item
         return { it.item == item }
@@ -143,8 +144,9 @@ class StackSelection {
      * @param items The collection of `Item` instances to match against.
      * @return A predicate that checks if the `ItemStack`'s item is contained in the provided collection.
      */
-    @StackSelectionDsl
     fun isOneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = { it.item in items }
+
+    fun isNoneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = { it.item !in items }
 
     /**
      * Returns a predicate that checks if a given `ItemStack` exists within the provided collection of `ItemStack`s.
@@ -152,23 +154,25 @@ class StackSelection {
      * @param stacks A collection of `ItemStack` instances to be checked against.
      * @return A predicate that evaluates to `true` if the given `ItemStack` is within the specified collection, otherwise `false`.
      */
-    @StackSelectionDsl
     fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = { it in stacks }
 
-    @StackSelectionDsl
     fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
 
-    @StackSelectionDsl
-    fun isTag(tag: TagKey<Item>): (ItemStack) -> Boolean {
-        return { it.isIn(tag) }
-    }
+    fun hasTag(tag: TagKey<Item>): (ItemStack) -> Boolean = { it.isIn(tag) }
+
+    fun hasUseAction(action: UseAction): (ItemStack) -> Boolean = { it.useAction == action }
+
+    fun isTool(): (ItemStack) -> Boolean = hasComponent(DataComponentTypes.TOOL)
+
+    fun isFood(): (ItemStack) -> Boolean = hasComponent(DataComponentTypes.FOOD)
+
+    fun hasComponent(type: ComponentType<*>): (ItemStack) -> Boolean = { it.components.contains(type) }
 
     /**
      * [isItem] returns a predicate that matches a specific [Item] instance.
      * @param T The instance of [Item] to be matched.
      * @return A predicate that matches the [Item].
      */
-    @StackSelectionDsl
     inline fun <reified T : Item> isItem(): (ItemStack) -> Boolean {
         itemClass = T::class
         return { it.item is T }
@@ -179,7 +183,6 @@ class StackSelection {
      * @param block The [Block] to be matched.
      * @return A predicate that matches the [Block].
      */
-    @StackSelectionDsl
     fun isBlock(block: Block): (ItemStack) -> Boolean {
         item = block.asItem()
         return { it.item == block.asItem() }
@@ -190,7 +193,6 @@ class StackSelection {
      * @param stack The [ItemStack] to be matched.
      * @return A predicate that matches the [ItemStack].
      */
-    @StackSelectionDsl
     fun isItemStack(stack: ItemStack): (ItemStack) -> Boolean {
         this.itemStack = stack
         return { ItemStack.areEqual(it, stack) }
@@ -201,7 +203,6 @@ class StackSelection {
      * @param damage The damage value to be matched.
      * @return A predicate that matches the damage value.
      */
-    @StackSelectionDsl
     fun hasDamage(damage: Int): (ItemStack) -> Boolean {
         this.damage = damage
         return { it.damage == damage }
@@ -213,7 +214,6 @@ class StackSelection {
      * @param level The level to be matched (if -1 will look for any level above 0).
      * @return A predicate that matches the [Enchantment] and `level`.
      */
-    @StackSelectionDsl
     fun hasEnchantment(enchantment: RegistryKey<Enchantment>, level: Int = -1): (ItemStack) -> Boolean = {
         if (level < 0) {
             it.getEnchantment(enchantment) > 0
@@ -226,7 +226,6 @@ class StackSelection {
      * Returns the negation of the original predicate.
      * @return A new predicate that matches if the original predicate does not match.
      */
-    @StackSelectionDsl
     fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean {
         return { !this(it) }
     }
@@ -236,7 +235,6 @@ class StackSelection {
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if both inputs predicate match.
      */
-    @StackSelectionDsl
     infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
         return { this(it) && otherPredicate(it) }
     }
@@ -246,7 +244,6 @@ class StackSelection {
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if either input predicate matches.
      */
-    @StackSelectionDsl
     infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
         return { this(it) || otherPredicate(it) }
     }
@@ -257,6 +254,13 @@ class StackSelection {
         itemClass?.let { append(it.simpleName) }
         itemStack?.let { append(it.name.string) }
         damage?.let { append(" with damage $it") }
+        when (selector) {
+            EVERYTHING -> append(" everything")
+            NOTHING -> append(" nothing")
+            else -> append(" custom predicate")
+        }
+        if (inShulkerBox) append(" in shulker box")
+        if (comparator != NO_COMPARE) append(" sorted by custom comparator")
     }
 
     companion object {
