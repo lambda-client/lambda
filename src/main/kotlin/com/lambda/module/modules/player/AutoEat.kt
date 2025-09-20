@@ -19,6 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.config.groups.EatSettings
+import com.lambda.config.groups.InventorySettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -34,10 +35,12 @@ object AutoEat : Module(
     tag = ModuleTag.PLAYER,
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
-        FOOD("Food"),
+        Eating("Eating"),
+        Inventory("Inventory")
     }
 
-    private val eat = EatSettings(this, Group.FOOD)
+    private val eat = EatSettings(this, Group.Eating)
+    private val inventory = InventorySettings(this, Group.Inventory)
     private var eatTask: EatTask? = null
 
     init {
@@ -45,7 +48,7 @@ object AutoEat : Module(
             val reason = reasonEating(eat)
             if (eatTask != null || !reason.shouldEat()) return@listen
 
-            val task = eat(eat)
+            val task = eat(eat, inventory)
             task.finally { eatTask = null }
             task.run()
             eatTask = task

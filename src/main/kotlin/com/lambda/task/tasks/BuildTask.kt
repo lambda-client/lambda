@@ -63,16 +63,17 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
-class BuildTask @Ta5kBuilder constructor(
+class BuildTask private constructor(
     private val blueprint: Blueprint,
-    private val finishOnDone: Boolean = true,
-    private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-    private val build: BuildConfig = TaskFlowModule.build,
-    private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
-    private val inventory: InventoryConfig = TaskFlowModule.inventory,
-    private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
-    private val eat: EatConfig = TaskFlowModule.eat,
+    private val finishOnDone: Boolean,
+    private val collectDrops: Boolean,
+    private val build: BuildConfig,
+    private val rotation: RotationConfig,
+    private val interactionConfig: InteractionConfig,
+    private val inventory: InventoryConfig,
+    private val hotbar: HotbarConfig,
+    private val eat: EatConfig,
+    private val lifeMaintenance: Boolean,
 ) : Task<Structure>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
@@ -98,9 +99,8 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
-//            val parentEating = (parent as? BuildTask)?.eatTask != null
             when {
-                eatTask == null && reasonEating(eat).shouldEat() -> {
+                lifeMaintenance && eatTask == null && reasonEating(eat).shouldEat() -> {
                     eatTask = eat(eat)
                     eatTask?.finally {
                         eatTask = null
@@ -255,8 +255,9 @@ class BuildTask @Ta5kBuilder constructor(
             inventory: InventoryConfig = TaskFlowModule.inventory,
             hotbar: HotbarConfig = TaskFlowModule.hotbar,
             eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
             blueprint: () -> Blueprint,
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
 
         @Ta5kBuilder
         fun Structure.build(
@@ -268,7 +269,8 @@ class BuildTask @Ta5kBuilder constructor(
             inventory: InventoryConfig = TaskFlowModule.inventory,
             hotbar: HotbarConfig = TaskFlowModule.hotbar,
             eat: EatConfig = TaskFlowModule.eat,
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat)
+            lifeMaintenance: Boolean = false,
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
 
         @Ta5kBuilder
         fun Blueprint.build(
@@ -280,7 +282,8 @@ class BuildTask @Ta5kBuilder constructor(
             inventory: InventoryConfig = TaskFlowModule.inventory,
             hotbar: HotbarConfig = TaskFlowModule.hotbar,
             eat: EatConfig = TaskFlowModule.eat,
-        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat)
+            lifeMaintenance: Boolean = false,
+        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
 
         @Ta5kBuilder
         fun breakAndCollectBlock(
@@ -293,9 +296,10 @@ class BuildTask @Ta5kBuilder constructor(
             inventory: InventoryConfig = TaskFlowModule.inventory,
             hotbar: HotbarConfig = TaskFlowModule.hotbar,
             eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat
+            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance
         )
 
         @Ta5kBuilder
@@ -309,9 +313,10 @@ class BuildTask @Ta5kBuilder constructor(
             inventory: InventoryConfig = TaskFlowModule.inventory,
             hotbar: HotbarConfig = TaskFlowModule.hotbar,
             eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat
+            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance
         )
     }
 }

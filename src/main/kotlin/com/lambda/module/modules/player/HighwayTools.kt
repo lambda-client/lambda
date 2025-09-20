@@ -148,6 +148,7 @@ object HighwayTools : Module(
             inventory = inventory,
             hotbar = hotbar,
             eat = eat,
+            lifeMaintenance = true,
         ).run()
     }
 
