@@ -28,6 +28,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup
 import net.minecraft.entity.effect.StatusEffects
 
+//ToDo: Implement unimplemented settings. (Keep in mind compatibility with other mods like sodium)
 object NoRender : Module(
     name = "NoRender",
     description = "Disables rendering of certain things",
@@ -64,9 +65,12 @@ object NoRender : Module(
     @JvmStatic val noGuiShadow by setting("No Gui Shadow", false)
     @JvmStatic val noFloatingItemAnimation by setting("No Floating Item Animation", false, "Disables floating item animations, typically used when a totem pops")
     @JvmStatic val noSignText by setting("No Sign Text", false)
-    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false)
+    // Blehhh cba
+//    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false)
     @JvmStatic val noArmor by setting("No Armor", false)
-    @JvmStatic val noInvisibility by setting("No Invisibility", false)
+    @JvmStatic val includeNoElytra by setting("Include No Elytra", false) { noArmor }
+    @JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }
+    @JvmStatic val noInvisibility by setting("No Invisibility", true)
     @JvmStatic val noGlow by setting("No Glow", false)
     @JvmStatic val noCrosshair by setting("No Crosshair", false)
     @JvmStatic val noBossBar by setting("No Boss Bar", false)
@@ -75,13 +79,12 @@ object NoRender : Module(
     @JvmStatic val noWorldBorder by setting("No World Border", false)
     @JvmStatic val noEnchantingTableBook by setting("No Enchanting Table Book", false)
     @JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true)
-    @JvmStatic val noBlockBreakingOverlay by setting("No Block Breaking Overlay", false)
+    // Couldn't get to work with block entities without crashing with sodium on boot
+//    @JvmStatic val noBlockBreakingOverlay by setting("No Block Breaking Overlay", false)
     @JvmStatic val noBeaconBeams by setting("No Beacon Beams", false)
     @JvmStatic val noSpawnerMob by setting("No Spawner Mob", false)
-    @JvmStatic val noDeadEntities by setting("No Dead Entities", false)
+//    @JvmStatic val noDeadEntities by setting("No Dead Entities", false)
     @JvmStatic val noNametags by setting("No Nametags", false)
-    @JvmStatic val persistentBarriers by setting("Persistent Barriers", false)
-    @JvmStatic val noTextureRotations by setting("No Texture Rotations", false)
     private val particles by setting("Particles", particleMap.values.toSet(), emptySet(), "Particles to omit from rendering")
     private val playerEntities by setting("Player Entities", playerEntityMap.values.toSet(), emptySet(), "Player entities to omit from rendering")
     private val bossEntities by setting("Boss Entities", bossEntityMap.values.toSet(), emptySet(), "Boss entities to omit from rendering")

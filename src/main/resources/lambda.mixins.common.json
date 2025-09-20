@@ -28,9 +28,12 @@
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",
     "render.AbstractSignBlockEntityRendererMixin",
+    "render.ArmorFeatureRendererMixin",
     "render.BackgroundRendererMixin",
+    "render.BeaconBlockEntityRendererMixin",
     "render.BlockEntityRenderDispatcherMixin",
     "render.BlockRenderManagerMixin",
+    "render.BossBarHudMixin",
     "render.CameraMixin",
     "render.CapeFeatureRendererMixin",
     "render.ChatHudMixin",
@@ -43,6 +46,7 @@
     "render.EntityRendererMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
+    "render.HeadFeatureRendererMixin",
     "render.HeldItemRendererMixin",
     "render.InGameHudMixin",
     "render.InGameOverlayRendererMixin",
@@ -66,5 +70,8 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "render.MobSpawnerBlockEntityRendererMixin"
+  ]
 }
