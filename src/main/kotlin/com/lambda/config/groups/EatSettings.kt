@@ -18,8 +18,6 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.event.events.TickEvent
-import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
 import net.minecraft.item.Items
@@ -29,14 +27,21 @@ class EatSettings(
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
 ) : EatConfig {
-    val defaultWhitelist = listOf(Items.GOLDEN_CARROT)
+    val nutritiousFoodDefaults = listOf(Items.APPLE, Items.BAKED_POTATO, Items.BEEF, Items.BEETROOT, Items.BEETROOT_SOUP, Items.BREAD, Items.CARROT, Items.CHICKEN, Items.CHORUS_FRUIT, Items.COD, Items.COOKED_BEEF, Items.COOKED_CHICKEN, Items.COOKED_COD, Items.COOKED_MUTTON, Items.COOKED_PORKCHOP, Items.COOKED_RABBIT, Items.COOKED_SALMON, Items.COOKIE, Items.DRIED_KELP, Items.ENCHANTED_GOLDEN_APPLE, Items.GOLDEN_APPLE, Items.GOLDEN_CARROT, Items.HONEY_BOTTLE, Items.MELON_SLICE, Items.MUSHROOM_STEW, Items.MUTTON, Items.POISONOUS_POTATO, Items.PORKCHOP, Items.POTATO, Items.PUFFERFISH, Items.PUMPKIN_PIE, Items.RABBIT, Items.RABBIT_STEW, Items.ROTTEN_FLESH, Items.SALMON, Items.SPIDER_EYE, Items.SUSPICIOUS_STEW, Items.SWEET_BERRIES, Items.GLOW_BERRIES, Items.TROPICAL_FISH)
+    val resistanceFoodDefaults = listOf(Items.ENCHANTED_GOLDEN_APPLE)
+    val regenerationFoodDefaults = listOf(Items.ENCHANTED_GOLDEN_APPLE, Items.GOLDEN_APPLE)
+    val negativeFoodDefaults = listOf(Items.CHICKEN, Items.POISONOUS_POTATO, Items.PUFFERFISH, Items.ROTTEN_FLESH, Items.SPIDER_EYE)
 
-    override val eatFood by c.setting("Eat Food", true, "Whether food should be eaten", vis).group(baseGroup)
-    override val eatUntilFull by c.setting("Eat Until Full", false, "Eat until the food level is full")  { vis() && eatFood }.group(baseGroup)
-    override val minFoodLevel by c.setting("Minimum Food Level", 6, 0..20, 1, "The minimum food level to eat food", " food level") { vis() && eatFood }.group(baseGroup)
-    override val eatOnFire by c.setting("Eat On Fire", false, "Eat when you are on fire")  { vis() && eatFood }.group(baseGroup)
-    override val eatHeal by c.setting("Eat Heal", false, "Eat healing food when you are below the minimum health level")  { vis() && eatFood }.group(baseGroup)
-    override val selectionMode by c.setting("Selection Mode", EatConfig.SelectionMode.Whitelist, "The selection mode for eating")  { vis() && eatFood }.group(baseGroup)
-    override val whitelist by c.setting("Whitelist", defaultWhitelist, defaultWhitelist, "The whitelist of items to eat")  { vis() && eatFood }.group(baseGroup)
-    override val blacklist by c.setting("Blacklist", listOf(), listOf<Item>(), "The blacklist of items to eat")  { vis() && eatFood }.group(baseGroup)
+    override val eatOnHunger by c.setting("Eat On Hunger", true, "Whether to eat when hungry", vis).group(baseGroup)
+    override val minFoodLevel by c.setting("Minimum Food Level", 6, 0..20, 1, "The minimum food level to eat food", " food level") { vis() && eatOnHunger }.group(baseGroup)
+    override val saturated by c.setting("Saturated", EatConfig.Saturation.EatSmart, "When to stop eating") { vis() && eatOnHunger }.group(baseGroup)
+    override val nutritiousFood by c.setting("Nutritious Food", nutritiousFoodDefaults, nutritiousFoodDefaults, "Items that are be considered nutritious") { vis() && eatOnHunger }.group(baseGroup)
+    override val selectionPriority by c.setting("Selection Priority", EatConfig.SelectionPriority.MostNutritious, "The priority for selecting food items") { vis() && eatOnHunger }.group(baseGroup)
+    override val eatOnFire by c.setting("Eat On Fire", true, "Whether to eat when on fire", vis).group(baseGroup)
+    override val resistanceFood by c.setting("Resistance Food", resistanceFoodDefaults, resistanceFoodDefaults, "Items that give Fire Resistance") { vis() && eatOnFire}.group(baseGroup)
+    override val eatOnDamage by c.setting("Eat On Damage", true, "Whether to eat when damaged", vis).group(baseGroup)
+    override val minDamage by c.setting("Minimum Damage", 10, 0..20, 1, "The minimum damage threshold to trigger eating") { vis() && eatOnDamage }.group(baseGroup)
+    override val regenerationFood by c.setting("Regeneration Food", regenerationFoodDefaults, regenerationFoodDefaults, "Items that give Regeneration") { vis() && eatOnDamage }.group(baseGroup)
+    override val ignoreBadFood by c.setting("Ignore Bad Food", true, "Whether to eat when the food is bad", vis).group(baseGroup)
+    override val badFood by c.setting("Bad Food", negativeFoodDefaults, negativeFoodDefaults, "Items that are considered bad food") { vis() && ignoreBadFood }.group(baseGroup)
 }

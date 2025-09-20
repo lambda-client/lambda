@@ -17,22 +17,92 @@
 
 package com.lambda.config.groups
 
+import com.lambda.context.SafeContext
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.threading.runSafe
+import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
+import com.lambda.util.item.ItemUtils.nutrition
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 
 interface EatConfig {
-    val eatFood: Boolean
+    val eatOnHunger: Boolean
     val minFoodLevel: Int
-    val eatUntilFull: Boolean
+    val nutritiousFood: List<Item>
+    val selectionPriority: SelectionPriority
+    val saturated: Saturation
     val eatOnFire: Boolean
-    val eatHeal: Boolean
+    val resistanceFood: List<Item>
+    val eatOnDamage: Boolean
+    val minDamage: Int
+    val regenerationFood: List<Item>
+    val ignoreBadFood: Boolean
+    val badFood: List<Item>
 
-    val selectionMode: SelectionMode
-    val whitelist: List<Item>
-    val blacklist: List<Item>
+    enum class Saturation(
+        override val displayName: String,
+        override val description: String
+    ): NamedEnum, Describable {
+        EatSmart("Eat Smart", "Eats until the next food would exceed the hunger limit."),
+        EatUntilFull("Eat Until Full", "Eats food until the hunger bar is completely full. May waste some food."),
+    }
 
-    enum class SelectionMode(override val displayName: String): NamedEnum {
-        Whitelist("Whitelist"),
-        Blacklist("Blacklist")
+    enum class SelectionPriority(
+        val comparator: Comparator<ItemStack>,
+        override val displayName: String,
+        override val description: String): NamedEnum, Describable {
+        LeastNutritious(
+            compareBy { it.item.nutrition },
+            "Least Nutritious",
+            "Eats food items with the least nutritional value."
+        ),
+        MostNutritious(
+            compareByDescending { it.item.nutrition },
+            "Most Nutritious",
+            "Eats food items with the most nutritional value."
+        )
+    }
+
+    enum class Reason(val message: (ItemStack) -> String) {
+        None({ "Waiting for food to eat..." }),
+        Hunger({ "Eating ${it.item.name.string} due to Hunger" }),
+        Damage({ "Eating ${it.item.name.string} due to Damage" }),
+        Fire({ "Eating ${it.item.name.string} due to Fire" });
+
+        fun shouldEat() = this != None
+
+        fun shouldKeepEating(config: EatConfig, stack: ItemStack?) = runSafe {
+            if (stack == null || stack.isEmpty) return@runSafe false
+            when(this@Reason) {
+                Hunger -> when(config.saturated) {
+                    Saturation.EatSmart -> stack.item.nutrition + player.hungerManager.foodLevel <= 20
+                    Saturation.EatUntilFull -> player.hungerManager.isNotFull
+                }
+                Damage -> !player.hasStatusEffect(StatusEffects.REGENERATION)
+                Fire -> !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)
+                None -> false
+            }
+        } ?: false
+
+        fun selector(config: EatConfig) = selectStack(sorter = config.selectionPriority.comparator) {
+            when(this@Reason) {
+                None -> any()
+                Hunger -> isOneOfItems(config.nutritiousFood)
+                Damage -> isOneOfItems(config.regenerationFood)
+                Fire -> isOneOfItems(config.resistanceFood)
+            } and if (config.ignoreBadFood) isNoneOfItems(config.badFood) else any()
+        }
+    }
+
+    companion object {
+        fun SafeContext.reasonEating(config: EatConfig) = when {
+            config.eatOnHunger && player.hungerManager.foodLevel <= config.minFoodLevel -> Reason.Hunger
+            config.eatOnDamage && player.health <= config.minDamage && !player.hasStatusEffect(StatusEffects.REGENERATION) -> Reason.Damage
+            config.eatOnFire && player.isOnFire && !player.hasStatusEffect(StatusEffects.FIRE_RESISTANCE) -> Reason.Fire
+            else -> Reason.None
+        }
     }
 }

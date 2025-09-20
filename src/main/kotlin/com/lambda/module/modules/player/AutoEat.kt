@@ -17,30 +17,16 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.config.groups.EatSettings
-import com.lambda.config.groups.RotationSettings
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.Request.Companion.submit
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
-import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.EatTask
 import com.lambda.task.tasks.EatTask.Companion.eat
-import com.lambda.task.tasks.EatTask.Companion.shouldEat
 import com.lambda.util.NamedEnum
-import com.lambda.util.math.distSq
-import net.minecraft.entity.Entity
-import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.util.math.MathHelper.wrapDegrees
-import kotlin.random.Random
 
 object AutoEat : Module(
     name = "AutoEat",
@@ -49,17 +35,15 @@ object AutoEat : Module(
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
         FOOD("Food"),
-        FIRE("Fire"),
-        HEAL("Heal"),
     }
 
     private val eat = EatSettings(this, Group.FOOD)
-
     private var eatTask: EatTask? = null
 
     init {
         listen<TickEvent.Pre> {
-            if (eatTask != null || !shouldEat(eat)) return@listen
+            val reason = reasonEating(eat)
+            if (eatTask != null || !reason.shouldEat()) return@listen
 
             val task = eat(eat)
             task.finally { eatTask = null }

@@ -21,6 +21,7 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.EatConfig
+import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -53,9 +54,6 @@ import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
-import com.lambda.task.tasks.EatTask.Companion.hasFood
-import com.lambda.task.tasks.EatTask.Companion.shouldEat
-import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
@@ -100,9 +98,9 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
-            val parentEating = (parent as? BuildTask)?.eatTask != null
+//            val parentEating = (parent as? BuildTask)?.eatTask != null
             when {
-                !parentEating && eatTask == null && shouldEat(eat) && hasFood(eat, inventory) -> {
+                eatTask == null && reasonEating(eat).shouldEat() -> {
                     eatTask = eat(eat)
                     eatTask?.finally {
                         eatTask = null

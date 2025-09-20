@@ -18,8 +18,8 @@
 package com.lambda.task.tasks
 
 import com.lambda.config.groups.EatConfig
+import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -28,35 +28,51 @@ import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
-import net.minecraft.component.DataComponentTypes
-import net.minecraft.component.type.FoodComponent
+import com.lambda.util.item.ItemUtils.nutrition
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
-import java.awt.event.InputEvent
 
 class EatTask @Ta5kBuilder constructor(
-    val config: EatConfig = TaskFlowModule.eat,
-    val inventory: InventoryConfig = TaskFlowModule.inventory,
+    val config: EatConfig,
+    val inventory: InventoryConfig
 ) : Task<Unit>() {
     override val name: String
-        get() = "Eating ${eatStack ?: "nothing"}"
+        get() = reason.message(eatStack ?: ItemStack.EMPTY)
 
     private var eatStack: ItemStack? = null
-    private val selection get() = foodSelector(config)
+    private var reason = EatConfig.Reason.None
+    private var holdingUse = false
+
+    override fun SafeContext.onStart() {
+        reason = reasonEating(config)
+    }
 
     init {
         listen<TickEvent.Input.Pre> {
-            val nutrition = eatStack?.item?.components?.get(DataComponentTypes.FOOD)?.nutrition ?: 0
-            val wouldBeFull = nutrition + player.hungerManager.foodLevel > 20
-            if (!config.eatUntilFull && !shouldEat(config) || wouldBeFull) {
+            if (holdingUse && !reason.shouldKeepEating(config, eatStack)) {
+                mc.options.useKey.isPressed = false
+                holdingUse = false
                 interaction.stopUsingItem(player)
                 success()
                 return@listen
             }
 
-            if (!selection.matches(player.mainHandStack)) {
-                selection.transfer(MainHandContainer, inventory)
+            if (player.isUsingItem) {
+                if (!holdingUse) {
+                    mc.options.useKey.isPressed = true
+                    holdingUse = true
+                }
+                return@listen
+            }
+
+            val foodFinder = reason.selector(config)
+            if (!foodFinder.matches(player.mainHandStack)) {
+                if (holdingUse) {
+                    mc.options.useKey.isPressed = false
+                    holdingUse = false
+                }
+                foodFinder.transfer(MainHandContainer, inventory)
                     ?.execute(this@EatTask) ?: failure("No food found")
                 return@listen
             }
@@ -65,25 +81,17 @@ class EatTask @Ta5kBuilder constructor(
             (interaction.interactItem(player, Hand.MAIN_HAND) as? ActionResult.Success)?.let {
                 if (it.swingSource == ActionResult.SwingSource.CLIENT) player.swingHand(Hand.MAIN_HAND)
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
+                mc.options.useKey.isPressed = true
+                holdingUse = true
             }
         }
     }
 
     companion object {
-        fun foodSelector(config: EatConfig) = selectStack {
-            when {
-                config.selectionMode == EatConfig.SelectionMode.Whitelist -> isOneOfItems(config.whitelist)
-                else -> isNoneOfItems(config.blacklist)
-            } and isFood()
-        }
-
         @Ta5kBuilder
-        fun eat(config: EatConfig) = EatTask(config)
-
-        fun SafeContext.shouldEat(config: EatConfig) =
-            player.hungerManager.foodLevel <= config.minFoodLevel
-
-        fun hasFood(config: EatConfig, inventory: InventoryConfig) =
-            foodSelector(config).transfer(MainHandContainer, inventory) != null
+        fun eat(
+            config: EatConfig = TaskFlowModule.eat,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
+        ) = EatTask(config, inventory)
     }
 }

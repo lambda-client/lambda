@@ -128,6 +128,9 @@ class StackSelection {
         }
     }
 
+    fun any() = EVERYTHING
+    fun none() = NOTHING
+
     /**
      * [isItem] returns a predicate that matches a specific [Item].
      * @param item The [Item] to be matched.
@@ -146,7 +149,7 @@ class StackSelection {
      */
     fun isOneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = { it.item in items }
 
-    fun isNoneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = { it.item !in items }
+    fun isNoneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = isOneOfItems(items).not()
 
     /**
      * Returns a predicate that checks if a given `ItemStack` exists within the provided collection of `ItemStack`s.
@@ -154,7 +157,7 @@ class StackSelection {
      * @param stacks A collection of `ItemStack` instances to be checked against.
      * @return A predicate that evaluates to `true` if the given `ItemStack` is within the specified collection, otherwise `false`.
      */
-    fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = { it in stacks }
+    fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = stacks::contains
 
     fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
 

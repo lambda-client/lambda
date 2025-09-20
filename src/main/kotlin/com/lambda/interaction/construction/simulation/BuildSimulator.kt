@@ -840,23 +840,23 @@ object BuildSimulator {
         ) {
             isTool() and if (breaking.suitableToolsOnly) {
                 isSuitableForBreaking(state)
-            } else StackSelection.EVERYTHING and if (breaking.forceSilkTouch) {
+            } else any() and if (breaking.forceSilkTouch) {
                 hasEnchantment(Enchantments.SILK_TOUCH)
-            } else StackSelection.EVERYTHING and if (breaking.forceFortunePickaxe) {
+            } else any() and if (breaking.forceFortunePickaxe) {
                 hasEnchantment(Enchantments.FORTUNE)
-            } else StackSelection.EVERYTHING and if (!breaking.useWoodenTools) {
+            } else any() and if (!breaking.useWoodenTools) {
                 hasTag(WOODEN_TOOL_MATERIALS).not()
-            } else StackSelection.EVERYTHING and if (!breaking.useStoneTools) {
+            } else any() and if (!breaking.useStoneTools) {
                 hasTag(STONE_TOOL_MATERIALS).not()
-            } else StackSelection.EVERYTHING and if (!breaking.useIronTools) {
+            } else any() and if (!breaking.useIronTools) {
                 hasTag(IRON_TOOL_MATERIALS).not()
-            } else StackSelection.EVERYTHING and if (!breaking.useDiamondTools) {
+            } else any() and if (!breaking.useDiamondTools) {
                 hasTag(DIAMOND_TOOL_MATERIALS).not()
-            } else StackSelection.EVERYTHING and if (!breaking.useGoldTools) {
+            } else any() and if (!breaking.useGoldTools) {
                 hasTag(GOLD_TOOL_MATERIALS).not()
-            } else StackSelection.EVERYTHING and if (!breaking.useNetheriteTools) {
+            } else any() and if (!breaking.useNetheriteTools) {
                 hasTag(NETHERITE_TOOL_MATERIALS).not()
-            } else StackSelection.EVERYTHING
+            } else any()
         }
 
         val silentSwapSelection = selectContainer {
