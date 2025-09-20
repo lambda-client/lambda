@@ -407,6 +407,7 @@ object BuildSimulator {
             val hitPos = if (!place.airPlace.isEnabled && (currentState.isAir || statePromoting))
                 pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
+            if (!world.worldBorder.contains(hitPos)) return@forEach
 
             val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos).let { outlineShape ->
                 if (!outlineShape.isEmpty || !place.airPlace.isEnabled) outlineShape
