@@ -17,7 +17,6 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.task.RootTask;
 import com.lambda.util.DebugInfoHud;
 import net.minecraft.client.gui.hud.DebugHud;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,10 +31,5 @@ public class DebugHudMixin {
     @Inject(method = "getRightText", at = @At("TAIL"))
     private void onGetRightText(CallbackInfoReturnable<List<String>> cir) {
         DebugInfoHud.addDebugInfo(cir.getReturnValue());
-    }
-
-    @Inject(method = "getLeftText", at = @At("TAIL"))
-    private void onGetLeftText(CallbackInfoReturnable<List<String>> cir) {
-        cir.getReturnValue().addAll(List.of(RootTask.INSTANCE.toString().split("\n")));
     }
 }

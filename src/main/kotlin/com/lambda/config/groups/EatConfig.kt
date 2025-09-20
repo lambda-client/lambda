@@ -18,7 +18,6 @@
 package com.lambda.config.groups
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
@@ -32,13 +31,16 @@ interface EatConfig {
     val eatOnHunger: Boolean
     val minFoodLevel: Int
     val nutritiousFood: List<Item>
-    val selectionPriority: SelectionPriority
     val saturated: Saturation
+
     val eatOnFire: Boolean
     val resistanceFood: List<Item>
+
     val eatOnDamage: Boolean
     val minDamage: Int
     val regenerationFood: List<Item>
+
+    val selectionPriority: SelectionPriority
     val ignoreBadFood: Boolean
     val badFood: List<Item>
 
@@ -67,7 +69,7 @@ interface EatConfig {
     }
 
     enum class Reason(val message: (ItemStack) -> String) {
-        None({ "Waiting for food to eat..." }),
+        None({ "Waiting for reason to eat..." }),
         Hunger({ "Eating ${it.item.name.string} due to Hunger" }),
         Damage({ "Eating ${it.item.name.string} due to Damage" }),
         Fire({ "Eating ${it.item.name.string} due to Fire" });
