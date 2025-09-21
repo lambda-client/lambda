@@ -38,6 +38,7 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import org.apache.logging.log4j.Logger
+import java.io.File
 import java.lang.reflect.InaccessibleObjectException
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
@@ -75,44 +76,59 @@ object DynamicReflectionSerializer : Loadable {
 
     private const val INDENT = 2
 
-    private val mappings = runBlocking {
+    private val simpleMappings = runBlocking {
         "${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}"
-            .downloadIfNotPresent(cache.resolveFile(LambdaAPI.GAME_VERSION))
-            .map { file ->
-                val standardMappings = file.readLines()
-                    .map { it.split(' ') }
-                    .filter { it.size == 2 }
-                    .associate { (obf, deobf) -> obf to deobf }
-
-                buildMap {
-                    putAll(standardMappings)
-
-                    standardMappings.forEach { (obf, deobf) ->
-                        put(obf.split('$').last(), deobf)
-                        if ('$' !in obf) return@forEach
-                        put(obf.replace('$', '.'), deobf)
-                        val parts = obf.split('$')
-                        if (!parts.all { it.startsWith("class_") }) return@forEach
-                        (1 until parts.size).forEach { i ->
-                            put("${parts.take(i).joinToString("$")}.${parts.drop(i).joinToString("$")}", deobf)
-                        }
-                    }
-                }
+            .downloadIfNotPresent(cache.resolveFile("${LambdaAPI.GAME_VERSION}-simple"))
+            .map(::buildMappingsMap)
+            .getOrElse {
+                LOG.error("Unable to download simplified deobfuscated qualifiers", it)
+                emptyMap()
             }
+    }
+
+    private val qualifiedMappings = runBlocking {
+        "${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}-qualified"
+            .downloadIfNotPresent(cache.resolveFile(LambdaAPI.GAME_VERSION))
+            .map(::buildMappingsMap)
             .getOrElse {
                 LOG.error("Unable to download deobfuscated qualifiers", it)
                 emptyMap()
             }
     }
 
+    val String.simpleRemappedName get() = simpleMappings.getOrDefault(this, this)
+    val String.remappedName get() = qualifiedMappings.getOrDefault(this, this)
 
-    val String.remappedName get() = mappings.getOrDefault(this, this)
+    private fun buildMappingsMap(file: File): Map<String, String> {
+        val standardMappings = file.readLines()
+            .map { it.split(' ') }
+            .filter { it.size == 2 }
+            .associate { (obf, deobf) -> obf to deobf }
 
-    fun <T : Any> KClass<T>.dynamicName(remap: Boolean) =
-        if (remap) qualifiedName?.remappedName else simpleName
+        return buildMap {
+            putAll(standardMappings)
+            standardMappings.forEach { (obf, deobf) ->
+                val parts = obf.split('$')
+                put(parts.last(), deobf)
+                if ('$' !in obf) return@forEach
+                put(obf.replace('$', '.'), deobf)
+                if (!parts.all { it.startsWith("class_") }) return@forEach
+                (1 until parts.size).forEach { i ->
+                    put("${parts.take(i).joinToString("$")}.${parts.drop(i).joinToString("$")}", deobf)
+                }
+            }
+        }
+    }
 
-    fun <T : Any> KProperty1<T, *>.dynamicName(remap: Boolean) =
-        if (remap) name.remappedName else name
+    fun <T : Any> KClass<T>.dynamicName(remap: Boolean, simple: Boolean = true) =
+        if (remap)
+            if (simple) qualifiedName?.simpleRemappedName else qualifiedName?.remappedName
+        else if (simple) simpleName else qualifiedName
+
+    fun <T : Any> KProperty1<T, *>.dynamicName(remap: Boolean, simple: Boolean = true) =
+        if (remap)
+            if (simple) name.simpleRemappedName else name.remappedName
+        else name
 
     fun Any.dynamicString(
         maxRecursionDepth: Int = 6,
@@ -121,14 +137,15 @@ object DynamicReflectionSerializer : Loadable {
         visitedObjects: MutableSet<Any> = HashSet(),
         builder: StringBuilder = StringBuilder(),
         remap: Boolean = !Lambda.isDebug,
+        simple: Boolean = true
     ): String {
         if (visitedObjects.contains(this)) {
-            builder.appendLine("$indent${this::class.dynamicName(remap)} (Circular Reference)")
+            builder.appendLine("$indent${this::class.dynamicName(remap, simple)} (Circular Reference)")
             return builder.toString()
         }
 
         visitedObjects.add(this)
-        builder.appendLine("$indent${this::class.dynamicName(remap)}")
+        builder.appendLine("$indent${this::class.dynamicName(remap, simple)}")
 
         this::class.memberProperties
             .forEach { processField(it, indent, builder, currentDepth, maxRecursionDepth, visitedObjects, remap) }
@@ -197,5 +214,5 @@ object DynamicReflectionSerializer : Loadable {
             }
         }
 
-    override fun load() = "Loaded ${mappings.size} deobfuscated qualifier"
+    override fun load() = "Loaded ${simpleMappings.size} deobfuscated qualifier"
 }

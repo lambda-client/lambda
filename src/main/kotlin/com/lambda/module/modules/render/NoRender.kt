@@ -19,6 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.DynamicReflectionSerializer.remappedName
 import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
@@ -122,16 +123,22 @@ object NoRender : Module(
     ): Map<String, String> {
         val map = mutableMapOf<String, String>()
         items
-            .filter { item ->
-                if (strictDirectory) item.name.startsWith(directory) && !item.name.substring(directory.length).contains(".")
-                else item.name.startsWith(directory)
-            }
-            .forEach { item ->
-                val value = item.name
-                    .substring(item.name.indexOfLast { it == '.' } + 1)
+            .map {
+                val remappedName = it.name.remappedName
+                val displayName = remappedName
+                    .substring(remappedName.indexOfLast { it == '.' } + 1)
                     .replace(removePattern, "")
                     .fancyFormat()
-                map[item.simpleName] = value
+                MappingInfo(it.simpleName, remappedName, displayName)
+            }
+            .sortedBy { it.displayName.lowercase() }
+            .filter { info ->
+                if (strictDirectory)
+                    info.remapped.startsWith(directory) && !info.remapped.substring(directory.length).contains(".")
+                else info.remapped.startsWith(directory)
+            }
+            .forEach { info ->
+                map[info.raw] = info.displayName
             }
         return map
     }
@@ -180,4 +187,10 @@ object NoRender : Module(
             modifier.statusEffect == StatusEffects.DARKNESS && noDarkness -> false
             else -> true
         }
+
+    private data class MappingInfo(
+        val raw: String,
+        val remapped: String,
+        val displayName: String
+    )
 }
