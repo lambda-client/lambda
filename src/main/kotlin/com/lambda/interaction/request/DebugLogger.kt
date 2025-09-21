@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request
 
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.interaction.request.LogContext.Companion.buildLogContext
 import com.lambda.module.hud.ManagerDebugLoggers.autoScroll
@@ -71,6 +72,7 @@ class DebugLogger(
         ImGui.setNextWindowSizeConstraints(300f, 400f, windowViewport.workSizeX, windowViewport.workSizeY)
         var flags = if (autoScroll) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
         flags = flags or ImGuiWindowFlags.NoBackground
+        if (!ClickGuiLayout.open) flags = flags or ImGuiWindowFlags.NoInputs
         child("Log Content", extraFlags = flags) {
             if (wrapText) ImGui.pushTextWrapPos()
 

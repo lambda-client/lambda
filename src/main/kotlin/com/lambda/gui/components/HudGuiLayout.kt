@@ -164,9 +164,10 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val baseFlags = if (hasBg) {
             DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
         } else DEFAULT_HUD_FLAGS
-        val hudFlags = if (!ClickGuiLayout.open || isLocked) {
+        var hudFlags = if (!ClickGuiLayout.open || isLocked) {
             baseFlags or ImGuiWindowFlags.NoMove
         } else baseFlags
+        if (!ClickGuiLayout.open) hudFlags = hudFlags or ImGuiWindowFlags.NoInputs
 
         val pushedColor = if (hasBg) {
             val packed = ImColor.rgba(bg.red, bg.green, bg.blue, bg.alpha)
