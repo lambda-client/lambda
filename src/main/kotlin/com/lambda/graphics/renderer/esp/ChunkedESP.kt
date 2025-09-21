@@ -23,6 +23,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.awaitMainThread
 import com.lambda.util.world.FastVector
@@ -34,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
-    owner: Any,
+    owner: Module,
     private val update: ShapeBuilder.(World, FastVector) -> Unit
 ) {
     private val rendererMap = ConcurrentHashMap<Long, EspChunk>()
@@ -53,10 +54,18 @@ class ChunkedESP private constructor(
 
     init {
         //listen<WorldEvent.BlockUpdate.Client> { rebuildQueue.add(rendererMap[ChunkPos.toLong(it.pos)] ?: return@listen) }
-        listen<WorldEvent.ChunkEvent.Load> { it.chunk.renderer.notifyChunks() }
-        listen<WorldEvent.ChunkEvent.Unload> { rendererMap.remove(it.chunk.pos.toLong())?.notifyChunks() }
+        listen<WorldEvent.ChunkEvent.Load> {
+            if (!owner.isEnabled) return@listen
+            it.chunk.renderer.notifyChunks()
+        }
+
+        listen<WorldEvent.ChunkEvent.Unload> {
+            if (!owner.isEnabled) return@listen
+            rendererMap.remove(it.chunk.pos.toLong())?.notifyChunks()
+        }
 
         listenConcurrently<TickEvent.Post> {
+            if (!owner.isEnabled) return@listenConcurrently
             if (++ticks % StyleEditor.updateFrequency == 0) {
                 val polls = minOf(StyleEditor.rebuildsPerTick, rebuildQueue.size)
 
@@ -67,18 +76,19 @@ class ChunkedESP private constructor(
         }
 
         owner.onStaticRender {
-            if (uploadQueue.isEmpty()) return@onStaticRender
-
+            if (!owner.isEnabled || uploadQueue.isEmpty()) return@onStaticRender
             val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
-
             repeat(polls) { uploadQueue.poll()?.invoke() }
         }
 
-        owner.listen<RenderEvent.Render> { rendererMap.values.forEach { it.renderer.render() } }
+        owner.listen<RenderEvent.Render> {
+            if (!owner.isEnabled) return@listen
+            rendererMap.values.forEach { it.renderer.render() }
+        }
     }
 
     companion object {
-        fun Any.newChunkedESP(
+        fun Module.newChunkedESP(
             update: ShapeBuilder.(World, FastVector) -> Unit
         ) = ChunkedESP(this@newChunkedESP, update)
     }
@@ -92,8 +102,8 @@ class ChunkedESP private constructor(
             .map { ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second) }
 
         fun notifyChunks() {
-            neighbors.forEach {
-                owner.rendererMap[it.toLong()]?.let {
+            neighbors.forEach { chunkPos ->
+                owner.rendererMap[chunkPos.toLong()]?.let {
                     if (!owner.rebuildQueue.contains(it))
                         owner.rebuildQueue.add(it)
                 }
