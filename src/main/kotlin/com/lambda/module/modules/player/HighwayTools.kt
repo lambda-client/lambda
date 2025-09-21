@@ -61,8 +61,9 @@ object HighwayTools : Module(
     private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }.group(Group.Structure)
     private val floor by setting("Floor", Material.None, "Material for the floor").group(Group.Structure)
     private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }.group(Group.Structure)
-    private val walls by setting("Walls", Material.None, "Material for the walls").group(Group.Structure)
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { walls == Material.Block }.group(Group.Structure)
+    private val rightWall by setting("Right Wall", Material.None, "Build the right wall").group(Group.Structure)
+    private val leftWall by setting("Left Wall", Material.None, "Build the left wall").group(Group.Structure)
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block }.group(Group.Structure)
     private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling").group(Group.Structure)
     private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }.group(Group.Structure)
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
@@ -224,26 +225,25 @@ object HighwayTools : Module(
             ).associateWith { target(ceiling, ceilingMaterial) }
         }
 
-        if (walls != Material.None) {
-            val wallElevation = rimHeight + if (pavement != Material.None) 1 else 0
-
-            // Left wall
-            structure += generateDirectionalTube(
-                orthogonal,
-                1,
-                height - wallElevation,
-                -center + width,
-                wallElevation,
-            ).associateWith { target(walls, wallMaterial) }
-
-            // Right wall
+        val wallElevation = if (pavement != Material.None) rimHeight else 0 + if (pavement != Material.None) 1 else 0
+        if (rightWall != Material.None) {
             structure += generateDirectionalTube(
                 orthogonal,
                 1,
                 height - wallElevation,
                 -center - 1,
                 wallElevation,
-            ).associateWith { target(walls, wallMaterial) }
+            ).associateWith { target(rightWall, wallMaterial) }
+        }
+
+        if (leftWall != Material.None) {
+            structure += generateDirectionalTube(
+                orthogonal,
+                1,
+                height - wallElevation,
+                -center + width,
+                wallElevation,
+            ).associateWith { target(rightWall, wallMaterial) }
         }
 
         if (floor != Material.None) {

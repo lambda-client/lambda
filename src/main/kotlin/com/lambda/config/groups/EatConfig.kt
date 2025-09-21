@@ -55,7 +55,8 @@ interface EatConfig {
     enum class SelectionPriority(
         val comparator: Comparator<ItemStack>,
         override val displayName: String,
-        override val description: String): NamedEnum, Describable {
+        override val description: String
+    ): NamedEnum, Describable {
         LeastNutritious(
             compareBy { it.item.nutrition },
             "Least Nutritious",
