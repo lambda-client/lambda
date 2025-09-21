@@ -63,7 +63,7 @@ object HighwayTools : Module(
     private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }.group(Group.Structure)
     private val rightWall by setting("Right Wall", Material.None, "Build the right wall").group(Group.Structure)
     private val leftWall by setting("Left Wall", Material.None, "Build the left wall").group(Group.Structure)
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block }.group(Group.Structure)
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }.group(Group.Structure)
     private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling").group(Group.Structure)
     private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }.group(Group.Structure)
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
@@ -231,7 +231,7 @@ object HighwayTools : Module(
                 orthogonal,
                 1,
                 height - wallElevation,
-                -center - 1,
+                -center + width,
                 wallElevation,
             ).associateWith { target(rightWall, wallMaterial) }
         }
@@ -241,9 +241,9 @@ object HighwayTools : Module(
                 orthogonal,
                 1,
                 height - wallElevation,
-                -center + width,
+                -center - 1,
                 wallElevation,
-            ).associateWith { target(rightWall, wallMaterial) }
+            ).associateWith { target(leftWall, wallMaterial) }
         }
 
         if (floor != Material.None) {
