@@ -20,6 +20,7 @@ package com.lambda.module.modules.render
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.DynamicReflectionSerializer.remappedName
+import com.lambda.util.NamedEnum
 import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
@@ -51,51 +52,61 @@ object NoRender : Module(
     private val vehicleEntityMap = createEntityNameMap("net.minecraft.entity.vehicle.")
     private val miscEntityMap = createEntityNameMap("net.minecraft.entity.", strictDir = true)
 
-    @JvmStatic val noBlindness by setting("No Blindness", true)
-    @JvmStatic val noDarkness by setting("No Darkness", true)
-    @JvmStatic val noNausea by setting("No Nausea", true)
-    @JvmStatic val noBurning by setting("No Burning Overlay", true)
-    @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", -0.3, -0.8..0.0, 0.1) { !noBurning }
-    @JvmStatic val noPortalOverlay by setting("No Portal Overlay", true)
-    @JvmStatic val noFluidOverlay by setting("No Fluid Overlay", true)
-    @JvmStatic val noPowderedSnowOverlay by setting("No Powdered Snow Overlay", true)
-    @JvmStatic val noInWall by setting("No In Wall Overlay", true)
-    @JvmStatic val noPumpkinOverlay by setting("No Pumpkin Overlay", true)
-    @JvmStatic val noVignette by setting("No Vignette", true)
-    @JvmStatic val noSpyglassOverlay by setting("No Spyglass Overlay", false)
-    @JvmStatic val noGuiShadow by setting("No Gui Shadow", false)
-    @JvmStatic val noFloatingItemAnimation by setting("No Floating Item Animation", false, "Disables floating item animations, typically used when a totem pops")
-    @JvmStatic val noSignText by setting("No Sign Text", false)
+    private enum class Group(override val displayName: String) : NamedEnum {
+        Hud("Hud"),
+        Entity("Entity"),
+        World("World"),
+        Effect("Effect")
+    }
+
+    @JvmStatic val noBlindness by setting("No Blindness", true).group(Group.Effect)
+    @JvmStatic val noDarkness by setting("No Darkness", true).group(Group.Effect)
+    @JvmStatic val noNausea by setting("No Nausea", true).group(Group.Effect)
+
+    @JvmStatic val noFireOverlay by setting("No Fire Overlay", true).group(Group.Hud)
+    @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", -0.3, -0.8..0.0, 0.1) { !noFireOverlay }.group(Group.Hud)
+    @JvmStatic val noPortalOverlay by setting("No Portal Overlay", true).group(Group.Hud)
+    @JvmStatic val noFluidOverlay by setting("No Fluid Overlay", true).group(Group.Hud)
+    @JvmStatic val noPowderedSnowOverlay by setting("No Powdered Snow Overlay", true).group(Group.Hud)
+    @JvmStatic val noInWall by setting("No In Wall Overlay", true).group(Group.Hud)
+    @JvmStatic val noPumpkinOverlay by setting("No Pumpkin Overlay", true).group(Group.Hud)
+    @JvmStatic val noVignette by setting("No Vignette", true).group(Group.Hud)
+    @JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true).group(Group.Hud)
+    @JvmStatic val noSpyglassOverlay by setting("No Spyglass Overlay", false).group(Group.Hud)
+    @JvmStatic val noGuiShadow by setting("No Gui Shadow", false).group(Group.Hud)
+    @JvmStatic val noFloatingItemAnimation by setting("No Floating Item Animation", false, "Disables floating item animations, typically used when a totem pops").group(Group.Hud)
+    @JvmStatic val noCrosshair by setting("No Crosshair", false).group(Group.Hud)
+    @JvmStatic val noBossBar by setting("No Boss Bar", false).group(Group.Hud)
+    @JvmStatic val noScoreBoard by setting("No Score Board", false).group(Group.Hud)
+    @JvmStatic val noStatusIcons by setting("No Status Icons", false).group(Group.Hud)
+
+    @JvmStatic val noArmor by setting("No Armor", false).group(Group.Entity)
+    @JvmStatic val includeNoElytra by setting("Include No Elytra", false) { noArmor }.group(Group.Entity)
+    @JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }.group(Group.Entity)
+    @JvmStatic val noInvisibility by setting("No Invisibility", true).group(Group.Entity)
+    @JvmStatic val noGlow by setting("No Glow", false).group(Group.Entity)
+    @JvmStatic val noNametags by setting("No Nametags", false).group(Group.Entity)
     // Blehhh cba
-//    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false)
-    @JvmStatic val noArmor by setting("No Armor", false)
-    @JvmStatic val includeNoElytra by setting("Include No Elytra", false) { noArmor }
-    @JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }
-    @JvmStatic val noInvisibility by setting("No Invisibility", true)
-    @JvmStatic val noGlow by setting("No Glow", false)
-    @JvmStatic val noCrosshair by setting("No Crosshair", false)
-    @JvmStatic val noBossBar by setting("No Boss Bar", false)
-    @JvmStatic val noScoreBoard by setting("No Score Board", false)
-    @JvmStatic val noStatusIcons by setting("No Status Icons", false)
-    @JvmStatic val noWorldBorder by setting("No World Border", false)
-    @JvmStatic val noEnchantingTableBook by setting("No Enchanting Table Book", false)
-    @JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true)
+//    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
+//    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
+    private val playerEntities by setting("Player Entities", playerEntityMap.values.toSet(), emptySet(), "Player entities to omit from rendering").group(Group.Entity)
+    private val bossEntities by setting("Boss Entities", bossEntityMap.values.toSet(), emptySet(), "Boss entities to omit from rendering").group(Group.Entity)
+    private val decorationEntities by setting("Decoration Entities", decorationEntityMap.values.toSet(), emptySet(), "Decoration entities to omit from rendering").group(Group.Entity)
+    private val mobEntities by setting("Mob Entities", mobEntityMap.values.toSet(), emptySet(), "Mob entities to omit from rendering").group(Group.Entity)
+    private val passiveEntities by setting("Passive Entities", passiveEntityMap.values.toSet(), emptySet(), "Passive entities to omit from rendering").group(Group.Entity)
+    private val projectileEntities by setting("Projectile Entities", projectileEntityMap.values.toSet(), emptySet(), "Projectile entities to omit from rendering").group(Group.Entity)
+    private val vehicleEntities by setting("Vehicle Entities", vehicleEntityMap.values.toSet(), emptySet(), "Vehicle entities to omit from rendering").group(Group.Entity)
+    private val miscEntities by setting("Misc Entities", miscEntityMap.values.toSet(), emptySet(), "Miscellaneous entities to omit from rendering").group(Group.Entity)
+    private val blockEntities by setting("Block Entities", blockEntityMap.values.toSet(), emptySet(), "Block entities to omit from rendering").group(Group.Entity)
+
+    @JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)
+    @JvmStatic val noWorldBorder by setting("No World Border", false).group(Group.World)
+    @JvmStatic val noEnchantingTableBook by setting("No Enchanting Table Book", false).group(Group.World)
     // Couldn't get to work with block entities without crashing with sodium on boot
-//    @JvmStatic val noBlockBreakingOverlay by setting("No Block Breaking Overlay", false)
-    @JvmStatic val noBeaconBeams by setting("No Beacon Beams", false)
-    @JvmStatic val noSpawnerMob by setting("No Spawner Mob", false)
-//    @JvmStatic val noDeadEntities by setting("No Dead Entities", false)
-    @JvmStatic val noNametags by setting("No Nametags", false)
-    private val particles by setting("Particles", particleMap.values.toSet(), emptySet(), "Particles to omit from rendering")
-    private val playerEntities by setting("Player Entities", playerEntityMap.values.toSet(), emptySet(), "Player entities to omit from rendering")
-    private val bossEntities by setting("Boss Entities", bossEntityMap.values.toSet(), emptySet(), "Boss entities to omit from rendering")
-    private val decorationEntities by setting("Decoration Entities", decorationEntityMap.values.toSet(), emptySet(), "Decoration entities to omit from rendering")
-    private val mobEntities by setting("Mob Entities", mobEntityMap.values.toSet(), emptySet(), "Mob entities to omit from rendering")
-    private val passiveEntities by setting("Passive Entities", passiveEntityMap.values.toSet(), emptySet(), "Passive entities to omit from rendering")
-    private val projectileEntities by setting("Projectile Entities", projectileEntityMap.values.toSet(), emptySet(), "Projectile entities to omit from rendering")
-    private val vehicleEntities by setting("Vehicle Entities", vehicleEntityMap.values.toSet(), emptySet(), "Vehicle entities to omit from rendering")
-    private val miscEntities by setting("Misc Entities", miscEntityMap.values.toSet(), emptySet(), "Miscellaneous entities to omit from rendering")
-    private val blockEntities by setting("Block Entities", blockEntityMap.values.toSet(), emptySet(), "Block entities to omit from rendering")
+//    @JvmStatic val noBlockBreakingOverlay by setting("No Block Breaking Overlay", false).group(Group.World)
+    @JvmStatic val noBeaconBeams by setting("No Beacon Beams", false).group(Group.World)
+    @JvmStatic val noSpawnerMob by setting("No Spawner Mob", false).group(Group.World)
+    private val particles by setting("Particles", particleMap.values.toSet(), emptySet(), "Particles to omit from rendering").group(Group.World)
 
     private fun createParticleNameMap(): Map<String, String> {
         val subClasses = scanResult
