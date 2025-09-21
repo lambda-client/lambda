@@ -36,6 +36,7 @@ import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.math.distSq
 import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
@@ -72,7 +73,7 @@ class PlaceContainer @Ta5kBuilder constructor(
         val containerPosition = options.filter {
             // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
             it.blockPos.y == player.blockPos.y
-        }.minOrNull()?.blockPos ?: run {
+        }.minByOrNull { it.blockPos distSq player.pos }?.blockPos ?: run {
             failure("Couldn't find a valid container placement position for ${startStack.name.string}")
             return@onStart
         }

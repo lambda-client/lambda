@@ -80,10 +80,16 @@ class BreakSettings(
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, description = "Blocks that wont be broken", visibility = vis).group(groupPath, Group.General)
 
     // Tool
-    override val suitableToolsOnly by c.setting("Suitable Tools Only", false, "Places a restriction to only use tools suitable for the given block", visibility = vis).group(groupPath, Group.General)
+    override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)", visibility = vis).group(groupPath, Group.General)
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks", visibility = vis).group(groupPath, Group.General)
     override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks", visibility = vis).group(groupPath, Group.General)
     override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { vis() && forceFortunePickaxe }.group(groupPath, Group.General)
+    override val useWoodenTools by c.setting("Use Wooden Tools", true, "Use wooden tools when breaking blocks", visibility = vis).group(groupPath, Group.General)
+    override val useStoneTools by c.setting("Use Stone Tools", true, "Use stone tools when breaking blocks", visibility = vis).group(groupPath, Group.General)
+    override val useIronTools by c.setting("Use Iron Tools", true, "Use iron tools when breaking blocks", visibility = vis).group(groupPath, Group.General)
+    override val useDiamondTools by c.setting("Use Diamond Tools", true, "Use diamond tools when breaking blocks", visibility = vis).group(groupPath, Group.General)
+    override val useGoldTools by c.setting("Use Gold Tools", true, "Use gold tools when breaking blocks", visibility = vis).group(groupPath, Group.General)
+    override val useNetheriteTools by c.setting("Use Netherite Tools", true, "Use netherite tools when breaking blocks", visibility = vis).group(groupPath, Group.General)
 
     // Cosmetics
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds", visibility = vis).group(groupPath, Group.Cosmetic)

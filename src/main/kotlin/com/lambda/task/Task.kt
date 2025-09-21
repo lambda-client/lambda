@@ -23,6 +23,7 @@ import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
@@ -126,6 +127,7 @@ abstract class Task<Result> : Nameable, Muteable {
     fun success(result: Result) {
         unsubscribe()
         state = State.COMPLETED
+        if (!TaskFlowModule.showAllEntries) parent?.subTasks?.remove(this)
         runSafe {
             executeNextTask(result)
         }

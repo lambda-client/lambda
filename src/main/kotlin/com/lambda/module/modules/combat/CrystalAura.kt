@@ -30,12 +30,17 @@ import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.graphics.renderer.gui.FontRenderer.drawString
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.material.container.ContainerManager.transfer
+import com.lambda.interaction.material.container.containers.MainHandContainer
+import com.lambda.interaction.material.container.containers.OffHandContainer
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.RootTask.run
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
@@ -45,6 +50,7 @@ import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
+import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.Vec2d
@@ -58,6 +64,7 @@ import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
@@ -76,10 +83,6 @@ object CrystalAura : Module(
     tag = ModuleTag.COMBAT,
 ) {
     /* General */
-    private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks").group(Group.General)
-    private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks").group(Group.General)
-    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms").group(Group.General)
-    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms").group(Group.General)
     private val updateMode by setting("Update Mode", UpdateMode.Async).group(Group.General)
     private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }.group(Group.General)
     private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }.group(Group.General)
@@ -87,12 +90,21 @@ object CrystalAura : Module(
     private val debug by setting("Debug", false).group(Group.General)
 
     /* Placement */
+    private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks").group(Group.Placement)
+    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms").group(Group.Placement)
+    private val swap by setting("Swap", true, "Swaps to crystals").group(Group.Placement)
+    private val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }.group(Group.Placement)
     private val priorityMode by setting("Crystal Priority", Priority.Damage).group(Group.Placement)
     private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }.group(Group.Placement)
-    private val minTargetDamage by setting("Min Target Damage", 6.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals").group(Group.Placement)
+    private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals").group(Group.Placement)
     private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals").group(Group.Placement)
-    //private val minHealth by setting("Min Health", 10.0, 0.0..36.0, 0.5, "Minimum player health to use crystals") { page == Page.General }
+    private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals").group(Group.Placement)
+    private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal").group(Group.Placement)
     private val oldPlace by setting("1.12 Placement", false).group(Group.Placement)
+
+    /* Exploding */
+    private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks").group(Group.Exploding)
+    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms").group(Group.Exploding)
 
     /* Prediction */
     private val prediction by setting("Prediction", PredictionMode.None).group(Group.Prediction)
@@ -216,7 +228,7 @@ object CrystalAura : Module(
             if (!prediction.onPacket) return@listen
 
             repeat(packetPredictions) {
-                placeInternal(opportunity, Hand.MAIN_HAND)
+                placeInternal(opportunity, swapHand)
                 explodeInternal(++lastEntityId)
             }
 
@@ -301,21 +313,22 @@ object CrystalAura : Module(
         updateTimer.runIfPassed(updateDelay.milliseconds) {
             resetBlueprint()
 
-            // Build damage info
             fun info(
-                pos: BlockPos, target: LivingEntity,
+                pos: BlockPos,
+                target: LivingEntity,
                 blocked: Boolean,
                 crystal: EndCrystalEntity? = null
             ): Opportunity? {
                 val crystalPos = pos.crystalPosition
 
-                // Calculate the damage to the target from the explosion of the crystal
                 val targetDamage = crystalDamage(crystalPos, target)
                 if (targetDamage < minTargetDamage) return null
 
-                // Calculate the self-damage for the player
                 val selfDamage = crystalDamage(crystalPos, player)
-                if (selfDamage > maxSelfDamage) return null
+                if (selfDamage > maxSelfDamage ||
+                    player.fullHealth - selfDamage <= minPlaceHealth ||
+                    (preventDeath && player.fullHealth - selfDamage <= 0)
+                ) return null
 
                 if (priorityMode == Priority.Advantage && priorityMode.factor(
                         targetDamage,
@@ -323,7 +336,6 @@ object CrystalAura : Module(
                     ) < minDamageAdvantage
                 ) return null
 
-                // Return the calculated damage info if conditions are met
                 return Opportunity(
                     pos.toImmutable(),
                     targetDamage,
@@ -334,7 +346,6 @@ object CrystalAura : Module(
             }
 
             // Extra checks for placement, because you may explode but not place in special cases(crystal in the air)
-            @Suppress("ConvertArgumentToSet")
             fun placeInfo(
                 pos: BlockPos,
                 target: LivingEntity
@@ -470,24 +481,32 @@ object CrystalAura : Module(
 
         /**
          * Places the crystal on [blockPos]
-         * @return Whether the delay passed, null if the interaction failed
          */
-        fun place() {
-            if (rotation.rotate && !lookAt(placeRotation).requestBy(rotation).done) return
+        fun place() = runSafe {
+            if (rotation.rotate && !lookAt(placeRotation).requestBy(rotation).done)
+                return@runSafe
+
+            val selection = selectStack { isItem(Items.END_CRYSTAL) }
+            if (swap &&
+                (swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
+                (swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
+            ) selection.transfer(when (swapHand) { Hand.MAIN_HAND -> MainHandContainer; Hand.OFF_HAND -> OffHandContainer })
+                ?.run()
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
-                placeInternal(this@Opportunity, Hand.MAIN_HAND)
+                placeInternal(this@Opportunity, swapHand)
 
-                if (prediction.onPlace) predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
-                    val last = lastEntityId
+                if (prediction.onPlace)
+                    predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
+                        val last = lastEntityId
 
-                    repeat(placePredictions) {
-                        explodeInternal(++lastEntityId)
+                        repeat(placePredictions) {
+                            explodeInternal(++lastEntityId)
+                        }
+
+                        lastEntityId = last + 1
+                        crystal = null
                     }
-
-                    lastEntityId = last + 1
-                    crystal = null
-                }
             }
         }
 
@@ -553,6 +572,7 @@ object CrystalAura : Module(
     private enum class Group(override val displayName: String): NamedEnum {
         General("General"),
         Placement("Placement"),
+        Exploding("Exploding"),
         Prediction("Prediction"),
         Targeting("Targeting"),
         Rotation("Rotation")

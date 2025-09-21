@@ -20,6 +20,8 @@ package com.lambda.task.tasks
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.EatConfig
+import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -51,6 +53,7 @@ import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
+import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
@@ -60,15 +63,17 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
-class BuildTask @Ta5kBuilder constructor(
+class BuildTask private constructor(
     private val blueprint: Blueprint,
-    private val finishOnDone: Boolean = true,
-    private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-    private val build: BuildConfig = TaskFlowModule.build,
-    private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
-    private val inventory: InventoryConfig = TaskFlowModule.inventory,
-    private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
+    private val finishOnDone: Boolean,
+    private val collectDrops: Boolean,
+    private val build: BuildConfig,
+    private val rotation: RotationConfig,
+    private val interactionConfig: InteractionConfig,
+    private val inventory: InventoryConfig,
+    private val hotbar: HotbarConfig,
+    private val eat: EatConfig,
+    private val lifeMaintenance: Boolean,
 ) : Task<Structure>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
@@ -81,6 +86,7 @@ class BuildTask @Ta5kBuilder constructor(
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
+    var eatTask: EatTask? = null
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
         get() = if (collectDrops) { item ->
@@ -93,6 +99,17 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
+            when {
+                lifeMaintenance && eatTask == null && reasonEating(eat).shouldEat() -> {
+                    eatTask = eat(eat)
+                    eatTask?.finally {
+                        eatTask = null
+                    }?.execute(this@BuildTask)
+                    return@listen
+                }
+                eatTask != null -> return@listen
+            }
+
             if (blueprint is TickingBlueprint) {
                 blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
             }
@@ -204,8 +221,7 @@ class BuildTask @Ta5kBuilder constructor(
                     return@let true
                 }
 
-                val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
-                if (noInventorySpace) {
+                if (player.hotbarAndStorage.none { it.isEmpty }) {
                     val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
                         it.stack.item.block in TaskFlowModule.inventory.disposables
                     } ?: run {
@@ -237,8 +253,11 @@ class BuildTask @Ta5kBuilder constructor(
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
+            hotbar: HotbarConfig = TaskFlowModule.hotbar,
+            eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
             blueprint: () -> Blueprint,
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
 
         @Ta5kBuilder
         fun Structure.build(
@@ -248,7 +267,10 @@ class BuildTask @Ta5kBuilder constructor(
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
+            hotbar: HotbarConfig = TaskFlowModule.hotbar,
+            eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
 
         @Ta5kBuilder
         fun Blueprint.build(
@@ -258,7 +280,10 @@ class BuildTask @Ta5kBuilder constructor(
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
-        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory)
+            hotbar: HotbarConfig = TaskFlowModule.hotbar,
+            eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
+        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
 
         @Ta5kBuilder
         fun breakAndCollectBlock(
@@ -269,9 +294,12 @@ class BuildTask @Ta5kBuilder constructor(
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
+            hotbar: HotbarConfig = TaskFlowModule.hotbar,
+            eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory
+            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance
         )
 
         @Ta5kBuilder
@@ -283,9 +311,12 @@ class BuildTask @Ta5kBuilder constructor(
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
+            hotbar: HotbarConfig = TaskFlowModule.hotbar,
+            eat: EatConfig = TaskFlowModule.eat,
+            lifeMaintenance: Boolean = false,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory
+            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance
         )
     }
 }
