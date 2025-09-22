@@ -39,7 +39,7 @@ public class InGameOverlayRendererMixin {
     @ModifyArg(method = "renderFireOverlay", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(FFF)V"), index = 1)
     private static float onRenderFireOverlayTranslate(float x) {
         if (NoRender.INSTANCE.isEnabled()) {
-            return (float) NoRender.getFireOverlayYOffset();
+            return (float) NoRender.getFireOverlayYOffset() - 0.3f;
         } else {
             return -0.3f;
         }

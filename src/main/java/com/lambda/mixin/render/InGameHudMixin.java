@@ -60,7 +60,7 @@ public class InGameHudMixin {
 
     @Inject(method = "renderStatusEffectOverlay", at = @At("HEAD"), cancellable = true)
     private void injectRenderStatusEffectOverlay(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoStatusIcons()) ci.cancel();
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoStatusEffects()) ci.cancel();
     }
 
     @Inject(method = "renderSpyglassOverlay", at = @At("HEAD"), cancellable = true)

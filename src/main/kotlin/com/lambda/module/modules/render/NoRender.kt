@@ -38,7 +38,6 @@ object NoRender : Module(
 ) {
     private val entities = scanResult
         .getSubclasses(Entity::class.java)
-        .asSequence()
         .filter { !it.isAbstract && it.name.startsWith("net.minecraft") }
 
     private val particleMap = createParticleNameMap()
@@ -63,8 +62,8 @@ object NoRender : Module(
     @JvmStatic val noDarkness by setting("No Darkness", true).group(Group.Effect)
     @JvmStatic val noNausea by setting("No Nausea", true).group(Group.Effect)
 
-    @JvmStatic val noFireOverlay by setting("No Fire Overlay", true).group(Group.Hud)
-    @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", -0.3, -0.8..0.0, 0.1) { !noFireOverlay }.group(Group.Hud)
+    @JvmStatic val noFireOverlay by setting("No Fire Overlay", false).group(Group.Hud)
+    @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", 0.3, -0.4..0.4, 0.02) { !noFireOverlay }.group(Group.Hud)
     @JvmStatic val noPortalOverlay by setting("No Portal Overlay", true).group(Group.Hud)
     @JvmStatic val noFluidOverlay by setting("No Fluid Overlay", true).group(Group.Hud)
     @JvmStatic val noPowderedSnowOverlay by setting("No Powdered Snow Overlay", true).group(Group.Hud)
@@ -78,15 +77,15 @@ object NoRender : Module(
     @JvmStatic val noCrosshair by setting("No Crosshair", false).group(Group.Hud)
     @JvmStatic val noBossBar by setting("No Boss Bar", false).group(Group.Hud)
     @JvmStatic val noScoreBoard by setting("No Score Board", false).group(Group.Hud)
-    @JvmStatic val noStatusIcons by setting("No Status Icons", false).group(Group.Hud)
+    @JvmStatic val noStatusEffects by setting("No Status Effects", false).group(Group.Hud)
 
     @JvmStatic val noArmor by setting("No Armor", false).group(Group.Entity)
-    @JvmStatic val includeNoElytra by setting("Include No Elytra", false) { noArmor }.group(Group.Entity)
+    @JvmStatic val noElytra by setting("No Elytra", false).group(Group.Entity)
     @JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }.group(Group.Entity)
     @JvmStatic val noInvisibility by setting("No Invisibility", true).group(Group.Entity)
     @JvmStatic val noGlow by setting("No Glow", false).group(Group.Entity)
     @JvmStatic val noNametags by setting("No Nametags", false).group(Group.Entity)
-    // Blehhh cba
+//    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
     private val playerEntities by setting("Player Entities", playerEntityMap.values.toSet(), emptySet(), "Player entities to omit from rendering").group(Group.Entity)
@@ -108,56 +107,41 @@ object NoRender : Module(
     @JvmStatic val noSpawnerMob by setting("No Spawner Mob", false).group(Group.World)
     private val particles by setting("Particles", particleMap.values.toSet(), emptySet(), "Particles to omit from rendering").group(Group.World)
 
-    private fun createParticleNameMap(): Map<String, String> {
-        val subClasses = scanResult
+    private fun createParticleNameMap() =
+        scanResult
             .getSubclasses(Particle::class.java)
-            .filter { !it.isAbstract }
-        return createNameMap(subClasses.asSequence(), "net.minecraft.client.particle.", "Particle")
-    }
+            .filter { !it.isAbstract }.createNameMap("net.minecraft.client.particle.", "Particle")
 
-    private fun createEntityNameMap(directory: String, strictDir: Boolean = false): Map<String, String> {
-        return createNameMap(entities, directory, "Entity", strictDir)
-    }
+    private fun createEntityNameMap(directory: String, strictDir: Boolean = false) =
+        entities.createNameMap(directory, "Entity", strictDir)
 
-    private fun createBlockEntityNameMap(): Map<String, String> {
-        val subClasses = scanResult
+    private fun createBlockEntityNameMap() =
+        scanResult
             .getSubclasses(BlockEntity::class.java)
-            .filter { !it.isAbstract }
-        return createNameMap(subClasses.asSequence(), "net.minecraft.block.entity", "BlockEntity")
-    }
+            .filter { !it.isAbstract }.createNameMap("net.minecraft.block.entity", "BlockEntity")
 
-    private fun createNameMap(
-        items: Sequence<ClassInfo>,
+    private fun Collection<ClassInfo>.createNameMap(
         directory: String,
         removePattern: String = "",
         strictDirectory: Boolean = false
-    ): Map<String, String> {
-        val map = mutableMapOf<String, String>()
-        items
-            .map {
-                val remappedName = it.name.remappedName
-                val displayName = remappedName
-                    .substring(remappedName.indexOfLast { it == '.' } + 1)
-                    .replace(removePattern, "")
-                    .fancyFormat()
-                MappingInfo(it.simpleName, remappedName, displayName)
-            }
-            .sortedBy { it.displayName.lowercase() }
-            .filter { info ->
-                if (strictDirectory)
-                    info.remapped.startsWith(directory) && !info.remapped.substring(directory.length).contains(".")
-                else info.remapped.startsWith(directory)
-            }
-            .forEach { info ->
-                map[info.raw] = info.displayName
-            }
-        return map
-    }
+    ) = map {
+            val remappedName = it.name.remappedName
+            val displayName = remappedName
+                .substring(remappedName.indexOfLast { it == '.' } + 1)
+                .replace(removePattern, "")
+                .fancyFormat()
+            MappingInfo(it.simpleName, remappedName, displayName)
+        }
+        .sortedBy { it.displayName.lowercase() }
+        .filter { info ->
+            if (strictDirectory)
+                info.remapped.startsWith(directory) && !info.remapped.substring(directory.length).contains(".")
+            else info.remapped.startsWith(directory)
+        }
+        .associate { it.raw to it.displayName }
 
     private fun String.fancyFormat() =
-        this
-            .replace("$", " - ")
-            .replace("(?<!\\s)[A-Z]".toRegex(), " $0")
+        replace("$", " - ").replace("(?<!\\s)[A-Z]".toRegex(), " $0")
 
     @JvmStatic
     fun shouldOmitParticle(particle: Particle) =

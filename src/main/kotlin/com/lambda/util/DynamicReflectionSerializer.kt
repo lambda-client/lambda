@@ -33,6 +33,7 @@ import net.minecraft.nbt.NbtCompound
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.screen.ScreenHandlerType
+import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
@@ -67,6 +68,7 @@ object DynamicReflectionSerializer : Loadable {
         TranslationStorage::class,
         ChunkPos::class,
         Text::class,
+        MutableText::class,
         org.slf4j.Logger::class,
         String::class,
     )

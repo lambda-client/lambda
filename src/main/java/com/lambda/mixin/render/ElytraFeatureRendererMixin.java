@@ -48,6 +48,6 @@ public class ElytraFeatureRendererMixin<T extends LivingEntity> {
 
     @Inject(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/state/BipedEntityRenderState;FF)V", at = @At("HEAD"), cancellable = true)
     private void injectRender(MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, BipedEntityRenderState bipedEntityRenderState, float f, float g, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoArmor() && NoRender.getIncludeNoElytra()) ci.cancel();
+        if (NoRender.INSTANCE.isEnabled()&& NoRender.getNoElytra()) ci.cancel();
     }
 }
