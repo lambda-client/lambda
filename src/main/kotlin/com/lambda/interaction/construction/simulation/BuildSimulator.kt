@@ -59,9 +59,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.hasFluid
 import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
@@ -70,6 +68,10 @@ import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.block.OperatorBlock
@@ -86,7 +88,6 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
-import net.minecraft.item.Items
 import net.minecraft.registry.tag.ItemTags.DIAMOND_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.GOLD_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.IRON_TOOL_MATERIALS
@@ -109,28 +110,34 @@ object BuildSimulator {
         rotation: RotationConfig = TaskFlowModule.rotation,
         inventory: InventoryConfig = TaskFlowModule.inventory,
         build: BuildConfig = TaskFlowModule.build,
-    ) = runSafe {
-        structure.entries.flatMap { (pos, target) ->
-            val preProcessing = target.getProcessingInfo(pos) ?: return@flatMap emptySet()
-            checkRequirements(pos, target, build).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            checkPostProcessResults(pos, eye, preProcessing, target, interactionConfig, build.placing, rotation, inventory).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            checkPlaceResults(pos, eye, preProcessing, target, build.placing, interactionConfig, rotation, inventory).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            checkBreakResults(pos, eye, preProcessing, build.breaking, interactionConfig, rotation, inventory, build).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            warn("Nothing matched $pos $target")
-            emptySet()
-        }.toSet()
+    ): Set<BuildResult> = runSafe {
+        runBlocking(Dispatchers.Default) {
+            structure.entries
+                .map { (pos, target) ->
+                    async {
+                        val preProcessing = target.getProcessingInfo(pos) ?: return@async emptySet()
+
+                        checkRequirements(pos, target, build).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+                        checkPostProcessResults(pos, eye, preProcessing, target, interactionConfig, build.placing, rotation, inventory).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+                        checkPlaceResults(pos, eye, preProcessing, target, build.placing, interactionConfig, rotation, inventory).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+                        checkBreakResults(pos, eye, preProcessing, build.breaking, interactionConfig, rotation, inventory, build).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+
+                        warn("Nothing matched $pos $target")
+                        emptySet()
+                    }
+                }
+                .awaitAll()
+                .flatMap { it }
+                .toSet()
+        }
     } ?: emptySet()
 
     private fun SafeContext.checkRequirements(
