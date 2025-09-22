@@ -54,17 +54,18 @@ data class BreakContext(
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
-            is BreakContext -> compareByDescending<BreakContext> {
-                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
-            }.thenBy {
-                it.instantBreak
-            }.thenBy {
+            is BreakContext -> compareBy<BreakContext> {
                 when (sortMode) {
                     BreakConfig.SortMode.Closest -> it.distance
                     BreakConfig.SortMode.Farthest -> -it.distance
+                    BreakConfig.SortMode.Tool -> it.hotbarIndex != HotbarManager.serverSlot
                     BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
                     BreakConfig.SortMode.Random -> it.random
                 }
+            }.thenBy {
+                it.instantBreak
+            }.thenByDescending {
+                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.compare(this, other)
