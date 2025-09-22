@@ -63,7 +63,7 @@ object NoRender : Module(
     @JvmStatic val noNausea by setting("No Nausea", true).group(Group.Effect)
 
     @JvmStatic val noFireOverlay by setting("No Fire Overlay", false).group(Group.Hud)
-    @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", 0.3, -0.4..0.4, 0.02) { !noFireOverlay }.group(Group.Hud)
+    @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", 0.0, -0.4..0.4, 0.02) { !noFireOverlay }.group(Group.Hud)
     @JvmStatic val noPortalOverlay by setting("No Portal Overlay", true).group(Group.Hud)
     @JvmStatic val noFluidOverlay by setting("No Fluid Overlay", true).group(Group.Hud)
     @JvmStatic val noPowderedSnowOverlay by setting("No Powdered Snow Overlay", true).group(Group.Hud)
@@ -80,8 +80,8 @@ object NoRender : Module(
     @JvmStatic val noStatusEffects by setting("No Status Effects", false).group(Group.Hud)
 
     @JvmStatic val noArmor by setting("No Armor", false).group(Group.Entity)
-    @JvmStatic val noElytra by setting("No Elytra", false).group(Group.Entity)
     @JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }.group(Group.Entity)
+    @JvmStatic val noElytra by setting("No Elytra", false).group(Group.Entity)
     @JvmStatic val noInvisibility by setting("No Invisibility", true).group(Group.Entity)
     @JvmStatic val noGlow by setting("No Glow", false).group(Group.Entity)
     @JvmStatic val noNametags by setting("No Nametags", false).group(Group.Entity)
@@ -110,7 +110,8 @@ object NoRender : Module(
     private fun createParticleNameMap() =
         scanResult
             .getSubclasses(Particle::class.java)
-            .filter { !it.isAbstract }.createNameMap("net.minecraft.client.particle.", "Particle")
+            .filter { !it.isAbstract }
+            .createNameMap("net.minecraft.client.particle.", "Particle")
 
     private fun createEntityNameMap(directory: String, strictDir: Boolean = false) =
         entities.createNameMap(directory, "Entity", strictDir)
