@@ -17,7 +17,7 @@
 
 package com.lambda.util
 
-import com.lambda.util.DynamicReflectionSerializer.remappedName
+import com.lambda.util.DynamicReflectionSerializer.simpleRemappedName
 import java.io.PrintStream
 import java.io.PrintWriter
 
@@ -25,8 +25,8 @@ class DynamicException(original: Throwable) : Throwable(original) {
     private fun Array<StackTraceElement>.remapClassNames() =
         map { element ->
             StackTraceElement(
-                element.className.remappedName,
-                element.methodName.remappedName,
+                element.className.simpleRemappedName,
+                element.methodName.simpleRemappedName,
                 element.fileName,
                 element.lineNumber
             )

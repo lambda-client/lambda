@@ -21,6 +21,8 @@ import com.lambda.interaction.request.rotating.RotationManager;
 import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.FreeLook;
+import com.lambda.module.modules.render.NoRender;
+import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.BlockView;
@@ -144,5 +146,10 @@ public abstract class CameraMixin {
             args.set(0, FreeLook.INSTANCE.getCamera().getYawF());
             args.set(1, FreeLook.INSTANCE.getCamera().getPitchF());
         }
+    }
+
+    @Inject(method = "getSubmersionType", at = @At("HEAD"), cancellable = true)
+    private void injectGetSubmersionType(CallbackInfoReturnable<CameraSubmersionType> cir) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoFluidOverlay()) cir.setReturnValue(CameraSubmersionType.NONE);
     }
 }

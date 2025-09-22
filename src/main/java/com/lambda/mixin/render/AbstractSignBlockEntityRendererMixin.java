@@ -17,29 +17,21 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.gui.components.QuickSearch;
 import com.lambda.module.modules.render.NoRender;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.block.entity.SignText;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.block.entity.AbstractSignBlockEntityRenderer;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(Screen.class)
-public class ScreenMixin {
-    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
-    private void onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && QuickSearch.INSTANCE.isOpen()) {
-            QuickSearch.INSTANCE.close();
-            cir.setReturnValue(true);
-        }
-    }
-
-    @Inject(method = "renderInGameBackground", at = @At("HEAD"), cancellable = true)
-    private void injectRenderInGameBackground(DrawContext context, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoGuiShadow()) ci.cancel();
+@Mixin(AbstractSignBlockEntityRenderer.class)
+public class AbstractSignBlockEntityRendererMixin {
+    @Inject(method = "renderText", at = @At("HEAD"), cancellable = true)
+    private void injectRenderText(BlockPos pos, SignText text, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int textLineHeight, int maxTextWidth, boolean front, CallbackInfo ci) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoSignText()) ci.cancel();
     }
 }
