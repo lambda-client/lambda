@@ -103,12 +103,4 @@ public class ClientPlayNetworkHandlerMixin {
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
         if (Velocity.getExplosion() && Velocity.INSTANCE.isEnabled()) ci.cancel();
     }
-
-    /**
-     * Cancels the world particle if {@link NoRender#getNoExplosion()} is true
-     */
-    @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;addParticleClient(Lnet/minecraft/particle/ParticleEffect;DDDDDD)V"), cancellable = true)
-    void injectParticles(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (NoRender.getNoExplosion() && NoRender.INSTANCE.isEnabled()) ci.cancel();
-    }
 }

@@ -17,13 +17,23 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.WorldColors;
 import net.minecraft.client.render.BackgroundRenderer;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.biome.Biome;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * <pre>{@code
@@ -39,6 +49,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 // FixMe: This crashes the game
 @Mixin(BackgroundRenderer.class)
 public class BackgroundRendererMixin {
+    @Shadow @Final private static List<BackgroundRenderer.StatusEffectFogModifier> FOG_MODIFIERS;
+
     @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getX()D"))
     private static double redirectRed(Vec3d baseColor) {
         return WorldColors.fogOfWarColor(baseColor).getX();
@@ -59,4 +71,15 @@ public class BackgroundRendererMixin {
         return WorldColors.waterFogColor(biome.getWaterFogColor());
     }
 
+    @Inject(method = "getFogModifier(Lnet/minecraft/entity/Entity;F)Lnet/minecraft/client/render/BackgroundRenderer$StatusEffectFogModifier;", at = @At("HEAD"), cancellable = true)
+    private static void injectFogModifier(Entity entity, float tickProgress, CallbackInfoReturnable<BackgroundRenderer.StatusEffectFogModifier> cir){
+        if (entity instanceof LivingEntity livingEntity) {
+            Stream<BackgroundRenderer.StatusEffectFogModifier> modifiers = FOG_MODIFIERS
+                    .stream()
+                    .filter((modifier) ->
+                            modifier.shouldApply(livingEntity, tickProgress) && NoRender.shouldAcceptFog(modifier)
+                    );
+            cir.setReturnValue(modifiers.findFirst().orElse(null));
+        }
+    }
 }

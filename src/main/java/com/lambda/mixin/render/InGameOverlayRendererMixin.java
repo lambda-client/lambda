@@ -33,13 +33,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class InGameOverlayRendererMixin {
     @Inject(method = "renderFireOverlay", at = @At("HEAD"), cancellable = true)
     private static void onRenderFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoBurning()) ci.cancel();
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoFireOverlay()) ci.cancel();
     }
 
     @ModifyArg(method = "renderFireOverlay", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/math/MatrixStack;translate(FFF)V"), index = 1)
     private static float onRenderFireOverlayTranslate(float x) {
         if (NoRender.INSTANCE.isEnabled()) {
-            return (float) NoRender.getFireOverlayYOffset();
+            return (float) NoRender.getFireOverlayYOffset() - 0.3f;
         } else {
             return -0.3f;
         }
@@ -47,7 +47,7 @@ public class InGameOverlayRendererMixin {
 
     @Inject(method = "renderUnderwaterOverlay", at = @At("HEAD"), cancellable = true)
     private static void onRenderUnderwaterOverlay(MinecraftClient client, MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoUnderwater()) ci.cancel();
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoFluidOverlay()) ci.cancel();
     }
 
     @Inject(method = "renderInWallOverlay", at = @At("HEAD"), cancellable = true)

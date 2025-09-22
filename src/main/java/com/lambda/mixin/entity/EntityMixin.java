@@ -22,7 +22,9 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.data.TrackedData;
@@ -129,5 +131,15 @@ public abstract class EntityMixin {
     public void onTrackedDataSet(TrackedData<?> data, CallbackInfo ci) {
         Entity entity = (Entity) (Object) this;
         EventFlow.post(new EntityEvent.Update(entity, data));
+    }
+
+    @ModifyExpressionValue(method = "isInvisible", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getFlag(I)Z"))
+    private boolean modifyGetFlagInvisible(boolean original) {
+        return (NoRender.INSTANCE.isDisabled() || !NoRender.getNoInvisibility()) && original;
+    }
+
+    @ModifyExpressionValue(method = "isGlowing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getFlag(I)Z"))
+    private boolean modifyGetFlagGlowing(boolean original) {
+        return (NoRender.INSTANCE.isDisabled() || !NoRender.getNoGlow()) && original;
     }
 }
