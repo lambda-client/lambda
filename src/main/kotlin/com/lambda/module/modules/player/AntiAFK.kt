@@ -28,8 +28,8 @@ object AntiAFK : Module(
     description = "Keeps you from getting kicked",
     tag = ModuleTag.PLAYER,
 ) {
-    private val delay by setting("Delay", 10, 5..600, 1, unit = " s")
-    private val swingHand by setting("Swing Hand", Hand.MAIN_HAND)
+    private val delay by setting("Delay", 300, 5..600, 1, unit = " s", description = "Delay between swinging the hand.")
+    private val swingHand by setting("Swing Hand", Hand.MAIN_HAND, description = "Hand to swing.")
 
     init {
         listen<TickEvent.Pre> {
