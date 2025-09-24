@@ -27,7 +27,7 @@ import com.lambda.interaction.request.rotating.RotationMode
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyboardUtils.isKeyPressed
+import com.lambda.util.InputUtils.isKeyPressed
 import com.lambda.util.math.MathUtils.toFloatSign
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen

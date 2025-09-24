@@ -38,7 +38,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.KeyCode
-import com.lambda.util.KeyboardUtils.isKeyPressed
+import com.lambda.util.InputUtils.isKeyPressed
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask

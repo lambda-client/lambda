@@ -30,6 +30,7 @@ import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
+import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.complex.ColorSetting
@@ -381,7 +382,7 @@ abstract class Configurable(
      */
     fun setting(
         name: String,
-        defaultValue: KeyCode,
+        defaultValue: Bind,
         description: String = "",
         visibility: () -> Boolean = { true },
     ) = KeybindSetting(name, defaultValue, description, visibility).register()

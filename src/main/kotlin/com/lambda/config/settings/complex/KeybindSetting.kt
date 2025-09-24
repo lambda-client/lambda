@@ -18,14 +18,20 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
-import com.lambda.brigadier.execute
+import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.config.settings.complex.Bind.Companion.mouseBind
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
-import com.lambda.util.KeyboardUtils
+import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import imgui.ImGui.isMouseClicked
@@ -37,22 +43,23 @@ import org.lwjgl.glfw.GLFW
 
 class KeybindSetting(
     override val name: String,
-    defaultValue: KeyCode,
+    defaultValue: Bind,
     description: String,
     visibility: () -> Boolean,
-) : AbstractSetting<KeyCode>(
+) : AbstractSetting<Bind>(
     defaultValue,
-    TypeToken.get(KeyCode::class.java).type,
+    TypeToken.get(Bind::class.java).type,
     description,
     visibility
 ) {
     private var listening = false
 
     override fun ImGuiBuilder.buildLayout() {
-        val key = value
-        val scancode = if (key == KeyCode.UNBOUND) -69 else GLFW.glfwGetKeyScancode(key.code)
-        val translated = if (key == KeyCode.UNBOUND) key else KeyCode.virtualMapUS(key.code, scancode)
-        val preview = if (listening) "$name: Press any key…" else "$name: $translated"
+        val bind = value
+        val scancode = if (bind.code == KeyCode.UNBOUND.code) -69 else GLFW.glfwGetKeyScancode(bind.code)
+        val translated = if (bind.keyCode == KeyCode.UNBOUND) bind.keyCode else KeyCode.virtualMapUS(bind.code, scancode)
+        val preview = if (listening) "$name: Press any key…"
+        else if (bind.isMouseButton) "Mouse ${bind.code}" else "$name: $translated"
 
         if (listening) {
             withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
@@ -75,7 +82,7 @@ class KeybindSetting(
         }
 
         onItemClick(ImGuiMouseButton.Right) {
-            value = KeyCode.UNBOUND
+            value = Bind.EMPTY
             listening = false
         }
 
@@ -85,38 +92,78 @@ class KeybindSetting(
 
         sameLine()
         smallButton("Unbind") {
-            value = KeyCode.UNBOUND
+            value = Bind.EMPTY
             listening = false
         }
         onItemHover(ImGuiHoveredFlags.Stationary) {
             lambdaTooltip("Clear binding")
         }
 
-        val poll = KeyboardUtils.lastEvent
-        if (listening && poll.isPressed) {
-            when (val key = poll.translated) {
-                KeyCode.ESCAPE -> listening = false
-                KeyCode.BACKSPACE, KeyCode.DELETE -> {
-                    value = KeyCode.UNBOUND
-                    listening = false
+        val keyboardPoll = InputUtils.lastKeyboardEvent
+        val mousePoll = InputUtils.lastMouseEvent
+        if (listening) {
+            if (keyboardPoll.isPressed) {
+                when (val key = keyboardPoll.translated) {
+                    KeyCode.ESCAPE -> {}
+                    KeyCode.BACKSPACE, KeyCode.DELETE -> value = Bind.EMPTY
+                    else -> value = Bind(key)
                 }
-                else -> {
-                    value = key
-                    listening = false
-                }
+                listening = false
+            } else if (mousePoll.action == Mouse.Action.Click.ordinal) {
+                value = mouseBind(mousePoll.button)
+                listening = false
             }
         }
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(name)) { parameter ->
+        required(word(name)) { name ->
             suggests { _, builder ->
                 KeyCode.entries.forEach { builder.suggest(it.name.capitalize()) }
+                (1..10).forEach { builder.suggest(it) }
                 builder.buildFuture()
             }
-            execute {
-                trySetValue(KeyCode.valueOf(parameter().value()))
+            optional(boolean("mouse button")) { isMouseButton ->
+                executeWithResult {
+                    val isMouse = if (isMouseButton != null) isMouseButton().value() else false
+                    var bind = Bind.EMPTY
+                    if (isMouse) {
+                        val num = try {
+                            name().value().toInt()
+                        } catch(_: NumberFormatException) {
+                            return@executeWithResult failure("${name().value()} doesn't match with a mouse button")
+                        }
+                        bind = mouseBind(num)
+                    } else {
+                        bind = try {
+                            Bind(KeyCode.valueOf(name().value()))
+                        } catch(_: IllegalArgumentException) {
+                            return@executeWithResult failure("${name().value()} doesn't match with a bind")
+                        }
+                    }
+
+                    trySetValue(bind)
+                    return@executeWithResult success()
+                }
             }
         }
+    }
+}
+
+data class Bind(
+    val keyCode: KeyCode = KeyCode.UNBOUND,
+    val code: Int = keyCode.code,
+    val isMouseButton: Boolean = false
+) {
+    val name: String
+        get() = if (isMouseButton) "Mouse $code" else keyCode.name
+
+    override fun toString() =
+        "Key Code: $keyCode, Code: $code, Mouse Button: $isMouseButton"
+
+    companion object {
+        val EMPTY = Bind()
+
+        fun mouseBind(code: Int) = Bind(code = code, isMouseButton = true)
     }
 }

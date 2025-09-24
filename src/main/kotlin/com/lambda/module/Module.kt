@@ -17,16 +17,19 @@
 
 package com.lambda.module
 
+import com.lambda.Lambda.mc
 import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
+import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.events.MouseEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -35,6 +38,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
 import com.lambda.util.KeyCode
+import com.lambda.util.Mouse
 import com.lambda.util.Nameable
 
 /**
@@ -111,7 +115,7 @@ abstract class Module(
     val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: KeyCode = KeyCode.UNBOUND,
+    defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
@@ -122,20 +126,20 @@ abstract class Module(
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
 
-    val keybind by keybindSetting
+    var keybind by keybindSetting
 
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            if (mc.options.commandKey.isPressed) return@listen
-            if (!event.isPressed) return@listen
-            if (keybind == KeyCode.UNBOUND) return@listen
-            if (event.translated != keybind) return@listen
-            if (mc.currentScreen != null) return@listen
+            if (event.isPressed)
+                onButtonPress(event.keyCode)
+        }
 
-            toggle()
+        listen<MouseEvent.Click>(alwaysListen = true) { event ->
+            if (event.action == Mouse.Action.Click.ordinal)
+                onButtonPress(event.button)
         }
 
         onEnable { LambdaSound.MODULE_ON.play() }
@@ -147,6 +151,14 @@ abstract class Module(
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }
         listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
+    }
+
+    private fun onButtonPress(code: Int, mouseButton: Boolean = false) {
+        if (mc.options.commandKey.isPressed) return
+        if (mc.currentScreen != null) return
+        if (keybind.code == KeyCode.UNBOUND.code) return
+        if (code != keybind.code) return
+        toggle()
     }
 
     fun enable() {

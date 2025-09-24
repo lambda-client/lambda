@@ -39,7 +39,7 @@ object ModuleList : HudModule(
 
         enabled.forEach {
             text(it.name); sameLine()
-            val color = if (it.keybind == KeyCode.UNBOUND) Color.RED else Color.GREEN
+            val color = if (it.keybind.code == KeyCode.UNBOUND.code) Color.RED else Color.GREEN
 
             withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
         }
