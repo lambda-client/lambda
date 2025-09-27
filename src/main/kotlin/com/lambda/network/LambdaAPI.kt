@@ -47,8 +47,10 @@ object LambdaAPI : Configurable(LambdaConfig) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")
     val apiUrl by setting("API Server", "https://api.lambda-client.org")
     val apiVersion by setting("API Version", ApiVersion.V1)
-    val mappings by setting("Mappings", "https://mappings.lambda-client.org")
-    val cdn by setting("CDN", "https://cdn.lambda-client.org")
+    val assets by setting("Assets", "https://raw.githubusercontent.com/Edouard127/lambda-assets/refs/heads/master")
+
+    val mappings get() = "$assets/mappings" // Folder containing mappings for our dynamic serializer
+    val capes get() = "$assets/capes" // Folder containing all the capes, add .txt to get the list of available capes
 
     @Suppress("Deprecation")
     const val GAME_VERSION = SharedConstants.VERSION_NAME

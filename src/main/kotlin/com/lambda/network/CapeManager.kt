@@ -24,7 +24,6 @@ import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.texture.TextureUtils
-import com.lambda.network.LambdaAPI.cdn
 import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.getCapes
 import com.lambda.network.api.v1.endpoints.setCape
@@ -65,11 +64,11 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     val capeList = runBlocking {
         capes.resolveFile("capes.txt")
             .isOlderThan(24.hours) {
-                it.downloadIfNotPresent("$cdn/capes.txt")
+                it.downloadIfNotPresent("${LambdaAPI.capes}.txt")
                     .onFailure { err -> LOG.error("Could not download the cape list: $err") }
             }
             .ifNotExists {
-                it.downloadCompare("$cdn/capes.txt", -1)
+                it.downloadCompare("${LambdaAPI.capes}.txt", -1)
                     .onFailure { err -> LOG.error("Could not download the cape list: $err") }
             }
             .createIfNotExists()

@@ -72,15 +72,16 @@ object DynamicReflectionSerializer : Loadable {
         org.slf4j.Logger::class,
         String::class,
     )
+
     private val skipFields = setOf(
         Codec::class,
     )
 
     private const val INDENT = 2
 
-    private val simpleMappings = runBlocking {
-        "${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}"
-            .downloadIfNotPresent(cache.resolveFile("${LambdaAPI.GAME_VERSION}-simple"))
+    private val qualifiedMappings = runBlocking {
+        cache.resolveFile(LambdaAPI.GAME_VERSION)
+            .downloadIfNotPresent("${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}")
             .map(::buildMappingsMap)
             .getOrElse {
                 LOG.error("Unable to download simplified deobfuscated qualifiers", it)
@@ -88,15 +89,9 @@ object DynamicReflectionSerializer : Loadable {
             }
     }
 
-    private val qualifiedMappings = runBlocking {
-        "${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}-qualified"
-            .downloadIfNotPresent(cache.resolveFile(LambdaAPI.GAME_VERSION))
-            .map(::buildMappingsMap)
-            .getOrElse {
-                LOG.error("Unable to download deobfuscated qualifiers", it)
-                emptyMap()
-            }
-    }
+    private val simpleMappings =
+        qualifiedMappings
+            .mapValues { (_, v) -> v.substringAfterLast('.') }
 
     val String.simpleRemappedName get() = simpleMappings.getOrDefault(this, this)
     val String.remappedName get() = qualifiedMappings.getOrDefault(this, this)
@@ -123,7 +118,7 @@ object DynamicReflectionSerializer : Loadable {
     }
 
     fun <T : Any> KClass<T>.dynamicName(remap: Boolean, simple: Boolean = true) =
-        if (remap)
+        if (remap && simple)
             if (simple) qualifiedName?.simpleRemappedName else qualifiedName?.remappedName
         else if (simple) simpleName else qualifiedName
 
@@ -216,5 +211,5 @@ object DynamicReflectionSerializer : Loadable {
             }
         }
 
-    override fun load() = "Loaded ${simpleMappings.size} deobfuscated qualifier"
+    override fun load() = "Loaded ${qualifiedMappings.size} deobfuscated qualifier"
 }
