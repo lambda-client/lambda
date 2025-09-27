@@ -177,10 +177,9 @@ object NoRender : Module(
 
     @JvmStatic
     fun shouldAcceptFog(modifier: StatusEffectFogModifier) =
-        when {
-            isDisabled -> true
-            modifier.statusEffect == StatusEffects.BLINDNESS && noBlindness -> false
-            modifier.statusEffect == StatusEffects.DARKNESS && noDarkness -> false
+        when (modifier.statusEffect) {
+            StatusEffects.BLINDNESS if (noBlindness && isEnabled) -> false
+            StatusEffects.DARKNESS if (noDarkness && isEnabled) -> false
             else -> true
         }
 
