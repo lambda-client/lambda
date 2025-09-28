@@ -29,9 +29,9 @@ import com.lambda.util.NamedEnum
 import kotlin.math.roundToInt
 
 object RotationLock : Module(
-    "RotationLock",
-    "Locks the player rotation to the given configuration",
-    ModuleTag.PLAYER
+    name = "RotationLock",
+    description = "Locks the player rotation to the given configuration",
+    tag = ModuleTag.PLAYER,
 ) {
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
@@ -67,7 +67,7 @@ object RotationLock : Module(
                 RotationMode.None -> player.pitch.toDouble()
             }
 
-            rotationRequest = RotationRequest(lookAt(Rotation(yaw, pitch), 0.001), rotationSettings).submit()
+            RotationRequest(lookAt(Rotation(yaw, pitch), 0.001), rotationSettings).submit()
         }
     }
 
