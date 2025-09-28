@@ -202,6 +202,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                     window(tag.name, flags = AlwaysAutoResize) {
                         ModuleRegistry.modules
                             .filter { it.tag == tag }
+                            .sortedBy { it.name }
                             .forEach { with(ModuleEntry(it)) { buildLayout() } }
                     }
                 }
