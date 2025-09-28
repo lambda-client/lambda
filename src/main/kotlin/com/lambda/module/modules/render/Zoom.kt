@@ -22,12 +22,13 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 import java.lang.Math.clamp
 
 object Zoom : Module(
-    "Zoom",
-    "Zooms the current view",
-    ModuleTag.RENDER
+    name = "Zoom",
+    description = "Zooms the current view",
+    tag = ModuleTag.RENDER,
 ) {
     override val disableOnRelease by setting("Disable On Release", true)
     private var zoom by setting("Zoom", 2f, 1f..10f, 0.1f)
@@ -48,8 +49,7 @@ object Zoom : Module(
     @JvmStatic var currentZoom = 1f; private set
     private var lastZoomTime = 1L
     private val zoomProgress
-        get() =
-            clamp((System.currentTimeMillis() - lastZoomTime) / (animationDuration * 1000).toDouble(), 0.0, 1.0).toFloat()
+        get() = clamp((System.currentTimeMillis() - lastZoomTime) / (animationDuration * 1000).toDouble(), 0.0, 1.0).toFloat()
 
     init {
         listen<MouseEvent.Scroll> { event ->
@@ -68,6 +68,7 @@ object Zoom : Module(
         onEnable {
             updateZoomTime()
         }
+
         onDisable {
             extraZoom = 0f
             updateZoomTime()
@@ -81,27 +82,15 @@ object Zoom : Module(
     @JvmStatic
     fun updateCurrentZoom() {
         val target = if (isEnabled) targetZoom else 1f
-        if (currentZoom == target) return
-        currentZoom = when (style) {
-            ZoomStyle.Instant -> target
-            ZoomStyle.EaseOut -> easeOut(currentZoom, target, zoomProgress)
-            ZoomStyle.EaseIn -> easeIn(currentZoom, target, zoomProgress)
-        }
+        currentZoom = style.apply(currentZoom, target, zoomProgress)
     }
 
-    private fun easeOut(start: Float, end: Float, progress: Float): Float {
-        val easedT = 1f - (1f - progress) * (1f - progress)
-        return start + ((end - start) * easedT)
-    }
-
-    private fun easeIn(start: Float, end: Float, progress: Float): Float {
-        val easedT = progress * progress
-        return start + ((end - start) * easedT)
-    }
-
-    private enum class ZoomStyle {
-        Instant,
-        EaseOut,
-        EaseIn
+    private enum class ZoomStyle(
+        override val displayName: String,
+        val apply: (Float, Float, Float) -> Float,
+    ) : NamedEnum {
+        Instant("Instant", { _, v, _ -> v }),
+        EaseOut("Ease Out", { start, end, progress -> start + ((end - start) * 1f - (1f - progress) * (1f - progress)) }),
+        EaseIn("Ease In", { start, end, progress -> start + ((end - start) * progress * progress) })
     }
 }
