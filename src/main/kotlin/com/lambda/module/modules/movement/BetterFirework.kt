@@ -37,47 +37,52 @@ import net.minecraft.util.hit.HitResult
 
 object BetterFirework : Module(
     name = "BetterFirework",
-    description = "Improves firework usage",
+    description = "Automatic takeoff with fireworks",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private var autoTakeoff by setting("Auto Takeoff", true)
-    private var silent by setting("Silent", true)
-    private var swing by setting("Swing ", true)
-    private var middleClick by setting("Middle click", true)
-    private var middleClickCancel by setting("Middle Click Cancel", false, visibility = { middleClick })
+    private var fireworkInteract by setting("Firework Interact", true, "Automatically start flying when right clicking fireworks")
+    private var fireworkInteractCancel by setting("Firework Interact Cancel", false, "Cancel block interactions while holding fireworks", visibility = { fireworkInteract })
+    private var middleClick by setting("Middle Click", true, "Use firework on middle mouse click")
+    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click", visibility = { middleClick })
+    private var clientSwing by setting("Swing", true, "Swing hand client side")
+    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory", visibility = { middleClick })
 
-    private var state = BetterFireworkState.IDLE
     private var openDelay = 0
 
     init {
         listen<TickEvent.Pre> {
+            // Try opening the elytra after a delay after jumping
             if (openDelay > 0) {
                 openDelay--
-                if (openDelay == 0 && state == BetterFireworkState.WAIT_AIRBORNE) {
-                    state = BetterFireworkState.IDLE
-                    startFlying()
+                if (openDelay == 0) {
+                    tryTakeoff()
                 }
             }
         }
     }
 
-    fun onInteract(): Boolean {
-        if (!autoTakeoff) return false
-
+    /**
+     * Returns true if the mc item interaction should be canceled
+     */
+    fun onInteract() =
         runSafe {
-            if (player.inventory.selectedStack?.item == Items.FIREWORK_ROCKET) {
-                if (mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS) {
-                    return false
-                }
-
-                mc.itemUseCooldown += 4
-                return startFlying()
+            if (!fireworkInteract) return false
+            if (player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET) {
+                return false
             }
-        }
-        return false
-    }
+            if (player.isGliding) {
+                return false // No need to do special magic if we are already holding fireworks and flying
+            }
+            if (mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel) {
+                return false
+            }
+            mc.itemUseCooldown += 4
+            return tryTakeoff() || fireworkInteractCancel
+        } ?: false
 
-    // Do on pick so mc does not select blocks on middle click after we start flying
+    /**
+     * Returns true when the pick interaction should be canceled.
+     */
     fun onPick() =
         runSafe {
             if (!middleClick) return false
@@ -85,26 +90,30 @@ object BetterFirework : Module(
                 return false
             }
             if (player.isGliding) {
-                startFirework(silent)
+                // If already gliding use another firework
+                startFirework(silentUse)
             } else {
-                startFlying()
+                tryTakeoff()
             }
             return true
         } ?: false // Edouardo:        :3333333
 
-    fun SafeContext.startFlying(): Boolean {
+    /**
+     * This function prepares takeoff from standing or falling.
+     * If the player is standing on ground it jumps to prepare for takeoff and return true.
+     * If the player is falling it opens the elytra, uses a firework and return true.
+     * Otherwise, return false and does nothing.
+     */
+    fun SafeContext.tryTakeoff(): Boolean {
         if (player.isOnGround) {
-            state = BetterFireworkState.WAIT_AIRBORNE
             player.jump()
-            openDelay = 1; // Magic number
+            openDelay = 1; // Magic number, works on 2b so we GUCCI
             return true
         }
 
-        if (player.isGliding) return false
-
         if (canOpenElytra(player)) {
             connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
-            startFirework(silent)
+            startFirework(silentUse)
             return true
         }
 
@@ -116,13 +125,17 @@ object BetterFirework : Module(
     }
 
     fun SafeContext.sendSwing() {
-        if (swing) {
+        if (clientSwing) {
             player.swingHand(Hand.MAIN_HAND)
         } else {
             connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
         }
     }
 
+    /**
+     * Use a firework from the hotbar or inventory if possible.
+     * Return true if a firework has been used
+     */
     fun SafeContext.startFirework(silent: Boolean): Boolean {
         val fireworkSlot = getFireworkAtHotbar()
         if (fireworkSlot != -1) {
@@ -170,10 +183,5 @@ object BetterFirework : Module(
             return i
         }
         return -1
-    }
-
-    enum class BetterFireworkState {
-        IDLE,
-        WAIT_AIRBORNE
     }
 }
