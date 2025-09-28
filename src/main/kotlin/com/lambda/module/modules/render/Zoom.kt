@@ -35,7 +35,7 @@ object Zoom : Module(
     private val animationDuration by setting("Animation Duration", 1f, 0.1f..10f, 0.1f) { style != ZoomStyle.Instant }
     private val scroll by setting("Scroll", true)
     private val persistentScroll by setting("Persistent Scroll", false) { scroll }
-    private val sensitivity by setting("Sensitivity", 0.4f, 0.1f..1f, 0.1f) { scroll }
+    private val sensitivity by setting("Sensitivity", 0.2f, 0.1f..1f, 0.1f) { scroll }
     @JvmStatic val smoothMovement by setting("Smooth Movement", false)
 
     private var extraZoom = 0f
