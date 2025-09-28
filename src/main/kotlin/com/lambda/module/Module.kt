@@ -17,6 +17,7 @@
 
 package com.lambda.module
 
+import com.lambda.Lambda
 import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
@@ -112,7 +113,8 @@ abstract class Module(
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-    autoDisable: Boolean = false
+    autoDisable: Boolean = false,
+    open val disableOnRelease: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
@@ -129,13 +131,13 @@ abstract class Module(
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            if (mc.options.commandKey.isPressed) return@listen
-            if (!event.isPressed) return@listen
+            if (Lambda.mc.options.commandKey.isPressed) return@listen
             if (keybind == KeyCode.UNBOUND) return@listen
             if (event.translated != keybind) return@listen
-            if (mc.currentScreen != null) return@listen
+            if (Lambda.mc.currentScreen != null) return@listen
 
-            toggle()
+            if (event.isPressed) toggle()
+            else if (event.isReleased && disableOnRelease) disable()
         }
 
         onEnable { LambdaSound.MODULE_ON.play() }
