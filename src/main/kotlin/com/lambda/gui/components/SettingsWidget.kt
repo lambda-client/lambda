@@ -32,6 +32,7 @@ object SettingsWidget {
         group {
             if (config is Module) {
                 with(config.keybindSetting) { buildLayout() }
+                with(config.disableOnReleaseSetting) { buildLayout() }
             }
             sameLine()
             smallButton("Reset") {
@@ -40,7 +41,7 @@ object SettingsWidget {
             lambdaTooltip("Resets all settings for this module to their default values")
         }
         separator()
-        val toIgnoreSettings = if (config is Module) setOf(config.keybindSetting) else emptySet()
+        val toIgnoreSettings = if (config is Module) setOf(config.keybindSetting, config.disableOnReleaseSetting) else emptySet()
         val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
         ungrouped.forEach { with(it) { buildLayout() } }

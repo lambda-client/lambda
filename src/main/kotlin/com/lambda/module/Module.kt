@@ -118,6 +118,7 @@ abstract class Module(
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
+    val disableOnReleaseSetting = setting("Disable On Release", false) { false }
 
     open val isVisible: Boolean = true
 
@@ -125,6 +126,7 @@ abstract class Module(
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting
+    val disableOnRelease by disableOnReleaseSetting
 
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
