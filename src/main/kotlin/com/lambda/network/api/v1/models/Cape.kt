@@ -18,6 +18,7 @@
 package com.lambda.network.api.v1.models
 
 import com.google.gson.annotations.SerializedName
+import com.lambda.network.LambdaAPI
 import java.util.*
 
 class Cape(
@@ -28,7 +29,7 @@ class Cape(
     val id: String,
 ) {
     val url: String
-        get() = "https://cdn.lambda-client.org/$id.png"
+        get() = "${LambdaAPI.capes}/$id.png"
 
     override fun toString() = "Cape(uuid=$uuid, id=$id, url=$url)"
 }
