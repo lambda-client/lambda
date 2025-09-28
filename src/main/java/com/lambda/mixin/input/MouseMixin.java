@@ -19,12 +19,16 @@ package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MouseEvent;
+import com.lambda.module.modules.render.Zoom;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.client.Mouse;
+import net.minecraft.client.option.GameOptions;
+import net.minecraft.client.option.SimpleOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mouse.class)
@@ -60,5 +64,18 @@ public class MouseMixin {
         if (EventFlow.post(new MouseEvent.Move(position)).isCanceled()) {
             ci.cancel();
         }
+    }
+
+    @Redirect(method = "updateMouse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;smoothCameraEnabled:Z"))
+    private boolean redirectSmoothCameraEnabled(GameOptions instance) {
+        if (Zoom.INSTANCE.isEnabled() && Zoom.getSmoothMovement()) return true;
+        else return instance.smoothCameraEnabled;
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Redirect(method = "updateMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/SimpleOption;getValue()Ljava/lang/Object;", ordinal = 0))
+    private Object redirectGetValue(SimpleOption instance) {
+        if (Zoom.INSTANCE.isEnabled()) return ((Double) instance.getValue()) / Zoom.getTargetZoom();
+        else return instance.getValue();
     }
 }

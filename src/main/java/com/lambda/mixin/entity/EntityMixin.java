@@ -22,9 +22,12 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.request.rotating.RotationMode;
+import com.lambda.module.modules.player.RotationLock;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.data.TrackedData;
@@ -141,5 +144,21 @@ public abstract class EntityMixin {
     @ModifyExpressionValue(method = "isGlowing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getFlag(I)Z"))
     private boolean modifyGetFlagGlowing(boolean original) {
         return (NoRender.INSTANCE.isDisabled() || !NoRender.getNoGlow()) && original;
+    }
+
+    @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setYaw(F)V"))
+    private boolean wrapSetYaw(Entity instance, float yaw) {
+        return (instance != Lambda.getMc().player ||
+                RotationLock.INSTANCE.isDisabled() ||
+                RotationLock.getRotationSettings().getRotationMode() != RotationMode.Lock ||
+                RotationLock.getYawMode() == RotationLock.RotationMode.None);
+    }
+
+    @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
+    private boolean wrapSetPitch(Entity instance, float yaw) {
+        return (instance != Lambda.getMc().player ||
+                RotationLock.INSTANCE.isDisabled() ||
+                RotationLock.getRotationSettings().getRotationMode() != RotationMode.Lock ||
+                RotationLock.getPitchMode() == RotationLock.RotationMode.None);
     }
 }

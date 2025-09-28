@@ -18,6 +18,7 @@
 package com.lambda.module
 
 import com.lambda.Lambda.mc
+import com.lambda.Lambda
 import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
@@ -40,6 +41,7 @@ import com.lambda.sound.SoundManager.play
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
+import javax.swing.ActionMap
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -120,26 +122,28 @@ abstract class Module(
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
+    val disableOnReleaseSetting = setting("Disable On Release", false) { false }
 
     open val isVisible: Boolean = true
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
 
-    var keybind by keybindSetting
+    val keybind by keybindSetting
+    val disableOnRelease by disableOnReleaseSetting
 
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            if (event.isPressed)
-                onButtonPress(event.keyCode)
+            onButtonPress(event.keyCode, event.isPressed, event.isReleased)
         }
 
         listen<MouseEvent.Click>(alwaysListen = true) { event ->
-            if (event.action == Mouse.Action.Click.ordinal)
-                onButtonPress(event.button)
+            val pressed = event.action == Mouse.Action.Click.ordinal
+            val released = event.action == Mouse.Action.Release.ordinal
+            onButtonPress(event.button, pressed, released, mouseButton = true)
         }
 
         onEnable { LambdaSound.MODULE_ON.play() }
@@ -153,7 +157,7 @@ abstract class Module(
         listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
     }
 
-    private fun onButtonPress(code: Int, mouseButton: Boolean = false) {
+    private fun onButtonPress(code: Int, pressed: Boolean, released: Boolean, mouseButton: Boolean = false) {
         if (mc.options.commandKey.isPressed) return
         if (mc.currentScreen != null) return
         if (keybind.code == KeyCode.UNBOUND.code) return
