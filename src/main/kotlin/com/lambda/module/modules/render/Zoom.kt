@@ -30,7 +30,6 @@ object Zoom : Module(
     description = "Zooms the current view",
     tag = ModuleTag.RENDER,
 ) {
-    override val disableOnRelease by setting("Disable On Release", true)
     private var zoom by setting("Zoom", 2f, 1f..10f, 0.1f)
     private val style by setting("Style", ZoomStyle.EaseOut)
     private val animationDuration by setting("Animation Duration", 1f, 0.1f..10f, 0.1f) { style != ZoomStyle.Instant }
@@ -90,7 +89,7 @@ object Zoom : Module(
         val apply: (Float, Float, Float) -> Float,
     ) : NamedEnum {
         Instant("Instant", { _, v, _ -> v }),
-        EaseOut("Ease Out", { start, end, progress -> start + ((end - start) * 1f - (1f - progress) * (1f - progress)) }),
-        EaseIn("Ease In", { start, end, progress -> start + ((end - start) * progress * progress) })
+        EaseOut("Ease Out", { start, end, progress -> start + ((end - start) * (1f - ((1f - progress) * (1f - progress)))) }),
+        EaseIn("Ease In", { start, end, progress -> start + ((end - start) * (progress * progress)) })
     }
 }

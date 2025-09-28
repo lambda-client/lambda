@@ -113,8 +113,7 @@ abstract class Module(
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-    autoDisable: Boolean = false,
-    open val disableOnRelease: Boolean = false
+    autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
