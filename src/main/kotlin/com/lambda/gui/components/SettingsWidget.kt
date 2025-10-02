@@ -34,7 +34,6 @@ object SettingsWidget {
                 with(config.keybindSetting) { buildLayout() }
                 with(config.disableOnReleaseSetting) { buildLayout() }
             }
-            sameLine()
             smallButton("Reset") {
                 config.settings.forEach { it.reset(silent = true) }
             }
