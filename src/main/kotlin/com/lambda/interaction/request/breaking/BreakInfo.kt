@@ -28,7 +28,6 @@ import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
-import com.lambda.util.OneSetPerTick
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
@@ -48,24 +47,22 @@ data class BreakInfo(
 
     // Pre Processing
     var shouldProgress = false
-    var rebreakPotential by OneSetPerTick(value = RebreakHandler.RebreakPotential.None, throwOnLimitBreach = true).linkLifetime()
-    var swapInfo by OneSetPerTick(value = SwapInfo.EMPTY, throwOnLimitBreach = true).linkLifetime()
-    var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true).linkLifetime()
+    var rebreakPotential = RebreakHandler.RebreakPotential.None
+    var swapInfo = SwapInfo.EMPTY
+    var swapStack: ItemStack = ItemStack.EMPTY
 
     // BreakInfo Specific
-    var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }.linkLifetime()
-    var updatedPreProcessingThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true).linkLifetime()
-    var progressedThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true).linkLifetime()
+    var updatedThisTick = true
+    var updatedPreProcessingThisTick = false
+    var progressedThisTick = false
 
     // Processing
     var breaking = false
     var abandoned = false
-    var breakingTicks by OneSetPerTick(0, true).linkLifetime()
-    var soundsCooldown by OneSetPerTick(0f, true).linkLifetime()
+    var breakingTicks = 0
+    var soundsCooldown = 0f
     var vanillaInstantBreakable = false
     val rebreakable get() = !vanillaInstantBreakable && type == Primary
-
-    val oneSetPerTickSet = mutableSetOf<OneSetPerTick<*>>()
 
     enum class BreakType(
         override val displayName: String,
@@ -107,6 +104,12 @@ data class BreakInfo(
     fun resetCallbacks() {
         broken = false
         item = null
+    }
+
+    fun tickChecks() {
+        updatedThisTick = false
+        updatedPreProcessingThisTick = false
+        progressedThisTick = false
     }
 
     fun setBreakingTextureStage(
@@ -175,7 +178,4 @@ data class BreakInfo(
     }
 
     override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
-
-    private fun <T : Any> OneSetPerTick<T>.linkLifetime() =
-        apply { oneSetPerTickSet.add(this) }
 }
