@@ -25,12 +25,12 @@ import com.lambda.util.reflections.getInstances
  */
 object ModuleRegistry : Loadable {
     override val priority = 1
-    val modules = getInstances<Module>().toMutableList()
 
-    val moduleNames: Set<String>
-        get() = modules.map { it.name }.toSet()
+    val modules = getInstances<Module>()
+        .sortedBy { it.name }
 
-    override fun load(): String {
-        return "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
-    }
+    val moduleNames = modules.map { it.name }.toSet()
+
+    override fun load() =
+        "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
 }

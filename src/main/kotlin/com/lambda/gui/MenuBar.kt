@@ -262,7 +262,6 @@ object MenuBar {
             menu(tag.name) {
                 ModuleRegistry.modules
                     .filter { it.tag == tag }
-                    .sortedBy { it.name.lowercase() }
                     .forEach { module ->
                         menuItem(module.name, selected = module.isEnabled) {
                             if (module.isEnabled) module.disable() else module.enable()

@@ -75,9 +75,7 @@ object ModuleCommand : LambdaCommand(
 
         required(string("module name")) { moduleName ->
             suggests { _, builder ->
-                ModuleRegistry.modules.map {
-                    it.name
-                }.forEach {
+                ModuleRegistry.moduleNames.forEach {
                     builder.suggest(it)
                 }
                 builder.buildFuture()
