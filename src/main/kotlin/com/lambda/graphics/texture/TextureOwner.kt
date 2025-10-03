@@ -17,7 +17,6 @@
 
 package com.lambda.graphics.texture
 
-import com.lambda.graphics.renderer.gui.font.sdf.DistanceFieldTexture
 import com.lambda.util.readImage
 import java.awt.image.BufferedImage
 
@@ -92,16 +91,6 @@ object TextureOwner {
         Texture(path.readImage(), levels = mipmaps).also {
             textureMap.computeIfAbsent(this@upload) { mutableListOf() }.add(it)
         }
-
-    /**
-     * Uploads a distance field texture from image data and associates it with the object
-     * Distance field textures are commonly used for rendering fonts.
-     *
-     * @param data The image data as a [BufferedImage] to create the distance field texture
-     * @return The created distance field texture object
-     */
-    fun Any.uploadField(data: BufferedImage) =
-        DistanceFieldTexture(data).also { textureMap.computeIfAbsent(this@uploadField) { mutableListOf() }.add(it) }
 
     /**
      * Uploads a GIF and associates it with the object as an animated texture

@@ -64,21 +64,9 @@ sealed class VertexAttrib(
 
     @Suppress("ClassName")
     open class Group(vararg val attributes: VertexAttrib) {
-        object POS_UV : Group(
-            Vec2, Vec2
-        )
-
         // GUI
         object FONT : Group(
             Vec3, Vec2, Color
-        )
-
-        object RECT : Group(
-            Vec3, Vec2, Color
-        )
-
-        object RECT_OUTLINE : Group(
-            Vec3, Vec2, Float, Color
         )
 
         // WORLD
@@ -94,9 +82,7 @@ sealed class VertexAttrib(
             Vec3, Vec2, Color
         )
 
-        val stride = attributes.sumOf { attribute ->
-            attribute.size
-        }
+        val stride = attributes.sumOf { it.size }
 
         fun link() {
             attributes.foldIndexed(0L) { index, pointer, attrib ->
