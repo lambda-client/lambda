@@ -48,22 +48,24 @@ data class BreakInfo(
 
     // Pre Processing
     var shouldProgress = false
-    var rebreakPotential by OneSetPerTick(value = RebreakHandler.RebreakPotential.None, throwOnLimitBreach = true)
-    var swapInfo by OneSetPerTick(value = SwapInfo.EMPTY, throwOnLimitBreach = true)
-    var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
+    var rebreakPotential by OneSetPerTick(value = RebreakHandler.RebreakPotential.None, throwOnLimitBreach = true).linkLifetime()
+    var swapInfo by OneSetPerTick(value = SwapInfo.EMPTY, throwOnLimitBreach = true).linkLifetime()
+    var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true).linkLifetime()
 
     // BreakInfo Specific
-    var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }
-    var updatedPreProcessingThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true)
-    var progressedThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true)
+    var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }.linkLifetime()
+    var updatedPreProcessingThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true).linkLifetime()
+    var progressedThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true).linkLifetime()
 
     // Processing
     var breaking = false
     var abandoned = false
-    var breakingTicks by OneSetPerTick(0, true)
-    var soundsCooldown by OneSetPerTick(0f, true)
+    var breakingTicks by OneSetPerTick(0, true).linkLifetime()
+    var soundsCooldown by OneSetPerTick(0f, true).linkLifetime()
     var vanillaInstantBreakable = false
     val rebreakable get() = !vanillaInstantBreakable && type == Primary
+
+    val oneSetPerTickSet = mutableSetOf<OneSetPerTick<*>>()
 
     enum class BreakType(
         override val displayName: String,
@@ -173,4 +175,7 @@ data class BreakInfo(
     }
 
     override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
+
+    private fun <T : Any> OneSetPerTick<T>.linkLifetime() =
+        apply { oneSetPerTickSet.add(this) }
 }

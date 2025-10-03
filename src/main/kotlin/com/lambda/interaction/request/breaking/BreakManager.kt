@@ -77,6 +77,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.OneSetPerTick
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
@@ -313,8 +314,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (request.fresh) populateFrom(request)
         }
 
-        var noNew = false
-        var noProgression = false
+        var noNew: Boolean
+        var noProgression: Boolean
 
         while (true) {
             noNew = breakRequest?.let { request ->
@@ -639,11 +640,13 @@ object BreakManager : RequestHandler<BreakRequest>(
     /**
      * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnCancel] callback gets triggered
      */
-    private fun BreakInfo.nullify() =
+    private fun BreakInfo.nullify() {
         when (type) {
             Primary, Rebreak -> primaryBreak = null
             else -> secondaryBreak = null
         }
+        oneSetPerTickSet.forEach(OneSetPerTick<*>::destroy)
+    }
 
     /**
      * A modified version of the vanilla updateBlockBreakingProgress method.
