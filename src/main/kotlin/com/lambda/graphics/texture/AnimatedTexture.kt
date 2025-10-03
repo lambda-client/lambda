@@ -17,7 +17,6 @@
 
 package com.lambda.graphics.texture
 
-import com.lambda.graphics.buffer.pixel.PixelBuffer
 import com.lambda.util.LambdaResource
 import com.lambda.util.stream
 import org.lwjgl.BufferUtils
@@ -26,7 +25,6 @@ import java.nio.ByteBuffer
 
 
 class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
-    private val pbo: PixelBuffer
     private val gif: ByteBuffer // Do NOT free this pointer
     private val frameDurations: IntArray // Array of frame duration milliseconds as ints
     val channels: Int
@@ -51,7 +49,7 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
                 .position(blockSize * currentFrame)
                 .limit(blockSize * (currentFrame + 1))
 
-            pbo.upload(slice, offset = 0)
+            update(slice, width, height)
             gif.clear()
 
             currentFrame = (currentFrame + 1) % frames
@@ -85,7 +83,5 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
         frameDurations = IntArray(frames)
 
         pDelays.getIntBuffer(frames).get(frameDurations)
-
-        pbo = PixelBuffer(this@AnimatedTexture)
     }
 }

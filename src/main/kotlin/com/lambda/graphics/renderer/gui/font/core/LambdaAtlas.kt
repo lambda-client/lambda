@@ -19,7 +19,7 @@ package com.lambda.graphics.renderer.gui.font.core
 
 import com.google.common.math.IntMath
 import com.lambda.core.Loadable
-import com.lambda.graphics.texture.TextureOwner.uploadField
+import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.math.Vec2d
 import com.lambda.util.stream
@@ -206,7 +206,7 @@ object LambdaAtlas : Loadable {
         val str = "Loaded ${bufferPool.size} fonts" // avoid race condition
 
         runGameScheduled {
-            bufferPool.forEach { (owner, image) -> owner.uploadField(image) }
+            bufferPool.forEach { (owner, image) -> owner.upload(image) }
             bufferPool.clear()
         }
 

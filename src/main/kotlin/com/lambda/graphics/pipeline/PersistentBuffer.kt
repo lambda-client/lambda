@@ -17,9 +17,11 @@
 
 package com.lambda.graphics.pipeline
 
-import com.lambda.graphics.buffer.Buffer.Companion.createPipelineBuffer
+import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.buffer.DynamicByteBuffer.Companion.dynamicByteBuffer
 import com.lambda.graphics.gl.kibibyte
+import org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT
+import org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT
 import org.lwjgl.system.MemoryUtil.memCopy
 
 /**
@@ -34,15 +36,16 @@ class PersistentBuffer(
     val byteBuffer = dynamicByteBuffer(stride * initialSize)
 
     /**
+     * Represents a OpenGl Object that store unformatted memory
+     */
+    val buffer = Buffer.create(target, GL_MAP_WRITE_BIT or GL_DYNAMIC_STORAGE_BIT) { allocate(byteBuffer.capacity.toLong()) }
+
+    /**
      * Data that has passed through the buffer within previous frame
      */
     private val snapshot = dynamicByteBuffer(1)
     private var snapshotData = 0L
 
-    /**
-     * Represents a gpu-side buffer
-     */
-    val glBuffer = createPipelineBuffer(target)
     private var glSize = 0
 
     var uploadOffset = 0L
@@ -54,8 +57,7 @@ class PersistentBuffer(
 
         if (glSize != byteBuffer.capacity) {
             glSize = byteBuffer.capacity
-
-            glBuffer.allocate(byteBuffer.data)
+            buffer.allocate(byteBuffer.data)
             snapshot.realloc(byteBuffer.capacity)
             snapshotData = 0
             return
@@ -65,7 +67,7 @@ class PersistentBuffer(
             if (snapshot.mismatch(byteBuffer) >= 0) return
         }
 
-        glBuffer.update(uploadOffset, dataCount, dataStart)
+        buffer.update(uploadOffset, dataCount, dataStart)
     }
 
     fun end() {
@@ -86,6 +88,4 @@ class PersistentBuffer(
         uploadOffset = 0
         snapshotData = 0
     }
-
-    fun use(block: () -> Unit) = glBuffer.bind { block() }
 }
