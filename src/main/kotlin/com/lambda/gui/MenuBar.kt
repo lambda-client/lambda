@@ -103,7 +103,7 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildLambdaMenu() {
-        menu("Safe Config...") {
+        menu("Save Config...") {
             menuItem("Save All Configs") {
                 Configuration.configurations.forEach { it.trySave(true) }
                 info("Saved ${Configuration.configurations.size} configuration files.")
