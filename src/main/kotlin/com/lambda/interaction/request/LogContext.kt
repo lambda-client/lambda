@@ -44,8 +44,10 @@ interface LogContext {
         fun buildLogContext(tabMin: Int = 0, builder: LogContextBuilder.() -> Unit): String =
             LogContextBuilder(tabMin).apply(builder).build()
 
+        @LogContextDsl
         private fun LogContextBuilder.build() = logContext
 
+        @LogContextDsl
         class LogContextBuilder(val tabMin: Int = 0) {
             var logContext = ""
 
@@ -68,6 +70,7 @@ interface LogContext {
                 logContext += "$text\n"
             }
 
+            @LogContextDsl
             fun text(builder: LogContextBuilder.() -> Unit) {
                 logContext += LogContextBuilder(tabs).apply(builder).build()
             }
