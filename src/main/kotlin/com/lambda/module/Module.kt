@@ -17,7 +17,7 @@
 
 package com.lambda.module
 
-import com.lambda.Lambda.mc
+import com.lambda.Lambda
 import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
@@ -135,13 +135,24 @@ abstract class Module(
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            onButtonPress(event.keyCode, event.isPressed, event.isReleased)
+            if (Lambda.mc.options.commandKey.isPressed
+                || Lambda.mc.currentScreen != null
+                || !event.satisfies(keybind)) return@listen
+
+            if (event.isPressed) toggle()
+            else if (event.isReleased && disableOnRelease) disable()
         }
 
         listen<MouseEvent.Click>(alwaysListen = true) { event ->
             val pressed = event.action == Mouse.Action.Click.ordinal
             val released = event.action == Mouse.Action.Release.ordinal
-            onButtonPress(event.button, pressed, released)
+
+            if (mc.options.commandKey.isPressed
+                || mc.currentScreen != null
+                || !event.satisfies(keybind)) return@listen
+
+            if (pressed) toggle()
+            else if (released && disableOnRelease) disable()
         }
 
         onEnable { LambdaSound.MODULE_ON.play() }
@@ -153,14 +164,6 @@ abstract class Module(
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }
         listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
-    }
-
-    private fun onButtonPress(code: Int, pressed: Boolean, released: Boolean) {
-        if (mc.options.commandKey.isPressed) return
-        if (mc.currentScreen != null) return
-        if (code != keybind.code) return
-        if (pressed) toggle()
-        else if (released && disableOnRelease) disable()
     }
 
     fun enable() {

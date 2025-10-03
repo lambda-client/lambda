@@ -17,6 +17,7 @@
 
 package com.lambda.event.events
 
+import com.lambda.config.settings.complex.Bind
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.util.Mouse
@@ -49,6 +50,8 @@ sealed class MouseEvent {
             modifiers,
             position
         )
+
+        fun satisfies(bind: Bind) = bind.modifiers == modifiers && bind.mouse == button
 
         val isMainButton = button <= 2
         val isSideButton = button > 2

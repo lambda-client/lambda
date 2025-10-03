@@ -26,8 +26,8 @@ import com.lambda.util.math.Vec2d
 import net.minecraft.client.util.InputUtil
 
 object InputUtils : Loadable {
-    var lastKeyboardEvent: KeyboardEvent.Press = KeyboardEvent.Press(0, 0, -1, 0); private set
-    var lastMouseEvent: MouseEvent.Click = MouseEvent.Click(Mouse.Button.Left, Mouse.Action.Click, 0, Vec2d(0, 0)); private set
+    var lastKeyboardEvent: KeyboardEvent.Press? = null; private set
+    var lastMouseEvent: MouseEvent.Click? = null; private set
 
     /**
      * Returns whether any of the key-codes (not scan-codes) are being pressed

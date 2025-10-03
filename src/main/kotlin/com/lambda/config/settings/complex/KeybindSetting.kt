@@ -39,7 +39,14 @@ import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiMouseButton
 import net.minecraft.command.CommandRegistryAccess
-import org.lwjgl.glfw.GLFW
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SUPER
+import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 class KeybindSetting(
     override val name: String,
@@ -56,10 +63,9 @@ class KeybindSetting(
 
     override fun ImGuiBuilder.buildLayout() {
         val bind = value
-        val scancode = if (bind.code == KeyCode.UNBOUND.code) -69 else GLFW.glfwGetKeyScancode(bind.code)
-        val translated = if (bind.keyCode == KeyCode.UNBOUND) bind.keyCode else KeyCode.virtualMapUS(bind.code, scancode)
-        val preview = if (listening) "$name: Press any key…"
-        else if (bind.isMouseButton) "Mouse ${bind.code}" else "$name: $translated"
+        val preview =
+            if (listening) "$name: Press any key…"
+            else bind.name
 
         if (listening) {
             withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
@@ -99,18 +105,23 @@ class KeybindSetting(
             lambdaTooltip("Clear binding")
         }
 
-        val keyboardPoll = InputUtils.lastKeyboardEvent
-        val mousePoll = InputUtils.lastMouseEvent
+        val keypoll = InputUtils.lastKeyboardEvent ?: return
+        val mousepoll = InputUtils.lastMouseEvent ?: return
+
         if (listening) {
-            if (keyboardPoll.isPressed) {
-                when (val key = keyboardPoll.translated) {
+            val isModKey = keypoll.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
+
+            if ((keypoll.isPressed && !isModKey)
+                || (keypoll.isReleased && isModKey)
+            ) {
+                when (keypoll.translated) {
                     KeyCode.ESCAPE -> {}
                     KeyCode.BACKSPACE, KeyCode.DELETE -> value = Bind.EMPTY
-                    else -> value = Bind(key)
+                    else -> value = Bind(keypoll.keyCode, keypoll.modifiers, -1)
                 }
                 listening = false
-            } else if (mousePoll.action == Mouse.Action.Click.ordinal) {
-                value = mouseBind(mousePoll.button)
+            } else if (mousepoll.action == Mouse.Action.Click.ordinal) {
+                value = Bind(0, mousepoll.modifiers, mousepoll.button)
                 listening = false
             }
         }
@@ -136,7 +147,7 @@ class KeybindSetting(
                         bind = mouseBind(num)
                     } else {
                         bind = try {
-                            Bind(KeyCode.valueOf(name().value()))
+                            Bind(KeyCode.valueOf(name().value()).code, 0)
                         } catch(_: IllegalArgumentException) {
                             return@executeWithResult failure("${name().value()} doesn't match with a bind")
                         }
@@ -151,19 +162,34 @@ class KeybindSetting(
 }
 
 data class Bind(
-    val keyCode: KeyCode = KeyCode.UNBOUND,
-    val code: Int = keyCode.code,
-    val isMouseButton: Boolean = false
+    val key: Int,
+    val modifiers: Int,
+    val mouse: Int = -1,
 ) {
+    val truemods = buildList {
+        if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LEFT_SHIFT)
+        if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LEFT_CONTROL)
+        if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LEFT_ALT)
+        if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LEFT_SUPER)
+        if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CAPS_LOCK)
+        if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NUM_LOCK)
+    }
+
     val name: String
-        get() = if (isMouseButton) "Mouse $code" else keyCode.name
+        get() = buildString {
+            if (mouse >= 0) append("${Mouse.Button.fromMouseCode(mouse)} + ")
+            if (modifiers > 0) append("${truemods.joinToString(separator = "+") { it.name }} +")
+            if (key > 0) append(KeyCode.fromKeyCode(key))
+
+            if (mouse < 0 && modifiers <= 0 && key <= 0) append("Unbound")
+        }
 
     override fun toString() =
-        "Key Code: $keyCode, Code: $code, Mouse Button: $isMouseButton"
+        "Key Code: $key"
 
     companion object {
-        val EMPTY = Bind()
+        val EMPTY = Bind(0, 0)
 
-        fun mouseBind(code: Int) = Bind(code = code, isMouseButton = true)
+        fun mouseBind(code: Int) = Bind(0, 0, code)
     }
 }
