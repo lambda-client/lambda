@@ -15,18 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.client
+package com.lambda.network
 
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
+import com.lambda.config.Configurable
+import com.lambda.config.configurations.LambdaConfig
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
-import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.network.NetworkManager
 import com.lambda.network.NetworkManager.updateToken
 import com.lambda.network.api.v1.endpoints.login
 import com.lambda.util.StringUtils.hash
@@ -42,18 +41,16 @@ import net.minecraft.text.Text
 import java.math.BigInteger
 import kotlin.jvm.optionals.getOrElse
 
+object LambdaAPI : Configurable(LambdaConfig) {
+    override val name = "api"
 
-object Network : Module(
-    name = "Network",
-    description = "Lambda Authentication",
-    tag = ModuleTag.CLIENT,
-    enabledByDefault = true,
-) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")
     val apiUrl by setting("API Server", "https://api.lambda-client.org")
     val apiVersion by setting("API Version", ApiVersion.V1)
-    val mappings by setting("Mappings", "https://mappings.lambda-client.org")
-    val cdn by setting("CDN", "https://cdn.lambda-client.org")
+    val assets by setting("Assets", "https://raw.githubusercontent.com/Edouard127/lambda-assets/refs/heads/master")
+
+    val mappings get() = "$assets/mappings" // Folder containing mappings for our dynamic serializer
+    val capes get() = "$assets/capes" // Folder containing all the capes, add .txt to get the list of available capes
 
     @Suppress("Deprecation")
     const val GAME_VERSION = SharedConstants.VERSION_NAME

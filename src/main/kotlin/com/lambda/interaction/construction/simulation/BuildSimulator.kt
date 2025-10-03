@@ -59,7 +59,6 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.hasFluid
 import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.Communication.warn
 import com.lambda.util.math.distSq
@@ -69,6 +68,10 @@ import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.block.OperatorBlock
@@ -85,6 +88,12 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
+import net.minecraft.registry.tag.ItemTags.DIAMOND_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.GOLD_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.IRON_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.NETHERITE_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.STONE_TOOL_MATERIALS
+import net.minecraft.registry.tag.ItemTags.WOODEN_TOOL_MATERIALS
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -101,28 +110,34 @@ object BuildSimulator {
         rotation: RotationConfig = TaskFlowModule.rotation,
         inventory: InventoryConfig = TaskFlowModule.inventory,
         build: BuildConfig = TaskFlowModule.build,
-    ) = runSafe {
-        structure.entries.flatMap { (pos, target) ->
-            val preProcessing = target.getProcessingInfo(pos) ?: return@flatMap emptySet()
-            checkRequirements(pos, target, build).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            checkPostProcessResults(pos, eye, preProcessing, target, interactionConfig, build.placing, rotation, inventory).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            checkPlaceResults(pos, eye, preProcessing, target, build.placing, interactionConfig, rotation, inventory).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            checkBreakResults(pos, eye, preProcessing, build.breaking, interactionConfig, rotation, inventory, build).let {
-                if (it.isEmpty()) return@let
-                return@flatMap it
-            }
-            warn("Nothing matched $pos $target")
-            emptySet()
-        }.toSet()
+    ): Set<BuildResult> = runSafe {
+        runBlocking(Dispatchers.Default) {
+            structure.entries
+                .map { (pos, target) ->
+                    async {
+                        val preProcessing = target.getProcessingInfo(pos) ?: return@async emptySet()
+
+                        checkRequirements(pos, target, build).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+                        checkPostProcessResults(pos, eye, preProcessing, target, interactionConfig, build.placing, rotation, inventory).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+                        checkPlaceResults(pos, eye, preProcessing, target, build.placing, interactionConfig, rotation, inventory).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+                        checkBreakResults(pos, eye, preProcessing, build.breaking, interactionConfig, rotation, inventory, build).let { results ->
+                            if (results.isNotEmpty()) return@async results
+                        }
+
+                        warn("Nothing matched $pos $target")
+                        emptySet()
+                    }
+                }
+                .awaitAll()
+                .flatMap { it }
+                .toSet()
+        }
     } ?: emptySet()
 
     private fun SafeContext.checkRequirements(
@@ -396,10 +411,10 @@ object BuildSimulator {
         if (!currentState.isReplaceable && !statePromoting) return acc
 
         preProcessing.sides.forEach { neighbor ->
-            val hitPos = if (!place.airPlace.isEnabled && (currentState.isEmpty || statePromoting))
-                pos.offset(neighbor)
-            else pos
+            val hitPos = if (!place.airPlace.isEnabled && (currentState.isAir || statePromoting))
+                pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
+            if (!world.worldBorder.contains(hitPos)) return@forEach
 
             val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos).let { outlineShape ->
                 if (!outlineShape.isEmpty || !place.airPlace.isEnabled) outlineShape
@@ -644,7 +659,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (!breaking.breakWeakBlocks && state.block.hardness == 0f && state.isNotEmpty) {
+        if (!breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir && state.isNotEmpty) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -722,6 +737,11 @@ object BuildSimulator {
             }
 
             if (affectedFluids.isNotEmpty()) {
+                affectedFluids.forEach { (liquidPos, liquidState) ->
+                    val submerge = checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
+                    acc.add(BreakResult.Submerge(liquidPos, liquidState, submerge))
+                    acc.addAll(submerge)
+                }
                 acc.add(BreakResult.BlockedByFluid(pos, state))
                 return acc
             }
@@ -826,14 +846,25 @@ object BuildSimulator {
                 state.calcItemBlockBreakingDelta(player, world, pos, it)
             }
         ) {
-            run {
-                if (breaking.suitableToolsOnly) isSuitableForBreaking(state)
-                else StackSelection.EVERYTHING
-            } and if (breaking.forceSilkTouch) {
-                hasEnchantment(Enchantments.AQUA_AFFINITY)
-            } else if (breaking.forceFortunePickaxe) {
-                hasEnchantment(Enchantments.FORTUNE, breaking.minFortuneLevel)
-            } else StackSelection.EVERYTHING
+            isTool() and if (breaking.suitableToolsOnly) {
+                isSuitableForBreaking(state)
+            } else any() and if (breaking.forceSilkTouch) {
+                hasEnchantment(Enchantments.SILK_TOUCH)
+            } else any() and if (breaking.forceFortunePickaxe) {
+                hasEnchantment(Enchantments.FORTUNE)
+            } else any() and if (!breaking.useWoodenTools) {
+                hasTag(WOODEN_TOOL_MATERIALS).not()
+            } else any() and if (!breaking.useStoneTools) {
+                hasTag(STONE_TOOL_MATERIALS).not()
+            } else any() and if (!breaking.useIronTools) {
+                hasTag(IRON_TOOL_MATERIALS).not()
+            } else any() and if (!breaking.useDiamondTools) {
+                hasTag(DIAMOND_TOOL_MATERIALS).not()
+            } else any() and if (!breaking.useGoldTools) {
+                hasTag(GOLD_TOOL_MATERIALS).not()
+            } else any() and if (!breaking.useNetheriteTools) {
+                hasTag(NETHERITE_TOOL_MATERIALS).not()
+            } else any()
         }
 
         val silentSwapSelection = selectContainer {
@@ -846,7 +877,8 @@ object BuildSimulator {
             return acc
         }
 
-        val swapStack = swapCandidates.map { it.matchingStacks(stackSelection) }
+        val swapStack = swapCandidates
+            .map { it.matchingStacks(stackSelection) }
             .asSequence()
             .flatten()
             .let { containerStacks ->

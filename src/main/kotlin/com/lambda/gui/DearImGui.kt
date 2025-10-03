@@ -21,8 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.GuiEvent
-import com.lambda.module.modules.client.ClickGui
-import com.lambda.module.modules.client.GuiSettings
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.util.stream
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
@@ -30,6 +29,7 @@ import imgui.ImFontConfig
 import imgui.ImFontGlyphRangesBuilder
 import imgui.ImGui
 import imgui.ImGuiIO
+import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiConfigFlags
 import imgui.gl3.ImGuiImplGl3
 import imgui.glfw.ImGuiImplGlfw
@@ -75,7 +75,7 @@ object DearImGui : Loadable {
     }
 
     fun render() {
-        val scale = (GuiSettings.scaleSetting / 100.0).toFloat()
+        val scale = (ClickGuiLayout.scaleSetting / 100.0).toFloat()
 
         if (lastScale == 0f) {
             targetScale = scale
@@ -108,7 +108,7 @@ object DearImGui : Loadable {
         implGlfw.newFrame()
         implGl3.newFrame()
 
-        ClickGui.applyStyle(lastScale)
+        ClickGuiLayout.applyStyle(lastScale)
         ImGui.newFrame()
 
         GuiEvent.NewFrame.post()
@@ -122,10 +122,12 @@ object DearImGui : Loadable {
         implGlfw.shutdown()
         implGl3.shutdown()
         ImGui.destroyContext()
+        ImPlot.destroyContext()
     }
 
     init {
         ImGui.createContext()
+        ImPlot.createContext()
 
         io.configFlags = DEFAULT_FLAGS
         io.iniFilename = "lambda.ini"

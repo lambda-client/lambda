@@ -21,6 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -35,10 +37,23 @@ data class InteractRequest(
     val build: BuildConfig,
     val hotbar: HotbarConfig,
     val rotation: RotationConfig
-) : Request(), InteractConfig by config {
+) : Request(), InteractConfig by config, LogContext {
+    override val requestID = ++requestCount
+
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
 
     override fun submit(queueIfClosed: Boolean) =
         InteractionManager.request(this, queueIfClosed)
+
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Interact Request") {
+            value("Request ID", requestID)
+            value("Contexts", contexts.size)
+        }
+    }
+
+    companion object {
+        var requestCount = 0
+    }
 }

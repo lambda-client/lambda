@@ -19,11 +19,13 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.event.Event
 import com.lambda.interaction.request.RequestConfig
 
 interface InteractConfig : RequestConfig {
     val rotate: Boolean
     val swingHand: Boolean
+    val interactStageMask: Set<Event>
     val interactSwingType: BuildConfig.SwingType
     val interactConfirmationMode: InteractionConfig.InteractConfirmationMode
 }

@@ -17,6 +17,7 @@
 
 package com.lambda.mixin;
 
+import com.lambda.core.TimerManager;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.InventoryEvent;
@@ -42,6 +43,7 @@ import net.minecraft.util.thread.ThreadExecutor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -60,6 +62,9 @@ public class MinecraftClientMixin {
     @Shadow
     public int itemUseCooldown;
 
+    @Unique
+    private boolean lambda$inputHandledThisTick;
+
     @Inject(method = "close", at = @At("HEAD"))
     void closeImGui(CallbackInfo ci) {
         DearImGui.INSTANCE.destroy();
@@ -74,6 +79,8 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "tick")
     void onTick(Operation<Void> original) {
+        this.lambda$inputHandledThisTick = false;
+
         EventFlow.post(TickEvent.Pre.INSTANCE);
         original.call();
         EventFlow.post(TickEvent.Post.INSTANCE);
@@ -91,10 +98,18 @@ public class MinecraftClientMixin {
         EventFlow.post(TickEvent.Input.Pre.INSTANCE);
         original.call(instance);
         EventFlow.post(TickEvent.Input.Post.INSTANCE);
+
+        this.lambda$inputHandledThisTick = true;
     }
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
     void onWorldRenderer(WorldRenderer instance, Operation<Void> original) {
+        if (!this.lambda$inputHandledThisTick) {
+            EventFlow.post(TickEvent.Input.Pre.INSTANCE);
+            EventFlow.post(TickEvent.Input.Post.INSTANCE);
+            this.lambda$inputHandledThisTick = true;
+        }
+
         EventFlow.post(TickEvent.WorldRender.Pre.INSTANCE);
         original.call(instance);
         EventFlow.post(TickEvent.WorldRender.Post.INSTANCE);
@@ -170,5 +185,15 @@ public class MinecraftClientMixin {
         if (!Interact.INSTANCE.isEnabled()) return;
 
         itemUseCooldown = Interact.getPlaceDelay();
+    }
+
+    @WrapMethod(method = "getTargetMillisPerTick")
+    float getTargetMillisPerTick(float millis, Operation<Float> original) {
+        var length = TimerManager.INSTANCE.getLength();
+
+        if (length == TimerManager.DEFAULT_LENGTH)
+            return original.call(millis);
+        else
+            return (float) TimerManager.INSTANCE.getLength();
     }
 }

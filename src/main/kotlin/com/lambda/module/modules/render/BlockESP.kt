@@ -82,11 +82,10 @@ object BlockESP : Module(
         pos: BlockPos,
         sides: Int,
     ) = runSafe {
-        val shape = outlineShape(state, pos)
         val blockColor = blockColor(state, pos)
 
-        if (drawFaces) filled(shape, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) outline(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        if (drawFaces) filled(pos, state, if (useBlockColor) blockColor else faceColor, sides)
+        if (drawOutlines) outline(pos, state, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
     private fun rebuildMesh(ctx: SafeContext, from: Any, to: Any): Unit = esp.rebuild()

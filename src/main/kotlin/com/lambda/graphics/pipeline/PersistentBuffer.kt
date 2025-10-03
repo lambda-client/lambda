@@ -20,9 +20,6 @@ package com.lambda.graphics.pipeline
 import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.buffer.DynamicByteBuffer.Companion.dynamicByteBuffer
 import com.lambda.graphics.gl.kibibyte
-import com.lambda.graphics.gl.megabyte
-import com.lambda.gui.dsl.ImStorageDsl.storage
-import com.lambda.util.collections.updatableLazy
 import org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT
 import org.lwjgl.opengl.GL44.GL_DYNAMIC_STORAGE_BIT
 import org.lwjgl.system.MemoryUtil.memCopy
@@ -31,7 +28,7 @@ import org.lwjgl.system.MemoryUtil.memCopy
  * Represents a persistent dynamic coherent buffer for fast opengl rendering purposes
  */
 class PersistentBuffer(
-    target: Int, stride: Int, initialSize: Int = 64.kibibyte,
+    target: Int, stride: Int, initialSize: Int = 1.kibibyte
 ) {
     /**
      * Resizable byte buffer that stores all data used last frame

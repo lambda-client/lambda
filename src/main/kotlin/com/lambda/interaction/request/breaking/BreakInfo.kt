@@ -19,6 +19,8 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -26,7 +28,6 @@ import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
-import com.lambda.util.OneSetPerTick
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
@@ -39,27 +40,27 @@ data class BreakInfo(
     override var context: BreakContext,
     var type: BreakType,
     var request: BreakRequest
-) : ActionInfo {
+) : ActionInfo, LogContext {
     // Delegates
     val breakConfig get() = request.build.breaking
     override val pendingInteractionsList get() = request.pendingInteractions
 
     // Pre Processing
     var shouldProgress = false
-    var rebreakPotential by OneSetPerTick(value = RebreakHandler.RebreakPotential.None, throwOnLimitBreach = true)
-    var swapInfo by OneSetPerTick(value = SwapInfo.EMPTY, throwOnLimitBreach = true)
-    var swapStack: ItemStack by OneSetPerTick(ItemStack.EMPTY, true)
+    var rebreakPotential = RebreakHandler.RebreakPotential.None
+    var swapInfo = SwapInfo.EMPTY
+    var swapStack: ItemStack = ItemStack.EMPTY
 
     // BreakInfo Specific
-    var updatedThisTick by OneSetPerTick(false, resetAfterTick = true).apply { set(true) }
-    var updatedPreProcessingThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true)
-    var progressedThisTick by OneSetPerTick(value = false, throwOnLimitBreach = true, resetAfterTick = true)
+    var updatedThisTick = true
+    var updatedPreProcessingThisTick = false
+    var progressedThisTick = false
 
     // Processing
     var breaking = false
     var abandoned = false
-    var breakingTicks by OneSetPerTick(0, true)
-    var soundsCooldown by OneSetPerTick(0f, true)
+    var breakingTicks = 0
+    var soundsCooldown = 0f
     var vanillaInstantBreakable = false
     val rebreakable get() = !vanillaInstantBreakable && type == Primary
 
@@ -105,6 +106,12 @@ data class BreakInfo(
         item = null
     }
 
+    fun tickChecks() {
+        updatedThisTick = false
+        updatedPreProcessingThisTick = false
+        progressedThisTick = false
+    }
+
     fun setBreakingTextureStage(
         player: ClientPlayerEntity,
         world: ClientWorld,
@@ -147,4 +154,28 @@ data class BreakInfo(
                 sequence
             )
         }
+
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Break Info") {
+            value("Type", type)
+            text(context.getLogContextBuilder())
+            group("Details") {
+                value("Should Progress", shouldProgress)
+                value("Rebreak Potential", rebreakPotential)
+                text(swapInfo.getLogContextBuilder())
+                value("Swap Stack", swapStack)
+                value("Updated This Tick", updatedThisTick)
+                value("Updated Pre-Processing This Tick", updatedPreProcessingThisTick)
+                value("Progressed This Tick", progressedThisTick)
+                value("Breaking", breaking)
+                value("Abandoned", abandoned)
+                value("Breaking Ticks", breakingTicks)
+                value("Sounds Cooldown", soundsCooldown)
+                value("Vanilla Instant Breakable", vanillaInstantBreakable)
+                value("Rebreakable", rebreakable)
+            }
+        }
+    }
+
+    override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }

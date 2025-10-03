@@ -18,6 +18,7 @@
 package com.lambda.util.item
 
 import com.lambda.util.collections.Cacheable.Companion.cacheable
+import net.minecraft.component.ComponentType
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.AttributeModifiersComponent
 import net.minecraft.entity.EquipmentSlot
@@ -104,15 +105,8 @@ object ItemStackUtils {
         return listOf(copyWithCount(maxCount), copyWithCount(remainder))
     }
 
-    // TODO: Find another way
     val ItemStack.shulkerBoxContents: List<ItemStack> by cacheable { stack ->
-        /*BlockItem.getBlockEntityNbt(stack)?.takeIf {
-            it.contains("Items", NbtElement.LIST_TYPE.toInt())
-        }?.let {
-            val list = DefaultedList.ofSize(27, ItemStack.EMPTY)
-            Inventories.readNbt(it, list)
-            list
-        } ?: */emptyList()
+        stack.components.get(DataComponentTypes.CONTAINER)?.stream()?.toList() ?: emptyList()
     }
 
     /**

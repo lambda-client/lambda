@@ -15,22 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.client
+package com.lambda.module.modules.player
 
-import com.lambda.config.groups.RotationSettings
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
+import net.minecraft.util.Hand
 
-object Baritone : Module(
-    name = "Baritone",
-    description = "Baritone configuration",
-    tag = ModuleTag.CLIENT,
+object AntiAFK : Module(
+    name = "AntiAFK",
+    description = "Keeps you from getting kicked",
+    tag = ModuleTag.PLAYER,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        GENERAL("General"),
-        ROTATION("Rotation")
-    }
+    private val delay by setting("Delay", 300, 5..600, 1, unit = " s", description = "Delay between swinging the hand.")
+    private val swingHand by setting("Swing Hand", Hand.MAIN_HAND, description = "Hand to swing.")
 
-    val rotation = RotationSettings(this, Group.ROTATION)
+    init {
+        listen<TickEvent.Pre> {
+            if (mc.uptimeInTicks % (delay * 20) != 0L) return@listen
+            player.swingHand(swingHand)
+        }
+    }
 }

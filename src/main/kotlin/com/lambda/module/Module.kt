@@ -17,6 +17,7 @@
 
 package com.lambda.module
 
+import com.lambda.Lambda
 import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
@@ -31,16 +32,11 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.gui.DearImGui
-import com.lambda.gui.LambdaScreen
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
-import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import imgui.ImGui
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -121,6 +117,7 @@ abstract class Module(
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
+    val disableOnReleaseSetting = setting("Disable On Release", false) { false }
 
     open val isVisible: Boolean = true
 
@@ -128,24 +125,20 @@ abstract class Module(
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting
+    val disableOnRelease by disableOnReleaseSetting
 
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            if (mc.options.commandKey.isPressed) return@listen
-            if (!event.isPressed) return@listen
+            if (Lambda.mc.options.commandKey.isPressed) return@listen
             if (keybind == KeyCode.UNBOUND) return@listen
             if (event.translated != keybind) return@listen
-            if (mc.currentScreen != null) {
-                if (ClickGui.isEnabled && mc.currentScreen == LambdaScreen && !DearImGui.io.wantTextInput) {
-                    LambdaScreen.close()
-                }
-                return@listen
-            }
+            if (Lambda.mc.currentScreen != null) return@listen
 
-            toggle()
+            if (event.isPressed) toggle()
+            else if (event.isReleased && disableOnRelease) disable()
         }
 
         onEnable { LambdaSound.MODULE_ON.play() }

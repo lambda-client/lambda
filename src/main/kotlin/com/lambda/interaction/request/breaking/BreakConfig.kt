@@ -63,6 +63,13 @@ interface BreakConfig : RequestConfig {
     val forceFortunePickaxe: Boolean
     val minFortuneLevel: Int
 
+    val useWoodenTools: Boolean
+    val useStoneTools: Boolean
+    val useIronTools: Boolean
+    val useDiamondTools: Boolean
+    val useGoldTools: Boolean
+    val useNetheriteTools: Boolean
+
     val sounds: Boolean
     val particles: Boolean
     val breakingTexture: Boolean
@@ -97,7 +104,8 @@ interface BreakConfig : RequestConfig {
     ) : NamedEnum, Describable {
         Closest("Closest", "Breaks blocks closest to the player eye position"),
         Farthest("Farthest", "Breaks blocks farthest from the player eye position"),
-        Rotation("Rotation", "Breaks blocks that are closest to the player rotation"),
+        Tool("Tool", "Breaks blocks with priority given to those with tools matching the current selected"),
+        Rotation("Rotation", "Breaks blocks closest to the player rotation"),
         Random("Random", "Breaks blocks in a random order")
     }
 
@@ -113,7 +121,6 @@ interface BreakConfig : RequestConfig {
 
         fun isEnabled() = this != None
     }
-
 
     enum class SwingMode(
         override val displayName: String,

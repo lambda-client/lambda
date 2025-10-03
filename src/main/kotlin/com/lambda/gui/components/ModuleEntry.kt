@@ -17,15 +17,11 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.AbstractSetting
 import com.lambda.gui.Layout
+import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
-import com.lambda.util.NamedEnum
-import com.lambda.util.KeyCode
 import imgui.ImGui
-import imgui.flag.ImGuiTabBarFlags
-import imgui.flag.ImGuiCol
 
 class ModuleEntry(val module: Module): Layout {
     override fun ImGuiBuilder.buildLayout() {
@@ -36,47 +32,7 @@ class ModuleEntry(val module: Module): Layout {
 
         ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
         popupContextItem("##ctx-${module.name}") {
-            group {
-                with(module.keybindSetting) { buildLayout() }
-                sameLine()
-                smallButton("Reset") {
-                    module.settings.forEach { it.reset(silent = true) }
-                }
-                lambdaTooltip("Resets all settings for this module to their default values")
-            }
-            separator()
-            group {
-                val visibleSettings = module.settings.filter { it.visibility() } - module.keybindSetting
-                val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
-
-                ungrouped.forEach { with(it) { buildLayout() } }
-                renderGroup(grouped, emptyList())
-            }
-        }
-    }
-
-    private fun ImGuiBuilder.renderGroup(settings: List<AbstractSetting<*>>, parentPath: List<NamedEnum>) {
-        settings.filter { it.groups.contains(parentPath) }.forEach { with(it) { buildLayout() } }
-
-        val subGroupSettings = settings.filter { s -> s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath } }
-        val subTabs = subGroupSettings
-            .flatMap { s ->
-                s.groups.mapNotNull { path -> if (path.size > parentPath.size && path.subList(0, parentPath.size) == parentPath) path[parentPath.size] else null }
-            }.distinct()
-
-        if (subTabs.isNotEmpty()) {
-            val id = "##${module.name}-tabs-${parentPath.joinToString("-") { it.displayName }}"
-            tabBar(id, ImGuiTabBarFlags.FittingPolicyResizeDown) {
-                subTabs.forEach { tab ->
-                    tabItem(tab.displayName) {
-                        val newParentPath = parentPath + tab
-                        val settingsForSubGroup = subGroupSettings.filter { s ->
-                            s.groups.any { it.size >= newParentPath.size && it.subList(0, newParentPath.size) == newParentPath }
-                        }
-                        renderGroup(settingsForSubGroup, newParentPath)
-                    }
-                }
-            }
+            buildConfigSettingsContext(module)
         }
     }
 }

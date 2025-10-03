@@ -24,8 +24,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ClientPacket
@@ -113,7 +113,7 @@ object BackTrack : Module(
         onDynamicRender {
             val target = target ?: return@onDynamicRender
 
-            val c1 = GuiSettings.primaryColor
+            val c1 = ClickGuiLayout.primaryColor
             val c2 = Color.RED
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)

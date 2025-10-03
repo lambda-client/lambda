@@ -186,7 +186,11 @@ object Speed : Module(
     }
 
     private fun SafeContext.shouldWork(): Boolean {
-        if (player.abilities.flying || player.isElytraFlying || player.isTouchingWater || player.isInLava) return false
+        if (player.abilities.flying
+            || player.isElytraFlying
+            || player.isTouchingWater
+            || player.isInLava
+            || player.isRiding) return false
 
         return when (mode) {
             Mode.GRIM_STRAFE -> !player.input.handledByBaritone

@@ -25,7 +25,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
+import com.lambda.interaction.request.ManagerUtils.newStage
+import com.lambda.interaction.request.ManagerUtils.newTick
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
@@ -39,6 +42,7 @@ import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingActions
 import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.placing.PlacedBlockHandler.startPending
+import com.lambda.module.hud.ManagerDebugLoggers.placeManagerLogger
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import com.lambda.util.player.MovementUtils.sneaking
@@ -68,8 +72,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    onOpen = { activeRequest?.let { processRequest(it) } }
-), PositionBlocking {
+    onOpen = {
+        if (potentialPlacements.isNotEmpty())
+            PlaceManager.logger.newStage(PlaceManager.tickStage)
+        activeRequest?.let { processRequest(it) }
+    }
+), PositionBlocking, Logger {
     private var activeRequest: PlaceRequest? = null
     private var potentialPlacements = mutableListOf<PlaceContext>()
 
@@ -83,8 +91,15 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
 
+    override val logger = placeManagerLogger
+
     override fun load(): String {
         super.load()
+
+        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+            if (potentialPlacements.isNotEmpty())
+                logger.newTick()
+        }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest = null
@@ -127,6 +142,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun SafeContext.processRequest(request: PlaceRequest) {
+        logger.debug("Processing request", request)
+
         if (request.fresh) populateFrom(request)
 
         val iterator = potentialPlacements.iterator()
@@ -135,15 +152,27 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             val ctx = iterator.next()
 
             if (ctx.sneak) shouldSneak = true
-            if (!ctx.requestDependencies(request) || !validSneak(player)) return
-//            if (tickStage !in request.build.placing.placeStageMask) return
+            if (!ctx.requestDependencies(request)) {
+                logger.warning("Dependencies failed for context", ctx, request)
+                return
+            }
+            if (!validSneak(player)) return
+            if (tickStage !in request.placeStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
-            if (!actionResult.isAccepted) warn("Placement interaction failed with $actionResult")
+            if (!actionResult.isAccepted) {
+                logger.warning("Placement interaction failed with $actionResult", ctx, request)
+                warn("Placement interaction failed with $actionResult")
+            }
             placementsThisTick++
             iterator.remove()
         }
-        if (potentialPlacements.isEmpty()) activeRequest = null
+        if (potentialPlacements.isEmpty()) {
+            if (activeRequest != null) {
+                logger.debug("Clearing active request", activeRequest)
+                activeRequest = null
+            }
+        }
     }
 
     /**
@@ -153,10 +182,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see isPosBlocked
      */
     private fun populateFrom(request: PlaceRequest) {
+        logger.debug("Populating from request", request)
         setPendingConfigs(request.build)
         potentialPlacements = request.contexts
             .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
+        logger.debug("${potentialPlacements.size} potential placements")
 
         val pendingLimit = (request.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
         maxPlacementsThisTick = (request.placementsPerTick.coerceAtMost(pendingLimit))
@@ -170,8 +201,14 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     private fun SafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
         val hitResult = placeContext.result
-        if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
-        if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
+        if (!world.worldBorder.contains(hitResult.blockPos)) {
+            logger.error("Placement position outside the world border", placeContext, request)
+            return ActionResult.FAIL
+        }
+        if (gamemode == GameMode.SPECTATOR) {
+            logger.error("Player is in spectator mode", placeContext, request)
+            return ActionResult.PASS
+        }
         return interactBlockInternal(placeContext, request, request.build.placing, hand, hitResult)
     }
 
@@ -192,11 +229,13 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!cantInteract) {
             val blockState = blockState(hitResult.blockPos)
             if (!connection.hasFeature(blockState.block.requiredFeatures)) {
+                logger.error("Required features not met for $blockState", placeContext, request)
                 return ActionResult.FAIL
             }
 
             val actionResult = blockState.onUse(world, player, hitResult)
             if (actionResult.isAccepted) {
+                logger.error("Block state ($blockState) onUse not accepted", placeContext, request)
                 return actionResult
             }
         }
@@ -235,9 +274,15 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
         val cantModifyWorld = !player.abilities.allowModifyWorld
         val cantPlaceOn = !itemStack.canPlaceOn(cachedBlockPosition)
-        if (cantModifyWorld && cantPlaceOn) return ActionResult.PASS
+        if (cantModifyWorld && cantPlaceOn) {
+            logger.error("Cannot modify world", placeContext, request)
+            return ActionResult.PASS
+        }
 
-        val item = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
+        val item = (itemStack.item as? BlockItem) ?: run {
+            logger.error("Item ${itemStack.item.name} is not a block item", placeContext, request)
+            return ActionResult.PASS
+        }
 
         return place(placeContext, request, hand, hitResult, placeConfig, item, ItemPlacementContext(context))
     }
@@ -256,11 +301,23 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         item: BlockItem,
         context: ItemPlacementContext
     ): ActionResult {
-        if (!item.block.isEnabled(world.enabledFeatures)) return ActionResult.FAIL
-        if (!context.canPlace()) return ActionResult.FAIL
+        if (!item.block.isEnabled(world.enabledFeatures)) {
+            logger.error("Block ${item.block.name} is not enabled", placeContext, request)
+            return ActionResult.FAIL
+        }
+        if (!context.canPlace()) {
+            logger.error("Cannot place at ${placeContext.blockPos} with current state ${placeContext.cachedState}", placeContext, request)
+            return ActionResult.FAIL
+        }
 
-        val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
-        val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
+        val itemPlacementContext = item.getPlacementContext(context) ?: run {
+            logger.error("Could not retrieve item placement context", placeContext, request)
+            return ActionResult.FAIL
+        }
+        val blockState = item.getPlacementState(itemPlacementContext) ?: run {
+            logger.error("Could not retrieve placement state", placeContext, request)
+            return ActionResult.FAIL
+        }
 
         val stackInHand = player.getStackInHand(hand)
         val stackCountPre = stackInHand.count
@@ -294,7 +351,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         // TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
         //  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
         //  rules are not called.
-        if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
+        if (!item.place(itemPlacementContext, blockState)) {
+            logger.error("Could not place block client side at ${placeContext.blockPos} with placement state ${placeContext.expectedState}", placeContext, request)
+            return ActionResult.FAIL
+        }
 
         val blockPos = itemPlacementContext.blockPos
         var state = world.getBlockState(blockPos)
@@ -309,6 +369,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
             request.onPlace?.invoke(placeContext.blockPos)
         }
+
+        logger.success("Placed ${placeContext.expectedState} at ${placeContext.blockPos}", placeContext, request)
 
         return ActionResult.SUCCESS
     }

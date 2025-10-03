@@ -19,12 +19,11 @@ package com.lambda.util.item
 
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.Item
 import net.minecraft.item.Items
 
 object ItemUtils {
-
-
     val pickaxes = setOf(
         Items.WOODEN_PICKAXE,
         Items.STONE_PICKAXE,
@@ -122,6 +121,8 @@ object ItemUtils {
     )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
+
+    val Item.nutrition: Int get() = components.get(DataComponentTypes.FOOD)?.nutrition ?: 0
 
     fun Int.toItemCount(): String {
         if (this < 0) {

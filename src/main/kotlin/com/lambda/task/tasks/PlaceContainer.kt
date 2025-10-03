@@ -33,8 +33,10 @@ import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.math.distSq
 import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
@@ -53,45 +55,42 @@ class PlaceContainer @Ta5kBuilder constructor(
     override val name: String get() = "Placing container ${startStack.name.string}"
 
     override fun SafeContext.onStart() {
-        tickingBlueprint { current ->
-            if (current.isNotEmpty() &&
-                (current.all { it.value.matches(blockState(it.key), it.key, world) } ||
-                ManagerUtils.positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }))
-            {
-                return@tickingBlueprint current
+        val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
+            .map { it.blockPos }
+            .asSequence()
+            .filter { !ManagerUtils.isPosBlocked(it) }
+            .flatMap {
+                it.toStructure(TargetState.Stack(startStack))
+                    .toBlueprint()
+                    .simulate(player.eyePos)
             }
 
-            val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
-                .flatMap {
-                    it.toStructure(TargetState.Stack(startStack))
-                        .toBlueprint()
-                        .simulate(player.eyePos)
-                }
-
+        val options = results.filterIsInstance<PlaceResult.Place>().filter {
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
+        } + results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
+        }
+        val containerPosition = options.filter {
             // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
-            val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-                canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
-            }
-            val wrongStacks = results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
-                canBeOpened(startStack, it.blockPos, it.context.result.side) && it.blockPos.y == player.blockPos.y
-            }
-            (succeeds + wrongStacks).minOrNull()
-                ?.blockPos
-                ?.toStructure(TargetState.Stack(startStack))
-        }.build(
-            finishOnDone = true,
-            collectDrops = false,
-            build = build,
-            rotation = rotation,
-            interact = interact,
-            inventory = inventory
-        ).finally {
-            val pos = it.keys.firstOrNull() ?: run {
-                failure("The returned structure was empty")
-                return@finally
-            }
-            success(pos)
-        }.execute(this@PlaceContainer)
+            it.blockPos.y == player.blockPos.y
+        }.minByOrNull { it.blockPos distSq player.pos }?.blockPos ?: run {
+            failure("Couldn't find a valid container placement position for ${startStack.name.string}")
+            return@onStart
+        }
+
+        containerPosition
+            .toStructure(TargetState.Stack(startStack))
+            .toBlueprint()
+            .build(
+                finishOnDone = true,
+                collectDrops = false,
+                build = build,
+                rotation = rotation,
+                interact = interact,
+                inventory = inventory
+            ).finally {
+                success(containerPosition)
+            }.execute(this@PlaceContainer)
     }
 
     private fun SafeContext.canBeOpened(
@@ -102,7 +101,6 @@ class PlaceContainer @Ta5kBuilder constructor(
         Items.ENDER_CHEST -> {
             !ChestBlock.isChestBlocked(world, blockPos)
         }
-
         in shulkerBoxes -> {
             val box = ShulkerEntity
                 .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
@@ -111,7 +109,6 @@ class PlaceContainer @Ta5kBuilder constructor(
 
             world.isSpaceEmpty(box)
         }
-
         else -> false
     }
 }

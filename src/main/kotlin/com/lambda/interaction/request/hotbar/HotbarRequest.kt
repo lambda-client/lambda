@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 
 class HotbarRequest(
@@ -24,7 +26,9 @@ class HotbarRequest(
     override val config: HotbarConfig,
     override var keepTicks: Int = config.keepTicks,
     override var swapPause: Int = config.swapPause
-) : Request(), HotbarConfig by config {
+) : Request(), HotbarConfig by config, LogContext {
+    override val requestID = ++requestCount
+
     var activeRequestAge = 0
     var swapPauseAge = 0
 
@@ -37,4 +41,19 @@ class HotbarRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         HotbarManager.request(this, queueIfClosed)
+
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Hotbar Request") {
+            value("Request ID", requestID)
+            value("Slot", slot)
+            value("Keep Ticks", keepTicks)
+            value("Swap Pause", swapPause)
+            value("Swap Pause Age", swapPauseAge)
+            value("Active Request Age", activeRequestAge)
+        }
+    }
+
+    companion object {
+        var requestCount = 0
+    }
 }

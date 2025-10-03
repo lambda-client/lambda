@@ -17,8 +17,8 @@
 
 package com.lambda.network.api.v1.endpoints
 
-import com.lambda.module.modules.client.Network.apiUrl
-import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.LambdaAPI.apiUrl
+import com.lambda.network.LambdaAPI.apiVersion
 import com.lambda.network.LambdaHttp
 import com.lambda.network.NetworkManager
 import io.ktor.client.request.*

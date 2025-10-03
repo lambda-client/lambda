@@ -21,10 +21,11 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.request.LogContext
+import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
+import com.lambda.interaction.request.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
-import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
@@ -42,7 +43,7 @@ data class BreakContext(
     var instantBreak: Boolean,
     override var cachedState: BlockState,
     val sortMode: BreakConfig.SortMode
-) : BuildContext() {
+) : BuildContext(), LogContext {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
@@ -53,17 +54,20 @@ data class BreakContext(
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
-            is BreakContext -> compareByDescending<BreakContext> {
-                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
-            }.thenBy {
-                it.instantBreak
-            }.thenBy {
+            is BreakContext -> compareBy<BreakContext> {
                 when (sortMode) {
                     BreakConfig.SortMode.Closest -> it.distance
                     BreakConfig.SortMode.Farthest -> -it.distance
+                    BreakConfig.SortMode.Tool -> it.hotbarIndex != HotbarManager.serverSlot
                     BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
                     BreakConfig.SortMode.Random -> it.random
                 }
+            }.thenBy {
+                it.distance
+            }.thenBy {
+                it.instantBreak
+            }.thenByDescending {
+                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.compare(this, other)
@@ -76,10 +80,16 @@ data class BreakContext(
         box(blockPos, cachedState, baseColor, sideColor, DirectionMask.ALL.exclude(result.side))
     }
 
-    fun requestSwap(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean =
-        HotbarRequest(
-            hotbarIndex,
-            breakRequest.hotbar,
-            breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks)
-        ).submit(false).done
+    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
+        group("Break Context") {
+            text(blockPos.getLogContextBuilder())
+            text(result.getLogContextBuilder())
+            text(rotation.getLogContextBuilder())
+            value("Hotbar Index", hotbarIndex)
+            value("Instant Break", instantBreak)
+            value("Cached State", cachedState)
+            value("Expected State", expectedState)
+            value("Sort Mode", sortMode)
+        }
+    }
 }

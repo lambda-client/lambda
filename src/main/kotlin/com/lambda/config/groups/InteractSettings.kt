@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.interacting.InteractConfig
 import com.lambda.util.NamedEnum
 
@@ -28,6 +29,7 @@ class InteractSettings(
 ) : InteractConfig {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis).group(groupPath)
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis).group(groupPath)
+    override val interactStageMask by c.setting("Interact Stage Mask", setOf(TickEvent.Input.Post), description = "The sub-tick timing at which interact actions are performed", visibility = vis).group(groupPath)
     override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swingHand }.group(groupPath)
     override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractionConfig.InteractConfirmationMode.InteractThenAwait, "The style of confirmation for interactions", visibility = vis).group(groupPath)
 }

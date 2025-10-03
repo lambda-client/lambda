@@ -24,13 +24,15 @@ import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
-import com.lambda.module.modules.client.ClickGui
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
 import com.lambda.util.math.setAlpha
+import net.minecraft.client.gui.hud.ChatHud.getHeight
+import sun.java2d.SunGraphicsEnvironment.getScaleFactor
 import java.awt.Color
 
 /**
@@ -59,7 +61,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         text: String,
         position: Vec2d = Vec2d.ZERO,
         color: Color = Color.WHITE,
-        scale: Double = ClickGui.fontScale,
+        scale: Double = ClickGuiLayout.fontScale,
         shadow: Boolean = true,
         parseEmoji: Boolean = LambdaMoji.isEnabled
     ) = render {
@@ -89,7 +91,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         glyph: GlyphInfo,
         position: Vec2d,
         color: Color = Color.WHITE,
-        scale: Double = ClickGui.fontScale,
+        scale: Double = ClickGuiLayout.fontScale,
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
@@ -105,9 +107,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         val pos1 = Vec2d(0.0, posY) * actualScale
         val pos2 = pos1 + scaledSize
 
-        upload {
-            buildGlyph(glyph, position, pos1, pos2, color)
-        }
+        upload { buildGlyph(glyph, position, pos1, pos2, color) }
     }
 
     /**
@@ -131,20 +131,12 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         val x2 = pos2.x + origin.x
         val y2 = pos2.y + origin.y
 
-        buildQuad(
-            vertex {
-                vec3m(x1, y1).vec2(glyph.uv1.x, glyph.uv1.y).color(color)
-            },
-            vertex {
-                vec3m(x1, y2).vec2(glyph.uv1.x, glyph.uv2.y).color(color)
-            },
-            vertex {
-                vec3m(x2, y2).vec2(glyph.uv2.x, glyph.uv2.y).color(color)
-            },
-            vertex {
-                vec3m(x2, y1).vec2(glyph.uv2.x, glyph.uv1.y).color(color)
-            }
-        )
+        val upLeft =    vertex { vec3m(x1, y1).vec2(glyph.uv1.x, glyph.uv1.y).color(color) }
+        val downLeft =  vertex { vec3m(x1, y2).vec2(glyph.uv1.x, glyph.uv2.y).color(color) }
+        val upRight =   vertex { vec3m(x2, y2).vec2(glyph.uv2.x, glyph.uv2.y).color(color) }
+        val downRight = vertex { vec3m(x2, y1).vec2(glyph.uv2.x, glyph.uv1.y).color(color) }
+
+        buildQuad(upLeft, downLeft, upRight, downRight)
     }
 
     /**
@@ -157,7 +149,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
      */
     fun getWidth(
         text: String,
-        scale: Double = ClickGui.fontScale,
+        scale: Double = ClickGuiLayout.fontScale,
         parseEmoji: Boolean = LambdaMoji.isEnabled,
     ): Double {
         var width = 0.0

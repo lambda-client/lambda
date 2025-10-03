@@ -22,14 +22,18 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.visibilty.lookAt
-import com.lambda.module.modules.client.Baritone
+import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.partialTicks
@@ -37,9 +41,11 @@ import com.lambda.util.extension.rotation
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
+import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.PlayerInput
+import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.Vec2f
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -52,14 +58,17 @@ object RotationManager : RequestHandler<RotationRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-) {
+), Logger {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
     @JvmStatic
     var prevServerRotation = Rotation.ZERO
+    var baritoneRequest: RotationRequest? = null
 
     var activeRequest: RotationRequest? = null
     private var changedThisTick = false
+
+    override val logger = rotationManagerLogger
 
     override fun load(): String {
         super.load()
@@ -67,6 +76,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             activeRequest?.let {
                 if (it.keepTicks <= 0 && it.decayTicks <= 0) {
+                    logger.debug("Clearing active request", it)
                     activeRequest = null
                 }
             }
@@ -77,6 +87,17 @@ object RotationManager : RequestHandler<RotationRequest>(
                 request.age++
             }
             changedThisTick = false
+        }
+
+        listen<RenderEvent.UpdateTarget> {
+            if (activeRequest == null) return@listen
+            it.cancel()
+
+            val eye = player.eyePos
+            val entityHit = player.rotation.rayCast(player.entityInteractionRange, eye).orMiss
+            mc.targetedEntity = (entityHit as? EntityHitResult)?.entity
+            val blockHit = player.rotation.rayCast(player.blockInteractionRange, eye).orMiss
+            mc.crosshairTarget = blockHit
         }
 
         listen<PacketEvent.Receive.Post>(priority = Int.MIN_VALUE) { event ->
@@ -92,12 +113,34 @@ object RotationManager : RequestHandler<RotationRequest>(
             reset(Rotation.ZERO)
         }
 
+        // Override user interactions with max priority
+        listen<PlayerEvent.Interact.Block>(priority = Int.MAX_VALUE) {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Attack.Block>(priority = Int.MAX_VALUE) {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Interact.Entity>(priority = Int.MAX_VALUE) {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Attack.Entity>(priority = Int.MAX_VALUE) {
+            activeRotation = player.rotation
+        }
+
+        listen<PlayerEvent.Interact.Item>(priority = Int.MAX_VALUE) {
+            activeRotation = player.rotation
+        }
+
         return "Loaded Rotation Manager"
     }
 
     override fun SafeContext.handleRequest(request: RotationRequest) {
         activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
+            logger.debug("Accepting request", request)
             activeRequest = request
             updateActiveRotation()
             changedThisTick = true
@@ -121,12 +164,16 @@ object RotationManager : RequestHandler<RotationRequest>(
     }
 
     @JvmStatic
-    fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-        lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
+    fun handleBaritoneRotation(yaw: Float) {
+        runSafe {
+            baritoneRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager.rotation)
+        }
     }
 
     @JvmStatic
     fun redirectStrafeInputs(input: Input) = runSafe {
+        if (activeRequest == baritoneRequest) return@runSafe
+
         val movementYaw = movementYaw ?: return@runSafe
         val playerYaw = player.yaw
 
@@ -228,9 +275,12 @@ object RotationManager : RequestHandler<RotationRequest>(
             // Important: do NOT wrap the result yaw; keep it continuous to match vanilla packets
             serverRotation.slerp(rotationTo, turnSpeed)
         } ?: player.rotation
+
+        logger.debug("Active rotation set to $activeRotation", activeRequest)
     }
 
     private fun reset(rotation: Rotation) {
+        logger.debug("Resetting values with rotation $rotation")
         prevServerRotation = rotation
         serverRotation = rotation
         activeRotation = rotation

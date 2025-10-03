@@ -18,9 +18,12 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.groups.BuildSettings
+import com.lambda.config.groups.EatSettings
+import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -29,7 +32,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -59,8 +61,9 @@ object HighwayTools : Module(
     private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }.group(Group.Structure)
     private val floor by setting("Floor", Material.None, "Material for the floor").group(Group.Structure)
     private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }.group(Group.Structure)
-    private val walls by setting("Walls", Material.None, "Material for the walls").group(Group.Structure)
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { walls == Material.Block }.group(Group.Structure)
+    private val rightWall by setting("Right Wall", Material.None, "Build the right wall").group(Group.Structure)
+    private val leftWall by setting("Left Wall", Material.None, "Build the left wall").group(Group.Structure)
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }.group(Group.Structure)
     private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling").group(Group.Structure)
     private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }.group(Group.Structure)
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
@@ -70,6 +73,8 @@ object HighwayTools : Module(
     private val rotation = RotationSettings(this, Group.Rotation)
     private val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
     private val inventory = InventorySettings(this, Group.Inventory)
+    private val hotbar = HotbarSettings(this, Group.Hotbar)
+    private val eat = EatSettings(this, Group.Eat)
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
@@ -100,6 +105,8 @@ object HighwayTools : Module(
         Rotation("Rotation"),
         Interaction("Interaction"),
         Inventory("Inventory"),
+        Hotbar("Hotbar"),
+        Eat("Eat")
     }
 
     init {
@@ -113,7 +120,7 @@ object HighwayTools : Module(
             runningTask?.cancel()
             runningTask = null
             distanceMoved = 0
-            BaritoneUtils.cancel()
+            BaritoneManager.cancel()
         }
     }
 
@@ -140,6 +147,9 @@ object HighwayTools : Module(
             rotation = rotation,
             interact = interact,
             inventory = inventory,
+            hotbar = hotbar,
+            eat = eat,
+            lifeMaintenance = true,
         ).run()
     }
 
@@ -215,26 +225,25 @@ object HighwayTools : Module(
             ).associateWith { target(ceiling, ceilingMaterial) }
         }
 
-        if (walls != Material.None) {
-            val wallElevation = rimHeight + if (pavement != Material.None) 1 else 0
-
-            // Left wall
+        val wallElevation = if (pavement != Material.None) rimHeight else 0 + if (pavement != Material.None) 1 else 0
+        if (rightWall != Material.None) {
             structure += generateDirectionalTube(
                 orthogonal,
                 1,
                 height - wallElevation,
                 -center + width,
                 wallElevation,
-            ).associateWith { target(walls, wallMaterial) }
+            ).associateWith { target(rightWall, wallMaterial) }
+        }
 
-            // Right wall
+        if (leftWall != Material.None) {
             structure += generateDirectionalTube(
                 orthogonal,
                 1,
                 height - wallElevation,
                 -center - 1,
                 wallElevation,
-            ).associateWith { target(walls, wallMaterial) }
+            ).associateWith { target(leftWall, wallMaterial) }
         }
 
         if (floor != Material.None) {
