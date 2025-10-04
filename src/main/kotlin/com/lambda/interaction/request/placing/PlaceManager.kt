@@ -65,6 +65,7 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
+import kotlin.math.min
 
 object PlaceManager : RequestHandler<PlaceRequest>(
     0,
@@ -124,7 +125,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see processRequest
      */
     override fun SafeContext.handleRequest(request: PlaceRequest) {
-        if (activeRequest != null || BreakManager.activeThisTick || InteractionManager.activeThisTick) return
+        if (activeRequest != null || request.contexts.isEmpty()) return
 
         activeRequest = request
         processRequest(request)
@@ -142,6 +143,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun SafeContext.processRequest(request: PlaceRequest) {
+        if (BreakManager.activeThisTick || InteractionManager.activeThisTick) return
+
         logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
@@ -185,12 +188,18 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         logger.debug("Populating from request", request)
         setPendingConfigs(request.build)
         potentialPlacements = request.contexts
+            .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
+            .take(
+                min(
+                    request.maxPendingPlacements - pendingActions.size,
+                    request.build.maxPendingInteractions - request.pendingInteractions.size
+                ).coerceAtLeast(0)
+            )
             .toMutableList()
         logger.debug("${potentialPlacements.size} potential placements")
 
-        val pendingLimit = (request.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
-        maxPlacementsThisTick = (request.placementsPerTick.coerceAtMost(pendingLimit))
+        maxPlacementsThisTick = request.placementsPerTick
     }
 
     /**

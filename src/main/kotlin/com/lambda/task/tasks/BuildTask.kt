@@ -158,8 +158,6 @@ class BuildTask private constructor(
                         is BreakResult.Break -> {
                             val breakResults = resultsNotBlocked
                                 .filterIsInstance<BreakResult.Break>()
-                                .distinctBy { it.blockPos }
-                                .take(emptyPendingInteractionSlots)
                                 .map { it.context }
 
                             breakRequest(
@@ -175,8 +173,6 @@ class BuildTask private constructor(
                         is PlaceResult.Place -> {
                             val placeResults = resultsNotBlocked
                                 .filterIsInstance<PlaceResult.Place>()
-                                .distinctBy { it.blockPos }
-                                .take(emptyPendingInteractionSlots)
                                 .map { it.context }
 
                             PlaceRequest(placeResults, pendingInteractions, build, hotbar, rotation) { placements++ }.submit()
@@ -184,8 +180,6 @@ class BuildTask private constructor(
                         is InteractResult.Interact -> {
                             val interactResults = resultsNotBlocked
                                 .filterIsInstance<InteractResult.Interact>()
-                                .distinctBy { it.blockPos }
-                                .take(emptyPendingInteractionSlots)
                                 .map { it.context }
 
                             InteractRequest(interactResults, null, pendingInteractions, build.interacting, build, hotbar, rotation).submit()
