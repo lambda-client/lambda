@@ -70,8 +70,7 @@ object RebreakHandler {
             else player.mainHandStack
             val breakDelta = info.context.cachedState.calcBreakDelta(player, world, info.context.blockPos, info.breakConfig, stack)
             val possible = reBreak.breakConfig.rebreak &&
-                    info.context.blockPos == reBreak.context.blockPos &&
-                    !reBreak.updatedThisTick
+                    info.context.blockPos == reBreak.context.blockPos
             val instant = (reBreak.breakingTicks - info.breakConfig.fudgeFactor) * breakDelta >= info.breakConfig.breakThreshold
             when {
                 possible && instant -> RebreakPotential.Instant
@@ -89,7 +88,7 @@ object RebreakHandler {
             val context = reBreak.context
             val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, reBreak.breakConfig)
             val breakTicks = reBreak.breakingTicks - reBreak.breakConfig.fudgeFactor
-            return@runSafe if (breakTicks * breakDelta >= reBreak.getBreakThreshold() && BreakManager.swapped) {
+            return@runSafe if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
                 if (reBreak.breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
                     destroyBlock(reBreak)
                 }

@@ -195,22 +195,20 @@ object PacketMine : Module(
         breakRequest(
             breakContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
         ) {
-            onStart { queuePositions.removePos(it)
-                if (breakPositions.none { pos -> pos == it }) {
-                    addBreak(it)
-                }
-            }
-            onUpdate {
-                queuePositions.removePos(it)
-                if (breakPositions.none { pos -> pos == it }) {
-                    addBreak(it)
-                }
-            }
+            onStart { onProgress(it) }
+            onUpdate { onProgress(it) }
             onStop { removeBreak(it); breaks++ }
             onCancel { removeBreak(it, true) }
             onReBreakStart { reBreakPos = it }
-            onReBreak { reBreakPos = it }
+            onReBreak { removeBreak(it); reBreakPos = it }
         }.submit()
+    }
+
+    private fun onProgress(blockPos: BlockPos) {
+        queuePositions.removePos(blockPos)
+        if (breakPositions.none { pos -> pos == blockPos }) {
+            addBreak(blockPos)
+        }
     }
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
@@ -247,9 +245,8 @@ object PacketMine : Module(
     private fun ArrayList<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
         var anyRemoved = false
         removeIf {
-            val removed = it.remove(element)
-            anyRemoved = anyRemoved or removed
-            return@removeIf removed && it.isEmpty()
+            anyRemoved = anyRemoved or it.remove(element)
+            return@removeIf it.isEmpty()
         }
         return anyRemoved
     }

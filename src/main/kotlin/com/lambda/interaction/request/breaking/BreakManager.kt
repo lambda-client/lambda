@@ -661,22 +661,26 @@ object BreakManager : RequestHandler<BreakRequest>(
      *
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
      */
-    private fun SafeContext.updateBreakProgress(info: BreakInfo): Boolean {
+    private fun SafeContext.updateBreakProgress(info: BreakInfo) {
         val config = info.breakConfig
         val ctx = info.context
 
         info.progressedThisTick = true
 
+        val swapMode = info.breakConfig.swapMode
+
         if (!info.breaking) {
-            return if (startBreaking(info)) true
-            else {
+            if (swapMode.isEnabled() &&
+                (swapMode != BreakConfig.SwapMode.End ||
+                        info.context.instantBreak ||
+                        info.rebreakPotential.isPossible()) &&
+                !swapped) return
+            if (!startBreaking(info)) {
                 info.nullify()
                 info.request.onCancel?.invoke(ctx.blockPos)
-                false
             }
+            return
         }
-
-        if (config.swapMode == BreakConfig.SwapMode.Constant && !swapped) return true
 
         val hitResult = ctx.result
 
@@ -686,7 +690,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             onBlockBreak(info)
             info.startBreakPacket(world, interaction)
             if (config.swing.isEnabled()) swingHand(config.swingType, Hand.MAIN_HAND)
-            return true
+            return
         }
 
         val blockState = blockState(ctx.blockPos)
@@ -694,8 +698,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             info.nullify()
             info.request.onCancel?.invoke(ctx.blockPos)
             logger.warning("Block state was unexpectedly empty", info)
-            return false
+            return
         }
+
+        if (swapMode.isEnabled() && swapMode == BreakConfig.SwapMode.Constant && !swapped) return
 
         info.breakingTicks++
         val breakDelta = blockState.calcBreakDelta(player, world, ctx.blockPos, config)
@@ -728,7 +734,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val swing = config.swing
-        if (progress >= info.getBreakThreshold() && swapped) {
+        if (progress >= info.getBreakThreshold()) {
+            if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start && !swapped) return
+
             logger.success("Breaking", info)
             if (info.type == Primary) {
                 onBlockBreak(info)
@@ -742,7 +750,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (swing == BreakConfig.SwingMode.Constant) swingHand(config.swingType, Hand.MAIN_HAND)
         }
 
-        return true
+        return
     }
 
     /**
@@ -808,12 +816,10 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val progress = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
 
-        if (!swapped) return true
-
-        val instantBreakable = progress >= info.getBreakThreshold() && swapped
+        val instantBreakable = progress >= info.getBreakThreshold()
         if (instantBreakable) {
             logger.success("Instant breaking", info)
-            info.vanillaInstantBreakable = progress >= 1 && swapped
+            info.vanillaInstantBreakable = progress >= 1
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {
