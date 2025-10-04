@@ -737,6 +737,12 @@ object BuildSimulator {
             }
 
             if (affectedFluids.isNotEmpty()) {
+                val liquidOutOfBounds = affectedFluids.any { !world.worldBorder.contains(it.key) }
+                if (liquidOutOfBounds) {
+                    acc.add(BuildResult.Ignored(pos))
+                    return acc
+                }
+
                 affectedFluids.forEach { (liquidPos, liquidState) ->
                     val submerge = checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
                     acc.add(BreakResult.Submerge(liquidPos, liquidState, submerge))
