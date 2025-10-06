@@ -98,6 +98,7 @@ object NoRender : Module(
     private val miscEntities by setting("Misc Entities", miscEntityMap.values.toSet(), emptySet(), "Miscellaneous entities to omit from rendering").group(Group.Entity)
     private val blockEntities by setting("Block Entities", blockEntityMap.values.toSet(), emptySet(), "Block entities to omit from rendering").group(Group.Entity)
 
+    @JvmStatic val noTerrainFog by setting("No Terrain Fog", false).group(Group.World)
     @JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)
     @JvmStatic val noWorldBorder by setting("No World Border", false).group(Group.World)
     @JvmStatic val noEnchantingTableBook by setting("No Enchanting Table Book", false).group(Group.World)
