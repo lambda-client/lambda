@@ -103,7 +103,7 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildLambdaMenu() {
-        menu("Safe Config...") {
+        menu("Save Config...") {
             menuItem("Save All Configs") {
                 Configuration.configurations.forEach { it.trySave(true) }
                 info("Saved ${Configuration.configurations.size} configuration files.")
@@ -262,7 +262,6 @@ object MenuBar {
             menu(tag.name) {
                 ModuleRegistry.modules
                     .filter { it.tag == tag }
-                    .sortedBy { it.name.lowercase() }
                     .forEach { module ->
                         menuItem(module.name, selected = module.isEnabled) {
                             if (module.isEnabled) module.disable() else module.enable()

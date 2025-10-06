@@ -211,37 +211,6 @@ tasks {
         // Forces the task to always run
         outputs.upToDateWhen { false }
     }
-
-    // Visual debugger for OpenGL
-    register<Exec>("renderDoc") {
-        // You need renderdoc installed on your system and available in your environment variables in order
-        // to use this task.
-        // You can download it from their official website at https://renderdoc.org/
-
-        val javaHome = Jvm.current().javaHome
-        val gradle = rootProject.tasks.wrapper.get().jarFile.absolutePath
-
-        val seperator =
-            if (Os.isFamily(Os.FAMILY_WINDOWS)) ";" else ":"
-
-        commandLine = listOf(
-            "renderdoccmd", "capture", "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children", "--wait-for-exit", "--working-dir", ".",
-            "$javaHome/bin/java",
-            //"-javaagent:${projectDir.resolve("lwjglx-debug-1.0.0.jar")}=t",
-            //"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
-            "-Dorg.gradle.appname=gradlew",
-            "-Dorg.gradle.java.home=$javaHome",
-            "-Dorg.lwjgl.util.Debug=true",
-            "-Dorg.lwjgl.util.DebugLoader=true",
-            "-Dorg.lwjgl.util.DebugAllocator=true",
-            "-Dorg.lwjgl.util.DebugStack=true",
-            "-Dorg.lwjgl.util.DebugFunctions=true",
-            "-cp", listOf(projectDir.resolve("lwjgl.jar"), gradle, projectDir.resolve("lwjglx-debug-1.0.0.jar"))
-                .joinToString(seperator),
-            "org.gradle.wrapper.GradleWrapperMain",
-            "runClient",
-        )
-    }
 }
 
 kotlin {

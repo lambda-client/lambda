@@ -38,8 +38,10 @@ import com.lambda.util.FolderRegister.capes
 import com.lambda.util.StringUtils.asIdentifier
 import com.lambda.util.extension.resolveFile
 import kotlinx.coroutines.runBlocking
+import net.minecraft.client.texture.NativeImage
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
+import org.lwjgl.BufferUtils
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.fixedRateTimer
@@ -99,7 +101,14 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             .downloadIfNotPresent(cape.url).getOrNull()
             ?.readBytes() ?: return@runIO
 
-        mc.textureManager.registerTexture(cape.id.asIdentifier, NativeImageBackedTexture({ cape.id }, TextureUtils.readImage(bytes)))
+        val buffer = BufferUtils
+            .createByteBuffer(bytes.size)
+            .put(bytes)
+            .flip()
+
+        val image = read(NativeImage.Format.RGBA, buffer)
+
+        mc.textureManager.registerTexture(cape.id.asIdentifier, NativeImageBackedTexture({ cape.id }, image))
 
         put(uuid, cape.id)
     }.invokeOnCompletion { block(it) }

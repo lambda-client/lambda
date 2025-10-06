@@ -46,6 +46,7 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
+import net.minecraft.world.GameMode
 import java.awt.Color
 
 object AutoDisconnect : Module(
@@ -54,7 +55,7 @@ object AutoDisconnect : Module(
     tag = ModuleTag.COMBAT,
 ) {
     private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
-    private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
+    private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
     private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
     private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
     private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
@@ -148,6 +149,7 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
+        if (connection.brand == "2b2t (Velocity)" && player.gameMode == GameMode.SPECTATOR) return
         if (reason == Reason.HEALTH || reason == Reason.TOTEM) disable()
         connection.connection.disconnect(generateInfo(reasonText))
         playSound(SoundEvents.BLOCK_ANVIL_LAND)

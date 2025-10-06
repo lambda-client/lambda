@@ -78,6 +78,6 @@ public class GameRendererMixin {
 
     @ModifyReturnValue(method = "getFov", at = @At("RETURN"))
     private float modifyGetFov(float original) {
-        return original / Zoom.getCurrentZoom();
+        return original / Zoom.getLerpedZoom();
     }
 }

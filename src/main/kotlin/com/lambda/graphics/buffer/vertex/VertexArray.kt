@@ -17,23 +17,19 @@
 
 package com.lambda.graphics.buffer.vertex
 
-import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.pipeline.PersistentBuffer
 import org.lwjgl.opengl.GL30C.GL_UNSIGNED_INT
 import org.lwjgl.opengl.GL30C.glBindVertexArray
+import org.lwjgl.opengl.GL30C.glGenVertexArrays
 import org.lwjgl.opengl.GL32C.glDrawElementsBaseVertex
-import java.nio.ByteBuffer
 
 class VertexArray(
     private val vertexMode: VertexMode,
     private val attributes: VertexAttrib.Group
-) : Buffer(isVertexArray = true) {
-    override val usage: Int = -1
-    override val target: Int = -1
-    override val access: Int = -1
-
+) {
+    private val vao = glGenVertexArrays()
     private var linkedVBO: PersistentBuffer? = null
 
     fun renderIndices(
@@ -50,7 +46,8 @@ class VertexArray(
         indicesSize: Long,
         indicesPointer: Long,
         verticesOffset: Long
-    ) = bind {
+    ) {
+        glBindVertexArray(vao)
         glDrawElementsBaseVertex(
             vertexMode.mode,
             indicesSize.toInt() / Int.SIZE_BYTES,
@@ -58,21 +55,14 @@ class VertexArray(
             indicesPointer,
             verticesOffset.toInt() / attributes.stride,
         )
+        glBindVertexArray(0)
     }
 
-    fun linkVbo(vbo: PersistentBuffer, block: VertexArray.() -> Unit = { }) {
+    fun linkVbo(vbo: PersistentBuffer) {
         linkedVBO = vbo
 
-        bind {
-            vbo.use {
-                attributes.link()
-                block(this@VertexArray)
-            }
-        }
+        glBindVertexArray(vao)
+        vbo.buffer.bind { attributes.link() }
+        glBindVertexArray(0)
     }
-
-    override fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit) = throw UnsupportedOperationException()
-    override fun upload(data: ByteBuffer, offset: Long) = throw UnsupportedOperationException()
-
-    override fun bind(id: Int) = glBindVertexArray(id)
 }

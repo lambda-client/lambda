@@ -44,6 +44,13 @@ public class WorldRendererMixin {
         return Freecam.INSTANCE.isEnabled() || CameraTweaks.INSTANCE.isEnabled() || hasForcedFrustum;
     }
 
+    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/BackgroundRenderer;applyFog(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/BackgroundRenderer$FogType;Lorg/joml/Vector4f;FZF)Lnet/minecraft/client/render/Fog;", ordinal = 0), index = 3)
+    private float modifyApplyFogRenderDistance(float viewDistance) {
+        return NoRender.INSTANCE.isEnabled() && NoRender.getNoTerrainFog()
+                ? Float.MAX_VALUE
+                : viewDistance;
+    }
+
     @Inject(method = "hasBlindnessOrDarkness(Lnet/minecraft/client/render/Camera;)Z", at = @At(value = "HEAD"), cancellable = true)
     private void modifyEffectCheck(Camera camera, CallbackInfoReturnable<Boolean> cir) {
         Entity entity = camera.getFocusedEntity();

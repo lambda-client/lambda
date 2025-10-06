@@ -63,6 +63,8 @@ data class BreakContext(
                     BreakConfig.SortMode.Random -> it.random
                 }
             }.thenBy {
+                it.distance
+            }.thenBy {
                 it.instantBreak
             }.thenByDescending {
                 if (it.cachedState.block is FallingBlock) it.blockPos.y else 0

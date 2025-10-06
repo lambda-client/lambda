@@ -90,7 +90,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
     }
 
     override fun SafeContext.handleRequest(request: InteractRequest) {
-        if (activeRequest != null || BreakManager.activeThisTick || PlaceManager.activeThisTick) return
+        if (activeRequest != null || request.contexts.isEmpty()) return
 
         activeRequest = request
         processRequest(request)
@@ -98,6 +98,8 @@ object InteractionManager : RequestHandler<InteractRequest>(
     }
 
     fun SafeContext.processRequest(request: InteractRequest) {
+        if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
+
         logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
@@ -139,13 +141,14 @@ object InteractionManager : RequestHandler<InteractRequest>(
         logger.debug("Populating from request", request)
         setPendingConfigs(request.build)
         potentialInteractions = request.contexts
+            .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
+            .take((request.build.maxPendingInteractions - pendingActions.size).coerceAtLeast(0))
             .toMutableList()
 
         logger.debug("${potentialInteractions.size} potential interactions")
 
-        val pendingLimit = (request.build.maxPendingInteractions - pendingActions.size).coerceAtLeast(0)
-        maxInteractionsThisTick = (request.build.interactionsPerTick.coerceAtMost(pendingLimit))
+        maxInteractionsThisTick = request.build.interactionsPerTick
     }
 
     override fun preEvent() = UpdateManagerEvent.Interact.post()

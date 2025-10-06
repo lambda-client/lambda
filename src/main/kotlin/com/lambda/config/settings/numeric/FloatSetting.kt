@@ -25,6 +25,7 @@ import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import kotlin.math.roundToInt
 
 /**
  * @see [com.lambda.config.Configurable]
@@ -46,7 +47,7 @@ class FloatSetting(
     visibility
 ) {
     private var valueIndex: Int
-        get() = ((value - range.start) / step).toInt()
+        get() = ((value - range.start) / step).roundToInt()
         set(index) {
             value = (range.start + index * step).coerceIn(range)
         }
