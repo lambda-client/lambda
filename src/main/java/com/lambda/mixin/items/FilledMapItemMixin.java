@@ -34,6 +34,8 @@ public class FilledMapItemMixin extends Item {
 
     @Override
     public Optional<TooltipData> getTooltipData(ItemStack stack) {
-        return Optional.of(new MapPreview.MapComponent(stack));
+        return MapPreview.INSTANCE.isEnabled()
+                ? Optional.of(new MapPreview.MapComponent(stack))
+                : super.getTooltipData(stack);
     }
 }

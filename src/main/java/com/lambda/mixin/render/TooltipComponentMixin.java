@@ -28,13 +28,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Objects;
-
 @Mixin(TooltipComponent.class)
 public interface TooltipComponentMixin {
     @Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
     private static void of(TooltipData tooltipData, CallbackInfoReturnable<TooltipComponent> cir) {
-        cir.setReturnValue((switch (tooltipData) {
+        if (MapPreview.INSTANCE.isEnabled()) cir.setReturnValue((switch (tooltipData) {
             case MapPreview.MapComponent mapComponent -> mapComponent;
             case BundleTooltipData bundleTooltipData -> new BundleTooltipComponent(bundleTooltipData.contents());
             case ProfilesTooltipComponent.ProfilesData profilesData -> new ProfilesTooltipComponent(profilesData);
