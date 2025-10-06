@@ -32,7 +32,8 @@ object Zoom : Module(
 ) {
     private var zoom by setting("Zoom", 2f, 1f..10f, 0.1f)
     private val style by setting("Style", ZoomStyle.EaseOut)
-    private val animationDuration by setting("Animation Duration", 1f, 0.1f..10f, 0.1f) { style != ZoomStyle.Instant }
+    private val animationDuration by setting("Animation Duration", 200, 40..1500, 20, unit = "ms") { style != ZoomStyle.Instant }
+    private val disableDuration by setting("Disable Duration", 100, 0..1500, 20, unit = "ms") { style != ZoomStyle.Instant }
     private val scroll by setting("Scroll", true)
     private val persistentScroll by setting("Persistent Scroll", false) { scroll }
     private val sensitivity by setting("Sensitivity", 0.2f, 0.1f..1f, 0.1f) { scroll }
@@ -44,11 +45,11 @@ object Zoom : Module(
         }
     @JvmStatic val targetZoom: Float
         get() = zoom + extraZoom
-
-    @JvmStatic var currentZoom = 1f; private set
+    private var currentZoom = 1f
+    @JvmStatic var lerpedZoom = 1f; private set
     private var lastZoomTime = 1L
     private val zoomProgress
-        get() = clamp((System.currentTimeMillis() - lastZoomTime) / (animationDuration * 1000).toDouble(), 0.0, 1.0).toFloat()
+        get() = clamp((System.currentTimeMillis() - lastZoomTime) / (if (isEnabled) animationDuration else disableDuration).toDouble(), 0.0, 1.0).toFloat()
 
     init {
         listen<MouseEvent.Scroll> { event ->
@@ -75,13 +76,15 @@ object Zoom : Module(
     }
 
     private fun updateZoomTime() {
+        currentZoom = lerpedZoom
         lastZoomTime = System.currentTimeMillis()
     }
 
     @JvmStatic
     fun updateCurrentZoom() {
         val target = if (isEnabled) targetZoom else 1f
-        currentZoom = style.apply(currentZoom, target, zoomProgress)
+        lerpedZoom = style.apply(currentZoom, target, zoomProgress)
+        if (lerpedZoom == targetZoom) lerpedZoom = targetZoom
     }
 
     private enum class ZoomStyle(
@@ -89,7 +92,7 @@ object Zoom : Module(
         val apply: (Float, Float, Float) -> Float,
     ) : NamedEnum {
         Instant("Instant", { _, v, _ -> v }),
-        EaseOut("Ease Out", { start, end, progress -> start + ((end - start) * (1f - ((1f - progress) * (1f - progress)))) }),
-        EaseIn("Ease In", { start, end, progress -> start + ((end - start) * (progress * progress)) })
+        EaseOut("Ease Out", { start, end, progress -> start + ((end - start) * (1f - ((1f - progress) * (1f - progress) * (1f - progress)))) }),
+        EaseIn("Ease In", { start, end, progress -> start + ((end - start) * (progress * progress * progress)) })
     }
 }
