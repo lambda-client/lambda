@@ -29,7 +29,7 @@ object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,
 ) {
-    var rotation = RotationSettings(this)
+    override val rotationConfig = RotationSettings(this)
     var hitPos: HitResult? = null
     
     init {

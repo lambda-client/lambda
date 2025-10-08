@@ -69,12 +69,12 @@ object HighwayTools : Module(
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once").group(Group.Structure)
 
-    private val build = BuildSettings(this, Group.Build)
-    private val rotation = RotationSettings(this, Group.Rotation)
-    private val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
-    private val inventory = InventorySettings(this, Group.Inventory)
-    private val hotbar = HotbarSettings(this, Group.Hotbar)
-    private val eat = EatSettings(this, Group.Eat)
+    override val buildConfig = BuildSettings(this, Group.Build)
+    override val rotationConfig = RotationSettings(this, Group.Rotation)
+    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
+    override val inventoryConfig = InventorySettings(this, Group.Inventory)
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
+    override val eatConfig = EatSettings(this, Group.Eat)
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
@@ -141,7 +141,7 @@ object HighwayTools : Module(
                 disable()
                 emptyStructure()
             }
-        }.build(collectDrops = build.collectDrops, lifeMaintenance = true)
+        }.build(collectDrops = buildConfig.collectDrops, lifeMaintenance = true)
             .run()
     }
 

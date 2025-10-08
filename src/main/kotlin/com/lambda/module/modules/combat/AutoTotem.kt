@@ -55,7 +55,7 @@ object AutoTotem : Module(
     private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players to swap") { players }.group(Group.General)
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { players }.group(Group.General)
 
-    private val inventory = InventorySettings(this, Group.Inventory)
+    override val inventoryConfig = InventorySettings(this, Group.Inventory)
 
     init {
         listen<TickEvent.Pre> {
