@@ -17,13 +17,14 @@
 
 package com.lambda.interaction.request.inventory
 
+import com.lambda.context.Automated
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 
 class InventoryRequest(
-    override val config: InventoryConfig
-) : Request(), InventoryConfig by config, LogContext {
+    automated: Automated
+) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 
     override val done: Boolean

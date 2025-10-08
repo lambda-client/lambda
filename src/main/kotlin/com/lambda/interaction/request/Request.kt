@@ -17,9 +17,10 @@
 
 package com.lambda.interaction.request
 
-abstract class Request {
+import com.lambda.context.Automated
+
+abstract class Request : Automated {
     abstract val requestID: Int
-    abstract val config: RequestConfig
     var fresh = true
 
     abstract val done: Boolean

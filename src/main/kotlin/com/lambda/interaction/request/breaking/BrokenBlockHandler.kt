@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.context.AutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -27,7 +28,6 @@ import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.request.breaking.RebreakHandler.rebreak
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.fluidState
@@ -49,7 +49,7 @@ import net.minecraft.util.math.ChunkSectionPos
  */
 object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     override val pendingActions = LimitedDecayQueue<BreakInfo>(
-        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
+        AutomationConfig.buildConfig.maxPendingInteractions, AutomationConfig.buildConfig.interactionTimeout * 50L
     ) { info ->
         runSafe {
             val pos = info.context.blockPos
@@ -61,7 +61,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
                 BreakManager.logger.error(message)
                 warn(message)
-            } else if (!TaskFlowModule.ignoreItemDropWarnings) {
+            } else if (!AutomationConfig.ignoreItemDropWarnings) {
                 val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
                 BreakManager.logger.warn(message)
                 warn(message)

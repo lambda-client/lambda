@@ -50,7 +50,7 @@ object InventoryMove : Module(
 ) {
     private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
     private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
-    private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+    override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
     @JvmStatic
     val shouldMove get() = isEnabled && !mc.currentScreen.hasInputOrNull
@@ -78,7 +78,7 @@ object InventoryMove : Module(
 
             lookAt(
                 Rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f))
-            ).requestBy(rotationConfig)
+            ).requestBy(this@InventoryMove)
         }
     }
 

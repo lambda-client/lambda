@@ -25,6 +25,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
+import com.lambda.context.AutomationConfig
 import com.lambda.interaction.construction.StructureRegistry
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
@@ -61,11 +62,13 @@ object BuildCommand : LambdaCommand(
                                 .loadStructureByRelativePath(Path.of(pathString))
                                 .let { template ->
                                     info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
-                                    lastBuildTask = template.toStructure()
-                                        .move(player.blockPos)
-                                        .toBlueprint()
-                                        .build()
-                                        .run()
+                                    lastBuildTask = with(AutomationConfig) {
+                                        template.toStructure()
+                                            .move(player.blockPos)
+                                            .toBlueprint()
+                                            .build()
+                                            .run()
+                                    }
 
                                     return@executeWithResult success()
                                 }

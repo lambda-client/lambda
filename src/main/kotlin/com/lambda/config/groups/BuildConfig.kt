@@ -30,13 +30,13 @@ interface BuildConfig {
     val interactionTimeout: Int
 
     // Breaking
-    val breaking: BreakSettings
+    val breakConfig: BreakSettings
 
     // Placing
-    val placing: PlaceSettings
+    val placeConfig: PlaceSettings
 
     // Interacting
-    val interacting: InteractSettings
+    val interactConfig: InteractSettings
 
     enum class SwingType(
         override val displayName: String,

@@ -67,7 +67,7 @@ object RotationLock : Module(
                 RotationMode.None -> player.pitch.toDouble()
             }
 
-            RotationRequest(lookAt(Rotation(yaw, pitch), 0.001), rotationSettings).submit()
+            RotationRequest(lookAt(Rotation(yaw, pitch), 0.001), this@RotationLock).submit()
         }
     }
 

@@ -63,7 +63,7 @@ object AutoTotem : Module(
 
             if (!player.isHolding(Items.TOTEM_OF_UNDYING)) {
                 Items.TOTEM_OF_UNDYING.select()
-                    .transfer(OffHandContainer, inventory)
+                    .transfer(OffHandContainer)
                     ?.finally { if (log) info("Swapped the off-hand item with a totem") }
                     ?.run()
             }

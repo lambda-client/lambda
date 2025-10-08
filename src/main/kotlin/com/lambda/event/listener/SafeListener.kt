@@ -65,7 +65,7 @@ class SafeListener<T : Event>(
     override val priority: Int = 0,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
-    val function: SafeContext.(T) -> Unit,
+    val function: SafeContext.(T) -> Unit
 ) : Listener<T>(), ReadOnlyProperty<Any?, T?> {
     /**
      * The last processed event signal.

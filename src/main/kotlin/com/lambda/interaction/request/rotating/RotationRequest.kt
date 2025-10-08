@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.rotating
 
+import com.lambda.context.Automated
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
@@ -25,13 +26,13 @@ import com.lambda.threading.runSafe
 
 data class RotationRequest(
     val target: RotationTarget,
-    override val config: RotationConfig,
-    override val rotationMode: RotationMode = config.rotationMode,
-    override val turnSpeed: Double = config.turnSpeed,
-    override var keepTicks: Int = config.keepTicks,
-    override var decayTicks: Int = config.decayTicks,
+    private val automated: Automated,
+    val rotationMode: RotationMode = automated.rotationConfig.rotationMode,
+    val turnSpeed: Double = automated.rotationConfig.turnSpeed,
+    var keepTicks: Int = automated.rotationConfig.keepTicks,
+    var decayTicks: Int = automated.rotationConfig.decayTicks,
     val speedMultiplier: Double = 1.0
-) : Request(), RotationConfig by config, LogContext {
+) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 
     var age = 0

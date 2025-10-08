@@ -42,8 +42,6 @@ import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.attribute.EntityAttributes
-import net.minecraft.registry.tag.ItemTags
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
 
@@ -111,7 +109,7 @@ object KillAura : Module(
                 }
 
                 // Wait until the rotation has a hit result on the entity
-                if (lookAtEntity(entity).requestBy(rotation).done) runAttack(entity)
+                if (lookAtEntity(entity).requestBy(this@KillAura).done) runAttack(entity)
             }
         }
 

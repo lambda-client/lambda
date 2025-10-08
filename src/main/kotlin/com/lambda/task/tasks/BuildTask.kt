@@ -19,10 +19,9 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
-import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.EatConfig
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.Automated
+import com.lambda.context.AutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -46,14 +45,11 @@ import com.lambda.interaction.construction.simulation.Simulation.Companion.simul
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.interacting.InteractRequest
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceRequest
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
@@ -67,21 +63,14 @@ class BuildTask private constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean,
     private val collectDrops: Boolean,
-    private val build: BuildConfig,
-    private val rotation: RotationConfig,
-    private val interactionConfig: InteractionConfig,
-    private val inventory: InventoryConfig,
-    private val hotbar: HotbarConfig,
-    private val eat: EatConfig,
     private val lifeMaintenance: Boolean,
-) : Task<Structure>() {
+    automated: Automated
+) : Task<Structure>(), Automated by automated {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
-    private val emptyPendingInteractionSlots
-        get() = (build.maxPendingInteractions - pendingInteractions.size).coerceAtLeast(0)
     private val atMaxPendingInteractions
-        get() = pendingInteractions.size >= build.maxPendingInteractions
+        get() = pendingInteractions.size >= buildConfig.maxPendingInteractions
 
     private var placements = 0
     private var breaks = 0
@@ -100,8 +89,8 @@ class BuildTask private constructor(
     init {
         listen<TickEvent.Pre> {
             when {
-                lifeMaintenance && eatTask == null && reasonEating(eat).shouldEat() -> {
-                    eatTask = eat(eat)
+                lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
+                    eatTask = eat()
                     eatTask?.finally {
                         eatTask = null
                     }?.execute(this@BuildTask)
@@ -116,9 +105,9 @@ class BuildTask private constructor(
 
             if (collectDrops()) return@listen
 
-            val results = blueprint.simulate(player.eyePos, interactionConfig, rotation, inventory, build)
+            val results = runSafeAutomated { blueprint.simulate(player.eyePos) }
 
-            TaskFlowModule.drawables = results
+            AutomationConfig.drawables = results
                 .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
 
@@ -142,14 +131,14 @@ class BuildTask private constructor(
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
-                    if (!build.pathing) return@listen
-                    val sim = blueprint.simulation(interactionConfig, rotation, inventory, build)
+                    if (!buildConfig.pathing) return@listen
+                    val sim = blueprint.simulation()
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneManager.setGoalAndPath(goal)
                 }
 
                 is Navigable -> {
-                    if (build.pathing) BaritoneManager.setGoalAndPath(bestResult.goal)
+                    if (buildConfig.pathing) BaritoneManager.setGoalAndPath(bestResult.goal)
                 }
 
                 is BuildResult.Contextual -> {
@@ -160,9 +149,7 @@ class BuildTask private constructor(
                                 .filterIsInstance<BreakResult.Break>()
                                 .map { it.context }
 
-                            breakRequest(
-                                breakResults, pendingInteractions, rotation, hotbar, interactionConfig, inventory, build,
-                            ) {
+                            breakRequest(breakResults, pendingInteractions) {
                                 onStop { breaks++ }
                                 onItemDrop?.let { onItemDrop ->
                                     onItemDrop { onItemDrop(it) }
@@ -175,14 +162,23 @@ class BuildTask private constructor(
                                 .filterIsInstance<PlaceResult.Place>()
                                 .map { it.context }
 
-                            PlaceRequest(placeResults, pendingInteractions, build, hotbar, rotation) { placements++ }.submit()
+                            PlaceRequest(
+                                placeResults,
+                                pendingInteractions,
+                                this@BuildTask
+                            ) { placements++ }.submit()
                         }
                         is InteractResult.Interact -> {
                             val interactResults = resultsNotBlocked
                                 .filterIsInstance<InteractResult.Interact>()
                                 .map { it.context }
 
-                            InteractRequest(interactResults, null, pendingInteractions, build.interacting, build, hotbar, rotation).submit()
+                            InteractRequest(
+                                interactResults,
+                                pendingInteractions,
+                                this@BuildTask,
+                                null
+                            ).submit()
                         }
                     }
                 }
@@ -217,7 +213,7 @@ class BuildTask private constructor(
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
                     val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in TaskFlowModule.inventory.disposables
+                        it.stack.item.block in inventoryConfig.disposables
                     } ?: run {
                         failure("No item in inventory to throw but inventory is full and cant pick up item drop")
                         return@let true
@@ -240,77 +236,49 @@ class BuildTask private constructor(
 
     companion object {
         @Ta5kBuilder
-        fun build(
+        fun Automated.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            hotbar: HotbarConfig = TaskFlowModule.hotbar,
-            eat: EatConfig = TaskFlowModule.eat,
+            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
-            blueprint: () -> Blueprint,
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
+            blueprint: () -> Blueprint
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
 
         @Ta5kBuilder
+        context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            hotbar: HotbarConfig = TaskFlowModule.hotbar,
-            eat: EatConfig = TaskFlowModule.eat,
-            lifeMaintenance: Boolean = false,
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
+            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            lifeMaintenance: Boolean = false
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
 
         @Ta5kBuilder
+        context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            hotbar: HotbarConfig = TaskFlowModule.hotbar,
-            eat: EatConfig = TaskFlowModule.eat,
-            lifeMaintenance: Boolean = false,
-        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance)
+            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            lifeMaintenance: Boolean = false
+        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
 
         @Ta5kBuilder
-        fun breakAndCollectBlock(
+        fun Automated.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             collectDrops: Boolean = true,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            hotbar: HotbarConfig = TaskFlowModule.hotbar,
-            eat: EatConfig = TaskFlowModule.eat,
-            lifeMaintenance: Boolean = false,
+            lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance
+            finishOnDone, collectDrops, lifeMaintenance, this
         )
 
         @Ta5kBuilder
-        fun breakBlock(
+        fun Automated.breakBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            hotbar: HotbarConfig = TaskFlowModule.hotbar,
-            eat: EatConfig = TaskFlowModule.eat,
-            lifeMaintenance: Boolean = false,
+            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory, hotbar, eat, lifeMaintenance
+            finishOnDone, collectDrops, lifeMaintenance, this
         )
     }
 }

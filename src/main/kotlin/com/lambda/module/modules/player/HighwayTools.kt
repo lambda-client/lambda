@@ -141,16 +141,8 @@ object HighwayTools : Module(
                 disable()
                 emptyStructure()
             }
-        }.build(
-            collectDrops = build.collectDrops,
-            build = build,
-            rotation = rotation,
-            interact = interact,
-            inventory = inventory,
-            hotbar = hotbar,
-            eat = eat,
-            lifeMaintenance = true,
-        ).run()
+        }.build(collectDrops = build.collectDrops, lifeMaintenance = true)
+            .run()
     }
 
     private fun generateSlice(): Structure {

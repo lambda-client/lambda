@@ -23,7 +23,6 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.texture.TextureUtils
 import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.getCapes
 import com.lambda.network.api.v1.endpoints.setCape

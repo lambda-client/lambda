@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container
 
+import com.lambda.context.Automated
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -26,8 +27,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.containerStacks
@@ -88,43 +87,43 @@ object ContainerManager : Loadable {
 
     fun container() = container.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
-    fun StackSelection.transfer(destination: MaterialContainer, inventory: InventoryConfig = TaskFlowModule.inventory) =
-        findContainerWithMaterial(inventory)?.transfer(this, destination)
+    context(automated: Automated)
+    fun StackSelection.transfer(destination: MaterialContainer) =
+        findContainerWithMaterial()?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean,
     ): MaterialContainer? = container().find(block)
 
-    fun StackSelection.findContainerWithMaterial(
-        inventory: InventoryConfig
-    ): MaterialContainer? =
-        containerWithMaterial(inventory).firstOrNull()
+    context(automated: Automated)
+    fun StackSelection.findContainerWithMaterial(): MaterialContainer? =
+        containerWithMaterial().firstOrNull()
 
-    fun findContainerWithSpace(
-        selection: StackSelection,
-    ): MaterialContainer? =
+    context(automated: Automated)
+    fun findContainerWithSpace(selection: StackSelection): MaterialContainer? =
         containerWithSpace(selection).firstOrNull()
 
+    context(automated: Automated)
     fun StackSelection.containerWithMaterial(
-        inventory: InventoryConfig = TaskFlowModule.inventory,
-        containerSelection: ContainerSelection = inventory.containerSelection,
+        containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection,
     ): List<MaterialContainer> =
         container()
             .filter { it.materialAvailable(this) >= count }
             .filter { containerSelection.matches(it) }
-            .sortedWith(inventory.providerPriority.materialComparator(this))
+            .sortedWith(automated.inventoryConfig.providerPriority.materialComparator(this))
 
+    context(automated: Automated)
     fun containerWithSpace(
         selection: StackSelection,
-        inventory: InventoryConfig = TaskFlowModule.inventory,
     ): List<MaterialContainer> =
         container()
             .filter { it.spaceAvailable(selection) >= selection.count }
-            .filter { inventory.containerSelection.matches(it) }
-            .sortedWith(inventory.providerPriority.spaceComparator(selection))
+            .filter { automated.inventoryConfig.containerSelection.matches(it) }
+            .sortedWith(automated.inventoryConfig.providerPriority.spaceComparator(selection))
 
-    fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
-        inventory.disposables.any { container.materialAvailable(it.asItem().select()) > 0 }
+    context(automated: Automated)
+    fun findDisposable() = container().find { container ->
+        automated.inventoryConfig.disposables.any { container.materialAvailable(it.asItem().select()) > 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

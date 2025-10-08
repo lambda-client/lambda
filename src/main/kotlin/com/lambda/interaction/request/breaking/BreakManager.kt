@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.SafeContext
+import com.lambda.context.breakConfig
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
@@ -72,6 +73,7 @@ import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.module.hud.ManagerDebugLoggers.breakManagerLogger
 import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
@@ -393,21 +395,19 @@ object BreakManager : RequestHandler<BreakRequest>(
                     }
             }
 
-        val breakConfig = request.config
-
         breaks = newBreaks
             .sortedByDescending { it.instantBreak }
             .take(
                 min(
-                    breakConfig.maxPendingBreaks - pendingBreakCount,
-                    request.build.maxPendingInteractions - request.pendingInteractions.size
+                    request.breakConfig.maxPendingBreaks - pendingBreakCount,
+                    request.buildConfig.maxPendingInteractions - request.pendingInteractions.size
                 ).coerceAtLeast(0)
             )
             .toMutableList()
 
         logger.debug("${breaks.size} unprocessed breaks")
 
-        maxBreaksThisTick = breakConfig.breaksPerTick
+        maxBreaksThisTick = request.breakConfig.breaksPerTick
     }
 
     /**
@@ -444,9 +444,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                         hotbarRequest = with(info) {
                             HotbarRequest(
                                 context.hotbarIndex,
-                                request.hotbar,
-                                request.hotbar.keepTicks.coerceAtLeast(minKeepTicks),
-                                request.hotbar.swapPause.coerceAtLeast(serverSwapTicks - 1)
+                                request,
+                                request.hotbarConfig.keepTicks.coerceAtLeast(minKeepTicks),
+                                request.hotbarConfig.swapPause.coerceAtLeast(serverSwapTicks - 1)
                             ).submit(false)
                         }
                         logger.debug("Submitted hotbar request", hotbarRequest)
@@ -510,27 +510,27 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         primaryBreak = breakInfo
-        setPendingConfigs(request.build)
+        setPendingConfigs(request.buildConfig)
         logger.success("Initialized break info", breakInfo)
         return primaryBreak
     }
 
     private fun SafeContext.simulateAbandoned() {
         // Cancelled but double breaking so requires break manager to continue the simulation
-        abandonedBreak?.let { abandonedInfo ->
-            with (abandonedInfo.request) {
-                abandonedInfo.context.blockPos
-                    .toStructure(TargetState.Empty)
-                    .toBlueprint()
-                    .simulate(player.eyePos, interact, rotation, inventory, build)
-                    .asSequence()
-                    .filterIsInstance<BreakResult.Break>()
-                    .filter { canAccept(it.context) }
-                    .sorted()
-                    .let { sim ->
-                        abandonedInfo.updateInfo(sim.firstOrNull()?.context ?: return)
-                    }
-            }
+        val abandonedInfo = abandonedBreak ?: return
+
+        abandonedInfo.request.runSafeAutomated {
+            abandonedInfo.context.blockPos
+                .toStructure(TargetState.Empty)
+                .toBlueprint()
+                .simulate(player.eyePos)
+                .asSequence()
+                .filterIsInstance<BreakResult.Break>()
+                .filter { canAccept(it.context) }
+                .sorted()
+                .let { sim ->
+                    abandonedInfo.updateInfo(sim.firstOrNull()?.context ?: return)
+                }
         }
     }
 

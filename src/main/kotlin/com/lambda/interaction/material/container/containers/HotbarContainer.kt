@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
@@ -35,7 +36,10 @@ object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
 
     override val description = buildText { literal("Hotbar") }
 
-    class HotbarDeposit @Ta5kBuilder constructor(val selection: StackSelection) : ContainerTask() {
+    class HotbarDeposit @Ta5kBuilder constructor(
+        val selection: StackSelection,
+        automated: Automated
+    ) : ContainerTask(), Automated by automated {
         override val name: String get() = "Depositing $selection into hotbar"
 
         override fun SafeContext.onStart() {
@@ -46,5 +50,6 @@ object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
         }
     }
 
-    override fun deposit(selection: StackSelection) = HotbarDeposit(selection)
+    context(automated: Automated)
+    override fun deposit(selection: StackSelection) = HotbarDeposit(selection, automated)
 }

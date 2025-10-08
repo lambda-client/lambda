@@ -18,26 +18,21 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.BuildConfig
+import com.lambda.context.Automated
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
-import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
 data class InteractRequest(
     val contexts: Collection<InteractionContext>,
-    val onInteract: ((BlockPos) -> Unit)?,
     val pendingInteractionsList: MutableCollection<BuildContext>,
-    override val config: InteractConfig,
-    val build: BuildConfig,
-    val hotbar: HotbarConfig,
-    val rotation: RotationConfig
-) : Request(), InteractConfig by config, LogContext {
+    private val automated: Automated,
+    val onInteract: ((BlockPos) -> Unit)?
+) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 
     override val done: Boolean

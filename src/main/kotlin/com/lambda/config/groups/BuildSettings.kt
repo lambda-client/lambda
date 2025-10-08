@@ -42,17 +42,17 @@ class BuildSettings(
     override val maxPendingInteractions by c.setting("Max Pending Interactions", 15, 1..30, 1, "The maximum count of pending interactions to allow before pausing future interactions", visibility = vis).group(*groupPath, Group.General)
 
     // Breaking
-    override val breaking = BreakSettings(c, groupPath.toList() + Group.Break, vis)
+    override val breakConfig = BreakSettings(c, groupPath.toList() + Group.Break, vis)
 
     // Placing
-    override val placing = PlaceSettings(c, groupPath.toList() + Group.Place, vis)
+    override val placeConfig = PlaceSettings(c, groupPath.toList() + Group.Place, vis)
 
     //Interacting
-    override val interacting = InteractSettings(c, groupPath.toList() + Group.Interact, vis)
+    override val interactConfig = InteractSettings(c, groupPath.toList() + Group.Interact, vis)
 
     override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") {
-        vis() && (placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None
-                || breaking.breakConfirmation != BreakConfirmationMode.None
-                || interacting.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None)
+        vis() && (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None
+                || breakConfig.breakConfirmation != BreakConfirmationMode.None
+                || interactConfig.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None)
     }.group(*groupPath, Group.Break, BreakSettings.Group.General).group(*groupPath, Group.Place).group(*groupPath, Group.Interact)
 }

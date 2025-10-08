@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -24,7 +25,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.task.Task
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
@@ -45,7 +45,7 @@ import net.minecraft.text.Text
 
 // ToDo: Make jsonable to persistently store them
 abstract class MaterialContainer(
-    val rank: Rank,
+    val rank: Rank
 ) : Nameable, Comparable<MaterialContainer> {
     abstract var stacks: List<ItemStack>
     abstract val description: Text
@@ -83,7 +83,7 @@ abstract class MaterialContainer(
                 ShulkerBoxContainer(
                     stack.shulkerBoxContents,
                     containedIn = this@MaterialContainer,
-                    shulkerStack = stack,
+                    shulkerStack = stack
                 )
             }.toSet()
 
@@ -97,11 +97,14 @@ abstract class MaterialContainer(
         }
     }
 
-    class AwaitItemTask(override val name: String, val selection: StackSelection, inventory: InventoryConfig) :
-        Task<Unit>() {
+    class AwaitItemTask(
+        override val name: String,
+        val selection: StackSelection,
+        automated: Automated
+    ) : Task<Unit>(), Automated by automated {
         init {
             listen<TickEvent.Post> {
-                if (selection.findContainerWithMaterial(inventory) != null) {
+                if (selection.findContainerWithMaterial() != null) {
                     success()
                 }
             }
@@ -116,12 +119,14 @@ abstract class MaterialContainer(
      * Withdraws items from the container to the player's inventory.
      */
     @Task.Ta5kBuilder
+    context(automated: Automated)
     open fun withdraw(selection: StackSelection): Task<*>? = null
 
     /**
      * Deposits items from the player's inventory into the container.
      */
     @Task.Ta5kBuilder
+    context(automated: Automated)
     open fun deposit(selection: StackSelection): Task<*>? = null
 
     open fun matchingStacks(selection: StackSelection) =
@@ -133,6 +138,7 @@ abstract class MaterialContainer(
     open fun spaceAvailable(selection: StackSelection) =
         matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
 
+    context(automated: Automated)
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
         val amount = materialAvailable(selection)
         if (amount < selection.count) {
@@ -148,7 +154,7 @@ abstract class MaterialContainer(
 //        selection.selector = { true }
 //        selection.count = transferAmount
 
-        return TransferResult.ContainerTransfer(selection, from = this, to = destination)
+        return TransferResult.ContainerTransfer(selection, from = this, to = destination, automated)
     }
 
     enum class Rank {

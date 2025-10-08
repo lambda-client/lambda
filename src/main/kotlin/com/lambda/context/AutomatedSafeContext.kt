@@ -15,23 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.context
 
-import com.lambda.context.Automated
-import net.minecraft.block.BlockState
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.item.ItemStack
-import net.minecraft.state.property.Property
-import net.minecraft.util.math.BlockPos
-
-interface StateMatcher {
-    fun matches(
-        state: BlockState,
-        pos: BlockPos,
-        world: ClientWorld,
-        ignoredProperties: Collection<Property<*>> = emptySet()
-    ): Boolean
-
-    fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack
-    fun isEmpty(): Boolean
-}
+class AutomatedSafeContext(
+    safeContext: SafeContext,
+    automated: Automated
+) : SafeContext by safeContext, Automated by automated

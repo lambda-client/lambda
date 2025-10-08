@@ -483,7 +483,7 @@ object CrystalAura : Module(
          * Places the crystal on [blockPos]
          */
         fun place() = runSafe {
-            if (rotation.rotate && !lookAt(placeRotation).requestBy(rotation).done)
+            if (rotation.rotate && !lookAt(placeRotation).requestBy(this@CrystalAura).done)
                 return@runSafe
 
             val selection = selectStack { isItem(Items.END_CRYSTAL) }
@@ -515,7 +515,7 @@ object CrystalAura : Module(
          * @return Whether the delay passed, null if the interaction failed or no crystal found
          */
         fun explode() {
-            if (rotation.rotate && !lookAt(placeRotation).requestBy(rotation).done) return
+            if (rotation.rotate && !lookAt(placeRotation).requestBy(this@CrystalAura).done) return
 
             explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
                 crystal?.let { crystal ->

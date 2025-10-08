@@ -17,7 +17,6 @@
 
 package com.lambda.event.listener
 
-import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable

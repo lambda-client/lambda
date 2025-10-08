@@ -59,9 +59,9 @@ object InventoryTweaks : Module(
             if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listen
             it.cancel()
             lastOpenScreen = null
-            placeAndOpen = PlaceContainer(stack, inventory = inventory).then { placePos ->
+            placeAndOpen = PlaceContainer(stack, this@InventoryTweaks).then { placePos ->
                 placedPos = placePos
-                OpenContainer(placePos).finally { screenHandler ->
+                OpenContainer(placePos, this@InventoryTweaks).finally { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
             }.run()

@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.Event
@@ -99,7 +100,7 @@ abstract class RequestHandler<R : Request>(
      */
     fun request(request: R, queueIfClosed: Boolean = true): R {
         if (!acceptingRequests) {
-            val canOverrideQueued = queuedRequest?.run { config === request.config } != false
+            val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
             if (queueIfClosed && canOverrideQueued) {
                 queuedRequest = request
             }

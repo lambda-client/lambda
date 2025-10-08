@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -61,6 +62,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
         }
     }
 
+    context(automated: Automated)
     override fun deposit(selection: StackSelection) = CreativeDeposit(selection)
 
     class CreativeWithdrawal @Ta5kBuilder constructor(val selection: StackSelection) : Task<Unit>() {
@@ -88,6 +90,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
     }
 
     // Withdraws items from the creative menu to the player's main hand
+    context(automated: Automated)
     override fun withdraw(selection: StackSelection) = CreativeWithdrawal(selection)
 
     class NotInCreativeModeException : IllegalStateException("Insufficient permission: not in creative mode")
