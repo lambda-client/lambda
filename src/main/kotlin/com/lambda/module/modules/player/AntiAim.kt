@@ -73,7 +73,7 @@ object AntiAim : Module(
     private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { yaw != YawMode.None }.group(Group.General)
     private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { pitch != PitchMode.None }.group(Group.General)
 
-    private val rotation = RotationSettings(this, Group.Rotation)
+    override val rotationConfig = RotationSettings(this, Group.Rotation)
 
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f
@@ -164,7 +164,7 @@ object AntiAim : Module(
 
         listen<UpdateManagerEvent.Rotation>(priority = Int.MIN_VALUE) {
             if (currentYaw == wrap(player.yaw) && currentPitch == player.pitch) return@listen
-            submit(RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), rotation), false)
+            submit(RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), this@AntiAim), false)
         }
     }
 

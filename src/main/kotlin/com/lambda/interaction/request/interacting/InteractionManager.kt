@@ -19,6 +19,7 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
+import com.lambda.context.interactConfig
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
@@ -38,6 +39,7 @@ import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPe
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.interactionManagerLogger
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
@@ -97,7 +99,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
         if (interactionsThisTick > 0) activeThisTick = true
     }
 
-    fun SafeContext.processRequest(request: InteractRequest) {
+    fun SafeContext.processRequest(request: InteractRequest) = request.runSafeAutomated {
         if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
 
         logger.debug("Processing request", request)
@@ -115,20 +117,20 @@ object InteractionManager : RequestHandler<InteractRequest>(
                 logger.warning("Dependencies failed for interaction", ctx, request)
                 return
             }
-            if (tickStage !in request.interactStageMask) return
+            if (tickStage !in interactConfig.interactStageMask) return
 
-            if (request.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None) {
+            if (interactConfig.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None) {
                 InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
-            if (request.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+            if (interactConfig.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.result)
             } else {
                 interaction.sendSequencedPacket(world) { sequence ->
                     PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, ctx.result, sequence)
                 }
             }
-            if (request.swingHand) {
-                swingHand(request.interactSwingType, Hand.MAIN_HAND)
+            if (interactConfig.swingHand) {
+                swingHand(interactConfig.interactSwingType, Hand.MAIN_HAND)
             }
             request.onInteract?.invoke(ctx.blockPos)
             interactionsThisTick++
@@ -139,16 +141,16 @@ object InteractionManager : RequestHandler<InteractRequest>(
 
     private fun populateFrom(request: InteractRequest) {
         logger.debug("Populating from request", request)
-        setPendingConfigs(request.build)
+        setPendingConfigs(request.buildConfig)
         potentialInteractions = request.contexts
             .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
-            .take((request.build.maxPendingInteractions - pendingActions.size).coerceAtLeast(0))
+            .take((request.buildConfig.maxPendingInteractions - pendingActions.size).coerceAtLeast(0))
             .toMutableList()
 
         logger.debug("${potentialInteractions.size} potential interactions")
 
-        maxInteractionsThisTick = request.build.interactionsPerTick
+        maxInteractionsThisTick = request.buildConfig.interactionsPerTick
     }
 
     override fun preEvent() = UpdateManagerEvent.Interact.post()

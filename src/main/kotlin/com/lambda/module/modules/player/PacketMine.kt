@@ -23,6 +23,7 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
+import com.lambda.context.breakConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
@@ -36,6 +37,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -70,12 +72,11 @@ object PacketMine : Module(
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(Group.General)
 
-    private val build = BuildSettings(this, Group.Build)
-    private val breakConfig = build.breaking
-    private val rotation = RotationSettings(this, Group.Rotation)
-    private val interact = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
-    private val inventory = InventorySettings(this, Group.Inventory)
-    private val hotbar = HotbarSettings(this, Group.Hotbar)
+    override val buildConfig = BuildSettings(this, Group.Build)
+    override val rotationConfig = RotationSettings(this, Group.Rotation)
+    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
+    override val inventoryConfig = InventorySettings(this, Group.Inventory)
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
 
     private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").group(Group.Render)
     private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.group(Group.Render)
@@ -192,9 +193,7 @@ object PacketMine : Module(
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
-        breakRequest(
-            breakContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
-        ) {
+        breakRequest(breakContexts, pendingInteractions) {
             onStart { onProgress(it) }
             onUpdate { onProgress(it) }
             onStop { removeBreak(it); breaks++ }
@@ -212,16 +211,18 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
-        positions
-            .asSequence()
-            .filterNotNull()
-            .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
-            .toBlueprint()
-            .simulate(player.eyePos, interact, rotation, inventory, build)
-            .asSequence()
-            .filterIsInstance<BreakResult.Break>()
-            .map { it.context }
-            .toCollection(mutableListOf())
+        runSafeAutomated {
+            positions
+                .asSequence()
+                .filterNotNull()
+                .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
+                .toBlueprint()
+                .simulate(player.eyePos)
+                .asSequence()
+                .filterIsInstance<BreakResult.Break>()
+                .map { it.context }
+                .toCollection(mutableListOf())
+        }
 
     private fun addBreak(pos: BlockPos) {
         if (breakConfig.doubleBreak && breakPositions[0] != null) {

@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
+import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.StackSelection
@@ -26,7 +27,6 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.util.Nameable
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
@@ -194,8 +194,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededSelection: StackSelection,
-        val currentItem: ItemStack,
-        val inventory: InventoryConfig
+        val currentItem: ItemStack
     ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong item ($currentItem) for ${blockPos.toShortString()} need $neededSelection"
         override val rank = Rank.WRONG_ITEM
@@ -203,12 +202,13 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val pausesParent get() = true
 
+        context(automated: Automated)
         override fun resolve() =
-            neededSelection.transfer(MainHandContainer, inventory)
+            neededSelection.transfer(MainHandContainer)
                 ?: MaterialContainer.AwaitItemTask(
                     "Couldn't find $neededSelection anywhere.",
                     neededSelection,
-                    inventory
+                    automated
                 )
 
         override fun ShapeBuilder.buildRenderer() {
@@ -231,8 +231,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     data class WrongStack(
         override val blockPos: BlockPos,
         val context: BuildContext,
-        val neededStack: ItemStack,
-        val inventory: InventoryConfig
+        val neededStack: ItemStack
     ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong stack for ${blockPos.toShortString()} need $neededStack."
         override val rank = Rank.WRONG_ITEM
@@ -240,13 +239,14 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val pausesParent get() = true
 
+        context(automated: Automated)
         override fun resolve() =
             neededStack.select().let { selection ->
-                selection.transfer(MainHandContainer, inventory)
+                selection.transfer(MainHandContainer)
                     ?: MaterialContainer.AwaitItemTask(
                         "Couldn't find ${neededStack.item.name.string} anywhere.",
                         selection,
-                        inventory
+                        automated
                     )
             }
 

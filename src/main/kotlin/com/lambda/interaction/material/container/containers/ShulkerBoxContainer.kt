@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container.containers
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -50,12 +51,13 @@ data class ShulkerBoxContainer(
     class ShulkerWithdraw(
         private val selection: StackSelection,
         private val shulkerStack: ItemStack,
-    ) : Task<Unit>() {
+        automated: Automated
+    ) : Task<Unit>(), Automated by automated {
         override val name = "Withdraw $selection from ${shulkerStack.name.string}"
 
         override fun SafeContext.onStart() {
-            PlaceContainer(shulkerStack).then { placePos ->
-                OpenContainer(placePos).then { screen ->
+            PlaceContainer(shulkerStack, this@ShulkerWithdraw).then { placePos ->
+                OpenContainer(placePos, this@ShulkerWithdraw).then { screen ->
                     withdraw(screen, selection).then {
                         breakAndCollectBlock(placePos).finally {
                             success()
@@ -66,17 +68,19 @@ data class ShulkerBoxContainer(
         }
     }
 
-    override fun withdraw(selection: StackSelection) = ShulkerWithdraw(selection, shulkerStack)
+    context(automated: Automated)
+    override fun withdraw(selection: StackSelection) = ShulkerWithdraw(selection, shulkerStack, automated)
 
     class ShulkerDeposit(
         private val selection: StackSelection,
         private val shulkerStack: ItemStack,
-    ) : Task<Unit>() {
+        automated: Automated
+    ) : Task<Unit>(), Automated by automated {
         override val name = "Deposit $selection into ${shulkerStack.name.string}"
 
         override fun SafeContext.onStart() {
-            PlaceContainer(shulkerStack).then { placePos ->
-                OpenContainer(placePos).then { screen ->
+            PlaceContainer(shulkerStack, this@ShulkerDeposit).then { placePos ->
+                OpenContainer(placePos, this@ShulkerDeposit).then { screen ->
                     deposit(screen, selection).then {
                         breakAndCollectBlock(placePos).finally {
                             success()
@@ -87,5 +91,6 @@ data class ShulkerBoxContainer(
         }
     }
 
-    override fun deposit(selection: StackSelection) = ShulkerDeposit(selection, shulkerStack)
+    context(automated: Automated)
+    override fun deposit(selection: StackSelection) = ShulkerDeposit(selection, shulkerStack, automated)
 }

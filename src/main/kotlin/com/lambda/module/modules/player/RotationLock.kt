@@ -45,8 +45,7 @@ object RotationLock : Module(
     private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 1.0) { pitchMode == RotationMode.Snap }.group(Group.General)
     private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 1.0) { pitchMode == RotationMode.Custom }.group(Group.General)
 
-    @JvmStatic val rotationSettings = RotationSettings(this, Group.Rotation)
-    private var rotationRequest: RotationRequest? = null
+    override val rotationConfig = RotationSettings(this, Group.Rotation)
 
     init {
         listen<TickEvent.Pre> {
@@ -67,7 +66,7 @@ object RotationLock : Module(
                 RotationMode.None -> player.pitch.toDouble()
             }
 
-            RotationRequest(lookAt(Rotation(yaw, pitch), 0.001), rotationSettings).submit()
+            RotationRequest(lookAt(Rotation(yaw, pitch), 0.001), this@RotationLock).submit()
         }
     }
 

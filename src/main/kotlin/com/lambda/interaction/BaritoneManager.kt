@@ -24,10 +24,12 @@ import baritone.api.pathing.goals.Goal
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
 import com.lambda.config.groups.RotationSettings
+import com.lambda.context.Automated
+import com.lambda.context.AutomationConfig
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 
-object BaritoneManager : Configurable(LambdaConfig) {
+object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig {
     override val name = "baritone"
 
     private val baritone = BaritoneAPI.getProvider()
@@ -66,7 +68,7 @@ object BaritoneManager : Configurable(LambdaConfig) {
         Schematic("Schematic")
     }
 
-    val rotation: RotationSettings
+    override val rotationConfig = RotationSettings(this@BaritoneManager, Group.Rotation)
 
     init {
         // ToDo: Dont actually save the settings as its duplicate data
@@ -96,9 +98,6 @@ object BaritoneManager : Configurable(LambdaConfig) {
             setting("Do Death Waypoints", doDeathWaypoints.value).group(Group.General, SubGroup.Waypoints).onValueChange { _, it -> doDeathWaypoints.value = it }
 
             setting("Anti Cheat Compatibility", antiCheatCompatibility.value).group(Group.General, SubGroup.Misc).onValueChange { _, it -> antiCheatCompatibility.value = it }
-
-            // ROTATION
-            rotation = RotationSettings(this@BaritoneManager, Group.Rotation)
 
             // PATHING
             setting("Pathing Max Chunk Border Fetch", pathingMaxChunkBorderFetch.value, 0..64).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathingMaxChunkBorderFetch.value = it }

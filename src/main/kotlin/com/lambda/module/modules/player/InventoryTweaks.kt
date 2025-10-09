@@ -46,7 +46,7 @@ object InventoryTweaks : Module(
 
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.").group(Group.General)
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.").group(Group.General)
-    private val inventory = InventorySettings(this, Group.Inventory)
+    override val inventoryConfig  = InventorySettings(this, Group.Inventory)
     private var placedPos: BlockPos? = null
     private var placeAndOpen: Task<*>? = null
     private var lastBreak: Task<*>? = null
@@ -59,9 +59,9 @@ object InventoryTweaks : Module(
             if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listen
             it.cancel()
             lastOpenScreen = null
-            placeAndOpen = PlaceContainer(stack, inventory = inventory).then { placePos ->
+            placeAndOpen = PlaceContainer(stack, this@InventoryTweaks).then { placePos ->
                 placedPos = placePos
-                OpenContainer(placePos).finally { screenHandler ->
+                OpenContainer(placePos, this@InventoryTweaks).finally { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
             }.run()

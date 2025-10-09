@@ -17,6 +17,8 @@
 
 package com.lambda.context
 
+import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.network.ClientPlayerEntity
@@ -46,9 +48,26 @@ import net.minecraft.client.world.ClientWorld
  * @property interaction The interaction manager for the player.
  * @property connection The network handler for the player.
  **/
-open class SafeContext internal constructor(
-    override val world: ClientWorld,
-    override val player: ClientPlayerEntity,
-    override val interaction: ClientPlayerInteractionManager,
-    override val connection: ClientPlayNetworkHandler,
-) : AbstractContext()
+interface SafeContext {
+    val mc: MinecraftClient
+    val world: ClientWorld
+    val player: ClientPlayerEntity
+    val interaction: ClientPlayerInteractionManager
+    val connection: ClientPlayNetworkHandler
+
+    companion object {
+        fun create(): SafeContext? {
+            val world = mc.world ?: return null
+            val player = mc.player ?: return null
+            val interaction = mc.interactionManager ?: return null
+            val connection = mc.networkHandler ?: return null
+            return object : SafeContext {
+                override val mc = Lambda.mc
+                override val world = world
+                override val player = player
+                override val interaction = interaction
+                override val connection = connection
+            }
+        }
+    }
+}

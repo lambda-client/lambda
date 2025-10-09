@@ -27,6 +27,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.EatTask
 import com.lambda.task.tasks.EatTask.Companion.eat
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 
 object AutoEat : Module(
@@ -39,16 +40,16 @@ object AutoEat : Module(
         Inventory("Inventory")
     }
 
-    private val eat = EatSettings(this, Group.Eating)
-    private val inventory = InventorySettings(this, Group.Inventory)
+    override val eatConfig = EatSettings(this, Group.Eating)
+    override val inventoryConfig = InventorySettings(this, Group.Inventory)
     private var eatTask: EatTask? = null
 
     init {
         listen<TickEvent.Pre> {
-            val reason = reasonEating(eat)
+            val reason = runSafeAutomated { reasonEating() }
             if (eatTask != null || !reason.shouldEat()) return@listen
 
-            val task = eat(eat, inventory)
+            val task = eat()
             task.finally { eatTask = null }
             task.run()
             eatTask = task

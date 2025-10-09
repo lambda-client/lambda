@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
@@ -74,5 +75,6 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
         }
     }
 
+    context(automated: Automated)
     override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND)
 }

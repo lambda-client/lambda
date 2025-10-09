@@ -17,9 +17,8 @@
 
 package com.lambda.interaction.construction.verify
 
+import com.lambda.context.Automated
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.StringUtils.capitalize
@@ -48,7 +47,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.isEmpty
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
             ItemStack.EMPTY
 
         override fun isEmpty() = true
@@ -64,7 +63,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.isAir
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
             ItemStack.EMPTY
 
         override fun isEmpty() = true
@@ -81,10 +80,12 @@ sealed class TargetState(val type: Type) : StateMatcher {
         ) =
             state.isSolidBlock(world, pos)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig) =
-            findDisposable(inventory)?.stacks?.firstOrNull {
-                it.item.block in TaskFlowModule.inventory.disposables
-            } ?: ItemStack(Items.NETHERRACK)
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated) =
+            with(automated) {
+                findDisposable()?.stacks?.firstOrNull {
+                    it.item.block in inventoryConfig.disposables
+                } ?: ItemStack(Items.NETHERRACK)
+            }
 
         override fun isEmpty() = false
     }
@@ -101,10 +102,12 @@ sealed class TargetState(val type: Type) : StateMatcher {
             world.getBlockState(pos.offset(direction)).isSolidBlock(world, pos.offset(direction))
                     || state.isSolidBlock(world, pos)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig) =
-            findDisposable()?.stacks?.firstOrNull {
-                it.item.block in TaskFlowModule.inventory.disposables
-            } ?: ItemStack(Items.NETHERRACK)
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated) =
+            with(automated) {
+                findDisposable()?.stacks?.firstOrNull {
+                    it.item.block in inventoryConfig.disposables
+                } ?: ItemStack(Items.NETHERRACK)
+            }
 
         override fun isEmpty() = false
     }
@@ -120,7 +123,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         ) =
             state.matches(blockState, ignoredProperties)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
             blockState.block.getPickStack(world, pos, blockState, true)
 
         override fun isEmpty() = blockState.isEmpty
@@ -137,7 +140,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         ) =
             state.block == block
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
             block.getPickStack(world, pos, block.defaultState, true)
 
         override fun isEmpty() = block.defaultState.isEmpty
@@ -157,7 +160,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         ) =
             state.block == block
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
             itemStack
 
         override fun isEmpty() = false

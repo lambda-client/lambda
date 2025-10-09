@@ -17,18 +17,14 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
@@ -42,11 +38,8 @@ import java.awt.Color
 
 data class Simulation(
     val blueprint: Blueprint,
-    val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
-    val rotation: RotationConfig = TaskFlowModule.rotation,
-    val inventory: InventoryConfig = TaskFlowModule.inventory,
-    val build: BuildConfig = TaskFlowModule.build,
-) {
+    private val automated: Automated
+) : Automated by automated {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
 
@@ -56,15 +49,14 @@ data class Simulation(
         val view = pos.toView()
         val isOutOfBounds = blueprint.isOutOfBounds(view)
         val isTooFar = blueprint.getClosestPointTo(view).distanceTo(view) > 10.0
-        runSafe {
+        return runSafeAutomated {
             if (isOutOfBounds && isTooFar) return@getOrPut emptySet()
             val blockPos = pos.toBlockPos()
             val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)
             if (!isWalkable) return@getOrPut emptySet()
             if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
-        }
-
-        blueprint.simulate(view, interactionConfig, rotation, inventory, build)
+            blueprint.simulate(view)
+        } ?: emptySet()
     }
 
     fun goodPositions() = cache
@@ -84,11 +76,7 @@ data class Simulation(
     companion object {
         fun Vec3d.playerBox(): Box = Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)
 
-        fun Blueprint.simulation(
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            build: BuildConfig = TaskFlowModule.build,
-        ) = Simulation(this, interact, rotation, inventory, build)
+        context(c: Automated)
+        fun Blueprint.simulation(automated: Automated = c) = Simulation(this, automated)
     }
 }

@@ -28,7 +28,6 @@ import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.NamedEnum
@@ -45,7 +44,7 @@ object FastBreak : Module(
         Build("Build")
     }
 
-    private val buildConfig = BuildSettings(this, Group.Build)
+    override val buildConfig = BuildSettings(this, Group.Build)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
@@ -61,15 +60,15 @@ object FastBreak : Module(
 
             val breakContext = BreakContext(
                 hitResult,
-                RotationRequest(lookAt(player.rotation), TaskFlowModule.rotation),
+                RotationRequest(lookAt(player.rotation), this@FastBreak),
                 player.inventory.selectedSlot,
                 player.mainHandStack.select(),
-                state.calcBlockBreakingDelta(player, world, pos) >= buildConfig.breaking.breakThreshold,
+                state.calcBlockBreakingDelta(player, world, pos) >= buildConfig.breakConfig.breakThreshold,
                 state,
-                buildConfig.breaking.sorter
+                buildConfig.breakConfig.sorter
             )
 
-            BreakRequest(setOf(breakContext), pendingInteractions, buildConfig).submit()
+            BreakRequest(setOf(breakContext), pendingInteractions, this@FastBreak).submit()
         }
     }
 }

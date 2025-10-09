@@ -15,8 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import org.apache.tools.ant.taskdefs.condition.Os
-import org.gradle.internal.jvm.Jvm
 import java.util.*
 
 val modId: String by project
@@ -214,6 +212,10 @@ tasks {
 }
 
 kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
+    }
+
     jvmToolchain(21)
 }
 

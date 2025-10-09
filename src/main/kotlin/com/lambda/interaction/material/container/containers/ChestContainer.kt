@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container.containers
 
+import com.lambda.context.Automated
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
@@ -27,13 +28,12 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.math.BlockPos
 
 data class ChestContainer(
     override var stacks: List<ItemStack>,
     val blockPos: BlockPos,
-    val containedInStash: StashContainer? = null,
+    val containedInStash: StashContainer? = null
 ) : MaterialContainer(Rank.CHEST) {
     override val description =
         buildText {
@@ -57,20 +57,19 @@ data class ChestContainer(
 //            }
 //        }
 
+    context(automated: Automated)
     override fun withdraw(selection: StackSelection) =
-        OpenContainer(blockPos)
+        OpenContainer(blockPos, automated)
             .then {
                 info("Withdrawing $selection from ${it.type}")
                 withdraw(it, selection)
             }
 
+    context(automated: Automated)
     override fun deposit(selection: StackSelection) =
-        OpenContainer(blockPos)
+        OpenContainer(blockPos, automated)
             .then {
                 info("Depositing $selection to ${it.type}")
                 deposit(it, selection)
             }
-
-    class ChestBlockedException : Exception("The chest is blocked by another block or a cat")
-    class UnexpectedScreen(screenHandler: ScreenHandler) : Exception("Unexpected screen. Got ${screenHandler.type}")
 }

@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.context.interactConfig
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
@@ -67,8 +68,8 @@ class InteractionContext(
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {
-        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request.hotbar), false)
-        val validRotation = if (request.rotate) submit(rotation, false).done else true
+        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request), false)
+        val validRotation = if (request.interactConfig.rotate) submit(rotation, false).done else true
         return hotbarRequest.done && validRotation
     }
 

@@ -17,23 +17,23 @@
 
 package com.lambda.task.tasks
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 
 class AcquireMaterial @Ta5kBuilder constructor(
     val selection: StackSelection,
-    val inventory: InventoryConfig
-) : Task<StackSelection>() {
+    automated: Automated
+) : Task<StackSelection>(), Automated by automated {
     override val name: String
         get() = "Acquiring $selection"
 
     override fun SafeContext.onStart() {
-        selection.findContainerWithMaterial(inventory)
+        selection.findContainerWithMaterial()
             ?.withdraw(selection)
             ?.finally {
                 success(selection)
@@ -43,7 +43,7 @@ class AcquireMaterial @Ta5kBuilder constructor(
 
     companion object {
         @Ta5kBuilder
-        fun acquire(selection: () -> StackSelection) =
-            AcquireMaterial(selection(), TaskFlowModule.inventory)
+        fun Automated.acquire(selection: () -> StackSelection) =
+            AcquireMaterial(selection(), this)
     }
 }

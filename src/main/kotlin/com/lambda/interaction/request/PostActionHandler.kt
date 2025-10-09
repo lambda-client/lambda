@@ -49,7 +49,7 @@ abstract class PostActionHandler<T : ActionInfo> {
     }
 
     fun setPendingConfigs(build: BuildConfig) {
-        BrokenBlockHandler.pendingActions.setSizeLimit(build.breaking.maxPendingBreaks)
+        BrokenBlockHandler.pendingActions.setSizeLimit(build.breakConfig.maxPendingBreaks)
         BrokenBlockHandler.pendingActions.setDecayTime(build.interactionTimeout * 50L)
     }
 }

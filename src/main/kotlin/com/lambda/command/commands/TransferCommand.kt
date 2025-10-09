@@ -27,6 +27,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
+import com.lambda.context.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
@@ -52,8 +53,10 @@ object TransferCommand : LambdaCommand(
                         val selection = selectStack(count) {
                             isItem(stack(ctx).value().item)
                         }
-                        selection.containerWithMaterial().forEachIndexed { i, container ->
-                            builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                        with(AutomationConfig) {
+                            selection.containerWithMaterial().forEachIndexed { i, container ->
+                                builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                            }
                         }
                         builder.buildFuture()
                     }
@@ -62,8 +65,10 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount(ctx).value()) {
                                 isItem(stack(ctx).value().item)
                             }
-                            containerWithSpace(selection).forEachIndexed { i, container ->
-                                builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                            with(AutomationConfig) {
+                                containerWithSpace(selection).forEachIndexed { i, container ->
+                                    builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                                }
                             }
                             builder.buildFuture()
                         }
@@ -79,22 +84,24 @@ object TransferCommand : LambdaCommand(
                                 it.name == to().value().split(".").last().trim()
                             } ?: return@executeWithResult failure("To container not found")
 
-                            when (val transaction = fromContainer.transfer(selection, toContainer)) {
-                                is TransferResult.ContainerTransfer -> {
-                                    info("${transaction.name} started.")
-                                    lastContainerTransfer = transaction
-                                    transaction.finally {
-                                        info("${transaction.name} completed.")
-                                    }.run()
-                                    return@executeWithResult success()
-                                }
+                            with(AutomationConfig) {
+                                when (val transaction = fromContainer.transfer(selection, toContainer)) {
+                                    is TransferResult.ContainerTransfer -> {
+                                        info("${transaction.name} started.")
+                                        lastContainerTransfer = transaction
+                                        transaction.finally {
+                                            info("${transaction.name} completed.")
+                                        }.run()
+                                        return@executeWithResult success()
+                                    }
 
-                                is TransferResult.MissingItems -> {
-                                    return@executeWithResult failure("Missing items: ${transaction.missing}")
-                                }
+                                    is TransferResult.MissingItems -> {
+                                        return@executeWithResult failure("Missing items: ${transaction.missing}")
+                                    }
 
-                                is TransferResult.NoSpace -> {
-                                    return@executeWithResult failure("No space in ${toContainer.name}")
+                                    is TransferResult.NoSpace -> {
+                                        return@executeWithResult failure("No space in ${toContainer.name}")
+                                    }
                                 }
                             }
 

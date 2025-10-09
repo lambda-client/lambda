@@ -22,6 +22,7 @@ import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.config.Configuration
+import com.lambda.context.AutomationConfig
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
@@ -35,7 +36,6 @@ import com.lambda.interaction.BaritoneManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.LambdaAPI
-import com.lambda.network.NetworkManager
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Diagnostics.gatherDiagnostics
@@ -50,7 +50,7 @@ import imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
-import java.util.Locale
+import java.util.*
 
 object MenuBar {
     private var aboutRequested = false
@@ -140,6 +140,9 @@ object MenuBar {
             }
             menu("Baritone Settings") {
                 buildConfigSettingsContext(BaritoneManager)
+            }
+            menu("Automation Settings") {
+                buildConfigSettingsContext(AutomationConfig)
             }
         }
         separator()

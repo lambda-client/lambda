@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.BreakContext
@@ -26,7 +27,6 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.interaction.request.inventory.InventoryConfig
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -89,23 +89,23 @@ sealed class BreakResult : BuildResult() {
     data class ItemCantMine(
         override val blockPos: BlockPos,
         val blockState: BlockState,
-        val badItem: Item,
-        val inventory: InventoryConfig
+        val badItem: Item
     ) : Drawable, Resolvable, BreakResult() {
         override val rank = Rank.BREAK_ITEM_CANT_MINE
         private val color = Color(255, 0, 0, 100)
 
         override val pausesParent get() = true
 
+        context(automated: Automated)
         override fun resolve() =
             selectStack {
                 isItem(badItem).not()
             }.let { selection ->
-                selection.transfer(MainHandContainer, inventory)
+                selection.transfer(MainHandContainer)
                     ?: MaterialContainer.AwaitItemTask(
                         "Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.",
                         selection,
-                        inventory
+                        automated
                     )
             }
 

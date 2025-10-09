@@ -17,17 +17,12 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.Automated
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
-import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
@@ -37,15 +32,10 @@ import net.minecraft.util.math.BlockPos
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
-    val build: BuildConfig = TaskFlowModule.build,
-    val hotbar: HotbarConfig = TaskFlowModule.hotbar,
-    val rotation: RotationConfig = TaskFlowModule.rotation,
-    val inventory: InventoryConfig = TaskFlowModule.inventory,
-    val interact: InteractionConfig = TaskFlowModule.interaction
-) : Request(), LogContext {
+    private val automated: Automated
+) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 
-    override val config = build.breaking
     var onStart: ((BlockPos) -> Unit)? = null
     var onUpdate: ((BlockPos) -> Unit)? = null
     var onStop: ((BlockPos) -> Unit)? = null
@@ -83,13 +73,9 @@ data class BreakRequest(
     class RequestBuilder(
         contexts: Collection<BreakContext>,
         pendingInteractions: MutableCollection<BuildContext>,
-        rotation: RotationConfig,
-        hotbar: HotbarConfig,
-        interact: InteractionConfig,
-        inventory: InventoryConfig,
-        build: BuildConfig
+        automated: Automated
     ) {
-        val request = BreakRequest(contexts, pendingInteractions, build, hotbar, rotation, inventory, interact)
+        val request = BreakRequest(contexts, pendingInteractions, automated)
 
         @BreakRequestBuilder
         fun onStart(callback: (BlockPos) -> Unit) {
@@ -134,15 +120,10 @@ data class BreakRequest(
         var requestCount = 0
 
         @BreakRequestBuilder
-        fun breakRequest(
+        fun Automated.breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            hotbar: HotbarConfig = TaskFlowModule.hotbar,
-            interact: InteractionConfig = TaskFlowModule.interaction,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-            build: BuildConfig = TaskFlowModule.build,
             builder: RequestBuilder.() -> Unit
-        ) = RequestBuilder(contexts, pendingInteractions, rotation, hotbar, interact, inventory, build).apply(builder).build()
+        ) = RequestBuilder(contexts, pendingInteractions, this).apply(builder).build()
     }
 }

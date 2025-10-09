@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.placing
 
 import com.lambda.context.SafeContext
+import com.lambda.context.placeConfig
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
@@ -160,7 +161,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 return
             }
             if (!validSneak(player)) return
-            if (tickStage !in request.placeStageMask) return
+            if (tickStage !in request.placeConfig.placeStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
             if (!actionResult.isAccepted) {
@@ -186,20 +187,20 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      */
     private fun populateFrom(request: PlaceRequest) {
         logger.debug("Populating from request", request)
-        setPendingConfigs(request.build)
+        setPendingConfigs(request.buildConfig)
         potentialPlacements = request.contexts
             .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
             .take(
                 min(
-                    request.maxPendingPlacements - pendingActions.size,
-                    request.build.maxPendingInteractions - request.pendingInteractions.size
+                    request.placeConfig.maxPendingPlacements - pendingActions.size,
+                    request.buildConfig.maxPendingInteractions - request.pendingInteractions.size
                 ).coerceAtLeast(0)
             )
             .toMutableList()
         logger.debug("${potentialPlacements.size} potential placements")
 
-        maxPlacementsThisTick = request.placementsPerTick
+        maxPlacementsThisTick = request.placeConfig.placementsPerTick
     }
 
     /**
@@ -218,7 +219,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             logger.error("Player is in spectator mode", placeContext, request)
             return ActionResult.PASS
         }
-        return interactBlockInternal(placeContext, request, request.build.placing, hand, hitResult)
+        return interactBlockInternal(placeContext, request, request.buildConfig.placeConfig, hand, hitResult)
     }
 
     /**

@@ -150,7 +150,7 @@ public abstract class EntityMixin {
     private boolean wrapSetYaw(Entity instance, float yaw) {
         return (instance != Lambda.getMc().player ||
                 RotationLock.INSTANCE.isDisabled() ||
-                RotationLock.getRotationSettings().getRotationMode() != RotationMode.Lock ||
+                RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
                 RotationLock.getYawMode() == RotationLock.RotationMode.None);
     }
 
@@ -158,7 +158,7 @@ public abstract class EntityMixin {
     private boolean wrapSetPitch(Entity instance, float yaw) {
         return (instance != Lambda.getMc().player ||
                 RotationLock.INSTANCE.isDisabled() ||
-                RotationLock.getRotationSettings().getRotationMode() != RotationMode.Lock ||
+                RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
                 RotationLock.getPitchMode() == RotationLock.RotationMode.None);
     }
 }

@@ -18,7 +18,9 @@
 package com.lambda.threading
 
 import com.lambda.Lambda.mc
-import com.lambda.context.ClientContext
+import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.AutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
@@ -41,8 +43,33 @@ import java.util.concurrent.CompletableFuture
  * @param block The block of code to be executed within the safe context.
  * @return The result of the block execution if the context is safe, null otherwise.
  */
-inline fun <T> runSafe(block: SafeContext.() -> T) =
-    ClientContext().toSafe()?.run(block)
+inline fun <T> runSafe(block: SafeContext.() -> T): T? =
+    SafeContext.create()?.run(block)
+
+@JvmName("runSafeAutomated0")
+context(safeContext: SafeContext)
+inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
+    AutomatedSafeContext(safeContext, automated).run(block)
+
+@JvmName("runSafeAutomated1")
+context(automated: Automated)
+inline fun <T> SafeContext.runSafeAutomated(block: AutomatedSafeContext.() -> T): T =
+    AutomatedSafeContext(this, automated).run(block)
+
+@JvmName("runSafeAutomated2")
+context(automated: Automated)
+inline fun <T> runSafeAutomated(block: AutomatedSafeContext.() -> T): T? =
+    SafeContext.create()?.runSafeAutomated(block)
+
+@JvmName("runSafeAutomated3")
+context(safeContext: SafeContext, c: Automated)
+inline fun <T> runSafeAutomated(automated: Automated = c, block: AutomatedSafeContext.() -> T): T =
+    AutomatedSafeContext(safeContext, automated).run(block)
+
+@JvmName("runSafeAutomated4")
+inline fun <T> runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
+    return AutomatedSafeContext(SafeContext.create() ?: return null, AutomationConfig).run(block)
+}
 
 /**
  * This function is used to execute a block of code on a new thread running asynchronously to the game thread.

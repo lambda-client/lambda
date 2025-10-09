@@ -19,24 +19,21 @@ package com.lambda.task.tasks
 
 import com.lambda.config.groups.EatConfig
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
-import com.lambda.util.item.ItemUtils.nutrition
+import com.lambda.threading.runSafeAutomated
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 
 class EatTask @Ta5kBuilder constructor(
-    val config: EatConfig,
-    val inventory: InventoryConfig
-) : Task<Unit>() {
+    automated: Automated
+) : Task<Unit>(), Automated by automated {
     override val name: String
         get() = reason.message(eatStack ?: ItemStack.EMPTY)
 
@@ -45,12 +42,12 @@ class EatTask @Ta5kBuilder constructor(
     private var holdingUse = false
 
     override fun SafeContext.onStart() {
-        reason = reasonEating(config)
+        reason = runSafeAutomated { reasonEating() }
     }
 
     init {
         listen<TickEvent.Input.Pre> {
-            if (holdingUse && !reason.shouldKeepEating(config, eatStack)) {
+            if (holdingUse && !reason.shouldKeepEating(eatStack)) {
                 mc.options.useKey.isPressed = false
                 holdingUse = false
                 interaction.stopUsingItem(player)
@@ -66,13 +63,13 @@ class EatTask @Ta5kBuilder constructor(
                 return@listen
             }
 
-            val foodFinder = reason.selector(config)
+            val foodFinder = reason.selector()
             if (!foodFinder.matches(player.mainHandStack)) {
                 if (holdingUse) {
                     mc.options.useKey.isPressed = false
                     holdingUse = false
                 }
-                foodFinder.transfer(MainHandContainer, inventory)
+                foodFinder.transfer(MainHandContainer)
                     ?.execute(this@EatTask) ?: failure("No food found")
                 return@listen
             }
@@ -89,9 +86,7 @@ class EatTask @Ta5kBuilder constructor(
 
     companion object {
         @Ta5kBuilder
-        fun eat(
-            config: EatConfig = TaskFlowModule.eat,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-        ) = EatTask(config, inventory)
+        context(automated: Automated)
+        fun eat() = EatTask(automated)
     }
 }

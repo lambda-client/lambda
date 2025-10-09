@@ -17,14 +17,12 @@
 
 package com.lambda.interaction.request.placing
 
-import com.lambda.config.groups.BuildConfig
+import com.lambda.context.Automated
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
-import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
@@ -33,14 +31,10 @@ import net.minecraft.util.math.BlockPos
 data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
-    val build: BuildConfig,
-    val hotbar: HotbarConfig,
-    val rotation: RotationConfig,
+    private val automated: Automated,
     val onPlace: ((BlockPos) -> Unit)? = null
-) : Request(), PlaceConfig by build.placing, LogContext {
+) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
-
-    override val config = build.placing
 
     override val done: Boolean
         get() = runSafe {
