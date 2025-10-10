@@ -39,6 +39,7 @@ class BuildSettings(
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis).group(*baseGroup, Group.General)
     override val interactionsPerTick by c.setting("Interactions Per Tick", 5, 1..30, 1, "The amount of interactions that can happen per tick", visibility = vis).group(*baseGroup, Group.General)
     override val maxPendingInteractions by c.setting("Max Pending Interactions", 15, 1..30, 1, "The maximum count of pending interactions to allow before pausing future interactions", visibility = vis).group(*baseGroup, Group.General)
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks", visibility = vis).group(Group.General)
 
     override val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", vis).group(*baseGroup, Group.Reach)
     override val attackReach by c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance") { vis() && !useDefaultReach }.group(*baseGroup, Group.Reach)
@@ -50,8 +51,6 @@ class BuildSettings(
     override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", vis).group(*baseGroup, Group.Scan)
     override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis).group(*baseGroup, Group.Scan)
     override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", vis).group(*baseGroup, Group.Scan)
-
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks", visibility = vis)
 
     companion object {
         const val DEFAULT_ATTACK_REACH = 3.0
