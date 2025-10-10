@@ -28,7 +28,7 @@ class InteractionSettings(
     baseGroup: NamedEnum,
     private val usage: InteractionMask,
     vis: () -> Boolean = { true },
-) : InteractionConfig {
+) : InteractionConfig, SettingGroup(c, c.settings.size) {
     // Reach
     private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", vis).group(baseGroup)
     private val attackReachSetting = if (usage.entity) c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance") { vis() && !useDefaultReach }.group(baseGroup) else null

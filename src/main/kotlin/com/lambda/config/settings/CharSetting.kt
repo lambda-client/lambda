@@ -33,11 +33,12 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class CharSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Char,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<Char>(
+    name,
     defaultValue,
     TypeToken.get(Char::class.java).type,
     description,

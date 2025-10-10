@@ -26,7 +26,7 @@ class InteractSettings(
     c: Configurable,
     groupPath: List<NamedEnum> = emptyList(),
     vis: () -> Boolean = { true }
-) : InteractConfig {
+) : InteractConfig, SettingGroup(c, c.settings.size) {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis).group(groupPath)
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis).group(groupPath)
     override val interactStageMask by c.setting("Interact Stage Mask", setOf(TickEvent.Input.Post), description = "The sub-tick timing at which interact actions are performed", visibility = vis).group(groupPath)

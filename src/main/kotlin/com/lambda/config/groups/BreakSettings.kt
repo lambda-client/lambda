@@ -33,7 +33,7 @@ class BreakSettings(
     c: Configurable,
     groupPath: List<NamedEnum> = emptyList(),
     vis: () -> Boolean = { true },
-) : BreakConfig {
+) : BreakConfig, SettingGroup(c, c.settings.size) {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Cosmetic("Cosmetic")

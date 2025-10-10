@@ -21,6 +21,7 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
+import com.lambda.config.groups.SettingGroup
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
@@ -29,13 +30,14 @@ import java.lang.reflect.Type
  * @see [com.lambda.config.Configurable]
  */
 class SetSetting<T : Any>(
-    override val name: String,
-    private val immutableSet: Set<T>,
+    override var name: String,
+    private var immutableSet: Set<T>,
     defaultValue: MutableSet<T>,
     type: Type,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<MutableSet<T>>(
+    name,
     defaultValue,
     type,
     description,
@@ -71,5 +73,11 @@ class SetSetting<T : Any>(
             .toMutableSet()
 
         value = strSet
+    }
+
+    @SettingGroup.SettingEditorDsl
+    @Suppress("unchecked_cast")
+    fun <T> SettingGroup.TypedEditBuilder<MutableSet<T>>.immutableSet(immutableSet: Set<T>) {
+        (settings as Set<SetSetting<T>>).forEach { it.immutableSet = immutableSet }
     }
 }

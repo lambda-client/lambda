@@ -33,6 +33,7 @@ import com.lambda.context.SafeContext
 import com.lambda.gui.Layout
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
+import com.lambda.util.Describable
 import com.lambda.util.Nameable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.CommandBuilder
@@ -94,13 +95,14 @@ import kotlin.reflect.KProperty
  * @property visibility A function that determines whether the setting is visible.
  */
 abstract class AbstractSetting<T : Any>(
+    override var name: String,
     internal val defaultValue: T,
     val type: Type,
-    val description: String,
-    val visibility: () -> Boolean,
-) : Jsonable, Nameable, Layout {
+    override var description: String,
+    var visibility: () -> Boolean,
+) : Jsonable, Nameable, Describable, Layout {
     private val listeners = mutableListOf<ValueListener<T>>()
-    val groups: MutableList<List<NamedEnum>> = mutableListOf()
+    var groups: MutableList<List<NamedEnum>> = mutableListOf()
 
     var value by Delegates.observable(defaultValue) { _, from, to ->
         listeners.forEach {

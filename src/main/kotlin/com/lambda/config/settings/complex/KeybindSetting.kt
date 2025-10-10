@@ -36,11 +36,12 @@ import net.minecraft.command.CommandRegistryAccess
 import org.lwjgl.glfw.GLFW
 
 class KeybindSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: KeyCode,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<KeyCode>(
+    name,
     defaultValue,
     TypeToken.get(KeyCode::class.java).type,
     description,

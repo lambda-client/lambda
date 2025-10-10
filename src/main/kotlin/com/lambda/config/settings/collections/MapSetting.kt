@@ -25,12 +25,13 @@ import java.lang.reflect.Type
  * @see [com.lambda.config.Configurable]
  */
 class MapSetting<K, V>(
-    override val name: String,
+    override var name: String,
     defaultValue: MutableMap<K, V>,
     type: Type,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<MutableMap<K, V>>(
+    name,
     defaultValue,
     type,
     description,

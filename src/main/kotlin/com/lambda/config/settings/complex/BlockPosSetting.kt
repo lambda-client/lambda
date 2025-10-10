@@ -33,11 +33,12 @@ import net.minecraft.util.math.BlockPos
  * @see [com.lambda.config.Configurable]
  */
 class BlockPosSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: BlockPos,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<BlockPos>(
+    name,
     defaultValue,
     TypeToken.get(BlockPos::class.java).type,
     description,
