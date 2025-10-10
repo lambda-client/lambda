@@ -96,7 +96,7 @@ import kotlin.reflect.KProperty
  */
 abstract class AbstractSetting<T : Any>(
     override var name: String,
-    internal val defaultValue: T,
+    internal var defaultValue: T,
     val type: Type,
     override var description: String,
     var visibility: () -> Boolean,

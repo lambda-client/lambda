@@ -41,7 +41,7 @@ class BreakSettings(
 
     // General
     override val breakMode by c.setting("Break Mode", BreakMode.Packet, visibility = vis).group(baseGroup, Group.General)
-    override val sorter by c.setting("Sorter", SortMode.Closest, "The order in which breaks are performed", visibility = vis).group(baseGroup, Group.General)
+    override val sorter by c.setting("Sorter", SortMode.Tool, "The order in which breaks are performed", visibility = vis).group(baseGroup, Group.General)
     override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once", visibility = vis).group(baseGroup, Group.General)
 
     // Double break
@@ -80,16 +80,16 @@ class BreakSettings(
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, description = "Blocks that wont be broken", visibility = vis).group(baseGroup, Group.General)
 
     // Tool
-    override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)", visibility = vis).group(baseGroup, Group.General)
-    override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { vis() && forceFortunePickaxe }.group(baseGroup, Group.General)
-    override val useWoodenTools by c.setting("Use Wooden Tools", true, "Use wooden tools when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val useStoneTools by c.setting("Use Stone Tools", true, "Use stone tools when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val useIronTools by c.setting("Use Iron Tools", true, "Use iron tools when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val useDiamondTools by c.setting("Use Diamond Tools", true, "Use diamond tools when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val useGoldTools by c.setting("Use Gold Tools", true, "Use gold tools when breaking blocks", visibility = vis).group(baseGroup, Group.General)
-    override val useNetheriteTools by c.setting("Use Netherite Tools", true, "Use netherite tools when breaking blocks", visibility = vis).group(baseGroup, Group.General)
+    override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { vis() && swapMode.isEnabled() && forceFortunePickaxe }.group(baseGroup, Group.General)
+    override val useWoodenTools by c.setting("Use Wooden Tools", true, "Use wooden tools when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val useStoneTools by c.setting("Use Stone Tools", true, "Use stone tools when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val useIronTools by c.setting("Use Iron Tools", true, "Use iron tools when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val useDiamondTools by c.setting("Use Diamond Tools", true, "Use diamond tools when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val useGoldTools by c.setting("Use Gold Tools", true, "Use gold tools when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
+    override val useNetheriteTools by c.setting("Use Netherite Tools", true, "Use netherite tools when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
 
     // Cosmetics
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds", visibility = vis).group(baseGroup, Group.Cosmetic)

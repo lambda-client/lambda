@@ -61,10 +61,25 @@ object Scaffold : Module(
     private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
     private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != KeyCode.UNBOUND }.group(Group.General)
-    override val buildConfig = BuildSettings(this, Group.Build)
+    override val buildConfig = BuildSettings(this, Group.Build).apply {
+        editTypedSettings(::pathing, ::stayInRange, ::collectDrops) {
+            defaultValue(false)
+            visibility { false }
+        }
+    }
     override val rotationConfig = RotationSettings(this, Group.Rotation)
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
-    override val inventoryConfig = InventorySettings(this, Group.Inventory)
+    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
+        editSetting(::disposables) {
+            name("Blocks")
+            description("Blocks to use as scaffolding")
+            groups(listOf(Group.General))
+        }
+        editTypedSettings(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
+            defaultValue(false)
+            visibility { false }
+        }
+    }
 
     private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
