@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.context.placeConfig
 import com.lambda.event.Event
@@ -44,6 +46,7 @@ import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingActions
 import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.placing.PlacedBlockHandler.startPending
 import com.lambda.module.hud.ManagerDebugLoggers.placeManagerLogger
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import com.lambda.util.player.MovementUtils.sneaking
@@ -77,7 +80,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     onOpen = {
         if (potentialPlacements.isNotEmpty())
             PlaceManager.logger.newStage(PlaceManager.tickStage)
-        activeRequest?.let { processRequest(it) }
+        activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
     }
 ), PositionBlocking, Logger {
     private var activeRequest: PlaceRequest? = null
@@ -125,7 +128,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      *
      * @see processRequest
      */
-    override fun SafeContext.handleRequest(request: PlaceRequest) {
+    override fun AutomatedSafeContext.handleRequest(request: PlaceRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
 
         activeRequest = request
@@ -143,7 +146,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see populateFrom
      * @see placeBlock
      */
-    fun SafeContext.processRequest(request: PlaceRequest) {
+    fun AutomatedSafeContext.processRequest(request: PlaceRequest)  {
         if (BreakManager.activeThisTick || InteractionManager.activeThisTick) return
 
         logger.debug("Processing request", request)
@@ -161,7 +164,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 return
             }
             if (!validSneak(player)) return
-            if (tickStage !in request.placeConfig.placeStageMask) return
+            if (tickStage !in placeConfig.placeStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
             if (!actionResult.isAccepted) {
@@ -185,22 +188,22 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      *
      * @see isPosBlocked
      */
-    private fun populateFrom(request: PlaceRequest) {
+    private fun Automated.populateFrom(request: PlaceRequest) {
         logger.debug("Populating from request", request)
-        setPendingConfigs(request.buildConfig)
+        setPendingConfigs()
         potentialPlacements = request.contexts
             .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
             .take(
                 min(
-                    request.placeConfig.maxPendingPlacements - pendingActions.size,
-                    request.buildConfig.maxPendingInteractions - request.pendingInteractions.size
+                    placeConfig.maxPendingPlacements - pendingActions.size,
+                    buildConfig.maxPendingInteractions - request.pendingInteractions.size
                 ).coerceAtLeast(0)
             )
             .toMutableList()
         logger.debug("${potentialPlacements.size} potential placements")
 
-        maxPlacementsThisTick = request.placeConfig.placementsPerTick
+        maxPlacementsThisTick = placeConfig.placementsPerTick
     }
 
     /**
@@ -208,7 +211,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      *
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock
      */
-    private fun SafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
+    private fun AutomatedSafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
         val hitResult = placeContext.result
         if (!world.worldBorder.contains(hitResult.blockPos)) {
@@ -219,7 +222,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             logger.error("Player is in spectator mode", placeContext, request)
             return ActionResult.PASS
         }
-        return interactBlockInternal(placeContext, request, request.buildConfig.placeConfig, hand, hitResult)
+        return interactBlockInternal(placeContext, request, hand, hitResult)
     }
 
     /**
@@ -227,10 +230,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      *
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal
      */
-    private fun SafeContext.interactBlockInternal(
+    private fun AutomatedSafeContext.interactBlockInternal(
         placeContext: PlaceContext,
         request: PlaceRequest,
-        placeConfig: PlaceConfig,
         hand: Hand,
         hitResult: BlockHitResult
     ): ActionResult {
@@ -256,12 +258,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
             return if (gamemode.isCreative) {
                 val i = stack.count
-                useOnBlock(placeContext, request, hand, hitResult, placeConfig, stack, itemUsageContext)
+                useOnBlock(placeContext, request, hand, hitResult, stack, itemUsageContext)
                     .also {
                         stack.count = i
                     }
             } else
-                useOnBlock(placeContext, request, hand, hitResult, placeConfig, stack, itemUsageContext)
+                useOnBlock(placeContext, request, hand, hitResult, stack, itemUsageContext)
         }
         return ActionResult.PASS
     }
@@ -271,12 +273,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      *
      * @see net.minecraft.item.Item.useOnBlock
      */
-    private fun SafeContext.useOnBlock(
+    private fun AutomatedSafeContext.useOnBlock(
         placeContext: PlaceContext,
         request: PlaceRequest,
         hand: Hand,
         hitResult: BlockHitResult,
-        placeConfig: PlaceConfig,
         itemStack: ItemStack,
         context: ItemUsageContext
     ): ActionResult {
@@ -294,7 +295,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             return ActionResult.PASS
         }
 
-        return place(placeContext, request, hand, hitResult, placeConfig, item, ItemPlacementContext(context))
+        return place(placeContext, request, hand, hitResult, item, ItemPlacementContext(context))
     }
 
     /**
@@ -302,12 +303,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      *
      * @see net.minecraft.item.BlockItem.place
      */
-    private fun SafeContext.place(
+    private fun AutomatedSafeContext.place(
         placeContext: PlaceContext,
         request: PlaceRequest,
         hand: Hand,
         hitResult: BlockHitResult,
-        placeConfig: PlaceConfig,
         item: BlockItem,
         context: ItemPlacementContext
     ): ActionResult {

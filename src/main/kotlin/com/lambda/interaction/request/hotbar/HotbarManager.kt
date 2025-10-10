@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
@@ -73,44 +74,43 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         return "Loaded Hotbar Manager"
     }
 
-    override fun SafeContext.handleRequest(request: HotbarRequest) {
+    override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
         logger.debug("Handling request:", request)
 
-        maxSwapsThisTick = request.hotbarConfig.swapsPerTick
-        swapDelay = swapDelay.coerceAtMost(request.hotbarConfig.swapDelay)
+        maxSwapsThisTick = hotbarConfig.swapsPerTick
+        swapDelay = swapDelay.coerceAtMost(hotbarConfig.swapDelay)
 
-        if (tickStage !in request.hotbarConfig.sequenceStageMask) return
+        if (tickStage !in hotbarConfig.sequenceStageMask) return
 
         val sameButLonger = activeRequest?.let { active ->
             request.slot == active.slot && request.keepTicks >= active.keepTicks
         } == true
 
-        if (sameButLonger) activeRequest?.let { current ->
-            request.swapPauseAge = current.swapPauseAge
+        if (sameButLonger) activeRequest?.let { active ->
+            request.swapPauseAge = active.swapPauseAge
             logger.debug("Request is the same as current, but longer or the same keep time", request)
         } else run swap@{
             if (request.slot != activeRequest?.slot) {
                 if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
 
-                activeRequest?.let { current ->
-                    if (current.swappedThisTick && current.keeping) return
+                activeRequest?.let { active ->
+                    if (active.swappedThisTick && active.keeping) return
                 }
 
                 swapsThisTick++
-                swapDelay = request.hotbarConfig.swapDelay
+                swapDelay = hotbarConfig.swapDelay
                 return@swap
             }
 
-            activeRequest?.let { current ->
-                request.swapPauseAge = current.swapPauseAge
-                if (current.swappedThisTick && current.keeping) return
+            activeRequest?.let { active ->
+                request.swapPauseAge = active.swapPauseAge
+                if (active.swappedThisTick && active.keeping) return
             }
         }
 
         activeRequest = request
         logger.success("Set active request", request)
         interaction.syncSelectedSlot()
-        return
     }
 
     private fun SafeContext.checkResetSwap() {

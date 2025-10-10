@@ -19,14 +19,14 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomationConfig
+import com.lambda.context.SafeContext
 import com.lambda.context.breakConfig
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.world.BlockView
+import com.lambda.threading.runSafeAutomated
 
 data class SwapInfo(
     private val type: BreakInfo.BreakType,
@@ -44,13 +44,9 @@ data class SwapInfo(
     companion object {
         val EMPTY = SwapInfo(Primary, AutomationConfig)
 
-        fun getSwapInfo(
-            info: BreakInfo,
-            player: ClientPlayerEntity,
-            world: BlockView
-        ): SwapInfo = with(info) {
-            val breakDelta = context.cachedState
-                .calcBreakDelta(player, world, context.blockPos, breakConfig, swapStack)
+        context(_: SafeContext)
+        fun BreakInfo.getSwapInfo() = request.runSafeAutomated {
+            val breakDelta = context.cachedState.calcBreakDelta(context.blockPos, swapStack)
 
             val threshold = getBreakThreshold()
 
@@ -61,9 +57,9 @@ data class SwapInfo(
 
             val swapAtEnd = run {
                 val swapTickProgress = if (type == Primary)
-                    breakDelta * (breakTicks + request.breakConfig.serverSwapTicks - 1).coerceAtLeast(1)
+                    breakDelta * (breakTicks + breakConfig.serverSwapTicks - 1).coerceAtLeast(1)
                 else {
-                    val serverSwapTicks = request.hotbarConfig.swapPause.coerceAtLeast(3)
+                    val serverSwapTicks = hotbarConfig.swapPause.coerceAtLeast(3)
                     breakDelta * (breakTicks + serverSwapTicks - 1).coerceAtLeast(1)
                 }
                 swapTickProgress >= threshold
@@ -77,11 +73,9 @@ data class SwapInfo(
                 BreakConfig.SwapMode.Constant -> true
             }
 
-            return SwapInfo(
-                info.type,
-                request,
-                swap,
-                breakConfig.serverSwapTicks > 0 || (info.type == Secondary && swapAtEnd)
+            SwapInfo(
+                type, this, swap,
+                breakConfig.serverSwapTicks > 0 || (type == Secondary && swapAtEnd)
             )
         }
     }

@@ -817,7 +817,7 @@ object BuildSimulator {
             sorter = compareByDescending<ItemStack> {
                 it.canBreak(CachedBlockPosition(world, pos, false))
             }.thenByDescending {
-                state.calcItemBlockBreakingDelta(player, world, pos, it)
+                state.calcItemBlockBreakingDelta(pos, it)
             }
         ) {
             isTool() and if (breakConfig.suitableToolsOnly) {
@@ -859,7 +859,7 @@ object BuildSimulator {
                 var bestStack = ItemStack.EMPTY
                 var bestBreakDelta = -1f
                 containerStacks.forEach { stack ->
-                    val breakDelta = state.calcItemBlockBreakingDelta(player, world, pos, stack)
+                    val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
                     if (breakDelta > bestBreakDelta ||
                         (stack == player.mainHandStack && breakDelta >= bestBreakDelta)
                     ) {

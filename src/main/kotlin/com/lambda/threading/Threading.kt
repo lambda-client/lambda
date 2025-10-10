@@ -20,7 +20,6 @@ package com.lambda.threading
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
@@ -52,23 +51,8 @@ inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: Au
     AutomatedSafeContext(safeContext, automated).run(block)
 
 @JvmName("runSafeAutomated1")
-context(automated: Automated)
-inline fun <T> SafeContext.runSafeAutomated(block: AutomatedSafeContext.() -> T): T =
-    AutomatedSafeContext(this, automated).run(block)
-
-@JvmName("runSafeAutomated2")
-context(automated: Automated)
-inline fun <T> runSafeAutomated(block: AutomatedSafeContext.() -> T): T? =
-    SafeContext.create()?.runSafeAutomated(block)
-
-@JvmName("runSafeAutomated3")
-context(safeContext: SafeContext, c: Automated)
-inline fun <T> runSafeAutomated(automated: Automated = c, block: AutomatedSafeContext.() -> T): T =
-    AutomatedSafeContext(safeContext, automated).run(block)
-
-@JvmName("runSafeAutomated4")
-inline fun <T> runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
-    return AutomatedSafeContext(SafeContext.create() ?: return null, AutomationConfig).run(block)
+inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
+    return AutomatedSafeContext(SafeContext.create() ?: return null, this).run(block)
 }
 
 /**

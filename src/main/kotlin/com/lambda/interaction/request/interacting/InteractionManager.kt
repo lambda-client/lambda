@@ -18,7 +18,8 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.context.SafeContext
+import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.interactConfig
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
@@ -54,7 +55,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
     onOpen = {
         if (InteractionManager.potentialInteractions.isNotEmpty())
             InteractionManager.logger.newStage(InteractionManager.tickStage)
-        InteractionManager.activeRequest?.let { processRequest(it) }
+        InteractionManager.activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
     }
 ), PositionBlocking, Logger {
     private var activeRequest: InteractRequest? = null
@@ -91,7 +92,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
         return "Loaded Interaction Manager"
     }
 
-    override fun SafeContext.handleRequest(request: InteractRequest) {
+    override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
 
         activeRequest = request
@@ -99,7 +100,7 @@ object InteractionManager : RequestHandler<InteractRequest>(
         if (interactionsThisTick > 0) activeThisTick = true
     }
 
-    fun SafeContext.processRequest(request: InteractRequest) = request.runSafeAutomated {
+    fun AutomatedSafeContext.processRequest(request: InteractRequest) {
         if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
 
         logger.debug("Processing request", request)
@@ -139,18 +140,18 @@ object InteractionManager : RequestHandler<InteractRequest>(
         }
     }
 
-    private fun populateFrom(request: InteractRequest) {
+    private fun Automated.populateFrom(request: InteractRequest) {
         logger.debug("Populating from request", request)
-        setPendingConfigs(request.buildConfig)
+        setPendingConfigs()
         potentialInteractions = request.contexts
             .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
-            .take((request.buildConfig.maxPendingInteractions - pendingActions.size).coerceAtLeast(0))
+            .take((buildConfig.maxPendingInteractions - pendingActions.size).coerceAtLeast(0))
             .toMutableList()
 
         logger.debug("${potentialInteractions.size} potential interactions")
 
-        maxInteractionsThisTick = request.buildConfig.interactionsPerTick
+        maxInteractionsThisTick = buildConfig.interactionsPerTick
     }
 
     override fun preEvent() = UpdateManagerEvent.Interact.post()
