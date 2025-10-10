@@ -19,20 +19,20 @@ package com.lambda.context
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.EatConfig
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.interacting.InteractConfig
 import com.lambda.interaction.request.inventory.InventoryConfig
+import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 
 interface Automated {
     val buildConfig: BuildConfig
+    val breakConfig: BreakConfig
+    val placeConfig: PlaceConfig
+    val interactConfig: InteractConfig
     val rotationConfig: RotationConfig
-    val interactionConfig: InteractionConfig
     val inventoryConfig: InventoryConfig
     val hotbarConfig: HotbarConfig
     val eatConfig: EatConfig
 }
-
-val Automated.breakConfig get() = buildConfig.breakConfig
-val Automated.placeConfig get() = buildConfig.placeConfig
-val Automated.interactConfig get() = buildConfig.interactConfig

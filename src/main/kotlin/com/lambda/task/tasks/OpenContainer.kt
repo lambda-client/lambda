@@ -18,7 +18,6 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.Automated
-import com.lambda.context.interactConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

@@ -20,7 +20,6 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.EatSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.interaction.BaritoneManager
@@ -41,7 +40,6 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
-import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -71,7 +69,6 @@ object HighwayTools : Module(
 
     override val buildConfig = BuildSettings(this, Group.Build)
     override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
     override val inventoryConfig = InventorySettings(this, Group.Inventory)
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
     override val eatConfig = EatSettings(this, Group.Eat)

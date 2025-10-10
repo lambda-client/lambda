@@ -19,22 +19,26 @@ package com.lambda.context
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
+import com.lambda.config.groups.BreakSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.EatSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractionSettings
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InventorySettings
+import com.lambda.config.groups.PlaceSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.onStaticRender
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.util.NamedEnum
-import com.lambda.util.world.raycast.InteractionMask
 
 object AutomationConfig : Configurable(LambdaConfig), Automated {
     override val name = "automation"
 
     enum class Group(override val displayName: String) : NamedEnum {
         Build("Build"),
+        Break("Break"),
+        Place("Place"),
+        Interact("Interact"),
         Rotation("Rotation"),
         Interaction("Interaction"),
         Inventory("Inventory"),
@@ -47,8 +51,10 @@ object AutomationConfig : Configurable(LambdaConfig), Automated {
     val renders by setting("Render", false).group(Group.Render)
 
     override val buildConfig = BuildSettings(this, Group.Build)
+    override val breakConfig = BreakSettings(this, Group.Break)
+    override val placeConfig = PlaceSettings(this, Group.Place)
+    override val interactConfig = InteractSettings(this, Group.Interact)
     override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Both)
     override val inventoryConfig = InventorySettings(this, Group.Inventory)
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
     override val eatConfig = EatSettings(this, Group.Eat)

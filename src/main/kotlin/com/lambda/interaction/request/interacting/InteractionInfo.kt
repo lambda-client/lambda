@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.context.Automated
-import com.lambda.context.interactConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.ActionInfo

@@ -20,7 +20,6 @@ package com.lambda.interaction.request.breaking
 import com.lambda.context.Automated
 import com.lambda.context.AutomationConfig
 import com.lambda.context.SafeContext
-import com.lambda.context.breakConfig
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Primary

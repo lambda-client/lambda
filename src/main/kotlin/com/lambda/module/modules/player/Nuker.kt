@@ -18,7 +18,6 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.AutomationConfig
-import com.lambda.context.breakConfig
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState

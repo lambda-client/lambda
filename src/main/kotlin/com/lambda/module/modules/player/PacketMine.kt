@@ -19,11 +19,9 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.context.breakConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
@@ -44,7 +42,6 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
-import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -59,7 +56,6 @@ object PacketMine : Module(
         General("General"),
         Build("Build"),
         Rotation("Rotation"),
-        Interaction("Interaction"),
         Inventory("Inventory"),
         Hotbar("Hotbar"),
         Render("Render")
@@ -74,7 +70,6 @@ object PacketMine : Module(
 
     override val buildConfig = BuildSettings(this, Group.Build)
     override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
     override val inventoryConfig = InventorySettings(this, Group.Inventory)
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
 

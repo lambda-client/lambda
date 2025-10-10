@@ -19,7 +19,6 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.context.breakConfig
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent

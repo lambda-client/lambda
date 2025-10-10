@@ -17,10 +17,8 @@
 
 package com.lambda.interaction.request.interacting
 
-import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.interactConfig
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
@@ -120,10 +118,10 @@ object InteractionManager : RequestHandler<InteractRequest>(
             }
             if (tickStage !in interactConfig.interactStageMask) return
 
-            if (interactConfig.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None) {
+            if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
                 InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
-            if (interactConfig.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+            if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.result)
             } else {
                 interaction.sendSequencedPacket(world) { sequence ->

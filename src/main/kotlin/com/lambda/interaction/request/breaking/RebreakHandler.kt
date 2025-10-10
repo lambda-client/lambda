@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.SafeContext
-import com.lambda.context.breakConfig
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

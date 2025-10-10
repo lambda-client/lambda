@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.AutomationConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -35,7 +34,7 @@ object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
         AutomationConfig.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+        if (it.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
             mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)

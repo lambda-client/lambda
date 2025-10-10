@@ -20,7 +20,6 @@ package com.lambda.interaction.request.placing
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.context.placeConfig
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent

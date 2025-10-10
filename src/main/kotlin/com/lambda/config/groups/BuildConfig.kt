@@ -17,6 +17,7 @@
 
 package com.lambda.config.groups
 
+import com.lambda.interaction.request.rotating.visibilty.PointSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
@@ -29,14 +30,15 @@ interface BuildConfig {
     val maxPendingInteractions: Int
     val interactionTimeout: Int
 
-    // Breaking
-    val breakConfig: BreakSettings
+    val useDefaultReach: Boolean
+    val attackReach: Double
+    val interactReach: Double
+    val scanReach: Double
 
-    // Placing
-    val placeConfig: PlaceSettings
-
-    // Interacting
-    val interactConfig: InteractSettings
+    val strictRayCast: Boolean
+    val checkSideVisibility: Boolean
+    val resolution: Int
+    val pointSelection: PointSelection
 
     enum class SwingType(
         override val displayName: String,

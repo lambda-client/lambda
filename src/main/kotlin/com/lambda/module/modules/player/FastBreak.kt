@@ -63,9 +63,9 @@ object FastBreak : Module(
                 RotationRequest(lookAt(player.rotation), this@FastBreak),
                 player.inventory.selectedSlot,
                 player.mainHandStack.select(),
-                state.calcBlockBreakingDelta(player, world, pos) >= buildConfig.breakConfig.breakThreshold,
+                state.calcBlockBreakingDelta(player, world, pos) >= breakConfig.breakThreshold,
                 state,
-                buildConfig.breakConfig.sorter
+                breakConfig.sorter
             )
 
             BreakRequest(setOf(breakContext), pendingInteractions, this@FastBreak).submit()

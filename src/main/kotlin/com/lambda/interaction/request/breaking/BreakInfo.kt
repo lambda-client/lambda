@@ -43,7 +43,7 @@ data class BreakInfo(
     var request: BreakRequest
 ) : ActionInfo, LogContext {
     // Delegates
-    val breakConfig get() = request.buildConfig.breakConfig
+    val breakConfig get() = request.breakConfig
     override val pendingInteractionsList get() = request.pendingInteractions
 
     // Pre Processing
