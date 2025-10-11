@@ -37,7 +37,8 @@ import com.lambda.sound.SoundManager.play
 import com.lambda.util.Describable
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
-import com.lambda.util.WindowIcons.setLambdaWindowIcon
+import com.lambda.util.WindowUtils.setLambdaTitle
+import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import imgui.ImGui
 import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiCol
@@ -90,7 +91,8 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
             mc.window.setIcon(mc.defaultResourcePack, icon)
         }
     }
-    val setLambdaWindowTitle by setting("Set Lambda Window Title", true).group(Group.General)
+    @JvmStatic val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }.group(Group.General)
+    val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }.group(Group.General)
 
     // Sizing
     val windowPaddingX by setting("Window Padding X", 8.0f, 0.0f..20.0f, 0.1f).group(Group.Sizing)
