@@ -86,7 +86,7 @@ object HighwayTools : Module(
 
     override val buildConfig = BuildSettings(this, Group.Build)
     override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editSetting(::swapMode) { defaultValue(BreakConfig.SwapMode.Constant) }
+        ::swapMode.edit { defaultValue(BreakConfig.SwapMode.Constant) }
     }
     override val placeConfig = PlaceSettings(this, Group.Place)
     override val interactConfig = InteractSettings(this, Group.Interact)

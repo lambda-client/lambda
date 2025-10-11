@@ -63,15 +63,15 @@ object FastBreak : Module(
     }
 
     override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editTypedSettings(
+        editTyped(
             ::avoidLiquids,
             ::avoidSupporting,
             ::suitableToolsOnly,
             ::rotateForBreak,
             ::doubleBreak
         ) { defaultValue(false) }
-        editSetting(::breaksPerTick) { defaultValue(1) }
-        editSetting(::breakWeakBlocks) { defaultValue(true) }
+        ::breaksPerTick.edit { defaultValue(1) }
+        ::breakWeakBlocks.edit { defaultValue(true) }
         hide(
             ::sorter,
             ::doubleBreak,
@@ -82,14 +82,14 @@ object FastBreak : Module(
         )
     }
     override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
-        editTypedSettings(
+        editTyped(
             ::accessShulkerBoxes,
             ::accessEnderChest,
             ::accessChests,
             ::accessStashes
         ) {
             defaultValue(false)
-            visibility { false }
+            hide()
         }
     }
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)

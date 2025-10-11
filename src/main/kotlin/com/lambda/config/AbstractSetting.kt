@@ -101,6 +101,7 @@ abstract class AbstractSetting<T : Any>(
     override var description: String,
     var visibility: () -> Boolean,
 ) : Jsonable, Nameable, Describable, Layout {
+    var hidden = false
     private val listeners = mutableListOf<ValueListener<T>>()
     var groups: MutableList<List<NamedEnum>> = mutableListOf()
 

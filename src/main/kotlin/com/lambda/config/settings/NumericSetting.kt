@@ -99,18 +99,18 @@ abstract class NumericSetting<T>(
     @SettingGroup.SettingEditorDsl
     @Suppress("unchecked_cast")
     fun SettingGroup.TypedEditBuilder<T>.range(range: ClosedRange<T>) {
-        (settings as Set<NumericSetting<T>>).forEach { it.range = range }
+        (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
     }
 
     @SettingGroup.SettingEditorDsl
     @Suppress("unchecked_cast")
     fun SettingGroup.TypedEditBuilder<T>.step(step: T) {
-        (settings as Set<NumericSetting<T>>).forEach { it.step = step }
+        (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
     }
 
     @SettingGroup.SettingEditorDsl
     @Suppress("unchecked_cast")
     fun SettingGroup.TypedEditBuilder<*>.unit(unit: String) {
-        (settings as Set<NumericSetting<T>>).forEach { it.unit = unit}
+        (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
     }
 }

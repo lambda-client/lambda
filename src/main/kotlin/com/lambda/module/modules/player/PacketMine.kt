@@ -63,7 +63,7 @@ object PacketMine : Module(
         Hotbar("Hotbar"),
     }
 
-    private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once").group(Group.Break, BreakSettings.Group.General)
+    private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once")
     private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(Group.Break, BreakSettings.Group.General)
     private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.Break, BreakSettings.Group.General)
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(Group.Break, BreakSettings.Group.General)
@@ -79,45 +79,47 @@ object PacketMine : Module(
     private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Break, BreakSettings.Group.Cosmetic)
 
     override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editTypedSettings(::avoidLiquids, ::avoidSupporting, ::suitableToolsOnly) { defaultValue(false) }
-        editSetting(::breakWeakBlocks) { defaultValue(true) }
-        editSetting(::swing) { defaultValue(BreakConfig.SwingMode.Start) }
-        editSetting(::rebreak) { insert(::rebreakMode, SettingGroup.InsertMode.Below) }
-        editSetting(::rebreakMode) { visibility { rebreak } }
+        editTyped(::avoidLiquids, ::avoidSupporting, ::suitableToolsOnly) { defaultValue(false) }
+        ::breakWeakBlocks.edit { defaultValue(true) }
+        ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 
-        editSetting(::sounds) {
-            insert(
-                ::renderQueue,
-                ::renderSize,
-                ::renderMode,
-                ::dynamicColor,
-                ::staticColor,
-                ::startColor,
-                ::endColor,
-                insertMode = SettingGroup.InsertMode.Above
-            )
+        ::rebreak.insert(::rebreakMode, SettingGroup.InsertMode.Below)
+        ::rebreakMode.editWith(::rebreak) { rebreakSetting ->
+            visibility { rebreak }
+            groups(rebreakSetting.groups)
         }
+
+        ::sounds.insert(
+            ::renderQueue,
+            ::renderSize,
+            ::renderMode,
+            ::dynamicColor,
+            ::staticColor,
+            ::startColor,
+            ::endColor,
+            insertMode = SettingGroup.InsertMode.Above
+        )
     }
     override val buildConfig = BuildSettings(this, Group.Build).apply {
-        editTypedSettings(::pathing, ::stayInRange, ::collectDrops) {
+        editTyped(::pathing, ::stayInRange, ::collectDrops) {
             defaultValue(false)
-            visibility { false }
+            hide()
         }
     }
     override val rotationConfig = RotationSettings(this, Group.Rotation)
     override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
-        editTypedSettings(
+        editTyped(
             ::accessShulkerBoxes,
             ::accessEnderChest,
             ::accessChests,
             ::accessStashes
         ) {
             defaultValue(false)
-            visibility { false }
+            hide()
         }
     }
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
-        editSetting(::keepTicks) { defaultValue(0) }
+        ::keepTicks.edit { defaultValue(0) }
     }
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()

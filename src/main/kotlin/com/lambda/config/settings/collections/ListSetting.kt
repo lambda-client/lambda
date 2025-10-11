@@ -77,6 +77,6 @@ class ListSetting<T : Any>(
     @SettingGroup.SettingEditorDsl
     @Suppress("unchecked_cast")
     fun <T> SettingGroup.TypedEditBuilder<MutableList<T>>.immutableList(immutableList: List<T>) {
-        (settings as Set<ListSetting<T>>).forEach { it.immutableList = immutableList }
+        (settings as Collection<ListSetting<T>>).forEach { it.immutableList = immutableList }
     }
 }

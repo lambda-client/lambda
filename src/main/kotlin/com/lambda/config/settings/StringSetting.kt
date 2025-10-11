@@ -66,12 +66,12 @@ class StringSetting(
     @SettingGroup.SettingEditorDsl
     @Suppress("unchecked_cast")
     fun SettingGroup.TypedEditBuilder<String>.multiline(multiline: Boolean) {
-        (settings as Set<StringSetting>).forEach { it.multiline = multiline }
+        (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
     }
 
     @SettingGroup.SettingEditorDsl
     @Suppress("unchecked_cast")
     fun SettingGroup.TypedEditBuilder<String>.flags(flags: Int) {
-        (settings as Set<StringSetting>).forEach { it.flags = flags }
+        (settings as Collection<StringSetting>).forEach { it.flags = flags }
     }
 }

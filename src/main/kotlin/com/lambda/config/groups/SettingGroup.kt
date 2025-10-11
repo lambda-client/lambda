@@ -36,47 +36,88 @@ abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
     annotation class SettingEditorDsl
 
     @SettingEditorDsl
-    internal inline fun <T : Any> editSetting(setting: KProperty0<T>, edits: FullEditBuilder<T>.() -> Unit) {
-        val setting = setting.delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        FullEditBuilder(setting, c).apply(edits)
+    internal inline fun <T : Any> KProperty0<T>.edit(edits: FullEditBuilder<T>.(AbstractSetting<T>) -> Unit) {
+        val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
+        FullEditBuilder(setting, c).edits(setting)
     }
 
     @SettingEditorDsl
-    fun editSettings(vararg settings: KProperty0<*>, edits: BasicEditBuilder.() -> Unit) {
-        BasicEditBuilder(settings.toSet() as Set<AbstractSetting<*>>)
-            .apply(edits)
+    internal inline fun <T : Any> KProperty0<T>.editWith(
+        other: KProperty0<*>,
+        edits: FullEditBuilder<T>.(AbstractSetting<*>) -> Unit
+    ) {
+        val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
+        FullEditBuilder(setting, c).edits(other.delegate as AbstractSetting<*>)
     }
 
     @SettingEditorDsl
-    internal inline fun <T : Any> editTypedSettings(vararg settings: KProperty0<T>, edits: TypedEditBuilder<T>.() -> Unit) {
-        TypedEditBuilder((settings.map { it.delegate } as List<AbstractSetting<T>>), c)
-            .apply(edits)
+    fun edit(
+        vararg settings: KProperty0<*>,
+        edits: BasicEditBuilder.() -> Unit
+    ) { BasicEditBuilder(settings.toSet() as Set<AbstractSetting<*>>).apply(edits) }
+
+    @SettingEditorDsl
+    fun editWith(
+        vararg settings: KProperty0<*>,
+        other: KProperty0<*>,
+        edits: BasicEditBuilder.(AbstractSetting<*>) -> Unit
+    ) { BasicEditBuilder(settings.toSet() as Set<AbstractSetting<*>>).edits(other.delegate as AbstractSetting<*>) }
+
+    @SettingEditorDsl
+    internal inline fun <T : Any> editTyped(
+        vararg settings: KProperty0<T>,
+        edits: TypedEditBuilder<T>.() -> Unit
+    ) { TypedEditBuilder(settings.map { it.delegate } as List<AbstractSetting<T>>, c).apply(edits) }
+
+    @SettingEditorDsl
+    internal inline fun <T : Any, R : Any> editTypedWith(
+        other: KProperty0<R>,
+        vararg settings: KProperty0<T>,
+        edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
+    ) = TypedEditBuilder(settings.map { it.delegate } as List<AbstractSetting<T>>, c).edits(other.delegate as AbstractSetting<R>)
+
+    @SettingEditorDsl
+    fun hide(vararg settings: KProperty0<*>) =
+        (settings.map { it.delegate } as List<AbstractSetting<*>>).forEach { it.hidden = true }
+
+    @SettingEditorDsl
+    fun hideAll() =
+        c.settings.listIterator(startIndex).forEach { it.hidden = true }
+
+    @SettingEditorDsl
+    fun KProperty0<*>.insert(insert: KProperty0<*>, insertMode: InsertMode) {
+        val index = c.settings.indexOf(delegate as AbstractSetting<*>)
+        val delegate = insert.delegate as AbstractSetting<*>
+        c.settings.remove(delegate)
+        c.settings.add(if (insertMode == InsertMode.Above) index - 1 else index, delegate)
     }
 
     @SettingEditorDsl
-    fun hide(vararg settings: KProperty0<*>) {
-        (settings.map { it.delegate } as List<AbstractSetting<*>>).forEach { setting ->
-            setting.visibility = { false }
-        }
-    }
-
-    @SettingEditorDsl
-    fun hideAll() {
-        c.settings.listIterator(startIndex).forEach {
-            it.visibility = { false }
-        }
+    fun KProperty0<*>.insert(vararg inserts: KProperty0<*>, insertMode: InsertMode) {
+        val index = c.settings.indexOf(delegate as AbstractSetting<*>)
+        inserts.forEach { c.settings.remove(it.delegate as AbstractSetting<*>) }
+        c.settings.addAll(
+            if (insertMode == InsertMode.Above) index - 1 else index,
+            inserts.map { it.delegate } as List<AbstractSetting<*>>
+        )
     }
 
     open class BasicEditBuilder(open val settings: Collection<AbstractSetting<*>>) {
         @SettingEditorDsl
-        fun visibility(vis: () -> Boolean) {
+        fun visibility(vis: () -> Boolean) =
             settings.forEach { it.visibility = vis }
-        }
 
         @SettingEditorDsl
-        fun groups(groups: List<NamedEnum>) {
-            settings.forEach { it.groups = mutableListOf(groups) }
-        }
+        fun hide() =
+            settings.forEach { it.hidden = true }
+
+        @SettingEditorDsl
+        fun groups(vararg groups: NamedEnum) =
+            settings.forEach { it.groups = mutableListOf(groups.toList()) }
+
+        @SettingEditorDsl
+        fun groups(groups: MutableList<List<NamedEnum>>) =
+            settings.forEach { it.groups = groups }
     }
 
     open class TypedEditBuilder<T : Any>(
@@ -84,16 +125,15 @@ abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
         val c: Configurable
     ) : BasicEditBuilder(settings) {
         @SettingEditorDsl
-        fun defaultValue(value: T) {
+        fun defaultValue(value: T) =
             settings.forEach {
                 it.defaultValue = value
                 it.value = value
             }
-        }
     }
 
     class FullEditBuilder<T : Any>(
-        val setting: AbstractSetting<T>,
+        private val setting: AbstractSetting<T>,
         c: Configurable
     ) : TypedEditBuilder<T>(setOf(setting), c) {
         @SettingEditorDsl
@@ -104,24 +144,6 @@ abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
         @SettingEditorDsl
         fun description(description: String) {
             setting.description = description
-        }
-
-        @SettingEditorDsl
-        fun insert(insert: KProperty0<*>, insertMode: InsertMode) {
-            val index = c.settings.indexOf(setting)
-            val delegate = insert.delegate as AbstractSetting<*>
-            c.settings.remove(delegate)
-            c.settings.add(if (insertMode == InsertMode.Above) index - 1 else index, delegate)
-        }
-
-        @SettingEditorDsl
-        fun insert(vararg inserts: KProperty0<*>, insertMode: InsertMode) {
-            val index = c.settings.indexOf(setting)
-            inserts.forEach { c.settings.remove(it.delegate as AbstractSetting<*>) }
-            c.settings.addAll(
-                if (insertMode == InsertMode.Above) index - 1 else index,
-                inserts.map { it.delegate } as List<AbstractSetting<*>>
-            )
         }
     }
 
