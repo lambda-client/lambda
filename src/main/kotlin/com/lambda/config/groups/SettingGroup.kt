@@ -86,18 +86,18 @@ abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
 
     @SettingEditorDsl
     fun KProperty0<*>.insert(insert: KProperty0<*>, insertMode: InsertMode) {
-        val index = c.settings.indexOf(delegate as AbstractSetting<*>)
         val delegate = insert.delegate as AbstractSetting<*>
         c.settings.remove(delegate)
-        c.settings.add(if (insertMode == InsertMode.Above) index - 1 else index, delegate)
+        val index = c.settings.indexOf(this.delegate as AbstractSetting<*>)
+        c.settings.add(if (insertMode == InsertMode.Below) index + 1 else index, delegate)
     }
 
     @SettingEditorDsl
     fun KProperty0<*>.insert(vararg inserts: KProperty0<*>, insertMode: InsertMode) {
-        val index = c.settings.indexOf(delegate as AbstractSetting<*>)
         inserts.forEach { c.settings.remove(it.delegate as AbstractSetting<*>) }
+        val index = c.settings.indexOf(delegate as AbstractSetting<*>)
         c.settings.addAll(
-            if (insertMode == InsertMode.Above) index - 1 else index,
+            if (insertMode == InsertMode.Below) index + 1 else index,
             inserts.map { it.delegate } as List<AbstractSetting<*>>
         )
     }
