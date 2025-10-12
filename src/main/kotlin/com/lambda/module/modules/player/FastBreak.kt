@@ -65,7 +65,8 @@ object FastBreak : Module(
                 player.mainHandStack.select(),
                 state.calcBlockBreakingDelta(player, world, pos) >= buildConfig.breakConfig.breakThreshold,
                 state,
-                buildConfig.breakConfig.sorter
+                buildConfig.breakConfig.sorter,
+                this@FastBreak
             )
 
             BreakRequest(setOf(breakContext), pendingInteractions, this@FastBreak).submit()

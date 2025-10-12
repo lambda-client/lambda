@@ -278,7 +278,8 @@ object BuildSimulator {
                         RotationRequest(rotationTarget, this),
                         player.inventory.selectedSlot,
                         state,
-                        expectedState
+                        expectedState,
+                        this
                     )
 
                     val stackSelection = (item ?: player.mainHandStack.item).select()
@@ -748,7 +749,8 @@ object BuildSimulator {
                     StackSelection.EVERYTHING.select(),
                     instantBreakable(state, pos, breakConfig.breakThreshold),
                     state,
-                    breakConfig.sorter
+                    breakConfig.sorter,
+                    this
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -805,7 +807,8 @@ object BuildSimulator {
             StackSelection.EVERYTHING.select(),
             instant,
             state,
-            breakConfig.sorter
+            breakConfig.sorter,
+            this
         )
 
         if (gamemode.isCreative) {

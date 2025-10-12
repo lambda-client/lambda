@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.context.Automated
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.threading.runSafe
@@ -24,7 +25,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 
-abstract class BuildContext : Comparable<BuildContext>, Drawable {
+abstract class BuildContext : Comparable<BuildContext>, Drawable, Automated {
     abstract val result: BlockHitResult
     abstract val rotation: RotationRequest
     abstract val hotbarIndex: Int
