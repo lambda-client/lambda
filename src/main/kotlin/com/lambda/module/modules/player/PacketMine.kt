@@ -63,7 +63,7 @@ object PacketMine : Module(
         Hotbar("Hotbar"),
     }
 
-    private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once")
+    private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once").group(Group.Break, BreakSettings.Group.General)
     private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(Group.Break, BreakSettings.Group.General)
     private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.Break, BreakSettings.Group.General)
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(Group.Break, BreakSettings.Group.General)
@@ -84,10 +84,7 @@ object PacketMine : Module(
         ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 
         ::rebreak.insert(::rebreakMode, SettingGroup.InsertMode.Below)
-        ::rebreakMode.editWith(::rebreak) { rebreakSetting ->
-            visibility { rebreak }
-            groups(rebreakSetting.groups)
-        }
+        ::rebreakMode.edit { visibility { rebreak } }
 
         ::sounds.insert(
             ::renderQueue,
