@@ -25,7 +25,7 @@ import com.lambda.util.NamedEnum
 
 @Suppress("Unused")
 object ManagerDebugLoggers : HudModule(
-    "Manager Debug Loggers",
+    "ManagerDebugLoggers",
     "debug loggers for all action managers in lambda",
     ModuleTag.HUD,
     customWindow = true
