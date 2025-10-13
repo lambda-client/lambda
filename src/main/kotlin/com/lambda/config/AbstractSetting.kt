@@ -101,7 +101,6 @@ abstract class AbstractSetting<T : Any>(
     override var description: String,
     var visibility: () -> Boolean,
 ) : Jsonable, Nameable, Describable, Layout {
-    var hidden = false
     private val listeners = mutableListOf<ValueListener<T>>()
     var groups: MutableList<List<NamedEnum>> = mutableListOf()
 
@@ -188,7 +187,7 @@ abstract class AbstractSetting<T : Any>(
                 val previous = this@AbstractSetting.value
                 try {
                     loadFromJson(parsed)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${config.name}.")
                 }
                 ConfigCommand.info(setMessage(previous, this@AbstractSetting.value))

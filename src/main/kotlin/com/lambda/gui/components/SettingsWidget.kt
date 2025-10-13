@@ -41,7 +41,7 @@ object SettingsWidget {
         }
         separator()
         val toIgnoreSettings = if (config is Module) setOf(config.keybindSetting, config.disableOnReleaseSetting) else emptySet()
-        val visibleSettings = config.settings.filter { it.visibility() && !it.hidden } - toIgnoreSettings
+        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
         ungrouped.forEach { with(it) { buildLayout() } }
         renderGroup(grouped, emptyList(), config)
