@@ -31,7 +31,7 @@ private val KProperty0<*>.delegate
     }
 
 @Suppress("unchecked_cast")
-abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
+abstract class SettingGroup(val c: Configurable) {
     @DslMarker
     annotation class SettingEditorDsl
 
@@ -54,14 +54,14 @@ abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
     fun edit(
         vararg settings: KProperty0<*>,
         edits: BasicEditBuilder.() -> Unit
-    ) { BasicEditBuilder(settings.toSet() as Set<AbstractSetting<*>>).apply(edits) }
+    ) { BasicEditBuilder(settings.map { it.delegate } as List<AbstractSetting<*>>).apply(edits) }
 
     @SettingEditorDsl
     fun editWith(
         vararg settings: KProperty0<*>,
         other: KProperty0<*>,
         edits: BasicEditBuilder.(AbstractSetting<*>) -> Unit
-    ) { BasicEditBuilder(settings.toSet() as Set<AbstractSetting<*>>).edits(other.delegate as AbstractSetting<*>) }
+    ) { BasicEditBuilder(settings.map { it.delegate } as List<AbstractSetting<*>>).edits(other.delegate as AbstractSetting<*>) }
 
     @SettingEditorDsl
     internal inline fun <T : Any> editTyped(
@@ -79,10 +79,6 @@ abstract class SettingGroup(val c: Configurable, val startIndex: Int) {
     @SettingEditorDsl
     fun hide(vararg settings: KProperty0<*>) =
         (settings.map { it.delegate } as List<AbstractSetting<*>>).forEach { it.hidden = true }
-
-    @SettingEditorDsl
-    fun hideAll() =
-        c.settings.listIterator(startIndex).forEach { it.hidden = true }
 
     @SettingEditorDsl
     fun KProperty0<*>.insert(insert: KProperty0<*>, insertMode: InsertMode) {

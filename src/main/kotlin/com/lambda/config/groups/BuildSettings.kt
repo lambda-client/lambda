@@ -26,7 +26,7 @@ class BuildSettings(
     c: Configurable,
     vararg baseGroup: NamedEnum,
     vis: () -> Boolean = { true },
-) : BuildConfig, SettingGroup(c, c.settings.size) {
+) : BuildConfig, SettingGroup(c) {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Reach("Reach"),
