@@ -24,6 +24,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
@@ -47,15 +48,25 @@ object BetterFirework : Module(
     private var clientSwing by setting("Swing", true, "Swing hand client side")
     private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory", visibility = { middleClick })
 
-    private var openDelay = 0
+    private var takeoffState = TakeoffState.NONE
 
     init {
         listen<TickEvent.Pre> {
-            // Try opening the elytra after a delay after jumping
-            if (openDelay > 0) {
-                openDelay--
-                if (openDelay == 0) {
-                    tryTakeoff()
+            when (takeoffState) {
+                TakeoffState.NONE -> {
+                    // Nothing to do
+                }
+                TakeoffState.JUMPING -> {
+                    player.jump()
+                    takeoffState = TakeoffState.START_FLYING
+                }
+                TakeoffState.START_FLYING -> {
+                    if (player.canOpenElytra) {
+                        player.startGliding()
+                        connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+                    }
+                    startFirework(silentUse)
+                    takeoffState = TakeoffState.NONE
                 }
             }
         }
@@ -77,7 +88,13 @@ object BetterFirework : Module(
                 return false
             }
             mc.itemUseCooldown += 4
-            return tryTakeoff() || fireworkInteractCancel
+            val cancelInteract = player.canTakeoff || fireworkInteractCancel
+            if (player.canTakeoff) {
+                takeoffState = TakeoffState.JUMPING
+            } else if (player.canOpenElytra) {
+                takeoffState = TakeoffState.START_FLYING
+            }
+            return cancelInteract
         } ?: false
 
     /**
@@ -89,40 +106,23 @@ object BetterFirework : Module(
             if (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) {
                 return false
             }
-            if (player.isGliding) {
+            if (takeoffState != TakeoffState.NONE) {
+                return false // Prevent using multiple times
+            }
+            if (player.canOpenElytra || player.isGliding) {
                 // If already gliding use another firework
-                startFirework(silentUse)
-            } else {
-                tryTakeoff()
+                takeoffState = TakeoffState.START_FLYING
+            } else if (player.canTakeoff) {
+                takeoffState = TakeoffState.JUMPING
             }
             return true
         } ?: false // Edouardo:        :3333333
 
-    /**
-     * This function prepares takeoff from standing or falling.
-     * If the player is standing on ground it jumps to prepare for takeoff and return true.
-     * If the player is falling it opens the elytra, uses a firework and return true.
-     * Otherwise, return false and does nothing.
-     */
-    fun SafeContext.tryTakeoff(): Boolean {
-        if (player.isOnGround) {
-            player.jump()
-            openDelay = 1; // Magic number, works on 2b so we GUCCI
-            return true
-        }
+    val ClientPlayerEntity.canTakeoff: Boolean
+        get() = isOnGround || canOpenElytra
 
-        if (canOpenElytra(player)) {
-            connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
-            startFirework(silentUse)
-            return true
-        }
-
-        return false
-    }
-
-    fun canOpenElytra(player: ClientPlayerEntity): Boolean {
-        return !player.abilities.flying && !player.hasVehicle() && !player.isClimbing && player.checkGliding()
-    }
+    val ClientPlayerEntity.canOpenElytra: Boolean
+        get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
     fun SafeContext.sendSwing() {
         if (clientSwing) {
@@ -183,5 +183,11 @@ object BetterFirework : Module(
             return i
         }
         return -1
+    }
+
+    enum class TakeoffState {
+        NONE,
+        JUMPING,
+        START_FLYING
     }
 }
