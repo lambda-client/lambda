@@ -71,8 +71,8 @@ abstract class SettingGroup(val c: Configurable) {
 
     @SettingEditorDsl
     internal inline fun <T : Any, R : Any> editTypedWith(
-        other: KProperty0<R>,
         vararg settings: KProperty0<T>,
+        other: KProperty0<R>,
         edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
     ) = TypedEditBuilder(settings.map { it.delegate } as List<AbstractSetting<T>>, c).edits(other.delegate as AbstractSetting<R>)
 
