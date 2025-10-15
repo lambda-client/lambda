@@ -32,11 +32,12 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class BlockSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Block,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<Block>(
+    name,
     defaultValue,
     TypeToken.get(Block::class.java).type,
     description,

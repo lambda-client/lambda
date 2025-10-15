@@ -17,16 +17,19 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.groups.BreakSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.EatSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractionSettings
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InventorySettings
+import com.lambda.config.groups.PlaceSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -41,7 +44,6 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
-import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -53,6 +55,19 @@ object HighwayTools : Module(
     description = "Auto highway builder",
     tag = ModuleTag.PLAYER,
 ) {
+    enum class Group(override val displayName: String): NamedEnum {
+        Structure("Structure"),
+        Build("Build"),
+        Break("Break"),
+        Place("Place"),
+        Interact("Interact"),
+        Rotation("Rotation"),
+        Interaction("Interaction"),
+        Inventory("Inventory"),
+        Hotbar("Hotbar"),
+        Eat("Eat")
+    }
+
     private val height by setting("Height", 4, 2..10, 1).group(Group.Structure)
     private val width by setting("Width", 6, 1..30, 1).group(Group.Structure)
     private val pavement by setting("Pavement", Material.Block, "Material for the pavement").group(Group.Structure)
@@ -70,8 +85,12 @@ object HighwayTools : Module(
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once").group(Group.Structure)
 
     override val buildConfig = BuildSettings(this, Group.Build)
+    override val breakConfig = BreakSettings(this, Group.Break).apply {
+        ::swapMode.edit { defaultValue(BreakConfig.SwapMode.Constant) }
+    }
+    override val placeConfig = PlaceSettings(this, Group.Place)
+    override val interactConfig = InteractSettings(this, Group.Interact)
     override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
     override val inventoryConfig = InventorySettings(this, Group.Inventory)
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
     override val eatConfig = EatSettings(this, Group.Eat)
@@ -97,16 +116,6 @@ object HighwayTools : Module(
     ): NamedEnum, Describable {
         None("None", "Wont fill the corner block of the highway pavement below the rims."),
         Solid("Solid", "Fills the corner block of the highway pavement below the rims with solid blocks."),
-    }
-
-    enum class Group(override val displayName: String): NamedEnum {
-        Structure("Structure"),
-        Build("Build"),
-        Rotation("Rotation"),
-        Interaction("Interaction"),
-        Inventory("Inventory"),
-        Hotbar("Hotbar"),
-        Eat("Eat")
     }
 
     init {

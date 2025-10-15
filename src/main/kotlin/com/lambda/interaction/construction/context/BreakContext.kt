@@ -84,7 +84,7 @@ data class BreakContext(
     private fun Vec3d.distance(vec: Vec3d, block: Block): Double {
         val d = vec.x - x
         val e = (vec.y - y).let {
-            if (block is FallingBlock) it - (interactionConfig.attackReach / 2)
+            if (block is FallingBlock) it - (buildConfig.attackReach / 2)
             else it
         }
         val f = vec.z - z

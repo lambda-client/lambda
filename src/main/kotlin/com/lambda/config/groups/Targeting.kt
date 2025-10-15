@@ -50,11 +50,11 @@ import java.util.*
  */
 abstract class Targeting(
     private val owner: Configurable,
-    private val baseGroup: NamedEnum,
+    baseGroup: NamedEnum,
     private val predicate: () -> Boolean = { true },
     private val defaultRange: Double,
     private val maxRange: Double,
-) : TargetingConfig {
+) : TargetingConfig, SettingGroup(owner) {
 
     /**
      * The range within which entities can be targeted. This value is configurable and constrained

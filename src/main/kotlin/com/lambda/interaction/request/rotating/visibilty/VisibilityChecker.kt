@@ -17,10 +17,8 @@
 
 package com.lambda.interaction.request.rotating.visibilty
 
-import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.AutomationConfig
-import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation
@@ -73,7 +71,7 @@ object VisibilityChecker {
             }
         }
 
-        return interactionConfig.pointSelection.select(
+        return buildConfig.pointSelection.select(
             collectHitsFor(boxes, reach, eye, sides, scan, targetType, verify)
         )
     }
@@ -100,17 +98,17 @@ object VisibilityChecker {
         targetType: InteractionMask,
         verify: CheckedHit.() -> Boolean,
     ) = mutableListOf<CheckedHit>().apply {
-        val reachSq = interactionConfig.scanReach.pow(2)
+        val reachSq = buildConfig.scanReach.pow(2)
 
         boxes.forEach { box ->
-            val visible = visibleSides(box, eye, interactionConfig.checkSideVisibility)
+            val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), interactionConfig.resolution, scan) { _, vec ->
+            scanSurfaces(box, visible.intersect(sides), buildConfig.resolution, scan) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val mask = if (interactionConfig.strictRayCast) InteractionMask.Both else targetType
+                val mask = if (buildConfig.strictRayCast) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
                 val checked = CheckedHit(hit, newRotation, reach)
@@ -121,7 +119,7 @@ object VisibilityChecker {
         }
     }
 
-    private fun SafeContext.collectHitsInternal(
+    private fun AutomatedSafeContext.collectHitsInternal(
         boxes: List<Box>,
         reach: Double,
         eye: Vec3d,
@@ -129,20 +127,19 @@ object VisibilityChecker {
         scan: SurfaceScan,
         targetType: InteractionMask,
         entity: LivingEntity?,
-        interaction: InteractionConfig,
         verify: CheckedHit.() -> Boolean,
     ) = mutableListOf<CheckedHit>().apply {
-        val reachSq = interaction.scanReach.pow(2)
+        val reachSq = buildConfig.scanReach.pow(2)
 
         boxes.forEach { box ->
-            val visible = visibleSides(box, eye, interaction.checkSideVisibility)
+            val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), interaction.resolution, scan) { _, vec ->
+            scanSurfaces(box, visible.intersect(sides), buildConfig.resolution, scan) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val mask = if (interaction.strictRayCast || entity == null) InteractionMask.Both else targetType
+                val mask = if (buildConfig.strictRayCast || entity == null) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
                 val checked = CheckedHit(hit, newRotation, reach)

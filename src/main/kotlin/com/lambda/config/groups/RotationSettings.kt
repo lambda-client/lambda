@@ -32,7 +32,7 @@ class RotationSettings(
     c: Configurable,
     baseGroup: NamedEnum? = null,
     vis: () -> Boolean = { true }
-) : RotationConfig {
+) : RotationConfig, SettingGroup(c) {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction", vis).group(baseGroup)
 
     /** How many ticks to keep the rotation before resetting */

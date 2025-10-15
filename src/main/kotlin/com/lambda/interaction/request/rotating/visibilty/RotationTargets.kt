@@ -98,13 +98,13 @@ fun Automated.lookAtHit(hit: HitResult): RotationTarget? {
  */
 @RotationDsl
 fun Automated.lookAtEntity(entity: LivingEntity): RotationTarget {
-    val requestedHit = entityHit(entity, interactionConfig.attackReach)
+    val requestedHit = entityHit(entity, buildConfig.attackReach)
 
     return RotationTarget(requestedHit) {
         runSafeAutomated {
             findRotation(
                 requestedHit.getBoundingBoxes(),
-                interactionConfig.attackReach,
+                buildConfig.attackReach,
                 player.eyePos,
                 ALL_SIDES,
                 SurfaceScan.DEFAULT,
@@ -128,13 +128,13 @@ fun Automated.lookAtBlock(
     sides: Set<Direction> = ALL_SIDES,
     surfaceScan: SurfaceScan = SurfaceScan.DEFAULT
 ): RotationTarget {
-    val requestedHit = blockHit(pos, sides, interactionConfig.interactReach)
+    val requestedHit = blockHit(pos, sides, buildConfig.interactReach)
 
     return RotationTarget(requestedHit) {
         runSafeAutomated {
             findRotation(
                 requestedHit.getBoundingBoxes(),
-                interactionConfig.interactReach,
+                buildConfig.interactReach,
                 player.eyePos,
                 sides,
                 surfaceScan,

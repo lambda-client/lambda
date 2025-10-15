@@ -30,14 +30,15 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class LongSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Long,
-    override val range: ClosedRange<Long>,
-    override val step: Long = 1,
+    override var range: ClosedRange<Long>,
+    override var step: Long = 1,
     description: String,
     unit: String,
     visibility: () -> Boolean
 ) : NumericSetting<Long>(
+    name,
     defaultValue,
     range,
     step,

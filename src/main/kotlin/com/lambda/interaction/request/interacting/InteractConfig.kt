@@ -18,14 +18,24 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
 import com.lambda.event.Event
 import com.lambda.interaction.request.RequestConfig
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
 
 interface InteractConfig : RequestConfig {
     val rotate: Boolean
     val swingHand: Boolean
     val interactStageMask: Set<Event>
     val interactSwingType: BuildConfig.SwingType
-    val interactConfirmationMode: InteractionConfig.InteractConfirmationMode
+    val interactConfirmationMode: InteractConfirmationMode
+
+    enum class InteractConfirmationMode(
+        override val displayName: String,
+        override val description: String
+    ): NamedEnum, Describable {
+        None("No confirmation", "Send the interaction and don’t wait for the server. Lowest latency, but effects may briefly appear if the server rejects it."),
+        InteractThenAwait("Interact now, confirm later", "Show interaction effects immediately, then wait for the server to confirm. Feels instant while still verifying the result."),
+        AwaitThenInteract("Confirm first, then interact", "Wait for the server response before showing any effects. Most accurate and safe, but adds a short delay.")
+    }
 }

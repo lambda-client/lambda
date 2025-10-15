@@ -18,7 +18,6 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
@@ -39,7 +38,6 @@ import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
@@ -51,7 +49,6 @@ object KillAura : Module(
     tag = ModuleTag.COMBAT,
 ) {
     // Interact
-    override val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Entity)
     override val buildConfig = BuildSettings(this, Group.Build)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.Build)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Build)
@@ -128,18 +125,18 @@ object KillAura : Module(
         if (rotate) {
             val angle = RotationManager.activeRotation
 
-            if (interactionConfig.strictRayCast) {
-                val cast = angle.rayCast(interactionConfig.attackReach)
+            if (buildConfig.strictRayCast) {
+                val cast = angle.rayCast(buildConfig.attackReach)
                 if (cast?.entityResult?.entity != target) return
             }
 
             // Perform a raycast without checking the environment
-            angle.castBox(target.boundingBox, interactionConfig.attackReach) ?: return
+            angle.castBox(target.boundingBox, buildConfig.attackReach) ?: return
         }
 
         // Attack
         interaction.attackEntity(player, target)
-        if (buildConfig.interactConfig.swingHand) player.swingHand(Hand.MAIN_HAND)
+        if (interactConfig.swingHand) player.swingHand(Hand.MAIN_HAND)
 
         lastAttackTime = System.currentTimeMillis()
         hitDelay = (hitDelay1..hitDelay2).random() * 50

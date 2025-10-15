@@ -19,6 +19,7 @@ package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
+import com.lambda.config.groups.SettingGroup
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.ImGui
 import imgui.ImGui.calcTextSize
@@ -32,13 +33,15 @@ import kotlin.reflect.KProperty
  * @see [com.lambda.config.Configurable]
  */
 abstract class NumericSetting<T>(
+    override var name: String,
     value: T,
-    open val range: ClosedRange<T>,
-    open val step: T,
+    open var range: ClosedRange<T>,
+    open var step: T,
     description: String,
-    val unit: String,
+    var unit: String,
     visibility: () -> Boolean
 ) : AbstractSetting<T>(
+    name,
     value,
     TypeToken.get(value::class.java).type,
     description,
@@ -91,5 +94,23 @@ abstract class NumericSetting<T>(
         } else {
             dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
         }
+    }
+
+    @SettingGroup.SettingEditorDsl
+    @Suppress("unchecked_cast")
+    fun SettingGroup.TypedEditBuilder<T>.range(range: ClosedRange<T>) {
+        (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
+    }
+
+    @SettingGroup.SettingEditorDsl
+    @Suppress("unchecked_cast")
+    fun SettingGroup.TypedEditBuilder<T>.step(step: T) {
+        (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
+    }
+
+    @SettingGroup.SettingEditorDsl
+    @Suppress("unchecked_cast")
+    fun SettingGroup.TypedEditBuilder<*>.unit(unit: String) {
+        (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
     }
 }

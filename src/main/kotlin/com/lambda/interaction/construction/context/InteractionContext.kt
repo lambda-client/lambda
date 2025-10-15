@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.context.Automated
-import com.lambda.context.interactConfig
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
