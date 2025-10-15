@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.ShapeBuilder
@@ -27,12 +28,16 @@ import com.lambda.interaction.request.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
+import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 data class BreakContext(
@@ -42,8 +47,9 @@ data class BreakContext(
     var itemSelection: StackSelection,
     var instantBreak: Boolean,
     override var cachedState: BlockState,
-    val sortMode: BreakConfig.SortMode
-) : BuildContext(), LogContext {
+    val sortMode: BreakConfig.SortMode,
+    private val automated: Automated
+) : BuildContext(), LogContext, Automated by automated {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
@@ -52,28 +58,37 @@ data class BreakContext(
 
     val random = Random.nextDouble()
 
-    override fun compareTo(other: BuildContext): Int {
+    override fun compareTo(other: BuildContext): Int = runSafe {
         return when (other) {
-            is BreakContext -> compareBy<BreakContext> {
+            is BreakContext -> compareByDescending<BreakContext> {
+                if (sortMode == BreakConfig.SortMode.Tool) it.hotbarIndex == HotbarManager.serverSlot
+                else 0
+            }.thenBy {
                 when (sortMode) {
-                    BreakConfig.SortMode.Closest -> it.distance
-                    BreakConfig.SortMode.Farthest -> -it.distance
-                    BreakConfig.SortMode.Tool -> it.hotbarIndex != HotbarManager.serverSlot
+                    BreakConfig.SortMode.Tool,
+                    BreakConfig.SortMode.Closest -> player.eyePos.distance(it.result.pos, it.cachedState.block)
+                    BreakConfig.SortMode.Farthest -> -player.eyePos.distance(it.result.pos, it.cachedState.block)
                     BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
                     BreakConfig.SortMode.Random -> it.random
                 }
-            }.thenBy {
-                it.distance
+            }.thenByDescending {
+                it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
                 it.instantBreak
-            }.thenByDescending {
-                if (it.cachedState.block is FallingBlock) it.blockPos.y else 0
-            }.thenBy {
-                it.hotbarIndex == HotbarManager.serverSlot
-            }.compare(this, other)
+            }.compare(this@BreakContext, other)
 
             else -> 1
         }
+    } ?: 0
+
+    private fun Vec3d.distance(vec: Vec3d, block: Block): Double {
+        val d = vec.x - x
+        val e = (vec.y - y).let {
+            if (block is FallingBlock) it - (interactionConfig.attackReach / 2)
+            else it
+        }
+        val f = vec.z - z
+        return sqrt(d * d + e * e + f * f)
     }
 
     override fun ShapeBuilder.buildRenderer() {

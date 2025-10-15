@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.context.Automated
+import com.lambda.context.interactConfig
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
@@ -39,7 +41,8 @@ class InteractionContext(
     override var hotbarIndex: Int,
     override var cachedState: BlockState,
     override val expectedState: BlockState,
-) : BuildContext(), LogContext {
+    val automated: Automated
+) : BuildContext(), LogContext, Automated by automated {
     private val baseColor = Color(35, 254, 79, 25)
     private val sideColor = Color(35, 254, 79, 100)
 

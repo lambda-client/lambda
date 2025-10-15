@@ -145,7 +145,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     private var activeRequest: BreakRequest? = null
 
     private var hotbarRequest: HotbarRequest? = null
-    val swapped get() = hotbarRequest?.done != false
+    private val swapped get() = hotbarRequest?.done != false
 
     private var rotationRequest: RotationRequest? = null
     private val rotated get() = rotationRequest?.done != false

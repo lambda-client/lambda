@@ -174,7 +174,8 @@ object FastBreak : Module(
                     breakConfig.breakThreshold
                 ),
                 state,
-                breakConfig.sorter
+                breakConfig.sorter,
+                this@FastBreak
             )
 
             BreakRequest(setOf(breakContext), pendingInteractions, this@FastBreak).submit()

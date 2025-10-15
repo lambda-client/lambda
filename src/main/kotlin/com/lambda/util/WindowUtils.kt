@@ -17,7 +17,11 @@
 
 package com.lambda.util
 
+import com.lambda.Lambda.MOD_NAME
+import com.lambda.Lambda.SYMBOL
+import com.lambda.Lambda.VERSION
 import com.lambda.Lambda.mc
+import com.lambda.gui.components.ClickGuiLayout.lambdaTitleAppendixName
 import net.minecraft.client.util.MacWindowUtil
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWImage
@@ -29,7 +33,19 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import javax.imageio.ImageIO
 
-object WindowIcons {
+object WindowUtils {
+    /**
+     * Updates the Lambda title for the application window.
+     *
+     * Constructs and sets the window title based on the current application symbol, name, version,
+     * and additional dynamic details (e.g., username if `lambdaTitleAppendixName` is enabled).
+     */
+    @JvmStatic
+    fun setLambdaTitle() {
+        val name = if (lambdaTitleAppendixName) " - ${mc.session.username}" else ""
+        mc.window.setTitle("$SYMBOL $MOD_NAME $VERSION - ${mc.windowTitle}$name")
+    }
+
     /**
      * Sets the window icon for the application using a predefined set of icon sizes.
      *

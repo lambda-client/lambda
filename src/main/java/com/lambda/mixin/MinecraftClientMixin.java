@@ -23,9 +23,11 @@ import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.gui.DearImGui;
+import com.lambda.gui.components.ClickGuiLayout;
 import com.lambda.module.modules.player.Interact;
 import com.lambda.module.modules.player.InventoryMove;
 import com.lambda.module.modules.player.PacketMine;
+import com.lambda.util.WindowUtils;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -195,5 +197,12 @@ public class MinecraftClientMixin {
             return original.call(millis);
         else
             return (float) TimerManager.INSTANCE.getLength();
+    }
+
+    @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)
+    void updateWindowTitle(CallbackInfo ci) {
+        if (!ClickGuiLayout.getSetLambdaWindowTitle()) return;
+        WindowUtils.setLambdaTitle();
+        ci.cancel();
     }
 }
