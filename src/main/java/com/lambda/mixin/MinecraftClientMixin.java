@@ -190,18 +190,16 @@ public class MinecraftClientMixin {
         itemUseCooldown = Interact.getPlaceDelay();
     }
 
-    @Inject(method = "doItemUse", at = @At(value = "HEAD"), cancellable = true)
-    void injectItemUse(CallbackInfo ci) {
-        if (!BetterFirework.INSTANCE.isEnabled()) return;
-
-        if (BetterFirework.INSTANCE.onInteract()) ci.cancel();
+    @WrapMethod(method = "doItemUse")
+    void injectItemUse(Operation<Void> original) {
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract())
+            original.call();
     }
 
-    @Inject(method = "doItemPick", at = @At(value = "HEAD"), cancellable = true)
-    void injectItemPick(CallbackInfo ci) {
-        if (!BetterFirework.INSTANCE.isEnabled()) return;
-
-        if (BetterFirework.INSTANCE.onPick()) ci.cancel();
+    @WrapMethod(method = "doItemPick")
+    void injectItemPick(Operation<Void> original) {
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick())
+            original.call();
     }
 
     @WrapMethod(method = "getTargetMillisPerTick")

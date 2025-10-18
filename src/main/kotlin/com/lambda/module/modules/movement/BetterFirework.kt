@@ -20,18 +20,19 @@ package com.lambda.module.modules.movement
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.player.SlotUtils.storage
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
-import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
@@ -42,24 +43,32 @@ object BetterFirework : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     private var fireworkInteract by setting("Firework Interact", true, "Automatically start flying when right clicking fireworks")
-    private var fireworkInteractCancel by setting("Firework Interact Cancel", false, "Cancel block interactions while holding fireworks", visibility = { fireworkInteract })
+    private var fireworkInteractCancel by setting("Firework Interact Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
+
     private var middleClick by setting("Middle Click", true, "Use firework on middle mouse click")
-    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click", visibility = { middleClick })
+    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { middleClick }
+
     private var clientSwing by setting("Swing", true, "Swing hand client side")
-    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory", visibility = { middleClick })
+    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory") { middleClick }
 
     private var takeoffState = TakeoffState.NONE
+
+    val ClientPlayerEntity.canTakeoff: Boolean
+        get() = isOnGround || canOpenElytra
+
+    val ClientPlayerEntity.canOpenElytra: Boolean
+        get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
     init {
         listen<TickEvent.Pre> {
             when (takeoffState) {
-                TakeoffState.NONE -> {
-                    // Nothing to do
-                }
+                TakeoffState.NONE -> {}
+
                 TakeoffState.JUMPING -> {
                     player.jump()
                     takeoffState = TakeoffState.START_FLYING
                 }
+
                 TakeoffState.START_FLYING -> {
                     if (player.canOpenElytra) {
                         player.startGliding()
@@ -75,6 +84,7 @@ object BetterFirework : Module(
     /**
      * Returns true if the mc item interaction should be canceled
      */
+    @JvmStatic
     fun onInteract() =
         runSafe {
             if (!fireworkInteract) return false
@@ -100,6 +110,7 @@ object BetterFirework : Module(
     /**
      * Returns true when the pick interaction should be canceled.
      */
+    @JvmStatic
     fun onPick() =
         runSafe {
             if (!middleClick) return false
@@ -116,13 +127,7 @@ object BetterFirework : Module(
                 takeoffState = TakeoffState.JUMPING
             }
             return true
-        } ?: false // Edouardo:        :3333333
-
-    val ClientPlayerEntity.canTakeoff: Boolean
-        get() = isOnGround || canOpenElytra
-
-    val ClientPlayerEntity.canOpenElytra: Boolean
-        get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
+        } ?: false
 
     fun SafeContext.sendSwing() {
         if (clientSwing) {
@@ -137,17 +142,27 @@ object BetterFirework : Module(
      * Return true if a firework has been used
      */
     fun SafeContext.startFirework(silent: Boolean): Boolean {
-        val fireworkSlot = getFireworkAtHotbar()
-        if (fireworkSlot != -1) {
-            player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(fireworkSlot))
-            player.networkHandler.sendPacket(PlayerInteractItemC2SPacket(Hand.MAIN_HAND, 0, player.yaw, player.pitch))
-            sendSwing()
-            player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(player.getInventory().selectedSlot))
-            return true
-        } else if (silent) {
-            val fireworkIndex = getFireworkInInventoryScreen()
-            if (fireworkIndex != -1) {
-                interaction.clickSlot(player.playerScreenHandler.syncId, fireworkIndex, 0, SlotActionType.SWAP, mc.player)
+        val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
+
+        stack.bestItemMatch(player.hotbar)
+            ?.let {
+                val swap = player.hotbar.indexOf(it)
+
+                player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(swap))
+                player.networkHandler.sendPacket(PlayerInteractItemC2SPacket(Hand.MAIN_HAND, 0, player.yaw, player.pitch))
+                sendSwing()
+                player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(player.getInventory().selectedSlot))
+
+                return true
+            }
+
+        if (!silent) return false
+
+        stack.bestItemMatch(player.storage)
+            ?.let {
+                val swap = player.storage.indexOf(it)
+
+                interaction.clickSlot(player.playerScreenHandler.syncId, swap, 0, SlotActionType.SWAP, mc.player)
 
                 if (player.getInventory().selectedSlot != 0) {
                     player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(0))
@@ -155,34 +170,16 @@ object BetterFirework : Module(
                     sendSwing()
                     player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(player.getInventory().selectedSlot))
                 } else {
-                    player.networkHandler.sendPacket(PlayerInteractItemC2SPacket(Hand.MAIN_HAND, 0, player.getYaw(), player.getPitch()))
+                    player.networkHandler.sendPacket(PlayerInteractItemC2SPacket(Hand.MAIN_HAND, 0, player.yaw, player.pitch))
                     sendSwing()
                 }
 
-                interaction.clickSlot(player.playerScreenHandler.syncId, fireworkIndex, 0, SlotActionType.SWAP, mc.player)
+                interaction.clickSlot(player.playerScreenHandler.syncId, swap, 0, SlotActionType.SWAP, mc.player)
+
                 return true
             }
-        }
+
         return false
-    }
-
-    private fun SafeContext.getFireworkAtHotbar(): Int {
-        for (i in 0..8) {
-            val itemStack: ItemStack = player.getInventory().getStack(i)
-            if (itemStack.item !== Items.FIREWORK_ROCKET) continue
-            return i
-        }
-        return -1
-    }
-
-    private fun SafeContext.getFireworkInInventoryScreen(): Int {
-        val screenHandler: PlayerScreenHandler = player.playerScreenHandler
-        for (i in PlayerScreenHandler.INVENTORY_START..<PlayerScreenHandler.INVENTORY_END) {
-            val itemStack = screenHandler.getSlot(i).stack
-            if (itemStack.item !== Items.FIREWORK_ROCKET) continue
-            return i
-        }
-        return -1
     }
 
     enum class TakeoffState {
