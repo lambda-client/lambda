@@ -17,7 +17,7 @@
 
 package com.lambda.graphics.renderer.esp
 
-import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils
@@ -26,7 +26,12 @@ import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.extension.partialTicks
+import com.lambda.util.math.minus
+import net.minecraft.util.math.Vec3d
 
+/**
+ * Open class for 3d rendering. It contains two pipelines, one for edges and the other for faces.
+ */
 open class Treed(static: Boolean) {
     val shader = if (static) staticMode.first else dynamicMode.first
 
@@ -43,8 +48,8 @@ open class Treed(static: Boolean) {
 
     fun render() {
         shader.use()
-        shader["u_TickDelta"] = Lambda.mc.partialTicks
-        shader["u_CameraPosition"] = Lambda.mc.gameRenderer.camera.pos
+        shader["u_TickDelta"] = mc.partialTicks
+        shader["u_CameraLerp"] = cachedCameraPos - mc.gameRenderer.camera.pos
 
         GlStateUtils.withFaceCulling(faces::render)
         GlStateUtils.withLineWidth(StyleEditor.outlineWidth, edges::render)
@@ -58,11 +63,27 @@ open class Treed(static: Boolean) {
         edgeBuilder = VertexBuilder()
     }
 
+    /**
+     * Public object for static rendering. Shapes rendering by this are not interpolated.
+     * That means that if the shape is frequently moving, its movement will saccade.
+     */
     object Static : Treed(true)
+
+    /**
+     * Public object for dynamic rendering. Its position will be interpolated between ticks, allowing
+     * for smooth movement at the cost of duplicate position and slightly higher memory consumption.
+     */
     object Dynamic : Treed(false)
 
     companion object {
         private val staticMode = shader("renderer/box_static") to VertexAttrib.Group.STATIC_RENDERER
         private val dynamicMode = shader("renderer/box_dynamic") to VertexAttrib.Group.DYNAMIC_RENDERER
+
+        var cachedCameraPos: Vec3d = Vec3d.ZERO
+        val cameraPos: Vec3d
+            get() {
+                cachedCameraPos = mc.gameRenderer.camera.pos
+                return cachedCameraPos
+            }
     }
 }
