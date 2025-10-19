@@ -51,12 +51,12 @@ import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
 object PostProcessingChecks : SimChecker<InteractResult>(), Dependable {
-    override fun SimInfo.asDependant(buildResult: BuildResult) =
+    override fun SimInfo.asDependent(buildResult: BuildResult) =
         InteractResult.Dependency(pos, buildResult)
 
     context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
     fun SimInfo.checkPostProcessing(): Unit = with(automatedSafeContext) {
-        checkDependant(dependable)
+        checkDependent(dependable)
 
         if (targetState !is TargetState.State) return@with
 

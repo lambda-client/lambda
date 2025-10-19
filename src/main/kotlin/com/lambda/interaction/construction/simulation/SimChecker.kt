@@ -26,7 +26,7 @@ import net.minecraft.util.math.Vec3d
 abstract class SimChecker<T : BuildResult> {
     val SafeContext.eye: Vec3d get() = player.eyePos
 
-    fun SimInfo.checkDependant(caller: Dependable?) {
+    fun SimInfo.checkDependent(caller: Dependable?) {
         if (caller == null) {
             dependencyStack.clear()
             return
@@ -41,7 +41,7 @@ abstract class SimChecker<T : BuildResult> {
             dependencyStack
                 .asReversed()
                 .fold(result) { acc, dependable ->
-                    with(dependable) { asDependant(acc) }
+                    with(dependable) { asDependent(acc) }
                 }
         )
     }

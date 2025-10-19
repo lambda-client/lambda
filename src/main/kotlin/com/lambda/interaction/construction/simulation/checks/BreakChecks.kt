@@ -71,12 +71,12 @@ import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
 object BreakChecks : SimChecker<BreakResult>(), Dependable {
-    override fun SimInfo.asDependant(buildResult: BuildResult) =
+    override fun SimInfo.asDependent(buildResult: BuildResult) =
         BreakResult.Dependency(pos, buildResult)
 
     context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
     fun SimInfo.checkBreaks(): Unit = with(automatedSafeContext) {
-        checkDependant(dependable)
+        checkDependent(dependable)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
         if (!breakConfig.breakWeakBlocks && state.block.hardness == 0f && !state.isAir && state.isNotEmpty) {

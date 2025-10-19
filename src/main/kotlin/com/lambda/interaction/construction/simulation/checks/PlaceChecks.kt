@@ -62,7 +62,7 @@ import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.pow
 
 object PlaceChecks : SimChecker<PlaceResult>(), Dependable {
-    override fun SimInfo.asDependant(buildResult: BuildResult) =
+    override fun SimInfo.asDependent(buildResult: BuildResult) =
         PlaceResult.Dependency(pos, buildResult)
 
     context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
@@ -71,7 +71,7 @@ object PlaceChecks : SimChecker<PlaceResult>(), Dependable {
         state: BlockState = this.state,
         targetState: TargetState = this.targetState
     ): Unit = with(automatedSafeContext) {
-        checkDependant(dependable)
+        checkDependent(dependable)
 
         val statePromoting = state.block is SlabBlock &&
                 targetState.matches(state, pos, preProcessing.ignore)
