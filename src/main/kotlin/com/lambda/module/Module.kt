@@ -137,7 +137,7 @@ abstract class Module(
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            if (Lambda.mc.options.commandKey.isPressed
+            if (mc.options.commandKey.isPressed
                 || Lambda.mc.currentScreen != null
                 || !event.satisfies(keybind)) return@listen
 
@@ -146,15 +146,12 @@ abstract class Module(
         }
 
         listen<MouseEvent.Click>(alwaysListen = true) { event ->
-            val pressed = event.action == Mouse.Action.Click.ordinal
-            val released = event.action == Mouse.Action.Release.ordinal
-
             if (mc.options.commandKey.isPressed
                 || mc.currentScreen != null
                 || !event.satisfies(keybind)) return@listen
 
-            if (pressed) toggle()
-            else if (released && disableOnRelease) disable()
+            if (event.isPressed) toggle()
+            else if (event.isReleased && disableOnRelease) disable()
         }
 
         onEnable { LambdaSound.MODULE_ON.play() }

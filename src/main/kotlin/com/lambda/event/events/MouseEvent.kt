@@ -53,6 +53,9 @@ sealed class MouseEvent {
 
         fun satisfies(bind: Bind) = bind.modifiers == modifiers && bind.mouse == button
 
+        val isReleased = action == 0
+        val isPressed = action == 1
+
         val isMainButton = button <= 2
         val isSideButton = button > 2
         val isLeftButton = button == 0
