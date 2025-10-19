@@ -52,17 +52,10 @@ sealed class KeyboardEvent {
         val translated: KeyCode
             get() = KeyCode.virtualMapUS(keyCode, scanCode)
 
-        val isPressed = action == GLFW_PRESS
+        val isPressed = action >= GLFW_PRESS
         val isReleased = action == GLFW_RELEASE
 
         fun satisfies(bind: Bind) = bind.key == keyCode && bind.modifiers == modifiers
-
-        val hasShift = modifiers and GLFW_MOD_SHIFT != 0
-        val hasControl = modifiers and GLFW_MOD_CONTROL != 0
-        val hasAlt = modifiers and GLFW_MOD_ALT != 0
-        val hasSuper = modifiers and GLFW_MOD_SUPER != 0
-        val hasCapsLock = modifiers and GLFW_MOD_CAPS_LOCK != 0
-        val hasNumLock = modifiers and GLFW_MOD_NUM_LOCK != 0
     }
 
     /**

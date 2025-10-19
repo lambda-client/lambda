@@ -17,50 +17,13 @@
 
 package com.lambda.util
 
-import org.lwjgl.glfw.GLFW
-
-class Mouse {
-    enum class Button {
-        Left,
-        Right,
-        Middle,
-        Button4,
-        Button5,
-        Button6,
-        Button7,
-        Button8;
-
-        val isMainButton get() = ordinal == GLFW.GLFW_MOUSE_BUTTON_LEFT || ordinal == GLFW.GLFW_MOUSE_BUTTON_RIGHT
-
-        companion object {
-            private val mouseCodeMap = entries.associateBy { it.ordinal }
-            private val nameMap = entries.associateBy { it.name.lowercase() }
-
-            @Throws(IllegalArgumentException::class)
-            fun fromMouseCode(code: Int) =
-                mouseCodeMap[code] ?: throw IllegalArgumentException("Mouse code $code not found in mouseCodeMap.")
-
-            @Throws(IllegalArgumentException::class)
-            fun fromMouseName(name: String) =
-                nameMap[name.lowercase()] ?: throw IllegalArgumentException("Mouse name '$name' not found in nameMap.")
-        }
-    }
-
-    enum class Action {
-        Release,
-        Click;
-
-        companion object {
-            private val mouseActionMap = entries.associateBy { it.ordinal }
-            private val nameMap = entries.associateBy { it.name.lowercase() }
-
-            @Throws(IllegalArgumentException::class)
-            fun fromActionCode(code: Int) =
-                mouseActionMap[code] ?: throw IllegalArgumentException("Action code $code not found in mouseActionMap.")
-
-            @Throws(IllegalArgumentException::class)
-            fun fromActionName(name: String) =
-                nameMap[name.lowercase()] ?: throw IllegalArgumentException("Action name '$name' not found in nameMap.")
-        }
-    }
+enum class Mouse {
+    Left,
+    Right,
+    Middle,
+    Button4,
+    Button5,
+    Button6,
+    Button7,
+    Button8;
 }

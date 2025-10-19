@@ -36,38 +36,16 @@ sealed class MouseEvent {
      * @property button The button that was clicked
      * @property action The action performed (e.g., press or release)
      * @property modifiers An integer representing any modifiers (e.g., shift or ctrl) active during the event
-     * @property position The x and y position of the mouse on the screen
      */
     data class Click(
         val button: Int,
         val action: Int,
         val modifiers: Int,
-        val position: Vec2d,
     ) : ICancellable by Cancellable() {
-        constructor(button: Mouse.Button, action: Mouse.Action, modifiers: Int, position: Vec2d) : this(
-            button.ordinal,
-            action.ordinal,
-            modifiers,
-            position
-        )
-
-        fun satisfies(bind: Bind) = bind.modifiers == modifiers && bind.mouse == button
-
         val isReleased = action == 0
         val isPressed = action == 1
 
-        val isMainButton = button <= 2
-        val isSideButton = button > 2
-        val isLeftButton = button == 0
-        val isRightButton = button == 1
-        val isMiddleButton = button == 2
-
-        val hasShift = hasModifier(GLFW_MOD_SHIFT)
-        val hasControl = hasModifier(GLFW_MOD_CONTROL)
-        val hasAlt = hasModifier(GLFW_MOD_ALT)
-        val hasSuper = hasModifier(GLFW_MOD_SUPER)
-        val hasCapsLock = hasModifier(GLFW_MOD_CAPS_LOCK)
-        val hasNumLock = hasModifier(GLFW_MOD_NUM_LOCK)
+        fun satisfies(bind: Bind) = bind.modifiers == modifiers && bind.mouse == button
 
         fun hasModifier(mod: Int) = modifiers and mod == mod
     }

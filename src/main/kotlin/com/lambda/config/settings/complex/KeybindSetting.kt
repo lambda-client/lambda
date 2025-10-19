@@ -81,16 +81,8 @@ class KeybindSetting(
         }
 
         lambdaTooltip {
-            if (!listening) {
-                description.ifBlank { "Click to set. Right-click to unbind. Esc cancels. Backspace/Delete unbinds." }
-            } else {
-                "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
-            }
-        }
-
-        onItemClick(ImGuiMouseButton.Right) {
-            value = Bind.EMPTY
-            listening = false
+            if (!listening) description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
+            else "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
         }
 
         if (listening && !isAnyItemHovered && isMouseClicked(ImGuiMouseButton.Left)) {
@@ -106,25 +98,31 @@ class KeybindSetting(
             lambdaTooltip("Clear binding")
         }
 
-        val keypoll = InputUtils.lastKeyboardEvent ?: return
-        val mousepoll = InputUtils.lastMouseEvent ?: return
-
         if (listening) {
-            val isModKey = keypoll.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
-
-            if ((keypoll.isPressed && !isModKey)
-                || (keypoll.isReleased && isModKey)
-            ) {
-                when (keypoll.translated) {
-                    KeyCode.ESCAPE -> {}
-                    KeyCode.BACKSPACE, KeyCode.DELETE -> value = Bind.EMPTY
-                    else -> value = Bind(keypoll.keyCode, keypoll.modifiers, -1)
+            InputUtils.newMouseEvent()
+                ?.let {
+                    value = Bind(0, it.modifiers, it.button)
+                    listening = false
+                    return
                 }
-                listening = false
-            } else if (mousepoll.action == Mouse.Action.Click.ordinal) {
-                value = Bind(0, mousepoll.modifiers, mousepoll.button)
-                listening = false
-            }
+
+            InputUtils.newKeyboardEvent()
+                ?.let {
+                    val isModKey = it.keyCode in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER
+
+                    // If a mod key is pressed first ignore it unless it was released without any other keys
+                    if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
+                        when (it.translated) {
+                            KeyCode.ESCAPE -> {}
+                            KeyCode.BACKSPACE, KeyCode.DELETE -> value = Bind.EMPTY
+                            else -> value = Bind(it.keyCode, it.modifiers, -1)
+                        }
+
+                        listening = false
+                    }
+
+                    return
+                }
         }
     }
 
@@ -177,16 +175,20 @@ data class Bind(
     }
 
     val name: String
-        get() = buildString {
-            if (mouse >= 0) append("${Mouse.Button.fromMouseCode(mouse)} + ")
-            if (modifiers > 0) append("${truemods.joinToString(separator = "+") { it.name }} +")
-            if (key > 0) append(KeyCode.fromKeyCode(key))
+        get() {
+            if (mouse < 0 && modifiers <= 0 && key <= 0) return "Unbound"
 
-            if (mouse < 0 && modifiers <= 0 && key <= 0) append("Unbound")
+            val list = mutableListOf<Any>()
+
+            if (mouse >= 0) list.add(Mouse.entries[mouse])
+            if (modifiers > 0) list.add(truemods.joinToString(separator = "+") { it.name })
+            if (key > 0) list.add(KeyCode.fromKeyCode(key))
+
+            return list.joinToString(separator = "+") { it.toString() }
         }
 
     override fun toString() =
-        "Key Code: $key"
+        "Key Code: $key, Modifiers: ${truemods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
         val EMPTY = Bind(0, 0)
