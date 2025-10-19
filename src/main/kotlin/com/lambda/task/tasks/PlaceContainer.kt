@@ -21,8 +21,8 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.PlaceResult
+import com.lambda.interaction.construction.result.results.GenericResult
+import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.ManagerUtils
@@ -55,19 +55,19 @@ class PlaceContainer @Ta5kBuilder constructor(
                 .flatMap {
                     it.toStructure(TargetState.Stack(startStack))
                         .toBlueprint()
-                        .simulate(player.eyePos)
+                        .simulate()
                 }
         }
 
         val options = results.filterIsInstance<PlaceResult.Place>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side)
-        } + results.filterIsInstance<BuildResult.WrongItemSelection>().filter {
-            canBeOpened(startStack, it.blockPos, it.context.result.side)
+            canBeOpened(startStack, it.pos, it.context.hitResult.side)
+        } + results.filterIsInstance<GenericResult.WrongItemSelection>().filter {
+            canBeOpened(startStack, it.pos, it.context.hitResult.side)
         }
         val containerPosition = options.filter {
             // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
-            it.blockPos.y == player.blockPos.y
-        }.minByOrNull { it.blockPos distSq player.pos }?.blockPos ?: run {
+            it.pos.y == player.blockPos.y
+        }.minByOrNull { it.pos distSq player.pos }?.pos ?: run {
             failure("Couldn't find a valid container placement position for ${startStack.name.string}")
             return@onStart
         }

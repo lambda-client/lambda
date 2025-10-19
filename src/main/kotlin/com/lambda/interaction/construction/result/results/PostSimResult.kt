@@ -15,18 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.result
+package com.lambda.interaction.construction.result.results
 
-import com.lambda.util.Nameable
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Rank
 import net.minecraft.util.math.BlockPos
 
-abstract class BuildResult : Nameable, ComparableResult<Rank>() {
-    abstract val pos: BlockPos
-    override val compareBy = this
+sealed class PostSimResult : BuildResult() {
+    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
 
-    final override fun compareTo(other: ComparableResult<Rank>) =
-        compareBy.compareResult(other.compareBy)
-
-    open fun compareResult(other: ComparableResult<Rank>) =
-        compareBy.rank.compareTo(other.compareBy.rank)
+    data class NoMatch(
+        override val pos: BlockPos,
+    ) : PostSimResult() {
+        override val rank = Rank.NoMatch
+    }
 }

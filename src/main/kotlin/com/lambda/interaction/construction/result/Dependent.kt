@@ -17,16 +17,16 @@
 
 package com.lambda.interaction.construction.result
 
-import com.lambda.util.Nameable
-import net.minecraft.util.math.BlockPos
+interface Dependent {
+    val dependency: BuildResult
+    val lastDependency: BuildResult
 
-abstract class BuildResult : Nameable, ComparableResult<Rank>() {
-    abstract val pos: BlockPos
-    override val compareBy = this
+    companion object {
+        val Dependent.iterator
+            get() = generateSequence(dependency) { (it as? Dependent)?.dependency }
+    }
 
-    final override fun compareTo(other: ComparableResult<Rank>) =
-        compareBy.compareResult(other.compareBy)
-
-    open fun compareResult(other: ComparableResult<Rank>) =
-        compareBy.rank.compareTo(other.compareBy.rank)
+    class Nested(override val dependency: BuildResult) : Dependent {
+        override val lastDependency = iterator.last()
+    }
 }

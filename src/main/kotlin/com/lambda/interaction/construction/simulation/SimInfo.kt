@@ -15,25 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.context
+package com.lambda.interaction.construction.simulation
 
-import com.lambda.context.Automated
-import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.threading.runSafe
+import com.lambda.interaction.construction.processing.PreProcessingInfo
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Dependable
+import com.lambda.interaction.construction.verify.TargetState
 import net.minecraft.block.BlockState
-import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import java.util.*
 
-abstract class BuildContext : Comparable<BuildContext>, Drawable, Automated {
-    abstract val hitResult: BlockHitResult
-    abstract val rotationRequest: RotationRequest
-    abstract val hotbarIndex: Int
-    abstract val cachedState: BlockState
-    abstract val expectedState: BlockState
-    abstract val blockPos: BlockPos
-
-    val distance by lazy {
-        runSafe { player.eyePos.distanceTo(hitResult.pos) } ?: Double.MAX_VALUE
-    }
+data class SimInfo(
+    val pos: BlockPos,
+    val state: BlockState,
+    val targetState: TargetState,
+    val preProcessing: PreProcessingInfo,
+    val concurrentResults: MutableSet<BuildResult>
+) {
+    val dependencyStack = Stack<Dependable>()
 }

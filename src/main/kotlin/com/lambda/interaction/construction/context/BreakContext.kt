@@ -41,8 +41,8 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 data class BreakContext(
-    override val result: BlockHitResult,
-    override val rotation: RotationRequest,
+    override val hitResult: BlockHitResult,
+    override val rotationRequest: RotationRequest,
     override var hotbarIndex: Int,
     var itemSelection: StackSelection,
     var instantBreak: Boolean,
@@ -53,7 +53,7 @@ data class BreakContext(
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
-    override val blockPos: BlockPos = result.blockPos
+    override val blockPos: BlockPos = hitResult.blockPos
     override val expectedState = cachedState.emptyState
 
     val random = Random.nextDouble()
@@ -66,9 +66,9 @@ data class BreakContext(
             }.thenBy {
                 when (sortMode) {
                     BreakConfig.SortMode.Tool,
-                    BreakConfig.SortMode.Closest -> player.eyePos.distance(it.result.pos, it.cachedState.block)
-                    BreakConfig.SortMode.Farthest -> -player.eyePos.distance(it.result.pos, it.cachedState.block)
-                    BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
+                    BreakConfig.SortMode.Closest -> player.eyePos.distance(it.hitResult.pos, it.cachedState.block)
+                    BreakConfig.SortMode.Farthest -> -player.eyePos.distance(it.hitResult.pos, it.cachedState.block)
+                    BreakConfig.SortMode.Rotation -> it.rotationRequest.target.angleDistance
                     BreakConfig.SortMode.Random -> it.random
                 }
             }.thenByDescending {
@@ -92,14 +92,14 @@ data class BreakContext(
     }
 
     override fun ShapeBuilder.buildRenderer() {
-        box(blockPos, cachedState, baseColor, sideColor, DirectionMask.ALL.exclude(result.side))
+        box(blockPos, cachedState, baseColor, sideColor, DirectionMask.ALL.exclude(hitResult.side))
     }
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Break Context") {
             text(blockPos.getLogContextBuilder())
-            text(result.getLogContextBuilder())
-            text(rotation.getLogContextBuilder())
+            text(hitResult.getLogContextBuilder())
+            text(rotationRequest.getLogContextBuilder())
             value("Hotbar Index", hotbarIndex)
             value("Instant Break", instantBreak)
             value("Cached State", cachedState)

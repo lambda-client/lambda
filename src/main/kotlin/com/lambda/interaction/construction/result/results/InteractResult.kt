@@ -15,27 +15,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.result
+package com.lambda.interaction.construction.result.results
 
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.ComparableResult
+import com.lambda.interaction.construction.result.Contextual
+import com.lambda.interaction.construction.result.Dependent
+import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.result.Rank
 import net.minecraft.util.math.BlockPos
 
 sealed class InteractResult : BuildResult() {
     data class Interact(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         override val context: InteractionContext
     ) : Contextual, Drawable, InteractResult() {
-        override val rank = Rank.INTERACT_SUCCESS
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.InteractSuccess
 
         override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
 
-        override fun compareTo(other: ComparableResult<Rank>) =
+        override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {
                 is Interact -> context.compareTo(other.context)
-                else -> super.compareTo(other)
+                else -> super.compareResult(other)
             }
+    }
+
+    data class Dependency(
+        override val pos: BlockPos,
+        override val dependency: BuildResult
+    ) : InteractResult(), Dependent by Dependent.Nested(dependency) {
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = dependency.rank
+        override val compareBy = lastDependency
     }
 }

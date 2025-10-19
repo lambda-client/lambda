@@ -212,7 +212,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      */
     private fun AutomatedSafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
-        val hitResult = placeContext.result
+        val hitResult = placeContext.hitResult
         if (!world.worldBorder.contains(hitResult.blockPos)) {
             logger.error("Placement position outside the world border", placeContext, request)
             return ActionResult.FAIL

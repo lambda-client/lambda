@@ -32,13 +32,18 @@ import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Contextual
+import com.lambda.interaction.construction.result.Dependent
+import com.lambda.interaction.construction.result.Dependent.Companion.iterator
 import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.construction.result.InteractResult
 import com.lambda.interaction.construction.result.Navigable
-import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
+import com.lambda.interaction.construction.result.results.BreakResult
+import com.lambda.interaction.construction.result.results.GenericResult
+import com.lambda.interaction.construction.result.results.InteractResult
+import com.lambda.interaction.construction.result.results.PlaceResult
+import com.lambda.interaction.construction.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
@@ -105,96 +110,109 @@ class BuildTask private constructor(
 
             if (collectDrops()) return@listen
 
-            val results = runSafeAutomated { blueprint.simulate(player.eyePos) }
-
-            AutomationConfig.drawables = results
-                .filterIsInstance<Drawable>()
-                .plus(pendingInteractions.toList())
-
-            val resultsNotBlocked = results
-                .filter { result -> pendingInteractions.none { it.blockPos == result.blockPos } }
-                .sorted()
-
-            val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
-            if (bestResult !is BuildResult.Contextual && pendingInteractions.isNotEmpty())
-                return@listen
-            when (bestResult) {
-                is BuildResult.Done,
-                is BuildResult.Ignored,
-                is BuildResult.Unbreakable,
-                is BuildResult.Restricted,
-                is BuildResult.NoPermission -> {
-                    if (iteratePropagating()) return@listen
-
-                    if (finishOnDone) success(blueprint.structure)
-                }
-
-                is BuildResult.NotVisible,
-                is PlaceResult.NoIntegrity -> {
-                    if (!buildConfig.pathing) return@listen
-                    val sim = blueprint.simulation()
-                    val goal = BuildGoal(sim, player.blockPos)
-                    BaritoneManager.setGoalAndPath(goal)
-                }
-
-                is Navigable -> {
-                    if (buildConfig.pathing) BaritoneManager.setGoalAndPath(bestResult.goal)
-                }
-
-                is BuildResult.Contextual -> {
-                    if (atMaxPendingInteractions) return@listen
-                    when (bestResult) {
-                        is BreakResult.Break -> {
-                            val breakResults = resultsNotBlocked
-                                .filterIsInstance<BreakResult.Break>()
-                                .map { it.context }
-
-                            breakRequest(breakResults, pendingInteractions) {
-                                onStop { breaks++ }
-                                onItemDrop?.let { onItemDrop ->
-                                    onItemDrop { onItemDrop(it) }
-                                }
-                            }.submit()
-                            return@listen
-                        }
-                        is PlaceResult.Place -> {
-                            val placeResults = resultsNotBlocked
-                                .filterIsInstance<PlaceResult.Place>()
-                                .map { it.context }
-
-                            PlaceRequest(
-                                placeResults,
-                                pendingInteractions,
-                                this@BuildTask
-                            ) { placements++ }.submit()
-                        }
-                        is InteractResult.Interact -> {
-                            val interactResults = resultsNotBlocked
-                                .filterIsInstance<InteractResult.Interact>()
-                                .map { it.context }
-
-                            InteractRequest(
-                                interactResults,
-                                pendingInteractions,
-                                this@BuildTask,
-                                null
-                            ).submit()
-                        }
-                    }
-                }
-
-                is Resolvable -> {
-                    LOG.info("Resolving: ${bestResult.name}")
-
-                    bestResult.resolve().execute(this@BuildTask)
-                }
-            }
+            simulateAndProcess()
         }
 
         listen<TickEvent.Post> {
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
                 return@listen
+            }
+        }
+    }
+
+    private fun SafeContext.simulateAndProcess() {
+        val results = runSafeAutomated { blueprint.simulate() }
+
+        AutomationConfig.drawables = results
+            .filterIsInstance<Drawable>()
+            .plus(pendingInteractions.toList())
+
+        val resultsNotBlocked = results
+            .filter { result -> pendingInteractions.none { it.blockPos == result.pos } }
+            .sorted()
+
+        val bestResult = resultsNotBlocked.firstOrNull() ?: return
+        handleResult(bestResult, resultsNotBlocked)
+    }
+
+    private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
+        if (result !is Contextual && pendingInteractions.isNotEmpty())
+            return
+
+        when (result) {
+            is PreSimResult.Done,
+            is PreSimResult.Unbreakable,
+            is PreSimResult.Restricted,
+            is PreSimResult.NoPermission,
+            is GenericResult.Ignored -> {
+                if (iteratePropagating()) {
+                    simulateAndProcess()
+                    return
+                }
+
+                if (finishOnDone) success(blueprint.structure)
+            }
+
+            is GenericResult.NotVisible,
+            is PlaceResult.NoIntegrity -> {
+                if (!buildConfig.pathing) return
+                val sim = blueprint.simulation()
+                val goal = BuildGoal(sim, player.blockPos)
+                BaritoneManager.setGoalAndPath(goal)
+            }
+
+            is Navigable -> {
+                if (buildConfig.pathing) BaritoneManager.setGoalAndPath(result.goal)
+            }
+
+            is Contextual -> {
+                if (atMaxPendingInteractions) return
+                when (result) {
+                    is BreakResult.Break -> {
+                        val breakResults = allResults
+                            .filterIsInstance<BreakResult.Break>()
+                            .map { it.context }
+
+                        breakRequest(breakResults, pendingInteractions) {
+                            onStop { breaks++ }
+                            onItemDrop?.let { onItemDrop ->
+                                onItemDrop { onItemDrop(it) }
+                            }
+                        }.submit()
+                        return
+                    }
+                    is PlaceResult.Place -> {
+                        val placeResults = allResults
+                            .filterIsInstance<PlaceResult.Place>()
+                            .map { it.context }
+
+                        PlaceRequest(
+                            placeResults,
+                            pendingInteractions,
+                            this@BuildTask
+                        ) { placements++ }.submit()
+                    }
+                    is InteractResult.Interact -> {
+                        val interactResults = allResults
+                            .filterIsInstance<InteractResult.Interact>()
+                            .map { it.context }
+
+                        InteractRequest(
+                            interactResults,
+                            pendingInteractions,
+                            this@BuildTask,
+                            null
+                        ).submit()
+                    }
+                }
+            }
+
+            is Dependent -> handleResult(result.iterator.last(), allResults)
+
+            is Resolvable -> {
+                LOG.info("Resolving: ${result.name}")
+                result.resolve().execute(this@BuildTask)
             }
         }
     }

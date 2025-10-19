@@ -15,13 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.result
+package com.lambda.interaction.construction.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.ComparableResult
+import com.lambda.interaction.construction.result.Contextual
+import com.lambda.interaction.construction.result.Dependent
+import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.result.Navigable
+import com.lambda.interaction.construction.result.Rank
+import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
@@ -32,9 +40,9 @@ import java.awt.Color
 /**
  * [PlaceResult] represents the result of a placement simulation.
  * Holds data about the placement and the result of the simulation.
- * Every [BuildResult] can [resolve] its own problem.
- * Every [BuildResult] can be compared to another [BuildResult].
- * First based on the context, then based on the [Rank].
+ * Every [GenericResult] can [resolve] its own problem.
+ * Every [GenericResult] can be compared to another [GenericResult].
+ * First based on the context, then based on the [com.lambda.interaction.construction.result.Rank].
  */
 sealed class PlaceResult : BuildResult() {
     /**
@@ -42,19 +50,20 @@ sealed class PlaceResult : BuildResult() {
      * @param context The context of the placement.
      */
     data class Place(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         override val context: PlaceContext,
     ) : Contextual, Drawable, PlaceResult() {
-        override val rank = Rank.PLACE_SUCCESS
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceSuccess
 
         override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
 
-        override fun compareTo(other: ComparableResult<Rank>) =
+        override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {
                 is Place -> context.compareTo(other.context)
-                else -> super.compareTo(other)
+                else -> super.compareResult(other)
             }
     }
 
@@ -64,118 +73,135 @@ sealed class PlaceResult : BuildResult() {
      * This class is used to provide details about a block placement issue in which the actual block
      * placed does not match the expected state, or additional integrity conditions are not met.
      *
-     * @property blockPos The position of the block being inspected or placed.
+     * @property pos The position of the block being inspected or placed.
      * @property expected The expected state of the block.
      * @property simulated The context of the item placement simulation.
      * @property actual The expected
      */
     data class NoIntegrity(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         val expected: BlockState,
         val simulated: ItemPlacementContext,
         val actual: BlockState? = null,
     ) : Drawable, PlaceResult() {
-        override val rank = Rank.PLACE_NO_INTEGRITY
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceNoIntegrity
         private val color = Color(252, 3, 3, 100)
 
         override fun ShapeBuilder.buildRenderer() {
-            box(blockPos, expected, color, color)
+            box(pos, expected, color, color)
         }
     }
 
     /**
      * Represents a scenario where block placement is obstructed by an entity.
      *
-     * @property blockPos The position of the block that was attempted to be placed.
+     * @property pos The position of the block that was attempted to be placed.
      */
     data class BlockedByEntity(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
     ) : Navigable, PlaceResult() {
-        override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceBlockedByPlayer
 
         // ToDo: check what type of entity. player -> leave box, other entity -> kill?
-        override val goal = GoalInverted(GoalBlock(blockPos))
+        override val goal = GoalInverted(GoalBlock(pos))
     }
 
     /**
      * Represents a result indicating that a block cannot be replaced during a placement operation.
      *
-     * @property blockPos The position of the block that cannot be replaced.
+     * @property pos The position of the block that cannot be replaced.
      * @property simulated The context of the item placement simulation.
      */
     data class CantReplace(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         val simulated: ItemPlacementContext,
     ) : Resolvable, PlaceResult() {
-        override val rank = Rank.PLACE_CANT_REPLACE
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceCantReplace
 
         context(automated: Automated)
-        override fun resolve() = automated.breakBlock(blockPos)
+        override fun resolve() = automated.breakBlock(pos)
     }
 
     /**
      * Represents a placement result indicating that the scaffolding placement has exceeded the allowed limits.
      *
-     * @property blockPos The position of the block where the placement attempt occurred.
+     * @property pos The position of the block where the placement attempt occurred.
      * @property simulated The context of the simulated item placement attempt.
      */
     data class ScaffoldExceeded(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         val simulated: ItemPlacementContext,
     ) : PlaceResult() {
-        override val rank = Rank.PLACE_SCAFFOLD_EXCEEDED
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceScaffoldExceeded
     }
 
     /**
      * Represents a result where a block placement operation was prevented because
      * the relevant block feature is disabled.
      *
-     * @property blockPos The position of the block that could not be placed.
+     * @property pos The position of the block that could not be placed.
      * @property itemStack The item stack associated with the attempted placement.
      */
     data class BlockFeatureDisabled(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         val itemStack: ItemStack,
     ) : PlaceResult() {
-        override val rank = Rank.PLACE_BLOCK_FEATURE_DISABLED
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceBlockFeatureDisabled
     }
 
     /**
      * Represents a result state where the placement or manipulation of a block resulted in an unexpected position.
      *
-     * @property blockPos The intended position of the block.
+     * @property pos The intended position of the block.
      * @property actualPos The actual position of the block, which differs from the intended position.
      */
     data class UnexpectedPosition(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         val actualPos: BlockPos,
     ) : PlaceResult() {
-        override val rank = Rank.UNEXPECTED_POSITION
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.UnexpectedPosition
     }
 
     /**
      * Represents a result indicating an illegal usage during a placement operation.
      * E.g., the player can't modify the world or the block cannot be placed against the surface.
      *
-     * @property blockPos The position of the block associated with the illegal usage result.
+     * @property pos The position of the block associated with the illegal usage result.
      * @property rank The ranking of this result, which is always `PLACE_ILLEGAL_USAGE`.
      */
     data class IllegalUsage(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
     ) : PlaceResult() {
-        override val rank = Rank.PLACE_ILLEGAL_USAGE
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceIllegalUsage
     }
 
     /**
      * Represents the result of a place operation where the provided item does not match the expected item block type.
      *
-     * @property blockPos The position of the block where the operation was attempted.
+     * @property pos The position of the block where the operation was attempted.
      * @property itemStack The item stack that was checked during the place operation.
      */
     data class NotItemBlock(
-        override val blockPos: BlockPos,
+        override val pos: BlockPos,
         val itemStack: ItemStack,
     ) : PlaceResult() {
-        override val rank = Rank.PLACE_NOT_ITEM_BLOCK
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = Rank.PlaceNotItemBlock
+    }
+
+    data class Dependency(
+        override val pos: BlockPos,
+        override val dependency: BuildResult
+    ) : PlaceResult(), Dependent by Dependent.Nested(dependency) {
+        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+        override val rank = lastDependency.rank
+        override val compareBy = lastDependency
     }
 }

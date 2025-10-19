@@ -27,7 +27,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.PlaceResult
+import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.Request.Companion.submit
@@ -94,9 +94,9 @@ object Scaffold : Module(
                 scaffoldPositions(beneath)
                     .associateWith { TargetState.Solid }
                     .toBlueprint()
-                    .simulate(player.eyePos)
+                    .simulate()
                     .filterIsInstance<PlaceResult.Place>()
-                    .minByOrNull { it.blockPos distSq beneath }
+                    .minByOrNull { it.pos distSq beneath }
                     ?.let { result ->
                         submit(PlaceRequest(
                             setOf(result.context),

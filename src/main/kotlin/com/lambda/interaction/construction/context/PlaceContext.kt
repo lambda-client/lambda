@@ -36,8 +36,8 @@ import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
 data class PlaceContext(
-    override val result: BlockHitResult,
-    override val rotation: RotationRequest,
+    override val hitResult: BlockHitResult,
+    override val rotationRequest: RotationRequest,
     override var hotbarIndex: Int,
     override val blockPos: BlockPos,
     override var cachedState: BlockState,
@@ -61,7 +61,7 @@ data class PlaceContext(
             }.thenBy {
                 it.sneak == (mc.player?.isSneaking ?: false)
             }.thenBy {
-                it.rotation.target.angleDistance
+                it.rotationRequest.target.angleDistance
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
@@ -74,13 +74,13 @@ data class PlaceContext(
         }
 
     override fun ShapeBuilder.buildRenderer() {
-        box(blockPos, expectedState, baseColor, sideColor, result.side.mask)
+        box(blockPos, expectedState, baseColor, sideColor, hitResult.side.mask)
     }
 
     fun requestDependencies(request: PlaceRequest): Boolean {
         val hotbarRequest = submit(HotbarRequest(hotbarIndex, this), false)
         val validRotation = if (request.placeConfig.rotateForPlace) {
-            submit(rotation, false).done && currentDirIsValid
+            submit(rotationRequest, false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
     }
@@ -88,8 +88,8 @@ data class PlaceContext(
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Place Context") {
             text(blockPos.getLogContextBuilder())
-            text(result.getLogContextBuilder())
-            text(rotation.getLogContextBuilder())
+            text(hitResult.getLogContextBuilder())
+            text(rotationRequest.getLogContextBuilder())
             value("Hotbar Index", hotbarIndex)
             value("Cached State", cachedState)
             value("Expected State", expectedState)

@@ -17,16 +17,8 @@
 
 package com.lambda.interaction.construction.result
 
-import com.lambda.util.Nameable
-import net.minecraft.util.math.BlockPos
+import com.lambda.interaction.construction.context.BuildContext
 
-abstract class BuildResult : Nameable, ComparableResult<Rank>() {
-    abstract val pos: BlockPos
-    override val compareBy = this
-
-    final override fun compareTo(other: ComparableResult<Rank>) =
-        compareBy.compareResult(other.compareBy)
-
-    open fun compareResult(other: ComparableResult<Rank>) =
-        compareBy.rank.compareTo(other.compareBy.rank)
+interface Contextual {
+    val context: BuildContext
 }

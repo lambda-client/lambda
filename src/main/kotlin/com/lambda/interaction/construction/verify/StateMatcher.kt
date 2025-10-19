@@ -17,21 +17,22 @@
 
 package com.lambda.interaction.construction.verify
 
-import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
 import net.minecraft.block.BlockState
-import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
 
 interface StateMatcher {
+    context(safeContext: SafeContext)
     fun matches(
         state: BlockState,
         pos: BlockPos,
-        world: ClientWorld,
         ignoredProperties: Collection<Property<*>> = emptySet()
     ): Boolean
 
-    fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun getStack(pos: BlockPos): ItemStack
     fun isEmpty(): Boolean
 }

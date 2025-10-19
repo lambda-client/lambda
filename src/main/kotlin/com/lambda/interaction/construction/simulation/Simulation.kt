@@ -49,13 +49,13 @@ data class Simulation(
         val view = pos.toView()
         val isOutOfBounds = blueprint.isOutOfBounds(view)
         val isTooFar = blueprint.getClosestPointTo(view).distanceTo(view) > 10.0
-        return runSafeAutomated {
+        return@getOrPut runSafeAutomated {
             if (isOutOfBounds && isTooFar) return@getOrPut emptySet()
             val blockPos = pos.toBlockPos()
             val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)
             if (!isWalkable) return@getOrPut emptySet()
             if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
-            blueprint.simulate(view)
+            blueprint.simulate()
         } ?: emptySet()
     }
 
