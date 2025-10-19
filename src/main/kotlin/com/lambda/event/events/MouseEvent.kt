@@ -20,14 +20,7 @@ package com.lambda.event.events
 import com.lambda.config.settings.complex.Bind
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
-import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
-import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 sealed class MouseEvent {
     /**
@@ -45,9 +38,7 @@ sealed class MouseEvent {
         val isReleased = action == 0
         val isPressed = action == 1
 
-        fun satisfies(bind: Bind) = bind.modifiers == modifiers && bind.mouse == button
-
-        fun hasModifier(mod: Int) = modifiers and mod == mod
+        fun satisfies(bind: Bind) = bind.modifiers and modifiers == bind.modifiers && bind.mouse == button
     }
 
     /**

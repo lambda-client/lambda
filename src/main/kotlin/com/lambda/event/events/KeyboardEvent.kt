@@ -20,12 +20,6 @@ package com.lambda.event.events
 import com.lambda.config.settings.complex.Bind
 import com.lambda.event.Event
 import com.lambda.util.KeyCode
-import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
-import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 import org.lwjgl.glfw.GLFW.GLFW_PRESS
 import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 
@@ -55,7 +49,7 @@ sealed class KeyboardEvent {
         val isPressed = action >= GLFW_PRESS
         val isReleased = action == GLFW_RELEASE
 
-        fun satisfies(bind: Bind) = bind.key == keyCode && bind.modifiers == modifiers
+        fun satisfies(bind: Bind) = bind.key == keyCode && bind.modifiers and modifiers == bind.modifiers
     }
 
     /**
