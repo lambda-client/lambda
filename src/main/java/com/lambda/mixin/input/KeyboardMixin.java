@@ -20,6 +20,8 @@ package com.lambda.mixin.input;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.KeyboardEvent;
 import com.lambda.module.modules.player.InventoryMove;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Keyboard;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -30,9 +32,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Keyboard.class)
 public class KeyboardMixin {
-    @Inject(method = "onKey", at = @At("HEAD"))
-    private void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
+    @WrapMethod(method = "onKey")
+    private void onKey(long window, int key, int scancode, int action, int modifiers, Operation<Void> original) {
         EventFlow.post(new KeyboardEvent.Press(key, scancode, action, modifiers));
+        original.call(window, key, scancode, action, modifiers);
     }
 
     @Inject(method = "onKey", at = @At("RETURN"))
@@ -42,12 +45,13 @@ public class KeyboardMixin {
         KeyBinding.setKeyPressed(fromCode, action != 0);
     }
 
-    @Inject(method = "onChar", at = @At("HEAD"))
-    private void onChar(long window, int codePoint, int modifiers, CallbackInfo ci) {
+    @WrapMethod(method = "onChar")
+    private void onChar(long window, int codePoint, int modifiers, Operation<Void> original) {
         char[] chars = Character.toChars(codePoint);
 
-        for (char c : chars) {
+        for (char c : chars)
             EventFlow.post(new KeyboardEvent.Char(c));
-        }
+
+        original.call(window, codePoint, modifiers);
     }
 }
