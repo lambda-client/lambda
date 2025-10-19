@@ -17,12 +17,12 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.context.AutomationConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.placing.PlaceManager.placeSound
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
@@ -31,7 +31,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
     override val pendingActions = LimitedDecayQueue<PlaceInfo>(
-        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
+        AutomationConfig.buildConfig.maxPendingInteractions,
+        AutomationConfig.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
         if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {

@@ -97,7 +97,6 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
-import net.minecraft.world.BlockView
 
 object BlockUtils {
 
@@ -248,20 +247,16 @@ object BlockUtils {
         item: ItemStack,
         breakThreshold: Float
     ): Boolean {
-        val ticksNeeded = 1 / (blockState.calcItemBlockBreakingDelta(player, world, blockPos, item) / breakThreshold)
+        val ticksNeeded = 1 / (blockState.calcItemBlockBreakingDelta(blockPos, item) / breakThreshold)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
     }
 
-    fun BlockState.calcItemBlockBreakingDelta(
-        player: PlayerEntity,
-        world: BlockView,
-        blockPos: BlockPos,
-        stack: ItemStack
-    ): Float {
+    context(safeContext: SafeContext)
+    fun BlockState.calcItemBlockBreakingDelta(blockPos: BlockPos, stack: ItemStack): Float = with(safeContext) {
         val hardness = getHardness(world, blockPos)
         return if (hardness == -1.0f) 0.0f else {
-            val harvestMultiplier = if (stack.canHarvest(this)) 30 else 100
-            player.getItemBlockBreakingSpeed(this, stack) / hardness / harvestMultiplier
+            val harvestMultiplier = if (stack.canHarvest(this@calcItemBlockBreakingDelta)) 30 else 100
+            player.getItemBlockBreakingSpeed(this@calcItemBlockBreakingDelta, stack) / hardness / harvestMultiplier
         }
     }
 

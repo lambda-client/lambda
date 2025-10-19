@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.inventory
 
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
@@ -46,7 +47,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         return "Loaded Inventory Manager"
     }
 
-    override fun SafeContext.handleRequest(request: InventoryRequest) {
+    override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
         TODO("Not yet implemented")
     }
 

@@ -17,14 +17,13 @@
 
 package com.lambda.interaction.request.rotating.visibilty
 
-import com.lambda.config.groups.InteractionConfig
-import com.lambda.context.SafeContext
+import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.AutomationConfig
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.RotationManager
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
@@ -55,14 +54,13 @@ object VisibilityChecker {
      *
      * @return A [CheckedHit] if a valid rotation was found; otherwise, null.
      */
-    fun SafeContext.findRotation(
+    fun AutomatedSafeContext.findRotation(
         boxes: List<Box>,
         reach: Double,
         eye: Vec3d,
         sides: Set<Direction>,
         scan: SurfaceScan,
         targetType: InteractionMask,
-        interaction: InteractionConfig,
         verify: CheckedHit.() -> Boolean
     ): CheckedHit? {
         val currentRotation = RotationManager.activeRotation
@@ -73,8 +71,8 @@ object VisibilityChecker {
             }
         }
 
-        return interaction.pointSelection.select(
-            collectHitsFor(boxes, reach, eye, sides, scan, targetType, interaction, verify)
+        return buildConfig.pointSelection.select(
+            collectHitsFor(boxes, reach, eye, sides, scan, targetType, verify)
         )
     }
 
@@ -91,27 +89,26 @@ object VisibilityChecker {
      *
      * @return A collection of [CheckedHit] with valid angles found
      */
-    fun SafeContext.collectHitsFor(
+    fun AutomatedSafeContext.collectHitsFor(
         boxes: List<Box>,
         reach: Double,
         eye: Vec3d = player.eyePos,
         sides: Set<Direction> = ALL_SIDES,
         scan: SurfaceScan = SurfaceScan.DEFAULT,
         targetType: InteractionMask,
-        interaction: InteractionConfig,
         verify: CheckedHit.() -> Boolean,
     ) = mutableListOf<CheckedHit>().apply {
-        val reachSq = interaction.scanReach.pow(2)
+        val reachSq = buildConfig.scanReach.pow(2)
 
         boxes.forEach { box ->
-            val visible = visibleSides(box, eye, interaction.checkSideVisibility)
+            val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), interaction.resolution, scan) { _, vec ->
+            scanSurfaces(box, visible.intersect(sides), buildConfig.resolution, scan) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val mask = if (interaction.strictRayCast) InteractionMask.Both else targetType
+                val mask = if (buildConfig.strictRayCast) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
                 val checked = CheckedHit(hit, newRotation, reach)
@@ -122,7 +119,7 @@ object VisibilityChecker {
         }
     }
 
-    private fun SafeContext.collectHitsInternal(
+    private fun AutomatedSafeContext.collectHitsInternal(
         boxes: List<Box>,
         reach: Double,
         eye: Vec3d,
@@ -130,20 +127,19 @@ object VisibilityChecker {
         scan: SurfaceScan,
         targetType: InteractionMask,
         entity: LivingEntity?,
-        interaction: InteractionConfig,
         verify: CheckedHit.() -> Boolean,
     ) = mutableListOf<CheckedHit>().apply {
-        val reachSq = interaction.scanReach.pow(2)
+        val reachSq = buildConfig.scanReach.pow(2)
 
         boxes.forEach { box ->
-            val visible = visibleSides(box, eye, interaction.checkSideVisibility)
+            val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), interaction.resolution, scan) { _, vec ->
+            scanSurfaces(box, visible.intersect(sides), buildConfig.resolution, scan) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val mask = if (interaction.strictRayCast || entity == null) InteractionMask.Both else targetType
+                val mask = if (buildConfig.strictRayCast || entity == null) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
                 val checked = CheckedHit(hit, newRotation, reach)
@@ -172,7 +168,7 @@ object VisibilityChecker {
         check: (Direction, Vec3d) -> Unit,
     ) {
         sides.forEach { side ->
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(TaskFlowModule.shrinkFactor).bounds(side)
+            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(AutomationConfig.shrinkFactor).bounds(side)
 
             // Determine the bounds to scan based on the axis and mode. Skip if no part of the face is in the desired bounds
             val (startX, endX) = if (scan.axis == Direction.Axis.X && maxX != minX) {

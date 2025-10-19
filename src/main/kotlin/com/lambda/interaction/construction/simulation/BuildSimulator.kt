@@ -17,9 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
-import com.lambda.context.SafeContext
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.InteractionContext
@@ -37,12 +35,8 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.PlaceDirection
@@ -52,8 +46,6 @@ import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanS
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
 import com.lambda.interaction.request.rotating.visibilty.lookInDirection
-import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -104,30 +96,27 @@ import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.pow
 
 object BuildSimulator {
-    fun Blueprint.simulate(
-        eye: Vec3d,
-        interactionConfig: InteractionConfig = TaskFlowModule.interaction,
-        rotation: RotationConfig = TaskFlowModule.rotation,
-        inventory: InventoryConfig = TaskFlowModule.inventory,
-        build: BuildConfig = TaskFlowModule.build,
-    ): Set<BuildResult> = runSafe {
+    context(context: AutomatedSafeContext)
+    fun Blueprint.simulate(eye: Vec3d): Set<BuildResult> =
         runBlocking(Dispatchers.Default) {
             structure.entries
                 .map { (pos, target) ->
                     async {
                         val preProcessing = target.getProcessingInfo(pos) ?: return@async emptySet()
 
-                        checkRequirements(pos, target, build).let { results ->
-                            if (results.isNotEmpty()) return@async results
-                        }
-                        checkPostProcessResults(pos, eye, preProcessing, target, interactionConfig, build.placing, rotation, inventory).let { results ->
-                            if (results.isNotEmpty()) return@async results
-                        }
-                        checkPlaceResults(pos, eye, preProcessing, target, build.placing, interactionConfig, rotation, inventory).let { results ->
-                            if (results.isNotEmpty()) return@async results
-                        }
-                        checkBreakResults(pos, eye, preProcessing, build.breaking, interactionConfig, rotation, inventory, build).let { results ->
-                            if (results.isNotEmpty()) return@async results
+                        with(context) {
+                            checkRequirements(pos, target).let { results ->
+                                if (results.isNotEmpty()) return@async results
+                            }
+                            checkPostProcessResults(pos, eye, preProcessing, target).let { results ->
+                                if (results.isNotEmpty()) return@async results
+                            }
+                            checkPlaceResults(pos, eye, preProcessing, target).let { results ->
+                                if (results.isNotEmpty()) return@async results
+                            }
+                            checkBreakResults(pos, eye, preProcessing).let { results ->
+                                if (results.isNotEmpty()) return@async results
+                            }
                         }
 
                         warn("Nothing matched $pos $target")
@@ -138,13 +127,8 @@ object BuildSimulator {
                 .flatMap { it }
                 .toSet()
         }
-    } ?: emptySet()
 
-    private fun SafeContext.checkRequirements(
-        pos: BlockPos,
-        target: TargetState,
-        build: BuildConfig
-    ): Set<BuildResult> {
+    private fun AutomatedSafeContext.checkRequirements(pos: BlockPos, target: TargetState): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
 
         /* the chunk is not loaded */
@@ -162,7 +146,7 @@ object BuildSimulator {
         }
 
         /* block should be ignored */
-        if (state.block in build.breaking.ignoredBlocks && target.type == TargetState.Type.AIR) {
+        if (state.block in breakConfig.ignoredBlocks && target.type == TargetState.Type.AIR) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -194,15 +178,11 @@ object BuildSimulator {
         return acc
     }
 
-    private fun SafeContext.checkPostProcessResults(
+    private fun AutomatedSafeContext.checkPostProcessResults(
         pos: BlockPos,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
-        targetState: TargetState,
-        interactionConfig: InteractionConfig,
-        place: PlaceConfig,
-        rotation: RotationConfig,
-        inventory: InventoryConfig
+        targetState: TargetState
     ): Set<BuildResult> {
         if (targetState !is TargetState.State) return emptySet()
 
@@ -213,15 +193,15 @@ object BuildSimulator {
             return acc
 
         val interactBlock: (BlockState, Set<Direction>?, Item?, Boolean) -> Unit =
-            interactBlock@{ expectedState, sides, item, placing ->
+            interactBlock@ { expectedState, sides, item, placing ->
                 val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
                 val validHits = mutableListOf<CheckedHit>()
                 val blockedHits = mutableSetOf<Vec3d>()
                 val misses = mutableSetOf<Vec3d>()
-                val airPlace = placing && place.airPlace.isEnabled
+                val airPlace = placing && placeConfig.airPlace.isEnabled
 
                 boxes.forEach { box ->
-                    val refinedSides = if (interactionConfig.checkSideVisibility) {
+                    val refinedSides = if (buildConfig.checkSideVisibility) {
                         box.getVisibleSurfaces(eye).let { visibleSides ->
                             sides?.let { specific ->
                                 visibleSides.intersect(specific)
@@ -232,36 +212,36 @@ object BuildSimulator {
                     scanSurfaces(
                         box,
                         refinedSides,
-                        interactionConfig.resolution,
+                        buildConfig.resolution,
                         preProcessing.surfaceScan
                     ) { hitSide, vec ->
                         val distSquared = eye distSq vec
-                        if (distSquared > interactionConfig.interactReach.pow(2)) {
+                        if (distSquared > buildConfig.interactReach.pow(2)) {
                             misses.add(vec)
                             return@scanSurfaces
                         }
 
                         val newRotation = eye.rotationTo(vec)
 
-                        val hit = if (interactionConfig.strictRayCast) {
-                            val rayCast = newRotation.rayCast(interactionConfig.interactReach, eye)
+                        val hit = if (buildConfig.strictRayCast) {
+                            val rayCast = newRotation.rayCast(buildConfig.interactReach, eye)
                             when {
                                 rayCast != null && (!airPlace || eye distSq rayCast.pos <= distSquared) ->
                                     rayCast.blockResult
 
                                 airPlace -> {
-                                    val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
+                                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
                                     BlockHitResult(hitVec, hitSide, pos, false)
                                 }
 
                                 else -> null
                             }
                         } else {
-                            val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
                             BlockHitResult(hitVec, hitSide, pos, false)
                         } ?: return@scanSurfaces
 
-                        val checked = CheckedHit(hit, newRotation, interactionConfig.interactReach)
+                        val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
                         if (hit.blockResult?.blockPos != pos) {
                             blockedHits.add(vec)
                             return@scanSurfaces
@@ -288,22 +268,23 @@ object BuildSimulator {
                     return@interactBlock
                 }
 
-                interactionConfig.pointSelection.select(validHits)?.let { checkedHit ->
+                buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
                     val checkedResult = checkedHit.hit
                     val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
                     val context = InteractionContext(
                         checkedResult.blockResult ?: return@interactBlock,
-                        RotationRequest(rotationTarget, rotation),
+                        RotationRequest(rotationTarget, this),
                         player.inventory.selectedSlot,
                         state,
-                        expectedState
+                        expectedState,
+                        this
                     )
 
                     val stackSelection = (item ?: player.mainHandStack.item).select()
                     val hotbarCandidates = selectContainer {
                         matches(stackSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
                     }.let { predicate ->
-                        stackSelection.containerWithMaterial(inventory, predicate)
+                        stackSelection.containerWithMaterial( predicate)
                     }
 
                     if (hotbarCandidates.isEmpty()) {
@@ -312,8 +293,7 @@ object BuildSimulator {
                                 pos,
                                 context,
                                 stackSelection,
-                                player.mainHandStack,
-                                inventory
+                                player.mainHandStack
                             )
                         )
                         return@interactBlock
@@ -365,11 +345,7 @@ object BuildSimulator {
                         pos,
                         eye,
                         preProcessing,
-                        targetState,
-                        place,
-                        interactionConfig,
-                        rotation,
-                        inventory
+                        targetState
                     ).let { placeResults ->
                         acc.addAll(placeResults)
                     }
@@ -384,15 +360,11 @@ object BuildSimulator {
         return acc
     }
 
-    private fun SafeContext.checkPlaceResults(
+    private fun AutomatedSafeContext.checkPlaceResults(
         pos: BlockPos,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
-        targetState: TargetState,
-        place: PlaceConfig,
-        interactionConfig: InteractionConfig,
-        rotation: RotationConfig,
-        inventory: InventoryConfig
+        targetState: TargetState
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val currentState = blockState(pos)
@@ -411,13 +383,13 @@ object BuildSimulator {
         if (!currentState.isReplaceable && !statePromoting) return acc
 
         preProcessing.sides.forEach { neighbor ->
-            val hitPos = if (!place.airPlace.isEnabled && (currentState.isAir || statePromoting))
+            val hitPos = if (!placeConfig.airPlace.isEnabled && (currentState.isAir || statePromoting))
                 pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
             if (!world.worldBorder.contains(hitPos)) return@forEach
 
             val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos).let { outlineShape ->
-                if (!outlineShape.isEmpty || !place.airPlace.isEnabled) outlineShape
+                if (!outlineShape.isEmpty || !placeConfig.airPlace.isEnabled) outlineShape
                 else VoxelShapes.fullCube()
             }
             if (voxelShape.isEmpty) return@forEach
@@ -429,14 +401,14 @@ object BuildSimulator {
 
             val validHits = mutableListOf<CheckedHit>()
             val misses = mutableSetOf<Vec3d>()
-            val reachSq = interactionConfig.interactReach.pow(2)
+            val reachSq = buildConfig.interactReach.pow(2)
 
             boxes.forEach { box ->
-                val sides = if (interactionConfig.checkSideVisibility) {
+                val sides = if (buildConfig.checkSideVisibility) {
                     box.getVisibleSurfaces(eye).intersect(setOf(hitSide))
                 } else setOf(hitSide)
 
-                scanSurfaces(box, sides, interactionConfig.resolution, preProcessing.surfaceScan) { _, vec ->
+                scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { _, vec ->
                     val distSquared = eye distSq vec
                     if (distSquared > reachSq) {
                         misses.add(vec)
@@ -445,25 +417,25 @@ object BuildSimulator {
 
                     val newRotation = eye.rotationTo(vec)
 
-                    val hit = if (interactionConfig.strictRayCast) {
-                        val rayCast = newRotation.rayCast(interactionConfig.interactReach, eye)
+                    val hit = if (buildConfig.strictRayCast) {
+                        val rayCast = newRotation.rayCast(buildConfig.interactReach, eye)
                         when {
-                            rayCast != null && (!place.airPlace.isEnabled || eye distSq rayCast.pos <= distSquared) ->
+                            rayCast != null && (!placeConfig.airPlace.isEnabled || eye distSq rayCast.pos <= distSquared) ->
                                 rayCast.blockResult
 
-                            place.airPlace.isEnabled -> {
-                                val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
+                            placeConfig.airPlace.isEnabled -> {
+                                val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
                                 BlockHitResult(hitVec, hitSide, hitPos, false)
                             }
 
                             else -> null
                         }
                     } else {
-                        val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
+                        val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
                         BlockHitResult(hitVec, hitSide, hitPos, false)
                     } ?: return@scanSurfaces
 
-                    val checked = CheckedHit(hit, newRotation, interactionConfig.interactReach)
+                    val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
                     if (!checked.verify()) return@scanSurfaces
 
                     validHits.add(checked)
@@ -480,8 +452,8 @@ object BuildSimulator {
                 return@forEach
             }
 
-            interactionConfig.pointSelection.select(validHits)?.let { checkedHit ->
-                val optimalStack = nextTargetState.getStack(world, pos, inventory)
+            buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
+                val optimalStack = nextTargetState.getStack(world, pos, this)
 
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
@@ -551,7 +523,7 @@ object BuildSimulator {
                 }
 
                 val currentDirIsValid = simulatePlaceState()?.let { basePlaceResult ->
-                    if (!place.rotateForPlace) {
+                    if (!placeConfig.rotateForPlace) {
                         acc.add(basePlaceResult)
                         return@forEach
                     }
@@ -559,7 +531,7 @@ object BuildSimulator {
                 } != false
 
                 run rotate@{
-                    if (!place.axisRotate) {
+                    if (!placeConfig.axisRotate) {
                         fakePlayer.rotation = checkedHit.targetRotation
                         simulatePlaceState()?.let { rotatedPlaceResult ->
                             acc.add(rotatedPlaceResult)
@@ -601,32 +573,32 @@ object BuildSimulator {
                 val hitBlock = blockState(blockHit.blockPos).block
                 val shouldSneak = hitBlock::class in BlockUtils.interactionBlocks
 
-                val rotationRequest = if (place.axisRotate) {
+                val rotationRequest = if (placeConfig.axisRotate) {
                     lookInDirection(PlaceDirection.fromRotation(rot))
                 } else lookAt(rot, 0.001)
 
                 val placeContext = PlaceContext(
                     blockHit,
-                    RotationRequest(rotationRequest, rotation),
+                    RotationRequest(rotationRequest, this),
                     player.inventory.selectedSlot,
                     context.blockPos,
                     blockState(context.blockPos),
                     resultState,
                     shouldSneak,
                     false,
-                    currentDirIsValid
+                    currentDirIsValid,
+                    this
                 )
 
                 val selection = optimalStack.item.select()
                 val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
-                val container = selection.containerWithMaterial(inventory, containerSelection).firstOrNull() ?: run {
+                val container = selection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
                     acc.add(
                         BuildResult.WrongItemSelection(
                             pos,
                             placeContext,
                             optimalStack.item.select(),
-                            player.mainHandStack,
-                            inventory
+                            player.mainHandStack
                         )
                     )
                     return acc
@@ -645,27 +617,22 @@ object BuildSimulator {
         return acc
     }
 
-    private fun SafeContext.checkBreakResults(
+    private fun AutomatedSafeContext.checkBreakResults(
         pos: BlockPos,
         eye: Vec3d,
-        preProcessing: PreProcessingInfo,
-        breaking: BreakConfig,
-        interactionConfig: InteractionConfig,
-        rotation: RotationConfig,
-        inventory: InventoryConfig,
-        build: BuildConfig
+        preProcessing: PreProcessingInfo
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (!breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir && state.isNotEmpty) {
+        if (!breakConfig.breakWeakBlocks && state.block.hardness == 0f && !state.isAir && state.isNotEmpty) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
 
         /* player is standing on top of the block */
-        if (breaking.avoidSupporting) player.supportingBlockPos.orElse(null)?.let { support ->
+        if (breakConfig.avoidSupporting) player.supportingBlockPos.orElse(null)?.let { support ->
             if (support != pos) return@let
             acc.add(BreakResult.PlayerOnTop(pos, state))
             return acc
@@ -673,13 +640,13 @@ object BuildSimulator {
 
         /* liquid needs to be submerged first to be broken */
         if (!state.fluidState.isEmpty && state.isReplaceable) {
-            val submerge = checkPlaceResults(pos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
+            val submerge = checkPlaceResults(pos, eye, preProcessing, TargetState.Solid)
             acc.add(BreakResult.Submerge(pos, state, submerge))
             acc.addAll(submerge)
             return acc
         }
 
-        if (breaking.avoidLiquids) {
+        if (breakConfig.avoidLiquids) {
             val affectedBlocks = hashSetOf(pos)
             val checkQueue = hashSetOf(pos)
 
@@ -744,7 +711,7 @@ object BuildSimulator {
                 }
 
                 affectedFluids.forEach { (liquidPos, liquidState) ->
-                    val submerge = checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
+                    val submerge = checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid)
                     acc.add(BreakResult.Submerge(liquidPos, liquidState, submerge))
                     acc.addAll(submerge)
                 }
@@ -754,7 +721,7 @@ object BuildSimulator {
         }
 
         val currentRotation = RotationManager.activeRotation
-        val currentCast = currentRotation.rayCast(interactionConfig.interactReach, eye)
+        val currentCast = currentRotation.rayCast(buildConfig.interactReach, eye)
 
         val voxelShape = state.getOutlineShape(world, pos)
         voxelShape.getClosestPointTo(eye).ifPresent {
@@ -771,16 +738,17 @@ object BuildSimulator {
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
                 val rotationRequest = RotationRequest(
-                    lookAtBlock(pos, config = interactionConfig), rotation
+                    lookAtBlock(pos), this
                 )
                 val breakContext = BreakContext(
                     blockHit,
                     rotationRequest,
                     player.inventory.selectedSlot,
                     StackSelection.EVERYTHING.select(),
-                    instantBreakable(state, pos, breaking.breakThreshold),
+                    instantBreakable(state, pos, breakConfig.breakThreshold),
                     state,
-                    breaking.sorter
+                    breakConfig.sorter,
+                    this
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -789,14 +757,14 @@ object BuildSimulator {
 
         val validHits = mutableListOf<CheckedHit>()
         val misses = mutableSetOf<Vec3d>()
-        val reachSq = interactionConfig.interactReach.pow(2)
+        val reachSq = buildConfig.interactReach.pow(2)
 
         boxes.forEach { box ->
-            val sides = if (interactionConfig.checkSideVisibility) {
+            val sides = if (buildConfig.checkSideVisibility) {
                 box.getVisibleSurfaces(eye).intersect(Direction.entries)
             } else Direction.entries.toSet()
             // ToDo: Rewrite Rotation request system to allow support for all sim features and use the rotation finder
-            scanSurfaces(box, sides, interactionConfig.resolution) { side, vec ->
+            scanSurfaces(box, sides, buildConfig.resolution) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
                     return@scanSurfaces
@@ -804,14 +772,14 @@ object BuildSimulator {
 
                 val newRotation = eye.rotationTo(vec)
 
-                val hit = if (interactionConfig.strictRayCast) {
-                    newRotation.rayCast(interactionConfig.interactReach, eye)?.blockResult
+                val hit = if (buildConfig.strictRayCast) {
+                    newRotation.rayCast(buildConfig.interactReach, eye)?.blockResult
                 } else {
-                    val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
+                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
                     BlockHitResult(hitVec, side, pos, false)
                 } ?: return@scanSurfaces
 
-                val checked = CheckedHit(hit, newRotation, interactionConfig.interactReach)
+                val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
                 if (!checked.verify()) return@scanSurfaces
 
                 validHits.add(checked)
@@ -824,11 +792,11 @@ object BuildSimulator {
             return acc
         }
 
-        val bestHit = interactionConfig.pointSelection.select(validHits) ?: return acc
+        val bestHit = buildConfig.pointSelection.select(validHits) ?: return acc
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
-        val rotationRequest = RotationRequest(target, rotation)
-        val instant = instantBreakable(state, pos, breaking.breakThreshold)
+        val rotationRequest = RotationRequest(target, this)
+        val instant = instantBreakable(state, pos, breakConfig.breakThreshold)
 
         val breakContext = BreakContext(
             blockHit,
@@ -837,7 +805,8 @@ object BuildSimulator {
             StackSelection.EVERYTHING.select(),
             instant,
             state,
-            breaking.sorter
+            breakConfig.sorter,
+            this
         )
 
         if (gamemode.isCreative) {
@@ -849,26 +818,26 @@ object BuildSimulator {
             sorter = compareByDescending<ItemStack> {
                 it.canBreak(CachedBlockPosition(world, pos, false))
             }.thenByDescending {
-                state.calcItemBlockBreakingDelta(player, world, pos, it)
+                state.calcItemBlockBreakingDelta(pos, it)
             }
         ) {
-            isTool() and if (breaking.suitableToolsOnly) {
+            isTool() and if (breakConfig.suitableToolsOnly) {
                 isSuitableForBreaking(state)
-            } else any() and if (breaking.forceSilkTouch) {
+            } else any() and if (breakConfig.forceSilkTouch) {
                 hasEnchantment(Enchantments.SILK_TOUCH)
-            } else any() and if (breaking.forceFortunePickaxe) {
+            } else any() and if (breakConfig.forceFortunePickaxe) {
                 hasEnchantment(Enchantments.FORTUNE)
-            } else any() and if (!breaking.useWoodenTools) {
+            } else any() and if (!breakConfig.useWoodenTools) {
                 hasTag(WOODEN_TOOL_MATERIALS).not()
-            } else any() and if (!breaking.useStoneTools) {
+            } else any() and if (!breakConfig.useStoneTools) {
                 hasTag(STONE_TOOL_MATERIALS).not()
-            } else any() and if (!breaking.useIronTools) {
+            } else any() and if (!breakConfig.useIronTools) {
                 hasTag(IRON_TOOL_MATERIALS).not()
-            } else any() and if (!breaking.useDiamondTools) {
+            } else any() and if (!breakConfig.useDiamondTools) {
                 hasTag(DIAMOND_TOOL_MATERIALS).not()
-            } else any() and if (!breaking.useGoldTools) {
+            } else any() and if (!breakConfig.useGoldTools) {
                 hasTag(GOLD_TOOL_MATERIALS).not()
-            } else any() and if (!breaking.useNetheriteTools) {
+            } else any() and if (!breakConfig.useNetheriteTools) {
                 hasTag(NETHERITE_TOOL_MATERIALS).not()
             } else any()
         }
@@ -877,9 +846,9 @@ object BuildSimulator {
             ofAnyType(MaterialContainer.Rank.HOTBAR)
         }
 
-        val swapCandidates = stackSelection.containerWithMaterial(inventory, silentSwapSelection)
+        val swapCandidates = stackSelection.containerWithMaterial(silentSwapSelection)
         if (swapCandidates.isEmpty()) {
-            acc.add(BuildResult.WrongItemSelection(pos, breakContext, stackSelection, player.mainHandStack, inventory))
+            acc.add(BuildResult.WrongItemSelection(pos, breakContext, stackSelection, player.mainHandStack))
             return acc
         }
 
@@ -891,7 +860,7 @@ object BuildSimulator {
                 var bestStack = ItemStack.EMPTY
                 var bestBreakDelta = -1f
                 containerStacks.forEach { stack ->
-                    val breakDelta = state.calcItemBlockBreakingDelta(player, world, pos, stack)
+                    val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
                     if (breakDelta > bestBreakDelta ||
                         (stack == player.mainHandStack && breakDelta >= bestBreakDelta)
                     ) {
@@ -908,8 +877,8 @@ object BuildSimulator {
             instantBreak = instantBreakable(
                 state,
                 pos,
-                if (breaking.swapMode.isEnabled()) swapStack else player.mainHandStack,
-                breaking.breakThreshold
+                if (breakConfig.swapMode.isEnabled()) swapStack else player.mainHandStack,
+                breakConfig.breakThreshold
             )
         }
         acc.add(BreakResult.Break(pos, breakContext))

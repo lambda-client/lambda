@@ -49,11 +49,12 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 class KeybindSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Bind,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<Bind>(
+    name,
     defaultValue,
     TypeToken.get(Bind::class.java).type,
     description,

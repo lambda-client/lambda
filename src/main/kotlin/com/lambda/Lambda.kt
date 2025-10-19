@@ -31,7 +31,7 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.util.KeyCode
-import com.lambda.util.WindowIcons.setLambdaWindowIcon
+import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import com.mojang.authlib.GameProfile
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.loader.api.FabricLoader

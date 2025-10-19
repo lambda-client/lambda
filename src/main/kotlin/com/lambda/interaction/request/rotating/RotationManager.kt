@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.rotating
 
 import com.lambda.Lambda.mc
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
@@ -137,7 +138,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         return "Loaded Rotation Manager"
     }
 
-    override fun SafeContext.handleRequest(request: RotationRequest) {
+    override fun AutomatedSafeContext.handleRequest(request: RotationRequest) {
         activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
             logger.debug("Accepting request", request)
@@ -166,7 +167,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     @JvmStatic
     fun handleBaritoneRotation(yaw: Float) {
         runSafe {
-            baritoneRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager.rotation)
+            baritoneRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager)
         }
     }
 

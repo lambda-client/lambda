@@ -37,11 +37,12 @@ import kotlin.properties.Delegates
  * @see [com.lambda.config.Configurable]
  */
 class EnumSetting<T : Enum<T>>(
-    override val name: String,
+    override var name: String,
     defaultValue: T,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<T>(
+    name,
     defaultValue,
     TypeToken.get(defaultValue.declaringJavaClass).type,
     description,

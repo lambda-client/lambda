@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.verify
 
-import com.lambda.interaction.request.inventory.InventoryConfig
+import com.lambda.context.Automated
 import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
@@ -32,6 +32,6 @@ interface StateMatcher {
         ignoredProperties: Collection<Property<*>> = emptySet()
     ): Boolean
 
-    fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack
+    fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack
     fun isEmpty(): Boolean
 }

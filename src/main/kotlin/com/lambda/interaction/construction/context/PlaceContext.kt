@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.Lambda.mc
+import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
@@ -43,8 +44,9 @@ data class PlaceContext(
     override val expectedState: BlockState,
     val sneak: Boolean,
     val insideBlock: Boolean,
-    val currentDirIsValid: Boolean = false
-) : BuildContext(), LogContext {
+    val currentDirIsValid: Boolean = false,
+    private val automated: Automated
+) : BuildContext(), LogContext, Automated by automated {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
 
@@ -76,8 +78,8 @@ data class PlaceContext(
     }
 
     fun requestDependencies(request: PlaceRequest): Boolean {
-        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request.hotbar), false)
-        val validRotation = if (request.rotateForPlace) {
+        val hotbarRequest = submit(HotbarRequest(hotbarIndex, this), false)
+        val validRotation = if (request.placeConfig.rotateForPlace) {
             submit(rotation, false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation

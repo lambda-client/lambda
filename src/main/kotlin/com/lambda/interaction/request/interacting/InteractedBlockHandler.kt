@@ -18,12 +18,11 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.AutomationConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
@@ -31,10 +30,11 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
     override val pendingActions = LimitedDecayQueue<InteractionInfo>(
-        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
+        AutomationConfig.buildConfig.maxPendingInteractions,
+        AutomationConfig.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+        if (it.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
             mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)

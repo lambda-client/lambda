@@ -61,6 +61,7 @@
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
     "render.TooltipComponentMixin",
+    "render.WeatherRenderingMixin",
     "render.WorldBorderRenderingMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",

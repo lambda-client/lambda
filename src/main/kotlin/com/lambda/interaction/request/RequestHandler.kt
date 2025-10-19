@@ -17,13 +17,15 @@
 
 package com.lambda.interaction.request
 
+import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.ManagerUtils.accumulatedManagerPriority
-import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
 import kotlin.reflect.KClass
 
 /**
@@ -75,7 +77,7 @@ abstract class RequestHandler<R : Request>(
         listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
             tickStage = stage
             queuedRequest?.let { request ->
-                handleRequest(request)
+                request.runSafeAutomated { handleRequest(request) }
                 request.fresh = false
                 queuedRequest = null
             }
@@ -99,14 +101,14 @@ abstract class RequestHandler<R : Request>(
      */
     fun request(request: R, queueIfClosed: Boolean = true): R {
         if (!acceptingRequests) {
-            val canOverrideQueued = queuedRequest?.run { config === request.config } != false
+            val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
             if (queueIfClosed && canOverrideQueued) {
                 queuedRequest = request
             }
             return request
         }
 
-        runSafe {
+        request.runSafeAutomated {
             handleRequest(request)
             request.fresh = false
         }
@@ -116,7 +118,7 @@ abstract class RequestHandler<R : Request>(
     /**
      * Handles a request
      */
-    abstract fun SafeContext.handleRequest(request: R)
+    abstract fun AutomatedSafeContext.handleRequest(request: R)
 
     protected abstract fun preEvent(): Event
 }

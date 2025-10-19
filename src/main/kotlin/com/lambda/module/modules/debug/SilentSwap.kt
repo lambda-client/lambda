@@ -36,11 +36,11 @@ object SilentSwap : Module(
         Hotbar("Hotbar")
     }
 
-    private val hotbar = HotbarSettings(this, Group.Hotbar)
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
 
     init {
         listen<PlayerEvent.Attack.Block> {
-            if (!submit(HotbarRequest(0, hotbar)).done) {
+            if (!submit(HotbarRequest(0, this@SilentSwap)).done) {
                 it.cancel()
                 return@listen
             }

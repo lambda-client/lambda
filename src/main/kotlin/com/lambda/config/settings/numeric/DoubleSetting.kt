@@ -32,14 +32,15 @@ import kotlin.math.roundToInt
  * @see [com.lambda.config.Configurable]
  */
 class DoubleSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Double,
-    override val range: ClosedRange<Double>,
-    override val step: Double,
+    override var range: ClosedRange<Double>,
+    override var step: Double,
     description: String,
     unit: String,
     visibility: () -> Boolean
 ) : NumericSetting<Double>(
+    name,
     defaultValue,
     range,
     step,

@@ -33,11 +33,12 @@ import java.awt.Color
  * @see [com.lambda.config.Configurable]
  */
 class ColorSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Color,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<Color>(
+    name,
     defaultValue,
     TypeToken.get(Color::class.java).type,
     description,

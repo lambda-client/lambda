@@ -23,6 +23,8 @@ import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
+import com.lambda.context.Automated
+import com.lambda.context.AutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
@@ -117,7 +119,7 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, Configurable(ModuleConfig) {
+) : Nameable, Muteable, Configurable(ModuleConfig), Automated by AutomationConfig {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }

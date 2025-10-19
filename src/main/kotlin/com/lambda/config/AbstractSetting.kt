@@ -33,6 +33,7 @@ import com.lambda.context.SafeContext
 import com.lambda.gui.Layout
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
+import com.lambda.util.Describable
 import com.lambda.util.Nameable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.CommandBuilder
@@ -94,13 +95,14 @@ import kotlin.reflect.KProperty
  * @property visibility A function that determines whether the setting is visible.
  */
 abstract class AbstractSetting<T : Any>(
-    internal val defaultValue: T,
+    override var name: String,
+    internal var defaultValue: T,
     val type: Type,
-    val description: String,
-    val visibility: () -> Boolean,
-) : Jsonable, Nameable, Layout {
+    override var description: String,
+    var visibility: () -> Boolean,
+) : Jsonable, Nameable, Describable, Layout {
     private val listeners = mutableListOf<ValueListener<T>>()
-    val groups: MutableList<List<NamedEnum>> = mutableListOf()
+    var groups: MutableList<List<NamedEnum>> = mutableListOf()
 
     var value by Delegates.observable(defaultValue) { _, from, to ->
         listeners.forEach {
@@ -185,7 +187,7 @@ abstract class AbstractSetting<T : Any>(
                 val previous = this@AbstractSetting.value
                 try {
                     loadFromJson(parsed)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${config.name}.")
                 }
                 ConfigCommand.info(setMessage(previous, this@AbstractSetting.value))

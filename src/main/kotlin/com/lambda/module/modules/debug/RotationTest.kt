@@ -23,17 +23,13 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
-import com.lambda.util.combat.DamageUtils.fallDamage
-import com.lambda.util.combat.DamageUtils.isFallDeadly
 import net.minecraft.util.hit.HitResult
-import net.minecraft.util.math.Vec3d
 
 object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,
 ) {
-    var rotation = RotationSettings(this)
+    override val rotationConfig = RotationSettings(this)
     var hitPos: HitResult? = null
     
     init {
@@ -42,7 +38,7 @@ object RotationTest : Module(
         }
 
         listen<TickEvent.Pre> {
-            hitPos?.let { lookAtHit(it)?.requestBy(rotation) }
+            hitPos?.let { lookAtHit(it)?.requestBy(this@RotationTest) }
         }
     }
 }

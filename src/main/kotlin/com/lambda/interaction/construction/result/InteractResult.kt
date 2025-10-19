@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.construction.result
 
-import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.InteractionContext
 import net.minecraft.util.math.BlockPos

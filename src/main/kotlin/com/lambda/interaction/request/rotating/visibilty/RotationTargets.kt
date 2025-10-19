@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request.rotating.visibilty
 
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation
@@ -25,7 +25,7 @@ import com.lambda.interaction.request.rotating.Rotation.Companion.dist
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.ALL_SIDES
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.findRotation
-import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.extension.rotation
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.entity.LivingEntity
@@ -81,13 +81,10 @@ fun lookAtHit(hit: RequestedHit, rotation: SafeContext.() -> Rotation?) =
  * @return A [RotationTarget] instance.
  */
 @RotationDsl
-fun lookAtHit(
-    hit: HitResult,
-    config: InteractionConfig = TaskFlowModule.interaction,
-): RotationTarget? {
+fun Automated.lookAtHit(hit: HitResult): RotationTarget? {
     return when (hit) {
-        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), SurfaceScan.DEFAULT, config)
-        is EntityHitResult -> lookAtEntity(hit.entity as? LivingEntity ?: return null, config)
+        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), SurfaceScan.DEFAULT)
+        is EntityHitResult -> lookAtEntity(hit.entity as? LivingEntity ?: return null)
         else -> null
     }
 }
@@ -100,22 +97,20 @@ fun lookAtHit(
  * @return A [RotationTarget] instance.
  */
 @RotationDsl
-fun lookAtEntity(
-    entity: LivingEntity,
-    config: InteractionConfig = TaskFlowModule.interaction
-): RotationTarget {
-    val requestedHit = entityHit(entity, config.attackReach)
+fun Automated.lookAtEntity(entity: LivingEntity): RotationTarget {
+    val requestedHit = entityHit(entity, buildConfig.attackReach)
 
     return RotationTarget(requestedHit) {
-        findRotation(
-            requestedHit.getBoundingBoxes(),
-            config.attackReach,
-            player.eyePos,
-            ALL_SIDES,
-            SurfaceScan.DEFAULT,
-            InteractionMask.Entity,
-            config
-        ) { requestedHit.verifyHit(hit) }?.targetRotation
+        runSafeAutomated {
+            findRotation(
+                requestedHit.getBoundingBoxes(),
+                buildConfig.attackReach,
+                player.eyePos,
+                ALL_SIDES,
+                SurfaceScan.DEFAULT,
+                InteractionMask.Entity
+            ) { requestedHit.verifyHit(hit) }?.targetRotation
+        }
     }
 }
 
@@ -128,23 +123,23 @@ fun lookAtEntity(
  * @return A [RotationTarget] instance.
  */
 @RotationDsl
-fun lookAtBlock(
+fun Automated.lookAtBlock(
     pos: BlockPos,
     sides: Set<Direction> = ALL_SIDES,
-    surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    config: InteractionConfig = TaskFlowModule.interaction,
+    surfaceScan: SurfaceScan = SurfaceScan.DEFAULT
 ): RotationTarget {
-    val requestedHit = blockHit(pos, sides, config.interactReach)
+    val requestedHit = blockHit(pos, sides, buildConfig.interactReach)
 
     return RotationTarget(requestedHit) {
-        findRotation(
-            requestedHit.getBoundingBoxes(),
-            config.interactReach,
-            player.eyePos,
-            sides,
-            surfaceScan,
-            InteractionMask.Block,
-            config
-        ) { requestedHit.verifyHit(hit) }?.targetRotation
+        runSafeAutomated {
+            findRotation(
+                requestedHit.getBoundingBoxes(),
+                buildConfig.interactReach,
+                player.eyePos,
+                sides,
+                surfaceScan,
+                InteractionMask.Block
+            ) { requestedHit.verifyHit(hit) }?.targetRotation
+        }
     }
 }

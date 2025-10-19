@@ -17,10 +17,10 @@
 
 package com.lambda.interaction.request.rotating.visibilty
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.dist
-import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.threading.runSafe
@@ -52,6 +52,6 @@ data class RotationTarget(
      * @param config The rotation configuration.
      * @return [RotationRequest] containing this [RotationTarget].
      */
-    fun requestBy(config: RotationConfig, queueIfClosed: Boolean = true) =
-        RotationRequest(this, config).submit(queueIfClosed)
+    fun requestBy(automated: Automated, queueIfClosed: Boolean = true) =
+        RotationRequest(this, automated).submit(queueIfClosed)
 }

@@ -60,7 +60,7 @@ import java.awt.Color
 abstract class Configurable(
     private val configuration: Configuration,
 ) : Jsonable, Nameable {
-    val settings = mutableSetOf<AbstractSetting<*>>()
+    val settings = mutableListOf<AbstractSetting<*>>()
 
     init {
         registerConfigurable()

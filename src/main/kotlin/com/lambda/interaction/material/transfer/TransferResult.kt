@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.transfer
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -27,7 +28,8 @@ abstract class TransferResult : Task<Unit>() {
         val selection: StackSelection,
         val from: MaterialContainer,
         val to: MaterialContainer,
-    ) : TransferResult() {
+        val automated: Automated
+    ) : TransferResult(), Automated by automated {
         override val name = "Container Transfer of [$selection] from [${from.name}] to [${to.name}]"
 
         override fun SafeContext.onStart() {

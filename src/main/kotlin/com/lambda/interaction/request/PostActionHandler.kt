@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request
 
-import com.lambda.config.groups.BuildConfig
+import com.lambda.context.Automated
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -48,8 +48,8 @@ abstract class PostActionHandler<T : ActionInfo> {
         pendingInteractionsList.remove(context)
     }
 
-    fun setPendingConfigs(build: BuildConfig) {
-        BrokenBlockHandler.pendingActions.setSizeLimit(build.breaking.maxPendingBreaks)
-        BrokenBlockHandler.pendingActions.setDecayTime(build.interactionTimeout * 50L)
+    fun Automated.setPendingConfigs() {
+        BrokenBlockHandler.pendingActions.setSizeLimit(breakConfig.maxPendingBreaks)
+        BrokenBlockHandler.pendingActions.setDecayTime(buildConfig.interactionTimeout * 50L)
     }
 }

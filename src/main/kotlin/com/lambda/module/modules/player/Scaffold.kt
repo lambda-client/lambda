@@ -19,7 +19,6 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
@@ -35,13 +34,13 @@ import com.lambda.interaction.request.Request.Companion.submit
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.KeyCode
 import com.lambda.util.InputUtils.isKeyPressed
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
-import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -54,7 +53,6 @@ object Scaffold : Module(
         General("General"),
         Build("Build"),
         Rotation("Rotation"),
-        Interaction("Interaction"),
         Hotbar("Hotbar"),
         Inventory("Inventory")
     }
@@ -63,11 +61,25 @@ object Scaffold : Module(
     private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
     private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != KeyCode.UNBOUND }.group(Group.General)
-    private val buildConfig = BuildSettings(this, Group.Build)
-    private val rotationConfig = RotationSettings(this, Group.Rotation)
-    private val interactionConfig = InteractionSettings(this, Group.Interaction, InteractionMask.Block)
-    private val hotbarConfig = HotbarSettings(this, Group.Hotbar)
-    private val inventoryConfig = InventorySettings(this, Group.Inventory)
+    override val buildConfig = BuildSettings(this, Group.Build).apply {
+        editTyped(::pathing, ::stayInRange, ::collectDrops) {
+            defaultValue(false)
+            hide()
+        }
+    }
+    override val rotationConfig = RotationSettings(this, Group.Rotation)
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
+    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
+        ::disposables.edit {
+            name("Blocks")
+            description("Blocks to use as scaffolding")
+            groups(Group.General)
+        }
+        editTyped(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
+            defaultValue(false)
+            hide()
+        }
+    }
 
     private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
@@ -78,21 +90,21 @@ object Scaffold : Module(
             if (alreadySupported) return@listen
             val offset = if (isKeyPressed(descend.code)) descendAmount else 0
             val beneath = playerSupport.down(offset)
-            scaffoldPositions(beneath)
-                .associateWith { TargetState.Solid }
-                .toBlueprint()
-                .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
-                .filterIsInstance<PlaceResult.Place>()
-                .minByOrNull { it.blockPos distSq beneath }
-                ?.let { result ->
-                    submit(PlaceRequest(
-                        setOf(result.context),
-                        pendingActions,
-                        buildConfig,
-                        hotbarConfig,
-                        rotationConfig
-                    ))
-                }
+            runSafeAutomated {
+                scaffoldPositions(beneath)
+                    .associateWith { TargetState.Solid }
+                    .toBlueprint()
+                    .simulate(player.eyePos)
+                    .filterIsInstance<PlaceResult.Place>()
+                    .minByOrNull { it.blockPos distSq beneath }
+                    ?.let { result ->
+                        submit(PlaceRequest(
+                            setOf(result.context),
+                            pendingActions,
+                            this@Scaffold
+                        ))
+                    }
+            }
         }
 
         listen<MovementEvent.Sneak> {
@@ -103,7 +115,7 @@ object Scaffold : Module(
 
     private fun SafeContext.scaffoldPositions(beneath: BlockPos): List<BlockPos> {
         if (!blockState(beneath).isReplaceable) return emptyList()
-        if (buildConfig.placing.airPlace.isEnabled) return listOf(beneath)
+        if (placeConfig.airPlace.isEnabled) return listOf(beneath)
 
         return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
             .asSequence()

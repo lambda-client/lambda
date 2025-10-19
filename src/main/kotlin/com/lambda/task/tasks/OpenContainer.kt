@@ -17,14 +17,11 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.interacting.InteractConfig
-import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
@@ -34,12 +31,10 @@ import net.minecraft.util.math.Direction
 
 class OpenContainer @Ta5kBuilder constructor(
     private val blockPos: BlockPos,
+    private val automated: Automated,
     private val waitForSlotLoad: Boolean = true,
-    private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interact: InteractConfig = TaskFlowModule.build.interacting,
-    private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
-    private val sides: Set<Direction> = Direction.entries.toSet(),
-) : Task<ScreenHandler>() {
+    private val sides: Set<Direction> = Direction.entries.toSet()
+) : Task<ScreenHandler>(), Automated by automated {
     override val name get() = "${containerState.description(inScope)} at ${blockPos.toShortString()}"
 
     private var screenHandler: ScreenHandler? = null
@@ -84,8 +79,8 @@ class OpenContainer @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (containerState != State.SCOPING) return@listen
 
-            val target = lookAtBlock(blockPos, sides, config = interactionConfig)
-            if (interact.rotate && !target.requestBy(rotation).done) return@listen
+            val target = lookAtBlock(blockPos, sides)
+            if (interactConfig.rotate && !target.requestBy(this@OpenContainer).done) return@listen
 
             val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen
             interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)

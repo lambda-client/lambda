@@ -5,11 +5,11 @@ attributes {
 
 uniforms {
     mat4 u_ProjModel;      # vertex
-    vec3 u_CameraPosition; # vertex
+    vec3 u_CameraLerp; # vertex
 };
 
 export {
-    core gl_Position;  # u_ProjModel * vec4(pos - u_CameraPosition, 1.0)
+    core gl_Position;  # u_ProjModel * vec4(pos + u_CameraLerp, 1.0)
     vec4 v_Color;      # color
 };
 

@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
@@ -26,10 +27,10 @@ import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.RedundantSecondary
 import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
@@ -42,7 +43,7 @@ data class BreakInfo(
     var request: BreakRequest
 ) : ActionInfo, LogContext {
     // Delegates
-    val breakConfig get() = request.build.breaking
+    val breakConfig get() = request.breakConfig
     override val pendingInteractionsList get() = request.pendingInteractions
 
     // Pre Processing
@@ -112,19 +113,19 @@ data class BreakInfo(
         progressedThisTick = false
     }
 
+    context(safeContext: SafeContext)
     fun setBreakingTextureStage(
         player: ClientPlayerEntity,
         world: ClientWorld,
-        stage: Int = getBreakTextureProgress(player, world)
-    ) {
-        world.setBlockBreakingInfo(player.id, context.blockPos, stage)
-    }
+        stage: Int = getBreakTextureProgress()
+    ) = world.setBlockBreakingInfo(player.id, context.blockPos, stage)
 
-    private fun getBreakTextureProgress(player: ClientPlayerEntity, world: ClientWorld): Int {
-        val swapMode = breakConfig.swapMode
+    context(safeContext: SafeContext)
+    private fun getBreakTextureProgress(): Int = with(safeContext) {
         val item =
-            if (swapMode.isEnabled() && swapMode != BreakConfig.SwapMode.Start) swapStack else player.mainHandStack
-        val breakDelta = context.cachedState.calcBreakDelta(player, world, context.blockPos, breakConfig, item)
+            if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode != BreakConfig.SwapMode.Start) swapStack
+            else player.mainHandStack
+        val breakDelta = request.runSafeAutomated { context.cachedState.calcBreakDelta(context.blockPos, item) }
         val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
         return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
     }
@@ -136,23 +137,29 @@ data class BreakInfo(
             else -> 1.0f
         }
 
-    fun startBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        breakPacket(Action.START_DESTROY_BLOCK, world, interaction)
+    context(_: SafeContext)
+    fun startBreakPacket() =
+        breakPacket(Action.START_DESTROY_BLOCK)
 
-    fun stopBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        breakPacket(Action.STOP_DESTROY_BLOCK, world, interaction)
+    context(_: SafeContext)
+    fun stopBreakPacket() =
+        breakPacket(Action.STOP_DESTROY_BLOCK)
 
-    fun abortBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        breakPacket(Action.ABORT_DESTROY_BLOCK, world, interaction)
+    context(_: SafeContext)
+    fun abortBreakPacket() =
+        breakPacket(Action.ABORT_DESTROY_BLOCK)
 
-    private fun breakPacket(action: Action, world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        interaction.sendSequencedPacket(world) { sequence: Int ->
-            PlayerActionC2SPacket(
-                action,
-                context.blockPos,
-                context.result.side,
-                sequence
-            )
+    context(safeContext: SafeContext)
+    private fun breakPacket(action: Action) =
+        with(safeContext) {
+            interaction.sendSequencedPacket(world) { sequence: Int ->
+                PlayerActionC2SPacket(
+                    action,
+                    context.blockPos,
+                    context.result.side,
+                    sequence
+                )
+            }
         }
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {

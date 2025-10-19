@@ -26,7 +26,7 @@ class InventorySettings(
     c: Configurable,
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
-) : InventoryConfig {
+) : InventoryConfig, SettingGroup(c) {
     enum class Group(override val displayName: String) : NamedEnum {
         Container("Container"),
         Access("Access")

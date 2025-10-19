@@ -62,7 +62,7 @@ object Speed : Module(
     private val ncpAutoJump by setting("Auto Jump", false).group(Mode.NCP_STRAFE)
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01).group(Mode.NCP_STRAFE)
 
-    private val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
+    override val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
 
     // NCP state variables
     const val NCP_BASE_SPEED = 0.2873
@@ -122,7 +122,7 @@ object Speed : Module(
 
             lookAt(
                 Rotation(targetYaw, player.pitch.toDouble())
-            ).requestBy(rotationConfig)
+            ).requestBy(this@Speed)
         }
 
         onEnable {

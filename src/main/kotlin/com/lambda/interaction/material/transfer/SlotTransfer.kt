@@ -17,13 +17,12 @@
 
 package com.lambda.interaction.material.transfer
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
@@ -37,8 +36,8 @@ class SlotTransfer @Ta5kBuilder constructor(
     val from: List<Slot>,
     val to: List<Slot>,
     private val closeScreen: Boolean = true,
-    private val config: InventoryConfig = TaskFlowModule.inventory,
-) : Task<Unit>() {
+    automated: Automated
+) : Task<Unit>(), Automated by automated {
     private var selectedFrom = listOf<Slot>()
     private var selectedTo = listOf<Slot>()
     override val name: String
@@ -66,7 +65,7 @@ class SlotTransfer @Ta5kBuilder constructor(
             }
 
             selectedFrom = selection.filterSlots(from)
-            selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in config.disposables }
+            selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in inventoryConfig.disposables }
 
             val nextFrom = selectedFrom.firstOrNull() ?: return@listen
             val nextTo = selectedTo.firstOrNull() ?: return@listen
@@ -83,20 +82,22 @@ class SlotTransfer @Ta5kBuilder constructor(
 
     companion object {
         @Ta5kBuilder
-        fun moveItems(
+        fun Automated.moveItems(
             screen: ScreenHandler,
             selection: StackSelection,
             from: List<Slot>,
             to: List<Slot>,
             closeScreen: Boolean = true,
-        ) = SlotTransfer(screen, selection, from, to, closeScreen)
+        ) = SlotTransfer(screen, selection, from, to, closeScreen, this)
 
         @Ta5kBuilder
+        context(automated: Automated)
         fun withdraw(screen: ScreenHandler, selection: StackSelection, closeScreen: Boolean = true) =
-            moveItems(screen, selection, screen.containerSlots, screen.inventorySlots, closeScreen)
+            automated.moveItems(screen, selection, screen.containerSlots, screen.inventorySlots, closeScreen)
 
         @Ta5kBuilder
+        context(automated: Automated)
         fun deposit(screen: ScreenHandler, selection: StackSelection, closeScreen: Boolean = true) =
-            moveItems(screen, selection, screen.inventorySlots, screen.containerSlots, closeScreen)
+            automated.moveItems(screen, selection, screen.inventorySlots, screen.containerSlots, closeScreen)
     }
 }

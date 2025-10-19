@@ -31,14 +31,15 @@ import kotlin.math.roundToInt
  * @see [com.lambda.config.Configurable]
  */
 class FloatSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: Float,
-    override val range: ClosedRange<Float>,
-    override val step: Float = 1f,
+    override var range: ClosedRange<Float>,
+    override var step: Float = 1f,
     description: String,
     unit: String,
     visibility: () -> Boolean
 ) : NumericSetting<Float>(
+    name,
     defaultValue,
     range,
     step,

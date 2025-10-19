@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container.containers
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -56,6 +57,7 @@ object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
         }
     }
 
+    context(automated: Automated)
     override fun withdraw(selection: StackSelection) = EnderchestWithdrawal(selection)
 
     class EnderchestDeposit @Ta5kBuilder constructor(selection: StackSelection) : Task<Unit>() {
@@ -67,5 +69,6 @@ object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
         }
     }
 
+    context(automated: Automated)
     override fun deposit(selection: StackSelection) = EnderchestDeposit(selection)
 }

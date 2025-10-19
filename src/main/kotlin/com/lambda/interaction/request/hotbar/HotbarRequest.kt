@@ -17,16 +17,17 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.context.Automated
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
 
 class HotbarRequest(
     val slot: Int,
-    override val config: HotbarConfig,
-    override var keepTicks: Int = config.keepTicks,
-    override var swapPause: Int = config.swapPause
-) : Request(), HotbarConfig by config, LogContext {
+    automated: Automated,
+    var keepTicks: Int = automated.hotbarConfig.keepTicks,
+    var swapPause: Int = automated.hotbarConfig.swapPause
+) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 
     var activeRequestAge = 0

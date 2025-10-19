@@ -17,11 +17,11 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.context.AutomationConfig
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -53,7 +53,7 @@ object Nuker : Module(
                     .map { it.blockPos }
                     .filter { !world.isAir(it) }
                     .filter { !flatten || it.y >= player.blockPos.y }
-                    .filter { !instantOnly || blockState(it).getHardness(world, it) <= TaskFlowModule.build.breaking.breakThreshold }
+                    .filter { !instantOnly || blockState(it).getHardness(world, it) <= AutomationConfig.breakConfig.breakThreshold }
                     .filter { pos ->
                         if (!baritoneSelection) true
                         else BaritoneManager.primary.selectionManager.selections.any {

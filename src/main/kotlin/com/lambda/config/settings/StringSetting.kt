@@ -23,6 +23,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.config.groups.SettingGroup
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import imgui.flag.ImGuiInputTextFlags
@@ -32,13 +33,14 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class StringSetting(
-    override val name: String,
+    override var name: String,
     defaultValue: String,
-    val multiline: Boolean = false,
-    val flags: Int = ImGuiInputTextFlags.None,
+    var multiline: Boolean = false,
+    var flags: Int = ImGuiInputTextFlags.None,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<String>(
+    name,
     defaultValue,
     TypeToken.get(String::class.java).type,
     description,
@@ -59,5 +61,17 @@ class StringSetting(
                 trySetValue(parameter().value())
             }
         }
+    }
+
+    @SettingGroup.SettingEditorDsl
+    @Suppress("unchecked_cast")
+    fun SettingGroup.TypedEditBuilder<String>.multiline(multiline: Boolean) {
+        (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
+    }
+
+    @SettingGroup.SettingEditorDsl
+    @Suppress("unchecked_cast")
+    fun SettingGroup.TypedEditBuilder<String>.flags(flags: Int) {
+        (settings as Collection<StringSetting>).forEach { it.flags = flags }
     }
 }

@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
+import com.lambda.context.Automated
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.text.buildText
@@ -32,5 +33,6 @@ object OffHandContainer : MaterialContainer(Rank.OFF_HAND) {
 
     override val description = buildText { literal("OffHand") }
 
+    context(automated: Automated)
     override fun deposit(selection: StackSelection) = MainHandContainer.HandDeposit(selection, Hand.OFF_HAND)
 }
