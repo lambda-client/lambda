@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.settings.complex.Bind
 import com.lambda.event.events.MouseEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager
@@ -26,49 +27,32 @@ import com.lambda.friend.FriendManager.unfriend
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
-import com.lambda.util.Mouse
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.client.network.OtherClientPlayerEntity
-import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
-import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
+import org.lwjgl.glfw.GLFW
 
 object ClickFriend : Module(
     name = "ClickFriend",
     description = "Add or remove friends with a single click",
     tag = ModuleTag.PLAYER,
 ) {
-    private val friendButton by setting("Friend Button", Mouse.Button.Middle, description = "Button to press to befriend a player")
-    private val friendAction by setting("Action", Mouse.Action.Release, description = "What mouse action should add or remove the player")
-    private val comboUnfriend by setting("Combo Unfriend", false, description = "Press a key and right click a player to unfriend")
-    private val modUnfriend by setting("Combo Key", MouseMod.Shift, description = "The key to press to activate the unfriend combo") { comboUnfriend }
+    private val friendBind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
+    private val unfriendBind by setting("Unfriend Bind", friendBind, "Bind to press to unfriend a player")
 
     init {
         listen<MouseEvent.Click> {
             if (mc.currentScreen != null) return@listen
-            if (it.button != friendButton.ordinal || it.action != friendAction.ordinal) return@listen
 
             val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
                 ?: return@listen
 
-            if (!it.hasModifier(modUnfriend.modifiers) && comboUnfriend && target.isFriend) return@listen
-
             when {
-                target.isFriend && target.unfriend() -> info(FriendManager.unfriendedText(target.name))
-                !target.isFriend && target.befriend() -> info(FriendManager.befriendedText(target.name))
+                it.satisfies(friendBind) && !target.isFriend && target.befriend() ->
+                    info(FriendManager.befriendedText(target.name))
+
+                it.satisfies(unfriendBind) && target.isFriend && target.unfriend() ->
+                    info(FriendManager.unfriendedText(target.name))
             }
         }
-    }
-
-    private enum class MouseMod(val modifiers: Int) {
-        Shift(GLFW_MOD_SHIFT),
-        Control(GLFW_MOD_CONTROL),
-        Alt(GLFW_MOD_ALT),
-        Super(GLFW_MOD_SUPER),
-        Caps(GLFW_MOD_CAPS_LOCK),
-        NumLock(GLFW_MOD_NUM_LOCK);
     }
 }

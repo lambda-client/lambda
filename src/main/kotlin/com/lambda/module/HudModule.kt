@@ -17,9 +17,9 @@
 
 package com.lambda.module
 
+import com.lambda.config.settings.complex.Bind
 import com.lambda.gui.Layout
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
 import java.awt.Color
 
 abstract class HudModule(
@@ -29,7 +29,7 @@ abstract class HudModule(
     val customWindow: Boolean = false,
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: KeyCode = KeyCode.UNBOUND,
+    defaultKeybind: Bind = Bind.EMPTY,
 ) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout {
     val backgroundColor by setting("Background Color", Color(0, 0, 0, 0))
     val outline by setting("Show Outline", false)

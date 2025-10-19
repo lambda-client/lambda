@@ -21,15 +21,15 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.MouseEvent;
 import com.lambda.module.modules.render.Zoom;
 import com.lambda.util.math.Vec2d;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Mouse;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.SimpleOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mouse.class)
 public class MouseMixin {
@@ -37,33 +37,28 @@ public class MouseMixin {
 
     @Shadow private double y;
 
-    @Inject(method = "onMouseButton(JIII)V", at = @At("HEAD"), cancellable = true)
-    private void onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
-        Vec2d position = new Vec2d(x, y);
-
-        if (EventFlow.post(new MouseEvent.Click(button, action, mods, position)).isCanceled()) {
-            ci.cancel();
-        }
+    @WrapMethod(method = "onMouseButton(JIII)V")
+    private void onMouseButton(long window, int button, int action, int mods, Operation<Void> original) {
+        if (!EventFlow.post(new MouseEvent.Click(button, action, mods)).isCanceled())
+            original.call(window, button, action, mods);
     }
 
-    @Inject(method = "onMouseScroll(JDD)V", at = @At("HEAD"), cancellable = true)
-    private void onMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
+    @WrapMethod(method = "onMouseScroll(JDD)V")
+    private void onMouseScroll(long window, double horizontal, double vertical, Operation<Void> original) {
         Vec2d delta = new Vec2d(horizontal, vertical);
 
-        if (EventFlow.post(new MouseEvent.Scroll(delta)).isCanceled()) {
-            ci.cancel();
-        }
+        if (!EventFlow.post(new MouseEvent.Scroll(delta)).isCanceled())
+            original.call(window, horizontal, vertical);
     }
 
-    @Inject(method = "onCursorPos(JDD)V", at = @At("HEAD"), cancellable = true)
-    private void onCursorPos(long window, double x, double y, CallbackInfo ci) {
+    @WrapMethod(method = "onCursorPos(JDD)V")
+    private void onCursorPos(long window, double x, double y, Operation<Void> original) {
         if (x + y == this.x + this.y) return;
 
         Vec2d position = new Vec2d(x, y);
 
-        if (EventFlow.post(new MouseEvent.Move(position)).isCanceled()) {
-            ci.cancel();
-        }
+        if (!EventFlow.post(new MouseEvent.Move(position)).isCanceled())
+            original.call(window, x, y);
     }
 
     @Redirect(method = "updateMouse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;smoothCameraEnabled:Z"))
