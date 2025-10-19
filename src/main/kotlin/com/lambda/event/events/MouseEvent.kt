@@ -17,16 +17,10 @@
 
 package com.lambda.event.events
 
+import com.lambda.config.settings.complex.Bind
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
-import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
-import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
-import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 sealed class MouseEvent {
     /**
@@ -35,35 +29,16 @@ sealed class MouseEvent {
      * @property button The button that was clicked
      * @property action The action performed (e.g., press or release)
      * @property modifiers An integer representing any modifiers (e.g., shift or ctrl) active during the event
-     * @property position The x and y position of the mouse on the screen
      */
     data class Click(
         val button: Int,
         val action: Int,
         val modifiers: Int,
-        val position: Vec2d,
     ) : ICancellable by Cancellable() {
-        constructor(button: Mouse.Button, action: Mouse.Action, modifiers: Int, position: Vec2d) : this(
-            button.ordinal,
-            action.ordinal,
-            modifiers,
-            position
-        )
+        val isReleased = action == 0
+        val isPressed = action == 1
 
-        val isMainButton = button <= 2
-        val isSideButton = button > 2
-        val isLeftButton = button == 0
-        val isRightButton = button == 1
-        val isMiddleButton = button == 2
-
-        val hasShift = hasModifier(GLFW_MOD_SHIFT)
-        val hasControl = hasModifier(GLFW_MOD_CONTROL)
-        val hasAlt = hasModifier(GLFW_MOD_ALT)
-        val hasSuper = hasModifier(GLFW_MOD_SUPER)
-        val hasCapsLock = hasModifier(GLFW_MOD_CAPS_LOCK)
-        val hasNumLock = hasModifier(GLFW_MOD_NUM_LOCK)
-
-        fun hasModifier(mod: Int) = modifiers and mod == mod
+        fun satisfies(bind: Bind) = bind.modifiers and modifiers == bind.modifiers && bind.mouse == button
     }
 
     /**

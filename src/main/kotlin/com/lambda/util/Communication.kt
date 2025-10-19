@@ -179,8 +179,8 @@ object Communication {
             }
             literal("Keybind: ")
             color(ClickGuiLayout.primaryColor) {
-                if (module.keybind.code != -1) {
-                    literal(module.keybind.code.toString())
+                if (module.keybind.key != 0 || module.keybind.mouse > -1) {
+                    literal(module.keybind.name)
                 } else {
                     literal("Unbound")
                 }

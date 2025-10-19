@@ -57,7 +57,8 @@ class StackSelection {
     /**
      * Filters the given [stacks], sorts them with the [comparator] and returns the first value
      */
-    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = stacks.minWithOrNull(comparator)
+    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? =
+        filterStacks(stacks).firstOrNull()
 
     fun matches(stack: ItemStack): Boolean = filterStack(stack)
 
