@@ -221,8 +221,10 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
             // ToDo: Override the stack used for this to account for blocks where replaceability is dependent on the held item
             val usageContext = ItemUsageContext(
+                world,
                 fakePlayer,
                 Hand.MAIN_HAND,
+                swapStack,
                 blockHit,
             )
             val cachePos = CachedBlockPosition(
