@@ -19,8 +19,13 @@ package com.lambda.mixin.render;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
+import com.lambda.module.modules.player.EasyTrash;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.SlotActionType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,5 +38,12 @@ public class ScreenHandlerMixin {
     @Inject(method = "updateSlotStacks", at = @At("TAIL"))
     private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.FullUpdate(revision, stacks, cursorStack));
+    }
+
+    @WrapMethod(method = "internalOnSlotClick(IILnet/minecraft/screen/slot/SlotActionType;Lnet/minecraft/entity/player/PlayerEntity;)V")
+    private void onInternalOnSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player, Operation<Void> original) {
+        if (EasyTrash.onClick((ScreenHandler) (Object) this, slotIndex, button, actionType, player)) {
+            original.call(slotIndex, button, actionType, player);
+        }
     }
 }
