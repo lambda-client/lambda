@@ -29,47 +29,49 @@ import net.minecraft.block.OperatorBlock
 
 object RequirementChecks : SimChecker<PreSimResult>() {
     context(automatedSafeContext: AutomatedSafeContext)
-    fun SimInfo.checkRequirements(): Unit = with(automatedSafeContext) {
+    fun SimInfo.checkRequirements(): Boolean = with(automatedSafeContext) {
         // the chunk is not loaded
         if (!isLoaded(pos)) {
             result(PreSimResult.ChunkNotLoaded(pos))
-            return
+            return true
         }
 
         // block is already in the correct state
         if (targetState.matches(state, pos)) {
             result(PreSimResult.Done(pos))
-            return
+            return true
         }
 
         // block should be ignored
-        if (state.block in breakConfig.ignoredBlocks && targetState.type == TargetState.Type.AIR) {
+        if (state.block in breakConfig.ignoredBlocks && targetState.type == TargetState.Type.Air) {
             result(GenericResult.Ignored(pos))
-            return
+            return true
         }
 
         // the player is in the wrong game mode to alter the block state
         if (player.isBlockBreakingRestricted(world, pos, gamemode)) {
             result(PreSimResult.Restricted(pos))
-            return
+            return true
         }
 
         // the player has no permissions to alter the block state
         if (state.block is OperatorBlock && !player.isCreativeLevelTwoOp) {
             result(PreSimResult.NoPermission(pos, state))
-            return
+            return true
         }
 
         // block is outside the world so it cant be altered
         if (!world.worldBorder.contains(pos) || world.isOutOfHeightLimit(pos)) {
             result(PreSimResult.OutOfWorld(pos))
-            return
+            return true
         }
 
         // block is unbreakable, so it cant be broken or replaced
         if (state.getHardness(world, pos) < 0 && !gamemode.isCreative) {
             result(PreSimResult.Unbreakable(pos, state))
-            return
+            return true
         }
+
+        return false
     }
 }

@@ -80,7 +80,6 @@ object PacketMine : Module(
 
     override val breakConfig = BreakSettings(this, Group.Break).apply {
         editTyped(::avoidLiquids, ::avoidSupporting, ::suitableToolsOnly) { defaultValue(false) }
-        ::breakWeakBlocks.edit { defaultValue(true) }
         ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 
         ::rebreak.insert(::rebreakMode, SettingGroup.InsertMode.Below)

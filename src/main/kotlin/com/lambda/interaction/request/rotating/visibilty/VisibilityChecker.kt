@@ -165,10 +165,13 @@ object VisibilityChecker {
         sides: Set<Direction> = emptySet(),
         resolution: Int = 5,
         scan: SurfaceScan = SurfaceScan.DEFAULT,
-        check: (Direction, Vec3d) -> Unit,
+        check: (Direction, Vec3d) -> Unit
     ) {
         sides.forEach { side ->
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(AutomationConfig.shrinkFactor).bounds(side)
+            val (minX, minY, minZ, maxX, maxY, maxZ) = box
+                .contract(AutomationConfig.shrinkFactor)
+                .offset(side.doubleVector.multiply(AutomationConfig.shrinkFactor))
+                .bounds(side)
 
             // Determine the bounds to scan based on the axis and mode. Skip if no part of the face is in the desired bounds
             val (startX, endX) = if (scan.axis == Direction.Axis.X && maxX != minX) {

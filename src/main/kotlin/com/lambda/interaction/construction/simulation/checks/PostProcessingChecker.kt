@@ -23,9 +23,10 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
+import com.lambda.interaction.construction.simulation.ISimInfo
 import com.lambda.interaction.construction.simulation.SimChecker
+import com.lambda.interaction.construction.simulation.SimCheckerDsl
 import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.checks.PlaceChecks.checkPlacements
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -42,7 +43,6 @@ import com.lambda.util.math.vec3d
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
-import net.minecraft.block.enums.SlabType
 import net.minecraft.item.Item
 import net.minecraft.state.property.Properties
 import net.minecraft.util.hit.BlockHitResult
@@ -50,17 +50,27 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
-object PostProcessingChecks : SimChecker<InteractResult>(), Dependable {
-    override fun SimInfo.asDependent(buildResult: BuildResult) =
+class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
+    : SimChecker<InteractResult>(), Dependable,
+    ISimInfo by simInfo
+{
+    override fun asDependent(buildResult: BuildResult) =
         InteractResult.Dependency(pos, buildResult)
 
-    context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-    fun SimInfo.checkPostProcessing(): Unit = with(automatedSafeContext) {
-        checkDependent(dependable)
+    companion object {
+        @SimCheckerDsl
+        context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
+        fun SimInfo.checkPostProcessing() =
+            PostProcessingChecker(this).run {
+                checkDependent(dependable)
+                automatedSafeContext.checkPostProcessing()
+            }
+    }
 
-        if (targetState !is TargetState.State) return@with
+    private fun AutomatedSafeContext.checkPostProcessing(): Boolean {
+        val targetState = (targetState as? TargetState.State) ?: return false
 
-        if (!targetState.matches(state, pos, preProcessing.ignore)) return
+        if (!targetState.matches(state, pos, preProcessing.ignore)) return false
 
         val mismatchedProperties = state.properties.filter { state.get(it) != targetState.blockState.get(it) }
         mismatchedProperties.forEach { property ->
@@ -68,18 +78,18 @@ object PostProcessingChecks : SimChecker<InteractResult>(), Dependable {
                 Properties.EYE -> {
                     if (state.get(Properties.EYE)) return@forEach
                     val expectedState = state.with(Properties.EYE, true)
-                    simInteraction(expectedState, null, null, false)
+                    simInteraction(expectedState)
                 }
 
                 Properties.INVERTED -> {
                     val expectedState = state.with(Properties.INVERTED, !state.get(Properties.INVERTED))
-                    simInteraction(expectedState, null, null, false)
+                    simInteraction(expectedState)
                 }
 
                 Properties.DELAY -> {
                     val expectedState =
                         state.with(Properties.DELAY, state.cycle(Properties.DELAY).get(Properties.DELAY))
-                    simInteraction(expectedState, null, null, false)
+                    simInteraction(expectedState)
                 }
 
                 Properties.COMPARATOR_MODE -> {
@@ -87,29 +97,25 @@ object PostProcessingChecks : SimChecker<InteractResult>(), Dependable {
                         Properties.COMPARATOR_MODE,
                         state.cycle(Properties.COMPARATOR_MODE).get(Properties.COMPARATOR_MODE)
                     )
-                    simInteraction(expectedState, null, null, false)
+                    simInteraction(expectedState)
                 }
 
                 Properties.OPEN -> {
                     val expectedState = state.with(Properties.OPEN, !state.get(Properties.OPEN))
-                    simInteraction(expectedState, null, null, false)
-                }
-
-                Properties.SLAB_TYPE -> {
-                    if (targetState.blockState.get(Properties.SLAB_TYPE) != SlabType.DOUBLE) return@forEach
-                    this@PostProcessingChecks.run { checkPlacements() }
+                    simInteraction(expectedState)
                 }
             }
         }
+
+        return true
     }
 
-    context(automatedSafeContext: AutomatedSafeContext)
-    private fun SimInfo.simInteraction(
+    private fun AutomatedSafeContext.simInteraction(
         expectedState: BlockState,
-        sides: Set<Direction>?,
-        item: Item?,
-        placing: Boolean
-    ): Unit = with(automatedSafeContext) {
+        sides: Set<Direction>? = null,
+        item: Item? = null,
+        placing: Boolean = false
+    ) {
         val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
         val validHits = mutableListOf<CheckedHit>()
         val blockedHits = mutableSetOf<Vec3d>()
@@ -185,10 +191,10 @@ object PostProcessingChecks : SimChecker<InteractResult>(), Dependable {
         }
 
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
-            val checkedResult = checkedHit.hit
+            val checkedResult = checkedHit.hit.blockResult ?: return
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
             val context = InteractionContext(
-                checkedResult.blockResult ?: return,
+                checkedResult,
                 RotationRequest(rotationTarget, this),
                 player.inventory.selectedSlot,
                 state,
@@ -207,7 +213,6 @@ object PostProcessingChecks : SimChecker<InteractResult>(), Dependable {
                 result(
                     GenericResult.WrongItemSelection(
                         pos,
-                        context,
                         stackSelection,
                         player.mainHandStack
                     )

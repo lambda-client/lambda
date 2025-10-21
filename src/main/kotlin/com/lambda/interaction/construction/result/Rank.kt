@@ -31,7 +31,6 @@ enum class Rank {
     ChunkNotLoaded,
     PlaceCantReplace,
     BreakPlayerOnTop,
-    PlaceNotItemBlock,
 
     // not solvable
     OutOfWorld,
@@ -50,7 +49,4 @@ enum class Rank {
     Done,
     Ignored,
     NoMatch;
-
-    val solvable: Boolean
-        get() = ordinal < PlaceNotItemBlock.ordinal
 }

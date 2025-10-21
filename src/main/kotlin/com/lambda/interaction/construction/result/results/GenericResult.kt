@@ -20,7 +20,6 @@ package com.lambda.interaction.construction.result.results
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
-import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.construction.result.Drawable
@@ -82,7 +81,6 @@ sealed class GenericResult : BuildResult() {
      */
     data class WrongItemSelection(
         override val pos: BlockPos,
-        val context: BuildContext,
         val neededSelection: StackSelection,
         val currentItem: ItemStack
     ) : Drawable, Resolvable, GenericResult() {
@@ -101,13 +99,6 @@ sealed class GenericResult : BuildResult() {
 
         override fun ShapeBuilder.buildRenderer() {
             box(pos, color, color)
-        }
-
-        override fun compareResult(other: ComparableResult<Rank>): Int {
-            return when (other) {
-                is WrongItemSelection -> context.compareTo(other.context)
-                else -> super.compareResult(other)
-            }
         }
     }
 

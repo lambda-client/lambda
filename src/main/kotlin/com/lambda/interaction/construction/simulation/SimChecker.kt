@@ -23,10 +23,14 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import net.minecraft.util.math.Vec3d
 
+@DslMarker
+annotation class SimCheckerDsl
+
+@SimCheckerDsl
 abstract class SimChecker<T : BuildResult> {
     val SafeContext.eye: Vec3d get() = player.eyePos
 
-    fun SimInfo.checkDependent(caller: Dependable?) {
+    protected fun ISimInfo.checkDependent(caller: Dependable?) {
         if (caller == null) {
             dependencyStack.clear()
             return
@@ -34,10 +38,13 @@ abstract class SimChecker<T : BuildResult> {
         dependencyStack.push(caller)
     }
 
-    fun SimInfo.result(result: GenericResult) = addResult(result)
-    fun SimInfo.result(result: T) = addResult(result)
-    private fun SimInfo.addResult(result: BuildResult) {
-        concurrentResults.add(
+    fun ISimInfo.result(result: GenericResult) = addResult(result)
+
+    fun ISimInfo.result(result: T) = addResult(result)
+
+    private fun ISimInfo.addResult(result: BuildResult) {
+        if (this@SimChecker is BuildSimulator) concurrentResults.add(result)
+        else concurrentResults.add(
             dependencyStack
                 .asReversed()
                 .fold(result) { acc, dependable ->

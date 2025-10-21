@@ -182,20 +182,6 @@ sealed class PlaceResult : BuildResult() {
         override val rank = Rank.PlaceIllegalUsage
     }
 
-    /**
-     * Represents the result of a place operation where the provided item does not match the expected item block type.
-     *
-     * @property pos The position of the block where the operation was attempted.
-     * @property itemStack The item stack that was checked during the place operation.
-     */
-    data class NotItemBlock(
-        override val pos: BlockPos,
-        val itemStack: ItemStack,
-    ) : PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
-        override val rank = Rank.PlaceNotItemBlock
-    }
-
     data class Dependency(
         override val pos: BlockPos,
         override val dependency: BuildResult

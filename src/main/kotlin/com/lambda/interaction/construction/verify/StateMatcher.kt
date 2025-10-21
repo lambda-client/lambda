@@ -34,5 +34,7 @@ interface StateMatcher {
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun getStack(pos: BlockPos): ItemStack
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun getState(pos: BlockPos): BlockState
     fun isEmpty(): Boolean
 }

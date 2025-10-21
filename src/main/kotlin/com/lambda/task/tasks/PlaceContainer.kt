@@ -61,9 +61,8 @@ class PlaceContainer @Ta5kBuilder constructor(
 
         val options = results.filterIsInstance<PlaceResult.Place>().filter {
             canBeOpened(startStack, it.pos, it.context.hitResult.side)
-        } + results.filterIsInstance<GenericResult.WrongItemSelection>().filter {
-            canBeOpened(startStack, it.pos, it.context.hitResult.side)
-        }
+        } + results.filterIsInstance<GenericResult.WrongItemSelection>()
+
         val containerPosition = options.filter {
             // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
             it.pos.y == player.blockPos.y

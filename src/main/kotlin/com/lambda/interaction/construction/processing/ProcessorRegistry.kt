@@ -21,8 +21,6 @@ import com.lambda.core.Loadable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
-import net.minecraft.block.SlabBlock
-import net.minecraft.block.enums.SlabType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 
@@ -108,7 +106,8 @@ object ProcessorRegistry : Loadable {
     override fun load() = "Loaded ${processors.size} pre processors"
 
     fun TargetState.getProcessingInfo(pos: BlockPos) =
-        if (this is TargetState.State) {
+        if (this !is TargetState.State) PreProcessingInfo.DEFAULT
+        else {
             val get: () -> PreProcessingInfo? = get@{
                 val infoAccumulator = PreProcessingInfoAccumulator()
 
@@ -122,15 +121,6 @@ object ProcessorRegistry : Loadable {
 
                 infoAccumulator.complete()
             }
-            if (isExemptFromCache()) {
-                get()
-            } else {
-                processorCache.getOrPut(blockState, get)
-            }
-        } else {
-            PreProcessingInfo.DEFAULT
+            processorCache.getOrPut(blockState, get)
         }
-
-    private fun TargetState.State.isExemptFromCache() =
-        blockState.block is SlabBlock && blockState.get(Properties.SLAB_TYPE) == SlabType.DOUBLE
 }

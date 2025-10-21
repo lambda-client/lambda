@@ -27,7 +27,6 @@ import net.minecraft.component.DataComponentTypes
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.item.ToolMaterial
 import net.minecraft.item.consume.UseAction
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
@@ -230,27 +229,24 @@ class StackSelection {
      * Returns the negation of the original predicate.
      * @return A new predicate that matches if the original predicate does not match.
      */
-    fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean {
-        return { !this(it) }
-    }
+    fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean = { !this(it) }
 
     /**
      * Combines two predicates using the logical AND operator.
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if both inputs predicate match.
      */
-    infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
-        return { this(it) && otherPredicate(it) }
-    }
+    infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean = { this(it) && otherPredicate(it) }
 
     /**
      * Combines two predicates using the logical OR operator.
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if either input predicate matches.
      */
-    infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
-        return { this(it) || otherPredicate(it) }
-    }
+    infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean = { this(it) || otherPredicate(it) }
+
+    fun ((ItemStack) -> Boolean).andIf(predicate: Boolean, otherPredicate: () -> (ItemStack) -> Boolean): (ItemStack) -> Boolean =
+        if (predicate) { { this(it) && otherPredicate()(it) } } else this
 
     override fun toString() = buildString {
         append("selection of ${count}x ")

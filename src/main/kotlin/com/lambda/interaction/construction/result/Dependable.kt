@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.construction.result
 
-import com.lambda.interaction.construction.simulation.SimInfo
+import com.lambda.interaction.construction.simulation.ISimInfo
 
-interface Dependable {
-    fun SimInfo.asDependent(buildResult: BuildResult): BuildResult
+interface Dependable : ISimInfo {
+    fun asDependent(buildResult: BuildResult): BuildResult
 }

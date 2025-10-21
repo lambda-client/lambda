@@ -35,7 +35,6 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Contextual
 import com.lambda.interaction.construction.result.Dependent
-import com.lambda.interaction.construction.result.Dependent.Companion.iterator
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.Resolvable
@@ -171,6 +170,7 @@ class BuildTask private constructor(
                 when (result) {
                     is BreakResult.Break -> {
                         val breakResults = allResults
+                            .map { if (it is Dependent) it.lastDependency else it }
                             .filterIsInstance<BreakResult.Break>()
                             .map { it.context }
 
@@ -184,6 +184,7 @@ class BuildTask private constructor(
                     }
                     is PlaceResult.Place -> {
                         val placeResults = allResults
+                            .map { if (it is Dependent) it.lastDependency else it }
                             .filterIsInstance<PlaceResult.Place>()
                             .map { it.context }
 
@@ -195,6 +196,7 @@ class BuildTask private constructor(
                     }
                     is InteractResult.Interact -> {
                         val interactResults = allResults
+                            .map { if (it is Dependent) it.lastDependency else it }
                             .filterIsInstance<InteractResult.Interact>()
                             .map { it.context }
 
@@ -208,7 +210,7 @@ class BuildTask private constructor(
                 }
             }
 
-            is Dependent -> handleResult(result.iterator.last(), allResults)
+            is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
                 LOG.info("Resolving: ${result.name}")

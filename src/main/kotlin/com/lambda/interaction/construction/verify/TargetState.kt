@@ -20,11 +20,14 @@ package com.lambda.interaction.construction.verify
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.state.property.Property
@@ -34,10 +37,10 @@ import net.minecraft.util.math.Direction
 sealed class TargetState(val type: Type) : StateMatcher {
 
     enum class Type {
-        EMPTY, AIR, SOLID, SUPPORT, STATE, BLOCK, STACK
+        Empty, Air, Solid, Support, State, Block, Stack
     }
 
-    data object Empty : TargetState(Type.EMPTY) {
+    data object Empty : TargetState(Type.Empty) {
         override fun toString() = "Empty"
 
         context(safeContext: SafeContext)
@@ -47,14 +50,16 @@ sealed class TargetState(val type: Type) : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.isEmpty
 
+        context(_: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack = ItemStack.EMPTY
+
         context(automatedSafeContext: AutomatedSafeContext)
-        override fun getStack(pos: BlockPos): ItemStack =
-            ItemStack.EMPTY
+        override fun getState(pos: BlockPos) = automatedSafeContext.blockState(pos).emptyState
 
         override fun isEmpty() = true
     }
 
-    data object Air : TargetState(Type.AIR) {
+    data object Air : TargetState(Type.Air) {
         override fun toString() = "Air"
 
         context(safeContext: SafeContext)
@@ -64,14 +69,16 @@ sealed class TargetState(val type: Type) : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.isAir
 
-        context(automatedSafeContext: AutomatedSafeContext)
-        override fun getStack(pos: BlockPos): ItemStack =
-            ItemStack.EMPTY
+        context(_: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack = ItemStack.EMPTY
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = Blocks.AIR.defaultState
 
         override fun isEmpty() = true
     }
 
-    data object Solid : TargetState(Type.SOLID) {
+    data object Solid : TargetState(Type.Solid) {
         override fun toString() = "Solid"
 
         context(safeContext: SafeContext)
@@ -89,10 +96,13 @@ sealed class TargetState(val type: Type) : StateMatcher {
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = getStack(pos).item.block.defaultState
+
         override fun isEmpty() = false
     }
 
-    data class Support(val direction: Direction) : TargetState(Type.SUPPORT) {
+    data class Support(val direction: Direction) : TargetState(Type.Support) {
         override fun toString() = "Support for ${direction.name}"
 
         context(safeContext: SafeContext)
@@ -113,10 +123,13 @@ sealed class TargetState(val type: Type) : StateMatcher {
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = getStack(pos).item.block.defaultState
+
         override fun isEmpty() = false
     }
 
-    data class State(val blockState: BlockState) : TargetState(Type.STATE) {
+    data class State(val blockState: BlockState) : TargetState(Type.State) {
         override fun toString() = "State of $blockState"
 
         context(safeContext: SafeContext)
@@ -131,10 +144,13 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun getStack(pos: BlockPos): ItemStack =
             blockState.block.getPickStack(automatedSafeContext.world, pos, blockState, true)
 
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = blockState
+
         override fun isEmpty() = blockState.isEmpty
     }
 
-    data class Block(val block: net.minecraft.block.Block) : TargetState(Type.BLOCK) {
+    data class Block(val block: net.minecraft.block.Block) : TargetState(Type.Block) {
         override fun toString() = "Block of ${block.name.string.capitalize()}"
 
         context(safeContext: SafeContext)
@@ -142,17 +158,19 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state: BlockState,
             pos: BlockPos,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.block == block
+        ) = state.block == block
 
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack =
             block.getPickStack(automatedSafeContext.world, pos, block.defaultState, true)
 
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = block.defaultState
+
         override fun isEmpty() = block.defaultState.isEmpty
     }
 
-    data class Stack(val itemStack: ItemStack) : TargetState(Type.STACK) {
+    data class Stack(val itemStack: ItemStack) : TargetState(Type.Stack) {
         private val startStack: ItemStack = itemStack.copy()
         override fun toString() = "Stack of ${startStack.item.name.string.capitalize()}"
 
@@ -163,12 +181,14 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state: BlockState,
             pos: BlockPos,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.block == block
+        ) = state.block == block
 
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack =
             itemStack
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = block.defaultState
 
         override fun isEmpty() = false
     }

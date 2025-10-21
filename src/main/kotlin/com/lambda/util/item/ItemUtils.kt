@@ -20,7 +20,9 @@ package com.lambda.util.item
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.component.DataComponentTypes
+import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
 object ItemUtils {
@@ -121,6 +123,7 @@ object ItemUtils {
     )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
+    val ItemStack.blockItem: BlockItem get() = (item as? BlockItem ?: Items.AIR) as BlockItem
 
     val Item.nutrition: Int get() = components.get(DataComponentTypes.FOOD)?.nutrition ?: 0
 

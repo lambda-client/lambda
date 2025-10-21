@@ -76,7 +76,6 @@ class BreakSettings(
     // Block
     override val avoidLiquids by c.setting("Avoid Liquids", true, "Avoids breaking blocks that would cause liquid to spill", visibility = vis).group(baseGroup, Group.General)
     override val avoidSupporting by c.setting("Avoid Supporting", true, "Avoids breaking the block supporting the player", visibility = vis).group(baseGroup, Group.General)
-    override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)", visibility = vis).group(baseGroup, Group.General)
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, description = "Blocks that wont be broken", visibility = vis).group(baseGroup, Group.General)
 
     // Tool

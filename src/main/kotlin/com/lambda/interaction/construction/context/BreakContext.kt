@@ -43,11 +43,10 @@ import kotlin.random.Random
 data class BreakContext(
     override val hitResult: BlockHitResult,
     override val rotationRequest: RotationRequest,
-    override var hotbarIndex: Int,
-    var itemSelection: StackSelection,
-    var instantBreak: Boolean,
+    override val hotbarIndex: Int,
+    val itemSelection: StackSelection,
+    val instantBreak: Boolean,
     override var cachedState: BlockState,
-    val sortMode: BreakConfig.SortMode,
     private val automated: Automated
 ) : BuildContext(), LogContext, Automated by automated {
     private val baseColor = Color(222, 0, 0, 25)
@@ -61,10 +60,10 @@ data class BreakContext(
     override fun compareTo(other: BuildContext): Int = runSafe {
         return when (other) {
             is BreakContext -> compareByDescending<BreakContext> {
-                if (sortMode == BreakConfig.SortMode.Tool) it.hotbarIndex == HotbarManager.serverSlot
+                if (breakConfig.sorter == BreakConfig.SortMode.Tool) it.hotbarIndex == HotbarManager.serverSlot
                 else 0
             }.thenBy {
-                when (sortMode) {
+                when (breakConfig.sorter) {
                     BreakConfig.SortMode.Tool,
                     BreakConfig.SortMode.Closest -> player.eyePos.distance(it.hitResult.pos, it.cachedState.block)
                     BreakConfig.SortMode.Farthest -> -player.eyePos.distance(it.hitResult.pos, it.cachedState.block)
@@ -104,7 +103,6 @@ data class BreakContext(
             value("Instant Break", instantBreak)
             value("Cached State", cachedState)
             value("Expected State", expectedState)
-            value("Sort Mode", sortMode)
         }
     }
 }

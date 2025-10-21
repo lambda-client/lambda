@@ -19,46 +19,45 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
-import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.PostSimResult
-import com.lambda.interaction.construction.simulation.checks.BreakChecks.checkBreaks
-import com.lambda.interaction.construction.simulation.checks.PlaceChecks.checkPlacements
-import com.lambda.interaction.construction.simulation.checks.PostProcessingChecks.checkPostProcessing
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
+import com.lambda.interaction.construction.simulation.checks.BreakChecker.Companion.checkBreaks
+import com.lambda.interaction.construction.simulation.checks.PlaceChecker.Companion.checkPlacements
+import com.lambda.interaction.construction.simulation.checks.PostProcessingChecker.Companion.checkPostProcessing
 import com.lambda.interaction.construction.simulation.checks.RequirementChecks.checkRequirements
 import com.lambda.util.BlockUtils.blockState
 import io.ktor.util.collections.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 object BuildSimulator : SimChecker<PostSimResult>() {
-    context(context: AutomatedSafeContext)
+    context(automatedSafeContext: AutomatedSafeContext)
     fun Blueprint.simulate(): Set<BuildResult> = runBlocking(Dispatchers.Default) {
         val concurrentSet = ConcurrentSet<BuildResult>()
-        with(context) {
+        with(automatedSafeContext) {
             structure.entries
                 .map { (pos, targetState) ->
-                    async {
-                        val preProcessing = targetState.getProcessingInfo(pos) ?: return@async
-                        val simInfo = SimInfo(
+                    launch {
+                        val simInfo = simInfo(
                             pos,
                             blockState(pos),
                             targetState,
-                            preProcessing,
                             concurrentSet
-                        )
+                        ) ?: return@launch
                         with(simInfo) {
                             with(null) {
-                                checkRequirements()
-                                checkPostProcessing()
-                                checkPlacements()
-                                checkBreaks()
+                                if (checkRequirements() ||
+                                    checkPostProcessing() ||
+                                    checkPlacements() ||
+                                    checkBreaks()) return@launch
+                                else result(PostSimResult.NoMatch(pos))
                             }
                         }
                     }
-                }.awaitAll()
+                }.joinAll()
         }
 
         return@runBlocking concurrentSet
