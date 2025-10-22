@@ -81,6 +81,12 @@ object ItemStackUtils {
 
     context(safeContext: SafeContext)
     val ItemStack.inventoryIndex get() = safeContext.player.inventory.getSlotWithStack(this)
+    context(safeContext: SafeContext)
+    val ItemStack.inventoryIndexOrSelected get() = with(safeContext) {
+        player.inventory.getSlotWithStack(this@inventoryIndexOrSelected).let {
+            if (it == -1) player.inventory.selectedSlot else it
+        }
+    }
 
     val List<ItemStack>.compressed: List<ItemStack>
         get() =

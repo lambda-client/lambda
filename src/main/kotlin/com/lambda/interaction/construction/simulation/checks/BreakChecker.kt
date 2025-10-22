@@ -50,7 +50,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.item.ItemStackUtils.inventoryIndex
+import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import io.ktor.util.collections.*
@@ -169,7 +169,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 val breakContext = BreakContext(
                     blockHit,
                     rotationRequest,
-                    swapStack.inventoryIndex,
+                    swapStack.inventoryIndexOrSelected,
                     stackSelection,
                     instant,
                     state,
@@ -228,7 +228,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         val breakContext = BreakContext(
             blockHit,
             rotationRequest,
-            swapStack.inventoryIndex,
+            swapStack.inventoryIndexOrSelected,
             stackSelection,
             instant,
             state,
