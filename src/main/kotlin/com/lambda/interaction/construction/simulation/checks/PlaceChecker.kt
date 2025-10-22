@@ -46,13 +46,13 @@ import com.lambda.interaction.request.rotating.visibilty.lookInDirection
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.joinAll
@@ -69,6 +69,7 @@ import net.minecraft.item.Items
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.pow
@@ -123,91 +124,98 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         supervisorScope {
             withContext(Dispatchers.Default) {
-                preProcessing.sides.map { neighbor ->
+                preProcessing.sides.map { side ->
                     launch {
-                        val hitBlockPos = if (!placeConfig.airPlace.isEnabled && state.isEmpty)
-                            pos.offset(neighbor) else pos
-                        val hitSide = neighbor.opposite
-                        if (!world.worldBorder.contains(hitBlockPos)) return@launch
-
-                        val voxelShape = blockState(hitBlockPos).getOutlineShape(world, hitBlockPos).let { outlineShape ->
-                            if (!outlineShape.isEmpty || !placeConfig.airPlace.isEnabled) outlineShape
-                            else VoxelShapes.fullCube()
-                        }
-                        if (voxelShape.isEmpty) return@launch
-
-                        val boxes = voxelShape.boundingBoxes.map { it.offset(hitBlockPos) }
-                        val verify: CheckedHit.() -> Boolean = {
-                            hit.blockResult?.blockPos == hitBlockPos && hit.blockResult?.side == hitSide
-                        }
-
-                        val validHits = mutableListOf<CheckedHit>()
-                        val misses = mutableSetOf<Vec3d>()
-                        val reachSq = buildConfig.interactReach.pow(2)
-
-                        boxes.map { box ->
-                            launch {
-                                val sides = if (buildConfig.checkSideVisibility) {
-                                    box.getVisibleSurfaces(eye).intersect(setOf(hitSide))
-                                } else setOf(hitSide)
-
-                                scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { _, vec ->
-                                    val distSquared = eye distSq vec
-                                    if (distSquared > reachSq) {
-                                        misses.add(vec)
-                                        return@scanSurfaces
-                                    }
-
-                                    val newRotation = eye.rotationTo(vec)
-
-                                    val hit = if (buildConfig.strictRayCast) {
-                                        val rayCast = newRotation.rayCast(buildConfig.interactReach, eye)
-                                        when {
-                                            rayCast != null && (!placeConfig.airPlace.isEnabled || eye distSq rayCast.pos <= distSquared) ->
-                                                rayCast.blockResult
-
-                                            placeConfig.airPlace.isEnabled -> {
-                                                val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
-                                                BlockHitResult(hitVec, hitSide, hitBlockPos, false)
-                                            }
-
-                                            else -> null
-                                        }
-                                    } else {
-                                        val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
-                                        BlockHitResult(hitVec, hitSide, hitBlockPos, false)
-                                    } ?: return@scanSurfaces
-
-                                    val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
-                                    if (!checked.verify()) return@scanSurfaces
-
-                                    validHits.add(checked)
-                                }
-                            }
-                        }.joinAll()
-
-                        if (validHits.isEmpty()) {
-                            if (misses.isNotEmpty()) {
-                                result(GenericResult.OutOfReach(pos, eye, misses))
-                                return@launch
-                            }
-
-                            result(GenericResult.NotVisible(pos, hitBlockPos, hitSide, eye.distanceTo(hitBlockPos.offset(hitSide).vec3d)))
-                            return@launch
-                        }
-
-                        if (swapStack.item == Items.AIR)
-                            this@supervisorScope.cancel()
-                        else if (!swapStack.item.isEnabled(world.enabledFeatures)) {
-                            result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
-                            this@supervisorScope.cancel()
-                        } else selectHitPos(validHits)
+                        val neighborPos = pos.offset(side)
+                        val neighborSide = side.opposite
+                        if (!placeConfig.airPlace.isEnabled)
+                            testBlock(neighborPos, neighborSide, this@supervisorScope)
+                        testBlock(pos, side, this@supervisorScope)
                     }
                 }.joinAll()
             }
         }
 
         return true
+    }
+
+    private suspend fun AutomatedSafeContext.testBlock(pos: BlockPos, side: Direction, supervisorScope: CoroutineScope) {
+        if (!world.worldBorder.contains(pos)) return
+
+        val voxelShape = blockState(pos).getOutlineShape(world, pos).let { outlineShape ->
+            if (!outlineShape.isEmpty || !placeConfig.airPlace.isEnabled) outlineShape
+            else VoxelShapes.fullCube()
+        }
+        if (voxelShape.isEmpty) return
+
+        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
+        val verify: CheckedHit.() -> Boolean = {
+            hit.blockResult?.blockPos == pos && hit.blockResult?.side == side
+        }
+
+        val validHits = mutableListOf<CheckedHit>()
+        val misses = mutableSetOf<Vec3d>()
+        val reachSq = buildConfig.interactReach.pow(2)
+
+        withContext(Dispatchers.Default) {
+            boxes.map { box ->
+                launch {
+                    val sides = if (buildConfig.checkSideVisibility) {
+                        box.getVisibleSurfaces(eye).intersect(setOf(side))
+                    } else setOf(side)
+
+                    scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { _, vec ->
+                        val distSquared = eye distSq vec
+                        if (distSquared > reachSq) {
+                            misses.add(vec)
+                            return@scanSurfaces
+                        }
+
+                        val newRotation = eye.rotationTo(vec)
+
+                        val hit = if (buildConfig.strictRayCast) {
+                            val rayCast = newRotation.rayCast(buildConfig.interactReach, eye)
+                            when {
+                                rayCast != null && (!placeConfig.airPlace.isEnabled || eye distSq rayCast.pos <= distSquared) ->
+                                    rayCast.blockResult
+
+                                placeConfig.airPlace.isEnabled -> {
+                                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
+                                    BlockHitResult(hitVec, side, pos, false)
+                                }
+
+                                else -> null
+                            }
+                        } else {
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
+                            BlockHitResult(hitVec, side, pos, false)
+                        } ?: return@scanSurfaces
+
+                        val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
+                        if (!checked.verify()) return@scanSurfaces
+
+                        validHits.add(checked)
+                    }
+                }
+            }.joinAll()
+        }
+
+        if (validHits.isEmpty()) {
+            if (misses.isNotEmpty()) {
+                result(GenericResult.OutOfReach(pos, eye, misses))
+                return
+            }
+
+            result(GenericResult.NotVisible(pos, pos, side, eye.distanceTo(pos.offset(side).vec3d)))
+            return
+        }
+
+        if (swapStack.item == Items.AIR)
+            supervisorScope.cancel()
+        else if (!swapStack.item.isEnabled(world.enabledFeatures)) {
+            result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
+            supervisorScope.cancel()
+        } else selectHitPos(validHits)
     }
 
     private fun AutomatedSafeContext.selectHitPos(validHits: List<CheckedHit>) {

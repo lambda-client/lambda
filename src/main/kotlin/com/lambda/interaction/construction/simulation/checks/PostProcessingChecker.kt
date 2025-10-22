@@ -104,6 +104,8 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                     val expectedState = state.with(Properties.OPEN, !state.get(Properties.OPEN))
                     simInteraction(expectedState)
                 }
+
+                Properties.SLAB_TYPE -> return false
             }
         }
 
