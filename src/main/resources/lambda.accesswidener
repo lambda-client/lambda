@@ -48,6 +48,7 @@ transitive-accessible method net/minecraft/entity/LivingEntity getHandSwingDurat
 transitive-accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
 transitive-accessible method net/minecraft/util/math/Direction listClosest (Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;)[Lnet/minecraft/util/math/Direction;
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager gameMode Lnet/minecraft/world/GameMode;
+transitive-accessible method net/minecraft/entity/player/PlayerEntity updatePose ()V
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V

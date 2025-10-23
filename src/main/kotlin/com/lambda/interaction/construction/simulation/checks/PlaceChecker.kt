@@ -50,6 +50,7 @@ import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
+import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope
@@ -64,7 +65,6 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
-import net.minecraft.item.ItemUsageContext
 import net.minecraft.item.Items
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -142,25 +142,34 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     private suspend fun AutomatedSafeContext.testBlock(pos: BlockPos, side: Direction, supervisorScope: CoroutineScope) {
         if (!world.worldBorder.contains(pos)) return
 
-        val voxelShape = blockState(pos).getOutlineShape(world, pos).let { outlineShape ->
+        val testBlockState = blockState(pos)
+        val voxelShape = testBlockState.getOutlineShape(world, pos).let { outlineShape ->
             if (!outlineShape.isEmpty || !placeConfig.airPlace.isEnabled) outlineShape
             else VoxelShapes.fullCube()
         }
         if (voxelShape.isEmpty) return
 
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
-        val verify: CheckedHit.() -> Boolean = {
-            hit.blockResult?.blockPos == pos && hit.blockResult?.side == side
-        }
 
         val validHits = mutableListOf<CheckedHit>()
         val misses = mutableSetOf<Vec3d>()
         val reachSq = buildConfig.interactReach.pow(2)
 
+        // ToDo: For each hand and sneak or not?
+        val fakePlayer = copyPlayer(player).apply {
+            this.rotation = RotationManager.serverRotation
+            if (testBlockState.block::class in BlockUtils.interactionBlocks) {
+                input.sneaking = true
+                updatePose()
+            }
+        }
+
+        val eye = fakePlayer.eyePos
+
         withContext(Dispatchers.Default) {
             boxes.map { box ->
                 launch {
-                    val sides = if (buildConfig.checkSideVisibility) {
+                    val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast) {
                         box.getVisibleSurfaces(eye).intersect(setOf(side))
                     } else setOf(side)
 
@@ -174,25 +183,14 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                         val newRotation = eye.rotationTo(vec)
 
                         val hit = if (buildConfig.strictRayCast) {
-                            val rayCast = newRotation.rayCast(buildConfig.interactReach, eye)
-                            when {
-                                rayCast != null && (!placeConfig.airPlace.isEnabled || eye distSq rayCast.pos <= distSquared) ->
-                                    rayCast.blockResult
-
-                                placeConfig.airPlace.isEnabled -> {
-                                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
-                                    BlockHitResult(hitVec, side, pos, false)
-                                }
-
-                                else -> null
-                            }
+                            newRotation.rayCast(buildConfig.interactReach, eye)?.blockResult ?: return@scanSurfaces
                         } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye) ?: return@scanSurfaces
                             BlockHitResult(hitVec, side, pos, false)
-                        } ?: return@scanSurfaces
+                        }
 
+                        if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
                         val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
-                        if (!checked.verify()) return@scanSurfaces
 
                         validHits.add(checked)
                     }
@@ -215,39 +213,29 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         else if (!swapStack.item.isEnabled(world.enabledFeatures)) {
             result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
             supervisorScope.cancel()
-        } else selectHitPos(validHits)
+        } else selectHitPos(validHits, fakePlayer)
     }
 
-    private fun AutomatedSafeContext.selectHitPos(validHits: List<CheckedHit>) {
+    private fun AutomatedSafeContext.selectHitPos(validHits: List<CheckedHit>, fakePlayer: ClientPlayerEntity) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
-            // ToDo: For each hand and sneak or not?
-            val fakePlayer = copyPlayer(player).apply {
-                this.rotation = RotationManager.serverRotation
-            }
+            val hitResult = checkedHit.hit.blockResult ?: return
 
-            val blockHit = checkedHit.hit.blockResult ?: return
-
-            // ToDo: Override the stack used for this to account for blocks where replaceability is dependent on the held item
-            val usageContext = ItemUsageContext(
+            var context = ItemPlacementContext(
                 world,
                 fakePlayer,
                 Hand.MAIN_HAND,
                 swapStack,
-                blockHit,
+                hitResult,
             )
-            val cachePos = CachedBlockPosition(
-                usageContext.world, usageContext.blockPos, false
-            )
-
-            if (!player.abilities.allowModifyWorld && !swapStack.canPlaceOn(cachePos)) {
-                result(PlaceResult.IllegalUsage(pos))
-                return
-            }
-
-            var context = ItemPlacementContext(usageContext)
 
             if (context.blockPos != pos) {
                 result(PlaceResult.UnexpectedPosition(pos, context.blockPos))
+                return
+            }
+
+            val cachePos = CachedBlockPosition(context.world, context.blockPos, false)
+            if (!player.abilities.allowModifyWorld && !swapStack.canPlaceOn(cachePos)) {
+                result(PlaceResult.IllegalUsage(pos))
                 return
             }
 
@@ -263,21 +251,18 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
             if (!simRotation(fakePlayer, checkedHit, context)) return
 
-            val hitBlock = blockState(blockHit.blockPos).block
-            val shouldSneak = hitBlock::class in BlockUtils.interactionBlocks
-
             val rotationRequest = if (placeConfig.axisRotate) {
                 lookInDirection(PlaceDirection.fromRotation(rot))
             } else lookAt(rot, 0.001)
 
             val placeContext = PlaceContext(
-                blockHit,
+                hitResult,
                 RotationRequest(rotationRequest, this@PlaceChecker),
                 swapStack.inventoryIndex,
-                context.blockPos,
-                blockState(context.blockPos),
+                pos,
+                state,
                 resultState,
-                shouldSneak,
+                fakePlayer.isSneaking,
                 false,
                 currentDirIsValid,
                 this@PlaceChecker
@@ -294,27 +279,27 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         checkedHit: CheckedHit,
         context: ItemPlacementContext
     ): Boolean {
-        currentDirIsValid = if (testPlaceState(pos, targetState, context) != PlaceTestResult.Success) {
+        currentDirIsValid = if (testPlaceState(context) != PlaceTestResult.Success) {
             if (!placeConfig.rotateForPlace) return false
             else false
         } else true
 
         if (!placeConfig.axisRotate) {
             fakePlayer.rotation = checkedHit.targetRotation
-            if (testPlaceState(pos, targetState, context) != PlaceTestResult.Success) return false
+            if (testPlaceState(context) != PlaceTestResult.Success) return false
             rot = fakePlayer.rotation
             return true
         }
 
         fakePlayer.rotation = player.rotation
-        if (testPlaceState(pos, targetState, context) == PlaceTestResult.Success) {
+        if (testPlaceState(context) == PlaceTestResult.Success) {
             rot = fakePlayer.rotation
             return true
         }
 
         PlaceDirection.entries.asReversed().forEachIndexed direction@{ index, direction ->
             fakePlayer.rotation = direction.rotation
-            when (testPlaceState(pos, targetState, context)) {
+            when (testPlaceState(context)) {
                 PlaceTestResult.BlockedByEntity -> return@direction
 
                 PlaceTestResult.NoIntegrity -> {
@@ -332,11 +317,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return true
     }
 
-    private fun SafeContext.testPlaceState(
-        pos: BlockPos,
-        targetState: TargetState,
-        context: ItemPlacementContext
-    ): PlaceTestResult {
+    private fun SafeContext.testPlaceState(context: ItemPlacementContext): PlaceTestResult {
         resultState = blockItem.getPlacementState(context) ?: run {
             result(PlaceResult.BlockedByEntity(pos))
             return PlaceTestResult.BlockedByEntity

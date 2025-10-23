@@ -41,7 +41,7 @@ enum class PointSelection(
         "Choose the point closest to the average of all candidates (balanced and stable aim).",
         select = { hits ->
             val optimum = hits
-                .mapNotNull { it?.hit?.pos }
+                .mapNotNull { it.hit.pos }
                 .reduceOrNull { acc, pos -> acc.add(pos) }
                 ?.times(1 / hits.size.toDouble())
 
