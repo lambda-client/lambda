@@ -51,8 +51,8 @@ object BuildSimulator : SimChecker<PostSimResult>() {
                             with(null) {
                                 if (checkRequirements() ||
                                     checkPostProcessing() ||
-                                    checkPlacements() ||
-                                    checkBreaks()) return@launch
+                                    checkBreaks() ||
+                                    checkPlacements()) return@launch
                                 else result(PostSimResult.NoMatch(pos))
                             }
                         }

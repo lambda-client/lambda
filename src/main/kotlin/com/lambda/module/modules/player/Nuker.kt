@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.context.AutomationConfig
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -27,7 +26,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.blockState
+import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 
 object Nuker : Module(
@@ -39,7 +38,6 @@ object Nuker : Module(
     private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
     private val fillFluids by setting("Fill Fluids", false, "Removes liquids by filling them in before breaking")
-    private val instantOnly by setting("Instant Only", false)
     private val fillFloor by setting("Fill Floor", false)
     private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 
@@ -53,7 +51,6 @@ object Nuker : Module(
                     .map { it.blockPos }
                     .filter { !world.isAir(it) }
                     .filter { !flatten || it.y >= player.blockPos.y }
-                    .filter { !instantOnly || blockState(it).getHardness(world, it) <= AutomationConfig.breakConfig.breakThreshold }
                     .filter { pos ->
                         if (!baritoneSelection) true
                         else BaritoneManager.primary.selectionManager.selections.any {
@@ -69,7 +66,7 @@ object Nuker : Module(
                 if (fillFloor) {
                     val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                         .map { it.blockPos }
-                        .associateWith { TargetState.Solid }
+                        .associateWith { TargetState.Solid(setOf(Blocks.MAGMA_BLOCK)) }
                     return@tickingBlueprint selection + floor
                 }
 

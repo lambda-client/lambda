@@ -50,6 +50,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
+import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -87,6 +88,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     val stackSelection: StackSelection by lazy {
         runSafe {
             selectStack(
+                count = 0,
                 sorter = compareByDescending<ItemStack> {
                     it.canBreak(CachedBlockPosition(world, pos, false))
                 }.thenByDescending {
@@ -131,8 +133,6 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     }
 
     private suspend fun AutomatedSafeContext.checkBreaks(): Boolean {
-        if (!targetState.isEmpty()) return false
-
         /* player is standing on top of the block */
         if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
             if (support != pos) return@let
@@ -143,8 +143,10 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         /* liquid needs to be submerged first to be broken */
         if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
-            return simInfo(pos, state, TargetState.Solid)?.checkPlacements() ?: true
+            return simInfo(pos, state, TargetState.Solid(emptySet()))?.checkPlacements() ?: true
         }
+
+        if (state.isEmpty) return false
 
         if (breakConfig.avoidLiquids && affectsFluids()) return true
 
@@ -159,11 +161,9 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
             breakConfig.breakThreshold
         )
 
-        val currentRotation = RotationManager.activeRotation
-        val currentCast = currentRotation.rayCast(buildConfig.interactReach, eye)
-
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
+            val currentCast = RotationManager.activeRotation.rayCast(buildConfig.interactReach, eye)
             currentCast?.blockResult?.let { blockHit ->
                 val rotationRequest = RotationRequest(lookAtBlock(pos), this)
                 val breakContext = BreakContext(
@@ -336,7 +336,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
             affectedFluids.forEach { (liquidPos, liquidState) ->
                 result(BreakResult.Submerge(liquidPos, liquidState))
-                simInfo(liquidPos, liquidState, TargetState.Solid)?.checkPlacements()
+                simInfo(liquidPos, liquidState, TargetState.Solid(emptySet()))?.checkPlacements()
             }
             result(BreakResult.BlockedByFluid(pos, state))
             return true

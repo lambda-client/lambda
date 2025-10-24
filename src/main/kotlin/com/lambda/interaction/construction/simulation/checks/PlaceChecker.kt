@@ -33,6 +33,7 @@ import com.lambda.interaction.material.ContainerSelection.Companion.selectContai
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.RotationManager
@@ -78,9 +79,6 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     : SimChecker<PlaceResult>(), Dependable,
     ISimInfo by simInfo
 {
-    lateinit var resultState: BlockState
-    var rot = RotationManager.serverRotation
-
     private val swapStack by lazy {
         runSafeAutomated {
             val optimalStack = targetState.getStack(pos)
@@ -104,8 +102,6 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     }
     private val blockItem get() = swapStack.blockItem
 
-    private var currentDirIsValid = false
-
     override fun asDependent(buildResult: BuildResult) =
         PlaceResult.Dependency(pos, buildResult)
 
@@ -120,8 +116,6 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     }
 
     private suspend fun AutomatedSafeContext.checkPlacements(): Boolean {
-        if (targetState.isEmpty()) return false
-
         supervisorScope {
             withContext(Dispatchers.Default) {
                 preProcessing.sides.map { side ->
@@ -155,7 +149,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         val misses = mutableSetOf<Vec3d>()
         val reachSq = buildConfig.interactReach.pow(2)
 
-        // ToDo: For each hand and sneak or not?
+        // ToDo: For each hand
         val fakePlayer = copyPlayer(player).apply {
             this.rotation = RotationManager.serverRotation
             if (testBlockState.block::class in BlockUtils.interactionBlocks) {
@@ -249,11 +243,12 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 return
             }
 
-            if (!simRotation(fakePlayer, checkedHit, context)) return
+            val rotatePlaceTest = simRotatePlace(fakePlayer, checkedHit, context) ?: return
+            if (!rotatePlaceTest.isValid) return
 
             val rotationRequest = if (placeConfig.axisRotate) {
-                lookInDirection(PlaceDirection.fromRotation(rot))
-            } else lookAt(rot, 0.001)
+                lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
+            } else lookAt(rotatePlaceTest.rotation, 0.001)
 
             val placeContext = PlaceContext(
                 hitResult,
@@ -261,10 +256,10 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 swapStack.inventoryIndex,
                 pos,
                 state,
-                resultState,
+                rotatePlaceTest.placeTest.resultState,
                 fakePlayer.isSneaking,
                 false,
-                currentDirIsValid,
+                rotatePlaceTest.currentDirIsValid,
                 this@PlaceChecker
             )
 
@@ -274,61 +269,64 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return
     }
 
-    private fun SafeContext.simRotation(
+    private fun SafeContext.simRotatePlace(
         fakePlayer: ClientPlayerEntity,
         checkedHit: CheckedHit,
         context: ItemPlacementContext
-    ): Boolean {
-        currentDirIsValid = if (testPlaceState(context) != PlaceTestResult.Success) {
-            if (!placeConfig.rotateForPlace) return false
-            else false
-        } else true
+    ): RotatePlaceTest? {
+        val currentDirIsValid = testPlaceState(context).let { currentDirTest ->
+            if (currentDirTest.testResult != PlaceTestResult.Success) {
+                if (!placeConfig.rotateForPlace)
+                    return RotatePlaceTest(currentDirTest, false, fakePlayer.rotation)
+                else false
+            } else true
+        }
 
         if (!placeConfig.axisRotate) {
             fakePlayer.rotation = checkedHit.targetRotation
-            if (testPlaceState(context) != PlaceTestResult.Success) return false
-            rot = fakePlayer.rotation
-            return true
+            return RotatePlaceTest(testPlaceState(context), currentDirIsValid, fakePlayer.rotation)
         }
 
         fakePlayer.rotation = player.rotation
-        if (testPlaceState(context) == PlaceTestResult.Success) {
-            rot = fakePlayer.rotation
-            return true
+        testPlaceState(context).let { playerRotTest ->
+            if (playerRotTest.testResult == PlaceTestResult.Success)
+                return RotatePlaceTest(playerRotTest, currentDirIsValid, fakePlayer.rotation)
         }
 
         PlaceDirection.entries.asReversed().forEachIndexed direction@{ index, direction ->
             fakePlayer.rotation = direction.rotation
-            when (testPlaceState(context)) {
+            val axisRotateTest = testPlaceState(context)
+            when (axisRotateTest.testResult) {
                 PlaceTestResult.BlockedByEntity -> return@direction
 
                 PlaceTestResult.NoIntegrity -> {
                     if (index != PlaceDirection.entries.lastIndex) return@direction
-                    return false
+                    return RotatePlaceTest(axisRotateTest, currentDirIsValid, fakePlayer.rotation)
                 }
 
-                else -> {
-                    rot = fakePlayer.rotation
-                    return true
-                }
+                else -> return RotatePlaceTest(axisRotateTest, currentDirIsValid, fakePlayer.rotation)
             }
         }
 
-        return true
+        return null
     }
 
-    private fun SafeContext.testPlaceState(context: ItemPlacementContext): PlaceTestResult {
-        resultState = blockItem.getPlacementState(context) ?: run {
+    private fun SafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
+        val resultState = blockItem.getPlacementState(context) ?: run {
             result(PlaceResult.BlockedByEntity(pos))
-            return PlaceTestResult.BlockedByEntity
+            return PlaceTest(state, PlaceTestResult.BlockedByEntity)
         }
 
         return if (!targetState.matches(resultState, pos, preProcessing.ignore)) {
             result(PlaceResult.NoIntegrity(pos, resultState, context, (targetState as? TargetState.State)?.blockState))
-            PlaceTestResult.NoIntegrity
-        } else PlaceTestResult.Success
+            PlaceTest(resultState, PlaceTestResult.NoIntegrity)
+        } else PlaceTest(resultState, PlaceTestResult.Success)
     }
 
+    private data class RotatePlaceTest(val placeTest: PlaceTest, val currentDirIsValid: Boolean, val rotation: Rotation) {
+        val isValid = placeTest.testResult == PlaceTestResult.Success
+    }
+    private data class PlaceTest(val resultState: BlockState, val testResult: PlaceTestResult)
     private enum class PlaceTestResult {
         Success,
         BlockedByEntity,

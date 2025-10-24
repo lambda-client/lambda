@@ -81,6 +81,7 @@ object HighwayTools : Module(
     private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }.group(Group.Structure)
     private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling").group(Group.Structure)
     private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }.group(Group.Structure)
+    private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND)).group(Group.Structure)
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once").group(Group.Structure)
 
@@ -265,11 +266,10 @@ object HighwayTools : Module(
         return transformed
     }
 
-    private fun target(target: Material, material: net.minecraft.block.Block): TargetState {
-        return when (target) {
-            Material.Solid -> TargetState.Solid
+    private fun target(target: Material, material: net.minecraft.block.Block) =
+        when (target) {
+            Material.Solid -> TargetState.Solid(replaceableSolids)
             Material.Block -> TargetState.Block(material)
             else -> throw IllegalStateException("Invalid material")
         }
-    }
 }

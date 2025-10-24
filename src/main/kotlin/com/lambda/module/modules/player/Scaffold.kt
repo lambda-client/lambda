@@ -92,7 +92,7 @@ object Scaffold : Module(
             val beneath = playerSupport.down(offset)
             runSafeAutomated {
                 scaffoldPositions(beneath)
-                    .associateWith { TargetState.Solid }
+                    .associateWith { TargetState.Solid(emptySet()) }
                     .toBlueprint()
                     .simulate()
                     .filterIsInstance<PlaceResult.Place>()

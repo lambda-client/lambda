@@ -78,7 +78,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = true
     }
 
-    data object Solid : TargetState(Type.Solid) {
+    data class Solid(val replace: Set<net.minecraft.block.Block>) : TargetState(Type.Solid) {
         override fun toString() = "Solid"
 
         context(safeContext: SafeContext)
@@ -86,13 +86,13 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state: BlockState,
             pos: BlockPos,
             ignoredProperties: Collection<Property<*>>
-        ) = with(safeContext) { state.isSolidBlock(world, pos) }
+        ) = with(safeContext) { state.isSolidBlock(world, pos) && state.block !in replace }
 
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
-                    it.item.block in inventoryConfig.disposables
+                    it.item.block in inventoryConfig.disposables && it.item.block !in replace
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
