@@ -163,8 +163,8 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         )
 
         /* the player is buried inside the block */
-        if (boxes.any { it.contains(eye) }) {
-            val currentCast = RotationManager.activeRotation.rayCast(buildConfig.interactReach, eye)
+        if (boxes.any { it.contains(pov) }) {
+            val currentCast = RotationManager.activeRotation.rayCast(buildConfig.interactReach, pov)
             currentCast?.blockResult?.let { blockHit ->
                 val rotationRequest = RotationRequest(lookAtBlock(pos), this)
                 val breakContext = BreakContext(
@@ -189,21 +189,21 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
             boxes.map { box ->
                 launch {
                     val sides = if (buildConfig.checkSideVisibility)
-                        box.getVisibleSurfaces(eye)
+                        box.getVisibleSurfaces(pov)
                     else Direction.entries.toSet()
 
                     scanSurfaces(box, sides, buildConfig.resolution) { side, vec ->
-                        if (eye distSq vec > reachSq) {
+                        if (pov distSq vec > reachSq) {
                             misses.add(vec)
                             return@scanSurfaces
                         }
 
-                        val newRotation = eye.rotationTo(vec)
+                        val newRotation = pov.rotationTo(vec)
 
                         val hit = if (buildConfig.strictRayCast) {
-                            newRotation.rayCast(buildConfig.interactReach, eye)?.blockResult
+                            newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult
                         } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov)
                             BlockHitResult(hitVec, side, pos, false)
                         } ?: return@scanSurfaces
 
@@ -218,11 +218,11 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         if (validHits.isEmpty()) {
             if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, eye, misses))
+                result(GenericResult.OutOfReach(pos, pov, misses))
                 return true
             }
 
-            result(GenericResult.NotVisible(pos, pos, eye.distanceTo(pos.vec3d)))
+            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
             return true
         }
 

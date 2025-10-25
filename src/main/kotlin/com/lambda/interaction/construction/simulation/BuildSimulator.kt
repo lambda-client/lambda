@@ -32,10 +32,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import net.minecraft.util.math.Vec3d
 
 object BuildSimulator : SimChecker<PostSimResult>() {
     context(automatedSafeContext: AutomatedSafeContext)
-    fun Blueprint.simulate(): Set<BuildResult> = runBlocking(Dispatchers.Default) {
+    fun Blueprint.simulate(pov: Vec3d = automatedSafeContext.player.eyePos): Set<BuildResult> = runBlocking(Dispatchers.Default) {
         val concurrentSet = ConcurrentSet<BuildResult>()
         with(automatedSafeContext) {
             structure.entries
@@ -45,6 +46,7 @@ object BuildSimulator : SimChecker<PostSimResult>() {
                             pos,
                             blockState(pos),
                             targetState,
+                            pov,
                             concurrentSet
                         ) ?: return@launch
                         with(simInfo) {

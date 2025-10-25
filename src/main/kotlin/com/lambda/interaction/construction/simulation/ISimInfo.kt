@@ -25,6 +25,7 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.verify.TargetState
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import java.util.*
 
 interface ISimInfo : Automated {
@@ -32,6 +33,7 @@ interface ISimInfo : Automated {
     val state: BlockState
     val targetState: TargetState
     val preProcessing: PreProcessingInfo
+    val pov: Vec3d
     val concurrentResults: MutableSet<BuildResult>
     val dependencyStack: Stack<Dependable>
 
@@ -41,10 +43,11 @@ interface ISimInfo : Automated {
             pos: BlockPos,
             state: BlockState,
             targetState: TargetState,
+            pov: Vec3d,
             concurrentResults: MutableSet<BuildResult>,
         ): SimInfo? {
             val preProcessingInfo = targetState.getProcessingInfo(pos) ?: return null
-            return SimInfo(pos, state, targetState, preProcessingInfo, concurrentResults, this)
+            return SimInfo(pos, state, targetState, preProcessingInfo, pov, concurrentResults, this)
         }
 
         @SimCheckerDsl
@@ -52,10 +55,11 @@ interface ISimInfo : Automated {
             pos: BlockPos = this.pos,
             state: BlockState = this.state,
             targetState: TargetState = this.targetState,
+            pov: Vec3d = this.pov,
             concurrentResults: MutableSet<BuildResult> = this.concurrentResults
         ): SimInfo? {
             val preProcessingInfo = targetState.getProcessingInfo(pos) ?: return null
-            return SimInfo(pos, state, targetState, preProcessingInfo, concurrentResults, this)
+            return SimInfo(pos, state, targetState, preProcessingInfo, pov, concurrentResults, this)
         }
     }
 }
@@ -65,6 +69,7 @@ data class SimInfo(
     override val state: BlockState,
     override val targetState: TargetState,
     override val preProcessing: PreProcessingInfo,
+    override val pov: Vec3d,
     override val concurrentResults: MutableSet<BuildResult>,
     val automated: Automated
 ) : ISimInfo, Automated by automated {

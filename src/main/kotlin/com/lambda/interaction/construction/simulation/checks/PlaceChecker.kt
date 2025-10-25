@@ -51,6 +51,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.distSq
+import com.lambda.util.math.minus
 import com.lambda.util.math.vec3d
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.copyPlayer
@@ -153,34 +154,36 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         // ToDo: For each hand
         val fakePlayer = copyPlayer(player).apply {
+            val newPos = pov - (this.eyePos - this.pos)
+            setPos(newPos.x, newPos.y, newPos.z)
             if (testBlockState.block::class in BlockUtils.interactionBlocks) {
                 input.sneaking = true
                 updatePose()
             }
         }
 
-        val eye = fakePlayer.eyePos
+        val pov = fakePlayer.eyePos
 
         withContext(Dispatchers.Default) {
             boxes.map { box ->
                 launch {
                     val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast) {
-                        box.getVisibleSurfaces(eye).intersect(setOf(side))
+                        box.getVisibleSurfaces(pov).intersect(setOf(side))
                     } else setOf(side)
 
                     scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { _, vec ->
-                        val distSquared = eye distSq vec
+                        val distSquared = pov distSq vec
                         if (distSquared > reachSq) {
                             misses.add(vec)
                             return@scanSurfaces
                         }
 
-                        val newRotation = eye.rotationTo(vec)
+                        val newRotation = pov.rotationTo(vec)
 
                         val hit = if (buildConfig.strictRayCast) {
-                            newRotation.rayCast(buildConfig.interactReach, eye)?.blockResult ?: return@scanSurfaces
+                            newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
                         } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye) ?: return@scanSurfaces
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
                             BlockHitResult(hitVec, side, pos, false)
                         }
 
@@ -195,11 +198,11 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         if (validHits.isEmpty()) {
             if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, eye, misses))
+                result(GenericResult.OutOfReach(pos, pov, misses))
                 return
             }
 
-            result(GenericResult.NotVisible(pos, pos, eye.distanceTo(pos.offset(side).vec3d)))
+            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.offset(side).vec3d)))
             return
         }
 

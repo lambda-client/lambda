@@ -17,19 +17,15 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
-import net.minecraft.util.math.Vec3d
 
 @DslMarker
 annotation class SimCheckerDsl
 
 @SimCheckerDsl
 abstract class SimChecker<T : BuildResult> {
-    val SafeContext.eye: Vec3d get() = player.eyePos
-
     protected fun ISimInfo.checkDependent(caller: Dependable?) {
         if (caller == null) {
             dependencyStack.clear()

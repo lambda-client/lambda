@@ -126,7 +126,7 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         boxes.forEach { box ->
             val refinedSides = if (buildConfig.checkSideVisibility) {
-                box.getVisibleSurfaces(eye).let { visibleSides ->
+                box.getVisibleSurfaces(pov).let { visibleSides ->
                     sides?.let { specific ->
                         visibleSides.intersect(specific)
                     } ?: visibleSides.toSet()
@@ -139,29 +139,29 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 buildConfig.resolution,
                 preProcessing.surfaceScan
             ) { hitSide, vec ->
-                val distSquared = eye distSq vec
+                val distSquared = pov distSq vec
                 if (distSquared > buildConfig.interactReach.pow(2)) {
                     misses.add(vec)
                     return@scanSurfaces
                 }
 
-                val newRotation = eye.rotationTo(vec)
+                val newRotation = pov.rotationTo(vec)
 
                 val hit = if (buildConfig.strictRayCast) {
-                    val rayCast = newRotation.rayCast(buildConfig.interactReach, eye)
+                    val rayCast = newRotation.rayCast(buildConfig.interactReach, pov)
                     when {
-                        rayCast != null && (!airPlace || eye distSq rayCast.pos <= distSquared) ->
+                        rayCast != null && (!airPlace || pov distSq rayCast.pos <= distSquared) ->
                             rayCast.blockResult
 
                         airPlace -> {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov)
                             BlockHitResult(hitVec, hitSide, pos, false)
                         }
 
                         else -> null
                     }
                 } else {
-                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, eye)
+                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov)
                     BlockHitResult(hitVec, hitSide, pos, false)
                 } ?: return@scanSurfaces
 
@@ -177,12 +177,12 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         if (validHits.isEmpty()) {
             if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, eye, misses))
+                result(GenericResult.OutOfReach(pos, pov, misses))
                 return
             }
 
             //ToDo: Must clean up surface scan usage / renders. Added temporary direction until changes are made
-            result(GenericResult.NotVisible(pos, pos, eye.distanceTo(pos.vec3d)))
+            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
             return
         }
 
