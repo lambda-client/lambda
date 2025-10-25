@@ -60,7 +60,8 @@ data class BreakContext(
     override fun compareTo(other: BuildContext): Int = runSafe {
         return when (other) {
             is BreakContext -> compareByDescending<BreakContext> {
-                if (breakConfig.sorter == BreakConfig.SortMode.Tool) it.hotbarIndex == HotbarManager.serverSlot
+                if (breakConfig.sorter == BreakConfig.SortMode.Tool)
+                    it.hotbarIndex == HotbarManager.serverSlot
                 else 0
             }.thenBy {
                 when (breakConfig.sorter) {

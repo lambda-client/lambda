@@ -42,6 +42,8 @@ import net.minecraft.util.math.Direction
 import java.awt.Color
 
 sealed class BreakResult : BuildResult() {
+    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+
     /**
      * Represents a successful break. All checks have been passed.
      * @param context The context of the break.
@@ -49,8 +51,7 @@ sealed class BreakResult : BuildResult() {
     data class Break(
         override val pos: BlockPos,
         override val context: BreakContext,
-    ) : Drawable, Contextual, BreakResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+    ) : Contextual, Drawable, BreakResult() {
         override val rank = Rank.BreakSuccess
 
         override fun ShapeBuilder.buildRenderer() {
@@ -60,7 +61,7 @@ sealed class BreakResult : BuildResult() {
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {
                 is Break -> context.compareTo(other.context)
-                else -> super.compareResult(other)
+                else -> super<Contextual>.compareResult(other)
             }
     }
 
@@ -73,7 +74,6 @@ sealed class BreakResult : BuildResult() {
         override val pos: BlockPos,
         val side: Direction,
     ) : Drawable, BreakResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.BreakNotExposed
         private val color = Color(46, 0, 0, 30)
 
@@ -98,7 +98,6 @@ sealed class BreakResult : BuildResult() {
         val blockState: BlockState,
         val badItem: Item
     ) : Drawable, Resolvable, BreakResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.BreakItemCantMine
         private val color = Color(255, 0, 0, 100)
 
@@ -134,7 +133,6 @@ sealed class BreakResult : BuildResult() {
         override val pos: BlockPos,
         val blockState: BlockState
     ) : Drawable, BreakResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.BreakSubmerge
         private val color = Color(114, 27, 255, 100)
 
@@ -150,7 +148,6 @@ sealed class BreakResult : BuildResult() {
         override val pos: BlockPos,
         val blockState: BlockState,
     ) : Drawable, BreakResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.BreakIsBlockedByFluid
         private val color = Color(50, 12, 112, 100)
 
@@ -166,7 +163,6 @@ sealed class BreakResult : BuildResult() {
         override val pos: BlockPos,
         val blockState: BlockState,
     ) : Navigable, Drawable, BreakResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.BreakPlayerOnTop
         private val color = Color(252, 3, 207, 100)
 
@@ -181,7 +177,6 @@ sealed class BreakResult : BuildResult() {
         override val pos: BlockPos,
         override val dependency: BuildResult
     ) : BreakResult(), Dependent by Dependent.Nested(dependency) {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = dependency.rank
         override val compareBy = lastDependency
     }

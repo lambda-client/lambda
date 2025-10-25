@@ -18,7 +18,20 @@
 package com.lambda.interaction.construction.result
 
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.request.hotbar.HotbarManager
 
-interface Contextual {
+interface Contextual : ComparableResult<Rank> {
     val context: BuildContext
+
+    override fun compareResult(other: ComparableResult<Rank>) =
+        when (other) {
+
+            is Contextual -> compareByDescending<Contextual> {
+                it.context.hotbarIndex == HotbarManager.serverSlot
+            }.thenBy {
+                it.compareBy.rank
+            }.compare(this, other)
+
+            else -> compareBy.rank.compareTo(other.compareBy.rank)
+        }
 }

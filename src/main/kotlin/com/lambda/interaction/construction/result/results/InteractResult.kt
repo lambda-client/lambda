@@ -28,11 +28,12 @@ import com.lambda.interaction.construction.result.Rank
 import net.minecraft.util.math.BlockPos
 
 sealed class InteractResult : BuildResult() {
+    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+
     data class Interact(
         override val pos: BlockPos,
         override val context: InteractionContext
     ) : Contextual, Drawable, InteractResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.InteractSuccess
 
         override fun ShapeBuilder.buildRenderer() {
@@ -42,7 +43,7 @@ sealed class InteractResult : BuildResult() {
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {
                 is Interact -> context.compareTo(other.context)
-                else -> super.compareResult(other)
+                else -> super<Contextual>.compareResult(other)
             }
     }
 
@@ -50,7 +51,6 @@ sealed class InteractResult : BuildResult() {
         override val pos: BlockPos,
         override val dependency: BuildResult
     ) : InteractResult(), Dependent by Dependent.Nested(dependency) {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = dependency.rank
         override val compareBy = lastDependency
     }

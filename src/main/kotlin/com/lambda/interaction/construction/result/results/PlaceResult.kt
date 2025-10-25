@@ -45,6 +45,8 @@ import java.awt.Color
  * First based on the context, then based on the [com.lambda.interaction.construction.result.Rank].
  */
 sealed class PlaceResult : BuildResult() {
+    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+
     /**
      * Represents a successful placement. All checks have been passed.
      * @param context The context of the placement.
@@ -53,7 +55,6 @@ sealed class PlaceResult : BuildResult() {
         override val pos: BlockPos,
         override val context: PlaceContext,
     ) : Contextual, Drawable, PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceSuccess
 
         override fun ShapeBuilder.buildRenderer() {
@@ -63,7 +64,7 @@ sealed class PlaceResult : BuildResult() {
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {
                 is Place -> context.compareTo(other.context)
-                else -> super.compareResult(other)
+                else -> super<Contextual>.compareResult(other)
             }
     }
 
@@ -84,7 +85,6 @@ sealed class PlaceResult : BuildResult() {
         val simulated: ItemPlacementContext,
         val actual: BlockState? = null,
     ) : Drawable, PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceNoIntegrity
         private val color = Color(252, 3, 3, 100)
 
@@ -101,7 +101,6 @@ sealed class PlaceResult : BuildResult() {
     data class BlockedByEntity(
         override val pos: BlockPos,
     ) : Navigable, PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceBlockedByPlayer
 
         // ToDo: check what type of entity. player -> leave box, other entity -> kill?
@@ -118,7 +117,6 @@ sealed class PlaceResult : BuildResult() {
         override val pos: BlockPos,
         val simulated: ItemPlacementContext,
     ) : Resolvable, PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceCantReplace
 
         context(automated: Automated)
@@ -135,7 +133,6 @@ sealed class PlaceResult : BuildResult() {
         override val pos: BlockPos,
         val simulated: ItemPlacementContext,
     ) : PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceScaffoldExceeded
     }
 
@@ -150,7 +147,6 @@ sealed class PlaceResult : BuildResult() {
         override val pos: BlockPos,
         val itemStack: ItemStack,
     ) : PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceBlockFeatureDisabled
     }
 
@@ -164,7 +160,6 @@ sealed class PlaceResult : BuildResult() {
         override val pos: BlockPos,
         val actualPos: BlockPos,
     ) : PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.UnexpectedPosition
     }
 
@@ -178,7 +173,6 @@ sealed class PlaceResult : BuildResult() {
     data class IllegalUsage(
         override val pos: BlockPos,
     ) : PlaceResult() {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = Rank.PlaceIllegalUsage
     }
 
@@ -186,7 +180,6 @@ sealed class PlaceResult : BuildResult() {
         override val pos: BlockPos,
         override val dependency: BuildResult
     ) : PlaceResult(), Dependent by Dependent.Nested(dependency) {
-        override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
         override val rank = lastDependency.rank
         override val compareBy = lastDependency
     }
