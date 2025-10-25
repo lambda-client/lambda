@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
@@ -38,12 +37,8 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
 import com.lambda.threading.runSafe
@@ -52,14 +47,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
-import com.lambda.util.math.distSq
-import com.lambda.util.math.vec3d
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import io.ktor.util.collections.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.block.Waterloggable
@@ -75,12 +63,9 @@ import net.minecraft.registry.tag.ItemTags.IRON_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.NETHERITE_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.STONE_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.WOODEN_TOOL_MATERIALS
-import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
 import kotlin.jvm.optionals.getOrNull
-import kotlin.math.pow
 
 class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     : SimChecker<BreakResult>(), Dependable,
@@ -134,14 +119,12 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     }
 
     private suspend fun AutomatedSafeContext.checkBreaks(): Boolean {
-        /* player is standing on top of the block */
         if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
             if (support != pos) return@let
             result(BreakResult.PlayerOnTop(pos, state))
             return true
         }
 
-        /* liquid needs to be submerged first to be broken */
         if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
             return simInfo(pos, state, TargetState.Solid(emptySet()))?.checkPlacements() ?: true
@@ -151,10 +134,6 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         if (breakConfig.avoidLiquids && affectsFluids()) return true
 
-        val voxelShape = state.getOutlineShape(world, pos)
-
-        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
-
         val swapStack = getSwapStack() ?: return true
         val instant = instantBreakable(
             state, pos,
@@ -162,8 +141,9 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
             breakConfig.breakThreshold
         )
 
-        /* the player is buried inside the block */
-        if (boxes.any { it.contains(pov) }) {
+        val shape = state.getOutlineShape(world, pos)
+
+        if (shape.boundingBoxes.map { it.offset(pos) }.any { it.contains(pov) }) {
             val currentCast = RotationManager.activeRotation.rayCast(buildConfig.interactReach, pov)
             currentCast?.blockResult?.let { blockHit ->
                 val rotationRequest = RotationRequest(lookAtBlock(pos), this)
@@ -181,58 +161,14 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
             return true
         }
 
-        val validHits = ConcurrentSet<CheckedHit>()
-        val misses = ConcurrentSet<Vec3d>()
-        val reachSq = buildConfig.interactReach.pow(2)
-
-        withContext(Dispatchers.Default) {
-            boxes.map { box ->
-                launch {
-                    val sides = if (buildConfig.checkSideVisibility)
-                        box.getVisibleSurfaces(pov)
-                    else Direction.entries.toSet()
-
-                    scanSurfaces(box, sides, buildConfig.resolution) { side, vec ->
-                        if (pov distSq vec > reachSq) {
-                            misses.add(vec)
-                            return@scanSurfaces
-                        }
-
-                        val newRotation = pov.rotationTo(vec)
-
-                        val hit = if (buildConfig.strictRayCast) {
-                            newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult
-                        } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov)
-                            BlockHitResult(hitVec, side, pos, false)
-                        } ?: return@scanSurfaces
-
-                        if (hit.blockResult?.blockPos != pos) return@scanSurfaces
-                        val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
-
-                        validHits.add(checked)
-                    }
-                }
-            }.joinAll()
-        }
-
-        if (validHits.isEmpty()) {
-            if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, pov, misses))
-                return true
-            }
-
-            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
-            return true
-        }
+        val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), preProcessing) ?: return true
 
         val bestHit = buildConfig.pointSelection.select(validHits) ?: return true
-        val blockHit = bestHit.hit.blockResult ?: return true
         val target = lookAt(bestHit.targetRotation, 0.001)
         val rotationRequest = RotationRequest(target, this)
 
         val breakContext = BreakContext(
-            blockHit,
+            bestHit.hit.blockResult ?: return true,
             rotationRequest,
             swapStack.inventoryIndexOrSelected,
             stackSelection,
@@ -245,7 +181,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return true
     }
 
-    private fun SafeContext.getSwapStack(): ItemStack? {
+    private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
         val silentSwapSelection = selectContainer {
             ofAnyType(MaterialContainer.Rank.HOTBAR)
         }

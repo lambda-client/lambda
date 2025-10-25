@@ -32,23 +32,16 @@ import com.lambda.interaction.material.ContainerSelection.Companion.selectContai
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.request.rotating.visibilty.lookAt
-import com.lambda.util.math.distSq
-import com.lambda.util.math.vec3d
-import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
-import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
-import kotlin.math.pow
 
 class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     : SimChecker<InteractResult>(), Dependable,
@@ -60,14 +53,14 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     companion object {
         @SimCheckerDsl
         context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        fun SimInfo.checkPostProcessing() =
+        suspend fun SimInfo.checkPostProcessing() =
             PostProcessingChecker(this).run {
                 checkDependent(dependable)
                 automatedSafeContext.checkPostProcessing()
             }
     }
 
-    private fun AutomatedSafeContext.checkPostProcessing(): Boolean {
+    private suspend fun AutomatedSafeContext.checkPostProcessing(): Boolean {
         val targetState = (targetState as? TargetState.State) ?: return false
 
         if (!targetState.matches(state, pos, preProcessing.ignore)) return false
@@ -112,112 +105,51 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return true
     }
 
-    private fun AutomatedSafeContext.simInteraction(
+    private suspend fun AutomatedSafeContext.simInteraction(
         expectedState: BlockState,
-        sides: Set<Direction>? = null,
-        item: Item? = null,
-        placing: Boolean = false
+        sides: Set<Direction> = Direction.entries.toSet(),
+        item: Item? = null
     ) {
-        val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-        val validHits = mutableListOf<CheckedHit>()
-        val blockedHits = mutableSetOf<Vec3d>()
-        val misses = mutableSetOf<Vec3d>()
-        val airPlace = placing && placeConfig.airPlace.isEnabled
+        val validHits = scanShape(pov, state.getOutlineShape(world, pos), pos, sides, preProcessing)
+            ?: return
 
-        boxes.forEach { box ->
-            val refinedSides = if (buildConfig.checkSideVisibility) {
-                box.getVisibleSurfaces(pov).let { visibleSides ->
-                    sides?.let { specific ->
-                        visibleSides.intersect(specific)
-                    } ?: visibleSides.toSet()
-                }
-            } else sides ?: Direction.entries.toSet()
+        val swapStack = getSwapStack(item ?: player.mainHandStack.item) ?: return
 
-            scanSurfaces(
-                box,
-                refinedSides,
-                buildConfig.resolution,
-                preProcessing.surfaceScan
-            ) { hitSide, vec ->
-                val distSquared = pov distSq vec
-                if (distSquared > buildConfig.interactReach.pow(2)) {
-                    misses.add(vec)
-                    return@scanSurfaces
-                }
+        selectHit(validHits, expectedState, swapStack)
+    }
 
-                val newRotation = pov.rotationTo(vec)
-
-                val hit = if (buildConfig.strictRayCast) {
-                    val rayCast = newRotation.rayCast(buildConfig.interactReach, pov)
-                    when {
-                        rayCast != null && (!airPlace || pov distSq rayCast.pos <= distSquared) ->
-                            rayCast.blockResult
-
-                        airPlace -> {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov)
-                            BlockHitResult(hitVec, hitSide, pos, false)
-                        }
-
-                        else -> null
-                    }
-                } else {
-                    val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov)
-                    BlockHitResult(hitVec, hitSide, pos, false)
-                } ?: return@scanSurfaces
-
-                val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
-                if (hit.blockResult?.blockPos != pos) {
-                    blockedHits.add(vec)
-                    return@scanSurfaces
-                }
-
-                validHits.add(checked)
-            }
+    private fun AutomatedSafeContext.getSwapStack(item: Item): ItemStack? {
+        val stackSelection = item.select()
+        val hotbarCandidates = selectContainer {
+            ofAnyType(MaterialContainer.Rank.HOTBAR)
+        }.let { predicate ->
+            stackSelection.containerWithMaterial( predicate)
         }
 
-        if (validHits.isEmpty()) {
-            if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, pov, misses))
-                return
-            }
-
-            //ToDo: Must clean up surface scan usage / renders. Added temporary direction until changes are made
-            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
-            return
+        if (hotbarCandidates.isEmpty()) {
+            result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
+            return null
         }
 
+        return hotbarCandidates.first().matchingStacks(stackSelection).first()
+    }
+
+    private fun AutomatedSafeContext.selectHit(
+        validHits: Collection<CheckedHit>,
+        expectedState: BlockState,
+        swapStack: ItemStack
+    ) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit.blockResult ?: return
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
             val context = InteractionContext(
                 checkedResult,
                 RotationRequest(rotationTarget, this),
-                player.inventory.selectedSlot,
+                swapStack.inventoryIndex,
                 state,
                 expectedState,
                 this
             )
-
-            val stackSelection = (item ?: player.mainHandStack.item).select()
-            val hotbarCandidates = selectContainer {
-                matches(stackSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
-            }.let { predicate ->
-                stackSelection.containerWithMaterial( predicate)
-            }
-
-            if (hotbarCandidates.isEmpty()) {
-                result(
-                    GenericResult.WrongItemSelection(
-                        pos,
-                        stackSelection,
-                        player.mainHandStack
-                    )
-                )
-                return
-            } else {
-                context.hotbarIndex =
-                    player.hotbar.indexOf(hotbarCandidates.first().matchingStacks(stackSelection).first())
-            }
 
             result(InteractResult.Interact(pos, context))
         }

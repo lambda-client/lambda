@@ -17,9 +17,28 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.util.math.distSq
+import com.lambda.util.math.vec3d
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import io.ktor.util.collections.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShape
+import kotlin.math.pow
 
 @DslMarker
 annotation class SimCheckerDsl
@@ -47,5 +66,63 @@ abstract class SimChecker<T : BuildResult> {
                     with(dependable) { asDependent(acc) }
                 }
         )
+    }
+
+    suspend fun ISimInfo.scanShape(
+        pov: Vec3d,
+        voxelShape: VoxelShape,
+        pos: BlockPos,
+        sides: Set<Direction>,
+        preProcessing: PreProcessingInfo
+    ): Set<CheckedHit>? {
+        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
+
+        val reachSq = buildConfig.interactReach.pow(2)
+
+        val validHits = ConcurrentSet<CheckedHit>()
+        val misses = ConcurrentSet<Vec3d>()
+
+        withContext(Dispatchers.Default) {
+            boxes.map { box ->
+                launch {
+                    val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast) {
+                        sides.intersect(box.getVisibleSurfaces(pov))
+                    } else sides
+
+                    scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { side, vec ->
+                        if (pov distSq vec > reachSq) {
+                            misses.add(vec)
+                            return@scanSurfaces
+                        }
+
+                        val newRotation = pov.rotationTo(vec)
+
+                        val hit = if (buildConfig.strictRayCast) {
+                            newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
+                        } else {
+                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
+                            BlockHitResult(hitVec, side, pos, false)
+                        }
+
+                        if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
+                        val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
+
+                        validHits.add(checked)
+                    }
+                }
+            }.joinAll()
+        }
+
+        if (validHits.isEmpty()) {
+            if (misses.isNotEmpty()) {
+                result(GenericResult.OutOfReach(pos, pov, misses))
+                return null
+            }
+
+            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
+            return null
+        }
+
+        return validHits
     }
 }

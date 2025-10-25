@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
@@ -36,27 +35,20 @@ import com.lambda.interaction.material.container.ContainerManager.containerWithM
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.PlaceDirection
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.interaction.request.rotating.visibilty.lookInDirection
-import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
-import com.lambda.util.math.distSq
 import com.lambda.util.math.minus
-import com.lambda.util.math.vec3d
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import io.ktor.util.collections.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -69,42 +61,15 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
-import net.minecraft.item.Items
 import net.minecraft.util.Hand
-import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
-import kotlin.math.pow
 
 class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     : SimChecker<PlaceResult>(), Dependable,
     ISimInfo by simInfo
 {
-    private val swapStack by lazy {
-        runSafeAutomated {
-            val optimalStack = targetState.getStack(pos)
-            val stackSelection = optimalStack.item.select()
-            val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
-            val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
-                result(
-                    GenericResult.WrongItemSelection(
-                        pos,
-                        optimalStack.item.select(),
-                        player.mainHandStack
-                    )
-                )
-                return@runSafeAutomated ItemStack(Items.AIR)
-            }
-            return@runSafeAutomated stackSelection.filterStacks(container.stacks).run {
-                firstOrNull { it.inventoryIndex == player.inventory.selectedSlot }
-                    ?: first()
-            }
-        } ?: ItemStack(Items.AIR)
-    }
-    private val blockItem get() = swapStack.blockItem
-
     override fun asDependent(buildResult: BuildResult) =
         PlaceResult.Dependency(pos, buildResult)
 
@@ -140,17 +105,11 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         if (!world.worldBorder.contains(pos)) return
 
         val testBlockState = blockState(pos)
-        val voxelShape = testBlockState.getOutlineShape(world, pos).let { outlineShape ->
+        val shape = testBlockState.getOutlineShape(world, pos).let { outlineShape ->
             if (!outlineShape.isEmpty || !placeConfig.airPlace.isEnabled) outlineShape
             else VoxelShapes.fullCube()
         }
-        if (voxelShape.isEmpty) return
-
-        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
-
-        val validHits = ConcurrentSet<CheckedHit>()
-        val misses = ConcurrentSet<Vec3d>()
-        val reachSq = buildConfig.interactReach.pow(2)
+        if (shape.isEmpty) return
 
         // ToDo: For each hand
         val fakePlayer = copyPlayer(player).apply {
@@ -161,60 +120,39 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 updatePose()
             }
         }
-
         val pov = fakePlayer.eyePos
 
-        withContext(Dispatchers.Default) {
-            boxes.map { box ->
-                launch {
-                    val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast) {
-                        box.getVisibleSurfaces(pov).intersect(setOf(side))
-                    } else setOf(side)
+        val validHits = scanShape(pov, shape, pos, setOf(side), preProcessing) ?: return
 
-                    scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { _, vec ->
-                        val distSquared = pov distSq vec
-                        if (distSquared > reachSq) {
-                            misses.add(vec)
-                            return@scanSurfaces
-                        }
-
-                        val newRotation = pov.rotationTo(vec)
-
-                        val hit = if (buildConfig.strictRayCast) {
-                            newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
-                        } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
-                            BlockHitResult(hitVec, side, pos, false)
-                        }
-
-                        if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
-                        val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
-
-                        validHits.add(checked)
-                    }
-                }
-            }.joinAll()
-        }
-
-        if (validHits.isEmpty()) {
-            if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, pov, misses))
-                return
-            }
-
-            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.offset(side).vec3d)))
+        val swapStack = getSwapStack() ?: return
+        if (!swapStack.item.isEnabled(world.enabledFeatures)) {
+            result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
+            supervisorScope.cancel()
             return
         }
 
-        if (swapStack.item == Items.AIR)
-            supervisorScope.cancel()
-        else if (!swapStack.item.isEnabled(world.enabledFeatures)) {
-            result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
-            supervisorScope.cancel()
-        } else selectHitPos(validHits, fakePlayer)
+        selectHitPos(validHits, fakePlayer, swapStack)
     }
 
-    private fun AutomatedSafeContext.selectHitPos(validHits: Collection<CheckedHit>, fakePlayer: ClientPlayerEntity) {
+    private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
+        val optimalStack = targetState.getStack(pos)
+        val stackSelection = optimalStack.item.select()
+        val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
+        val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
+            result(GenericResult.WrongItemSelection(pos, optimalStack.item.select(), player.mainHandStack))
+            return null
+        }
+        return stackSelection.filterStacks(container.stacks).run {
+            firstOrNull { it.inventoryIndex == player.inventory.selectedSlot }
+                ?: firstOrNull()
+        }
+    }
+
+    private fun AutomatedSafeContext.selectHitPos(
+        validHits: Collection<CheckedHit>,
+        fakePlayer: ClientPlayerEntity,
+        swapStack: ItemStack
+    ) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val hitResult = checkedHit.hit.blockResult ?: return
 
@@ -272,7 +210,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return
     }
 
-    private fun SafeContext.simRotatePlace(
+    private fun AutomatedSafeContext.simRotatePlace(
         fakePlayer: ClientPlayerEntity,
         checkedHit: CheckedHit,
         context: ItemPlacementContext
@@ -300,8 +238,8 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return null
     }
 
-    private fun SafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
-        val resultState = blockItem.getPlacementState(context) ?: run {
+    private fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
+        val resultState = context.stack.blockItem.getPlacementState(context) ?: run {
             result(PlaceResult.BlockedByEntity(pos))
             return PlaceTest(state, PlaceTestResult.BlockedByEntity)
         }

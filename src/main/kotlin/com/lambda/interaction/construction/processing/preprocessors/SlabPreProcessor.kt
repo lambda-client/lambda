@@ -40,14 +40,14 @@ object SlabPreProcessor : PlacementProcessor() {
         val currentState = runSafe { blockState(pos) } ?: return
 
         val surfaceScan = when (slab) {
-            SlabType.BOTTOM -> SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Y)
-            SlabType.TOP -> SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Y)
+            SlabType.BOTTOM -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
+            SlabType.TOP -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
             SlabType.DOUBLE -> {
                 accumulator.addIgnores(Properties.SLAB_TYPE)
                 if (currentState.block !is SlabBlock) SurfaceScan.DEFAULT
                 else when (currentState.get(Properties.SLAB_TYPE)) {
-                    SlabType.BOTTOM -> SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Y)
-                    else -> SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Y)
+                    SlabType.BOTTOM -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
+                    else -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
                 }
             }
         }

@@ -176,43 +176,43 @@ object VisibilityChecker {
             // Determine the bounds to scan based on the axis and mode. Skip if no part of the face is in the desired bounds
             val (startX, endX) = if (scan.axis == Direction.Axis.X && maxX != minX) {
                 when (scan.mode) {
-                    ScanMode.GREATER_BLOCK_HALF -> (floor(minX) + 0.501).let { center ->
+                    ScanMode.GreaterBlockHalf -> (floor(minX) + 0.501).let { center ->
                         if (maxX < center) return@forEach
                         minX.coerceAtLeast(center) to maxX
                     }
-                    ScanMode.LESSER_BLOCK_HALF -> (floor(maxX) + 0.499).let { center ->
+                    ScanMode.LesserBlockHalf -> (floor(maxX) + 0.499).let { center ->
                         if (minX > center) return@forEach
                         minX to maxX.coerceAtMost(center)
                     }
-                    ScanMode.FULL -> minX to maxX
+                    ScanMode.Full -> minX to maxX
                 }
             } else minX to maxX
 
             val (startY, endY) = if (scan.axis == Direction.Axis.Y && maxY != minY) {
                 when (scan.mode) {
-                    ScanMode.GREATER_BLOCK_HALF -> (floor(minY) + 0.501).let { center ->
+                    ScanMode.GreaterBlockHalf -> (floor(minY) + 0.501).let { center ->
                         if (maxY < center) return@forEach
                         minY.coerceAtLeast(center) to maxY
                     }
-                    ScanMode.LESSER_BLOCK_HALF -> (floor(maxY) + 0.499).let { center ->
+                    ScanMode.LesserBlockHalf -> (floor(maxY) + 0.499).let { center ->
                         if (minY > center) return@forEach
                         minY to maxY.coerceAtMost(center)
                     }
-                    ScanMode.FULL -> minY to maxY
+                    ScanMode.Full -> minY to maxY
                 }
             } else minY to maxY
 
             val (startZ, endZ) = if (scan.axis == Direction.Axis.Z && maxZ != minZ) {
                 when (scan.mode) {
-                    ScanMode.GREATER_BLOCK_HALF -> (floor(minZ) + 0.501).let { center ->
+                    ScanMode.GreaterBlockHalf -> (floor(minZ) + 0.501).let { center ->
                         if (maxZ < center) return@forEach
                         minZ.coerceAtLeast(center) to maxZ
                     }
-                    ScanMode.LESSER_BLOCK_HALF -> (floor(maxZ) + 0.499).let { center ->
+                    ScanMode.LesserBlockHalf -> (floor(maxZ) + 0.499).let { center ->
                         if (minZ > center) return@forEach
                         minZ to maxZ.coerceAtMost(center)
                     }
-                    ScanMode.FULL -> minZ to maxZ
+                    ScanMode.Full -> minZ to maxZ
                 }
             } else minZ to maxZ
 
