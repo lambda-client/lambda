@@ -53,6 +53,7 @@ import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
 import com.lambda.util.math.distSq
+import com.lambda.util.math.vec3d
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import io.ktor.util.collections.*
 import kotlinx.coroutines.Dispatchers
@@ -187,9 +188,10 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         withContext(Dispatchers.Default) {
             boxes.map { box ->
                 launch {
-                    val sides = if (buildConfig.checkSideVisibility) {
-                        box.getVisibleSurfaces(eye).intersect(Direction.entries)
-                    } else Direction.entries.toSet()
+                    val sides = if (buildConfig.checkSideVisibility)
+                        box.getVisibleSurfaces(eye)
+                    else Direction.entries.toSet()
+
                     scanSurfaces(box, sides, buildConfig.resolution) { side, vec ->
                         if (eye distSq vec > reachSq) {
                             misses.add(vec)
@@ -215,8 +217,12 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         }
 
         if (validHits.isEmpty()) {
-            // ToDo: If we can only mine exposed surfaces we need to add not visible result here
-            result(GenericResult.OutOfReach(pos, eye, misses))
+            if (misses.isNotEmpty()) {
+                result(GenericResult.OutOfReach(pos, eye, misses))
+                return true
+            }
+
+            result(GenericResult.NotVisible(pos, pos, eye.distanceTo(pos.vec3d)))
             return true
         }
 

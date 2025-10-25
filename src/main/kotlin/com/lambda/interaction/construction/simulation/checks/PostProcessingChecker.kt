@@ -178,17 +178,11 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         if (validHits.isEmpty()) {
             if (misses.isNotEmpty()) {
                 result(GenericResult.OutOfReach(pos, eye, misses))
-            } else {
-                //ToDo: Must clean up surface scan usage / renders. Added temporary direction until changes are made
-                result(
-                    GenericResult.NotVisible(
-                        pos,
-                        pos,
-                        Direction.UP,
-                        eye.distanceTo(pos.offset(Direction.UP).vec3d)
-                    )
-                )
+                return
             }
+
+            //ToDo: Must clean up surface scan usage / renders. Added temporary direction until changes are made
+            result(GenericResult.NotVisible(pos, pos, eye.distanceTo(pos.vec3d)))
             return
         }
 

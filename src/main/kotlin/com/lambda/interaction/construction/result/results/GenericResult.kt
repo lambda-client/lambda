@@ -32,7 +32,6 @@ import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
@@ -45,8 +44,7 @@ sealed class GenericResult : BuildResult() {
     data class NotVisible(
         override val pos: BlockPos,
         val hitPos: BlockPos,
-        val side: Direction,
-        val distance: Double,
+        val distance: Double
     ) : Drawable, GenericResult() {
         override val name: String get() = "Not visible at $pos."
         override val rank = Rank.NotVisible

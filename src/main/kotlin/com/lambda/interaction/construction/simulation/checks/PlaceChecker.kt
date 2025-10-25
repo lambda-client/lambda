@@ -55,6 +55,7 @@ import com.lambda.util.math.vec3d
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import io.ktor.util.collections.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -146,8 +147,8 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 
-        val validHits = mutableListOf<CheckedHit>()
-        val misses = mutableSetOf<Vec3d>()
+        val validHits = ConcurrentSet<CheckedHit>()
+        val misses = ConcurrentSet<Vec3d>()
         val reachSq = buildConfig.interactReach.pow(2)
 
         // ToDo: For each hand
@@ -198,7 +199,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 return
             }
 
-            result(GenericResult.NotVisible(pos, pos, side, eye.distanceTo(pos.offset(side).vec3d)))
+            result(GenericResult.NotVisible(pos, pos, eye.distanceTo(pos.offset(side).vec3d)))
             return
         }
 
@@ -210,7 +211,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         } else selectHitPos(validHits, fakePlayer)
     }
 
-    private fun AutomatedSafeContext.selectHitPos(validHits: List<CheckedHit>, fakePlayer: ClientPlayerEntity) {
+    private fun AutomatedSafeContext.selectHitPos(validHits: Collection<CheckedHit>, fakePlayer: ClientPlayerEntity) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val hitResult = checkedHit.hit.blockResult ?: return
 
