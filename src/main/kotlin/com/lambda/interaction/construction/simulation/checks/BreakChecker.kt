@@ -119,6 +119,8 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     }
 
     private suspend fun AutomatedSafeContext.checkBreaks(): Boolean {
+        if (state.isEmpty) return false
+
         if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
             if (support != pos) return@let
             result(BreakResult.PlayerOnTop(pos, state))
@@ -129,8 +131,6 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
             result(BreakResult.Submerge(pos, state))
             return simInfo(pos, state, TargetState.Solid(emptySet()))?.checkPlacements() ?: true
         }
-
-        if (state.isEmpty) return false
 
         if (breakConfig.avoidLiquids && affectsFluids()) return true
 
