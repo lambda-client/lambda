@@ -21,6 +21,7 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.SimChecker
+import com.lambda.interaction.construction.simulation.SimCheckerDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.player.gamemode
@@ -28,6 +29,7 @@ import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
 
 object RequirementChecks : SimChecker<PreSimResult>() {
+    @SimCheckerDsl
     context(automatedSafeContext: AutomatedSafeContext)
     fun SimInfo.checkRequirements(): Boolean = with(automatedSafeContext) {
         // the chunk is not loaded
