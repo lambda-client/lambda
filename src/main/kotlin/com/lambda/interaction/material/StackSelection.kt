@@ -58,8 +58,7 @@ class StackSelection {
     /**
      * Filters the given [stacks], sorts them with the [comparator] and returns the first value
      */
-    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? =
-        filterStacks(stacks).firstOrNull()
+    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = filterStacks(stacks).firstOrNull()
 
     fun matches(stack: ItemStack): Boolean = filterStack(stack)
 
@@ -169,7 +168,7 @@ class StackSelection {
         else false
     }
 
-    fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
+    fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { !blockState.isToolRequired || it.isSuitableFor(blockState) }
 
     fun hasTag(tag: TagKey<Item>): (ItemStack) -> Boolean = { it.isIn(tag) }
 

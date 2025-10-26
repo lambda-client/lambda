@@ -49,7 +49,6 @@ object EnchantmentUtils {
             ?.intValue
             ?: 0
 
-
     /**
      * Iterates over all the enchantments for the given [ItemStack]
      */
