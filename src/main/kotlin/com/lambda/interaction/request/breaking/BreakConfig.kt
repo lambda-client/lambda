@@ -57,6 +57,7 @@ interface BreakConfig : RequestConfig {
     val avoidSupporting: Boolean
     val ignoredBlocks: Set<Block>
 
+    val efficientOnly: Boolean
     val suitableToolsOnly: Boolean
     val forceSilkTouch: Boolean
     val forceFortunePickaxe: Boolean

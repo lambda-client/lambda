@@ -79,6 +79,7 @@ class BreakSettings(
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, description = "Blocks that wont be broken", visibility = vis).group(baseGroup, Group.General)
 
     // Tool
+    override val efficientOnly by c.setting("Efficient Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
     override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)
     override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { vis() && swapMode.isEnabled() }.group(baseGroup, Group.General)

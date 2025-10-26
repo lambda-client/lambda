@@ -23,10 +23,11 @@ import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
+import java.util.*
 
 object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor>()
-    private val processorCache = mutableMapOf<BlockState, PreProcessingInfo?>()
+    private val processorCache = Collections.synchronizedMap<BlockState, PreProcessingInfo?>(mutableMapOf())
 
     val postProcessedProperties = setOf(
         Properties.EXTENDED,

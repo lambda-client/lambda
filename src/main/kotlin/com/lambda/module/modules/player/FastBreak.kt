@@ -66,6 +66,7 @@ object FastBreak : Module(
         editTyped(
             ::avoidLiquids,
             ::avoidSupporting,
+            ::efficientOnly,
             ::suitableToolsOnly,
             ::rotateForBreak,
             ::doubleBreak

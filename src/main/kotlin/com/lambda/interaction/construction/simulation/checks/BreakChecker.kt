@@ -33,19 +33,19 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
-import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
-import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
+import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
@@ -71,40 +71,6 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
     : SimChecker<BreakResult>(), Dependable,
     ISimInfo by simInfo
 {
-    val stackSelection: StackSelection by lazy {
-        runSafe {
-            selectStack(
-                count = 0,
-                sorter = compareByDescending<ItemStack> {
-                    it.canBreak(CachedBlockPosition(world, pos, false))
-                }.thenByDescending {
-                    state.calcItemBlockBreakingDelta(pos, it)
-                }
-            ) {
-                EVERYTHING
-                    .andIf(breakConfig.suitableToolsOnly) {
-                        isSuitableForBreaking(state)
-                    }.andIf(breakConfig.forceSilkTouch) {
-                        hasEnchantment(Enchantments.SILK_TOUCH)
-                    }.andIf(breakConfig.forceFortunePickaxe) {
-                        hasEnchantment(Enchantments.FORTUNE)
-                    }.andIf(!breakConfig.useWoodenTools) {
-                        hasTag(WOODEN_TOOL_MATERIALS).not()
-                    }.andIf(!breakConfig.useStoneTools) {
-                        hasTag(STONE_TOOL_MATERIALS).not()
-                    }.andIf(!breakConfig.useIronTools) {
-                        hasTag(IRON_TOOL_MATERIALS).not()
-                    }.andIf(!breakConfig.useDiamondTools) {
-                        hasTag(DIAMOND_TOOL_MATERIALS).not()
-                    }.andIf(!breakConfig.useGoldTools) {
-                        hasTag(GOLD_TOOL_MATERIALS).not()
-                    }.andIf(!breakConfig.useNetheriteTools) {
-                        hasTag(NETHERITE_TOOL_MATERIALS).not()
-                    }
-            }
-        } ?: EVERYTHING.select()
-    }
-
     override fun asDependent(buildResult: BuildResult) =
         BreakResult.Dependency(pos, buildResult)
 
@@ -134,7 +100,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
         if (breakConfig.avoidLiquids && affectsFluids()) return true
 
-        val swapStack = getSwapStack() ?: return true
+        val (swapStack, stackSelection) = getSwapStack() ?: return true
         val instant = instantBreakable(
             state, pos,
             if (breakConfig.swapMode.isEnabled()) swapStack else player.mainHandStack,
@@ -181,35 +147,67 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return true
     }
 
-    private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
+    private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
+        val stackSelection = selectStack(
+            count = 0,
+            sorter = compareByDescending<ItemStack> {
+                it.canBreak(CachedBlockPosition(world, pos, false))
+            }.thenByDescending {
+                state.calcItemBlockBreakingDelta(pos, it)
+            }.thenByDescending {
+                it.inventoryIndex == HotbarManager.serverSlot
+            }
+        ) {
+            EVERYTHING
+                .andIf(breakConfig.efficientOnly) {
+                    isEfficientForBreaking(state)
+                }.andIf(breakConfig.suitableToolsOnly) {
+                    isSuitableForBreaking(state)
+                }.andIf(breakConfig.forceSilkTouch) {
+                    hasEnchantment(Enchantments.SILK_TOUCH)
+                }.andIf(breakConfig.forceFortunePickaxe) {
+                    hasEnchantment(Enchantments.FORTUNE)
+                }.andIf(!breakConfig.useWoodenTools) {
+                    hasTag(WOODEN_TOOL_MATERIALS).not()
+                }.andIf(!breakConfig.useStoneTools) {
+                    hasTag(STONE_TOOL_MATERIALS).not()
+                }.andIf(!breakConfig.useIronTools) {
+                    hasTag(IRON_TOOL_MATERIALS).not()
+                }.andIf(!breakConfig.useDiamondTools) {
+                    hasTag(DIAMOND_TOOL_MATERIALS).not()
+                }.andIf(!breakConfig.useGoldTools) {
+                    hasTag(GOLD_TOOL_MATERIALS).not()
+                }.andIf(!breakConfig.useNetheriteTools) {
+                    hasTag(NETHERITE_TOOL_MATERIALS).not()
+                }
+        }
+
         val silentSwapSelection = selectContainer {
             ofAnyType(MaterialContainer.Rank.HOTBAR)
         }
 
-        val swapCandidates = stackSelection.containerWithMaterial(silentSwapSelection)
+        val swapCandidates = stackSelection
+            .containerWithMaterial(silentSwapSelection)
+            .map { it.matchingStacks(stackSelection) }
+            .flatten()
         if (swapCandidates.isEmpty()) {
             result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
             return null
         }
 
-        return swapCandidates
-            .map { it.matchingStacks(stackSelection) }
-            .asSequence()
-            .flatten()
-            .let { containerStacks ->
-                var bestStack = ItemStack.EMPTY
-                var bestBreakDelta = -1f
-                containerStacks.forEach { stack ->
-                    val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
-                    if (breakDelta > bestBreakDelta ||
-                        (stack == player.mainHandStack && breakDelta >= bestBreakDelta)
-                    ) {
-                        bestBreakDelta = breakDelta
-                        bestStack = stack
-                    }
-                }
-                bestStack
+        var bestStack = ItemStack.EMPTY
+        var bestBreakDelta = -1f
+        swapCandidates.forEach { stack ->
+            val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
+            if (breakDelta > bestBreakDelta ||
+                (stack == player.mainHandStack && breakDelta >= bestBreakDelta)
+            ) {
+                bestBreakDelta = breakDelta
+                bestStack = stack
             }
+        }
+        return if (bestBreakDelta == -1f) null
+        else Pair(bestStack, stackSelection)
     }
 
     private suspend fun AutomatedSafeContext.affectsFluids(): Boolean {

@@ -20,6 +20,7 @@ package com.lambda.interaction.material
 import com.lambda.interaction.material.StackSelection.Companion.StackSelectionDsl
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
+import com.lambda.util.item.ItemUtils
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.component.ComponentType
@@ -31,6 +32,7 @@ import net.minecraft.item.consume.UseAction
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
+import java.util.*
 import kotlin.reflect.KClass
 
 /**
@@ -159,6 +161,14 @@ class StackSelection {
      */
     fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = stacks::contains
 
+    fun isEfficientForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { itemStack ->
+        val hasEfficientTool = efficientToolCache.getOrPut(blockState) {
+            ItemUtils.tools.any { it.getMiningSpeed(it.defaultStack, blockState) > 1f }
+        }
+        if (hasEfficientTool) itemStack.item.getMiningSpeed(itemStack, blockState) > 1f
+        else false
+    }
+
     fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
 
     fun hasTag(tag: TagKey<Item>): (ItemStack) -> Boolean = { it.isIn(tag) }
@@ -274,6 +284,8 @@ class StackSelection {
         val EVERYTHING: (ItemStack) -> Boolean = { true }
         val NOTHING: (ItemStack) -> Boolean = { false }
         val NO_COMPARE: Comparator<ItemStack> = Comparator { _, _ -> 0 }
+
+        val efficientToolCache: MutableMap<BlockState, Boolean> = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
 
         @StackSelectionDsl
         fun Item.select() = selectStack { isItem(this@select) }

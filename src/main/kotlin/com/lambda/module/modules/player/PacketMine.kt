@@ -79,7 +79,12 @@ object PacketMine : Module(
     private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Break, BreakSettings.Group.Cosmetic)
 
     override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editTyped(::avoidLiquids, ::avoidSupporting, ::suitableToolsOnly) { defaultValue(false) }
+        editTyped(
+            ::avoidLiquids,
+            ::avoidSupporting,
+            ::efficientOnly,
+            ::suitableToolsOnly
+        ) { defaultValue(false) }
         ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 
         ::rebreak.insert(::rebreakMode, SettingGroup.InsertMode.Below)
