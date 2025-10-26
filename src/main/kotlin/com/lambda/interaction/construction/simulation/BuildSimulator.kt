@@ -52,6 +52,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.hasFluid
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
@@ -67,11 +68,13 @@ import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.block.OperatorBlock
+import net.minecraft.block.ShapeContext
 import net.minecraft.block.SlabBlock
 import net.minecraft.block.Waterloggable
 import net.minecraft.block.enums.SlabType
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.enchantment.Enchantments
+import net.minecraft.entity.Entity
 import net.minecraft.fluid.FlowableFluid
 import net.minecraft.fluid.LavaFluid
 import net.minecraft.fluid.WaterFluid
@@ -80,6 +83,7 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
+import net.minecraft.predicate.entity.EntityPredicates
 import net.minecraft.registry.tag.ItemTags.DIAMOND_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.GOLD_TOOL_MATERIALS
 import net.minecraft.registry.tag.ItemTags.IRON_TOOL_MATERIALS
@@ -90,6 +94,7 @@ import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -510,7 +515,26 @@ object BuildSimulator {
 
                 val simulatePlaceState = placeState@{
                     resultState = blockItem.getPlacementState(context)
-                        ?: return@placeState PlaceResult.BlockedByEntity(pos)
+                        ?: run {
+                            val theoreticalState = blockItem.block.getPlacementState(context)
+                                ?: return@placeState PlaceResult.BlockedBySelf(pos)
+                            val shapeContext = ShapeContext.ofPlacement(player)
+                            val collisionShape = theoreticalState.getCollisionShape(world, context.blockPos, shapeContext)
+                                .offset(context.blockPos)
+                            val collidingEntities = collisionShape.boundingBoxes.flatMap { box ->
+                                world.entities.filter { it.boundingBox.intersects(box) }
+                            }
+                            if (collidingEntities.isNotEmpty()) {
+                                collidingEntities
+                                    .mapNotNull { it.supportingBlockPos.orElse(null) }
+                                    .forEach { support ->
+                                        acc.addAll(checkBreakResults(support, eye, preProcessing))
+                                    }
+                                return@placeState PlaceResult.BlockedByEntity(pos, collidingEntities)
+                            } else {
+                                return@placeState PlaceResult.BlockedBySelf(pos)
+                            }
+                        }
 
                     return@placeState if (!nextTargetState.matches(resultState, pos, world, preProcessing.ignore))
                         PlaceResult.NoIntegrity(

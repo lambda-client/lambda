@@ -95,7 +95,7 @@ data class PlaceContext(
             value("Expected State", expectedState)
             value("Sneak", sneak)
             value("Inside Block", insideBlock)
-            value("Current Dir Is Invalid", currentDirIsValid)
+            value("Current Dir Is Valid", currentDirIsValid)
         }
     }
 }

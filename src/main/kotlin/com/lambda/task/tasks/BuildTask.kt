@@ -50,6 +50,7 @@ import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
@@ -118,6 +119,7 @@ class BuildTask private constructor(
             val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
             if (bestResult !is BuildResult.Contextual && pendingInteractions.isNotEmpty())
                 return@listen
+            info("Best result: $bestResult")
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
