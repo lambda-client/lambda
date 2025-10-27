@@ -27,6 +27,7 @@ enum class Rank {
     PlaceBlockedByPlayer,
     NotVisible,
     OutOfReach,
+    PlaceBlockedByEntity,
     BreakNotExposed,
     ChunkNotLoaded,
     PlaceCantReplace,

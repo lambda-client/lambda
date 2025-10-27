@@ -22,6 +22,8 @@ import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.task.Task
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.construction.result.Contextual
@@ -31,7 +33,9 @@ import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.Rank
 import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
+import com.lambda.task.tasks.BuildTask.Companion.build
 import net.minecraft.block.BlockState
+import net.minecraft.entity.Entity
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
@@ -94,17 +98,37 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
+     * Represents a scenario where block placement is obstructed by the player itself.
+     *
+     * @property blockPos The position of the block that was attempted to be placed.
+     */
+    data class BlockedBySelf(
+        override val pos: BlockPos
+    ) : Drawable, Navigable, PlaceResult() {
+        override val rank = Rank.PlaceBlockedByEntity
+        private val color = Color(252, 3, 3, 100)
+        override val goal = GoalInverted(GoalBlock(pos))
+
+        override fun ShapeBuilder.buildRenderer() {
+            box(pos, color, color)
+        }
+    }
+
+    /**
      * Represents a scenario where block placement is obstructed by an entity.
      *
      * @property pos The position of the block that was attempted to be placed.
      */
     data class BlockedByEntity(
         override val pos: BlockPos,
-    ) : Navigable, PlaceResult() {
-        override val rank = Rank.PlaceBlockedByPlayer
+        val entities: List<Entity>
+    ) : Drawable, PlaceResult() {
+        override val rank = Rank.PlaceBlockedByEntity
+        private val color = Color(252, 3, 3, 100)
 
-        // ToDo: check what type of entity. player -> leave box, other entity -> kill?
-        override val goal = GoalInverted(GoalBlock(pos))
+        override fun ShapeBuilder.buildRenderer() {
+            entities.forEach { box(it, color) }
+        }
     }
 
     /**
