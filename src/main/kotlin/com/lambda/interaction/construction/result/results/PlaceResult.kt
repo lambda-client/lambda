@@ -98,23 +98,6 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * Represents a scenario where block placement is obstructed by the player itself.
-     *
-     * @property blockPos The position of the block that was attempted to be placed.
-     */
-    data class BlockedBySelf(
-        override val pos: BlockPos
-    ) : Drawable, Navigable, PlaceResult() {
-        override val rank = Rank.PlaceBlockedByEntity
-        private val color = Color(252, 3, 3, 100)
-        override val goal = GoalInverted(GoalBlock(pos))
-
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
-        }
-    }
-
-    /**
      * Represents a scenario where block placement is obstructed by an entity.
      *
      * @property pos The position of the block that was attempted to be placed.
