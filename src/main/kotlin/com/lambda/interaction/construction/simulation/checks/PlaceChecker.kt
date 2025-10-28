@@ -50,12 +50,9 @@ import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.withContext
 import net.minecraft.block.BlockState
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
@@ -83,23 +80,19 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkPlacements(): Boolean {
+    private suspend fun AutomatedSafeContext.checkPlacements(): Boolean =
         supervisorScope {
-            withContext(Dispatchers.Default) {
-                preProcessing.sides.map { side ->
-                    launch {
-                        val neighborPos = pos.offset(side)
-                        val neighborSide = side.opposite
-                        if (!placeConfig.airPlace.isEnabled)
-                            testBlock(neighborPos, neighborSide, this@supervisorScope)
-                        testBlock(pos, side, this@supervisorScope)
-                    }
-                }.joinAll()
+            preProcessing.sides.forEach { side ->
+                launch {
+                    val neighborPos = pos.offset(side)
+                    val neighborSide = side.opposite
+                    if (!placeConfig.airPlace.isEnabled)
+                        testBlock(neighborPos, neighborSide, this@supervisorScope)
+                    testBlock(pos, side, this@supervisorScope)
+                }
             }
+            true
         }
-
-        return true
-    }
 
     private suspend fun AutomatedSafeContext.testBlock(pos: BlockPos, side: Direction, supervisorScope: CoroutineScope) {
         if (!world.worldBorder.contains(pos)) return
@@ -240,7 +233,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
     private fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
         val resultState = context.stack.blockItem.getPlacementState(context) ?: run {
-            result(PlaceResult.BlockedByEntity(pos))
+            result(PlaceResult.BlockedByEntity(pos, emptyList()))
             return PlaceTest(state, PlaceTestResult.BlockedByEntity)
         }
 

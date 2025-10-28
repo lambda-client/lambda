@@ -24,9 +24,11 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.ISimInfo
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
 import com.lambda.interaction.construction.simulation.SimChecker
 import com.lambda.interaction.construction.simulation.SimCheckerDsl
 import com.lambda.interaction.construction.simulation.SimInfo
+import com.lambda.interaction.construction.simulation.checks.PlaceChecker.Companion.checkPlacements
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -98,7 +100,7 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                     simInteraction(expectedState)
                 }
 
-                Properties.SLAB_TYPE -> return false
+                Properties.SLAB_TYPE -> simInfo()?.checkPlacements()
             }
         }
 

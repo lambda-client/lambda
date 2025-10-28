@@ -29,10 +29,8 @@ import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import io.ktor.util.collections.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.supervisorScope
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -82,8 +80,8 @@ abstract class SimChecker<T : BuildResult> {
         val validHits = ConcurrentSet<CheckedHit>()
         val misses = ConcurrentSet<Vec3d>()
 
-        withContext(Dispatchers.Default) {
-            boxes.map { box ->
+        supervisorScope {
+            boxes.forEach { box ->
                 launch {
                     val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast) {
                         sides.intersect(box.getVisibleSurfaces(pov))
@@ -110,7 +108,7 @@ abstract class SimChecker<T : BuildResult> {
                         validHits.add(checked)
                     }
                 }
-            }.joinAll()
+            }
         }
 
         if (validHits.isEmpty()) {

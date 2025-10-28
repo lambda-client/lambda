@@ -29,40 +29,45 @@ import com.lambda.interaction.construction.simulation.checks.RequirementChecks.c
 import com.lambda.util.BlockUtils.blockState
 import io.ktor.util.collections.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.supervisorScope
 import net.minecraft.util.math.Vec3d
 
 object BuildSimulator : SimChecker<PostSimResult>() {
     context(automatedSafeContext: AutomatedSafeContext)
-    fun Blueprint.simulate(pov: Vec3d = automatedSafeContext.player.eyePos): Set<BuildResult> = runBlocking(Dispatchers.Default) {
-        val concurrentSet = ConcurrentSet<BuildResult>()
-        with(automatedSafeContext) {
-            structure.entries
-                .map { (pos, targetState) ->
-                    launch {
-                        val simInfo = simInfo(
-                            pos,
-                            blockState(pos),
-                            targetState,
-                            pov,
-                            concurrentSet
-                        ) ?: return@launch
-                        with(simInfo) {
-                            with(null) {
-                                if (checkRequirements() ||
-                                    checkPostProcessing() ||
-                                    checkBreaks() ||
-                                    checkPlacements()) return@launch
-                                else result(PostSimResult.NoMatch(pos))
+    fun Blueprint.simulate(
+        pov: Vec3d = automatedSafeContext.player.eyePos
+    ): Set<BuildResult> =
+        runBlocking(Dispatchers.Default) {
+            supervisorScope {
+                val concurrentSet = ConcurrentSet<BuildResult>()
+
+                with(automatedSafeContext) {
+                    structure.entries.forEach { (pos, targetState) ->
+                        launch {
+                            val simInfo = simInfo(
+                                pos,
+                                blockState(pos),
+                                targetState,
+                                pov,
+                                concurrentSet
+                            ) ?: return@launch
+
+                            with(simInfo) {
+                                with(null) {
+                                    if (checkRequirements() ||
+                                        checkPostProcessing() ||
+                                        checkBreaks() ||
+                                        checkPlacements()) return@launch
+                                    else result(PostSimResult.NoMatch(pos))
+                                }
                             }
                         }
                     }
-                }.joinAll()
+                }
+
+                concurrentSet
+            }
         }
-
-        return@runBlocking concurrentSet
-    }
 }
-
