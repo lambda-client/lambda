@@ -106,7 +106,7 @@ object ProcessorRegistry : Loadable {
 
     override fun load() = "Loaded ${processors.size} pre processors"
 
-    fun TargetState.getProcessingInfo(pos: BlockPos) =
+    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? =
         if (this !is TargetState.State) PreProcessingInfo.DEFAULT
         else {
             val get: () -> PreProcessingInfo? = get@{
@@ -115,9 +115,8 @@ object ProcessorRegistry : Loadable {
                 processors.forEach { processor ->
                     if (!processor.acceptsState(blockState)) return@forEach
                     processor.preProcess(blockState, pos, infoAccumulator)
-                    if (infoAccumulator.shouldBeOmitted) {
+                    if (infoAccumulator.shouldBeOmitted)
                         return@get null
-                    }
                 }
 
                 infoAccumulator.complete()

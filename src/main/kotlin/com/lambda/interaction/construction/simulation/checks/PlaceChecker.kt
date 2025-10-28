@@ -24,9 +24,11 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.ISimInfo
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
 import com.lambda.interaction.construction.simulation.SimChecker
 import com.lambda.interaction.construction.simulation.SimCheckerDsl
 import com.lambda.interaction.construction.simulation.SimInfo
+import com.lambda.interaction.construction.simulation.checks.BreakChecker.Companion.checkBreaks
 import com.lambda.interaction.construction.simulation.checks.PlaceChecker.RotatePlaceTest.Companion.rotatePlaceTest
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
@@ -43,8 +45,10 @@ import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.interaction.request.rotating.visibilty.lookInDirection
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
+import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.copyPlayer
@@ -54,8 +58,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import net.minecraft.block.BlockState
+import net.minecraft.block.ShapeContext
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.Entity
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
@@ -141,7 +147,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         }
     }
 
-    private fun AutomatedSafeContext.selectHitPos(
+    private suspend fun AutomatedSafeContext.selectHitPos(
         validHits: Collection<CheckedHit>,
         fakePlayer: ClientPlayerEntity,
         swapStack: ItemStack
@@ -203,7 +209,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return
     }
 
-    private fun AutomatedSafeContext.simRotatePlace(
+    private suspend fun AutomatedSafeContext.simRotatePlace(
         fakePlayer: ClientPlayerEntity,
         checkedHit: CheckedHit,
         context: ItemPlacementContext
@@ -231,16 +237,51 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         return null
     }
 
-    private fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
-        val resultState = context.stack.blockItem.getPlacementState(context) ?: run {
-            result(PlaceResult.BlockedByEntity(pos, emptyList()))
-            return PlaceTest(state, PlaceTestResult.BlockedByEntity)
-        }
+    private suspend fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
+        val resultState = context.stack.blockItem.getPlacementState(context)
+            ?: run {
+                val blockingEntities = handleEntityBlockage(context)
+                result(PlaceResult.BlockedByEntity(pos, blockingEntities))
+                return PlaceTest(state, PlaceTestResult.BlockedByEntity)
+            }
 
         return if (!targetState.matches(resultState, pos, preProcessing.ignore)) {
             result(PlaceResult.NoIntegrity(pos, resultState, context, (targetState as? TargetState.State)?.blockState))
             PlaceTest(resultState, PlaceTestResult.NoIntegrity)
         } else PlaceTest(resultState, PlaceTestResult.Success)
+    }
+
+    private suspend fun AutomatedSafeContext.handleEntityBlockage(context: ItemPlacementContext): List<Entity> {
+        val theoreticalState = context.stack.blockItem.block.getPlacementState(context)
+            ?: return emptyList()
+
+        val collisionShape = theoreticalState.getCollisionShape(
+            world,
+            context.blockPos,
+            ShapeContext.ofPlacement(player)
+        ).offset(context.blockPos)
+
+        val collidingEntities = collisionShape.boundingBoxes.flatMap { box ->
+            world.entities.filter { it.boundingBox.intersects(box) }
+        }
+
+        if (collidingEntities.isNotEmpty()) {
+            collidingEntities
+                .mapNotNull { entity ->
+                    val hitbox = entity.boundingBox
+                    entity.getPositionsWithinHitboxXZ(
+                        (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
+                        pos.y
+                    )
+                }
+                .flatten()
+                .forEach { support ->
+                    simInfo(support, blockState(support), TargetState.Empty)?.checkBreaks()
+                }
+            result(PlaceResult.BlockedByEntity(pos, collidingEntities))
+        }
+
+        return collidingEntities
     }
 
     private class RotatePlaceTest private constructor(
