@@ -44,14 +44,14 @@ annotation class SimCheckerDsl
 
 @SimCheckerDsl
 abstract class SimChecker<T : BuildResult> {
-    protected fun ISimInfo.checkDependent(caller: Dependable?): Boolean {
-        if (caller == null) {
-            dependencyStack.clear()
-            return true
+    protected suspend fun ISimInfo.withDependable(dependable: Dependable?, block: suspend () -> Unit) {
+        if (dependable == null) dependencyStack.clear()
+        else {
+            if (dependencyStack.size >= maxSimDependencies) return
+            dependencyStack.push(dependable)
         }
-        if (dependencyStack.size >= maxSimDependencies) return false
-        dependencyStack.push(caller)
-        return true
+        block()
+        if (dependable != null) dependencyStack.pop()
     }
 
     fun ISimInfo.result(result: GenericResult) = addResult(result)

@@ -61,7 +61,7 @@ interface ISimInfo : Automated {
             SimInfo(
                 pos, state, targetState,
                 targetState.getProcessingInfo(pos) ?: return,
-                pov, concurrentResults, Stack(), this
+                pov, Stack(), concurrentResults, this
             ).takeIf { it.checkRequirements() }?.sim(null, simBuilder)
         }
 
@@ -77,7 +77,7 @@ interface ISimInfo : Automated {
             SimInfo(
                 pos, state, targetState,
                 targetState.getProcessingInfo(pos) ?: return,
-                pov, concurrentResults, dependencyStack, this
+                pov, dependencyStack, concurrentResults, this
             ).takeIf { it.checkRequirements() }?.sim(dependable, simBuilder)
         }
 
@@ -96,8 +96,8 @@ data class SimInfo(
     override val targetState: TargetState,
     override val preProcessing: PreProcessingInfo,
     override val pov: Vec3d,
-    override val concurrentResults: MutableSet<BuildResult>,
     override val dependencyStack: Stack<Dependable>,
+    override val concurrentResults: MutableSet<BuildResult>,
     private val automated: Automated
 ) : ISimInfo, Automated by automated
 

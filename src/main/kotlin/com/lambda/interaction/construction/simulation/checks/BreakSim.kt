@@ -78,12 +78,13 @@ class BreakSim private constructor(simInfo: ISimInfo)
         context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
         suspend fun SimBuilder.simBreak() =
             BreakSim(this).run {
-                if (!checkDependent(dependable)) return
-                automatedSafeContext.checkBreaks()
+                withDependable(dependable) {
+                    automatedSafeContext.simBreaks()
+                }
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkBreaks() {
+    private suspend fun AutomatedSafeContext.simBreaks() {
         if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
             if (support != pos) return@let
             result(BreakResult.PlayerOnTop(pos, state))

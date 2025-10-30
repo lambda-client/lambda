@@ -57,12 +57,13 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
         @SimBuilderDsl
         suspend fun SimBuilder.simPostProcessing() =
             PostProcessingSim(this).run {
-                if (!checkDependent(dependable)) return
-                automatedSafeContext.checkPostProcessing()
+                withDependable(dependable) {
+                    automatedSafeContext.simPostProcessing()
+                }
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkPostProcessing() {
+    private suspend fun AutomatedSafeContext.simPostProcessing() {
         val targetState = (targetState as? TargetState.State) ?: return
 
         val mismatchedProperties = state.properties.filter { state.get(it) != targetState.blockState.get(it) }

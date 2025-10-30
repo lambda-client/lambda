@@ -81,12 +81,13 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         @SimBuilderDsl
         suspend fun SimBuilder.simPlacement() =
             PlaceSim(this).run {
-                if (!checkDependent(dependable)) return
-                automatedSafeContext.checkPlacements()
+                withDependable(dependable) {
+                    automatedSafeContext.simPlacements()
+                }
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkPlacements() =
+    private suspend fun AutomatedSafeContext.simPlacements() =
         supervisorScope {
             preProcessing.sides.forEach { side ->
                 launch {
