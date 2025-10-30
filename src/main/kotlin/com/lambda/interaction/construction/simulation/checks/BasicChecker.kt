@@ -20,18 +20,18 @@ package com.lambda.interaction.construction.simulation.checks
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.PreSimResult
-import com.lambda.interaction.construction.simulation.SimBuilderDsl
-import com.lambda.interaction.construction.simulation.SimChecker
+import com.lambda.interaction.construction.simulation.Results
+import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
 
-object RequirementChecker : SimChecker<PreSimResult>() {
-    @SimBuilderDsl
+object BasicChecker : Results<PreSimResult> {
+    @SimDsl
     context(automatedSafeContext: AutomatedSafeContext)
-    fun SimInfo.checkRequirements(): Boolean = with(automatedSafeContext) {
+    fun SimInfo.hasBasicRequirements(): Boolean = with(automatedSafeContext) {
         // the chunk is not loaded
         if (!isLoaded(pos)) {
             result(PreSimResult.ChunkNotLoaded(pos))

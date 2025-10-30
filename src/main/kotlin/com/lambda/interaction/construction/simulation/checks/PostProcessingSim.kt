@@ -20,14 +20,11 @@ package com.lambda.interaction.construction.simulation.checks
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.ISimInfo
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
-import com.lambda.interaction.construction.simulation.SimBuilder
-import com.lambda.interaction.construction.simulation.SimBuilderDsl
-import com.lambda.interaction.construction.simulation.SimChecker
+import com.lambda.interaction.construction.simulation.Sim
+import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
@@ -46,18 +43,18 @@ import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
 class PostProcessingSim private constructor(simInfo: ISimInfo)
-    : SimChecker<InteractResult>(), Dependable,
+    : Sim<InteractResult>(),
     ISimInfo by simInfo
 {
-    override fun asDependent(buildResult: BuildResult) =
+    override fun dependentUpon(buildResult: BuildResult) =
         InteractResult.Dependency(pos, buildResult)
 
     companion object {
-        context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        @SimBuilderDsl
-        suspend fun SimBuilder.simPostProcessing() =
+        context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
+        @SimDsl
+        suspend fun ISimInfo.simPostProcessing() =
             PostProcessingSim(this).run {
-                withDependable(dependable) {
+                withDependent(dependent) {
                     automatedSafeContext.simPostProcessing()
                 }
             }
@@ -99,7 +96,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
                     simInteraction(expectedState)
                 }
 
-                Properties.SLAB_TYPE -> sim { simPlacement() }
+                Properties.SLAB_TYPE -> simPlacement()
             }
         }
     }

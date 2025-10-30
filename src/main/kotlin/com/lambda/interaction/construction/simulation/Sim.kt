@@ -20,7 +20,6 @@ package com.lambda.interaction.construction.simulation
 import com.lambda.context.AutomationConfig.maxSimDependencies
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
@@ -40,32 +39,19 @@ import net.minecraft.util.shape.VoxelShape
 import kotlin.math.pow
 
 @DslMarker
-annotation class SimCheckerDsl
+annotation class SimDsl
 
-@SimCheckerDsl
-abstract class SimChecker<T : BuildResult> {
-    protected suspend fun ISimInfo.withDependable(dependable: Dependable?, block: suspend () -> Unit) {
-        if (dependable == null) dependencyStack.clear()
-        else {
-            if (dependencyStack.size >= maxSimDependencies) return
-            dependencyStack.push(dependable)
-        }
+@SimDsl
+abstract class Sim<T : BuildResult> : Results<T> {
+    @SimDsl
+    open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
+
+    protected suspend fun ISimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
+        // +1 because the build sim counts as a dependent
+        if (dependencyStack.size >= maxSimDependencies + 1) return
+        dependencyStack.push(dependent)
         block()
-        if (dependable != null) dependencyStack.pop()
-    }
-
-    fun ISimInfo.result(result: GenericResult) = addResult(result)
-    fun ISimInfo.result(result: T) = addResult(result)
-
-    private fun ISimInfo.addResult(result: BuildResult) {
-        if (this@SimChecker is BuildSimulator) concurrentResults.add(result)
-        else concurrentResults.add(
-            dependencyStack
-                .asReversed()
-                .fold(result) { acc, dependable ->
-                    with(dependable) { asDependent(acc) }
-                }
-        )
+        dependencyStack.pop()
     }
 
     suspend fun ISimInfo.scanShape(

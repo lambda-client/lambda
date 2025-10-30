@@ -34,7 +34,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.supervisorScope
 import net.minecraft.util.math.Vec3d
 
-object BuildSimulator : SimChecker<PostSimResult>() {
+object BuildSimulator : Sim<PostSimResult>() {
     context(automatedSafeContext: AutomatedSafeContext)
     fun Blueprint.simulate(
         pov: Vec3d = automatedSafeContext.player.eyePos

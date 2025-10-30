@@ -20,14 +20,12 @@ package com.lambda.interaction.construction.simulation.checks
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.ISimInfo
 import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
-import com.lambda.interaction.construction.simulation.SimBuilder
-import com.lambda.interaction.construction.simulation.SimBuilderDsl
-import com.lambda.interaction.construction.simulation.SimChecker
+import com.lambda.interaction.construction.simulation.Sim
+import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
 import com.lambda.interaction.construction.simulation.checks.PlaceSim.RotatePlaceTest.Companion.rotatePlaceTest
 import com.lambda.interaction.construction.verify.TargetState
@@ -70,18 +68,18 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShapes
 
 class PlaceSim private constructor(simInfo: ISimInfo)
-    : SimChecker<PlaceResult>(), Dependable,
+    : Sim<PlaceResult>(),
     ISimInfo by simInfo
 {
-    override fun asDependent(buildResult: BuildResult) =
+    override fun dependentUpon(buildResult: BuildResult) =
         PlaceResult.Dependency(pos, buildResult)
 
     companion object {
-        context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        @SimBuilderDsl
-        suspend fun SimBuilder.simPlacement() =
+        context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
+        @SimDsl
+        suspend fun ISimInfo.simPlacement() =
             PlaceSim(this).run {
-                withDependable(dependable) {
+                withDependent(dependent) {
                     automatedSafeContext.simPlacements()
                 }
             }

@@ -15,10 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.result
+package com.lambda.interaction.construction.simulation
 
-import com.lambda.interaction.construction.simulation.ISimInfo
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.results.GenericResult
 
-interface Dependable : ISimInfo {
-    fun asDependent(buildResult: BuildResult): BuildResult
+@SimDsl
+interface Results<T : BuildResult> {
+    fun ISimInfo.result(result: GenericResult) = addResult(result)
+    fun ISimInfo.result(result: T) = addResult(result)
+
+    private fun ISimInfo.addResult(result: BuildResult) {
+        concurrentResults.add(
+            dependencyStack
+                .asReversed()
+                .fold(result) { acc, dependable ->
+                    with(dependable) { dependentUpon(acc) }
+                }
+        )
+    }
 }

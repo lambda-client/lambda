@@ -20,14 +20,12 @@ package com.lambda.interaction.construction.simulation.checks
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.ISimInfo
 import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
-import com.lambda.interaction.construction.simulation.SimBuilder
-import com.lambda.interaction.construction.simulation.SimBuilderDsl
-import com.lambda.interaction.construction.simulation.SimChecker
+import com.lambda.interaction.construction.simulation.Sim
+import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
@@ -67,18 +65,18 @@ import net.minecraft.util.math.Direction
 import kotlin.jvm.optionals.getOrNull
 
 class BreakSim private constructor(simInfo: ISimInfo)
-    : SimChecker<BreakResult>(), Dependable,
+    : Sim<BreakResult>(),
     ISimInfo by simInfo
 {
-    override fun asDependent(buildResult: BuildResult) =
+    override fun dependentUpon(buildResult: BuildResult) =
         BreakResult.Dependency(pos, buildResult)
 
     companion object {
-        @SimBuilderDsl
-        context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        suspend fun SimBuilder.simBreak() =
+        @SimDsl
+        context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
+        suspend fun ISimInfo.simBreak() =
             BreakSim(this).run {
-                withDependable(dependable) {
+                withDependent(dependent) {
                     automatedSafeContext.simBreaks()
                 }
             }
