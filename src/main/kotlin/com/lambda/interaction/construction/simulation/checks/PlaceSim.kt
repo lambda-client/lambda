@@ -81,7 +81,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         @SimBuilderDsl
         suspend fun SimBuilder.simPlacement() =
             PlaceSim(this).run {
-                checkDependent(dependable)
+                if (!checkDependent(dependable)) return
                 automatedSafeContext.checkPlacements()
             }
     }
@@ -251,14 +251,13 @@ class PlaceSim private constructor(simInfo: ISimInfo)
     }
 
     private suspend fun AutomatedSafeContext.handleEntityBlockage(context: ItemPlacementContext): List<Entity> {
+        val pos = context.blockPos
         val theoreticalState = context.stack.blockItem.block.getPlacementState(context)
             ?: return emptyList()
 
         val collisionShape = theoreticalState.getCollisionShape(
-            world,
-            context.blockPos,
-            ShapeContext.ofPlacement(player)
-        ).offset(context.blockPos)
+            world, pos, ShapeContext.ofPlacement(player)
+        ).offset(pos)
 
         val collidingEntities = collisionShape.boundingBoxes.flatMap { box ->
             world.entities.filter { it.boundingBox.intersects(box) }
@@ -267,6 +266,10 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         if (collidingEntities.isNotEmpty()) {
             collidingEntities
                 .mapNotNull { entity ->
+                    if (entity === player) {
+                        result(PlaceResult.BlockedBySelf(pos))
+                        return@mapNotNull null
+                    }
                     val hitbox = entity.boundingBox
                     entity.getPositionsWithinHitboxXZ(
                         (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),

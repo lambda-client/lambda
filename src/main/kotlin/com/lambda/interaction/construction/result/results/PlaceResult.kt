@@ -22,8 +22,6 @@ import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.task.Task
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.construction.result.Contextual
@@ -33,7 +31,6 @@ import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.Rank
 import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
-import com.lambda.task.tasks.BuildTask.Companion.build
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemPlacementContext
@@ -94,6 +91,23 @@ sealed class PlaceResult : BuildResult() {
 
         override fun ShapeBuilder.buildRenderer() {
             box(pos, expected, color, color)
+        }
+    }
+
+    /**
+     * Represents a scenario where block placement is obstructed by the player itself.
+     *
+     * @property pos The position of the block that was attempted to be placed.
+     */
+    data class BlockedBySelf(
+        override val pos: BlockPos
+    ) : Drawable, Navigable, PlaceResult() {
+        override val rank = Rank.PlaceBlockedByPlayer
+        private val color = Color(252, 3, 3, 100)
+        override val goal = GoalInverted(GoalBlock(pos))
+
+        override fun ShapeBuilder.buildRenderer() {
+            box(pos, color, color)
         }
     }
 

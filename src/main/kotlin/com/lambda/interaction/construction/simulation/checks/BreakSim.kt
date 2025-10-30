@@ -78,7 +78,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
         context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
         suspend fun SimBuilder.simBreak() =
             BreakSim(this).run {
-                checkDependent(dependable)
+                if (!checkDependent(dependable)) return
                 automatedSafeContext.checkBreaks()
             }
     }

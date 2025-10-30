@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.context.AutomationConfig.maxSimDependencies
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
@@ -43,12 +44,14 @@ annotation class SimCheckerDsl
 
 @SimCheckerDsl
 abstract class SimChecker<T : BuildResult> {
-    protected fun ISimInfo.checkDependent(caller: Dependable?) {
+    protected fun ISimInfo.checkDependent(caller: Dependable?): Boolean {
         if (caller == null) {
             dependencyStack.clear()
-            return
+            return true
         }
+        if (dependencyStack.size >= maxSimDependencies) return false
         dependencyStack.push(caller)
+        return true
     }
 
     fun ISimInfo.result(result: GenericResult) = addResult(result)

@@ -57,7 +57,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
         @SimBuilderDsl
         suspend fun SimBuilder.simPostProcessing() =
             PostProcessingSim(this).run {
-                checkDependent(dependable)
+                if (!checkDependent(dependable)) return
                 automatedSafeContext.checkPostProcessing()
             }
     }
