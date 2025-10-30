@@ -24,11 +24,11 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.ISimInfo
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.SimBuilder
+import com.lambda.interaction.construction.simulation.SimBuilderDsl
 import com.lambda.interaction.construction.simulation.SimChecker
-import com.lambda.interaction.construction.simulation.SimCheckerDsl
-import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.checks.PlaceChecker.Companion.checkPlacements
+import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -45,7 +45,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
-class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
+class PostProcessingSim private constructor(simInfo: ISimInfo)
     : SimChecker<InteractResult>(), Dependable,
     ISimInfo by simInfo
 {
@@ -53,19 +53,17 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         InteractResult.Dependency(pos, buildResult)
 
     companion object {
-        @SimCheckerDsl
         context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        suspend fun SimInfo.checkPostProcessing() =
-            PostProcessingChecker(this).run {
+        @SimBuilderDsl
+        suspend fun SimBuilder.simPostProcessing() =
+            PostProcessingSim(this).run {
                 checkDependent(dependable)
                 automatedSafeContext.checkPostProcessing()
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkPostProcessing(): Boolean {
-        val targetState = (targetState as? TargetState.State) ?: return false
-
-        if (!targetState.matches(state, pos, preProcessing.ignore)) return false
+    private suspend fun AutomatedSafeContext.checkPostProcessing() {
+        val targetState = (targetState as? TargetState.State) ?: return
 
         val mismatchedProperties = state.properties.filter { state.get(it) != targetState.blockState.get(it) }
         mismatchedProperties.forEach { property ->
@@ -100,11 +98,9 @@ class PostProcessingChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                     simInteraction(expectedState)
                 }
 
-                Properties.SLAB_TYPE -> simInfo()?.checkPlacements()
+                Properties.SLAB_TYPE -> sim { simPlacement() }
             }
         }
-
-        return true
     }
 
     private suspend fun AutomatedSafeContext.simInteraction(

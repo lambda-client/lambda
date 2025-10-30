@@ -18,15 +18,20 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Dependable
+import com.lambda.interaction.construction.simulation.checks.RequirementChecker.checkRequirements
 import com.lambda.interaction.construction.verify.TargetState
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.util.*
+
+@DslMarker
+annotation class SimBuilderDsl
 
 interface ISimInfo : Automated {
     val pos: BlockPos
@@ -38,32 +43,53 @@ interface ISimInfo : Automated {
     val dependencyStack: Stack<Dependable>
 
     companion object {
-        @SimCheckerDsl
-        fun Automated.simInfo(
+        @SimBuilderDsl
+        private suspend fun ISimInfo.sim(
+            dependable: Dependable?,
+            simBuilder: suspend context(Dependable?) SimBuilder.() -> Unit
+        ) = SimBuilder(this).run { with(dependable) { simBuilder() } }
+
+        @SimBuilderDsl
+        suspend fun AutomatedSafeContext.sim(
             pos: BlockPos,
             state: BlockState,
             targetState: TargetState,
             pov: Vec3d,
             concurrentResults: MutableSet<BuildResult>,
-        ): SimInfo? {
-            val preProcessingInfo = targetState.getProcessingInfo(pos) ?: return null
-            return SimInfo(pos, state, targetState, preProcessingInfo, pov, concurrentResults, this)
+            simBuilder: suspend context(Dependable?) SimBuilder.() -> Unit
+        ) {
+            SimInfo(
+                pos, state, targetState,
+                targetState.getProcessingInfo(pos) ?: return,
+                pov, concurrentResults, this
+            ).takeIf { it.checkRequirements() }?.sim(null, simBuilder)
         }
 
-        @SimCheckerDsl
-        fun ISimInfo.simInfo(
+        @SimBuilderDsl
+        context(_: AutomatedSafeContext, dependable: Dependable)
+        suspend fun ISimInfo.sim(
             pos: BlockPos = this.pos,
             state: BlockState = this.state,
             targetState: TargetState = this.targetState,
             pov: Vec3d = this.pov,
-            concurrentResults: MutableSet<BuildResult> = this.concurrentResults
-        ): SimInfo? {
-            val preProcessingInfo = targetState.getProcessingInfo(pos) ?: return null
-            return SimInfo(pos, state, targetState, preProcessingInfo, pov, concurrentResults, this)
+            simBuilder: suspend context(Dependable?) SimBuilder.() -> Unit
+        ) {
+            SimInfo(
+                pos, state, targetState,
+                targetState.getProcessingInfo(pos) ?: return,
+                pov, concurrentResults, this
+            ).takeIf { it.checkRequirements() }?.sim(dependable, simBuilder)
         }
+
+        @SimBuilderDsl
+        context(dependable: Dependable)
+        suspend fun ISimInfo.sim(
+            simBuilder: suspend context(Dependable?) SimBuilder.() -> Unit
+        ) = sim(dependable, simBuilder)
     }
 }
 
+@SimBuilderDsl
 data class SimInfo(
     override val pos: BlockPos,
     override val state: BlockState,
@@ -75,3 +101,5 @@ data class SimInfo(
 ) : ISimInfo, Automated by automated {
     override val dependencyStack = Stack<Dependable>()
 }
+
+class SimBuilder(simInfo: ISimInfo) : ISimInfo by simInfo

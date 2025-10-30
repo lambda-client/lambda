@@ -21,11 +21,11 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.PostSimResult
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
-import com.lambda.interaction.construction.simulation.checks.BreakChecker.Companion.checkBreaks
-import com.lambda.interaction.construction.simulation.checks.PlaceChecker.Companion.checkPlacements
-import com.lambda.interaction.construction.simulation.checks.PostProcessingChecker.Companion.checkPostProcessing
-import com.lambda.interaction.construction.simulation.checks.RequirementChecks.checkRequirements
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
+import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
+import com.lambda.interaction.construction.simulation.checks.PostProcessingSim.Companion.simPostProcessing
+import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockState
 import io.ktor.util.collections.*
 import kotlinx.coroutines.Dispatchers
@@ -38,36 +38,28 @@ object BuildSimulator : SimChecker<PostSimResult>() {
     context(automatedSafeContext: AutomatedSafeContext)
     fun Blueprint.simulate(
         pov: Vec3d = automatedSafeContext.player.eyePos
-    ): Set<BuildResult> =
-        runBlocking(Dispatchers.Default) {
-            supervisorScope {
-                val concurrentSet = ConcurrentSet<BuildResult>()
+    ): Set<BuildResult> = runBlocking(Dispatchers.Default) {
+        supervisorScope {
+            val concurrentSet = ConcurrentSet<BuildResult>()
 
-                with(automatedSafeContext) {
-                    structure.entries.forEach { (pos, targetState) ->
-                        launch {
-                            val simInfo = simInfo(
-                                pos,
-                                blockState(pos),
-                                targetState,
-                                pov,
-                                concurrentSet
-                            ) ?: return@launch
-
-                            with(simInfo) {
-                                with(null) {
-                                    if (checkRequirements() ||
-                                        checkPostProcessing() ||
-                                        checkBreaks() ||
-                                        checkPlacements()) return@launch
-                                    else result(PostSimResult.NoMatch(pos))
-                                }
+            with(automatedSafeContext) {
+                structure.forEach { (pos, targetState) ->
+                    launch {
+                        sim(pos, blockState(pos), targetState, pov, concurrentSet) {
+                            if (targetState is TargetState.State &&
+                                targetState.matches(state, pos, preProcessing.ignore)
+                                ) {
+                                simPostProcessing()
+                                return@sim
                             }
+                            if (!targetState.isEmpty() && state.isReplaceable) simPlacement()
+                            else simBreak()
                         }
                     }
                 }
-
-                concurrentSet
             }
+
+            concurrentSet
         }
+    }
 }

@@ -24,11 +24,11 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.ISimInfo
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.SimBuilder
+import com.lambda.interaction.construction.simulation.SimBuilderDsl
 import com.lambda.interaction.construction.simulation.SimChecker
-import com.lambda.interaction.construction.simulation.SimCheckerDsl
-import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.checks.PlaceChecker.Companion.checkPlacements
+import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
@@ -44,7 +44,6 @@ import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -67,7 +66,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import kotlin.jvm.optionals.getOrNull
 
-class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
+class BreakSim private constructor(simInfo: ISimInfo)
     : SimChecker<BreakResult>(), Dependable,
     ISimInfo by simInfo
 {
@@ -75,32 +74,31 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         BreakResult.Dependency(pos, buildResult)
 
     companion object {
-        @SimCheckerDsl
+        @SimBuilderDsl
         context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        suspend fun SimInfo.checkBreaks() =
-            BreakChecker(this).run {
+        suspend fun SimBuilder.simBreak() =
+            BreakSim(this).run {
                 checkDependent(dependable)
                 automatedSafeContext.checkBreaks()
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkBreaks(): Boolean {
+    private suspend fun AutomatedSafeContext.checkBreaks() {
         if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
             if (support != pos) return@let
             result(BreakResult.PlayerOnTop(pos, state))
-            return true
+            return
         }
 
         if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
-            return simInfo(pos, state, TargetState.Solid(emptySet()))?.checkPlacements() ?: true
+            sim(pos, state, TargetState.Solid(emptySet())) { simPlacement() }
+            return
         }
 
-        if (state.isEmpty) return false
+        if (breakConfig.avoidLiquids && affectsFluids()) return
 
-        if (breakConfig.avoidLiquids && affectsFluids()) return true
-
-        val (swapStack, stackSelection) = getSwapStack() ?: return true
+        val (swapStack, stackSelection) = getSwapStack() ?: return
         val instant = instantBreakable(
             state, pos,
             if (breakConfig.swapMode.isEnabled()) swapStack else player.mainHandStack,
@@ -124,17 +122,17 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 )
                 result(BreakResult.Break(pos, breakContext))
             }
-            return true
+            return
         }
 
-        val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), preProcessing) ?: return true
+        val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), preProcessing) ?: return
 
-        val bestHit = buildConfig.pointSelection.select(validHits) ?: return true
+        val bestHit = buildConfig.pointSelection.select(validHits) ?: return
         val target = lookAt(bestHit.targetRotation, 0.001)
         val rotationRequest = RotationRequest(target, this)
 
         val breakContext = BreakContext(
-            bestHit.hit.blockResult ?: return true,
+            bestHit.hit.blockResult ?: return,
             rotationRequest,
             swapStack.inventoryIndexOrSelected,
             stackSelection,
@@ -144,7 +142,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         )
 
         result(BreakResult.Break(pos, breakContext))
-        return true
+        return
     }
 
     private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
@@ -276,7 +274,7 @@ class BreakChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
             affectedFluids.forEach { (liquidPos, liquidState) ->
                 result(BreakResult.Submerge(liquidPos, liquidState))
-                simInfo(liquidPos, liquidState, TargetState.Solid(emptySet()))?.checkPlacements()
+                sim(liquidPos, liquidState, TargetState.Solid(emptySet())) { simPlacement() }
             }
             result(BreakResult.BlockedByFluid(pos, state))
             return true

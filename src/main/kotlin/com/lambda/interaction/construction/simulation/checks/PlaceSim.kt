@@ -24,12 +24,12 @@ import com.lambda.interaction.construction.result.Dependable
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.ISimInfo
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.simInfo
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.SimBuilder
+import com.lambda.interaction.construction.simulation.SimBuilderDsl
 import com.lambda.interaction.construction.simulation.SimChecker
-import com.lambda.interaction.construction.simulation.SimCheckerDsl
-import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.checks.BreakChecker.Companion.checkBreaks
-import com.lambda.interaction.construction.simulation.checks.PlaceChecker.RotatePlaceTest.Companion.rotatePlaceTest
+import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
+import com.lambda.interaction.construction.simulation.checks.PlaceSim.RotatePlaceTest.Companion.rotatePlaceTest
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -69,7 +69,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShapes
 
-class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
+class PlaceSim private constructor(simInfo: ISimInfo)
     : SimChecker<PlaceResult>(), Dependable,
     ISimInfo by simInfo
 {
@@ -77,16 +77,16 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
         PlaceResult.Dependency(pos, buildResult)
 
     companion object {
-        @SimCheckerDsl
         context(automatedSafeContext: AutomatedSafeContext, dependable: Dependable?)
-        suspend fun SimInfo.checkPlacements() =
-            PlaceChecker(this).run {
+        @SimBuilderDsl
+        suspend fun SimBuilder.simPlacement() =
+            PlaceSim(this).run {
                 checkDependent(dependable)
                 automatedSafeContext.checkPlacements()
             }
     }
 
-    private suspend fun AutomatedSafeContext.checkPlacements(): Boolean =
+    private suspend fun AutomatedSafeContext.checkPlacements() =
         supervisorScope {
             preProcessing.sides.forEach { side ->
                 launch {
@@ -97,7 +97,6 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                     testBlock(pos, side, this@supervisorScope)
                 }
             }
-            true
         }
 
     private suspend fun AutomatedSafeContext.testBlock(pos: BlockPos, side: Direction, supervisorScope: CoroutineScope) {
@@ -192,7 +191,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
 
             val placeContext = PlaceContext(
                 hitResult,
-                RotationRequest(rotationRequest, this@PlaceChecker),
+                RotationRequest(rotationRequest, this@PlaceSim),
                 swapStack.inventoryIndex,
                 pos,
                 state,
@@ -200,7 +199,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 fakePlayer.isSneaking,
                 false,
                 rotatePlaceTest.currentDirIsValid,
-                this@PlaceChecker
+                this@PlaceSim
             )
 
             result(PlaceResult.Place(pos, placeContext))
@@ -276,7 +275,7 @@ class PlaceChecker @SimCheckerDsl private constructor(simInfo: SimInfo)
                 }
                 .flatten()
                 .forEach { support ->
-                    simInfo(support, blockState(support), TargetState.Empty)?.checkBreaks()
+                    sim(support, blockState(support), TargetState.Empty) { simBreak() }
                 }
             result(PlaceResult.BlockedByEntity(pos, collidingEntities))
         }

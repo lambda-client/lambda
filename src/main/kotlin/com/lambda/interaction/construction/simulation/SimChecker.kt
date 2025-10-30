@@ -52,7 +52,6 @@ abstract class SimChecker<T : BuildResult> {
     }
 
     fun ISimInfo.result(result: GenericResult) = addResult(result)
-
     fun ISimInfo.result(result: T) = addResult(result)
 
     private fun ISimInfo.addResult(result: BuildResult) {

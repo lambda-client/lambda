@@ -20,60 +20,60 @@ package com.lambda.interaction.construction.simulation.checks
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.PreSimResult
+import com.lambda.interaction.construction.simulation.SimBuilderDsl
 import com.lambda.interaction.construction.simulation.SimChecker
-import com.lambda.interaction.construction.simulation.SimCheckerDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
 
-object RequirementChecks : SimChecker<PreSimResult>() {
-    @SimCheckerDsl
+object RequirementChecker : SimChecker<PreSimResult>() {
+    @SimBuilderDsl
     context(automatedSafeContext: AutomatedSafeContext)
     fun SimInfo.checkRequirements(): Boolean = with(automatedSafeContext) {
         // the chunk is not loaded
         if (!isLoaded(pos)) {
             result(PreSimResult.ChunkNotLoaded(pos))
-            return true
+            return false
         }
 
         // block is already in the correct state
         if (targetState.matches(state, pos)) {
             result(PreSimResult.Done(pos))
-            return true
+            return false
         }
 
         // block should be ignored
         if (state.block in breakConfig.ignoredBlocks && targetState.type == TargetState.Type.Air) {
             result(GenericResult.Ignored(pos))
-            return true
+            return false
         }
 
         // the player is in the wrong game mode to alter the block state
         if (player.isBlockBreakingRestricted(world, pos, gamemode)) {
             result(PreSimResult.Restricted(pos))
-            return true
+            return false
         }
 
         // the player has no permissions to alter the block state
         if (state.block is OperatorBlock && !player.isCreativeLevelTwoOp) {
             result(PreSimResult.NoPermission(pos, state))
-            return true
+            return false
         }
 
         // block is outside the world so it cant be altered
         if (!world.worldBorder.contains(pos) || world.isOutOfHeightLimit(pos)) {
             result(PreSimResult.OutOfWorld(pos))
-            return true
+            return false
         }
 
         // block is unbreakable, so it cant be broken or replaced
         if (state.getHardness(world, pos) < 0 && !gamemode.isCreative) {
             result(PreSimResult.Unbreakable(pos, state))
-            return true
+            return false
         }
 
-        return false
+        return true
     }
 }
