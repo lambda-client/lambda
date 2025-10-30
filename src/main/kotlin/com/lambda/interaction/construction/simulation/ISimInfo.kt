@@ -98,9 +98,7 @@ data class SimInfo(
     override val pov: Vec3d,
     override val concurrentResults: MutableSet<BuildResult>,
     override val dependencyStack: Stack<Dependable>,
-    val automated: Automated
-) : ISimInfo, Automated by automated {
-
-}
+    private val automated: Automated
+) : ISimInfo, Automated by automated
 
 class SimBuilder(simInfo: ISimInfo) : ISimInfo by simInfo
