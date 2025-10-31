@@ -57,7 +57,7 @@ interface ISimInfo : Automated {
         }
 
         @SimDsl
-        context(_: AutomatedSafeContext, dependent: Sim<*>)
+        context(_: AutomatedSafeContext)
         suspend fun ISimInfo.sim(
             pos: BlockPos = this.pos,
             state: BlockState = this.state,
