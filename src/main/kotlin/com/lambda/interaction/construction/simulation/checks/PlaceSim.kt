@@ -26,6 +26,7 @@ import com.lambda.interaction.construction.simulation.ISimInfo
 import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
+import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
 import com.lambda.interaction.construction.simulation.checks.PlaceSim.RotatePlaceTest.Companion.rotatePlaceTest
 import com.lambda.interaction.construction.verify.TargetState
@@ -77,7 +78,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
     companion object {
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
         @SimDsl
-        suspend fun ISimInfo.simPlacement() =
+        suspend fun SimInfo.simPlacement() =
             PlaceSim(this).run {
                 withDependent(dependent) {
                     automatedSafeContext.simPlacements()

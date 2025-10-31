@@ -47,7 +47,7 @@ interface ISimInfo : Automated {
             targetState: TargetState,
             pov: Vec3d,
             concurrentResults: MutableSet<BuildResult>,
-            simBuilder: suspend ISimInfo.() -> Unit
+            simBuilder: suspend SimInfo.() -> Unit
         ) {
             SimInfo(
                 pos, state, targetState,
@@ -63,12 +63,12 @@ interface ISimInfo : Automated {
             state: BlockState = this.state,
             targetState: TargetState = this.targetState,
             pov: Vec3d = this.pov,
-            simBuilder: suspend ISimInfo.() -> Unit
+            simBuilder: suspend SimInfo.() -> Unit
         ) {
             SimInfo(
                 pos, state, targetState,
                 targetState.getProcessingInfo(pos) ?: return,
-                pov, dependencyStack, concurrentResults, this
+                pov, Stack<Sim<*>>().apply { addAll(dependencyStack) }, concurrentResults, this
             ).takeIf { it.hasBasicRequirements() }?.run { simBuilder() }
         }
     }

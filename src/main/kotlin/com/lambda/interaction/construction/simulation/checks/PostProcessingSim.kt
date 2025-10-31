@@ -23,8 +23,10 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.ISimInfo
+import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
+import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
@@ -52,7 +54,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     companion object {
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
         @SimDsl
-        suspend fun ISimInfo.simPostProcessing() =
+        suspend fun SimInfo.simPostProcessing() =
             PostProcessingSim(this).run {
                 withDependent(dependent) {
                     automatedSafeContext.simPostProcessing()
@@ -96,7 +98,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
                     simInteraction(expectedState)
                 }
 
-                Properties.SLAB_TYPE -> simPlacement()
+                Properties.SLAB_TYPE -> sim { simPlacement() }
             }
         }
     }

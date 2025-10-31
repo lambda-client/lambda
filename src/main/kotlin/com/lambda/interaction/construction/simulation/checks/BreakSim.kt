@@ -26,6 +26,7 @@ import com.lambda.interaction.construction.simulation.ISimInfo
 import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
+import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
@@ -74,7 +75,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
     companion object {
         @SimDsl
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
-        suspend fun ISimInfo.simBreak() =
+        suspend fun SimInfo.simBreak() =
             BreakSim(this).run {
                 withDependent(dependent) {
                     automatedSafeContext.simBreaks()
