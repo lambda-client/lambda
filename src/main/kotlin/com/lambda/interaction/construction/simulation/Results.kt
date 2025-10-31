@@ -29,8 +29,8 @@ interface Results<T : BuildResult> {
         concurrentResults.add(
             dependencyStack
                 .asReversed()
-                .fold(result) { acc, dependable ->
-                    with(dependable) { dependentUpon(acc) }
+                .fold(result) { acc, dependent ->
+                    with(dependent) { dependentUpon(acc) }
                 }
         )
     }
