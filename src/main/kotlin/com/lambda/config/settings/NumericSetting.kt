@@ -96,21 +96,23 @@ abstract class NumericSetting<T>(
         }
     }
 
-    @SettingGroup.SettingEditorDsl
-    @Suppress("unchecked_cast")
-    fun SettingGroup.TypedEditBuilder<T>.range(range: ClosedRange<T>) {
-        (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
-    }
+    companion object {
+        @SettingGroup.SettingEditorDsl
+        @Suppress("unchecked_cast")
+        fun <T> SettingGroup.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+            (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
+        }
 
-    @SettingGroup.SettingEditorDsl
-    @Suppress("unchecked_cast")
-    fun SettingGroup.TypedEditBuilder<T>.step(step: T) {
-        (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
-    }
+        @SettingGroup.SettingEditorDsl
+        @Suppress("unchecked_cast")
+        fun <T> SettingGroup.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+            (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
+        }
 
-    @SettingGroup.SettingEditorDsl
-    @Suppress("unchecked_cast")
-    fun SettingGroup.TypedEditBuilder<*>.unit(unit: String) {
-        (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
+        @SettingGroup.SettingEditorDsl
+        @Suppress("unchecked_cast")
+        fun <T> SettingGroup.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+            (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
+        }
     }
 }
