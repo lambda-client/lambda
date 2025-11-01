@@ -151,8 +151,7 @@ sealed class PlaceResult : BuildResult() {
      * @property simulated The context of the simulated item placement attempt.
      */
     data class ScaffoldExceeded(
-        override val pos: BlockPos,
-        val simulated: ItemPlacementContext,
+        override val pos: BlockPos
     ) : PlaceResult() {
         override val rank = Rank.PlaceScaffoldExceeded
     }

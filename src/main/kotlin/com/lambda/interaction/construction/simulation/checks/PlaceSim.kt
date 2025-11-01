@@ -154,13 +154,18 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val hitResult = checkedHit.hit.blockResult ?: return
 
-            var context = ItemPlacementContext(
-                world,
-                fakePlayer,
-                Hand.MAIN_HAND,
-                swapStack,
-                hitResult,
-            )
+            val context = swapStack.blockItem.getPlacementContext(
+                ItemPlacementContext(
+                    world,
+                    fakePlayer,
+                    Hand.MAIN_HAND,
+                    swapStack,
+                    hitResult,
+                )
+            ) ?: run {
+                result(PlaceResult.ScaffoldExceeded(pos))
+                return
+            }
 
             if (context.blockPos != pos) {
                 result(PlaceResult.UnexpectedPosition(pos, context.blockPos))
@@ -175,11 +180,6 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
             if (!context.canPlace()) {
                 result(PlaceResult.CantReplace(pos, context))
-                return
-            }
-
-            context = swapStack.blockItem.getPlacementContext(context) ?: run {
-                result(PlaceResult.ScaffoldExceeded(pos, context))
                 return
             }
 
