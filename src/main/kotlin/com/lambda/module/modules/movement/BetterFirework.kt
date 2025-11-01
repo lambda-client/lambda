@@ -28,18 +28,15 @@ import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.warn
 import com.lambda.util.NamedEnum
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import com.lambda.util.player.SlotUtils.storage
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
@@ -66,7 +63,7 @@ object BetterFirework : Module(
         Hotbar("Hotbar")
     }
 
-    private var takeoffState = TakeoffState.NONE
+    private var takeoffState = TakeoffState.None
 
     val ClientPlayerEntity.canTakeoff: Boolean
         get() = isOnGround || canOpenElytra
@@ -77,20 +74,20 @@ object BetterFirework : Module(
     init {
         listen<TickEvent.Pre> {
             when (takeoffState) {
-                TakeoffState.NONE -> {}
+                TakeoffState.None -> {}
 
-                TakeoffState.JUMPING -> {
+                TakeoffState.Jumping -> {
                     player.jump()
-                    takeoffState = TakeoffState.START_FLYING
+                    takeoffState = TakeoffState.StartFlying
                 }
 
-                TakeoffState.START_FLYING -> {
+                TakeoffState.StartFlying -> {
                     if (player.canOpenElytra) {
                         player.startGliding()
                         connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
                     }
                     startFirework(silentUse)
-                    takeoffState = TakeoffState.NONE
+                    takeoffState = TakeoffState.None
                 }
             }
         }
@@ -115,9 +112,9 @@ object BetterFirework : Module(
             mc.itemUseCooldown += 4
             val cancelInteract = player.canTakeoff || fireworkInteractCancel
             if (player.canTakeoff) {
-                takeoffState = TakeoffState.JUMPING
+                takeoffState = TakeoffState.Jumping
             } else if (player.canOpenElytra) {
-                takeoffState = TakeoffState.START_FLYING
+                takeoffState = TakeoffState.StartFlying
             }
             return cancelInteract
         } ?: false
@@ -132,14 +129,14 @@ object BetterFirework : Module(
             if (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) {
                 return false
             }
-            if (takeoffState != TakeoffState.NONE) {
+            if (takeoffState != TakeoffState.None) {
                 return false // Prevent using multiple times
             }
             if (player.canOpenElytra || player.isGliding) {
                 // If already gliding use another firework
-                takeoffState = TakeoffState.START_FLYING
+                takeoffState = TakeoffState.StartFlying
             } else if (player.canTakeoff) {
-                takeoffState = TakeoffState.JUMPING
+                takeoffState = TakeoffState.Jumping
             }
             return true
         } ?: false
@@ -192,8 +189,8 @@ object BetterFirework : Module(
     }
 
     enum class TakeoffState {
-        NONE,
-        JUMPING,
-        START_FLYING
+        None,
+        Jumping,
+        StartFlying
     }
 }
