@@ -99,10 +99,10 @@ object BetterFirework : Module(
             }
         }
         listen<MouseEvent.Click> {
-            if (!activateButton.isMouseBind || activateButton.mouse == mc.options.pickItemKey.boundKey.code) {
-                return@listen
-            }
             if (it.isPressed && it.satisfies(activateButton)) {
+                if (activateButton.mouse == mc.options.pickItemKey.boundKey.code) {
+                    return@listen
+                }
                 runSafe {
                     if (takeoffState != TakeoffState.None) {
                         return@listen // Prevent using multiple times
@@ -117,10 +117,10 @@ object BetterFirework : Module(
             }
         }
         listen<KeyboardEvent.Press> {
-            if (!activateButton.isKeyBind || activateButton.key == mc.options.pickItemKey.boundKey.code) {
-                return@listen
-            }
             if (it.isPressed && it.satisfies(activateButton)) {
+                if (activateButton.key == mc.options.pickItemKey.boundKey.code) {
+                    return@listen
+                }
                 runSafe {
                     if (takeoffState != TakeoffState.None) {
                         return@listen // Prevent using multiple times
