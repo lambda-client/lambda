@@ -34,27 +34,23 @@ object EnchantmentUtils {
         get() = getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT)
 
     /**
-     * Returns whether the given [ItemStack] has enchantments
+     * Returns whether the given [ItemStack] has enchantments, including enchantments on books
      */
     val ItemStack.hasEnchantments: Boolean
         get() = !getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).isEmpty
-                || getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).isEmpty
+                || !getOrDefault(DataComponentTypes.STORED_ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT).isEmpty
 
     /**
      * Returns the given enchantment level from a [net.minecraft.item.ItemStack]
      */
     fun ItemStack.getEnchantment(key: RegistryKey<Enchantment>) =
-        getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT)
-            .enchantmentEntries.find { it.key?.matchesKey(key) == true }
-            ?.intValue
-            ?: 0
+        enchantments.enchantmentEntries.find { it.key?.matchesKey(key) == true }?.intValue ?: 0
 
     /**
      * Iterates over all the enchantments for the given [ItemStack]
      */
     fun <T> ItemStack.forEachEnchantment(block: (RegistryEntry<Enchantment>, Int) -> T) =
-        enchantments.enchantmentEntries.asSequence()
-            .map { block(it.key, it.intValue) }
+        enchantments.enchantmentEntries.map { block(it.key, it.intValue) }
 
     /**
      * Iterates over all the enchantments of the given [net.minecraft.entity.LivingEntity]'s [EquipmentSlot]
@@ -62,6 +58,5 @@ object EnchantmentUtils {
     fun <T> LivingEntity.forEachSlot(
         vararg slots: EquipmentSlot,
         block: (entry: RegistryEntry<Enchantment>, level: Int) -> T
-    ) =
-        slots.flatMap { getEquippedStack(it).forEachEnchantment(block) }
+    ) = slots.flatMap { getEquippedStack(it).forEachEnchantment(block) }
 }

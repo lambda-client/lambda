@@ -75,9 +75,11 @@ class SetSetting<T : Any>(
         value = strSet
     }
 
-    @SettingGroup.SettingEditorDsl
-    @Suppress("unchecked_cast")
-    fun <T> SettingGroup.TypedEditBuilder<MutableSet<T>>.immutableSet(immutableSet: Set<T>) {
-        (settings as Collection<SetSetting<T>>).forEach { it.immutableSet = immutableSet }
+    companion object {
+        @SettingGroup.SettingEditorDsl
+        @Suppress("unchecked_cast")
+        fun <T : Any> SettingGroup.TypedEditBuilder<MutableSet<T>>.immutableSet(immutableSet: Set<T>) {
+            (settings as Collection<SetSetting<T>>).forEach { it.immutableSet = immutableSet }
+        }
     }
 }
