@@ -19,38 +19,35 @@ package com.lambda.interaction.construction.result
 
 enum class Rank {
     // solvable
-    BREAK_SUCCESS,
-    INTERACT_SUCCESS,
-    PLACE_SUCCESS,
-    WRONG_ITEM,
-    BREAK_ITEM_CANT_MINE,
-    PLACE_BLOCKED_BY_PLAYER,
-    NOT_VISIBLE,
-    OUT_OF_REACH,
-    PLACE_BLOCKED_BY_ENTITY,
-    BREAK_NOT_EXPOSED,
-    CHUNK_NOT_LOADED,
-    PLACE_CANT_REPLACE,
-    BREAK_PLAYER_ON_TOP,
-    PLACE_NOT_ITEM_BLOCK,
+    PlaceSuccess,
+    BreakSuccess,
+    InteractSuccess,
+    WrongItem,
+    BreakItemCantMine,
+    PlaceBlockedByPlayer,
+    NotVisible,
+    OutOfReach,
+    PlaceBlockedByEntity,
+    BreakNotExposed,
+    ChunkNotLoaded,
+    PlaceCantReplace,
+    BreakPlayerOnTop,
 
     // not solvable
-    OUT_OF_WORLD,
-    BREAK_RESTRICTED,
-    PLACE_NO_INTEGRITY,
-    BREAK_SUBMERGE,
-    BREAK_IS_BLOCKED_BY_FLUID,
-    UNBREAKABLE,
-    BREAK_NO_PERMISSION,
-    PLACE_SCAFFOLD_EXCEEDED,
-    PLACE_BLOCK_FEATURE_DISABLED,
-    UNEXPECTED_POSITION,
-    PLACE_ILLEGAL_USAGE,
+    OutOfWorld,
+    BreakRestricted,
+    PlaceNoIntegrity,
+    BreakSubmerge,
+    BreakIsBlockedByFluid,
+    Unbreakable,
+    BreakNoPermission,
+    PlaceScaffoldExceeded,
+    PlaceBlockFeatureDisabled,
+    UnexpectedPosition,
+    PlaceIllegalUsage,
 
     // not an issue
-    DONE,
-    IGNORED;
-
-    val solvable: Boolean
-        get() = ordinal < PLACE_NOT_ITEM_BLOCK.ordinal
+    Done,
+    Ignored,
+    NoMatch;
 }

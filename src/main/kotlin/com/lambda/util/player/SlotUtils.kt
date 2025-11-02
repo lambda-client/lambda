@@ -29,7 +29,6 @@ object SlotUtils {
     val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.mainStacks
     val ClientPlayerEntity.combined: List<ItemStack> get() = hotbarAndStorage + equipment
 
-
     fun SafeContext.clickSlot(
         slotId: Int,
         button: Int,

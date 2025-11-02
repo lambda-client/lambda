@@ -15,15 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.interaction.construction.result
 
-import net.minecraft.util.math.Direction
+import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.request.hotbar.HotbarManager
 
-data class SurfaceScan(
-    val mode: ScanMode,
-    val axis: Direction.Axis,
-) {
-    companion object {
-        val DEFAULT = SurfaceScan(ScanMode.Full, Direction.Axis.Y)
-    }
+interface Contextual : ComparableResult<Rank> {
+    val context: BuildContext
+
+    override fun compareResult(other: ComparableResult<Rank>) =
+        when (other) {
+
+            is Contextual -> compareByDescending<Contextual> {
+                it.context.hotbarIndex == HotbarManager.serverSlot
+            }.thenBy {
+                it.compareBy.rank
+            }.compare(this, other)
+
+            else -> compareBy.rank.compareTo(other.compareBy.rank)
+        }
 }

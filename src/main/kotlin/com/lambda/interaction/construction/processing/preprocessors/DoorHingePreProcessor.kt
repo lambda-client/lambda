@@ -39,19 +39,19 @@ object DoorHingePreProcessor : PlacementProcessor() {
             val side = state.get(Properties.DOOR_HINGE) ?: return@runSafe
             val scanner = when (state.get(Properties.HORIZONTAL_FACING) ?: return@runSafe) {
                 Direction.NORTH ->
-                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.X)
-                    else SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.X)
+                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.X)
+                    else SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.X)
                 Direction.EAST ->
-                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Z)
-                    else SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Z)
+                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Z)
+                    else SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Z)
                 Direction.SOUTH ->
-                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.X)
-                    else SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.X)
+                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.X)
+                    else SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.X)
                 Direction.DOWN,
                 Direction.UP,
                 Direction.WEST ->
-                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Z)
-                    else SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Z)
+                    if (side == DoorHinge.LEFT) SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Z)
+                    else SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Z)
             }
             accumulator.offerSurfaceScan(scanner)
         } ?: Unit

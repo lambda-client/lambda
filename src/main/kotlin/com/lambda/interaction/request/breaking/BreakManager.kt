@@ -33,7 +33,7 @@ import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.StackSelection
@@ -433,7 +433,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .let { infos ->
                 rotationRequest = infos.firstOrNull { info -> info.breakConfig.rotateForBreak }
                     ?.let { info ->
-                        val rotation = info.context.rotation
+                        val rotation = info.context.rotationRequest
                         logger.debug("Requesting rotation", rotation)
                         rotation.submit(false)
                     }
@@ -528,7 +528,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             abandonedInfo.context.blockPos
                 .toStructure(TargetState.Empty)
                 .toBlueprint()
-                .simulate(player.eyePos)
+                .simulate()
                 .asSequence()
                 .filterIsInstance<BreakResult.Break>()
                 .filter { canAccept(it.context) }
@@ -685,7 +685,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             return
         }
 
-        val hitResult = ctx.result
+        val hitResult = ctx.hitResult
 
         if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
             breakCooldown = breakConfig.breakDelay

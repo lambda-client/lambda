@@ -66,19 +66,18 @@ object FastBreak : Module(
         editTyped(
             ::avoidLiquids,
             ::avoidSupporting,
+            ::efficientOnly,
             ::suitableToolsOnly,
             ::rotateForBreak,
             ::doubleBreak
         ) { defaultValue(false) }
         ::breaksPerTick.edit { defaultValue(1) }
-        ::breakWeakBlocks.edit { defaultValue(true) }
         hide(
             ::sorter,
             ::doubleBreak,
             ::unsafeCancels,
             ::rotateForBreak,
             ::breaksPerTick,
-            ::breakWeakBlocks
         )
     }
     override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
@@ -174,7 +173,6 @@ object FastBreak : Module(
                     breakConfig.breakThreshold
                 ),
                 state,
-                breakConfig.sorter,
                 this@FastBreak
             )
 

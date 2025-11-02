@@ -122,10 +122,10 @@ object InteractionManager : RequestHandler<InteractRequest>(
                 InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
             if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
-                interaction.interactBlock(player, Hand.MAIN_HAND, ctx.result)
+                interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
             } else {
                 interaction.sendSequencedPacket(world) { sequence ->
-                    PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, ctx.result, sequence)
+                    PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, ctx.hitResult, sequence)
                 }
             }
             if (interactConfig.swingHand) {

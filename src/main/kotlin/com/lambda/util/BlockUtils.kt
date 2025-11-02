@@ -305,7 +305,7 @@ object BlockUtils {
         return speedMultiplier
     }
 
-    val BlockState.isEmpty get() = matches(emptyState)
+    val BlockState.isEmpty get() = isAir || matches(emptyState)
     val BlockState.isNotEmpty get() = !isEmpty
     val BlockState.hasFluid get() = !fluidState.isEmpty
     val BlockState.emptyState: BlockState get() = fluidState.blockState

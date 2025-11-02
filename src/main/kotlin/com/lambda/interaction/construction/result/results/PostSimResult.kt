@@ -15,15 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.interaction.construction.result.results
 
-import net.minecraft.util.math.Direction
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Rank
+import net.minecraft.util.math.BlockPos
 
-data class SurfaceScan(
-    val mode: ScanMode,
-    val axis: Direction.Axis,
-) {
-    companion object {
-        val DEFAULT = SurfaceScan(ScanMode.Full, Direction.Axis.Y)
+sealed class PostSimResult : BuildResult() {
+    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+
+    data class NoMatch(
+        override val pos: BlockPos,
+    ) : PostSimResult() {
+        override val rank = Rank.NoMatch
     }
 }

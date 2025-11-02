@@ -31,7 +31,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakConfig
@@ -79,8 +79,12 @@ object PacketMine : Module(
     private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Break, BreakSettings.Group.Cosmetic)
 
     override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editTyped(::avoidLiquids, ::avoidSupporting, ::suitableToolsOnly) { defaultValue(false) }
-        ::breakWeakBlocks.edit { defaultValue(true) }
+        editTyped(
+            ::avoidLiquids,
+            ::avoidSupporting,
+            ::efficientOnly,
+            ::suitableToolsOnly
+        ) { defaultValue(false) }
         ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 
         ::rebreak.insert(::rebreakMode, SettingGroup.InsertMode.Below)
@@ -250,7 +254,7 @@ object PacketMine : Module(
                 .filterNotNull()
                 .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
                 .toBlueprint()
-                .simulate(player.eyePos)
+                .simulate()
                 .asSequence()
                 .filterIsInstance<BreakResult.Break>()
                 .map { it.context }

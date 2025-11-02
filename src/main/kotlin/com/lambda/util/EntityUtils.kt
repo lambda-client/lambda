@@ -15,26 +15,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.util
 
-import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
-import net.minecraft.block.BlockState
-import net.minecraft.item.ItemStack
-import net.minecraft.state.property.Property
+import com.lambda.util.math.MathUtils.floorToInt
+import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 
-interface StateMatcher {
-    context(safeContext: SafeContext)
-    fun matches(
-        state: BlockState,
-        pos: BlockPos,
-        ignoredProperties: Collection<Property<*>> = emptySet()
-    ): Boolean
-
-    context(automatedSafeContext: AutomatedSafeContext)
-    fun getStack(pos: BlockPos): ItemStack
-    context(automatedSafeContext: AutomatedSafeContext)
-    fun getState(pos: BlockPos): BlockState
-    fun isEmpty(): Boolean
+object EntityUtils {
+    fun Entity.getPositionsWithinHitboxXZ(minY: Int, maxY: Int): Set<BlockPos> {
+        val hitbox = boundingBox
+        val minX = hitbox.minX.floorToInt()
+        val maxX = hitbox.maxX.floorToInt()
+        val minZ = hitbox.minZ.floorToInt()
+        val maxZ = hitbox.maxZ.floorToInt()
+        val positions = mutableSetOf<BlockPos>()
+        (minX..maxX).forEach { x ->
+            (minY..maxY).forEach { y ->
+                (minZ..maxZ).forEach { z ->
+                    positions.add(BlockPos(x, y, z))
+                }
+            }
+        }
+        return positions
+    }
 }

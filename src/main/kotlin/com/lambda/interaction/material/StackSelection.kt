@@ -20,6 +20,7 @@ package com.lambda.interaction.material
 import com.lambda.interaction.material.StackSelection.Companion.StackSelectionDsl
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
+import com.lambda.util.item.ItemUtils
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.component.ComponentType
@@ -27,11 +28,11 @@ import net.minecraft.component.DataComponentTypes
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.item.ToolMaterial
 import net.minecraft.item.consume.UseAction
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
+import java.util.*
 import kotlin.reflect.KClass
 
 /**
@@ -57,8 +58,7 @@ class StackSelection {
     /**
      * Filters the given [stacks], sorts them with the [comparator] and returns the first value
      */
-    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? =
-        filterStacks(stacks).firstOrNull()
+    fun bestItemMatch(stacks: List<ItemStack>): ItemStack? = filterStacks(stacks).firstOrNull()
 
     fun matches(stack: ItemStack): Boolean = filterStack(stack)
 
@@ -160,7 +160,15 @@ class StackSelection {
      */
     fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = stacks::contains
 
-    fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
+    fun isEfficientForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { itemStack ->
+        val hasEfficientTool = efficientToolCache.getOrPut(blockState) {
+            ItemUtils.tools.any { it.getMiningSpeed(it.defaultStack, blockState) > 1f }
+        }
+        if (hasEfficientTool) itemStack.item.getMiningSpeed(itemStack, blockState) > 1f
+        else false
+    }
+
+    fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { !blockState.isToolRequired || it.isSuitableFor(blockState) }
 
     fun hasTag(tag: TagKey<Item>): (ItemStack) -> Boolean = { it.isIn(tag) }
 
@@ -230,27 +238,24 @@ class StackSelection {
      * Returns the negation of the original predicate.
      * @return A new predicate that matches if the original predicate does not match.
      */
-    fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean {
-        return { !this(it) }
-    }
+    fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean = { !this(it) }
 
     /**
      * Combines two predicates using the logical AND operator.
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if both inputs predicate match.
      */
-    infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
-        return { this(it) && otherPredicate(it) }
-    }
+    infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean = { this(it) && otherPredicate(it) }
 
     /**
      * Combines two predicates using the logical OR operator.
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if either input predicate matches.
      */
-    infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
-        return { this(it) || otherPredicate(it) }
-    }
+    infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean = { this(it) || otherPredicate(it) }
+
+    fun ((ItemStack) -> Boolean).andIf(predicate: Boolean, otherPredicate: () -> (ItemStack) -> Boolean): (ItemStack) -> Boolean =
+        if (predicate) { { this(it) && otherPredicate()(it) } } else this
 
     override fun toString() = buildString {
         append("selection of ${count}x ")
@@ -278,6 +283,8 @@ class StackSelection {
         val EVERYTHING: (ItemStack) -> Boolean = { true }
         val NOTHING: (ItemStack) -> Boolean = { false }
         val NO_COMPARE: Comparator<ItemStack> = Comparator { _, _ -> 0 }
+
+        val efficientToolCache: MutableMap<BlockState, Boolean> = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
 
         @StackSelectionDsl
         fun Item.select() = selectStack { isItem(this@select) }

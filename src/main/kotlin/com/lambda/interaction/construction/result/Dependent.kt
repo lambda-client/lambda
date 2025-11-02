@@ -15,15 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.interaction.construction.result
 
-import net.minecraft.util.math.Direction
+interface Dependent {
+    val dependency: BuildResult
+    val lastDependency: BuildResult
 
-data class SurfaceScan(
-    val mode: ScanMode,
-    val axis: Direction.Axis,
-) {
     companion object {
-        val DEFAULT = SurfaceScan(ScanMode.Full, Direction.Axis.Y)
+        val Dependent.iterator
+            get() = generateSequence(dependency) { (it as? Dependent)?.dependency }
+    }
+
+    class Nested(override val dependency: BuildResult) : Dependent {
+        override val lastDependency = iterator.last()
     }
 }

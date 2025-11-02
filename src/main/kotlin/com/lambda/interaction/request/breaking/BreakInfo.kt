@@ -156,7 +156,7 @@ data class BreakInfo(
                 PlayerActionC2SPacket(
                     action,
                     context.blockPos,
-                    context.result.side,
+                    context.hitResult.side,
                     sequence
                 )
             }

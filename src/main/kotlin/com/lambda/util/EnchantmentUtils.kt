@@ -46,7 +46,6 @@ object EnchantmentUtils {
     fun ItemStack.getEnchantment(key: RegistryKey<Enchantment>) =
         enchantments.enchantmentEntries.find { it.key?.matchesKey(key) == true }?.intValue ?: 0
 
-
     /**
      * Iterates over all the enchantments for the given [ItemStack]
      */

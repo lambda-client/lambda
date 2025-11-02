@@ -17,8 +17,8 @@
 
 package com.lambda.util.item
 
+import com.lambda.context.SafeContext
 import com.lambda.util.collections.Cacheable.Companion.cacheable
-import net.minecraft.component.ComponentType
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.AttributeModifiersComponent
 import net.minecraft.entity.EquipmentSlot
@@ -79,6 +79,15 @@ object ItemStackUtils {
     val List<ItemStack>.count: Int get() = sumOf { it.count }
     val List<ItemStack>.copy: List<ItemStack> get() = map { it.copy() }
 
+    context(safeContext: SafeContext)
+    val ItemStack.inventoryIndex get() = safeContext.player.inventory.getSlotWithStack(this)
+    context(safeContext: SafeContext)
+    val ItemStack.inventoryIndexOrSelected get() = with(safeContext) {
+        player.inventory.getSlotWithStack(this@inventoryIndexOrSelected).let {
+            if (it == -1) player.inventory.selectedSlot else it
+        }
+    }
+
     val List<ItemStack>.compressed: List<ItemStack>
         get() =
             fold(mutableListOf()) { acc, itemStack ->
@@ -86,11 +95,7 @@ object ItemStackUtils {
                 acc
             }
 
-    infix fun List<ItemStack>.merge(other: ItemStack): List<ItemStack> {
-        return flatMap {
-            it merge other
-        }
-    }
+    infix fun List<ItemStack>.merge(other: ItemStack): List<ItemStack> = flatMap { it merge other }
 
     infix fun ItemStack.merge(other: ItemStack): List<ItemStack> {
         if (!isStackable || !other.isStackable) {

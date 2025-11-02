@@ -21,14 +21,13 @@ import com.lambda.core.Loadable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
-import net.minecraft.block.SlabBlock
-import net.minecraft.block.enums.SlabType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
+import java.util.*
 
 object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor>()
-    private val processorCache = mutableMapOf<BlockState, PreProcessingInfo?>()
+    private val processorCache = Collections.synchronizedMap<BlockState, PreProcessingInfo?>(mutableMapOf())
 
     val postProcessedProperties = setOf(
         Properties.EXTENDED,
@@ -107,30 +106,21 @@ object ProcessorRegistry : Loadable {
 
     override fun load() = "Loaded ${processors.size} pre processors"
 
-    fun TargetState.getProcessingInfo(pos: BlockPos) =
-        if (this is TargetState.State) {
+    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? =
+        if (this !is TargetState.State) PreProcessingInfo.DEFAULT
+        else {
             val get: () -> PreProcessingInfo? = get@{
                 val infoAccumulator = PreProcessingInfoAccumulator()
 
                 processors.forEach { processor ->
                     if (!processor.acceptsState(blockState)) return@forEach
                     processor.preProcess(blockState, pos, infoAccumulator)
-                    if (infoAccumulator.shouldBeOmitted) {
+                    if (infoAccumulator.shouldBeOmitted)
                         return@get null
-                    }
                 }
 
                 infoAccumulator.complete()
             }
-            if (isExemptFromCache()) {
-                get()
-            } else {
-                processorCache.getOrPut(blockState, get)
-            }
-        } else {
-            PreProcessingInfo.DEFAULT
+            processorCache.getOrPut(blockState, get)
         }
-
-    private fun TargetState.State.isExemptFromCache() =
-        blockState.block is SlabBlock && blockState.get(Properties.SLAB_TYPE) == SlabType.DOUBLE
 }

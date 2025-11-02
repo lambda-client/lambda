@@ -35,8 +35,8 @@ import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
 class InteractionContext(
-    override val result: BlockHitResult,
-    override val rotation: RotationRequest,
+    override val hitResult: BlockHitResult,
+    override val rotationRequest: RotationRequest,
     override var hotbarIndex: Int,
     override var cachedState: BlockState,
     override val expectedState: BlockState,
@@ -45,7 +45,7 @@ class InteractionContext(
     private val baseColor = Color(35, 254, 79, 25)
     private val sideColor = Color(35, 254, 79, 100)
 
-    override val blockPos: BlockPos = result.blockPos
+    override val blockPos: BlockPos = hitResult.blockPos
 
     override fun compareTo(other: BuildContext) =
         when {
@@ -54,7 +54,7 @@ class InteractionContext(
             }.thenByDescending {
                 it.cachedState.fluidState.level
             }.thenBy {
-                it.rotation.target.angleDistance
+                it.rotationRequest.target.angleDistance
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
@@ -65,20 +65,20 @@ class InteractionContext(
         }
 
     override fun ShapeBuilder.buildRenderer() {
-        box(blockPos, expectedState, baseColor, sideColor, result.side.mask)
+        box(blockPos, expectedState, baseColor, sideColor, hitResult.side.mask)
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {
         val hotbarRequest = submit(HotbarRequest(hotbarIndex, request), false)
-        val validRotation = if (request.interactConfig.rotate) submit(rotation, false).done else true
+        val validRotation = if (request.interactConfig.rotate) submit(rotationRequest, false).done else true
         return hotbarRequest.done && validRotation
     }
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Interaction Context") {
             text(blockPos.getLogContextBuilder())
-            text(result.getLogContextBuilder())
-            text(rotation.getLogContextBuilder())
+            text(hitResult.getLogContextBuilder())
+            text(rotationRequest.getLogContextBuilder())
             value("Hotbar Index", hotbarIndex)
             value("Cached State", cachedState)
             value("Expected State", expectedState)

@@ -17,10 +17,13 @@
 
 package com.lambda.interaction.construction.result
 
-sealed interface ComparableResult<T : Enum<T>> : Comparable<ComparableResult<T>> {
+interface ComparableResult<T : Enum<T>> : Comparable<ComparableResult<T>> {
     val rank: T
+    val compareBy: ComparableResult<T>
 
-    override fun compareTo(other: ComparableResult<T>): Int {
-        return rank.compareTo(other.rank)
-    }
+    override fun compareTo(other: ComparableResult<T>) =
+        compareBy.compareResult(other.compareBy)
+
+    fun compareResult(other: ComparableResult<T>): Int =
+        compareBy.rank.compareTo(other.compareBy.rank)
 }

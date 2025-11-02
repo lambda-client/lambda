@@ -26,14 +26,14 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 
 abstract class BuildContext : Comparable<BuildContext>, Drawable, Automated {
-    abstract val result: BlockHitResult
-    abstract val rotation: RotationRequest
+    abstract val hitResult: BlockHitResult
+    abstract val rotationRequest: RotationRequest
     abstract val hotbarIndex: Int
     abstract val cachedState: BlockState
     abstract val expectedState: BlockState
     abstract val blockPos: BlockPos
 
     val distance by lazy {
-        runSafe { player.eyePos.distanceTo(result.pos) } ?: Double.MAX_VALUE
+        runSafe { player.eyePos.distanceTo(hitResult.pos) } ?: Double.MAX_VALUE
     }
 }

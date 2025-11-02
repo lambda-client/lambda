@@ -17,14 +17,17 @@
 
 package com.lambda.interaction.construction.verify
 
-import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.BlockState
-import net.minecraft.client.world.ClientWorld
+import net.minecraft.block.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.state.property.Property
@@ -34,134 +37,158 @@ import net.minecraft.util.math.Direction
 sealed class TargetState(val type: Type) : StateMatcher {
 
     enum class Type {
-        EMPTY, AIR, SOLID, SUPPORT, STATE, BLOCK, STACK
+        Empty, Air, Solid, Support, State, Block, Stack
     }
 
-    data object Empty : TargetState(Type.EMPTY) {
+    data object Empty : TargetState(Type.Empty) {
         override fun toString() = "Empty"
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
         ) = state.isEmpty
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
-            ItemStack.EMPTY
+        context(_: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack = ItemStack.EMPTY
+
+        context(automatedSafeContext: AutomatedSafeContext)
+        override fun getState(pos: BlockPos) = automatedSafeContext.blockState(pos).emptyState
 
         override fun isEmpty() = true
     }
 
-    data object Air : TargetState(Type.AIR) {
+    data object Air : TargetState(Type.Air) {
         override fun toString() = "Air"
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
         ) = state.isAir
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
-            ItemStack.EMPTY
+        context(_: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack = ItemStack.EMPTY
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = Blocks.AIR.defaultState
 
         override fun isEmpty() = true
     }
 
-    data object Solid : TargetState(Type.SOLID) {
+    data class Solid(val replace: Set<net.minecraft.block.Block>) : TargetState(Type.Solid) {
         override fun toString() = "Solid"
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.isSolidBlock(world, pos)
+        ) = with(safeContext) { state.isSolidBlock(world, pos) && state.block !in replace }
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated) =
-            with(automated) {
+        context(automatedSafeContext: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos) =
+            with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
-                    it.item.block in inventoryConfig.disposables
+                    it.item.block in inventoryConfig.disposables && it.item.block !in replace
                 } ?: ItemStack(Items.NETHERRACK)
             }
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = getStack(pos).item.block.defaultState
 
         override fun isEmpty() = false
     }
 
-    data class Support(val direction: Direction) : TargetState(Type.SUPPORT) {
+    data class Support(val direction: Direction) : TargetState(Type.Support) {
         override fun toString() = "Support for ${direction.name}"
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
-        ) =
+        ) = with(safeContext) {
             world.getBlockState(pos.offset(direction)).isSolidBlock(world, pos.offset(direction))
                     || state.isSolidBlock(world, pos)
+        }
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated) =
-            with(automated) {
+        context(automatedSafeContext: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos) =
+            with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
                     it.item.block in inventoryConfig.disposables
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = getStack(pos).item.block.defaultState
+
         override fun isEmpty() = false
     }
 
-    data class State(val blockState: BlockState) : TargetState(Type.STATE) {
+    data class State(val blockState: BlockState) : TargetState(Type.State) {
         override fun toString() = "State of $blockState"
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
         ) =
             state.matches(blockState, ignoredProperties)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
-            blockState.block.getPickStack(world, pos, blockState, true)
+        context(automatedSafeContext: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack =
+            blockState.block.getPickStack(automatedSafeContext.world, pos, blockState, true)
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = blockState
 
         override fun isEmpty() = blockState.isEmpty
     }
 
-    data class Block(val block: net.minecraft.block.Block) : TargetState(Type.BLOCK) {
+    data class Block(val block: net.minecraft.block.Block) : TargetState(Type.Block) {
         override fun toString() = "Block of ${block.name.string.capitalize()}"
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.block == block
+        ) = state.block == block
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
-            block.getPickStack(world, pos, block.defaultState, true)
+        context(automatedSafeContext: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack =
+            block.getPickStack(automatedSafeContext.world, pos, block.defaultState, true)
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = block.defaultState
 
         override fun isEmpty() = block.defaultState.isEmpty
     }
 
-    data class Stack(val itemStack: ItemStack) : TargetState(Type.STACK) {
+    data class Stack(val itemStack: ItemStack) : TargetState(Type.Stack) {
         private val startStack: ItemStack = itemStack.copy()
         override fun toString() = "Stack of ${startStack.item.name.string.capitalize()}"
 
         private val block = itemStack.item.block
 
+        context(safeContext: SafeContext)
         override fun matches(
             state: BlockState,
             pos: BlockPos,
-            world: ClientWorld,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.block == block
+        ) = state.block == block
 
-        override fun getStack(world: ClientWorld, pos: BlockPos, automated: Automated): ItemStack =
+        context(automatedSafeContext: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos): ItemStack =
             itemStack
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = block.defaultState
 
         override fun isEmpty() = false
     }
