@@ -19,7 +19,10 @@ package com.lambda.module.modules.movement
 
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.settings.collections.SetSetting.Companion.immutableSet
+import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
+import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.events.MouseEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -28,10 +31,13 @@ import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.KeyCode
+import com.lambda.util.Mouse
 import com.lambda.util.NamedEnum
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.client.option.KeyBinding
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
@@ -40,19 +46,20 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
+import org.lwjgl.glfw.GLFW
 
 object BetterFirework : Module(
     name = "BetterFirework",
     description = "Automatic takeoff with fireworks",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private var middleClick by setting("Middle Click", true, "Use firework on middle mouse click").group(Group.General)
-    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { middleClick }.group(Group.General)
+    private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework").group(Group.General)
+    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.UNBOUND.code }.group(Group.General)
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
 
     private var clientSwing by setting("Swing", true, "Swing hand client side").group(Group.General)
-    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory") { middleClick }.group(Group.General)
+    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory") { activateButton.key != KeyCode.UNBOUND.code }.group(Group.General)
 
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
         ::sequenceStageMask.edit { immutableSet(setOf(TickEvent.Pre)) }
@@ -91,6 +98,42 @@ object BetterFirework : Module(
                 }
             }
         }
+        listen<MouseEvent.Click> {
+            if (!activateButton.isMouseBind || activateButton.mouse == mc.options.pickItemKey.boundKey.code) {
+                return@listen
+            }
+            if (it.isPressed && it.satisfies(activateButton)) {
+                runSafe {
+                    if (takeoffState != TakeoffState.None) {
+                        return@listen // Prevent using multiple times
+                    }
+                    if (player.canOpenElytra || player.isGliding) {
+                        // If already gliding use another firework
+                        takeoffState = TakeoffState.StartFlying
+                    } else if (player.canTakeoff) {
+                        takeoffState = TakeoffState.Jumping
+                    }
+                }
+            }
+        }
+        listen<KeyboardEvent.Press> {
+            if (!activateButton.isKeyBind || activateButton.key == mc.options.pickItemKey.boundKey.code) {
+                return@listen
+            }
+            if (it.isPressed && it.satisfies(activateButton)) {
+                runSafe {
+                    if (takeoffState != TakeoffState.None) {
+                        return@listen // Prevent using multiple times
+                    }
+                    if (player.canOpenElytra || player.isGliding) {
+                        // If already gliding use another firework
+                        takeoffState = TakeoffState.StartFlying
+                    } else if (player.canTakeoff) {
+                        takeoffState = TakeoffState.Jumping
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -125,8 +168,10 @@ object BetterFirework : Module(
     @JvmStatic
     fun onPick() =
         runSafe {
-            if (!middleClick) return false
             if (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) {
+                return false
+            }
+            if (!activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code) {
                 return false
             }
             if (takeoffState != TakeoffState.None) {
@@ -138,7 +183,7 @@ object BetterFirework : Module(
             } else if (player.canTakeoff) {
                 takeoffState = TakeoffState.Jumping
             }
-            return true
+            return middleClickCancel
         } ?: false
 
     fun SafeContext.sendSwing() {
