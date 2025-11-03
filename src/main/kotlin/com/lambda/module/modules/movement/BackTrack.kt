@@ -58,10 +58,10 @@ object BackTrack : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     private val outbound by setting("Outbound", true)
-    private val mode by setting("Mode", Mode.FIXED)
-    private val delay by setting("Delay", 500, 100..2000) { mode == Mode.FIXED }
-    private val maxDelay by setting("Max Delay", 1000, 100..2000) { mode == Mode.RANGED || mode == Mode.ADAPTIVE }
-    private val distance by setting("Distance", 3.0, 1.0..5.0, 0.1) { mode == Mode.RANGED || mode == Mode.ADAPTIVE }
+    private val mode by setting("Mode", Mode.Fixed)
+    private val delay by setting("Delay", 500, 100..2000) { mode == Mode.Fixed }
+    private val maxDelay by setting("Max Delay", 1000, 100..2000) { mode == Mode.Ranged || mode == Mode.Adaptive }
+    private val distance by setting("Distance", 3.0, 1.0..5.0, 0.1) { mode == Mode.Ranged || mode == Mode.Adaptive }
 
     private var target: LivingEntity? = null
     private var targetPos: Vec3d? = null
@@ -75,14 +75,14 @@ object BackTrack : Module(
     private val receivePool = ConcurrentLinkedDeque<Pair<ClientPacket, Long>>()
 
     enum class Mode(val shouldSend: SafeContext.(Vec3d, Vec3d, Long) -> Boolean) {
-        FIXED({ _, _, timing ->
+        Fixed({ _, _, timing ->
             currentTime > timing + delay
         }),
-        RANGED({ _, serverPos, timing ->
+        Ranged({ _, serverPos, timing ->
             val serverDist = player.pos dist serverPos
             currentTime > timing + maxDelay * serverDist.coerceIn(0.0, distance) / distance
         }),
-        ADAPTIVE({ clientPos, serverPos, timing ->
+        Adaptive({ clientPos, serverPos, timing ->
             val clientDist = player.pos dist clientPos
             val serverDist = player.pos dist serverPos
             val advantage = serverDist - clientDist

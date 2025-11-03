@@ -30,7 +30,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
-data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
+data object CreativeContainer : MaterialContainer(Rank.Creative) {
     override var stacks = emptyList<ItemStack>()
 
     override val description = buildText { literal("Creative") }

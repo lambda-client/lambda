@@ -30,7 +30,7 @@ object TPS : HudModule(
     description = "Display the server's tick rate",
     tag = ModuleTag.HUD,
 ) {
-    private val format by setting("Tick format", ServerTPS.TickFormat.TPS)
+    private val format by setting("Tick format", ServerTPS.TickFormat.Tps)
     private val showGraph by setting("Show TPS Graph", false)
     private val graphHeight by setting("Graph Height", 40f, 10f..200f, 1f)
     private val graphWidth by setting("Graph Width", 200f, 10f..500f, 1f)

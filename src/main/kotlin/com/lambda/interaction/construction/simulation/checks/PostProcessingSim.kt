@@ -119,7 +119,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     private fun AutomatedSafeContext.getSwapStack(item: Item): ItemStack? {
         val stackSelection = item.select()
         val hotbarCandidates = selectContainer {
-            ofAnyType(MaterialContainer.Rank.HOTBAR)
+            ofAnyType(MaterialContainer.Rank.Hotbar)
         }.let { predicate ->
             stackSelection.containerWithMaterial( predicate)
         }

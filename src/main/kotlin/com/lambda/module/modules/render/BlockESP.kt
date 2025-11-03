@@ -28,7 +28,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
-import com.lambda.util.extension.outlineShape
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -52,7 +51,7 @@ object BlockESP : Module(
     private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
     private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
 
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { searchBlocks }.onValueChange(::rebuildMesh)
 
     @JvmStatic
     val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")

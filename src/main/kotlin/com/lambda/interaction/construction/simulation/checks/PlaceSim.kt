@@ -135,7 +135,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
     private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
         val optimalStack = targetState.getStack(pos)
         val stackSelection = optimalStack.item.select()
-        val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
+        val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
         val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
             result(GenericResult.WrongItemSelection(pos, optimalStack.item.select(), player.mainHandStack))
             return null

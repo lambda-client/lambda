@@ -35,10 +35,10 @@ object TargetStrafe : Module(
 ) {
     private val targetDistance by setting("Strafe Distance", 1.0, 0.0..5.0, 0.1)
     private val jitterCompensation by setting("Jitter Compensation", 0.0, 0.0..1.0, 0.1)
-    private val stabilize by setting("Stabilize", StabilizationMode.NORMAL)
+    private val stabilize by setting("Stabilize", StabilizationMode.Normal)
 
     enum class StabilizationMode {
-        NONE, WEAK, NORMAL, STRONG
+        None, Weak, Normal, Strong
     }
 
     private var forwardDirection = 1.0
@@ -72,10 +72,10 @@ object TargetStrafe : Module(
 
                 // Premium code, do not touch it bites
                 var shouldStabilize = when (stabilize) {
-                    StabilizationMode.NONE -> false
-                    StabilizationMode.WEAK -> player.age % 4 == 0   // 1/4
-                    StabilizationMode.NORMAL -> player.age % 2 == 0 // 2/4
-                    StabilizationMode.STRONG -> player.age % 4 != 0 // 3/4
+                    StabilizationMode.None -> false
+                    StabilizationMode.Weak -> player.age % 4 == 0   // 1/4
+                    StabilizationMode.Normal -> player.age % 2 == 0 // 2/4
+                    StabilizationMode.Strong -> player.age % 4 != 0 // 3/4
                 }
 
                 shouldStabilize = shouldStabilize && distSq > (targetDistance + 0.5).pow(2)

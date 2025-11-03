@@ -158,15 +158,15 @@ abstract class MaterialContainer(
     }
 
     enum class Rank {
-        MAIN_HAND,
-        OFF_HAND,
-        HOTBAR,
-        INVENTORY,
-        CREATIVE,
-        SHULKER_BOX,
-        ENDER_CHEST,
-        CHEST,
-        STASH
+        MainHand,
+        OffHand,
+        Hotbar,
+        Inventory,
+        Creative,
+        ShulkerBox,
+        EnderChest,
+        Chest,
+        Stash
     }
 
     override fun compareTo(other: MaterialContainer) =

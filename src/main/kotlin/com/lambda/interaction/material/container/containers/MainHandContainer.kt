@@ -33,7 +33,7 @@ import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
 
-object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
+object MainHandContainer : MaterialContainer(Rank.MainHand) {
     override var stacks: List<ItemStack>
         get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}

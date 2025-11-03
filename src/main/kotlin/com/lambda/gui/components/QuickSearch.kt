@@ -303,7 +303,7 @@ object QuickSearch {
     }
 
     private fun handleKeyPress(event: KeyboardEvent.Press) {
-        if (!event.isPressed || !(event.keyCode == KeyCode.LEFT_SHIFT.code || event.keyCode == KeyCode.RIGHT_SHIFT.code)) return
+        if (!event.isPressed || !(event.keyCode == KeyCode.LeftShift.code || event.keyCode == KeyCode.RightShift.code)) return
 
         val currentTime = System.currentTimeMillis()
         if (lastShiftKeyCode == event.keyCode &&

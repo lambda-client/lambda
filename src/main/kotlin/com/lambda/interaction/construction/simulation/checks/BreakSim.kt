@@ -181,7 +181,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
         }
 
         val silentSwapSelection = selectContainer {
-            ofAnyType(MaterialContainer.Rank.HOTBAR)
+            ofAnyType(MaterialContainer.Rank.Hotbar)
         }
 
         val swapCandidates = stackSelection

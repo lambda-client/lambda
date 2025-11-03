@@ -60,7 +60,7 @@ object StorageESP : Module(
     /* Render settings */
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueChange { _, to -> drawEdges = !to && !drawFaces }.group(Group.Render)
     private var drawEdges: Boolean by setting("Draw Edges", true, "Draw edges of blocks").onValueChange { _, to -> drawFaces = !to && !drawEdges }.group(Group.Render)
-    private val mode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").group(Group.Render)
+    private val mode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode").group(Group.Render)
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").group(Group.Render)
 
     /* Color settings */

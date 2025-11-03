@@ -37,7 +37,6 @@ import com.lambda.sound.SoundManager.play
 import com.lambda.util.Describable
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
-import com.lambda.util.WindowUtils.setLambdaTitle
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import imgui.ImGui
 import imgui.extension.implot.ImPlot
@@ -221,7 +220,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
             if (!event.isPressed) return@listen
             if (mc.options.commandKey.isPressed) return@listen
-            if (keybind == KeyCode.UNBOUND) return@listen
+            if (keybind == KeyCode.Unbound) return@listen
             if (event.translated != keybind) return@listen
             if (!open && mc.currentScreen != null) return@listen
             if (open && DearImGui.io.wantTextInput) return@listen
@@ -242,7 +241,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
             LambdaScreen.close()
         } else {
             if (!mc.currentScreen.hasInput) {
-                LambdaSound.MODULE_ON.play()
+                LambdaSound.ModuleOn.play()
                 mc.setScreen(LambdaScreen)
                 open = true
             }
@@ -250,7 +249,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     }
 
     fun close() {
-        LambdaSound.MODULE_OFF.play()
+        LambdaSound.ModuleOff.play()
         open = false
     }
 

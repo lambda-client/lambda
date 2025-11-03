@@ -38,25 +38,25 @@ class OpenContainer @Ta5kBuilder constructor(
     override val name get() = "${containerState.description(inScope)} at ${blockPos.toShortString()}"
 
     private var screenHandler: ScreenHandler? = null
-    private var containerState = State.SCOPING
+    private var containerState = State.Scoping
     private var inScope = 0
 
     enum class State {
-        SCOPING, OPENING, SLOT_LOADING;
+        Scoping, Opening, SlotLoading;
 
         fun description(inScope: Int) = when (this) {
-            SCOPING -> "Waiting for scope ($inScope)"
-            OPENING -> "Opening container"
-            SLOT_LOADING -> "Waiting for slots to load"
+            Scoping -> "Waiting for scope ($inScope)"
+            Opening -> "Opening container"
+            SlotLoading -> "Waiting for slots to load"
         }
     }
 
     init {
         listen<InventoryEvent.Open> {
-            if (containerState != State.OPENING) return@listen
+            if (containerState != State.Opening) return@listen
 
             screenHandler = it.screenHandler
-            containerState = State.SLOT_LOADING
+            containerState = State.SlotLoading
 
             if (!waitForSlotLoad) success(it.screenHandler)
         }
@@ -64,12 +64,12 @@ class OpenContainer @Ta5kBuilder constructor(
         listen<InventoryEvent.Close> {
             if (screenHandler != it.screenHandler) return@listen
 
-            containerState = State.SCOPING
+            containerState = State.Scoping
             screenHandler = null
         }
 
         listen<InventoryEvent.FullUpdate> {
-            if (containerState != State.SLOT_LOADING) return@listen
+            if (containerState != State.SlotLoading) return@listen
 
             screenHandler?.let {
                 success(it)
@@ -77,7 +77,7 @@ class OpenContainer @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Pre> {
-            if (containerState != State.SCOPING) return@listen
+            if (containerState != State.Scoping) return@listen
 
             val target = lookAtBlock(blockPos, sides)
             if (interactConfig.rotate && !target.requestBy(this@OpenContainer).done) return@listen
@@ -85,7 +85,7 @@ class OpenContainer @Ta5kBuilder constructor(
             val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen
             interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
 
-            containerState = State.OPENING
+            containerState = State.Opening
         }
     }
 }

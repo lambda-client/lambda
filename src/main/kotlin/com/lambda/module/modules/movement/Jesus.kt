@@ -42,22 +42,22 @@ object Jesus : Module(
     description = "Allows to walk on water",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val mode by setting("Mode", Mode.NCP)
+    private val mode by setting("Mode", Mode.Ncp)
 
     // Dolphin
-    private val dolphinStrength by setting("Dolphin Strength", 0.1, 0.01..0.2, 0.01) { mode == Mode.NCP_DOLPHIN }
+    private val dolphinStrength by setting("Dolphin Strength", 0.1, 0.01..0.2, 0.01) { mode == Mode.NcpDolphin }
 
     // NCP New
-    private val slowDown by setting("Slow Down", true) { mode == Mode.NCP_NEW }
+    private val slowDown by setting("Slow Down", true) { mode == Mode.NcpNew }
 
     private val fullShape = VoxelShapes.fullCube()
     private var goUp = true
     private var swimmingTicks = 0
 
     enum class Mode(override val displayName: String, val collision: Boolean) : NamedEnum {
-        NCP("NCP", true),
-        NCP_DOLPHIN("NCP Dolphin", false),
-        NCP_NEW("NCP New", true)
+        Ncp("NCP", true),
+        NcpDolphin("NCP Dolphin", false),
+        NcpNew("NCP New", true)
     }
 
     private var shouldWork = false
@@ -70,12 +70,12 @@ object Jesus : Module(
             if (!player.isOnGround) return@listen
 
             when (mode) {
-                Mode.NCP -> {
+                Mode.Ncp -> {
                     val offset = if (player.age % 2 == 0) 0.001 else 0.002
                     event.position -= Vec3d(0.0, offset, 0.0)
                 }
 
-                Mode.NCP_NEW -> {
+                Mode.NcpNew -> {
                     event.position -= Vec3d(0.0, 0.02 + 0.0001 * swimmingTicks, 0.0)
                 }
 
@@ -90,12 +90,12 @@ object Jesus : Module(
             val collidingWater = waterAt(-0.0001)
 
             when (mode) {
-                Mode.NCP -> {
+                Mode.Ncp -> {
                     if (!collidingWater || !player.isOnGround) return@listen
                     setSpeed(Speed.NCP_BASE_SPEED * isInputting.toInt())
                 }
 
-                Mode.NCP_DOLPHIN -> {
+                Mode.NcpDolphin -> {
                     if (goUp) {
                         player.motionY = dolphinStrength
 
@@ -105,7 +105,7 @@ object Jesus : Module(
                     }
                 }
 
-                Mode.NCP_NEW -> {
+                Mode.NcpNew -> {
                     if (!collidingWater) {
                         swimmingTicks = 0
                         return@listen
@@ -136,7 +136,7 @@ object Jesus : Module(
         }
 
         listen<MovementEvent.InputUpdate> {
-            if (!shouldWork || !goUp || mode == Mode.NCP_DOLPHIN) return@listen
+            if (!shouldWork || !goUp || mode == Mode.NcpDolphin) return@listen
             it.input.jump()
         }
 

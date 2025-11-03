@@ -28,7 +28,7 @@ import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 
-object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
+object EnderChestContainer : MaterialContainer(Rank.EnderChest) {
     override var stacks = emptyList<ItemStack>()
     private var placePos: BlockPos? = null
 

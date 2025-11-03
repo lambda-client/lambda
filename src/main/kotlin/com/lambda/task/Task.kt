@@ -39,11 +39,11 @@ typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 abstract class Task<Result> : Nameable, Muteable {
     var parent: Task<*>? = null
     val subTasks = mutableListOf<Task<*>>()
-    var state = State.INIT
-    override val isMuted: Boolean get() = state == State.PAUSED || state == State.INIT
+    var state = State.Init
+    override val isMuted: Boolean get() = state == State.Paused || state == State.Init
     var age = 0
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
-    val isCompleted get() = state == State.COMPLETED
+    val isCompleted get() = state == State.Completed
     val size: Int get() = subTasks.sumOf { it.size } + 1
 
     private var nextTask: TaskGenerator<Result>? = null
@@ -51,12 +51,12 @@ abstract class Task<Result> : Nameable, Muteable {
     private var onFinish: TaskGeneratorUnit<Result>? = null
 
     enum class State {
-        INIT,
-        RUNNING,
-        PAUSED,
-        CANCELLED,
-        FAILED,
-        COMPLETED;
+        Init,
+        Running,
+        Paused,
+        Cancelled,
+        Failed,
+        Completed;
 
         val display get() = name.lowercase().capitalize()
     }
@@ -118,7 +118,7 @@ abstract class Task<Result> : Nameable, Muteable {
             LOG.info("$name pausing parent ${owner.name}")
             if (owner !is RootTask) owner.pause()
         }
-        state = State.RUNNING
+        state = State.Running
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }
         return this
     }
@@ -126,7 +126,7 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     fun success(result: Result) {
         unsubscribe()
-        state = State.COMPLETED
+        state = State.Completed
         if (!AutomationConfig.showAllEntries) parent?.subTasks?.remove(this)
         runSafe {
             executeNextTask(result)
@@ -140,14 +140,14 @@ abstract class Task<Result> : Nameable, Muteable {
 
     @Ta5kBuilder
     fun activate() {
-        if (state != State.PAUSED) return
-        state = State.RUNNING
+        if (state != State.Paused) return
+        state = State.Running
     }
 
     @Ta5kBuilder
     fun pause() {
-        if (state != State.RUNNING) return
-        state = State.PAUSED
+        if (state != State.Running) return
+        state = State.Paused
     }
 
     private fun SafeContext.executeNextTask(result: Result) {
@@ -171,8 +171,8 @@ abstract class Task<Result> : Nameable, Muteable {
         runSafe { onCancel() }
         cancelSubTasks()
         if (this is RootTask) return
-        if (state == State.COMPLETED || state == State.CANCELLED) return
-        state = State.CANCELLED
+        if (state == State.Completed || state == State.Cancelled) return
+        state = State.Cancelled
         unsubscribe()
     }
 
@@ -194,7 +194,7 @@ abstract class Task<Result> : Nameable, Muteable {
         e: Throwable,
         stacktrace: MutableList<Task<*>> = mutableListOf(),
     ) {
-        state = State.FAILED
+        state = State.Failed
         unsubscribe()
         stacktrace.add(this)
         parent?.failure(e, stacktrace) ?: run {
@@ -315,7 +315,7 @@ abstract class Task<Result> : Nameable, Muteable {
         buildString { appendTaskTree(this@Task) }
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
-        if (task.state == State.CANCELLED) return
+        if (task.state == State.Cancelled) return
         appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${(task.age * 50).milliseconds}" else "")
         val left = task.subTasks.size - maxEntries
         if (left > 0) {

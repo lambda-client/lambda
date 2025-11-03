@@ -34,7 +34,7 @@ data class ChestContainer(
     override var stacks: List<ItemStack>,
     val blockPos: BlockPos,
     val containedInStash: StashContainer? = null
-) : MaterialContainer(Rank.CHEST) {
+) : MaterialContainer(Rank.Chest) {
     override val description =
         buildText {
             literal("Chest at ")

@@ -40,7 +40,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
 import com.lambda.util.KeyCode
-import com.lambda.util.Mouse
 import com.lambda.util.Nameable
 
 /**
@@ -58,7 +57,7 @@ import com.lambda.util.Nameable
  * The default [keybind] is the key on which
  * the module will be activated by default.
  * If a module does not need to be activated by a key (like [ClickGui]),
- * the default [keybind] should not be set (using [KeyCode.UNBOUND]).
+ * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
  * [Module]s are [Configurable]s with [settings] (see [AbstractSetting] for all setting types).
  * For example, a [BooleanSetting] and a [DoubleSetting] can be defined like this:
@@ -154,11 +153,11 @@ abstract class Module(
             else if (event.isReleased && disableOnRelease) disable()
         }
 
-        onEnable { LambdaSound.MODULE_ON.play() }
-        onDisable { LambdaSound.MODULE_OFF.play() }
+        onEnable { LambdaSound.ModuleOn.play() }
+        onDisable { LambdaSound.ModuleOff.play() }
 
-        onEnableUnsafe { LambdaSound.MODULE_ON.play() }
-        onDisableUnsafe { LambdaSound.MODULE_OFF.play() }
+        onEnableUnsafe { LambdaSound.ModuleOn.play() }
+        onDisableUnsafe { LambdaSound.ModuleOff.play() }
 
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }

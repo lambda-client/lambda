@@ -103,19 +103,19 @@ object Replay : Module(
     }
 
     enum class State {
-        INACTIVE,
-        RECORDING,
-        PLAYING,
+        Inactive,
+        Recording,
+        Playing,
     }
 
     enum class PlayMode {
-        REPLAY,
-        CONTINUE,
-        LOOP
+        Replay,
+        Continue,
+        Loop
     }
 
-    private var state = State.INACTIVE
-    private var playMode = PlayMode.REPLAY
+    private var state = State.Inactive
+    private var playMode = PlayMode.Replay
 
     private var buffer: Recording? = null
     private var playback: Recording? = null
@@ -145,14 +145,14 @@ object Replay : Module(
 
         listen<MovementEvent.InputUpdate> { event ->
             when (state) {
-                State.RECORDING -> {
+                State.Recording -> {
                     buffer?.let {
                         it.input.add(event.input.toAction())
                         it.position.add(player.pos)
                     }
                 }
 
-                State.PLAYING -> {
+                State.Playing -> {
                     buffer?.let {
                         it.input.removeFirstOrNull()?.update(event.input)
                         it.position.removeFirstOrNull()?.let a@{ pos ->
@@ -165,7 +165,7 @@ object Replay : Module(
                                 } blocks. Desired position: ${pos.asString(3)}"
                             )
                             if (cancelOnDeviation && diff > deviationThreshold) {
-                                state = State.INACTIVE
+                                state = State.Inactive
                                 this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
                                 return@listen
                             }
@@ -179,11 +179,11 @@ object Replay : Module(
 
         listen<UpdateManagerEvent.Rotation> {
             when (state) {
-                State.RECORDING -> {
+                State.Recording -> {
                     buffer?.rotation?.add(player.rotation)
                 }
 
-                State.PLAYING -> {
+                State.Playing -> {
                     buffer?.rotation?.removeFirstOrNull()?.let { rot ->
                         lookAt(rot).requestBy(this@Replay)
                     }
@@ -195,7 +195,7 @@ object Replay : Module(
 
         listen<MovementEvent.Player.Post> {
             when (state) {
-                State.RECORDING -> {
+                State.Recording -> {
                     buffer?.let {
                         val standingStill = player.velocity.squaredDistanceTo(Vec3d.ZERO) == 0.0
                         val isNotStart = player.pos != it.startPos
@@ -219,11 +219,11 @@ object Replay : Module(
                     }
                 }
 
-                State.PLAYING -> {
+                State.Playing -> {
                     buffer?.let {
                         if (it.size != 0) return@listen
 
-                        if (playMode == PlayMode.LOOP && (repeats < loops || loops < 0)) {
+                        if (playMode == PlayMode.Loop && (repeats < loops || loops < 0)) {
                             if (repeats >= 0) repeats++
                             buffer = playback?.duplicate()
                             this@Replay.info(buildText {
@@ -237,8 +237,8 @@ object Replay : Module(
                         } else {
                             repeats = 0
 
-                            if (playMode != PlayMode.CONTINUE) {
-                                state = State.INACTIVE
+                            if (playMode != PlayMode.Continue) {
+                                state = State.Inactive
                                 this@Replay.info(buildText {
                                     literal("Replay finished after ")
                                     color(ClickGuiLayout.primaryColor) { literal(playback?.duration.toString()) }
@@ -247,7 +247,7 @@ object Replay : Module(
                                 return@listen
                             }
 
-                            state = State.RECORDING
+                            state = State.Recording
                             buffer = playback?.duplicate()
                             playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
                             this@Replay.info("Recording fully replayed. Continuing recording...")
@@ -284,7 +284,7 @@ object Replay : Module(
     }
 
     fun playRecording(index: Int): CommandResult {
-        if (state != State.INACTIVE) {
+        if (state != State.Inactive) {
             return CommandResult.failure("Cannot play recording while recording or replaying. Finish the current action first.")
         }
 
@@ -292,7 +292,7 @@ object Replay : Module(
             return CommandResult.failure("Recording #$index does not exist.")
         }
 
-        state = State.PLAYING
+        state = State.Playing
         buffer = recording.duplicate()
         playback = recording
         info(buildText {
@@ -328,9 +328,9 @@ object Replay : Module(
 
     private fun handlePlay() {
         when (state) {
-            State.INACTIVE -> {
+            State.Inactive -> {
                 recordings.lastOrNull()?.let {
-                    state = State.PLAYING
+                    state = State.Playing
                     playback = it
                     buffer = it.duplicate()
                     info(buildText {
@@ -342,8 +342,8 @@ object Replay : Module(
                 }
             }
 
-            State.PLAYING -> {
-                state = State.INACTIVE
+            State.Playing -> {
+                state = State.Inactive
                 this@Replay.info("Replay stopped.")
             }
 
@@ -353,18 +353,18 @@ object Replay : Module(
 
     private fun SafeContext.handleRecord() {
         when (state) {
-            State.RECORDING -> {
+            State.Recording -> {
                 stopRecording()
             }
 
-            State.INACTIVE -> {
+            State.Inactive -> {
                 if (velocityCheck && player.velocity != still) {
                     this@Replay.logError("Cannot start recording while moving. Slow down and try again!")
                     return
                 }
 
                 buffer = Recording()
-                state = State.RECORDING
+                state = State.Recording
                 this@Replay.info("Recording started...")
             }
 
@@ -373,7 +373,7 @@ object Replay : Module(
     }
 
     private fun stopRecording() {
-        state = State.INACTIVE
+        state = State.Inactive
 
         val rec = buffer ?: return
         recordings.add(rec)
@@ -391,7 +391,7 @@ object Replay : Module(
 
     private fun handleCheckpoint() {
         when (state) {
-            State.RECORDING -> {
+            State.Recording -> {
                 val checkRec = buffer?.duplicate() ?: return
                 recordings.add(checkRec)
                 this@Replay.info(buildText {

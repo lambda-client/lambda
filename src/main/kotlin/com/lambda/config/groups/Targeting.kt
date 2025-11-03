@@ -144,12 +144,12 @@ abstract class Targeting(
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by owner.setting("FOV Limit", 180, 5..180, 1) { predicate() && priority == Priority.FOV }.group(baseGroup)
+        val fov by owner.setting("FOV Limit", 180, 5..180, 1) { predicate() && priority == Priority.Fov }.group(baseGroup)
 
         /**
-         * The priority used to determine which entity is targeted. Configurable with default set to [Priority.DISTANCE].
+         * The priority used to determine which entity is targeted. Configurable with default set to [Priority.Distance].
          */
-        val priority by owner.setting("Priority", Priority.DISTANCE) { predicate() }.group(baseGroup)
+        val priority by owner.setting("Priority", Priority.Distance) { predicate() }.group(baseGroup)
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
@@ -201,16 +201,16 @@ abstract class Targeting(
         /**
          * Prioritizes entities based on their distance from the player.
          */
-        DISTANCE({ player.pos distSq it.pos }),
+        Distance({ player.pos distSq it.pos }),
 
         /**
          * Prioritizes entities based on their health.
          */
-        HEALTH({ it.fullHealth }),
+        Health({ it.fullHealth }),
 
         /**
          * Prioritizes entities based on their angle relative to the player's field of view.
          */
-        FOV({ player.rotation dist player.eyePos.rotationTo(it.pos) })
+        Fov({ player.rotation dist player.eyePos.rotationTo(it.pos) })
     }
 }

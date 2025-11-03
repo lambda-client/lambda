@@ -41,14 +41,14 @@ object XRay : Module(
     )
 
     private val selection by setting("Block Selection", defaultBlocks, defaultBlocks, "Block selection that will be shown (whitelist) or hidden (blacklist)")
-    private val mode by setting("Selection Mode", Selection.WHITELIST, "The mode of the block selection")
+    private val mode by setting("Selection Mode", Selection.Whitelist, "The mode of the block selection")
 
     @JvmStatic
     fun isSelected(blockState: BlockState) = mode.select(blockState)
 
     enum class Selection(val select: (BlockState) -> Boolean) {
-        WHITELIST({ it.block in selection }),
-        BLACKLIST({ it.block !in selection })
+        Whitelist({ it.block in selection }),
+        Blacklist({ it.block !in selection })
     }
 
     init {

@@ -53,7 +53,7 @@ sealed class CommandResult {
         }
 
         fun failure(message: String): Failure {
-            return Failure(Communication.LogLevel.ERROR.text(message))
+            return Failure(Communication.LogLevel.Error.text(message))
         }
 
         /** Creates a [CommandResult.Failure] with the given throwable [t]. */

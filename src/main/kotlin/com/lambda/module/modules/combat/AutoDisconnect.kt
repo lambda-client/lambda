@@ -150,13 +150,13 @@ object AutoDisconnect : Module(
 
     private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
         if (connection.brand == "2b2t (Velocity)" && player.gameMode == GameMode.SPECTATOR) return
-        if (reason == Reason.HEALTH || reason == Reason.TOTEM) disable()
+        if (reason == Reason.Health || reason == Reason.Totem) disable()
         connection.connection.disconnect(generateInfo(reasonText))
         playSound(SoundEvents.BLOCK_ANVIL_LAND)
     }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
-        text(prefix(Communication.LogLevel.WARN.logoColor))
+        text(prefix(Communication.LogLevel.Warn.logoColor))
         text(text)
         literal("\n\n")
         literal("Disconnected at ")
@@ -193,7 +193,7 @@ object AutoDisconnect : Module(
     }
 
     enum class Reason(val check: () -> Boolean, val generateReason: SafeContext.() -> Text?) {
-        HEALTH({ health }, {
+        Health({ health }, {
             if (player.fullHealth < minimumHealth) {
                 buildText {
                     literal("Health ")
@@ -204,7 +204,7 @@ object AutoDisconnect : Module(
                 }
             } else null
         }),
-        TOTEM({ totem }, {
+        Totem({ totem }, {
             val totemCount = player.combined.count { it.item == Items.TOTEM_OF_UNDYING }
             if (totemCount < minTotems) {
                 buildText {
@@ -216,7 +216,7 @@ object AutoDisconnect : Module(
                 }
             } else null
         }),
-        CREEPER({ creeper }, {
+        Creeper({ creeper }, {
             fastEntitySearch<CreeperEntity>(15.0).find {
                 it.getLerpedFuseTime(mc.tickDelta) > 0.0
                         && it.pos.distanceTo(player.pos) <= 5.0
@@ -228,7 +228,7 @@ object AutoDisconnect : Module(
                 }
             }
         }),
-        PLAYER({ players }, {
+        Player({ players }, {
             fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).find { otherPlayer ->
                 otherPlayer != player
                         && player.distanceTo(otherPlayer) <= minPlayerDistance
@@ -243,14 +243,14 @@ object AutoDisconnect : Module(
                 }
             }
         }),
-        END_CRYSTAL({ crystals }, {
+        EndCrystal({ crystals }, {
             if (hasDeadlyCrystal())
                 buildText {
                     literal("There was an end crystal close to you that would've killed you")
                 }
             else null
         }),
-        FALL_DAMAGE({ falls }, {
+        FallDamage({ falls }, {
             if (isFallDeadly() && player.fallDistance > fallDistance)
                 buildText {
                     literal("You were about to fall and die")

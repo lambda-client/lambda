@@ -46,7 +46,7 @@ object ServerTPS {
         }
     }
 
-    fun recentData(tickFormat: TickFormat = TickFormat.MSPT) =
+    fun recentData(tickFormat: TickFormat = TickFormat.Mspt) =
         updateHistory.map { tickFormat.value(it).toFloat() }.toFloatArray()
 
     @Suppress("unused")
@@ -56,8 +56,8 @@ object ServerTPS {
         override val description: String,
         val unit: String = ""
     ) : NamedEnum, Describable {
-        TPS({ it / 50.0 }, "TPS", "Ticks Per Second", " t/s"),
-        MSPT({ it / 20.0 }, "MSPT", "Milliseconds Per Tick", " ms/t"),
+        Tps({ it / 50.0 }, "TPS", "Ticks Per Second", " t/s"),
+        Mspt({ it / 20.0 }, "MSPT", "Milliseconds Per Tick", " ms/t"),
         Normalized({ it / 1000.0 }, "nTPS", "Normalized Ticks Per Second"),
         Percentage({ it / 10.0 }, "TPS%", "Deviation from 20 TPS","%")
     }

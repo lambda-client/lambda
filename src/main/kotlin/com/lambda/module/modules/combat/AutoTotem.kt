@@ -71,18 +71,18 @@ object AutoTotem : Module(
     }
 
     enum class Reason(val check: SafeContext.() -> Boolean) {
-        HEALTH({ player.fullHealth < minimumHealth }),
-        CREEPER({ creeper && fastEntitySearch<CreeperEntity>(15.0).any {
+        Health({ player.fullHealth < minimumHealth }),
+        Creeper({ creeper && fastEntitySearch<CreeperEntity>(15.0).any {
             it.getLerpedFuseTime(mc.tickDelta) > 0.0
                     && it.pos.distanceTo(player.pos) <= 5.0
         } }),
-        PLAYER({ players && fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).any { otherPlayer ->
+        Player({ players && fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).any { otherPlayer ->
             otherPlayer != player
                     && player.distanceTo(otherPlayer) <= minPlayerDistance
                     && (!friends || !FriendManager.isFriend(otherPlayer.uuid))
         } }),
-        END_CRYSTAL({ crystals && hasDeadlyCrystal() }),
-        FALL_DAMAGE({ falls && isFallDeadly() && player.fallDistance > fallDistance })
+        EndCrystal({ crystals && hasDeadlyCrystal() }),
+        FallDamage({ falls && isFallDeadly() && player.fallDistance > fallDistance })
     }
 
     enum class Group(override val displayName: String): NamedEnum {

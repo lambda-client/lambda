@@ -107,7 +107,7 @@ object FastBreak : Module(
             //ToDo: Copied this swap logic from the build sim. Needs reworking when we rework the build sim. Probably need to
             // adjust the build sim to accept partial simulations. For example, ignoring hit scanning in this situation
             val silentSwapSelection = selectContainer {
-                ofAnyType(MaterialContainer.Rank.HOTBAR)
+                ofAnyType(MaterialContainer.Rank.Hotbar)
             }
 
             val stackSelection = selectStack(

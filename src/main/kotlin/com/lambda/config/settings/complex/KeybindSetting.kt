@@ -113,8 +113,8 @@ class KeybindSetting(
                     // If a mod key is pressed first ignore it unless it was released without any other keys
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
-                            KeyCode.ESCAPE -> {}
-                            KeyCode.BACKSPACE, KeyCode.DELETE -> value = Bind.EMPTY
+                            KeyCode.Escape -> {}
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
                             else -> value = Bind(it.keyCode, it.modifiers, -1)
                         }
 
@@ -166,12 +166,12 @@ data class Bind(
     val mouse: Int = -1,
 ) {
     val truemods = buildList {
-        if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LEFT_SHIFT)
-        if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LEFT_CONTROL)
-        if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LEFT_ALT)
-        if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LEFT_SUPER)
-        if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CAPS_LOCK)
-        if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NUM_LOCK)
+        if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
+        if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
+        if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LeftAlt)
+        if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LeftSuper)
+        if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CapsLock)
+        if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NumLock)
     }
 
     val name: String

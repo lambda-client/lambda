@@ -40,10 +40,10 @@ interface InventoryConfig : RequestConfig {
         get() = ContainerSelection.selectContainer {
             val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
                 addAll(MaterialContainer.Rank.entries)
-                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.SHULKER_BOX)
-                if (!accessEnderChest) remove(MaterialContainer.Rank.ENDER_CHEST)
-                if (!accessChests) remove(MaterialContainer.Rank.CHEST)
-                if (!accessStashes) remove(MaterialContainer.Rank.STASH)
+                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.ShulkerBox)
+                if (!accessEnderChest) remove(MaterialContainer.Rank.EnderChest)
+                if (!accessChests) remove(MaterialContainer.Rank.Chest)
+                if (!accessStashes) remove(MaterialContainer.Rank.Stash)
             }
             ofAnyType(*allowedContainers.toTypedArray())
         }
