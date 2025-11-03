@@ -37,7 +37,7 @@ import org.joml.Vector3i
 import kotlin.math.tan
 
 object ViewModel : Module(
-    name = "View Model",
+    name = "ViewModel",
     description = "Adjusts hand and held item rendering",
     tag = ModuleTag.RENDER,
 ) {

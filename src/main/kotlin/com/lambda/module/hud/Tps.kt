@@ -25,8 +25,8 @@ import com.lambda.util.ServerTPS
 import com.lambda.util.ServerTPS.recentData
 import imgui.ImVec2
 
-object TPS : HudModule(
-    name = "TPS",
+object Tps : HudModule(
+    name = "Tps",
     description = "Display the server's tick rate",
     tag = ModuleTag.HUD,
 ) {
