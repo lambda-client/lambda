@@ -27,7 +27,7 @@ object XRay : Module(
     description = "Allows you to see ores through walls",
     tag = ModuleTag.RENDER,
 ) {
-    private val defaultBlocks = setOf(
+    val defaultBlocks = setOf(
         Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE,
         Blocks.IRON_ORE, Blocks.DEEPSLATE_IRON_ORE,
         Blocks.GOLD_ORE, Blocks.DEEPSLATE_GOLD_ORE,
@@ -40,7 +40,12 @@ object XRay : Module(
         Blocks.ANCIENT_DEBRIS
     )
 
+    @JvmStatic
+    val opacity by setting("Opacity", 40, 0..100, 1, "opacity of the non x-rayed blocks")
+        .onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
+
     private val selection by setting("Block Selection", defaultBlocks, defaultBlocks, "Block selection that will be shown (whitelist) or hidden (blacklist)")
+        .onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
     private val mode by setting("Selection Mode", Selection.Whitelist, "The mode of the block selection")
 
     @JvmStatic
