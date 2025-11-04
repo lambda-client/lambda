@@ -31,6 +31,7 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
 import com.lambda.module.hud.ManagerDebugLoggers.hotbarManagerLogger
 import com.lambda.threading.runSafe
+import net.minecraft.item.ItemStack
 
 object HotbarManager : RequestHandler<HotbarRequest>(
     1,
@@ -44,6 +45,9 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
     } ?: 0
+    //ToDo: something to manage stacks so the hotbar manager is strictly index based
+    private var previousStack: ItemStack? = null
+    private var swappedTicks = 0
 
     private var swapsThisTick = 0
     private var maxSwapsThisTick = 0
@@ -64,9 +68,14 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
-            val activeInfo = activeRequest ?: return@listen
 
-            activeInfo.swapPauseAge++
+            val currentStack = player.mainHandStack
+            if (previousStack != currentStack) swappedTicks = 1
+            else swappedTicks++
+            previousStack = currentStack
+
+            val activeInfo = activeRequest ?: return@listen
+            activeInfo.swapPauseAge = swappedTicks
             activeInfo.activeRequestAge++
             activeInfo.keepTicks--
         }
@@ -77,40 +86,34 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
         logger.debug("Handling request:", request)
 
-        maxSwapsThisTick = hotbarConfig.swapsPerTick
-        swapDelay = swapDelay.coerceAtMost(hotbarConfig.swapDelay)
-
         if (tickStage !in hotbarConfig.sequenceStageMask) return
 
-        val sameButLonger = activeRequest?.let { active ->
-            request.slot == active.slot && request.keepTicks >= active.keepTicks
-        } == true
-
-        if (sameButLonger) activeRequest?.let { active ->
-            request.swapPauseAge = active.swapPauseAge
-            logger.debug("Request is the same as current, but longer or the same keep time", request)
-        } else run swap@{
-            if (request.slot != activeRequest?.slot) {
-                if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
-
-                activeRequest?.let { active ->
-                    if (active.swappedThisTick && active.keeping) return
-                }
-
-                swapsThisTick++
-                swapDelay = hotbarConfig.swapDelay
-                return@swap
+        activeRequest?.let { active ->
+            if (request.slot == serverSlot && request.keepTicks >= active.keepTicks) {
+                logger.debug("Request is the same as current, but longer or the same keep time", request)
+                setActiveRequest(request)
+                return
             }
 
-            activeRequest?.let { active ->
-                request.swapPauseAge = active.swapPauseAge
-                if (active.swappedThisTick && active.keeping) return
-            }
-        }
+            if (active.activeRequestAge <= 0 && active.keepTicks > 0) return
+        } ?: run { maxSwapsThisTick = hotbarConfig.swapsPerTick }
 
+        if (request.slot != serverSlot)
+            if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
+
+        setActiveRequest(request)
+    }
+
+    private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
+        maxSwapsThisTick = hotbarConfig.swapsPerTick
+        if (request.slot != serverSlot) {
+            swapsThisTick++
+            swappedTicks = 0
+            swapDelay = hotbarConfig.swapDelay
+        } else request.swapPauseAge = swappedTicks
         activeRequest = request
-        logger.success("Set active request", request)
         interaction.syncSelectedSlot()
+        logger.success("Set active request", request)
     }
 
     private fun SafeContext.checkResetSwap() {

@@ -33,12 +33,8 @@ class HotbarRequest(
     var activeRequestAge = 0
     var swapPauseAge = 0
 
-    val swapPaused get() = swapPauseAge < swapPause
-    val swappedThisTick get() = activeRequestAge <= 0
-    val keeping get() = keepTicks > 0
-
     override val done: Boolean
-        get() = slot == HotbarManager.serverSlot && !swapPaused
+        get() = slot == HotbarManager.serverSlot && swapPauseAge >= swapPause
 
     override fun submit(queueIfClosed: Boolean) =
         HotbarManager.request(this, queueIfClosed)
