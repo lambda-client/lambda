@@ -35,7 +35,7 @@ val mockitoInline: String by project
 val mockkVersion: String by project
 val spairVersion: String by project
 val lwjglVersion: String by project
-
+val sodiumVersion: String by project
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -69,6 +69,7 @@ repositories {
     mavenLocal() // Allow the use of local repositories
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
+    maven("https://api.modrinth.com/maven")
     mavenCentral()
 
     // Allow the use of local libraries
@@ -149,6 +150,7 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
     modImplementation("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
+    modImplementation("maven.modrinth:sodium:$sodiumVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")

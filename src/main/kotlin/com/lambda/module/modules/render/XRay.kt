@@ -41,7 +41,7 @@ object XRay : Module(
     )
 
     @JvmStatic
-    val opacity by setting("Opacity", 40, 0..100, 1, "opacity of the non x-rayed blocks")
+    val opacity by setting("Opacity", 40, 0..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)")
         .onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
 
     private val selection by setting("Block Selection", defaultBlocks, defaultBlocks, "Block selection that will be shown (whitelist) or hidden (blacklist)")

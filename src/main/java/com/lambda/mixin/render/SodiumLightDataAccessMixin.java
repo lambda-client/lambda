@@ -18,19 +18,31 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.XRay;
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.Direction;
+import net.caffeinemc.mods.sodium.client.model.light.data.LightDataAccess;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.BlockRenderView;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-@Mixin(Block.class)
-public class BlockMixin {
-    @ModifyReturnValue(method = "shouldDrawSide", at = @At("RETURN"))
-    private static boolean modifyShouldDrawSide(boolean original, BlockState state, BlockState otherState, Direction side) {
-        if (XRay.INSTANCE.isEnabled() && XRay.isSelected(state) && XRay.getOpacity() < 100)
-            return true;
-        return original;
+@Mixin(value = LightDataAccess.class, remap = false)
+public class SodiumLightDataAccessMixin {
+    @Shadow
+    protected BlockRenderView level;
+
+    @Shadow
+    @Final
+    private BlockPos.Mutable pos;
+
+    @ModifyVariable(method = "compute", at = @At(value = "TAIL"), name = "bl")
+    private int modifyLight(int value) {
+        if (XRay.INSTANCE.isEnabled()) {
+            final var blockState = level.getBlockState(pos);
+            if (XRay.isSelected(blockState)) return 0xFFF;
+        }
+
+        return value;
     }
 }
