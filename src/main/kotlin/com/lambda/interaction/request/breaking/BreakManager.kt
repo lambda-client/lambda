@@ -497,7 +497,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
-            if (tickStage !in primaryInfo.breakConfig.breakStageMask) return null
+            if (tickStage !in primaryInfo.breakConfig.tickStageMask) return null
 
             if (!primaryInfo.breakConfig.doubleBreak || secondaryBreak != null) {
                 if (!primaryInfo.updatedThisTick) {
@@ -543,7 +543,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         breakInfos
             .filterNotNull()
             .asSequence()
-            .filter { !it.updatedThisTick && tickStage in it.breakConfig.breakStageMask }
+            .filter { !it.updatedThisTick && tickStage in it.breakConfig.tickStageMask }
             .forEach { info ->
                 if (info.type == RedundantSecondary && !info.progressedThisTick) {
                     val cachedState = info.context.cachedState
@@ -604,7 +604,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         logger.debug("Updating pre-processing", this@updatePreProcessing)
 
         shouldProgress = !progressedThisTick
-                && tickStage in breakConfig.breakStageMask
+                && tickStage in breakConfig.tickStageMask
                 && (rotated || type != Primary)
 
         if (updatedPreProcessingThisTick) return

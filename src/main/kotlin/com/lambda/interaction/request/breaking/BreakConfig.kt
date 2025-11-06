@@ -40,7 +40,7 @@ interface BreakConfig : RequestConfig {
 //    abstract val desyncFix: Boolean
     val breakDelay: Int
 
-    val breakStageMask: Set<Event>
+    val tickStageMask: Set<Event>
 
     val swapMode: SwapMode
 

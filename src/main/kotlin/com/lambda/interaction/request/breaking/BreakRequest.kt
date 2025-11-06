@@ -29,7 +29,7 @@ import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
-data class BreakRequest(
+data class BreakRequest private constructor(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated
@@ -67,63 +67,63 @@ data class BreakRequest(
     }
 
     @DslMarker
-    annotation class BreakRequestBuilder
+    annotation class BreakRequestDsl
 
-    @BreakRequestBuilder
-    class RequestBuilder(
+    @BreakRequestDsl
+    class BreakRequestBuilder(
         contexts: Collection<BreakContext>,
         pendingInteractions: MutableCollection<BuildContext>,
         automated: Automated
     ) {
         val request = BreakRequest(contexts, pendingInteractions, automated)
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onStart(callback: (BlockPos) -> Unit) {
             request.onStart = callback
         }
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onUpdate(callback: (BlockPos) -> Unit) {
             request.onUpdate = callback
         }
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onStop(callback: (BlockPos) -> Unit) {
             request.onStop = callback
         }
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onCancel(callback: (BlockPos) -> Unit) {
             request.onCancel = callback
         }
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onItemDrop(callback: (ItemEntity) -> Unit) {
             request.onItemDrop = callback
         }
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onReBreakStart(callback: (BlockPos) -> Unit) {
             request.onReBreakStart = callback
         }
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun onReBreak(callback: (BlockPos) -> Unit) {
             request.onReBreak = callback
         }
-
-        @BreakRequestBuilder
-        fun build(): BreakRequest = request
     }
 
     companion object {
         var requestCount = 0
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun Automated.breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,
-            builder: RequestBuilder.() -> Unit
-        ) = RequestBuilder(contexts, pendingInteractions, this).apply(builder).build()
+            builder: (BreakRequestBuilder.() -> Unit)? = null
+        ) = BreakRequestBuilder(contexts, pendingInteractions, this).apply { builder?.invoke(this) }.build()
+
+        @BreakRequestDsl
+        private fun BreakRequestBuilder.build(): BreakRequest = request
     }
 }

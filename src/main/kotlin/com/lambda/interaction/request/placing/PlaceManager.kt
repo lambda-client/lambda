@@ -163,7 +163,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 return
             }
             if (!validSneak(player)) return
-            if (tickStage !in placeConfig.placeStageMask) return
+            if (tickStage !in placeConfig.tickStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
             if (!actionResult.isAccepted) {

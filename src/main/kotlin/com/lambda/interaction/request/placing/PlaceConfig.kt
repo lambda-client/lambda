@@ -29,7 +29,7 @@ interface PlaceConfig : RequestConfig {
     val axisRotateSetting: Boolean
     val axisRotate
         get() = rotateForPlace && airPlace.isEnabled && axisRotateSetting
-    val placeStageMask: Set<Event>
+    val tickStageMask: Set<Event>
     val placeConfirmationMode: PlaceConfirmationMode
     val maxPendingPlacements: Int
     val placementsPerTick: Int
