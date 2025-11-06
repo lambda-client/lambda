@@ -46,10 +46,6 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     private var actionsThisSecond = 0
     private var secondCounter = 0
     private var actionsThisTick = 0
-        set(value) {
-            field += value
-            actionsThisSecond+= value
-        }
 
     override val logger = inventoryManagerLogger
 
@@ -91,6 +87,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
             if (actionsThisSecond + 1 > maxActionsThisSecond && !request.mustPerform) break
             iterator.next()()
             actionsThisTick++
+            actionsThisSecond++
             iterator.remove()
         }
 
