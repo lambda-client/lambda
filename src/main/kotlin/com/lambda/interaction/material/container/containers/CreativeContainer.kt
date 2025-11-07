@@ -22,7 +22,7 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.transfer.TransactionExecutor
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.player.gamemode
@@ -41,7 +41,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
     override fun spaceAvailable(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
 
-    class CreativeDeposit @Ta5kBuilder constructor(val selection: StackSelection) : Task<Unit>() {
+    class CreativeDeposit @Ta5kBuilder constructor(val selection: StackSelection, automated: Automated) : Task<Unit>(), Automated by automated {
         override val name: String get() = "Removing $selection from creative inventory"
 
         override fun SafeContext.onStart() {
@@ -50,22 +50,21 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
                 throw NotInCreativeModeException()
             }
 
-            TransactionExecutor.transfer(player.currentScreenHandler) {
+            inventoryRequest {
                 player.currentScreenHandler?.slots?.let { slots ->
                     selection.filterSlots(slots).forEach {
                         clickCreativeStack(ItemStack.EMPTY, it.id)
                     }
                 }
-            }.finally {
-                success()
-            }.execute(this@CreativeDeposit)
+                onComplete { success() }
+            }.submit(queueIfClosed = false)
         }
     }
 
     context(automated: Automated)
-    override fun deposit(selection: StackSelection) = CreativeDeposit(selection)
+    override fun deposit(selection: StackSelection) = CreativeDeposit(selection, automated)
 
-    class CreativeWithdrawal @Ta5kBuilder constructor(val selection: StackSelection) : Task<Unit>() {
+    class CreativeWithdrawal @Ta5kBuilder constructor(val selection: StackSelection, automated: Automated) : Task<Unit>(), Automated by automated {
         override val name: String get() = "Withdrawing $selection from creative inventory"
 
         override fun SafeContext.onStart() {
@@ -77,11 +76,11 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
                     throw NotInCreativeModeException()
                 }
 
-                TransactionExecutor.transfer(player.currentScreenHandler) {
+                inventoryRequest {
                     clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
-                }.finally {
-                    success()
-                }.execute(this@CreativeWithdrawal)
+                    player.inventory.selectedStack = optimalStack
+                    onComplete { success() }
+                }.submit(queueIfClosed = false)
                 return
             }
 
@@ -91,7 +90,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
 
     // Withdraws items from the creative menu to the player's main hand
     context(automated: Automated)
-    override fun withdraw(selection: StackSelection) = CreativeWithdrawal(selection)
+    override fun withdraw(selection: StackSelection) = CreativeWithdrawal(selection, automated)
 
     class NotInCreativeModeException : IllegalStateException("Insufficient permission: not in creative mode")
     class NoOptimalStackException : IllegalStateException("Cannot move item: no optimal stack")

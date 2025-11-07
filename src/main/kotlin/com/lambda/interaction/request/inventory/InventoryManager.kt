@@ -92,9 +92,10 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         }
 
         if (actions.isEmpty()) {
-            if (activeRequest != null) {
-                activeRequest?.done = true
+            activeRequest?.let { request ->
                 logger.debug("Clearing active request", activeRequest)
+                request.done = true
+                request.onComplete?.invoke(this)
                 activeRequest = null
             }
         }

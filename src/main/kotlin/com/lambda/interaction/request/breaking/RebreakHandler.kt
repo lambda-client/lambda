@@ -47,6 +47,7 @@ object RebreakHandler {
         }
     }
 
+    context(safeContext: SafeContext)
     fun offerRebreak(info: BreakInfo) {
         if (!info.rebreakable) return
 
@@ -55,7 +56,7 @@ object RebreakHandler {
             breaking = true
             resetCallbacks()
         }
-        info.request.onReBreakStart?.invoke(info.context.blockPos)
+        info.request.onReBreakStart?.invoke(safeContext, info.context.blockPos)
     }
 
     fun clearRebreak() {

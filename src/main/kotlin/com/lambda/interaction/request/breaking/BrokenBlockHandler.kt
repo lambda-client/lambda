@@ -70,8 +70,9 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
                 world.setBlockState(info.context.blockPos, info.context.cachedState)
             }
+
+            info.request.onCancel?.invoke(this, info.context.blockPos)
         }
-        info.request.onCancel?.invoke(info.context.blockPos)
         info.pendingInteractionsList.remove(info.context)
     }
 

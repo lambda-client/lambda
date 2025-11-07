@@ -376,7 +376,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (placeConfig.sounds) placeSound(state, blockPos)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
-            request.onPlace?.invoke(placeContext.blockPos)
+            request.onPlace?.invoke(this, placeContext.blockPos)
         }
 
         logger.success("Placed ${placeContext.expectedState} at ${placeContext.blockPos}", placeContext, request)

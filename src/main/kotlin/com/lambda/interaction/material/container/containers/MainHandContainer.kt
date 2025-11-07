@@ -23,10 +23,9 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.player.SlotUtils.combined
-import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.storage
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -40,7 +39,11 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
 
     override val description = buildText { literal("MainHand") }
 
-    class HandDeposit @Ta5kBuilder constructor(val selection: StackSelection, val hand: Hand) : ContainerTask() {
+    class HandDeposit @Ta5kBuilder constructor(
+        val selection: StackSelection,
+        val hand: Hand,
+        automated: Automated
+    ) : ContainerTask(), Automated by automated {
         override val name: String get() = "Depositing [$selection] to ${hand.name.lowercase().replace("_", " ")}"
 
         override fun SafeContext.onStart() {
@@ -55,26 +58,24 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
                 return
             }
 
-            transfer(player.currentScreenHandler) {
+            inventoryRequest {
                 val stackInOffHand = moveStack.equal(player.offHandStack)
-                if (hand == Hand.MAIN_HAND && stackInOffHand) {
+                val stackInMainHand = moveStack.equal(player.mainHandStack)
+                if ((hand == Hand.MAIN_HAND && stackInOffHand) || (hand == Hand.OFF_HAND && stackInMainHand)) {
                     swapHands()
-                    return@transfer
+                    return@inventoryRequest
                 }
 
-                when (moveStack) {
-                    in player.hotbar -> swapToHotbarSlot(player.hotbar.indexOf(moveStack))
-                    // ToDo: Use pickFromInventory
-                    in player.storage -> swap(player.combined.indexOf(moveStack), 0)
-                }
+                if (moveStack in player.storage) swap(player.combined.indexOf(moveStack), 0)
+                else throw NotInInventoryException()
 
-                if (hand == Hand.OFF_HAND) swapHands()
-            }.finally {
-                success()
-            }.execute(this@HandDeposit)
+                onComplete { success() }
+            }.submit(queueIfClosed = false)
         }
     }
 
     context(automated: Automated)
-    override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND)
+    override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND, automated)
+
+    class NotInInventoryException : IllegalStateException("Cannot find stack in inventory")
 }

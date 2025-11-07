@@ -37,7 +37,8 @@ class InventoryRequest private constructor(
     val actions: List<SafeContext.() -> Unit>,
     val settleForLess: Boolean,
     val mustPerform: Boolean,
-    automated: Automated
+    automated: Automated,
+    val onComplete: (SafeContext.() -> Unit)?
 ) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
     override var done = false
@@ -55,6 +56,7 @@ class InventoryRequest private constructor(
     @InvRequestDsl
     class InvRequestBuilder(val settleForLess: Boolean, val mustPerform: Boolean) {
         val actions = mutableListOf<SafeContext.() -> Unit>()
+        var onComplete: (SafeContext.() -> Unit)? = null
 
         @InvRequestDsl
         fun click(slotId: Int, button: Int, actionType: SlotActionType) {
@@ -147,6 +149,11 @@ class InventoryRequest private constructor(
             pickup(sourceSlotId, 0)
             pickup(targetSlotId, 0)
         }
+
+        @InvRequestDsl
+        fun onComplete(callback: SafeContext.() -> Unit) {
+            onComplete = callback
+        }
     }
 
     companion object {
@@ -158,6 +165,6 @@ class InventoryRequest private constructor(
 
         @InvRequestDsl
         context(automated: Automated)
-        private fun InvRequestBuilder.build() = InventoryRequest(actions, settleForLess, mustPerform, automated)
+        private fun InvRequestBuilder.build() = InventoryRequest(actions, settleForLess, mustPerform, automated, onComplete)
     }
 }

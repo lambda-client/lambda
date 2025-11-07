@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.LogContext
@@ -36,13 +37,13 @@ data class BreakRequest private constructor(
 ) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 
-    var onStart: ((BlockPos) -> Unit)? = null
-    var onUpdate: ((BlockPos) -> Unit)? = null
-    var onStop: ((BlockPos) -> Unit)? = null
-    var onCancel: ((BlockPos) -> Unit)? = null
-    var onItemDrop: ((ItemEntity) -> Unit)? = null
-    var onReBreakStart: ((BlockPos) -> Unit)? = null
-    var onReBreak: ((BlockPos) -> Unit)? = null
+    var onStart: (SafeContext.(BlockPos) -> Unit)? = null
+    var onUpdate: (SafeContext.(BlockPos) -> Unit)? = null
+    var onStop: (SafeContext.(BlockPos) -> Unit)? = null
+    var onCancel: (SafeContext.(BlockPos) -> Unit)? = null
+    var onItemDrop: (SafeContext.(ItemEntity) -> Unit)? = null
+    var onReBreakStart: (SafeContext.(BlockPos) -> Unit)? = null
+    var onReBreak: (SafeContext.(BlockPos) -> Unit)? = null
 
     override val done: Boolean
         get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
@@ -78,37 +79,37 @@ data class BreakRequest private constructor(
         val request = BreakRequest(contexts, pendingInteractions, automated)
 
         @BreakRequestDsl
-        fun onStart(callback: (BlockPos) -> Unit) {
+        fun onStart(callback: SafeContext.(BlockPos) -> Unit) {
             request.onStart = callback
         }
 
         @BreakRequestDsl
-        fun onUpdate(callback: (BlockPos) -> Unit) {
+        fun onUpdate(callback: SafeContext.(BlockPos) -> Unit) {
             request.onUpdate = callback
         }
 
         @BreakRequestDsl
-        fun onStop(callback: (BlockPos) -> Unit) {
+        fun onStop(callback: SafeContext.(BlockPos) -> Unit) {
             request.onStop = callback
         }
 
         @BreakRequestDsl
-        fun onCancel(callback: (BlockPos) -> Unit) {
+        fun onCancel(callback: SafeContext.(BlockPos) -> Unit) {
             request.onCancel = callback
         }
 
         @BreakRequestDsl
-        fun onItemDrop(callback: (ItemEntity) -> Unit) {
+        fun onItemDrop(callback: SafeContext.(ItemEntity) -> Unit) {
             request.onItemDrop = callback
         }
 
         @BreakRequestDsl
-        fun onReBreakStart(callback: (BlockPos) -> Unit) {
+        fun onReBreakStart(callback: SafeContext.(BlockPos) -> Unit) {
             request.onReBreakStart = callback
         }
 
         @BreakRequestDsl
-        fun onReBreak(callback: (BlockPos) -> Unit) {
+        fun onReBreak(callback: SafeContext.(BlockPos) -> Unit) {
             request.onReBreak = callback
         }
     }
