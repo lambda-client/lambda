@@ -25,8 +25,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.util.item.ItemStackUtils.equal
-import com.lambda.util.player.SlotUtils.combined
-import com.lambda.util.player.SlotUtils.storage
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
@@ -66,8 +64,12 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
                     return@inventoryRequest
                 }
 
-                if (moveStack in player.storage) swap(player.combined.indexOf(moveStack), 0)
+                val slots = player.currentScreenHandler.slots.filter { it.stack == moveStack }
+
+                if (slots.isNotEmpty()) swap(player.currentScreenHandler.slots.indexOf(slots.first()), player.inventory.selectedSlot)
                 else throw NotInInventoryException()
+
+                if (hand == Hand.OFF_HAND) swapHands()
 
                 onComplete { success() }
             }.submit(queueIfClosed = false)
