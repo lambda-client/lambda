@@ -71,7 +71,6 @@ class SlotTransfer @Ta5kBuilder constructor(
             val nextTo = selectedTo.firstOrNull() ?: return@listen
 
             inventoryRequest {
-//                moveSlot(nextFrom.id, nextTo.id)
                 swap(nextTo.id, 1)
                 swap(nextFrom.id, 1)
                 onComplete { success() }

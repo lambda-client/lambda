@@ -64,10 +64,8 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
                     return@inventoryRequest
                 }
 
-                val slots = player.currentScreenHandler.slots.filter { it.stack == moveStack }
-
-                if (slots.isNotEmpty()) swap(player.currentScreenHandler.slots.indexOf(slots.first()), player.inventory.selectedSlot)
-                else throw NotInInventoryException()
+                val slot = player.currentScreenHandler.slots.first { it.stack == moveStack } ?: throw NotInInventoryException()
+                swap(slot.id, player.inventory.selectedSlot)
 
                 if (hand == Hand.OFF_HAND) swapHands()
 
