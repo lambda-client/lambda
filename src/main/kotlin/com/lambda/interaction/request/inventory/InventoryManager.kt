@@ -18,29 +18,46 @@
 package com.lambda.interaction.request.inventory
 
 import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.AutomationConfig
+import com.lambda.context.AutomationConfig.avoidDesync
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
-import com.lambda.interaction.request.inventory.InventoryManager.activeRequest
-import com.lambda.interaction.request.inventory.InventoryManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
-import com.lambda.threading.runSafeAutomated
+import com.lambda.util.Communication.info
+import com.lambda.util.collections.LimitedDecayQueue
+import com.lambda.util.item.ItemStackUtils.equal
+import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
+import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.slot.Slot
 
 object InventoryManager : RequestHandler<InventoryRequest>(
     1,
     TickEvent.Pre,
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
-    TickEvent.Player.Post,
-    onOpen = { activeRequest?.let { it.runSafeAutomated { processRequest(it) } } }
+    TickEvent.Player.Post
 ), Logger {
-    private var activeRequest: InventoryRequest? = null
     private var actions = mutableListOf<SafeContext.() -> Unit>()
+
+    private var slots = listOf<ItemStack>()
+    private var alteredSlots = LimitedDecayQueue<Pair<Int, Pair<ItemStack, ItemStack>>>(
+        AutomationConfig.maxDesyncCache, AutomationConfig.desyncTimeout * 50L
+    )
+
+    private var screenHandler: ScreenHandler? = null
+        set(value) {
+            if (value != null && field !== value)
+                slots = getStacks(value.slots)
+            field = value
+        }
 
     private var maxActionsThisSecond = 0
     private var actionsThisSecond = 0
@@ -52,13 +69,38 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     override fun load(): String {
         super.load()
 
+        listen<PacketEvent.Receive.Pre>(priority = Int.MIN_VALUE) { event ->
+            if (!avoidDesync) return@listen
+            val packet = event.packet as? InventoryS2CPacket ?: return@listen
+            screenHandler = player.currentScreenHandler
+            val packetScreenHandler =
+                if (packet.syncId == 0) player.playerScreenHandler
+                else player.currentScreenHandler
+            event.cancel()
+            val alteredContents = mutableListOf<ItemStack>()
+            packet.contents.forEachIndexed { index, incomingStack ->
+                val matches = alteredSlots.removeIf { cached ->
+                    incomingStack.equal(cached.second.second)
+                }
+                if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
+                else alteredContents.add(incomingStack)
+                if (matches) info(matches.toString())
+            }
+            mc.executeSync {
+                packetScreenHandler.updateSlotStacks(packet.revision(), alteredContents, packet.cursorStack())
+            }
+        }
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            if (avoidDesync) {
+                alteredSlots.addAll(gatherInventoryChanges())
+                slots = getStacks(player.currentScreenHandler.slots)
+            }
             if (++secondCounter >= 20) {
                 secondCounter = 0
                 actionsThisSecond = 0
             }
             actionsThisTick = 0
-            activeRequest = null
             actions.clear()
         }
 
@@ -66,22 +108,16 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     }
 
     override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
-        if (activeRequest != null) return
         if (request.actions.size >= request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
             !request.settleForLess &&
             !request.mustPerform) return
-        activeRequest = request
-        processRequest(request)
-        if (actionsThisTick > 0) activeThisTick = true
-    }
-
-    private fun AutomatedSafeContext.processRequest(request: InventoryRequest) {
-        if (request.fresh) populateFrom(request)
-
         if (tickStage !in inventoryConfig.tickStageMask) return
+
+        if (request.fresh) populateFrom(request)
 
         PlaceManager.logger.debug("Processing request", request)
 
+        screenHandler = player.currentScreenHandler
         val iterator = actions.iterator()
         while (iterator.hasNext()) {
             if (actionsThisSecond + 1 > maxActionsThisSecond && !request.mustPerform) break
@@ -92,13 +128,11 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         }
 
         if (actions.isEmpty()) {
-            activeRequest?.let { request ->
-                logger.debug("Clearing active request", activeRequest)
-                request.done = true
-                request.onComplete?.invoke(this)
-                activeRequest = null
-            }
+            request.done = true
+            request.onComplete?.invoke(this)
         }
+
+        if (actionsThisTick > 0) activeThisTick = true
     }
 
     private fun populateFrom(request: InventoryRequest) {
@@ -106,6 +140,15 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
     }
+
+    private fun SafeContext.gatherInventoryChanges() =
+        if (player.currentScreenHandler !== screenHandler) emptyList()
+        else screenHandler?.slots
+            ?.filter { it.stack != slots[it.id] }
+            ?.map { Pair(it.id, Pair(slots[it.id], it.stack.copy())) }
+            ?: emptyList()
+
+    private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
 
     override fun preEvent() = UpdateManagerEvent.Inventory.post()
 }
