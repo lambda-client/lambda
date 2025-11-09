@@ -119,6 +119,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         PlaceManager.logger.debug("Populating from request", request)
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
+        alteredSlots.setDecayTime(AutomationConfig.desyncTimeout * 50L)
     }
 
     private fun SafeContext.indexInventoryChanges() {
@@ -188,7 +189,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
 
             if (packet.syncId == 0) {
                 if (PlayerScreenHandler.isInHotbar(packet.slot) && !itemStack.isEmpty) {
-                    val itemStack2 = screenHandler?.getSlot(packet.slot)?.stack ?: return
+                    val itemStack2 = player.playerScreenHandler.getSlot(packet.slot).stack
                     if (itemStack2.isEmpty || itemStack2.count < itemStack.count) {
                         itemStack.bobbingAnimationTime = 5
                     }
