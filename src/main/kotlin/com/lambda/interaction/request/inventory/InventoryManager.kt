@@ -48,7 +48,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post
 ), Logger {
-    private var actions = mutableListOf<SafeContext.() -> Unit>()
+    private var actions = mutableListOf<InventoryAction>()
 
     private var slots = listOf<ItemStack>()
     private var alteredSlots = LimitedDecayQueue<Pair<Int, Pair<ItemStack, ItemStack>>>(
@@ -86,7 +86,8 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     }
 
     override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
-        if (request.actions.size >= request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
+        val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
+        if (inventoryActionCount >= request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
             !request.settleForLess &&
             !request.mustPerform) return
         if (tickStage !in inventoryConfig.tickStageMask) return
@@ -99,7 +100,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         val iterator = actions.iterator()
         while (iterator.hasNext()) {
             if (actionsThisSecond + 1 > maxActionsThisSecond && !request.mustPerform) break
-            iterator.next()()
+            iterator.next().action(this)
             if (avoidDesync) indexInventoryChanges()
             actionsThisTick++
             actionsThisSecond++

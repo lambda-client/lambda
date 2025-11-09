@@ -34,7 +34,7 @@ import net.minecraft.util.math.Direction
 private annotation class InvRequestDsl
 
 class InventoryRequest private constructor(
-    val actions: List<SafeContext.() -> Unit>,
+    val actions: List<InventoryAction>,
     val settleForLess: Boolean,
     val mustPerform: Boolean,
     automated: Automated,
@@ -55,27 +55,29 @@ class InventoryRequest private constructor(
 
     @InvRequestDsl
     class InvRequestBuilder(val settleForLess: Boolean, val mustPerform: Boolean) {
-        val actions = mutableListOf<SafeContext.() -> Unit>()
+        val actions = mutableListOf<InventoryAction>()
         var onComplete: (SafeContext.() -> Unit)? = null
 
         @InvRequestDsl
         fun click(slotId: Int, button: Int, actionType: SlotActionType) {
-            actions.add { clickSlot(slotId, button, actionType) }
+            InventoryAction.Inventory { clickSlot(slotId, button, actionType) }.addToActions()
         }
 
         @InvRequestDsl
         fun pickFromInventory(slotId: Int) {
-            actions.add { clickSlot(slotId, player.inventory.selectedSlot, SlotActionType.SWAP) }
+            InventoryAction.Inventory {
+                clickSlot(slotId, player.inventory.selectedSlot, SlotActionType.SWAP)
+            }.addToActions()
         }
 
         @InvRequestDsl
         fun dropItemInHand(entireStack: Boolean = true) {
-            actions.add { player.dropSelectedItem(entireStack) }
+            InventoryAction.Inventory { player.dropSelectedItem(entireStack) }.addToActions()
         }
 
         @InvRequestDsl
         fun swapHands() {
-            actions.add {
+            InventoryAction.Inventory {
                 val offhandStack = player.getStackInHand(Hand.OFF_HAND)
                 player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
                 player.setStackInHand(Hand.MAIN_HAND, offhandStack)
@@ -86,12 +88,12 @@ class InventoryRequest private constructor(
                         Direction.DOWN
                     )
                 )
-            }
+            }.addToActions()
         }
 
         @InvRequestDsl
         fun clickCreativeStack(stack: ItemStack, slotId: Int) {
-            actions.add { interaction.clickCreativeStack(stack, slotId) }
+            InventoryAction.Inventory { interaction.clickCreativeStack(stack, slotId) }.addToActions()
         }
 
         @InvRequestDsl
@@ -151,8 +153,18 @@ class InventoryRequest private constructor(
         }
 
         @InvRequestDsl
+        fun action(action: SafeContext.() -> Unit) {
+            InventoryAction.Other(action).addToActions()
+        }
+
+        @InvRequestDsl
         fun onComplete(callback: SafeContext.() -> Unit) {
             onComplete = callback
+        }
+
+        @InvRequestDsl
+        private fun InventoryAction.addToActions() {
+            actions.add(this)
         }
     }
 
