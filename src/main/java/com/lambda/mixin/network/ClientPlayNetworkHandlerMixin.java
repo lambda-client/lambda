@@ -20,8 +20,11 @@ package com.lambda.mixin.network;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.WorldEvent;
+import com.lambda.interaction.request.inventory.InventoryManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.network.packet.s2c.play.*;
@@ -102,5 +105,15 @@ public class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;playerKnockback()Ljava/util/Optional;"), cancellable = true)
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
         if (Velocity.getExplosion() && Velocity.INSTANCE.isEnabled()) ci.cancel();
+    }
+
+    @WrapMethod(method = "onScreenHandlerSlotUpdate")
+    private void wrapOnScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet, Operation<Void> original) {
+        InventoryManager.onSlotUpdate(packet, original);
+    }
+
+    @WrapMethod(method = "onInventory")
+    private void wrapOnInventory(InventoryS2CPacket packet, Operation<Void> original) {
+        InventoryManager.onInventoryUpdate(packet, original);
     }
 }

@@ -22,7 +22,6 @@ import com.lambda.context.AutomationConfig
 import com.lambda.context.AutomationConfig.avoidDesync
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -30,11 +29,15 @@ import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
-import com.lambda.util.Communication.info
+import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemStackUtils.equal
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation
+import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
+import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
+import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 
@@ -69,33 +72,8 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     override fun load(): String {
         super.load()
 
-        listen<PacketEvent.Receive.Pre>(priority = Int.MIN_VALUE) { event ->
-            if (!avoidDesync) return@listen
-            val packet = event.packet as? InventoryS2CPacket ?: return@listen
-            screenHandler = player.currentScreenHandler
-            val packetScreenHandler =
-                if (packet.syncId == 0) player.playerScreenHandler
-                else player.currentScreenHandler
-            event.cancel()
-            val alteredContents = mutableListOf<ItemStack>()
-            packet.contents.forEachIndexed { index, incomingStack ->
-                val matches = alteredSlots.removeIf { cached ->
-                    incomingStack.equal(cached.second.second)
-                }
-                if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
-                else alteredContents.add(incomingStack)
-                if (matches) info(matches.toString())
-            }
-            mc.executeSync {
-                packetScreenHandler.updateSlotStacks(packet.revision(), alteredContents, packet.cursorStack())
-            }
-        }
-
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            if (avoidDesync) {
-                alteredSlots.addAll(gatherInventoryChanges())
-                slots = getStacks(player.currentScreenHandler.slots)
-            }
+            if (avoidDesync) indexInventoryChanges()
             if (++secondCounter >= 20) {
                 secondCounter = 0
                 actionsThisSecond = 0
@@ -122,6 +100,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         while (iterator.hasNext()) {
             if (actionsThisSecond + 1 > maxActionsThisSecond && !request.mustPerform) break
             iterator.next()()
+            if (avoidDesync) indexInventoryChanges()
             actionsThisTick++
             actionsThisSecond++
             iterator.remove()
@@ -141,14 +120,91 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
     }
 
-    private fun SafeContext.gatherInventoryChanges() =
-        if (player.currentScreenHandler !== screenHandler) emptyList()
-        else screenHandler?.slots
-            ?.filter { it.stack != slots[it.id] }
+    private fun SafeContext.indexInventoryChanges() {
+        if (player.currentScreenHandler !== screenHandler) return
+        val changes = screenHandler?.slots
+            ?.filter { !it.stack.equal(slots[it.id]) }
             ?.map { Pair(it.id, Pair(slots[it.id], it.stack.copy())) }
             ?: emptyList()
+        alteredSlots.addAll(changes)
+        slots = getStacks(player.currentScreenHandler.slots)
+    }
 
     private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
+
+    /**
+     * A modified version of the [net.minecraft.client.network.ClientPlayNetworkHandler.onInventory] method
+     */
+    @JvmStatic
+    fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){
+        runSafe {
+            if (!mc.isOnThread || !avoidDesync) {
+                original.call(packet)
+                return
+            }
+            screenHandler = player.currentScreenHandler
+            val packetScreenHandler =
+                when (packet.syncId) {
+                    0 -> player.playerScreenHandler
+                    screenHandler?.syncId -> player.currentScreenHandler
+                    else -> return@runSafe
+                }
+            val alteredContents = mutableListOf<ItemStack>()
+            packet.contents.forEachIndexed { index, incomingStack ->
+                val matches = alteredSlots.removeIf { cached ->
+                    incomingStack.equal(cached.second.second)
+                }
+                if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
+                else alteredContents.add(incomingStack)
+            }
+            packetScreenHandler.updateSlotStacks(packet.revision(), alteredContents, packet.cursorStack())
+            return
+        }
+        original.call(packet)
+    }
+
+    /**
+     * A modified version of the vanilla [net.minecraft.client.network.ClientPlayNetworkHandler.onScreenHandlerSlotUpdate] method
+     */
+    @JvmStatic
+    fun onSlotUpdate(packet: ScreenHandlerSlotUpdateS2CPacket, original: Operation<Void>) {
+        runSafe {
+            screenHandler = player.currentScreenHandler
+            if (!mc.isOnThread || !avoidDesync) {
+                original.call(packet)
+                return
+            }
+            val itemStack = packet.stack
+            mc.tutorialManager.onSlotUpdate(itemStack)
+
+            val bl = (mc.currentScreen as? CreativeInventoryScreen)?.let {
+                !it.isInventoryTabSelected
+            } ?: false
+
+            val matches = alteredSlots.removeIf {
+                it.first == packet.slot && it.second.second.equal(itemStack)
+            }
+
+            if (packet.syncId == 0) {
+                if (PlayerScreenHandler.isInHotbar(packet.slot) && !itemStack.isEmpty) {
+                    val itemStack2 = screenHandler?.getSlot(packet.slot)?.stack ?: return
+                    if (itemStack2.isEmpty || itemStack2.count < itemStack.count) {
+                        itemStack.bobbingAnimationTime = 5
+                    }
+                }
+
+                if (!matches) player.playerScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
+            } else if (packet.syncId == player.currentScreenHandler.syncId && (packet.syncId != 0 || !bl))
+                if (!matches) player.currentScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
+
+            if (mc.currentScreen is CreativeInventoryScreen) {
+                player.playerScreenHandler.setReceivedStack(packet.slot, itemStack)
+                player.playerScreenHandler.sendContentUpdates()
+            }
+            return
+        }
+        original.call(packet)
+    }
 
     override fun preEvent() = UpdateManagerEvent.Inventory.post()
 }
