@@ -27,8 +27,9 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.world.GameMode
 
-val SafeContext.gamemode
+val SafeContext.gamemode: GameMode
     get() = interaction.currentGameMode
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =

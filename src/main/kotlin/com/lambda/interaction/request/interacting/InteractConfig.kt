@@ -26,7 +26,7 @@ import com.lambda.util.NamedEnum
 interface InteractConfig : RequestConfig {
     val rotate: Boolean
     val swingHand: Boolean
-    val interactStageMask: Set<Event>
+    val tickStageMask: Set<Event>
     val interactSwingType: BuildConfig.SwingType
     val interactConfirmationMode: InteractConfirmationMode
 

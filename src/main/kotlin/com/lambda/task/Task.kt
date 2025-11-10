@@ -128,9 +128,7 @@ abstract class Task<Result> : Nameable, Muteable {
         unsubscribe()
         state = State.Completed
         if (!AutomationConfig.showAllEntries) parent?.subTasks?.remove(this)
-        runSafe {
-            executeNextTask(result)
-        }
+        runSafe { executeNextTask(result) }
     }
 
     @Ta5kBuilder

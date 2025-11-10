@@ -15,17 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.transfer.transaction
+package com.lambda.interaction.request.inventory
 
-import com.lambda.interaction.material.transfer.InventoryTransaction
+import com.lambda.context.SafeContext
 
-class QuickCraftTransaction @Ta5kBuilder constructor(
-    private val slots: List<Int>,
-    private val mode: Mode = Mode.Single,
-) : InventoryTransaction() {
-    override val name: String get() = "Drag and drop ${slots.size} slots"
+sealed interface InventoryAction {
+    val action: SafeContext.() -> Unit
 
-    enum class Mode {
-        Single, Split
-    }
+    class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
+    class Other(override val action: SafeContext.() -> Unit) : InventoryAction
 }

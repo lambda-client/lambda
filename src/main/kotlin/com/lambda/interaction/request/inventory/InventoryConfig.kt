@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.inventory
 
+import com.lambda.event.events.TickEvent
 import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -26,6 +27,8 @@ import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 
 interface InventoryConfig : RequestConfig {
+    val actionsPerSecond: Int
+    val tickStageMask: Set<TickEvent>
     val disposables: Set<Block>
     val swapWithDisposables: Boolean
     val providerPriority: Priority

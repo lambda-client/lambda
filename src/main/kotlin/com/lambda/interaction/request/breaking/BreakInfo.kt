@@ -81,17 +81,19 @@ data class BreakInfo(
     val callbacksCompleted
         get() = broken && (request.onItemDrop == null || item != null)
 
+    context(safeContext: SafeContext)
     fun internalOnBreak() {
         if (type != Rebreak) broken = true
         item?.let { item ->
-            request.onItemDrop?.invoke(item)
+            request.onItemDrop?.invoke(safeContext, item)
         }
     }
 
+    context(safeContext: SafeContext)
     fun internalOnItemDrop(item: ItemEntity) {
         if (type != Rebreak) this.item = item
         if (broken || type == Rebreak) {
-            request.onItemDrop?.invoke(item)
+            request.onItemDrop?.invoke(safeContext, item)
         }
     }
 

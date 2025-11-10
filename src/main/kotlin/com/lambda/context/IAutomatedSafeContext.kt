@@ -15,21 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.transfer.transaction
+package com.lambda.context
 
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.transfer.InventoryTransaction
-
-class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
-    val slot: Int,
-) : InventoryTransaction() {
-    override val name: String get() = "Selecting slot #$slot"
-
-    init {
-        listen<TickEvent.Pre> {
-            player.inventory.selectedSlot = slot
-            finish()
-        }
-    }
-}
+interface IAutomatedSafeContext : SafeContext, Automated

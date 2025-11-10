@@ -28,7 +28,7 @@ import com.lambda.interaction.material.ContainerSelection.Companion.selectContai
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.lookAt
@@ -176,7 +176,7 @@ object FastBreak : Module(
                 this@FastBreak
             )
 
-            BreakRequest(setOf(breakContext), pendingInteractions, this@FastBreak).submit()
+            breakRequest(setOf(breakContext), pendingInteractions).submit()
         }
     }
 }

@@ -29,7 +29,7 @@ class InteractSettings(
 ) : InteractConfig, SettingGroup(c) {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis).group(baseGroup)
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis).group(baseGroup)
-    override val interactStageMask by c.setting("Interact Stage Mask", setOf(TickEvent.Input.Post), description = "The sub-tick timing at which interact actions are performed", visibility = vis).group(baseGroup)
+    override val tickStageMask by c.setting("Interact Stage Mask", setOf<TickEvent>(TickEvent.Input.Post), description = "The sub-tick timing at which interact actions are performed", visibility = vis).group(baseGroup)
     override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swingHand }.group(baseGroup)
     override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractConfig.InteractConfirmationMode.InteractThenAwait, "The style of confirmation for interactions", visibility = vis).group(baseGroup)
 }

@@ -199,7 +199,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         info.nullify()
                         return@listen
                     }
-                    info.request.onStop?.invoke(info.context.blockPos)
+                    info.request.onStop?.invoke(this@listen, info.context.blockPos)
                     info.internalOnBreak()
                     if (info.callbacksCompleted)
                         RebreakHandler.offerRebreak(info)
@@ -387,12 +387,12 @@ object BreakManager : RequestHandler<BreakRequest>(
                         if ((!info.updatedThisTick || info.type == RedundantSecondary) || info.abandoned) {
                             logger.debug("Updating info", info, ctx)
                             if (info.type == RedundantSecondary)
-                                info.request.onStart?.invoke(info.context.blockPos)
+                                info.request.onStart?.invoke(this, info.context.blockPos)
                             else if (info.abandoned) {
                                 info.abandoned = false
-                                info.request.onStart?.invoke(info.context.blockPos)
+                                info.request.onStart?.invoke(this, info.context.blockPos)
                             } else
-                                info.request.onUpdate?.invoke(info.context.blockPos)
+                                info.request.onUpdate?.invoke(this, info.context.blockPos)
 
                             info.updateInfo(ctx, request)
                         }
@@ -498,7 +498,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
-            if (tickStage !in primaryInfo.breakConfig.breakStageMask) return null
+            if (tickStage !in primaryInfo.breakConfig.tickStageMask) return null
 
             if (!primaryInfo.breakConfig.doubleBreak || secondaryBreak != null) {
                 if (!primaryInfo.updatedThisTick) {
@@ -544,7 +544,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         breakInfos
             .filterNotNull()
             .asSequence()
-            .filter { !it.updatedThisTick && tickStage in it.breakConfig.breakStageMask }
+            .filter { !it.updatedThisTick && tickStage in it.breakConfig.tickStageMask }
             .forEach { info ->
                 if (info.type == RedundantSecondary && !info.progressedThisTick) {
                     val cachedState = info.context.cachedState
@@ -577,7 +577,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see startPending
      */
     private fun AutomatedSafeContext.onBlockBreak(info: BreakInfo) {
-        info.request.onStop?.invoke(info.context.blockPos)
+        info.request.onStop?.invoke(this, info.context.blockPos)
         when (breakConfig.breakConfirmation) {
             BreakConfirmationMode.None -> {
                 destroyBlock(info)
@@ -605,7 +605,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         logger.debug("Updating pre-processing", this@updatePreProcessing)
 
         shouldProgress = !progressedThisTick
-                && tickStage in breakConfig.breakStageMask
+                && tickStage in breakConfig.tickStageMask
                 && (rotated || type != Primary)
 
         if (updatedPreProcessingThisTick) return
@@ -635,14 +635,14 @@ object BreakManager : RequestHandler<BreakRequest>(
                 nullify()
                 setBreakingTextureStage(player, world, -1)
                 abortBreakPacket()
-                request.onCancel?.invoke(context.blockPos)
+                request.onCancel?.invoke(this, context.blockPos)
             }
             Secondary -> {
                 if (breakConfig.unsafeCancels) {
                     logger.warning("Making break redundant", this@cancelBreak)
                     type = RedundantSecondary
                     setBreakingTextureStage(player, world, -1)
-                    request.onCancel?.invoke(context.blockPos)
+                    request.onCancel?.invoke(this, context.blockPos)
                 } else {
                     logger.warning("Abandoning break", this@cancelBreak)
                     abandoned = true
@@ -681,7 +681,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 !swapped) return
             if (!startBreaking(info)) {
                 info.nullify()
-                info.request.onCancel?.invoke(ctx.blockPos)
+                info.request.onCancel?.invoke(this, ctx.blockPos)
             }
             return
         }
@@ -700,7 +700,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val blockState = blockState(ctx.blockPos)
         if (blockState.isEmpty) {
             info.nullify()
-            info.request.onCancel?.invoke(ctx.blockPos)
+            info.request.onCancel?.invoke(this, ctx.blockPos)
             logger.warning("Block state was unexpectedly empty", info)
             return
         }
@@ -773,7 +773,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     primaryBreak = rebreakResult.breakInfo.apply {
                         type = Primary
                         RebreakHandler.clearRebreak()
-                        request.onStart?.invoke(ctx.blockPos)
+                        request.onStart?.invoke(this@startBreaking, ctx.blockPos)
                     }
 
                     primaryBreak?.let { primary ->
@@ -786,7 +786,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     logger.debug("Rebroke", info)
                     info.type = Rebreak
                     info.nullify()
-                    info.request.onReBreak?.invoke(ctx.blockPos)
+                    info.request.onReBreak?.invoke(this, ctx.blockPos)
                     return true
                 }
                 else -> {}
@@ -798,7 +798,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         if (gamemode.isCreative) {
             lastPosStarted = ctx.blockPos
-            info.request.onStart?.invoke(ctx.blockPos)
+            info.request.onStart?.invoke(this, ctx.blockPos)
             onBlockBreak(info)
             info.startBreakPacket()
             breakCooldown = breakConfig.breakDelay
@@ -806,7 +806,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
         if (info.breaking) return false
-        info.request.onStart?.invoke(ctx.blockPos)
+        info.request.onStart?.invoke(this, ctx.blockPos)
 
         lastPosStarted = ctx.blockPos
 

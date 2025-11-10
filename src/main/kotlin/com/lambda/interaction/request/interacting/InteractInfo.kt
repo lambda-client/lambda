@@ -24,7 +24,7 @@ import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 
-data class InteractionInfo(
+data class InteractInfo(
     override val context: InteractionContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
     private val automated: Automated

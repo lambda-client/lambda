@@ -34,5 +34,5 @@ object OffHandContainer : MaterialContainer(Rank.OffHand) {
     override val description = buildText { literal("OffHand") }
 
     context(automated: Automated)
-    override fun deposit(selection: StackSelection) = MainHandContainer.HandDeposit(selection, Hand.OFF_HAND)
+    override fun deposit(selection: StackSelection) = MainHandContainer.HandDeposit(selection, Hand.OFF_HAND, automated)
 }

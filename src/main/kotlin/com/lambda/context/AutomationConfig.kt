@@ -59,6 +59,9 @@ object AutomationConfig : Configurable(LambdaConfig), Automated {
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
     override val eatConfig = EatSettings(this, Group.Eat)
 
+    val avoidDesync by setting("Avoid Desync", true, "Cancels incoming inventory update packets if they match previous actions").group(Group.Debug)
+    val maxDesyncCache by setting("Max Desync Cache", 30, 1..30, 1, "Maximum cached previous inventory actions") { avoidDesync }.group(Group.Debug)
+    val desyncTimeout by setting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidDesync }.group(Group.Debug)
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree").group(Group.Debug)
     val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001).group(Group.Debug)
     val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager").group(Group.Debug)

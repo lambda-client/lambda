@@ -28,8 +28,8 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
-object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
-    override val pendingActions = LimitedDecayQueue<InteractionInfo>(
+object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
+    override val pendingActions = LimitedDecayQueue<InteractInfo>(
         AutomationConfig.buildConfig.maxPendingInteractions,
         AutomationConfig.buildConfig.interactionTimeout * 50L
     ) {

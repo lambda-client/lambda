@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.placing
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.LogContext
@@ -32,7 +33,7 @@ data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated,
-    val onPlace: ((BlockPos) -> Unit)? = null
+    val onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 ) : Request(), LogContext, Automated by automated {
     override val requestID = ++requestCount
 

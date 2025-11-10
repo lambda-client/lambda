@@ -116,10 +116,10 @@ object InteractionManager : RequestHandler<InteractRequest>(
                 logger.warning("Dependencies failed for interaction", ctx, request)
                 return
             }
-            if (tickStage !in interactConfig.interactStageMask) return
+            if (tickStage !in interactConfig.tickStageMask) return
 
             if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
-                InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
+                InteractInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
             if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)

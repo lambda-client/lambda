@@ -215,7 +215,7 @@ tasks {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
+        freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility")
     }
 
     jvmToolchain(21)

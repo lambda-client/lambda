@@ -35,6 +35,7 @@ import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractionManager
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.maxPlacementsThisTick
 import com.lambda.interaction.request.placing.PlaceManager.placeBlock
@@ -59,14 +60,12 @@ import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 import kotlin.math.min
 
@@ -163,7 +162,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 return
             }
             if (!validSneak(player)) return
-            if (tickStage !in placeConfig.placeStageMask) return
+            if (tickStage !in placeConfig.tickStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
             if (!actionResult.isAccepted) {
@@ -328,20 +327,24 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             return ActionResult.FAIL
         }
 
-        val stackInHand = player.getStackInHand(hand)
-        val stackCountPre = stackInHand.count
+        if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {
+            val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
+            val inventoryRequest = inventoryRequest {
+                swapHands()
+                action { sendPlacePacket(placeHand, hitResult) }
+                swapHands()
+            }.submit(queueIfClosed = false)
+            if (!inventoryRequest.done) return ActionResult.FAIL
+        } else {
+            sendPlacePacket(hand, hitResult)
+        }
+
         if (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) {
             PlaceInfo(placeContext, request.pendingInteractions, request.onPlace, placeConfig).startPending()
         }
 
-        if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {
-            val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
-            airPlaceOffhandSwap()
-            sendPlacePacket(placeHand, hitResult)
-            airPlaceOffhandSwap()
-        } else {
-            sendPlacePacket(hand, hitResult)
-        }
+        val stackInHand = player.getStackInHand(hand)
+        val stackCountPre = stackInHand.count
 
         if (placeConfig.swing) {
             swingHand(placeConfig.swingType, hand)
@@ -352,7 +355,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
         val itemStack = itemPlacementContext.stack
-        if (!player.abilities.creativeMode) itemStack.decrement(1)
+        itemStack.decrementUnlessCreative(1, player)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.SUCCESS
@@ -376,7 +379,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (placeConfig.sounds) placeSound(state, blockPos)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
-            request.onPlace?.invoke(placeContext.blockPos)
+            request.onPlace?.invoke(this, placeContext.blockPos)
         }
 
         logger.success("Placed ${placeContext.expectedState} at ${placeContext.blockPos}", placeContext, request)
@@ -404,19 +407,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             SoundCategory.BLOCKS,
             (blockSoundGroup.getVolume() + 1.0f) / 2.0f,
             blockSoundGroup.getPitch() * 0.8f
-        )
-    }
-
-    /**
-     * Must be called before and after placing a block to bypass grim's air place checks.
-     */
-    private fun SafeContext.airPlaceOffhandSwap() {
-        connection.sendPacket(
-            PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
-                BlockPos.ORIGIN,
-                Direction.DOWN
-            )
         )
     }
 
