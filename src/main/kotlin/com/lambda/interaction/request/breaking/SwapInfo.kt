@@ -27,6 +27,9 @@ import com.lambda.interaction.request.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.threading.runSafeAutomated
 
+/**
+ * A simple data class to store info about when the [BreakManager] should swap tool.
+ */
 data class SwapInfo(
     private val type: BreakInfo.BreakType,
     private val automated: Automated,
@@ -43,13 +46,18 @@ data class SwapInfo(
     companion object {
         val EMPTY = SwapInfo(Primary, AutomationConfig)
 
+        /**
+         * Calculates the contents and returns a [SwapInfo].
+         *
+         *
+         */
         context(_: SafeContext)
         fun BreakInfo.getSwapInfo() = request.runSafeAutomated {
             val breakDelta = context.cachedState.calcBreakDelta(context.blockPos, swapStack)
 
             val threshold = getBreakThreshold()
 
-            // Plus one as this is calculated before this ticks progress is calculated and the breakingTicks are incremented
+            // Plus one as this is calculated before this ticks' progress is calculated and the breakingTicks are incremented
             val breakTicks = (if (rebreakPotential.isPossible()) RebreakHandler.rebreak?.breakingTicks
                 ?: throw IllegalStateException("Rebreak BreakInfo was null when rebreak was considered possible")
             else breakingTicks) + 1 - breakConfig.fudgeFactor
