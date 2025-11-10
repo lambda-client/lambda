@@ -355,7 +355,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
         val itemStack = itemPlacementContext.stack
-        if (!player.abilities.creativeMode) itemStack.decrement(1)
+        itemStack.decrementUnlessCreative(1, player)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.SUCCESS
