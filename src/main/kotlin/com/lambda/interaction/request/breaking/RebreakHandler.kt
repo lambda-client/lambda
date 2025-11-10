@@ -25,10 +25,15 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
+import com.lambda.interaction.request.breaking.RebreakHandler.rebreak
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.player.swingHand
 import net.minecraft.util.Hand
 
+/**
+ * Designed to track the latest primary-broken [BreakInfo] in order to exploit a flaw in Minecraft's code that allows
+ * the user to break any block placed in said position using the progress from the previously broken block.
+ */
 object RebreakHandler {
     var rebreak: BreakInfo? = null
 
@@ -47,6 +52,10 @@ object RebreakHandler {
         }
     }
 
+    /**
+     * Tests to see if the [BreakInfo] can be accepted. If not, nothing happens. Otherwise,
+     * the [rebreak] is set, and the [BreakRequest.onReBreakStart] callback is invoked.
+     */
     context(safeContext: SafeContext)
     fun offerRebreak(info: BreakInfo) {
         if (!info.rebreakable) return
@@ -63,6 +72,15 @@ object RebreakHandler {
         rebreak = null
     }
 
+    /**
+     * [RebreakPotential.None] if it cannot be rebroken at all.
+     *
+     * [RebreakPotential.PartialProgress] if some progress would be added to the break.
+     *
+     * [RebreakPotential.Instant] if the block can be instantly rebroken.
+     *
+     * @return In what way this block can be rebroken.
+     */
     context(_: SafeContext)
     fun BreakInfo.getRebreakPotential() = request.runSafeAutomated {
         rebreak?.let { reBreak ->
@@ -81,6 +99,11 @@ object RebreakHandler {
         } ?: RebreakPotential.None
     }
 
+    /**
+     * Updates the current [rebreak] with a fresh [BreakContext], and attempts to rebreak the block if possible.
+     *
+     * @return A [RebreakResult] to indicate how the update has been processed.
+     */
     context(_: SafeContext)
     fun handleUpdate(ctx: BreakContext, breakRequest: BreakRequest) = breakRequest.runSafeAutomated {
         val reBreak = this@RebreakHandler.rebreak ?: return@runSafeAutomated RebreakResult.Ignored

@@ -37,6 +37,9 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 
+/**
+ * A data class that holds all the information required to process and continue a break.
+ */
 data class BreakInfo(
     override var context: BreakContext,
     var type: BreakType,
@@ -140,16 +143,13 @@ data class BreakInfo(
         }
 
     context(_: SafeContext)
-    fun startBreakPacket() =
-        breakPacket(Action.START_DESTROY_BLOCK)
+    fun startBreakPacket() = breakPacket(Action.START_DESTROY_BLOCK)
 
     context(_: SafeContext)
-    fun stopBreakPacket() =
-        breakPacket(Action.STOP_DESTROY_BLOCK)
+    fun stopBreakPacket() = breakPacket(Action.STOP_DESTROY_BLOCK)
 
     context(_: SafeContext)
-    fun abortBreakPacket() =
-        breakPacket(Action.ABORT_DESTROY_BLOCK)
+    fun abortBreakPacket() = breakPacket(Action.ABORT_DESTROY_BLOCK)
 
     context(safeContext: SafeContext)
     private fun breakPacket(action: Action) =
