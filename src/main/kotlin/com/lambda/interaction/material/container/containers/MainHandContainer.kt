@@ -19,7 +19,8 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
-import com.lambda.context.SafeContext
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -44,33 +45,35 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
     ) : ContainerTask(), Automated by automated {
         override val name: String get() = "Depositing [$selection] to ${hand.name.lowercase().replace("_", " ")}"
 
-        override fun SafeContext.onStart() {
-            val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
-                failure("No matching stacks found in inventory")
-                return
-            }
-
-            val handStack = player.getStackInHand(hand)
-            if (moveStack.equal(handStack)) {
-                success()
-                return
-            }
-
-            inventoryRequest {
-                val stackInOffHand = moveStack.equal(player.offHandStack)
-                val stackInMainHand = moveStack.equal(player.mainHandStack)
-                if ((hand == Hand.MAIN_HAND && stackInOffHand) || (hand == Hand.OFF_HAND && stackInMainHand)) {
-                    swapHands()
-                    return@inventoryRequest
+        init {
+            listen<TickEvent.Pre> {
+                val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
+                    failure("No matching stacks found in inventory")
+                    return@listen
                 }
 
-                val slot = player.currentScreenHandler.slots.first { it.stack == moveStack } ?: throw NotInInventoryException()
-                swap(slot.id, player.inventory.selectedSlot)
+                val handStack = player.getStackInHand(hand)
+                if (moveStack.equal(handStack)) {
+                    success()
+                    return@listen
+                }
 
-                if (hand == Hand.OFF_HAND) swapHands()
+                inventoryRequest {
+                    val stackInOffHand = moveStack.equal(player.offHandStack)
+                    val stackInMainHand = moveStack.equal(player.mainHandStack)
+                    if ((hand == Hand.MAIN_HAND && stackInOffHand) || (hand == Hand.OFF_HAND && stackInMainHand)) {
+                        swapHands()
+                        return@inventoryRequest
+                    }
 
-                onComplete { success() }
-            }.submit(queueIfClosed = false)
+                    val slot = player.currentScreenHandler.slots.first { it.stack == moveStack } ?: throw NotInInventoryException()
+                    swap(slot.id, player.inventory.selectedSlot)
+
+                    if (hand == Hand.OFF_HAND) swapHands()
+
+                    onComplete { success() }
+                }.submit(queueIfClosed = false)
+            }
         }
     }
 

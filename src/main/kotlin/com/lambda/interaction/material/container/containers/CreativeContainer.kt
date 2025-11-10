@@ -19,7 +19,8 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
-import com.lambda.context.SafeContext
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
@@ -44,20 +45,22 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
     class CreativeDeposit @Ta5kBuilder constructor(val selection: StackSelection, automated: Automated) : Task<Unit>(), Automated by automated {
         override val name: String get() = "Removing $selection from creative inventory"
 
-        override fun SafeContext.onStart() {
-            if (!gamemode.isCreative) {
-                // ToDo: Maybe switch gamemode?
-                throw NotInCreativeModeException()
-            }
-
-            inventoryRequest {
-                player.currentScreenHandler?.slots?.let { slots ->
-                    selection.filterSlots(slots).forEach {
-                        clickCreativeStack(ItemStack.EMPTY, it.id)
-                    }
+        init {
+            listen<TickEvent.Pre> {
+                if (!gamemode.isCreative) {
+                    // ToDo: Maybe switch gamemode?
+                    throw NotInCreativeModeException()
                 }
-                onComplete { success() }
-            }.submit(queueIfClosed = false)
+
+                inventoryRequest {
+                    player.currentScreenHandler?.slots?.let { slots ->
+                        selection.filterSlots(slots).forEach {
+                            clickCreativeStack(ItemStack.EMPTY, it.id)
+                        }
+                    }
+                    onComplete { success() }
+                }.submit(queueIfClosed = false)
+            }
         }
     }
 
@@ -67,24 +70,29 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
     class CreativeWithdrawal @Ta5kBuilder constructor(val selection: StackSelection, automated: Automated) : Task<Unit>(), Automated by automated {
         override val name: String get() = "Withdrawing $selection from creative inventory"
 
-        override fun SafeContext.onStart() {
-            selection.optimalStack?.let { optimalStack ->
-                if (player.mainHandStack.equal(optimalStack)) return
+        init {
+            listen<TickEvent.Pre> {
+                selection.optimalStack?.let { optimalStack ->
+                    if (player.mainHandStack.equal(optimalStack)) {
+                        success()
+                        return@listen
+                    }
 
-                if (!gamemode.isCreative) {
-                    // ToDo: Maybe switch gamemode?
-                    throw NotInCreativeModeException()
+                    if (!gamemode.isCreative) {
+                        // ToDo: Maybe switch gamemode?
+                        throw NotInCreativeModeException()
+                    }
+
+                    inventoryRequest {
+                        clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
+                        action { player.inventory.selectedStack = optimalStack }
+                        onComplete { success() }
+                    }.submit(queueIfClosed = false)
+                    return@listen
                 }
 
-                inventoryRequest {
-                    clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
-                    player.inventory.selectedStack = optimalStack
-                    onComplete { success() }
-                }.submit(queueIfClosed = false)
-                return
+                throw NoOptimalStackException()
             }
-
-            throw NoOptimalStackException()
         }
     }
 
