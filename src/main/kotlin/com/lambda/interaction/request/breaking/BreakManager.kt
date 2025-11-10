@@ -271,9 +271,10 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
                     }.forEach boxes@ { box ->
-                        val dynamicAABB = DynamicAABB()
-                        val interpolated = interpolateBox(box, interpolatedProgress, info.breakConfig)
-                        dynamicAABB.update(interpolated)
+                        val animationMode = info.breakConfig.animation
+                        val currentProgress = interpolateBox(box, currentProgress, animationMode)
+                        val nextProgress = interpolateBox(box, nextTicksProgress, animationMode)
+                        val dynamicAABB = DynamicAABB().update(currentProgress).update(nextProgress)
                         if (config.fill) render.filled(dynamicAABB, fillColor)
                         if (config.outline) render.outline(dynamicAABB, outlineColor)
                     }
@@ -883,9 +884,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         return inRange && correctMaterial
     }
 
-    private fun interpolateBox(box: Box, progress: Double, config: BreakConfig): Box {
+    private fun interpolateBox(box: Box, progress: Double, animationMode: BreakConfig.AnimationMode): Box {
         val boxCenter = Box(box.center, box.center)
-        return when (config.animation) {
+        return when (animationMode) {
             BreakConfig.AnimationMode.Out -> lerp(progress, boxCenter, box)
             BreakConfig.AnimationMode.In -> lerp(progress, box, boxCenter)
             BreakConfig.AnimationMode.InOut ->
