@@ -23,4 +23,4 @@ val MinecraftClient.partialTicks
     get() = tickDelta.toDouble()
 
 val MinecraftClient.tickDelta
-    get() = renderTickCounter.dynamicDeltaTicks
+    get() = renderTickCounter.getTickProgress(true)
