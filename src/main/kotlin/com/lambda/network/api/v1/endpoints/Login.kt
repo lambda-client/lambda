@@ -31,8 +31,6 @@ import io.ktor.http.*
  * Example:
  *  - username: Notch
  *  - hash: 069a79f444e94726a5befca90e38aaf5
- *
- * @return result of [Authentication]
  */
 suspend fun login(username: String, hash: String) = runCatching {
     LambdaHttp.post("${apiUrl}/api/$apiVersion/login") {

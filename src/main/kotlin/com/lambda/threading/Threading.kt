@@ -31,38 +31,41 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.CompletableFuture
 
 /**
- * Executes a block of code only if the context is safe. A context is considered safe when all the following properties are not null:
+ * Runs the [block] in a safe context.
+ *
+ * A context is considered safe when all the following properties are not null:
  * - [SafeContext.world]
  * - [SafeContext.player]
  * - [SafeContext.interaction]
  * - [SafeContext.connection]
- *
- * If the context is not safe, the function will return null and the block of code will not be executed.
- *
- * @param block The block of code to be executed within the safe context.
- * @return The result of the block execution if the context is safe, null otherwise.
  */
 inline fun <T> runSafe(block: SafeContext.() -> T): T? =
     SafeContext.create()?.run(block)
 
+/**
+ * Runs the [block] in an automated context.
+ *
+ * The context contains various settings for various systems.
+ */
 @JvmName("runSafeAutomated0")
 context(safeContext: SafeContext)
 inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
     AutomatedSafeContext(safeContext, automated).run(block)
 
+/**
+ * Runs the [block] in an automated context.
+ *
+ * The context contains various settings for various systems.
+ */
 @JvmName("runSafeAutomated1")
 inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
     return AutomatedSafeContext(SafeContext.create() ?: return null, this).run(block)
 }
 
 /**
- * This function is used to execute a block of code on a new thread running asynchronously to the game thread.
- * It should only be used when you need to perform read actions on the game data (not write).
+ * Runs the [block] in a coroutine.
  *
- * Caution: Using this function to write to the game data can lead to race conditions. Therefore, it is recommended
- * to use this function only for read operations to avoid potential concurrency issues.
- *
- * @param block The block of code to be executed concurrently.
+ * Writing to game data is discouraged as it may cause race conditions.
  */
 inline fun runConcurrent(scheduler: CoroutineDispatcher = Dispatchers.Default, crossinline block: suspend CoroutineScope.() -> Unit) =
     EventFlow.lambdaScope.launch(scheduler) {
@@ -80,16 +83,15 @@ inline fun taskContext(crossinline block: suspend CoroutineScope.() -> Unit) =
     }
 
 /**
- * This function is used to execute a block of code within a safe context on a new thread running asynchronously to the game thread.
+ * Runs the [block] within a safe context in a coroutine.
+ *
  * A context is considered safe when all the following properties are not null:
  * - [SafeContext.world]
  * - [SafeContext.player]
  * - [SafeContext.interaction]
  * - [SafeContext.connection]
  *
- * If the context is not safe, the function will not execute the block of code.
- *
- * @param block The block of code to be executed within the safe context.
+ * Writing to game data is discouraged as it may cause race conditions.
  */
 inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) {
     EventFlow.lambdaScope.launch {
@@ -98,40 +100,17 @@ inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) 
 }
 
 /**
- * Executes a given task when the render procedure is available.
+ * Executes a given task before a new render tick begins.
  *
- * This function is used when a task needs to be performed when the render thread is ready
- * to be used as multiple threads are used simultaneously and the OpenGL context is only available
- * on one thread
- *
- * Note: This function is non-blocking as the task is scheduled to be executed
- * on the game's main thread, but does not provide any feedback.
- *
- * @param block The task to be executed on the game's main thread.
+ * This function should only be used for synchronization of threads that wish to dispatch
+ * to OpenGL.
  */
 inline fun recordRenderCall(crossinline block: () -> Unit) {
     mc.renderTaskQueue.add { block() }
 }
 
 /**
- * Executes a given task on the game's main thread.
- *
- * This function is used when a task needs to be performed on the game's main thread,
- * as certain operations are not safe to perform on other threads.
- * It uses the Minecraft client's `execute` method to schedule the task.
- *
- * ## Execution Flow:
- * 1. If already on the render thread: Executes the task immediately (zero overhead).
- * 2. Otherwise, schedules the task via Minecraft's [net.minecraft.util.thread.ThreadExecutor]:
- *    a. The task is wrapped in a Runnable and added to a thread-safe queue
- *    b. `LockSupport.unpark` wakes the game thread if it was parked
- *
- * [java.util.concurrent.locks.LockSupport.unpark] will unblock the permit available and allow for execution on that specific thread
- *
- * Note: This function is non-blocking as the task is scheduled to be executed
- * on the game's main thread, but does not provide any feedback.
- *
- * @param block The task to be executed on the game's main thread.
+ * Schedules or executes the [block] on the main thread.
  */
 inline fun runGameScheduled(crossinline block: () -> Unit) {
     if (isOnRenderThread()) {
@@ -143,21 +122,13 @@ inline fun runGameScheduled(crossinline block: () -> Unit) {
 }
 
 /**
- * Executes a given task on the game's main thread within a safe context.
+ * Schedules a task on the main thread within a safe context.
+ *
  * A context is considered safe when all the following properties are not null:
  * - [SafeContext.world]
  * - [SafeContext.player]
  * - [SafeContext.interaction]
  * - [SafeContext.connection]
- *
- * This function is used when a task needs to be performed on the game's main thread,
- * as certain operations are not safe to perform on other threads.
- * It uses the Minecraft client's `execute` method to schedule the task.
- *
- * Note: This function is non-blocking as the task is scheduled to be executed
- * on the game's main thread, but does not provide any feedback.
- *
- * @param block The task to be executed on the game's main thread within a safe context.
  */
 inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
     runGameScheduled { runSafe { block() } }
@@ -166,20 +137,14 @@ inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
 /**
  * Executes a given task on the game's main thread within a safe context
  * and blocks the coroutine until the task is completed.
+ *
  * A context is considered safe when all the following properties are not null:
  * - [SafeContext.world]
  * - [SafeContext.player]
  * - [SafeContext.interaction]
  * - [SafeContext.connection]
  *
- * This function is used when a task needs to be performed on the game's main thread,
- * as certain operations are not safe to perform on other threads.
- *
- * Note:
- * This function is blocking
- * as it uses [CompletableFuture]'s [await] method to [suspend] the coroutine until the task is completed.
- *
- * @param block The task to be executed on the game's main thread within a safe context.
+ * This function blocks until the task is completed.
  */
 suspend inline fun <T> awaitMainThread(noinline block: SafeContext.() -> T) =
     CompletableFuture.supplyAsync({ runSafe { block() } }, mc).await() ?: throw IllegalStateException("Unsafe")

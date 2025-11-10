@@ -53,7 +53,6 @@ import kotlin.time.Duration.Companion.seconds
 
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
-    // We want to cache images to reduce class B requests
     private val images = capes.walk()
         .filter { it.extension == "png" }
         .associate { it.nameWithoutExtension to NativeImageBackedTexture({ it.nameWithoutExtension }, read(it.inputStream())) }
@@ -61,7 +60,6 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
 
     private val fetchQueue = mutableListOf<UUID>()
 
-    // We want to cache the cape list to reduce class B requests
     val capeList = runBlocking {
         capes.resolveFile("capes.txt")
             .isOlderThan(24.hours) {
