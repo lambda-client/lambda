@@ -25,49 +25,31 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 object StringUtils {
-    /**
-     * Returns a sanitized file path for both Unix and Linux systems
-     */
     fun String.sanitizeForFilename() =
         replace(Regex("[\\\\/:*?\"<>|]"), "_")
             .trim()
             .take(255) // truncate to 255 characters for Windows compatibility
 
 
-    /**
-     * Capitalizes the first character of a string using its Unicode mapping
-     */
     fun String.capitalize() = replaceFirstChar { it.titlecase() }
 
-    /**
-     * Returns a Minecraft [net.minecraft.util.Identifier] from a string with the given namespace
-     */
     fun String.toIdentifier(namespace: String = Lambda.MOD_ID): Identifier =
         Identifier.of(namespace, this)
 
-    /**
-     * Returns a [Lambda] Minecraft [Identifier] from a string
-     */
     val String.asIdentifier: Identifier get() = toIdentifier()
 
     /**
      * Find similar strings in a set of words.
      *
-     * @param target The string to compare against.
-     * @param words The set of words to compare against.
-     * @param threshold The maximum Levenshtein distance between the target and the words.
+     * @see <a href="https://en.wikipedia.org/wiki/Levenshtein_distance">Levenshtein distance</a<
      */
-    fun findSimilarStrings(
-        target: String,
+    fun String.findSimilarStrings(
         words: Set<String>,
         threshold: Int,
-    ) = words.filter { it.levenshteinDistance(target) <= threshold }.toSet()
+    ) = words.filter { it.levenshteinDistance(this) <= threshold }.toSet()
 
     /**
-     * See [Levenshtein distance](https://en.wikipedia.org/wiki/Levenshtein_distance)
-     *
-     * @receiver The string to compare.
-     * @param rhs The string to compare against.
+     * @see <a href="https://en.wikipedia.org/wiki/Levenshtein_distance">Levenshtein distance</a<
      */
     fun CharSequence.levenshteinDistance(rhs: CharSequence): Int {
         if (this == rhs) {
@@ -108,11 +90,6 @@ object StringUtils {
         return cost[len0 - 1]
     }
 
-    /**
-     * Takes the receiver string and decodes it to the input type
-     *
-     * @return Instance of [T]
-     */
     inline fun <reified T : Any> String.json() = gson.fromJson(this, T::class.java)
 
     /**
@@ -122,39 +99,21 @@ object StringUtils {
     fun String.base64UrlDecode() = Base64.UrlSafe.decode(this).decodeToString()
 
     /**
-     * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification
-     *
-     * @receiver        The string to hash
-     * @param algorithm The algorithm instance to use
-     * @param extra     Additional data to digest with the string
-     *
-     * @return          The string representation of the hash
+     * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms">Java Security Standard Algorithm Names Specification</a>
      */
     fun String.hashString(algorithm: String, vararg extra: ByteArray): String =
         toByteArray().hash(algorithm, *extra)
             .joinToString(separator = "") { "%02x".format(it) }
 
     /**
-     * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification
-     *
-     * @receiver        The byte array to hash
-     * @param algorithm The algorithm instance to use
-     * @param extra     Additional data to digest with the byte array
-     *
-     * @return          The string representation of the hash
+     * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms">Java Security Standard Algorithm Names Specification</a>
      */
     fun ByteArray.hashString(algorithm: String, vararg extra: ByteArray): String =
         hash(algorithm, *extra)
             .joinToString(separator = "") { "%02x".format(it) }
 
     /**
-     * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification
-     *
-     * @receiver        The byte array to hash
-     * @param algorithm The algorithm instance to use
-     * @param extra     Additional data to digest with the byte array
-     *
-     * @return          The digested data
+     * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms">Java Security Standard Algorithm Names Specification</a>
      */
     fun ByteArray.hash(algorithm: String, vararg extra: ByteArray): ByteArray =
         MessageDigest

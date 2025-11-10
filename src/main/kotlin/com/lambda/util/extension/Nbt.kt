@@ -30,9 +30,6 @@ fun NbtCompound.putIntList(key: String, vararg values: Int) {
     put(key, values.fold(NbtList()) { list, value -> list.add(NbtInt.of(value)); list })
 }
 
-/**
- * Deletes all the keys in a compound
- */
 fun NbtCompound.clear() {
     keys.forEach { remove(it) }
 }

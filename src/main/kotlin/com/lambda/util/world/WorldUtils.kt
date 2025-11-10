@@ -34,24 +34,11 @@ import kotlin.math.ceil
 import kotlin.sequences.filter
 
 object WorldUtils {
-    fun SafeContext.isLoaded(pos: BlockPos) =
-        world.chunkManager.isChunkLoaded(
-            ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z)
-        )
-
     /**
-     * Gets all entities of type [T] within a specified distance from a position.
+     * Returns a sequence of entities.
      *
-     * This function retrieves entities of type [T] within a specified distance from a given position.
-     * It efficiently queries nearby chunks based on the distance and returns a list of matching entities.
-     *
-     * Note: This implementation is optimized for performance at small distances
-     * For distances larger than 64 blocks, it is recommended to use the [internalGetEntities] function instead
-     *
-     * @param pos The position to search from
-     * @param distance The maximum distance to search for entities
-     * @param filter The lambda to filter entities
-     * @return A sequence of [T]
+     * This implementation is optimized for performance at small distances.
+     * For distances larger than 64 blocks, it is recommended to use the [internalGetEntities] function instead.
      *
      * @see [fastEntitySearch]
      */
@@ -88,15 +75,8 @@ object WorldUtils {
     }
 
     /**
-     * Gets all entities of type [T] within a specified distance from a position.
-     *
-     * This function retrieves entities of type [T] within a specified distance from a given position.
+     * Returns a sequence of entities.
      * Unlike [internalGetFastEntities], it traverses all entities in the world to find matches.
-     *
-     * @param pos The block position to search from.
-     * @param distance The maximum distance to search for entities.
-     * @param filter The lambda to filter entities.
-     * @return A sequence of [T]
      *
      * @see [entitySearch]
      */
@@ -114,13 +94,7 @@ object WorldUtils {
         }
 
     /**
-     * Gets all block entities of type [T] within a specified distance from a position.
-     *
-     * @param pos The block position to search from.
-     * @param distance The maximum distance to search for entities.
-     * @param filter The lambda to filter block entities.
-     * @return A sequence of [T]ç
-     *
+     * Returns a sequence of block entities.
      * @see [blockEntitySearch]
      */
     inline fun <reified T : BlockEntity> SafeContext.internalGetBlockEntities(
@@ -153,12 +127,7 @@ object WorldUtils {
     }
 
     /**
-     * Returns a filtered map of block state positions.
-     *
-     * @param pos The position to search from.
-     * @param range The maximum distance to search for entities in each axis.
-     * @param filter The lambda to filter blocks.
-     *
+     * Returns a map of positions to block states.
      * @see [blockSearch]
      */
     inline fun SafeContext.internalSearchBlocks(
@@ -175,12 +144,7 @@ object WorldUtils {
 
 
     /**
-     * Returns a filtered map of fluid positions.
-     *
-     * @param pos The position to search from.
-     * @param range The maximum distance to search for fluids in each axis.
-     * @param filter The lambda to filter fluids.
-     *
+     * Returns a map of positions to fluid states.
      * @see [fluidSearch]
      */
     inline fun <reified T : Fluid> SafeContext.internalSearchFluids(

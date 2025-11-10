@@ -41,16 +41,6 @@ object StructureUtils {
         BlockPos(1, 0, 0) to Blocks.FIRE.defaultState,
     )
 
-    /**
-     * Generates a tube of blocks in the specified direction.
-     *
-     * @param direction The direction in which the tube should be generated.
-     * @param width The width of the tube.
-     * @param height The height of the tube.
-     * @param leftRightOffset The offset along the X-axis.
-     * @param heightOffset The offset along the Y-axis.
-     * @return A set of BlockPos representing the generated tube.
-     */
     fun generateDirectionalTube(
         direction: EightWayDirection,
         width: Int,

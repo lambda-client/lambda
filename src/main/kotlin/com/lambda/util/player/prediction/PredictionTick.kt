@@ -21,17 +21,6 @@ import com.lambda.interaction.request.rotating.Rotation
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
-/**
- * Data class representing a movement prediction tick for an entity.
- *
- * @property position The current position of the entity.
- * @property rotation The current rotation (yaw, pitch) of the entity.
- * @property velocity The current velocity vector of the entity.
- * @property boundingBox The bounding box that defines the entity's space in the world.
- * @property eyePos The position of the entity's eyes, typically used for raycasting or viewing purposes.
- * @property onGround Indicates whether the entity is currently touching the ground.
- * @property isJumping Indicates whether the entity is currently jumping.
- */
 data class PredictionTick(
     val position: Vec3d,
     val rotation: Rotation,
@@ -52,9 +41,6 @@ data class PredictionTick(
         lastTick
     }
 
-    /**
-     * Runs the simulation until either [amount] ticks were skipped or [block] is true
-     */
     fun skipUntil(amount: Int = 20, block: (PredictionTick) -> Boolean) = with(predictionEntity) {
         repeat(amount) {
             tickMovement()

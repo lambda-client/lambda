@@ -155,14 +155,7 @@ enum class KeyCode(val code: Int) {
         private val keyCodeMap = entries.associateBy { it.code }
         private val nameMap = entries.associateBy { it.name.lowercase() }
 
-        /**
-         * Returns the KeyCode enum instance from the key code number or [Unbound] if invalid
-         */
         fun fromKeyCode(keyCode: Int) = keyCodeMap[keyCode] ?: Unbound
-
-        /**
-         * Returns the KeyCode enum instance from the key code name or [Unbound] if invalid
-         */
         fun fromKeyName(name: String) = nameMap[name.lowercase()] ?: Unbound
 
         /**
@@ -171,10 +164,6 @@ enum class KeyCode(val code: Int) {
          * For key codes in the keypad range, the [keyCode] is directly mapped.
          * If the key corresponds to a printable character or letter, it is mapped
          * to its corresponding [KeyCode] based on the US layout.
-         *
-         * @param keyCode The key code to map.
-         * @param scanCode The scan code of the key.
-         * @return The corresponding [KeyCode].
          *
          * @see <a href="https://github.com/glfw/glfw/issues/1502#issuecomment-1005841055">ImGui impl
          */

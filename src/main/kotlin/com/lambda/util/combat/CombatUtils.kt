@@ -40,6 +40,7 @@ object CombatUtils {
 
     /**
      * Calculates the damage dealt by an explosion to a living entity
+     *
      * @param position The position of the explosion
      * @param entity The entity to calculate the damage for
      */

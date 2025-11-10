@@ -23,11 +23,6 @@ import java.util.concurrent.ConcurrentLinkedQueue
 /**
  * A thread-safe collection that limits the number of elements it can hold and automatically removes elements
  * older than a specified time interval. The elements are stored with the timestamp of their addition to the collection.
- *
- * @param E The type of elements held in this collection.
- * @property sizeLimit The maximum number of elements the queue can hold at any given time.
- * @property maxAge The activeRequestAge (in milliseconds) after which elements are considered expired and are removed from the queue.
- * @property onDecay Lambda function that is executed on decay of element [E].
  */
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,

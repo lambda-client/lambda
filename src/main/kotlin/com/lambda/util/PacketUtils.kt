@@ -26,8 +26,6 @@ import net.minecraft.network.packet.Packet
 object PacketUtils {
     /**
      * Sends a packet through the regular packet pipeline
-     *
-     * @param block Lambda that returns the packet to be sent
      */
     fun ClientPlayNetworkHandler.sendPacket(block: () -> Packet<*>) = connection.send(block())
 
@@ -35,8 +33,6 @@ object PacketUtils {
      * Sends a packet to the server without notifying the client.
      * It bypasses the mixins that would normally intercept the packet
      * and send it through the client's event bus.
-     *
-     * @param packet The packet to send.
      */
     fun ClientPlayNetworkHandler.sendPacketSilently(packet: Packet<*>) {
         if (!connection.isOpen || connection.packetListener?.accepts(packet) == true) return
@@ -49,8 +45,6 @@ object PacketUtils {
      * Handles a packet without notifying the client.
      * It bypasses the mixins that would normally intercept the packet
      * and send it through the client's event bus.
-     *
-     * @param packet The packet to handle.
      */
     fun ClientPlayNetworkHandler.handlePacketSilently(packet: Packet<*>) {
         if (!connection.isOpen || connection.packetListener?.accepts(packet) == false) return
