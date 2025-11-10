@@ -29,7 +29,7 @@ abstract class HudModule(
     val customWindow: Boolean = false,
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: Bind = Bind.EMPTY,
+    defaultKeybind: Bind = Bind.Empty,
 ) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout {
     val backgroundColor by setting("Background Color", Color(0, 0, 0, 0))
     val outline by setting("Show Outline", false)

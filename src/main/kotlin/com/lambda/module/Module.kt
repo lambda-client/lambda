@@ -60,25 +60,34 @@ import com.lambda.util.Nameable
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
  * [Module]s are [Configurable]s with [settings] (see [AbstractSetting] for all setting types).
- * For example, a [BooleanSetting] and a [DoubleSetting] can be defined like this:
- * ```kotlin
+ * Example:
+ * ```
  * private val foo by setting("Foo", true)
  * private val bar by setting("Bar", 0.0, 0.1..5.0, 0.1)
  * ```
+ *
  * These settings are persisted in the `lambda/config/modules.json` config file.
  * See [ModuleConfig.primary] and [Configuration] for more details.
  *
- * In the `init` block, you can add triggers like [onEnable], [onDisable], [onToggle] and register [Listener].
- * For example:
+ * In the `init` block, you can add hooks like [onEnable], [onDisable], [onToggle] and add listeners.
  *
- * ```kotlin
+ * Example:
+ * ```
  * init {
  *     onEnable { // runs on module activation
  *         LOG.info("I was enabled!")
  *     }
  *
- *     listener<TickEvent.Pre> { event -> // runs every game tick
- *         LOG.info("I'm ${if (foo) "super boring ($bar)" else "boring"}!")
+ *     onToggle { to ->
+ *          LOG.info("Module enabled: ${to}")
+ *     }
+ *
+ *     onDisable {
+ *          LOG.info("I was disable!")
+ *     }
+ *
+ *     listener<TickEvent.Pre> { event ->
+ *         LOG.info("I've ticked!")
  *     }
  * }
  * ```
@@ -88,35 +97,28 @@ import com.lambda.util.Nameable
  * - [Module] was configured to [alwaysListening]
  * - [Listener] was configured to [Listener.alwaysListen]
  *
- * For example:
+ * Example:
+ * ```
+ * val bind1 = setting("Keybind", KeyCode.A)
+ * val bind2 = setting("Keybind", Bind(KeyCode.A.code, 0, -1))
  *
- * ```kotlin
- * listener<KeyPressEvent>(alwaysListen = true) { event ->
- *     if (event.key == keybind.key) {
- *         toggle()
- *     }
+ * listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
+ *     if (!event.satisfies(bind1) || !event.satisfies(bind2)) return@listen
+ *
+ *     if (event.isPressed) toggle()
+ *     else if (event.isReleased) disable()
  * }
  * ```
  *
  * See [SafeListener] and [UnsafeListener] for more details.
- *
- * @property name The name of the module, displayed in-game.
- * @property description The description of the module shown on hover over the module button in the GUI and in commands.
- * @property tag The default [ModuleTag]s associated with the module.
- * @property alwaysListening If true, the module's listeners will be triggered even if the module is not enabled.
- * @property isEnabledSetting The setting that determines if the module is enabled.
- * @property keybindSetting The setting that determines the keybind for the module.
- * @property isEnabled The current enabled state of the module.
- * @property isMuted If true, the module's listeners will not be triggered.
- * @property keybind The current keybind for the module.
- * */
+ */
 abstract class Module(
     override val name: String,
     val description: String = "",
     val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: Bind = Bind.EMPTY,
+    defaultKeybind: Bind = Bind.Empty,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig), Automated by AutomationConfig {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }

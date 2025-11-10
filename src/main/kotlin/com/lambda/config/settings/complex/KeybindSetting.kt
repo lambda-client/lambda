@@ -27,7 +27,6 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
-import com.lambda.config.settings.complex.Bind.Companion.mouseBind
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
@@ -60,6 +59,9 @@ class KeybindSetting(
     description,
     visibility
 ) {
+    constructor(name: String, defaultValue: KeyCode, description: String, visibility: () -> Boolean)
+            : this(name, Bind(defaultValue.code, 0, -1), description, visibility)
+
     private var listening = false
 
     override fun ImGuiBuilder.buildLayout() {
@@ -91,7 +93,7 @@ class KeybindSetting(
 
         sameLine()
         smallButton("Unbind") {
-            value = Bind.EMPTY
+            value = Bind.Empty
             listening = false
         }
         onItemHover(ImGuiHoveredFlags.Stationary) {
@@ -114,7 +116,7 @@ class KeybindSetting(
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
                             KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.Empty
                             else -> value = Bind(it.keyCode, it.modifiers, -1)
                         }
 
@@ -136,14 +138,14 @@ class KeybindSetting(
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
                     val isMouse = if (isMouseButton != null) isMouseButton().value() else false
-                    var bind = Bind.EMPTY
+                    var bind = Bind.Empty
                     if (isMouse) {
                         val num = try {
                             name().value().toInt()
                         } catch(_: NumberFormatException) {
                             return@executeWithResult failure("${name().value()} doesn't match with a mouse button")
                         }
-                        bind = mouseBind(num)
+                        bind = Bind(0, 0, mouse = num)
                     } else {
                         bind = try {
                             Bind(KeyCode.valueOf(name().value()).code, 0)
@@ -191,8 +193,6 @@ data class Bind(
         "Key Code: $key, Modifiers: ${truemods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
-        val EMPTY = Bind(0, 0)
-
-        fun mouseBind(code: Int) = Bind(0, 0, code)
+        val Empty = Bind(0, 0, -1)
     }
 }
