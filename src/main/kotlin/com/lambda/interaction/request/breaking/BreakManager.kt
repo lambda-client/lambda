@@ -104,8 +104,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * This manager is responsible for breaking blocks in the most efficient manner possible. It can be accessed
- * from anywhere through a [BreakRequest], although it is not designed in the image of thread safety.
+ * Manager responsible for breaking blocks in the most efficient manner possible. It can be accessed
+ * from anywhere through a [BreakRequest].
  *
  * If configured with the right options enabled, this manager can break two blocks simultaneously, even if the two breaks come from
  * different requests. Each break will be handled using its own config, and just like the other managers, priority is a first-come, first-served

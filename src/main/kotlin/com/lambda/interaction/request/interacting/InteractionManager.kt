@@ -35,6 +35,10 @@ import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.pendingActions
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPending
+import com.lambda.interaction.request.interacting.InteractionManager.activeRequest
+import com.lambda.interaction.request.interacting.InteractionManager.maxInteractionsThisTick
+import com.lambda.interaction.request.interacting.InteractionManager.populateFrom
+import com.lambda.interaction.request.interacting.InteractionManager.potentialInteractions
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.interactionManagerLogger
@@ -44,6 +48,10 @@ import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.util.Hand
 
+/**
+ * Manager responsible for handling block interactions other than placing. It can be accessed from anywhere
+ * through an [InteractRequest]
+ */
 object InteractionManager : RequestHandler<InteractRequest>(
     0,
     TickEvent.Pre,
@@ -51,9 +59,9 @@ object InteractionManager : RequestHandler<InteractRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = {
-        if (InteractionManager.potentialInteractions.isNotEmpty())
+        if (potentialInteractions.isNotEmpty())
             InteractionManager.logger.newStage(InteractionManager.tickStage)
-        InteractionManager.activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
+        activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
     }
 ), PositionBlocking, Logger {
     private var activeRequest: InteractRequest? = null
@@ -90,6 +98,12 @@ object InteractionManager : RequestHandler<InteractRequest>(
         return "Loaded Interaction Manager"
     }
 
+    /**
+     * Attempts to accept and process the request, if there is not already an [activeRequest] and the request's [InteractRequest.contexts]
+     * collection is not empty.
+     *
+     * @see processRequest
+     */
     override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
 
@@ -98,6 +112,11 @@ object InteractionManager : RequestHandler<InteractRequest>(
         if (interactionsThisTick > 0) activeThisTick = true
     }
 
+    /**
+     * Handles populating the manager and performing interactions.
+     *
+     * @see populateFrom
+     */
     fun AutomatedSafeContext.processRequest(request: InteractRequest) {
         if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
 
@@ -138,6 +157,12 @@ object InteractionManager : RequestHandler<InteractRequest>(
         }
     }
 
+    /**
+     * Populates the [potentialInteractions] collection, and sets the configurations
+     *
+     * @see setPendingConfigs
+     * @see maxInteractionsThisTick
+     */
     private fun Automated.populateFrom(request: InteractRequest) {
         logger.debug("Populating from request", request)
         setPendingConfigs()

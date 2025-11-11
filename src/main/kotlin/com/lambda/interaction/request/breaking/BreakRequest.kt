@@ -36,7 +36,7 @@ import net.minecraft.util.math.BlockPos
  *
  * The callbacks can be used to keep track of the break progress.
  *
- * The class has a private constructor to force use of the cleaner [BreakRequestDsl] builder. This is
+ * A private constructor is used to force use of the cleaner [BreakRequestDsl] builder. This is
  * accessed through the [breakRequest] method.
  *
  * @param contexts A collection of [BreakContext]'s gathered from the [com.lambda.interaction.construction.simulation.BuildSimulator].
@@ -47,7 +47,7 @@ data class BreakRequest private constructor(
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     var onStart: (SafeContext.(BlockPos) -> Unit)? = null
     var onUpdate: (SafeContext.(BlockPos) -> Unit)? = null
@@ -65,7 +65,7 @@ data class BreakRequest private constructor(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Break Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
             group("Callbacks") {
                 value("onStart", onStart != null)

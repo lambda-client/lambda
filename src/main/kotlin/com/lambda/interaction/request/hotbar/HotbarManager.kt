@@ -28,11 +28,22 @@ import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.newStage
 import com.lambda.interaction.request.ManagerUtils.newTick
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.hotbar.HotbarManager.activeRequest
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
+import com.lambda.interaction.request.hotbar.HotbarManager.maxSwapsThisTick
+import com.lambda.interaction.request.hotbar.HotbarManager.setActiveRequest
 import com.lambda.module.hud.ManagerDebugLoggers.hotbarManagerLogger
 import com.lambda.threading.runSafe
 import net.minecraft.item.ItemStack
 
+/**
+ * Manager responsible for handling the current selected hotbar index. It can be accessed from anywhere through a
+ * [HotbarRequest]
+ *
+ * "Silent swapping" is a feature of this manager. If requested with a [HotbarRequest] that has [HotbarRequest.keepTicks]
+ * set to 0, assuming the request is accepted, the manager will only swap for the duration of the current [tickStage].
+ * After which, the manager will end the request and swap back to the player's selected slot.
+ */
 object HotbarManager : RequestHandler<HotbarRequest>(
     1,
     TickEvent.Pre,
@@ -83,6 +94,14 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         return "Loaded Hotbar Manager"
     }
 
+    /**
+     * Attempts to accept the request and process it. If the [activeRequest] is not null, the new [request] matches hotbar index,
+     * and the new request has an equal or longer [HotbarRequest.keepTicks] than the current request, the new request is accepted.
+     * Otherwise, if the [activeRequest] is null, or is from an old request, assuming the swap doesn't exceed [maxSwapsThisTick],
+     * the request is accepted.
+     *
+     * @see setActiveRequest
+     */
     override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
         logger.debug("Handling request:", request)
 
@@ -104,6 +123,10 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         setActiveRequest(request)
     }
 
+    /**
+     * Sets the [activeRequest]. This also calls [net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot] to
+     * update the server now to keep predictability.
+     */
     private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
         maxSwapsThisTick = hotbarConfig.swapsPerTick
         if (request.slot != serverSlot) {
@@ -116,6 +139,13 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         logger.success("Set active request", request)
     }
 
+    /**
+     * Called after every [tickStage] closes. This method checks if the current [activeRequest] should be stopped.
+     * This action is counted as another swap, so the conditions for a regular swap must be met. If the requests
+     * [HotbarConfig.sequenceStageMask] does not contain the current tick stage, no actions can be performed.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot
+     */
     private fun SafeContext.checkResetSwap() {
         activeRequest?.let { active ->
             val canStopSwap = swapsThisTick < maxSwapsThisTick

@@ -35,7 +35,7 @@ data class PlaceRequest(
     private val automated: Automated,
     val onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     override val done: Boolean
         get() = runSafe {
@@ -47,7 +47,7 @@ data class PlaceRequest(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("PlaceRequest") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
         }
     }
