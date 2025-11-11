@@ -38,7 +38,7 @@ object CapeCommand : LambdaCommand(
         required(literal("set")) {
             required(string("id")) { id ->
                 suggests { _, builder ->
-                    CapeManager.capeList
+                    CapeManager.availableCapes
                         .forEach { builder.suggest(it) }
 
                     builder.buildFuture()
