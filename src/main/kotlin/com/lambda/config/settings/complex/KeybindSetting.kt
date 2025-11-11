@@ -93,7 +93,7 @@ class KeybindSetting(
 
         sameLine()
         smallButton("Unbind") {
-            value = Bind.Empty
+            value = Bind.EMPTY
             listening = false
         }
         onItemHover(ImGuiHoveredFlags.Stationary) {
@@ -116,7 +116,7 @@ class KeybindSetting(
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
                             KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.Empty
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
                             else -> value = Bind(it.keyCode, it.modifiers, -1)
                         }
 
@@ -138,7 +138,7 @@ class KeybindSetting(
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
                     val isMouse = if (isMouseButton != null) isMouseButton().value() else false
-                    var bind = Bind.Empty
+                    var bind = Bind.EMPTY
                     if (isMouse) {
                         val num = try {
                             name().value().toInt()
@@ -193,6 +193,6 @@ data class Bind(
         "Key Code: $key, Modifiers: ${truemods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
-        val Empty = Bind(0, 0, -1)
+        val EMPTY = Bind(0, 0, -1)
     }
 }

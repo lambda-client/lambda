@@ -118,7 +118,7 @@ abstract class Module(
     val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: Bind = Bind.Empty,
+    defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfig), Automated by AutomationConfig {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
