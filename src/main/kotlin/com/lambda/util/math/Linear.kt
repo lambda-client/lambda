@@ -24,7 +24,6 @@ import java.awt.Color
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
-import kotlin.random.Random.Default.nextDouble
 
 infix fun ClosedRange<Double>.step(step: Double) = object : DoubleIterator() {
     private var next = start
@@ -38,13 +37,17 @@ infix fun ClosedRange<Float>.step(step: Float) = object : FloatIterator() {
     override fun nextFloat() = next.also { next += step }
 }
 
+@JvmName("randomDouble")
 fun ClosedRange<Double>.random(random: Random = Random) = start + (endInclusive - start) * random.nextDouble()
+@JvmName("randomFloat")
 fun ClosedRange<Float>.random(random: Random = Random) = start + (endInclusive - start) * random.nextDouble()
 
 fun ClosedRange<Double>.normalize(value: Double): Double = transform(value, 0.0, 1.0)
 fun ClosedRange<Float>.normalize(value: Float): Float = transform(value, 0f, 1f)
 
+@JvmName("invDouble")
 fun ClosedRange<Double>.inv() = endInclusive to start
+@JvmName("invFloat")
 fun ClosedRange<Float>.inv() = endInclusive to start
 
 /**

@@ -220,8 +220,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
             if (!event.isPressed) return@listen
             if (mc.options.commandKey.isPressed) return@listen
-            if (keybind == KeyCode.Unbound) return@listen
-            if (event.translated != keybind) return@listen
+            if (!event.satisfies(keybind)) return@listen
             if (!open && mc.currentScreen != null) return@listen
             if (open && DearImGui.io.wantTextInput) return@listen
 

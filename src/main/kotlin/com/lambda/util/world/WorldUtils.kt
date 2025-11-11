@@ -34,6 +34,11 @@ import kotlin.math.ceil
 import kotlin.sequences.filter
 
 object WorldUtils {
+    fun SafeContext.isLoaded(pos: BlockPos) =
+        world.chunkManager.isChunkLoaded(
+            ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z)
+        )
+
     /**
      * Returns a sequence of entities.
      *
