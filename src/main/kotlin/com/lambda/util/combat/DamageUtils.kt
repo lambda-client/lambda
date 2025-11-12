@@ -66,7 +66,8 @@ object DamageUtils {
         player.fullHealth - fallDamage() <= minHealth
 
     /**
-     * Calculates the fall damage for the player at the predicted position
+     * Calculates the fall damage for the player given its current input values and the predicted
+     * landing position.
      */
     fun SafeContext.fallDamage(): Double {
         val prediction = buildPlayerPrediction()
@@ -96,13 +97,6 @@ object DamageUtils {
         return source.scale(world, player, player.fallDamage(distance, multiplier))
     }
 
-    /**
-     * Calculates the fall damage for the given entity
-     *
-     * @param distance The fall distance
-     * @param multiplier The fall damage multiplier
-     * @return The calculated fall damage
-     */
     fun LivingEntity.fallDamage(distance: Double, multiplier: Double): Double {
         if (type.isIn(FALL_DAMAGE_IMMUNE)) return 0.0
 
@@ -112,9 +106,6 @@ object DamageUtils {
 
     /**
      * Scales damage up or down based on the player resistances and other variables
-     *
-     * @param entity The entity to calculate the damage for
-     * @param damage The damage to apply
      */
     fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
         val blockingItem = entity.blockingItem

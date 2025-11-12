@@ -42,8 +42,9 @@ object StateInfo : Module(
 
     init {
         listen<KeyboardEvent.Press> { event ->
-            if (!event.isPressed) return@listen
-            if (event.keyCode != printBind.code) return@listen
+            if (!event.isPressed ||
+                !event.satisfies(printBind)) return@listen
+
             val crosshair = mc.crosshairTarget ?: return@listen
             if (crosshair !is BlockHitResult) return@listen
             info(blockState(crosshair.blockPos).betterToString())

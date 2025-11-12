@@ -50,19 +50,17 @@ class RangeTest {
 
     @Test
     fun `test step over double range`() {
-        val range = 0.0..10.0
-        val iterator = range.step(2.0)
+        val range = 0.0..10.0 step 2.0
 
-        val result = iterator.asSequence().toList()
+        val result = range.asSequence().toList()
         assertEquals(listOf(0.0, 2.0, 4.0, 6.0, 8.0, 10.0), result)
     }
 
     @Test
     fun `test step over float range`() {
-        val range = 0.0f..10.0f
-        val iterator = range.step(2.0f)
+        val range = 0.0f..10.0f step 2.0f
 
-        val result = iterator.asSequence().toList()
+        val result = range.asSequence().toList()
         assertEquals(listOf(0.0f, 2.0f, 4.0f, 6.0f, 8.0f, 10.0f), result)
     }
 

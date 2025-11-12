@@ -33,6 +33,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.joinToText
 import com.lambda.util.Communication.warn
 import com.lambda.util.StringUtils
+import com.lambda.util.StringUtils.findSimilarStrings
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents.suggestCommand
 import com.lambda.util.text.buildText
@@ -93,8 +94,7 @@ object ModuleCommand : LambdaCommand(
                             }
                             literal("not found!")
                         }
-                        val similarModules = StringUtils.findSimilarStrings(
-                            name,
+                        val similarModules = name.findSimilarStrings(
                             ModuleRegistry.moduleNames,
                             3
                         )

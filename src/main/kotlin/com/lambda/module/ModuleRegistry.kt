@@ -20,9 +20,6 @@ package com.lambda.module
 import com.lambda.core.Loadable
 import com.lambda.util.reflections.getInstances
 
-/**
- * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
- */
 object ModuleRegistry : Loadable {
     override val priority = 1
 

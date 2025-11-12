@@ -40,9 +40,9 @@ sealed class KeyboardEvent {
         val action: Int,
         val modifiers: Int,
     ) : Event {
-        /**
-         * Maps the scancode to the US layout
-         */
+        val bind: Bind
+            get() = Bind(keyCode, modifiers, -1)
+
         val translated: KeyCode
             get() = KeyCode.virtualMapUS(keyCode, scanCode)
 

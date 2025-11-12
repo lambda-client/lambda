@@ -34,25 +34,12 @@ import java.nio.ByteBuffer
 import javax.imageio.ImageIO
 
 object WindowUtils {
-    /**
-     * Updates the Lambda title for the application window.
-     *
-     * Constructs and sets the window title based on the current application symbol, name, version,
-     * and additional dynamic details (e.g., username if `lambdaTitleAppendixName` is enabled).
-     */
     @JvmStatic
     fun setLambdaTitle() {
         val name = if (lambdaTitleAppendixName) " - ${mc.session.username}" else ""
         mc.window.setTitle("$SYMBOL $MOD_NAME $VERSION - ${mc.windowTitle}$name")
     }
 
-    /**
-     * Sets the window icon for the application using a predefined set of icon sizes.
-     *
-     * This method constructs a list of image resource paths corresponding to different icon sizes
-     * (16x16, 24x24, 32x32, 48x48, 64x64, 128x128, and 256x256) and applies them as the window icon.
-     * The function utilizes the `setWindowIcon` function to handle the underlying platform-specific logic.
-     */
     fun setLambdaWindowIcon() {
         val icons = listOf(16, 24, 32, 48, 64, 128, 256).map { "textures/icon/logo_$it.png" }
         setWindowIcon(*icons.toTypedArray())
@@ -63,15 +50,15 @@ object WindowUtils {
      * - On Windows/X11: uses glfwSetWindowIcon with all given sizes.
      * - On macOS: attempts to set the application Dock icon from the largest image (glfwSetWindowIcon is ignored).
      *
-     * Paths are resolved via your readImage() extension (same as your texture system).
-     *
      * Example:
-     *   WindowIcons.setWindowIcon(
+     * ```
+     * WindowIcons.setWindowIcon(
      *     "textures/icon16.png",
      *     "textures/icon32.png",
      *     "textures/icon48.png",
      *     "textures/icon128.png",
-     *   )
+     * )
+     * ```
      */
     @JvmStatic
     fun setWindowIcon(vararg iconPaths: String) {

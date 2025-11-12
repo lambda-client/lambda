@@ -116,11 +116,6 @@ object ItemStackUtils {
 
     /**
      * Checks if the given item stacks are equal, including the item count and NBT.
-     *
-     * @param other The other item stack to compare with.
-     * @return `true` if the item stacks are equal, `false` otherwise.
-     * @see ItemStack.areItemsEqual Checks if the items in two item stacks are equal.
-     * @see ItemStack.canCombine Checks if two item stacks can be combined into one stack.
      */
     fun ItemStack?.equal(other: ItemStack?) = ItemStack.areEqual(this, other)
 }

@@ -134,7 +134,7 @@ object Replay : Module(
             if (!it.isPressed) return@listen
             if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listen
 
-            when (it.translated) {
+            when (it.bind) {
                 record -> handleRecord()
                 play -> handlePlay()
                 cycle -> handlePlayModeCycle()

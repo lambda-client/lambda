@@ -28,8 +28,6 @@ import java.util.*
  *
  * Example:
  *  - name: jeb_
- *
- * @return result of [GameProfile]
  */
 suspend fun getProfile(name: String) = runCatching {
     LambdaHttp.get("https://api.mojang.com/users/profiles/minecraft/$name").body<GameProfile>()
@@ -40,8 +38,6 @@ suspend fun getProfile(name: String) = runCatching {
  *
  * Example:
  *  - name: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
- *
- * @return result of [GameProfile]
  */
 suspend fun getProfile(uuid: UUID) = runCatching {
     LambdaHttp.get("https://api.minecraftservices.com/minecraft/profile/lookup/$uuid").body<GameProfile>()

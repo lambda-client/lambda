@@ -31,8 +31,6 @@ import io.ktor.http.*
  *
  * Example:
  *  - token: OTk1MTU1NzcyMzYxMTQ2NDM4
- *
- * @return result of [Authentication]
  */
 suspend fun linkDiscord(discordToken: String) = runCatching {
     LambdaHttp.post("${apiUrl}/api/$apiVersion/link/discord") {
