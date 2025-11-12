@@ -157,7 +157,9 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
 
     /**
-     * A modified version of the [net.minecraft.client.network.ClientPlayNetworkHandler.onInventory] method
+     * A modified version of the minecraft onInventory method
+     *
+     * @see net.minecraft.client.network.ClientPlayNetworkHandler.onInventory
      */
     @JvmStatic
     fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){

@@ -207,8 +207,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft [net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock] method,
+     * A modified version of the minecraft interactBlock method,
      * renamed to better suit its usage.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock
      */
     private fun AutomatedSafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
@@ -225,7 +227,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft [net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal] method.
+     * A modified version of the minecraft interactBlockInternal method.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal
      */
     private fun AutomatedSafeContext.interactBlockInternal(
         placeContext: PlaceContext,
@@ -266,7 +270,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft [net.minecraft.item.Item.useOnBlock] method.
+     * A modified version of the minecraft useOnBlock method.
+     *
+     * @see net.minecraft.item.Item.useOnBlock
      */
     private fun AutomatedSafeContext.useOnBlock(
         placeContext: PlaceContext,
@@ -294,7 +300,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft [net.minecraft.item.BlockItem.place] method.
+     * A modified version of the minecraft place method.
+     *
+     * @see net.minecraft.item.BlockItem.place
      */
     private fun AutomatedSafeContext.place(
         placeContext: PlaceContext,

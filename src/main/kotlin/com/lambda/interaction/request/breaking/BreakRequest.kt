@@ -39,8 +39,10 @@ import net.minecraft.util.math.BlockPos
  * A private constructor is used to force use of the cleaner [BreakRequestDsl] builder. This is
  * accessed through the [breakRequest] method.
  *
- * @param contexts A collection of [BreakContext]'s gathered from the [com.lambda.interaction.construction.simulation.BuildSimulator].
+ * @param contexts A collection of [BreakContext]'s gathered from the BuildSimulator.
  * @param pendingInteractions A mutable, concurrent list to store the pending actions.
+ *
+ * @see com.lambda.interaction.construction.simulation.BuildSimulator
  */
 data class BreakRequest private constructor(
     val contexts: Collection<BreakContext>,

@@ -139,10 +139,12 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     }
 
     /**
-     * A modified version of the minecraft [net.minecraft.client.world.ClientWorld.breakBlock] method.
+     * A modified version of the minecraft breakBlock method.
      *
      * Performs the actions required to display breaking particles, sounds, texture overlay, etc.
      * based on the user's settings.
+     *
+     * @see net.minecraft.client.world.ClientWorld.breakBlock
      */
     fun SafeContext.destroyBlock(info: BreakInfo) {
         val ctx = info.context

@@ -124,8 +124,10 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     /**
-     * Sets the [activeRequest]. This also calls [net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot] to
+     * Sets the [activeRequest]. This also calls syncSelectedSlot to
      * update the server now to keep predictability.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot
      */
     private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
         maxSwapsThisTick = hotbarConfig.swapsPerTick
