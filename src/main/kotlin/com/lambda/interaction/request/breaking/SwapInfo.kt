@@ -48,8 +48,6 @@ data class SwapInfo(
 
         /**
          * Calculates the contents and returns a [SwapInfo].
-         *
-         *
          */
         context(_: SafeContext)
         fun BreakInfo.getSwapInfo() = request.runSafeAutomated {

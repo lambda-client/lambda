@@ -25,6 +25,9 @@ import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 
+/**
+ * Holds the necessary information for managers to perform actions.
+ */
 abstract class BuildContext : Comparable<BuildContext>, Drawable, Automated {
     abstract val hitResult: BlockHitResult
     abstract val rotationRequest: RotationRequest

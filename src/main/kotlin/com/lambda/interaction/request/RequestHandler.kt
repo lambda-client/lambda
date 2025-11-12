@@ -55,7 +55,7 @@ abstract class RequestHandler<R : Request>(
     var queuedRequest: R? = null; protected set
 
     /**
-     * Represents if the handler performed any external actions within this tick
+     * Represents if the handler performed any actions within this tick
      */
     var activeThisTick = false; protected set
 

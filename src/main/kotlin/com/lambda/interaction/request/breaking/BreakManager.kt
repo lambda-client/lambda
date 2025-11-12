@@ -104,8 +104,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * This manager is responsible for breaking blocks in the most efficient manner possible. It can be accessed
- * from anywhere through a [BreakRequest], although it is not designed in the image of thread safety.
+ * Manager responsible for breaking blocks in the most efficient manner possible. It can be accessed
+ * from anywhere through a [BreakRequest].
  *
  * If configured with the right options enabled, this manager can break two blocks simultaneously, even if the two breaks come from
  * different requests. Each break will be handled using its own config, and just like the other managers, priority is a first-come, first-served
@@ -508,13 +508,15 @@ object BreakManager : RequestHandler<BreakRequest>(
      *
      * If a primary [BreakInfo] is active, as long as the tick stage is valid, it is transformed
      * into a secondary break, so a new primary can be initialized. This means sending a
-     * [net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action] with action: [net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK]
+     * PlayerActionC2SPacket with action: STOP_DESTROY_BLOCK
      * packet to the server to start the automated breaking server side.
      *
      * If there is no way to keep both breaks, and the primary break hasn't been updated yet,
      * the primary break is canceled. Otherwise, the break cannot be started.
      *
      * @return the [BreakInfo], or null, if the break context wasn't accepted.
+     *
+     * @see net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
      */
     private fun AutomatedSafeContext.initNewBreak(
         requestCtx: BreakContext,
@@ -691,9 +693,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
     /**
-     * A modified version of the vanilla [net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress] method.
+     * A modified version of the vanilla updateBlockBreakingProgress method.
      *
      * @return if the update was successful.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
      */
     private fun SafeContext.updateBreakProgress(info: BreakInfo): Unit = info.request.runSafeAutomated {
         val ctx = info.context
@@ -783,9 +787,11 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     /**
-     * A modified version of the minecraft [net.minecraft.client.network.ClientPlayerInteractionManager.attackBlock] method.
+     * A modified version of the minecraft attackBlock method.
      *
      * @return if the block started breaking successfully.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.attackBlock
      */
     private fun AutomatedSafeContext.startBreaking(info: BreakInfo): Boolean {
         val ctx = info.context

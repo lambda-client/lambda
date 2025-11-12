@@ -28,6 +28,11 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
+/**
+ * Designed to handle interactions pending a response from the server.
+ *
+ * @see InteractionManager
+ */
 object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
     override val pendingActions = LimitedDecayQueue<InteractInfo>(
         AutomationConfig.buildConfig.maxPendingInteractions,

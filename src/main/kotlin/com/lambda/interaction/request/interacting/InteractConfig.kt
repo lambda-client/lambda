@@ -19,11 +19,10 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
-import com.lambda.interaction.request.RequestConfig
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface InteractConfig : RequestConfig {
+interface InteractConfig {
     val rotate: Boolean
     val swingHand: Boolean
     val tickStageMask: Set<Event>

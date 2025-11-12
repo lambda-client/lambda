@@ -30,9 +30,13 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-@DslMarker
-private annotation class InvRequestDsl
-
+/**
+ * A private constructor is used to enforce use of the [InvRequestDsl] builder.
+ *
+ * @property actions A list of inventory actions to be performed in the request.
+ * @property settleForLess A flag indicating whether to settle for partial completion of the request.
+ * @property mustPerform A flag indicating whether the request must be performed regardless of conditions as long as the tick stage is valid.
+ */
 class InventoryRequest private constructor(
     val actions: List<InventoryAction>,
     val settleForLess: Boolean,
@@ -40,7 +44,7 @@ class InventoryRequest private constructor(
     automated: Automated,
     val onComplete: (SafeContext.() -> Unit)?
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
     override var done = false
 
     override fun submit(queueIfClosed: Boolean) =
@@ -48,10 +52,13 @@ class InventoryRequest private constructor(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Inventory Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Action Count", actions.size)
         }
     }
+
+    @DslMarker
+    private annotation class InvRequestDsl
 
     @InvRequestDsl
     class InvRequestBuilder(val settleForLess: Boolean, val mustPerform: Boolean) {

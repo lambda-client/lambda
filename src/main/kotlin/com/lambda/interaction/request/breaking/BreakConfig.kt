@@ -19,13 +19,12 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
-import com.lambda.interaction.request.RequestConfig
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 import java.awt.Color
 
-interface BreakConfig : RequestConfig {
+interface BreakConfig {
     val breakMode: BreakMode
     val sorter: SortMode
     val rebreak: Boolean
