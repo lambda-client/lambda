@@ -21,8 +21,7 @@ import com.lambda.Lambda
 import com.lambda.Lambda.gson
 import net.minecraft.util.Identifier
 import java.security.MessageDigest
-import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
+import java.util.Base64
 
 object StringUtils {
     fun String.sanitizeForFilename() =
@@ -92,11 +91,7 @@ object StringUtils {
 
     inline fun <reified T : Any> String.json() = gson.fromJson(this, T::class.java)
 
-    /**
-     * @see kotlin.io.encoding.Base64.decode
-     */
-    @OptIn(ExperimentalEncodingApi::class)
-    fun String.base64UrlDecode() = Base64.UrlSafe.decode(this).decodeToString()
+    fun String.base64UrlDecode() = Base64.getUrlDecoder().decode(toByteArray()).decodeToString()
 
     /**
      * @see <a href="https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms">Java Security Standard Algorithm Names Specification</a>
