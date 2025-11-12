@@ -33,7 +33,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public class CapeFeatureRendererMixin {
     @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/state/PlayerEntityRenderState;FF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SkinTextures;capeTexture()Lnet/minecraft/util/Identifier;"))
     Identifier renderCape(Identifier original, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, PlayerEntityRenderState player, float f, float g) {
-        var entry = Lambda.getMc().getNetworkHandler().getPlayerListEntry(player.name);
+        var entry = Lambda.getMc().getNetworkHandler().getPlayerListEntry(player.name); // this will cause issues if we try to render while not in game
         if (entry == null) return original;
 
         var profile = entry.getProfile();

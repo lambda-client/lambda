@@ -19,15 +19,16 @@ package com.lambda.network
 
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
+import com.lambda.config.Configurable
+import com.lambda.config.configurations.SecretsConfig
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.getCapes
 import com.lambda.network.api.v1.endpoints.setCape
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runIO
-import com.lambda.threading.runSafe
 import com.lambda.util.FileUtils.createIfNotExists
 import com.lambda.util.FileUtils.downloadCompare
 import com.lambda.util.FileUtils.downloadIfNotPresent
@@ -44,23 +45,19 @@ import org.lwjgl.BufferUtils
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.fixedRateTimer
-import kotlin.io.path.extension
-import kotlin.io.path.inputStream
-import kotlin.io.path.nameWithoutExtension
-import kotlin.io.path.walk
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
-@Suppress("JavaIoSerializableObjectMustHaveReadResolve")
-object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
-    private val images = capes.walk()
-        .filter { it.extension == "png" }
-        .associate { it.nameWithoutExtension to NativeImageBackedTexture({ it.nameWithoutExtension }, read(it.inputStream())) }
-        .onEach { (key, value) -> mc.textureManager.registerTexture(key.asIdentifier, value) }
+object CapeManager : Configurable(SecretsConfig), Loadable {
+    override val name: String = "capes"
 
+    var currentCape by setting("cape", "")
+        .onValueChangeUnsafe { _, to -> updateCape(to) }
+
+    val cache = ConcurrentHashMap<UUID, String>()
     private val fetchQueue = mutableListOf<UUID>()
 
-    val capeList = runBlocking {
+    val availableCapes = runBlocking {
         capes.resolveFile("capes.txt")
             .isOlderThan(24.hours) {
                 it.downloadIfNotPresent("${LambdaAPI.capes}.txt")
@@ -72,26 +69,15 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             }
             .createIfNotExists()
             .readText()
-            .split("\n")
+            .split(Regex("\\s+"))
     }
 
-    /**
-     * Sets the current player's cape
-     *
-     * @param block Lambda called once the coroutine completes, it contains the throwable if any
-     */
     fun updateCape(cape: String, block: (Throwable?) -> Unit = {}) = runIO {
         setCape(cape).getOrThrow()
-
-        runSafe { fetchCape(player.uuid) }
+        fetchCape(mc.gameProfile.id)
     }.invokeOnCompletion { block(it) }
 
-    /**
-     * Fetches the cape of the given player id
-     *
-     * @param block Lambda called once the coroutine completes, it contains the throwable if any
-     */
-    fun SafeContext.fetchCape(uuid: UUID, block: (Throwable?) -> Unit = {}) = runIO {
+    fun fetchCape(uuid: UUID, block: (Throwable?) -> Unit = {}) = runIO {
         val cape = getCape(uuid).getOrNull() ?: return@runIO
 
         val bytes = capes.resolveFile("${cape.id}.png")
@@ -105,12 +91,12 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
 
         val image = read(NativeImage.Format.RGBA, buffer)
 
-        mc.textureManager.registerTexture(cape.id.asIdentifier, NativeImageBackedTexture({ cape.id }, image))
+        runGameScheduled { mc.textureManager.registerTexture(cape.id.asIdentifier, NativeImageBackedTexture({ cape.id }, image)) }
 
-        put(uuid, cape.id)
+        cache[uuid] = cape.id
     }.invokeOnCompletion { block(it) }
 
-    override fun load() = "Loaded ${images.size} cached capes and ${capeList.size} remote capes"
+    override fun load() = "Loaded ${availableCapes.size} capes"
 
     init {
         fixedRateTimer(
@@ -122,7 +108,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
 
             runBlocking {
                 getCapes(fetchQueue)
-                    .onSuccess { it.forEach { cape -> put(cape.uuid, cape.id) } }
+                    .onSuccess { it.forEach { cape -> cache[cape.uuid] = cape.id } }
 
                 fetchQueue.clear()
             }
