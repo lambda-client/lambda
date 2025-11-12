@@ -20,6 +20,9 @@ package com.lambda.interaction.construction.result
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.hotbar.HotbarManager
 
+/**
+ * Represents a result holding a [BuildContext].
+ */
 interface Contextual : ComparableResult<Rank> {
     val context: BuildContext
 

@@ -76,6 +76,9 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         PlaceResult.Dependency(pos, buildResult)
 
     companion object {
+        /**
+         * Public [SimDsl] API.
+         */
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
         @SimDsl
         suspend fun SimInfo.simPlacement() =

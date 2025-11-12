@@ -29,6 +29,10 @@ object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor>()
     private val processorCache = Collections.synchronizedMap<BlockState, PreProcessingInfo?>(mutableMapOf())
 
+    /**
+     * List of properties that can be processed after the block is placed. This is often used to ignore these properties
+     * when placing blocks, as sometimes they can only be set to the right state after placement.
+     */
     val postProcessedProperties = setOf(
         Properties.EXTENDED,
         Properties.EYE,
@@ -106,6 +110,13 @@ object ProcessorRegistry : Loadable {
 
     override fun load() = "Loaded ${processors.size} pre processors"
 
+    /**
+     * [PreProcessingInfo]'s are cached to avoid duplicate computations as block states are immutable.
+     *
+     * @return A [PreProcessingInfo] object containing information about the block state. This method runs through
+     * each pre-processor checking if the state can be accepted. If so, the state is passed through the pre-processor
+     * which can call the functions within the [PreProcessingInfoAccumulator] DSL to modify the information.
+     */
     fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? =
         if (this !is TargetState.State) PreProcessingInfo.DEFAULT
         else {
