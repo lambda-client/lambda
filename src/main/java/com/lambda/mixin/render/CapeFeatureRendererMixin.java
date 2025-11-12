@@ -33,9 +33,12 @@ import org.spongepowered.asm.mixin.injection.At;
 public class CapeFeatureRendererMixin {
     @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/state/PlayerEntityRenderState;FF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SkinTextures;capeTexture()Lnet/minecraft/util/Identifier;"))
     Identifier renderCape(Identifier original, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, PlayerEntityRenderState player, float f, float g) {
-        var entity = Lambda.getMc().world.getEntityById(player.id);
-        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.containsKey(entity.getUuid())) return original;
+        var entry = Lambda.getMc().getNetworkHandler().getPlayerListEntry(player.name);
+        if (entry == null) return original;
 
-        return Identifier.of("lambda", CapeManager.INSTANCE.get(entity.getUuid()));
+        var profile = entry.getProfile();
+        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.getCache().containsKey(profile.getId())) return original;
+
+        return Identifier.of("lambda", CapeManager.INSTANCE.getCache().get(profile.getId()));
     }
 }
