@@ -69,6 +69,9 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
 import kotlin.math.min
 
+/**
+ * Manager designed to place blocks.
+ */
 object PlaceManager : RequestHandler<PlaceRequest>(
     0,
     TickEvent.Pre,
@@ -135,11 +138,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * If the request is fresh, local variables are populated through the [processRequest] method.
-     * It then attempts to perform as many placements within this tick as possible from the [potentialPlacements] collection.
-     *
-     * If all the [maxPlacementsThisTick] limit is reached and the user has rotations enabled, it will start rotating to
-     * the next predicted placement in the list for optimal speed.
+     * Returns immediately if [BreakManager] or [InteractionManager] have been active this tick.
+     * Otherwise, for fresh requests, [populateFrom] is called to fill the [potentialPlacements] collection.
+     * It then attempts to perform as many placements as possible from the [potentialPlacements] collection within
+     * the [maxPlacementsThisTick] limit.
      *
      * @see populateFrom
      * @see placeBlock
@@ -182,7 +184,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
     /**
      * Filters the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
-     * setting the maxPlacementsThisTick value.
+     * setting other configurations.
      *
      * @see isPosBlocked
      */
@@ -205,9 +207,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft interactBlock method, renamed to better suit its usage.
-     *
-     * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock
+     * A modified version of the minecraft [net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock] method,
+     * renamed to better suit its usage.
      */
     private fun AutomatedSafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
@@ -224,9 +225,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft interactBlockInternal method.
-     *
-     * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal
+     * A modified version of the minecraft [net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal] method.
      */
     private fun AutomatedSafeContext.interactBlockInternal(
         placeContext: PlaceContext,
@@ -267,9 +266,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft useOnBlock method.
-     *
-     * @see net.minecraft.item.Item.useOnBlock
+     * A modified version of the minecraft [net.minecraft.item.Item.useOnBlock] method.
      */
     private fun AutomatedSafeContext.useOnBlock(
         placeContext: PlaceContext,
@@ -297,9 +294,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft place method.
-     *
-     * @see net.minecraft.item.BlockItem.place
+     * A modified version of the minecraft [net.minecraft.item.BlockItem.place] method.
      */
     private fun AutomatedSafeContext.place(
         placeContext: PlaceContext,
@@ -396,7 +391,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
     /**
-     * Plays the block placement sound at a given position.
+     * Plays the block placement sound at a given [pos].
      */
     fun SafeContext.placeSound(state: BlockState, pos: BlockPos) {
         val blockSoundGroup = state.soundGroup

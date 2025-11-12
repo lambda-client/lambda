@@ -29,6 +29,9 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
+/**
+ * Designed to handle placements pending a response from the server.
+ */
 object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
     override val pendingActions = LimitedDecayQueue<PlaceInfo>(
         AutomationConfig.buildConfig.maxPendingInteractions,

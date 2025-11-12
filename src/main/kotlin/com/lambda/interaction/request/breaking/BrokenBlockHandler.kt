@@ -43,7 +43,7 @@ import net.minecraft.util.math.ChunkSectionPos
 
 /**
  * Designed to handle blocks that are deemed broken, yet are awaiting
- * confirmation from the server, and/or an item drop.
+ * confirmation from the server and/or an item drop.
  *
  * @see BreakManager
  */
