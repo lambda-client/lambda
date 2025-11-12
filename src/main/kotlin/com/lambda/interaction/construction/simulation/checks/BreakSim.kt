@@ -73,9 +73,6 @@ class BreakSim private constructor(simInfo: ISimInfo)
         BreakResult.Dependency(pos, buildResult)
 
     companion object {
-        /**
-         * Public [SimDsl] API.
-         */
         @SimDsl
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
         suspend fun SimInfo.simBreak() =

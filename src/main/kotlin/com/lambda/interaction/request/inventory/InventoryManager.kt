@@ -27,7 +27,6 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
-import com.lambda.interaction.request.inventory.InventoryManager.actions
 import com.lambda.interaction.request.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
@@ -128,9 +127,6 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         if (actionsThisTick > 0) activeThisTick = true
     }
 
-    /**
-     * Populates the [actions] collection and sets some configurations.
-     */
     private fun populateFrom(request: InventoryRequest) {
         PlaceManager.logger.debug("Populating from request", request)
         actions = request.actions.toMutableList()

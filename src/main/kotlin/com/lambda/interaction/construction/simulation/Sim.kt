@@ -85,8 +85,6 @@ abstract class Sim<T : BuildResult> : Results<T> {
 
     /**
      * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].
-     *
-     * @return A set of [CheckedHit]
      */
     suspend fun ISimInfo.scanShape(
         pov: Vec3d,

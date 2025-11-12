@@ -69,9 +69,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
 import kotlin.math.min
 
-/**
- * Manager designed to place blocks.
- */
 object PlaceManager : RequestHandler<PlaceRequest>(
     0,
     TickEvent.Pre,
