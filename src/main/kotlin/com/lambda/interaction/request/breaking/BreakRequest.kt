@@ -24,18 +24,32 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
+/**
+ * Contains the information necessary for initializing and continuing breaks within the [BreakManager].
+ *
+ * The callbacks can be used to keep track of the break progress.
+ *
+ * A private constructor is used to force use of the cleaner [BreakRequestDsl] builder. This is
+ * accessed through the [breakRequest] method.
+ *
+ * @param contexts A collection of [BreakContext]'s gathered from the BuildSimulator.
+ * @param pendingInteractions A mutable, concurrent list to store the pending actions.
+ *
+ * @see com.lambda.interaction.construction.simulation.BuildSimulator
+ */
 data class BreakRequest private constructor(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     var onStart: (SafeContext.(BlockPos) -> Unit)? = null
     var onUpdate: (SafeContext.(BlockPos) -> Unit)? = null
@@ -53,7 +67,7 @@ data class BreakRequest private constructor(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Break Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
             group("Callbacks") {
                 value("onStart", onStart != null)

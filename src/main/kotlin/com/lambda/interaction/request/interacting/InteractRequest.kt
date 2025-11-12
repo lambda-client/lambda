@@ -33,7 +33,7 @@ data class InteractRequest(
     private val automated: Automated,
     val onInteract: ((BlockPos) -> Unit)?
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
@@ -43,7 +43,7 @@ data class InteractRequest(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Interact Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
         }
     }

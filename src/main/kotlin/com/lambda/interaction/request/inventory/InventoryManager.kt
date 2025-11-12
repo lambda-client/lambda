@@ -27,6 +27,7 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
 import com.lambda.threading.runSafe
@@ -41,6 +42,10 @@ import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 
+/**
+ * Manager designed to handle inventory actions. One of the key features being the inventory change detection to
+ * avoid accepting old information from the server in cases where ping is high. This helps to prevent desync.
+ */
 object InventoryManager : RequestHandler<InventoryRequest>(
     1,
     TickEvent.Pre,
@@ -57,7 +62,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
 
     private var screenHandler: ScreenHandler? = null
         set(value) {
-            if (value != null && field !== value)
+            if (value != null && field?.syncId != value.syncId)
                 slots = getStacks(value.slots)
             field = value
         }
@@ -85,6 +90,13 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         return "Loaded Inventory Manager"
     }
 
+    /**
+     * Attempts to accept the request and perform the actions. If, for example, the tick stage isn't valid, or
+     * not all the actions can be performed and [InventoryRequest.settleForLess] is set to false, the request is rejected.
+     * All checks aside from tick stage are ignored if the request has [InventoryRequest.mustPerform] set to true.
+     * This is typically used in dangerous situations where typical rules are worth breaking. For example, if the player
+     * needs to equip a totem of undying.
+     */
     override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
         val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
         if (inventoryActionCount >= request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
@@ -122,8 +134,14 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         alteredSlots.setDecayTime(AutomationConfig.desyncTimeout * 50L)
     }
 
+    /**
+     * Detects changes in item stacks between now and the last time slots were cached and
+     * adds them all to the [alteredSlots] collection where they can be compared to
+     * incoming [InventoryS2CPacket] and [ScreenHandlerSlotUpdateS2CPacket] packets to decide whether to
+     * block certain updates.
+     */
     private fun SafeContext.indexInventoryChanges() {
-        if (player.currentScreenHandler !== screenHandler) return
+        if (player.currentScreenHandler.syncId != screenHandler?.syncId) return
         val changes = screenHandler?.slots
             ?.filter { !it.stack.equal(slots[it.id]) }
             ?.map { Pair(it.id, Pair(slots[it.id], it.stack.copy())) }
@@ -135,7 +153,9 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
 
     /**
-     * A modified version of the [net.minecraft.client.network.ClientPlayNetworkHandler.onInventory] method
+     * A modified version of the minecraft onInventory method
+     *
+     * @see net.minecraft.client.network.ClientPlayNetworkHandler.onInventory
      */
     @JvmStatic
     fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){

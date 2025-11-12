@@ -30,6 +30,10 @@ import net.minecraft.util.math.BlockPos
 sealed class InteractResult : BuildResult() {
     override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
 
+    /**
+     * Represents a successful interaction. All checks have been passed.
+     * @param context The context of the interaction.
+     */
     data class Interact(
         override val pos: BlockPos,
         override val context: InteractionContext

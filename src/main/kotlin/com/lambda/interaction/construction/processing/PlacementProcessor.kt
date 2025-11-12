@@ -20,6 +20,11 @@ package com.lambda.interaction.construction.processing
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 
+/**
+ * The class all pre-processors must extend to provide the structure. Preprocessors are used to
+ * optimize how blocks are simulated. Some blocks might only be placeable on certain sides, so it is
+ * unnecessary to scan all of them, for example.
+ */
 abstract class PlacementProcessor {
     abstract fun acceptsState(state: BlockState): Boolean
     abstract fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator)

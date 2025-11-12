@@ -42,8 +42,8 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos
 
 /**
- * This object is designed to handle blocks that have been broken client side, yet are awaiting
- * confirmation from the server, and / or an item drop.
+ * Designed to handle blocks that are deemed broken, yet are awaiting
+ * confirmation from the server and/or an item drop.
  *
  * @see BreakManager
  */
@@ -105,7 +105,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 
                 if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
                     || (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
-                ) {
+                    ) {
                     destroyBlock(pending)
                 }
                 pending.internalOnBreak()
@@ -121,21 +121,19 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 
         listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
-            run {
+            val pending =
                 pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
                     ?: rebreak?.let { info ->
-                        return@run if (matchesBlockItem(info, it.entity)) info
-                        else null
-                    }
-            }?.let { pending ->
-                pending.internalOnItemDrop(it.entity)
-                if (pending.callbacksCompleted) {
-                    pending.stopPending()
-                    if (lastPosStarted == pending.context.blockPos) {
-                        RebreakHandler.offerRebreak(pending)
-                    }
+                        if (matchesBlockItem(info, it.entity)) info
+                        else return@listen
+                    } ?: return@listen
+
+            pending.internalOnItemDrop(it.entity)
+            if (pending.callbacksCompleted) {
+                pending.stopPending()
+                if (lastPosStarted == pending.context.blockPos) {
+                    RebreakHandler.offerRebreak(pending)
                 }
-                return@listen
             }
         }
     }
@@ -143,22 +141,20 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     /**
      * A modified version of the minecraft breakBlock method.
      *
-     * Performs the actions required to display break particles, sounds, texture overlay, etc.
-     * based on the users settings.
-     *
-     * @return if the blocks state was set or not.
+     * Performs the actions required to display breaking particles, sounds, texture overlay, etc.
+     * based on the user's settings.
      *
      * @see net.minecraft.client.world.ClientWorld.breakBlock
      */
-    fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
+    fun SafeContext.destroyBlock(info: BreakInfo) {
         val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
-        if (!player.mainHandStack.canMine(ctx.cachedState, world, ctx.blockPos, player)) return false
+        if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return
+        if (!player.mainHandStack.canMine(ctx.cachedState, world, ctx.blockPos, player)) return
 
         val block = ctx.cachedState.block
-        if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
-        if (ctx.cachedState.isEmpty) return false
+        if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return
+        if (ctx.cachedState.isEmpty) return
 
         block.onBreak(world, ctx.blockPos, ctx.cachedState, player)
         val fluidState = fluidState(ctx.blockPos)
@@ -166,7 +162,5 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
         if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
 
         if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
-
-        return setState
     }
 }

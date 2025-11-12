@@ -35,6 +35,9 @@ import imgui.flag.ImGuiWindowFlags
 import java.awt.Color
 import java.util.*
 
+/**
+ * A simple logger that can be used to display information about what is happening within the managers.
+ */
 class DebugLogger(
     val name: String
 ) {

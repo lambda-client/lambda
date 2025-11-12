@@ -67,7 +67,7 @@ object VisibilityChecker {
 
         if (boxes.any { it.contains(eye) }) {
             currentRotation.rayCast(reach, eye)?.let { hit ->
-                return CheckedHit(hit, currentRotation, reach)
+                return CheckedHit(hit, currentRotation)
             }
         }
 
@@ -111,7 +111,7 @@ object VisibilityChecker {
                 val mask = if (buildConfig.strictRayCast) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
-                val checked = CheckedHit(hit, newRotation, reach)
+                val checked = CheckedHit(hit, newRotation)
                 if (!checked.verify()) return@scanSurfaces
 
                 add(checked)
@@ -142,7 +142,7 @@ object VisibilityChecker {
                 val mask = if (buildConfig.strictRayCast || entity == null) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
-                val checked = CheckedHit(hit, newRotation, reach)
+                val checked = CheckedHit(hit, newRotation)
                 if (!checked.verify()) return@scanSurfaces
 
                 add(checked)
@@ -151,11 +151,11 @@ object VisibilityChecker {
     }
 
     /**
-     * Scans the surfaces of a given box, optionally excluding specific sides,
+     * Scans the surfaces of a given box on the [sides] specified
      * and executes a callback for each point calculated based on the scanning parameters.
      *
      * @param box The 3D box whose surfaces will be scanned.
-     * @param excludedSides A set of directions representing the sides of the box to exclude from the scan (default is an empty set).
+     * @param sides A set of sides to scan
      * @param resolution The number of intervals into which each dimension is divided for scanning (default is 5).
      * @param scan Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
      * @param check A callback function that performs an action for each surface point, receiving the direction of the surface and the current 3D vector.
@@ -291,7 +291,6 @@ object VisibilityChecker {
 
     class CheckedHit(
         val hit: HitResult,
-        val targetRotation: Rotation,
-        val reach: Double
+        val targetRotation: Rotation
     )
 }

@@ -19,6 +19,9 @@ package com.lambda.interaction.construction.result
 
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 
+/**
+ * Represents a [BuildResult] that can be rendered in-game.
+ */
 interface Drawable {
     fun ShapeBuilder.buildRenderer()
 }

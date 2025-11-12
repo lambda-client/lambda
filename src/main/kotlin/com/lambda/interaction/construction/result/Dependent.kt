@@ -17,6 +17,9 @@
 
 package com.lambda.interaction.construction.result
 
+/**
+ * Represents a [BuildResult] that depends on another [BuildResult].
+ */
 interface Dependent {
     val dependency: BuildResult
     val lastDependency: BuildResult

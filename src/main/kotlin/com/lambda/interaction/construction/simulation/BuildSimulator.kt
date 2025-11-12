@@ -35,6 +35,16 @@ import kotlinx.coroutines.supervisorScope
 import net.minecraft.util.math.Vec3d
 
 object BuildSimulator : Sim<PostSimResult>() {
+    /**
+     * Iterates over the blueprint and performs the best suited simulation. Each simulation adds [BuildResult]s to
+     * the provided concurrent set. This method uses coroutines to perform the simulations in parallel. The results
+     * will likely not be returned in the same order they were simulated due to the parallel nature of the simulations.
+     *
+     * @see ISimInfo.sim
+     * @see simPostProcessing
+     * @see simPlacement
+     * @see simBreak
+     */
     context(automatedSafeContext: AutomatedSafeContext)
     fun Blueprint.simulate(
         pov: Vec3d = automatedSafeContext.player.eyePos

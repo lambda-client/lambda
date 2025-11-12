@@ -19,8 +19,15 @@ package com.lambda.interaction.request
 
 import com.lambda.context.Automated
 
+/**
+ * A simple format to ensure basic requirements and information when requesting a manager.
+ *
+ * @property requestId Used for tracking how many requests there have been and what number this request is.
+ * @property fresh If this request is new.
+ * @property done If this request has been completed.
+ */
 abstract class Request : Automated {
-    abstract val requestID: Int
+    abstract val requestId: Int
     var fresh = true
 
     abstract val done: Boolean
