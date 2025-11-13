@@ -17,6 +17,7 @@
 
 package com.lambda.gui.components
 
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.GuiConfig
@@ -26,6 +27,7 @@ import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.DearImGui
 import com.lambda.gui.LambdaScreen
+import com.lambda.gui.MenuBar
 import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.components.QuickSearch.renderQuickSearch
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
@@ -39,10 +41,12 @@ import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import imgui.ImGui
+import imgui.ImVec2
 import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiCol
+import imgui.flag.ImGuiCond
 import imgui.flag.ImGuiHoveredFlags
-import imgui.flag.ImGuiWindowFlags.AlwaysAutoResize
+import imgui.flag.ImGuiWindowFlags
 import net.minecraft.SharedConstants
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
@@ -77,8 +81,16 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
         LongDelay("Long Delay", "Show tooltip after a longer delay (~0.40s), and only after the mouse has been still briefly on the item.", ImGuiHoveredFlags.DelayNormal)
     }
 
+    const val RELATION = 0.02604
+    const val BASE_SCALE = 150
+    val width = mc.window.monitor!!.currentVideoMode!!.width
+
+    // don't worry, I'm a professional
+    // linear interpolation :3
+    val defaultScale = (RELATION * width + BASE_SCALE).toInt()
+
     // General
-    internal val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%").group(Group.General)
+    internal val scaleSetting by setting("Scale", defaultScale, 50..300, 1, unit = "%").group(Group.General)
     val alpha by setting("Alpha", 1.0f, 0.0f..1.0f, 0.01f).group(Group.General)
     val disabledAlpha by setting("Disabled Alpha", 0.6f, 0.0f..1.0f, 0.01f).group(Group.General)
     val tooltipType by setting("Tooltip Type", TooltipType.Stationary, description = "When to show the tooltip.").group(Group.General)
@@ -191,29 +203,45 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     val navWindowingDimBg by setting("Nav Windowing Dim Background", Color(204, 204, 204, 51)).group(Group.Colors)
     val modalWindowDimBg by setting("Modal Window Dim Background", Color(20, 20, 20, 89)).group(Group.Colors)
 
+    var firstRender = true
+
     init {
         listen<GuiEvent.NewFrame> {
             if (!open) return@listen
 
             buildLayout {
+                buildMenuBar()
+
                 val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
                 if (tags.isEmpty()) return@buildLayout
 
+                var nextX = 20f
+                val baseY = MenuBar.height + 10f
+
                 tags.forEach { tag ->
-                    window(tag.name, flags = AlwaysAutoResize) {
+                    // FixMe:
+                    //  Ok so, ImGui has many different conditions and after having tried for multiple hours
+                    //  I could not get either ImGuiCond.Appearing or ImGuiCond.FirstEverUse to work correctly
+                    //  for this use case so for the time being we will leave the positions fixed. Too bad!
+                    ImGui.setNextWindowPos(nextX, baseY)
+
+                    window(tag.name, flags = ImGuiWindowFlags.AlwaysAutoResize) {
                         ModuleRegistry.modules
                             .filter { it.tag == tag }
                             .forEach { with(ModuleEntry(it)) { buildLayout() } }
+
+                        nextX += windowContentRegionMaxX + 20f // hard coded offset, need to find a get to get the outer position of the window
                     }
                 }
 
-                buildMenuBar()
                 renderQuickSearch()
 
                 if (developerMode) {
                     ImGui.showDemoWindow()
                     ImPlot.showDemoWindow()
                 }
+
+                firstRender = false
             }
         }
 

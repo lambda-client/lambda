@@ -58,8 +58,12 @@ object MenuBar {
     val lambdaLogo = upload("textures/lambda.png")
     val githubLogo = upload("textures/github_logo.png")
 
+    var height = 0f
+
     fun ImGuiBuilder.buildMenuBar() {
         mainMenuBar {
+            height = windowHeight
+
             lambdaMenu()
             menu("HUD") { buildHudMenu() }
             menu("GUI") { buildGuiMenu() }

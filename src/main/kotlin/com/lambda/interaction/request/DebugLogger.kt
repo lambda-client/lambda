@@ -76,7 +76,7 @@ class DebugLogger(
         var flags = if (autoScroll) ImGuiWindowFlags.NoScrollbar or ImGuiWindowFlags.NoScrollWithMouse else 0
         flags = flags or ImGuiWindowFlags.NoBackground
         if (!ClickGuiLayout.open) flags = flags or ImGuiWindowFlags.NoInputs
-        child("Log Content", extraFlags = flags) {
+        child("Log Content", flags = flags) {
             if (wrapText) ImGui.pushTextWrapPos()
 
             logs.forEach { logEntry ->
