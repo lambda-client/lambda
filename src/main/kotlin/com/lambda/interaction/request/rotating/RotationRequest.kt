@@ -36,6 +36,7 @@ data class RotationRequest(
     override val requestId = ++requestCount
 
     var age = 0
+    override val nowOrNothing = false
 
     override val done: Boolean get() =
         rotationMode == RotationMode.None || runSafe { target.verify() } == true

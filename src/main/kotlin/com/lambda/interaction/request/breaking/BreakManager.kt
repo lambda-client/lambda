@@ -307,15 +307,21 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     /**
      * Attempts to accept and process the request, if there is not already an [activeRequest] and the
-     * [BreakRequest.contexts] collection is not empty.
+     * [BreakRequest.contexts] collection is not empty. If nowOrNothing is true, the request is cleared
+     * after the first process.
      *
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+        if (PlaceManager.activeThisTick || InteractionManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
+        if (request.nowOrNothing) {
+            activeRequest = null
+            breaks = mutableListOf()
+        }
     }
 
     /**
@@ -328,8 +334,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see updateBreakProgress
      */
     private fun SafeContext.processRequest(request: BreakRequest?) {
-        if (PlaceManager.activeThisTick || InteractionManager.activeThisTick) return
-
         request?.let { request ->
             logger.debug("Processing request", request)
             if (request.fresh) populateFrom(request)
@@ -385,7 +389,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         // Sanitize the new breaks
         val newBreaks = request.contexts
             .distinctBy { it.blockPos }
-            .filter { canAccept(it) }
+            .filter { canAccept(it) && (!request.nowOrNothing || it.instantBreak) }
             .toMutableList()
 
         // Update the current break infos
@@ -705,11 +709,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         info.progressedThisTick = true
 
         if (!info.breaking) {
-            if (breakConfig.swapMode.isEnabled() &&
-                (breakConfig.swapMode != BreakConfig.SwapMode.End ||
-                        info.context.instantBreak ||
-                        info.rebreakPotential.isPossible()) &&
-                !swapped) return
+            if (info.swapInfo.swap && !swapped) return
             if (!startBreaking(info)) {
                 info.nullify()
                 info.request.onCancel?.invoke(this, ctx.blockPos)
@@ -736,7 +736,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             return
         }
 
-        if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode == BreakConfig.SwapMode.Constant && !swapped) return
+        if (breakConfig.swapMode == BreakConfig.SwapMode.Constant && !swapped) return
 
         info.breakingTicks++
         val breakDelta = blockState.calcBreakDelta(ctx.blockPos)
@@ -770,7 +770,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         val swing = breakConfig.swing
         if (progress >= info.getBreakThreshold()) {
-            if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode != BreakConfig.SwapMode.Start && !swapped) return
+            if (info.swapInfo.swap && !swapped) return
 
             logger.success("Breaking", info)
             onBlockBreak(info)
@@ -782,8 +782,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (swing == BreakConfig.SwingMode.Constant)
                 swingHand(breakConfig.swingType, Hand.MAIN_HAND)
         }
-
-        return
     }
 
     /**

@@ -29,9 +29,10 @@ import com.lambda.interaction.request.ManagerUtils.newStage
 import com.lambda.interaction.request.ManagerUtils.newTick
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.activeRequest
+import com.lambda.interaction.request.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
-import com.lambda.interaction.request.hotbar.HotbarManager.maxSwapsThisTick
 import com.lambda.interaction.request.hotbar.HotbarManager.setActiveRequest
+import com.lambda.interaction.request.hotbar.HotbarManager.setActiveSlot
 import com.lambda.module.hud.ManagerDebugLoggers.hotbarManagerLogger
 import com.lambda.threading.runSafe
 import net.minecraft.item.ItemStack
@@ -50,12 +51,20 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    onOpen = { if (HotbarManager.activeRequest != null) HotbarManager.logger.newStage(HotbarManager.tickStage) },
+    onOpen = {
+        if (activeRequest != null) {
+            setActiveSlot()
+            HotbarManager.logger.newStage(HotbarManager.tickStage)
+        }
+             },
     onClose = { checkResetSwap() }
 ), Logger {
+    var activeRequest: HotbarRequest? = null
+    @JvmStatic var activeSlot: Int = -1
+
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
-    } ?: 0
+    } ?: -1
     //ToDo: something to manage stacks so the hotbar manager is strictly index based
     private var previousStack: ItemStack? = null
     private var swappedTicks = 0
@@ -63,8 +72,6 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     private var swapsThisTick = 0
     private var maxSwapsThisTick = 0
     private var swapDelay = 0
-
-    var activeRequest: HotbarRequest? = null
 
     override val logger = hotbarManagerLogger
 
@@ -86,6 +93,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
             previousStack = currentStack
 
             val activeInfo = activeRequest ?: return@listen
+            if (activeInfo.slot != activeSlot) return@listen
             activeInfo.swapPauseAge = swappedTicks
             activeInfo.activeRequestAge++
             activeInfo.keepTicks--
@@ -95,50 +103,58 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     /**
-     * Attempts to accept the request and process it. If the [activeRequest] is not null, the new [request] matches hotbar index,
-     * and the new request has an equal or longer [HotbarRequest.keepTicks] than the current request, the new request is accepted.
-     * Otherwise, if the [activeRequest] is null, or is from an old request, assuming the swap doesn't exceed [maxSwapsThisTick],
-     * the request is accepted.
+     * If the [activeRequest] is not null, being kept, and the [request]'s slot matches the [activeSlot], the
+     * [request]'s swapPauseAge is set to the swapped ticks and the request is denied. Otherwise, the active
+     * request is set and it attempts to set the active slot.
      *
      * @see setActiveRequest
+     * @see setActiveSlot
      */
     override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
         logger.debug("Handling request:", request)
 
-        if (tickStage !in hotbarConfig.sequenceStageMask) return
+        if (request.nowOrNothing && tickStage !in hotbarConfig.sequenceStageMask) return
 
         activeRequest?.let { active ->
-            if (request.slot == serverSlot && request.keepTicks >= active.keepTicks) {
-                logger.debug("Request is the same as current, but longer or the same keep time", request)
-                setActiveRequest(request)
+            if (active.activeRequestAge <= 0 && active.keepTicks > 0) {
+                if (activeSlot == request.slot) request.swapPauseAge = swappedTicks
                 return
             }
-
-            if (active.activeRequestAge <= 0 && active.keepTicks > 0) return
-        } ?: run { maxSwapsThisTick = hotbarConfig.swapsPerTick }
-
-        if (request.slot != serverSlot)
-            if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
+        }
 
         setActiveRequest(request)
+        if (!setActiveSlot() && request.nowOrNothing) {
+            activeRequest = null
+            activeSlot = -1
+        }
+    }
+
+    private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
+        maxSwapsThisTick = hotbarConfig.swapsPerTick
+        activeRequest = request
+        logger.success("Set active request", request)
     }
 
     /**
-     * Sets the [activeRequest]. This also calls syncSelectedSlot to
-     * update the server now to keep predictability.
+     * Sets the [activeSlot]. This also calls syncSelectedSlot to
+     * update the server to keep predictability.
      *
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot
      */
-    private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
-        maxSwapsThisTick = hotbarConfig.swapsPerTick
-        if (request.slot != serverSlot) {
-            swapsThisTick++
-            swappedTicks = 0
-            swapDelay = hotbarConfig.swapDelay
-        } else request.swapPauseAge = swappedTicks
-        activeRequest = request
-        interaction.syncSelectedSlot()
-        logger.success("Set active request", request)
+    private fun SafeContext.setActiveSlot(): Boolean {
+        activeRequest?.let { activeRequest ->
+            if (serverSlot != activeRequest.slot) {
+                if (tickStage !in activeRequest.hotbarConfig.sequenceStageMask) return false
+                if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return false
+                swapsThisTick++
+                swappedTicks = 0
+                swapDelay = activeRequest.hotbarConfig.swapDelay
+            } else activeRequest.swapPauseAge = swappedTicks
+            if (activeRequest.slot == activeSlot) return true
+            activeSlot = activeRequest.slot
+            interaction.syncSelectedSlot()
+        }
+        return true
     }
 
     /**
@@ -153,8 +169,11 @@ object HotbarManager : RequestHandler<HotbarRequest>(
             val canStopSwap = swapsThisTick < maxSwapsThisTick
             if (active.keepTicks <= 0 && tickStage in active.hotbarConfig.sequenceStageMask && canStopSwap) {
                 logger.debug("Clearing request and syncing slot", activeRequest)
+                val prevSlot = activeSlot
                 activeRequest = null
+                activeSlot = -1
                 interaction.syncSelectedSlot()
+                if (serverSlot != prevSlot) swapsThisTick++
             }
         }
     }

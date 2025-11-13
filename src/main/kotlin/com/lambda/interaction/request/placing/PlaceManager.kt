@@ -121,16 +121,21 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * accepts, and processes the request, as long as the current [activeRequest] is null, and the [BreakManager] has not
-     * been active this tick.
+     * Accepts, and processes the request, as long as the current [activeRequest] is null, and the [BreakManager] has not
+     * been active this tick. If nowOrNothing is true, the request is cleared after the first process.
      *
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: PlaceRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+        if (BreakManager.activeThisTick || InteractionManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
+        if (request.nowOrNothing) {
+            activeRequest = null
+            potentialPlacements = mutableListOf()
+        }
         if (placementsThisTick > 0) activeThisTick = true
     }
 
@@ -144,8 +149,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun AutomatedSafeContext.processRequest(request: PlaceRequest)  {
-        if (BreakManager.activeThisTick || InteractionManager.activeThisTick) return
-
         logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)

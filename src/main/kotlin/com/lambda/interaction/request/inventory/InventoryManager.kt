@@ -27,7 +27,10 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.inventory.InventoryManager.actions
+import com.lambda.interaction.request.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.request.inventory.InventoryManager.alteredSlots
+import com.lambda.interaction.request.inventory.InventoryManager.processActiveRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
 import com.lambda.threading.runSafe
@@ -51,13 +54,15 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     TickEvent.Pre,
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
-    TickEvent.Player.Post
+    TickEvent.Player.Post,
+    onOpen = { processActiveRequest() }
 ), Logger {
+    private var activeRequest: InventoryRequest? = null
     private var actions = mutableListOf<InventoryAction>()
 
     private var slots = listOf<ItemStack>()
     private var alteredSlots = LimitedDecayQueue<Pair<Int, Pair<ItemStack, ItemStack>>>(
-        AutomationConfig.maxDesyncCache, AutomationConfig.desyncTimeout * 50L
+        Int.MAX_VALUE, AutomationConfig.desyncTimeout * 50L
     )
 
     private var screenHandler: ScreenHandler? = null
@@ -84,7 +89,8 @@ object InventoryManager : RequestHandler<InventoryRequest>(
                 actionsThisSecond = 0
             }
             actionsThisTick = 0
-            actions.clear()
+            activeRequest = null
+            actions = mutableListOf()
         }
 
         return "Loaded Inventory Manager"
@@ -98,40 +104,60 @@ object InventoryManager : RequestHandler<InventoryRequest>(
      * needs to equip a totem of undying.
      */
     override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
+        if (activeRequest != null) return
+
         val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
-        if (inventoryActionCount >= request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
+        if (inventoryActionCount > request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
             !request.settleForLess &&
             !request.mustPerform) return
-        if (tickStage !in inventoryConfig.tickStageMask) return
 
         if (request.fresh) populateFrom(request)
 
-        PlaceManager.logger.debug("Processing request", request)
-
-        screenHandler = player.currentScreenHandler
-        val iterator = actions.iterator()
-        while (iterator.hasNext()) {
-            if (actionsThisSecond + 1 > maxActionsThisSecond && !request.mustPerform) break
-            iterator.next().action(this)
-            if (avoidDesync) indexInventoryChanges()
-            actionsThisTick++
-            actionsThisSecond++
-            iterator.remove()
+        processActiveRequest()
+        if (request.nowOrNothing) {
+            activeRequest = null
+            actions = mutableListOf()
         }
-
-        if (actions.isEmpty()) {
-            request.done = true
-            request.onComplete?.invoke(this)
-        }
-
-        if (actionsThisTick > 0) activeThisTick = true
     }
 
     private fun populateFrom(request: InventoryRequest) {
         PlaceManager.logger.debug("Populating from request", request)
+        activeRequest = request
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
         alteredSlots.setDecayTime(AutomationConfig.desyncTimeout * 50L)
+    }
+
+    /**
+     * Attempts to perform as many actions as possible from the [actions] collection. If
+     * [actions] is empty, the request is set to done, and the onComplete callback is invoked.
+     * The [activeRequest] is then set to null.
+     */
+    private fun SafeContext.processActiveRequest() {
+        activeRequest?.let { active ->
+            PlaceManager.logger.debug("Processing request", active)
+            if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
+            screenHandler = player.currentScreenHandler
+            val iterator = actions.iterator()
+            while (iterator.hasNext()) {
+                val action = iterator.next()
+                if (action is InventoryAction.Inventory && actionsThisSecond + 1 > maxActionsThisSecond && !active.mustPerform)
+                    break
+                action.action(this)
+                if (avoidDesync) indexInventoryChanges()
+                actionsThisTick++
+                actionsThisSecond++
+                iterator.remove()
+            }
+
+            if (actions.isEmpty()) {
+                active.done = true
+                active.onComplete?.invoke(this)
+                activeRequest = null
+            }
+
+            if (actionsThisTick > 0) activeThisTick = true
+        }
     }
 
     /**
@@ -186,7 +212,9 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     }
 
     /**
-     * A modified version of the vanilla [net.minecraft.client.network.ClientPlayNetworkHandler.onScreenHandlerSlotUpdate] method
+     * A modified version of the minecraft onScreenHandlerSlotUpdate method
+     *
+     * @see net.minecraft.client.network.ClientPlayNetworkHandler.onScreenHandlerSlotUpdate
      */
     @JvmStatic
     fun onSlotUpdate(packet: ScreenHandlerSlotUpdateS2CPacket, original: Operation<Void>) {

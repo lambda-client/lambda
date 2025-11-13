@@ -31,6 +31,7 @@ data class InteractRequest(
     val contexts: Collection<InteractionContext>,
     val pendingInteractionsList: MutableCollection<BuildContext>,
     private val automated: Automated,
+    override val nowOrNothing: Boolean = false,
     val onInteract: ((BlockPos) -> Unit)?
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount

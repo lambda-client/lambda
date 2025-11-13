@@ -33,6 +33,7 @@ data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated,
+    override val nowOrNothing: Boolean = false,
     val onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount

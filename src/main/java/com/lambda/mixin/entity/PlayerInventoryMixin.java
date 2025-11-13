@@ -18,29 +18,19 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.interaction.request.hotbar.HotbarManager;
-import com.lambda.interaction.request.hotbar.HotbarRequest;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.player.PlayerInventory;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PlayerInventory.class)
 public class PlayerInventoryMixin {
-    @SuppressWarnings({"MixinAnnotationTarget", "UnresolvedMixinReference"})
+    @SuppressWarnings({"MixinAnnotationTarget"})
     @ModifyExpressionValue(method = "*", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/player/PlayerInventory;selectedSlot:I", opcode = Opcodes.GETFIELD))
     private int modifySelectedSlot(int original) {
-        final HotbarRequest hotbarRequest = HotbarManager.INSTANCE.getActiveRequest();
-        if (hotbarRequest == null) return original;
-        return hotbarRequest.getSlot();
-    }
-
-    @Inject(method = "getSelectedSlot", at = @At("HEAD"), cancellable = true)
-    private void redirectGetSelectedSlot(CallbackInfoReturnable<Integer> cir) {
-        final HotbarRequest hotbarRequest = HotbarManager.INSTANCE.getActiveRequest();
-        if (hotbarRequest == null) return;
-        cir.setReturnValue(hotbarRequest.getSlot());
+        final int hotbarSlot = HotbarManager.getActiveSlot();
+        if (hotbarSlot == -1) return original;
+        return hotbarSlot;
     }
 }

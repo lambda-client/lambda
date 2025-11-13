@@ -204,7 +204,7 @@ class BuildTask private constructor(
                             interactResults,
                             pendingInteractions,
                             this@BuildTask,
-                            null
+                            onInteract = null
                         ).submit()
                     }
                 }

@@ -250,12 +250,10 @@ object PacketMine : Module(
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
         runSafeAutomated {
             positions
-                .asSequence()
                 .filterNotNull()
                 .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
                 .toBlueprint()
                 .simulate()
-                .asSequence()
                 .filterIsInstance<BreakResult.Break>()
                 .map { it.context }
                 .toCollection(mutableListOf())

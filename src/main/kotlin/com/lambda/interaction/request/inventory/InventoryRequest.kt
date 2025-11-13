@@ -42,6 +42,7 @@ class InventoryRequest private constructor(
     val settleForLess: Boolean,
     val mustPerform: Boolean,
     automated: Automated,
+    override val nowOrNothing: Boolean = false,
     val onComplete: (SafeContext.() -> Unit)?
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
@@ -184,6 +185,6 @@ class InventoryRequest private constructor(
 
         @InvRequestDsl
         context(automated: Automated)
-        private fun InvRequestBuilder.build() = InventoryRequest(actions, settleForLess, mustPerform, automated, onComplete)
+        private fun InvRequestBuilder.build() = InventoryRequest(actions, settleForLess, mustPerform, automated, onComplete = onComplete)
     }
 }

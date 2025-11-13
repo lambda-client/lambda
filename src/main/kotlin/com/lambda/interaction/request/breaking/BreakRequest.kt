@@ -47,7 +47,8 @@ import net.minecraft.util.math.BlockPos
 data class BreakRequest private constructor(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
-    private val automated: Automated
+    private val automated: Automated,
+    override val nowOrNothing: Boolean = false
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
 
@@ -88,9 +89,10 @@ data class BreakRequest private constructor(
     class BreakRequestBuilder(
         contexts: Collection<BreakContext>,
         pendingInteractions: MutableCollection<BuildContext>,
+        nowOrNothing: Boolean,
         automated: Automated
     ) {
-        val request = BreakRequest(contexts, pendingInteractions, automated)
+        val request = BreakRequest(contexts, pendingInteractions, automated, nowOrNothing)
 
         @BreakRequestDsl
         fun onStart(callback: SafeContext.(BlockPos) -> Unit) {
@@ -135,8 +137,9 @@ data class BreakRequest private constructor(
         fun Automated.breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,
+            nowOrNothing: Boolean = false,
             builder: (BreakRequestBuilder.() -> Unit)? = null
-        ) = BreakRequestBuilder(contexts, pendingInteractions, this).apply { builder?.invoke(this) }.build()
+        ) = BreakRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
 
         @BreakRequestDsl
         private fun BreakRequestBuilder.build(): BreakRequest = request

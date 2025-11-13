@@ -100,15 +100,20 @@ object InteractionManager : RequestHandler<InteractRequest>(
 
     /**
      * Attempts to accept and process the request, if there is not already an [activeRequest] and the request's [InteractRequest.contexts]
-     * collection is not empty.
+     * collection is not empty. If nowOrNothing is true, the request is cleared after the first process.
      *
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+        if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
+        if (request.nowOrNothing) {
+            activeRequest = null
+            potentialInteractions = mutableListOf()
+        }
         if (interactionsThisTick > 0) activeThisTick = true
     }
 
@@ -118,8 +123,6 @@ object InteractionManager : RequestHandler<InteractRequest>(
      * @see populateFrom
      */
     fun AutomatedSafeContext.processRequest(request: InteractRequest) {
-        if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
-
         logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
