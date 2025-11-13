@@ -17,7 +17,6 @@
 
 package com.lambda.gui.components
 
-import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.GuiConfig
@@ -41,10 +40,8 @@ import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import imgui.ImGui
-import imgui.ImVec2
 import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiCond
 import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiWindowFlags
 import net.minecraft.SharedConstants
@@ -203,8 +200,6 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     val navWindowingDimBg by setting("Nav Windowing Dim Background", Color(204, 204, 204, 51)).group(Group.Colors)
     val modalWindowDimBg by setting("Modal Window Dim Background", Color(20, 20, 20, 89)).group(Group.Colors)
 
-    var firstRender = true
-
     init {
         listen<GuiEvent.NewFrame> {
             if (!open) return@listen
@@ -225,7 +220,12 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                     //  for this use case so for the time being we will leave the positions fixed. Too bad!
                     ImGui.setNextWindowPos(nextX, baseY)
 
-                    window(tag.name, flags = ImGuiWindowFlags.AlwaysAutoResize) {
+                    // FixMe:
+                    //  Due to the auto resize of windows, if a tag has no module names that is at least the
+                    //  same length as the tag name, the title of the window will clip out the window box.
+                    //  For the time being I have removed the ability to collapse the windows so the titles
+                    //  have more space lol.
+                    window(tag.name, flags = ImGuiWindowFlags.AlwaysAutoResize or ImGuiWindowFlags.NoCollapse) {
                         ModuleRegistry.modules
                             .filter { it.tag == tag }
                             .forEach { with(ModuleEntry(it)) { buildLayout() } }
@@ -240,8 +240,6 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                     ImGui.showDemoWindow()
                     ImPlot.showDemoWindow()
                 }
-
-                firstRender = false
             }
         }
 
