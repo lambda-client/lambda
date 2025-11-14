@@ -20,6 +20,7 @@ package com.lambda.graphics.pipeline
 import com.lambda.graphics.buffer.DynamicByteBuffer
 import com.lambda.graphics.gl.Matrices
 import org.joml.Vector4d
+import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
  * A builder class for constructing vertex buffer objects (VBOs) with associated vertex attributes and indices.
@@ -29,8 +30,8 @@ import org.joml.Vector4d
 class VertexBuilder(
     private val direct: VertexPipeline? = null
 ) {
-    val vertices by lazy(LazyThreadSafetyMode.PUBLICATION) { mutableListOf<Attribute>() }
-    val indices by lazy(LazyThreadSafetyMode.PUBLICATION) { mutableListOf<Int>() }
+    val vertices = ConcurrentLinkedDeque<Attribute>()
+    val indices = ConcurrentLinkedDeque<Int>()
 
     private var verticesCounter = 0
 
