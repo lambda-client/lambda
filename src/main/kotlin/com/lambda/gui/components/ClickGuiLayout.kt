@@ -79,7 +79,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     }
 
     const val RELATION = 0.02604
-    const val BASE_SCALE = 150
+    const val BASE_SCALE = 130
     val width = mc.window.monitor!!.currentVideoMode!!.width
 
     // don't worry, I'm a professional
