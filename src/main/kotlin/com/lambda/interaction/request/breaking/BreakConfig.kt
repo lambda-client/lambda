@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
 import com.lambda.util.Describable
@@ -24,9 +25,8 @@ import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 import java.awt.Color
 
-interface BreakConfig {
+interface BreakConfig : ActionConfig {
     val breakMode: BreakMode
-    val sorter: SortMode
     val rebreak: Boolean
 
     val doubleBreak: Boolean
@@ -95,17 +95,6 @@ interface BreakConfig {
     ) : NamedEnum, Describable {
         Vanilla("Vanilla", "Uses vanilla breaking"),
         Packet("Packet", "Breaks blocks using only using packets")
-    }
-
-    enum class SortMode(
-        override val displayName: String,
-        override val description: String
-    ) : NamedEnum, Describable {
-        Closest("Closest", "Breaks blocks closest to the player eye position"),
-        Farthest("Farthest", "Breaks blocks farthest from the player eye position"),
-        Tool("Tool", "Breaks blocks with priority given to those with tools matching the current selected"),
-        Rotation("Rotation", "Breaks blocks closest to the player rotation"),
-        Random("Random", "Breaks blocks in a random order")
     }
 
     enum class SwapMode(

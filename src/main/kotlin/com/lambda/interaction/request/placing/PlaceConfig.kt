@@ -17,12 +17,13 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface PlaceConfig {
+interface PlaceConfig : ActionConfig {
     val rotateForPlace: Boolean
     val airPlace: AirPlaceMode
     val axisRotateSetting: Boolean

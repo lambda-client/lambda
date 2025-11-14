@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
@@ -140,7 +140,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit.blockResult ?: return
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
-            val context = InteractionContext(
+            val context = InteractContext(
                 checkedResult,
                 RotationRequest(rotationTarget, this),
                 swapStack.inventoryIndex,

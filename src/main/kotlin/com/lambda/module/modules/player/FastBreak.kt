@@ -172,6 +172,7 @@ object FastBreak : Module(
                     else player.mainHandStack,
                     breakConfig.breakThreshold
                 ),
+                state.getOutlineShape(world, pos).boundingBoxes.any { it.contains(player.eyePos) },
                 state,
                 this@FastBreak
             )

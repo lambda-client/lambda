@@ -20,7 +20,7 @@ package com.lambda.interaction.request.interacting
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
@@ -28,7 +28,7 @@ import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
 data class InteractRequest(
-    val contexts: Collection<InteractionContext>,
+    val contexts: Collection<InteractContext>,
     val pendingInteractionsList: MutableCollection<BuildContext>,
     private val automated: Automated,
     override val nowOrNothing: Boolean = false,

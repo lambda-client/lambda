@@ -23,7 +23,6 @@ import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakConfig.AnimationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
-import com.lambda.interaction.request.breaking.BreakConfig.SortMode
 import com.lambda.interaction.request.breaking.BreakConfig.SwingMode
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
@@ -41,7 +40,7 @@ class BreakSettings(
 
     // General
     override val breakMode by c.setting("Break Mode", BreakMode.Packet, visibility = vis).group(baseGroup, Group.General)
-    override val sorter by c.setting("Sorter", SortMode.Tool, "The order in which breaks are performed", visibility = vis).group(baseGroup, Group.General)
+    override val sorter by c.setting("Break Sorter", ActionConfig.SortMode.Tool, "The order in which breaks are performed", visibility = vis).group(baseGroup, Group.General)
     override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once", visibility = vis).group(baseGroup, Group.General)
 
     // Double break

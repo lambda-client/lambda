@@ -39,7 +39,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
         AutomationConfig.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
+        if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
             mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)

@@ -23,7 +23,6 @@ import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.construction.result.Contextual
 import com.lambda.interaction.construction.result.Dependent
 import com.lambda.interaction.construction.result.Drawable
@@ -61,12 +60,6 @@ sealed class PlaceResult : BuildResult() {
         override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
-
-        override fun compareResult(other: ComparableResult<Rank>) =
-            when (other) {
-                is Place -> context.compareTo(other.context)
-                else -> super<Contextual>.compareResult(other)
-            }
     }
 
     /**

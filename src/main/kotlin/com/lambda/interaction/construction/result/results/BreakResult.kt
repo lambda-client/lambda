@@ -57,12 +57,6 @@ sealed class BreakResult : BuildResult() {
         override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
-
-        override fun compareResult(other: ComparableResult<Rank>) =
-            when (other) {
-                is Break -> context.compareTo(other.context)
-                else -> super<Contextual>.compareResult(other)
-            }
     }
 
     /**

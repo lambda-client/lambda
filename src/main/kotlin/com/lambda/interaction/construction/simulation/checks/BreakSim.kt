@@ -117,6 +117,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
                     swapStack.inventoryIndexOrSelected,
                     stackSelection,
                     instant,
+                    true,
                     state,
                     this
                 )
@@ -137,6 +138,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
             swapStack.inventoryIndexOrSelected,
             stackSelection,
             instant,
+            false,
             state,
             this
         )

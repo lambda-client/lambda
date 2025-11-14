@@ -18,9 +18,8 @@
 package com.lambda.interaction.construction.result.results
 
 import com.lambda.graphics.renderer.esp.ShapeBuilder
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.construction.result.Contextual
 import com.lambda.interaction.construction.result.Dependent
 import com.lambda.interaction.construction.result.Drawable
@@ -36,19 +35,13 @@ sealed class InteractResult : BuildResult() {
      */
     data class Interact(
         override val pos: BlockPos,
-        override val context: InteractionContext
+        override val context: InteractContext
     ) : Contextual, Drawable, InteractResult() {
         override val rank = Rank.InteractSuccess
 
         override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
-
-        override fun compareResult(other: ComparableResult<Rank>) =
-            when (other) {
-                is Interact -> context.compareTo(other.context)
-                else -> super<Contextual>.compareResult(other)
-            }
     }
 
     data class Dependency(

@@ -197,7 +197,6 @@ class PlaceSim private constructor(simInfo: ISimInfo)
                 state,
                 rotatePlaceTest.resultState,
                 fakePlayer.isSneaking,
-                false,
                 rotatePlaceTest.currentDirIsValid,
                 this@PlaceSim
             )
