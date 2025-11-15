@@ -24,23 +24,50 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.math.floor
+import kotlin.math.pow
 
 object Formatting {
+    @Deprecated("Use asString with decimals and locale parameters instead", ReplaceWith("asString(decimals, locale)"))
     val Vec3d.string: String
         get() = asString()
 
+    @Deprecated("Use asString with decimals and locale parameters instead", ReplaceWith("asString(decimals, locale)"))
     val Float.string: String
-        get() = "%.2f".format(Locale.US, this)
+        get() = "%,.2f".format(Locale.US, this)
 
+    @Deprecated("Use asString with decimals and locale parameters instead", ReplaceWith("asString(decimals, locale)"))
     val Double.string: String
-        get() = "%.2f".format(Locale.US, this)
+        get() = "%,.2f".format(Locale.US, this)
 
-    fun Vec3d.asString(decimals: Int = 2): String {
-        val format = "%.${decimals}f"
-        return "(${format.format(Locale.US, x)}, ${format.format(Locale.US, y)}, ${format.format(Locale.US, z)})"
+    fun Double.asString(decimals: Int = 2, locale: Locale = Locale.US, numberGrouping: Boolean = true): String {
+        val format = if (numberGrouping) "%,.${decimals}f" else "%.${decimals}f"
+        val factor = 10.0.pow(decimals)
+        val floored = floor(this * factor) / factor
+        return format.format(locale, floored)
     }
 
-    fun BlockPos.asString() = "($x, $y, $z)"
+    fun Vec3d.asString(decimals: Int = 2, locale: Locale = Locale.US, numberGrouping: Boolean = true): String {
+        val format = if (numberGrouping) "%,.${decimals}f" else "%.${decimals}f"
+        val vec = floorToDecimals(this, decimals)
+        return "(${format.format(locale, vec.x)} ${format.format(locale, vec.y)} ${format.format(locale, vec.z)})"
+    }
+
+    private fun floorToDecimals(vec: Vec3d, decimals: Int): Vec3d {
+        val factor = 10.0.pow(decimals)
+        return Vec3d(
+            floor(vec.x * factor) / factor,
+            floor(vec.y * factor) / factor,
+            floor(vec.z * factor) / factor
+        )
+    }
+
+    fun BlockPos.asString(decimals: Int = 2, locale: Locale = Locale.US, numberGrouping: Boolean = true): String {
+        val x = x.toDouble().asString(decimals, locale, numberGrouping)
+        val y = y.toDouble().asString(decimals, locale, numberGrouping)
+        val z = z.toDouble().asString(decimals, locale, numberGrouping)
+        return "($x $y $z)"
+    }
 
     fun getTime(formatter: DateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME): String {
         val localDateTime = LocalDateTime.now()

@@ -22,11 +22,11 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
-import com.lambda.util.Formatting.string
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
+import java.util.Locale
 
 object Coordinates : HudModule(
     name = "Coordinates",
@@ -35,17 +35,31 @@ object Coordinates : HudModule(
 ) {
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
+    private val groupingStyle by setting("Grouping", Grouping.Comma)
+    private val coordinateSeparator by setting("Coordinate Separator", " | ")
 
     override fun ImGuiBuilder.buildLayout() {
         runSafe {
-            val pos = player.pos.asString(decimals)
+            // TODO: Properly localize based on user settings. Waiting on you emy_fops
+            val locale = when (groupingStyle) {
+                Grouping.Comma, Grouping.None -> Locale.US
+                Grouping.Dot -> Locale.GERMANY
+            }
+            val numberGrouping = groupingStyle != Grouping.None
+            val pos = "${player.pos.x.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.pos.y.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.pos.z.asString(decimals, locale, numberGrouping)}"
             val coord = if (world.isNether) {
-                "$pos [${player.overworldCoord.x.string}, ${player.overworldCoord.z.string}]"
+                "$pos [${player.overworldCoord.x.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.overworldCoord.z.asString(decimals, locale, numberGrouping)}]"
             } else {
-                "$pos [${player.netherCoord.x.string}, ${player.netherCoord.z.string}]"
+                "$pos [${player.netherCoord.x.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.netherCoord.z.asString(decimals, locale, numberGrouping)}]"
             }
             val dimension = if (showDimension) " ${world.dimensionName}" else ""
             textCopyable("$coord$dimension")
         }
+    }
+
+    enum class Grouping {
+        Comma,
+        Dot,
+        None
     }
 }
