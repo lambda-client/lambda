@@ -38,6 +38,7 @@ import com.lambda.interaction.material.container.containers.MainHandContainer
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import java.awt.Color
 
@@ -91,9 +92,8 @@ sealed class BreakResult : BuildResult() {
         override val pos: BlockPos,
         val blockState: BlockState,
         val badItem: Item
-    ) : Drawable, Resolvable, BreakResult() {
+    ) : Resolvable, BreakResult() {
         override val rank = Rank.BreakItemCantMine
-        private val color = Color(255, 0, 0, 100)
 
         context(automated: Automated)
         override fun resolve() =
@@ -107,10 +107,6 @@ sealed class BreakResult : BuildResult() {
                         automated
                     )
             }
-
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
-        }
 
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {
@@ -141,12 +137,18 @@ sealed class BreakResult : BuildResult() {
     data class BlockedByFluid(
         override val pos: BlockPos,
         val blockState: BlockState,
+        val affectedFluids: Set<BlockPos>
     ) : Drawable, BreakResult() {
         override val rank = Rank.BreakIsBlockedByFluid
         private val color = Color(50, 12, 112, 100)
 
         override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box, color, color)
         }
     }
 

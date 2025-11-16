@@ -238,8 +238,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
     private suspend fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): PlaceTest {
         val resultState = context.stack.blockItem.getPlacementState(context)
             ?: run {
-                val blockingEntities = handleEntityBlockage(context)
-                result(PlaceResult.BlockedByEntity(pos, blockingEntities))
+                handleEntityBlockage(context)
                 return PlaceTest(state, PlaceTestResult.BlockedByEntity)
             }
 
@@ -279,7 +278,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
                 .forEach { support ->
                     sim(support, blockState(support), TargetState.Empty) { simBreak() }
                 }
-            result(PlaceResult.BlockedByEntity(pos, collidingEntities))
+            result(PlaceResult.BlockedByEntity(pos, collidingEntities, context.hitPos, context.side))
         }
 
         return collidingEntities

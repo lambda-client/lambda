@@ -18,8 +18,6 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.request.LogContext
@@ -32,6 +30,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import java.awt.Color
 import kotlin.math.sqrt
 
@@ -65,7 +64,13 @@ data class BreakContext(
     override val sorter get() = breakConfig.sorter
 
     override fun ShapeBuilder.buildRenderer() {
-        box(blockPos, cachedState, baseColor, sideColor, DirectionMask.ALL.exclude(hitResult.side))
+        val box = with(hitResult.pos) {
+            Box(
+                x - 0.05, y - 0.05, z - 0.05,
+                x + 0.05, y + 0.05, z + 0.05,
+            ).offset(hitResult.side.doubleVector.multiply(0.05))
+        }
+        box(box, baseColor, sideColor)
     }
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
