@@ -17,13 +17,18 @@
 
 package com.lambda.module.hud
 
+import com.lambda.config.groups.FormatterConfig
+import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
+import com.lambda.util.extension.isOverworld
+import com.lambda.util.math.Vec2d
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 import java.util.Locale
@@ -33,33 +38,34 @@ object Coordinates : HudModule(
     description = "Show your coordinates",
     tag = ModuleTag.HUD,
 ) {
+    private val page by setting("Page", Page.CurrentDimension)
     private val showDimension by setting("Show Dimension", true)
-    private val decimals by setting("Decimals", 2, 0..4, 1)
-    private val groupingStyle by setting("Grouping", Grouping.Comma)
-    private val coordinateSeparator by setting("Coordinate Separator", " | ")
+
+    private val formatter = FormatterSettings(this, Page.CurrentDimension).apply { ::timeFormat.edit { hide() } }
+    private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
+        ::timeFormat.edit { hide() }
+        ::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
+    }
 
     override fun ImGuiBuilder.buildLayout() {
         runSafe {
-            // TODO: Properly localize based on user settings. Waiting on you emy_fops
-            val locale = when (groupingStyle) {
-                Grouping.Comma, Grouping.None -> Locale.US
-                Grouping.Dot -> Locale.GERMANY
-            }
-            val numberGrouping = groupingStyle != Grouping.None
-            val pos = "${player.pos.x.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.pos.y.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.pos.z.asString(decimals, locale, numberGrouping)}"
-            val coord = if (world.isNether) {
-                "$pos [${player.overworldCoord.x.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.overworldCoord.z.asString(decimals, locale, numberGrouping)}]"
-            } else {
-                "$pos [${player.netherCoord.x.asString(decimals, locale, numberGrouping)}$coordinateSeparator${player.netherCoord.z.asString(decimals, locale, numberGrouping)}]"
-            }
-            val dimension = if (showDimension) " ${world.dimensionName}" else ""
-            textCopyable("$coord$dimension")
+            val position = formatter.format(player.pos)
+            val otherDimensionPos =
+                if (world.isNether) otherFormatter.format(player.overworldCoord.let { Vec2d(it.x, it.z) })
+                else otherFormatter.format(player.netherCoord.let { Vec2d(it.x, it.z) })
+
+            val text = "$position $otherDimensionPos"
+
+            val withDimension =
+                if (showDimension) "$text ${world.dimensionName}"
+                else text
+
+            textCopyable(withDimension)
         }
     }
 
-    enum class Grouping {
-        Comma,
-        Dot,
-        None
+    enum class Page(override val displayName: String) : NamedEnum {
+        CurrentDimension("Current Dimension"),
+        OtherDimension("Other Dimension"),
     }
 }
