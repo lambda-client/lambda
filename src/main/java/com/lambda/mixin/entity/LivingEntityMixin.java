@@ -21,7 +21,12 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.ViewModel;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -166,5 +171,13 @@ public abstract class LivingEntityMixin extends EntityMixin {
         if (lambda$instance != Lambda.getMc().player || ViewModel.INSTANCE.isDisabled()) return constant;
 
         return ViewModel.INSTANCE.getSwingDuration();
+    }
+
+    @WrapMethod(method = "pushAwayFrom")
+    private void wrapPushAwayFrom(Entity entity, Operation<Void> original) {
+        if (((Entity) ((Object) this)) instanceof ClientPlayerEntity &&
+                Velocity.INSTANCE.isEnabled() &&
+                Velocity.getPushed()) return;
+        original.call(entity);
     }
 }
