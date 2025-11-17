@@ -25,7 +25,6 @@ import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
@@ -175,7 +174,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @WrapMethod(method = "pushAwayFrom")
     private void wrapPushAwayFrom(Entity entity, Operation<Void> original) {
-        if (((Entity) ((Object) this)) instanceof ClientPlayerEntity &&
+        if (lambda$instance == Lambda.getMc().player &&
                 Velocity.INSTANCE.isEnabled() &&
                 Velocity.getPushed()) return;
         original.call(entity);
