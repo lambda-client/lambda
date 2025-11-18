@@ -56,9 +56,7 @@ object BuildSimulator : Sim<PostSimResult>() {
                 structure.forEach { (pos, targetState) ->
                     launch {
                         sim(pos, blockState(pos), targetState, pov, concurrentSet) {
-                            if (targetState is TargetState.State &&
-                                targetState.matches(state, pos, preProcessing.ignore)
-                                ) {
+                            if (targetState is TargetState.State && matchesTarget(complete = false)) {
                                 simPostProcessing()
                                 return@sim
                             }
