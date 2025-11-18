@@ -48,6 +48,8 @@ object Printer : Module(
     }.getOrDefault(false)
 
     private val range by setting("Range", 5, 1..7, 1).group(Group.General)
+    private val air by setting("Air", false).group(Group.General)
+
     override val buildConfig = BuildSettings(this, Group.Build).apply {
         editTyped(::pathing, ::stayInRange) { defaultValue(false) }
     }
@@ -88,6 +90,7 @@ object Printer : Module(
                     .asSequence()
                     .map { it.blockPos }
                     .associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
+                    .filter { air || !it.value.blockState.isAir }
             }.build(finishOnDone = false).run()
         }
 
