@@ -61,6 +61,7 @@ import net.minecraft.block.ShapeContext
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
+import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
@@ -122,14 +123,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         val validHits = scanShape(pov, shape, pos, setOf(side), preProcessing) ?: return
 
-        val swapStack = getSwapStack() ?: return
-        if (!swapStack.item.isEnabled(world.enabledFeatures)) {
-            result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
-            supervisorScope.cancel()
-            return
-        }
-
-        selectHitPos(validHits, fakePlayer, swapStack)
+        selectHitPos(validHits, fakePlayer, targetState.getStack(pos).blockItem, supervisorScope)
     }
 
     private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
@@ -149,17 +143,18 @@ class PlaceSim private constructor(simInfo: ISimInfo)
     private suspend fun AutomatedSafeContext.selectHitPos(
         validHits: Collection<CheckedHit>,
         fakePlayer: ClientPlayerEntity,
-        swapStack: ItemStack
+        item: BlockItem,
+        supervisorScope: CoroutineScope
     ) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val hitResult = checkedHit.hit.blockResult ?: return
 
-            val context = swapStack.blockItem.getPlacementContext(
+            val context = item.getPlacementContext(
                 ItemPlacementContext(
                     world,
                     fakePlayer,
                     Hand.MAIN_HAND,
-                    swapStack,
+                    item.defaultStack,
                     hitResult,
                 )
             ) ?: run {
@@ -173,7 +168,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
             }
 
             val cachePos = CachedBlockPosition(context.world, context.blockPos, false)
-            if (!player.abilities.allowModifyWorld && !swapStack.canPlaceOn(cachePos)) {
+            if (!player.abilities.allowModifyWorld && !item.defaultStack.canPlaceOn(cachePos)) {
                 result(PlaceResult.IllegalUsage(pos))
                 return
             }
@@ -188,6 +183,13 @@ class PlaceSim private constructor(simInfo: ISimInfo)
             val rotationRequest = if (placeConfig.axisRotate) {
                 lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
             } else lookAt(rotatePlaceTest.rotation, 0.001)
+
+            val swapStack = getSwapStack() ?: return
+            if (!swapStack.item.isEnabled(world.enabledFeatures)) {
+                result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
+                supervisorScope.cancel()
+                return
+            }
 
             val placeContext = PlaceContext(
                 hitResult,
