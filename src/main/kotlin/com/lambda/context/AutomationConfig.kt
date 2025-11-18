@@ -40,7 +40,6 @@ object AutomationConfig : Configurable(LambdaConfig), Automated {
         Place("Place"),
         Interact("Interact"),
         Rotation("Rotation"),
-        Interaction("Interaction"),
         Inventory("Inventory"),
         Hotbar("Hotbar"),
         Eat("Eat"),
