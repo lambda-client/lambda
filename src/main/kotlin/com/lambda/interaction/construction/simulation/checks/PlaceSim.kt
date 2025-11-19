@@ -91,12 +91,10 @@ class PlaceSim private constructor(simInfo: ISimInfo)
     private suspend fun AutomatedSafeContext.simPlacements() =
         supervisorScope {
             preProcessing.sides.forEach { side ->
-                launch {
-                    val neighborPos = pos.offset(side)
-                    val neighborSide = side.opposite
-                    testBlock(neighborPos, neighborSide, this@supervisorScope)
-                    testBlock(pos, side, this@supervisorScope)
-                }
+                val neighborPos = pos.offset(side)
+                val neighborSide = side.opposite
+                launch { testBlock(neighborPos, neighborSide, this@supervisorScope) }
+                launch { testBlock(pos, side, this@supervisorScope) }
             }
         }
 
