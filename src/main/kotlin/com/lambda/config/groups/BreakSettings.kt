@@ -28,11 +28,11 @@ import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
-class BreakSettings(
+open class BreakSettings(
     c: Configurable,
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true },
-) : BreakConfig, SettingGroup(c) {
+) : BreakConfig, MutableSettings(c) {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Cosmetic("Cosmetic")

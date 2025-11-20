@@ -17,9 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BreakSettings
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InventorySettings
+import com.lambda.context.AutomationConfig.Companion.automationConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
@@ -28,7 +26,9 @@ import com.lambda.interaction.material.ContainerSelection.Companion.selectContai
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.interaction.request.rotating.visibilty.lookAt
@@ -37,7 +37,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.NamedEnum
 import com.lambda.util.player.SlotUtils.hotbar
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.enchantment.Enchantments
@@ -56,46 +55,45 @@ object FastBreak : Module(
     description = "Break blocks faster.",
     tag = ModuleTag.PLAYER,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        Break("Break"),
-        Inventory("Inventory"),
-        Hotbar("Hotbar")
+    override val breakConfig = object : BreakConfig by super.breakConfig {
+        override val rotateForBreak = false
+        override val doubleBreak = false
+        override val breaksPerTick = 1
     }
-
-    override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editTyped(
-            ::avoidLiquids,
-            ::avoidSupporting,
-            ::efficientOnly,
-            ::suitableToolsOnly,
-            ::rotateForBreak,
-            ::doubleBreak
-        ) { defaultValue(false) }
-        ::breaksPerTick.edit { defaultValue(1) }
-        hide(
-            ::sorter,
-            ::doubleBreak,
-            ::unsafeCancels,
-            ::rotateForBreak,
-            ::breaksPerTick,
-        )
+    override val inventoryConfig = object : InventoryConfig by super.inventoryConfig {
+        override val accessShulkerBoxes = false
+        override val accessEnderChest = false
+        override val accessChests = false
+        override val accessStashes = false
     }
-    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
-        editTyped(
-            ::accessShulkerBoxes,
-            ::accessEnderChest,
-            ::accessChests,
-            ::accessStashes
-        ) {
-            defaultValue(false)
-            hide()
-        }
-    }
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     init {
+        defaultConfig = automationConfig {
+            breakConfig.apply {
+                editTyped(
+                    ::avoidLiquids,
+                    ::avoidSupporting,
+                    ::efficientOnly,
+                    ::suitableToolsOnly
+                ) { defaultValue(false) }
+                hide(
+                    ::rotateForBreak,
+                    ::doubleBreak,
+                    ::breaksPerTick
+                )
+            }
+            inventoryConfig.apply {
+                hide(
+                    ::accessShulkerBoxes,
+                    ::accessEnderChest,
+                    ::accessChests,
+                    ::accessStashes
+                )
+            }
+        }
+
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()

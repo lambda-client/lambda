@@ -29,7 +29,7 @@ import com.lambda.context.AutomationConfig
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 
-object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig {
+object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
     override val name = "baritone"
 
     private val baritone = BaritoneAPI.getProvider()

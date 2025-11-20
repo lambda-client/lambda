@@ -22,7 +22,7 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
-import com.lambda.config.groups.SettingGroup
+import com.lambda.config.groups.MutableSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -87,7 +87,7 @@ object PacketMine : Module(
         ) { defaultValue(false) }
         ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 
-        ::rebreak.insert(::rebreakMode, SettingGroup.InsertMode.Below)
+        ::rebreak.insert(::rebreakMode, MutableSettings.InsertMode.Below)
         ::rebreakMode.edit { visibility { rebreak } }
 
         ::sounds.insert(
@@ -98,7 +98,7 @@ object PacketMine : Module(
             ::staticColor,
             ::startColor,
             ::endColor,
-            insertMode = SettingGroup.InsertMode.Above
+            insertMode = MutableSettings.InsertMode.Above
         )
     }
     override val buildConfig = BuildSettings(this, Group.Build).apply {

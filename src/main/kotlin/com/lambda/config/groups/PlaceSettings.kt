@@ -28,7 +28,7 @@ class PlaceSettings(
     c: Configurable,
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
-) : PlaceConfig, SettingGroup(c) {
+) : PlaceConfig, MutableSettings(c) {
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing", visibility = vis).group(baseGroup)
     override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = vis).group(baseGroup)
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { vis() && airPlace.isEnabled }.group(baseGroup)

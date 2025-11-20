@@ -26,7 +26,7 @@ class InteractSettings(
     c: Configurable,
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
-) : InteractConfig, SettingGroup(c) {
+) : InteractConfig, MutableSettings(c) {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting", visibility = vis).group(baseGroup)
     override val sorter by c.setting("Interact Sorter", ActionConfig.SortMode.Tool, "The order in which interactions are performed", visibility = vis).group(baseGroup)
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting", visibility = vis).group(baseGroup)

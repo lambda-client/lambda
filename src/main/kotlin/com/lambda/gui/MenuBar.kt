@@ -22,7 +22,6 @@ import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.config.Configuration
-import com.lambda.context.AutomationConfig
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
@@ -144,9 +143,6 @@ object MenuBar {
             }
             menu("Baritone Settings") {
                 buildConfigSettingsContext(BaritoneManager)
-            }
-            menu("Automation Settings") {
-                buildConfigSettingsContext(AutomationConfig)
             }
         }
         separator()

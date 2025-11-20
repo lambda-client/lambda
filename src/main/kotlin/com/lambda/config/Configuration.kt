@@ -25,7 +25,7 @@ import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.Configuration.Companion.configurables
-import com.lambda.config.configurations.ModuleConfig
+import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.threading.runIO
@@ -48,7 +48,7 @@ import kotlin.time.Duration.Companion.minutes
  * Each configuration will be loaded concurrently,
  * while the underlying configurables are populated with the settings in sequence.
  *
- * See also [ModuleConfig].
+ * See also [ModuleConfigs].
  *
  * @property configName The name of the configuration.
  * @property primary The primary file where the configuration is saved.

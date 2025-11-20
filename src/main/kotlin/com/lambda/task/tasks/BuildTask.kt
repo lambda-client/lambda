@@ -21,7 +21,7 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
-import com.lambda.context.AutomationConfig
+import com.lambda.context.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -123,7 +123,7 @@ class BuildTask private constructor(
     private fun SafeContext.simulateAndProcess() {
         val results = runSafeAutomated { blueprint.simulate() }
 
-        AutomationConfig.drawables = results
+        DEFAULT.drawables = results
             .filterIsInstance<Drawable>()
             .plus(pendingInteractions.toList())
 
@@ -258,7 +258,7 @@ class BuildTask private constructor(
         @Ta5kBuilder
         fun Automated.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
             blueprint: () -> Blueprint
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
@@ -267,7 +267,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -275,7 +275,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -294,7 +294,7 @@ class BuildTask private constructor(
         fun Automated.breakBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

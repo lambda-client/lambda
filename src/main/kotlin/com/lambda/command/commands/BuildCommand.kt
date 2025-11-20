@@ -62,7 +62,7 @@ object BuildCommand : LambdaCommand(
                                 .loadStructureByRelativePath(Path.of(pathString))
                                 .let { template ->
                                     info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
-                                    lastBuildTask = with(AutomationConfig) {
+                                    lastBuildTask = with(AutomationConfig.Companion.DEFAULT) {
                                         template.toStructure()
                                             .move(player.blockPos)
                                             .toBlueprint()

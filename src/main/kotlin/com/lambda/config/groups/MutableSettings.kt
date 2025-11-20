@@ -31,7 +31,7 @@ private val KProperty0<*>.delegate
     }
 
 @Suppress("unchecked_cast")
-abstract class SettingGroup(val c: Configurable) {
+abstract class MutableSettings(val c: Configurable) {
     @DslMarker
     annotation class SettingEditorDsl
 

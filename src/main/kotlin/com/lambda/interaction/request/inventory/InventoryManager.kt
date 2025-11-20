@@ -18,8 +18,7 @@
 package com.lambda.interaction.request.inventory
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig
-import com.lambda.context.AutomationConfig.avoidDesync
+import com.lambda.context.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
@@ -62,7 +61,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
 
     private var slots = listOf<ItemStack>()
     private var alteredSlots = LimitedDecayQueue<Pair<Int, Pair<ItemStack, ItemStack>>>(
-        Int.MAX_VALUE, AutomationConfig.desyncTimeout * 50L
+        Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L
     )
 
     private var screenHandler: ScreenHandler? = null
@@ -83,7 +82,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         super.load()
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            if (avoidDesync) indexInventoryChanges()
+            if (DEFAULT.avoidDesync) indexInventoryChanges()
             if (++secondCounter >= 20) {
                 secondCounter = 0
                 actionsThisSecond = 0
@@ -125,7 +124,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         activeRequest = request
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
-        alteredSlots.setDecayTime(AutomationConfig.desyncTimeout * 50L)
+        alteredSlots.setDecayTime(DEFAULT.desyncTimeout * 50L)
     }
 
     /**
@@ -144,7 +143,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
                 if (action is InventoryAction.Inventory && actionsThisSecond + 1 > maxActionsThisSecond && !active.mustPerform)
                     break
                 action.action(this)
-                if (avoidDesync) indexInventoryChanges()
+                if (DEFAULT.avoidDesync) indexInventoryChanges()
                 actionsThisTick++
                 actionsThisSecond++
                 iterator.remove()
@@ -186,7 +185,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     @JvmStatic
     fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){
         runSafe {
-            if (!mc.isOnThread || !avoidDesync) {
+            if (!mc.isOnThread || !DEFAULT.avoidDesync) {
                 original.call(packet)
                 return
             }
@@ -220,7 +219,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     fun onSlotUpdate(packet: ScreenHandlerSlotUpdateS2CPacket, original: Operation<Void>) {
         runSafe {
             screenHandler = player.currentScreenHandler
-            if (!mc.isOnThread || !avoidDesync) {
+            if (!mc.isOnThread || !DEFAULT.avoidDesync) {
                 original.call(packet)
                 return
             }

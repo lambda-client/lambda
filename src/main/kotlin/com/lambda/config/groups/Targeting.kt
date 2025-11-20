@@ -54,7 +54,7 @@ abstract class Targeting(
     private val predicate: () -> Boolean = { true },
     private val defaultRange: Double,
     private val maxRange: Double,
-) : TargetingConfig, SettingGroup(owner) {
+) : TargetingConfig, MutableSettings(owner) {
 
     /**
      * The range within which entities can be targeted. This value is configurable and constrained

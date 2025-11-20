@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.Automated
-import com.lambda.context.AutomationConfig
+import com.lambda.context.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
@@ -32,7 +32,7 @@ import com.lambda.threading.runSafeAutomated
  */
 data class SwapInfo(
     private val type: BreakInfo.BreakType,
-    private val automated: Automated,
+    private val automated: Automated = DEFAULT,
     val swap: Boolean = false,
     val longSwap: Boolean = false
 ) : LogContext, Automated by automated {
@@ -44,7 +44,7 @@ data class SwapInfo(
     }
 
     companion object {
-        val EMPTY = SwapInfo(Primary, AutomationConfig)
+        val EMPTY = SwapInfo(Primary)
 
         /**
          * Calculates the contents and returns a [SwapInfo].

@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.rotating.visibilty
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig
+import com.lambda.context.AutomationConfig.Companion.DEFAULT
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation
@@ -169,8 +169,8 @@ object VisibilityChecker {
     ) {
         sides.forEach { side ->
             val (minX, minY, minZ, maxX, maxY, maxZ) = box
-                .contract(AutomationConfig.shrinkFactor)
-                .offset(side.doubleVector.multiply(AutomationConfig.shrinkFactor))
+                .contract(DEFAULT.shrinkFactor)
+                .offset(side.doubleVector.multiply(DEFAULT.shrinkFactor))
                 .bounds(side)
 
             // Determine the bounds to scan based on the axis and mode. Skip if no part of the face is in the desired bounds
