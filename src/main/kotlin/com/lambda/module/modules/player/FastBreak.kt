@@ -55,6 +55,8 @@ object FastBreak : Module(
     description = "Break blocks faster.",
     tag = ModuleTag.PLAYER,
 ) {
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+
     override val breakConfig = object : BreakConfig by super.breakConfig {
         override val rotateForBreak = false
         override val doubleBreak = false
@@ -67,10 +69,8 @@ object FastBreak : Module(
         override val accessStashes = false
     }
 
-    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
-
     init {
-        defaultConfig = automationConfig {
+        defaultAutomationConfig = automationConfig {
             breakConfig.apply {
                 editTyped(
                     ::avoidLiquids,

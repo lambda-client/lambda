@@ -24,9 +24,8 @@ import com.lambda.config.Configurable
 import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.config.settings.complex.Bind
-import com.lambda.context.Automated
-import com.lambda.context.AutomatedDelegate
 import com.lambda.context.AutomationConfig
+import com.lambda.context.MutableAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ClientEvent
@@ -121,13 +120,13 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, Configurable(ModuleConfigs), AutomatedDelegate {
-    protected var defaultConfig: Automated = AutomationConfig.Companion.DEFAULT
+) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig {
+    override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Companion.DEFAULT
         set(value) {
             field = value
-            automated = value
+            automationConfig = value
         }
-    override var automated = defaultConfig
+    override var automationConfig = defaultAutomationConfig
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }

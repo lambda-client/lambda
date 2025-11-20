@@ -146,24 +146,6 @@ open class AutomationConfig(
     fun hide(vararg settings: KProperty0<*>) =
         this@AutomationConfig.settings.removeAll(settings.map { it.delegate } as List<AbstractSetting<*>>)
 
-    @SettingEditorDsl
-    fun KProperty0<*>.insert(insert: KProperty0<*>, insertMode: InsertMode) {
-        val delegate = insert.delegate as AbstractSetting<*>
-        this@AutomationConfig.settings.remove(delegate)
-        val index = this@AutomationConfig.settings.indexOf(this.delegate as AbstractSetting<*>)
-        this@AutomationConfig.settings.add(if (insertMode == InsertMode.Below) index + 1 else index, delegate)
-    }
-
-    @SettingEditorDsl
-    fun KProperty0<*>.insert(vararg inserts: KProperty0<*>, insertMode: InsertMode) {
-        inserts.forEach { this@AutomationConfig.settings.remove(it.delegate as AbstractSetting<*>) }
-        val index = this@AutomationConfig.settings.indexOf(delegate as AbstractSetting<*>)
-        this@AutomationConfig.settings.addAll(
-            if (insertMode == InsertMode.Below) index + 1 else index,
-            inserts.map { it.delegate } as List<AbstractSetting<*>>
-        )
-    }
-
     open class BasicEditBuilder(val c: Configurable, open val settings: Collection<AbstractSetting<*>>) {
         @SettingEditorDsl
         fun visibility(vis: () -> Boolean) =

@@ -19,9 +19,11 @@ package com.lambda.gui.components
 
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
+import com.lambda.context.MutableAutomationConfig
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
+import imgui.ImGui
 import imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
@@ -38,13 +40,30 @@ object SettingsWidget {
                 config.settings.forEach { it.reset(silent = true) }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
+            if (config is MutableAutomationConfig) {
+                button("Automation Config")
+                popupContextItem("##automation-config-popup-${config.name}") {
+                    if (config.automationConfig !== config.defaultAutomationConfig) {
+                        text("Linked to the ${config.automationConfig.name} configuration")
+                    }
+                    buildConfigSettingsContext(config.automationConfig)
+                }
+            }
         }
         separator()
         val toIgnoreSettings = if (config is Module) setOf(config.keybindSetting, config.disableOnReleaseSetting) else emptySet()
         val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
-        ungrouped.forEach { with(it) { buildLayout() } }
+        ungrouped.forEach {
+            it.withDisabled { buildLayout() }
+        }
         renderGroup(grouped, emptyList(), config)
+    }
+
+    private fun AbstractSetting<*>.withDisabled(block: AbstractSetting<*>.() -> Unit) {
+        if (disabled()) ImGui.beginDisabled()
+        block()
+        if (disabled()) ImGui.endDisabled()
     }
 
     private fun ImGuiBuilder.renderGroup(
@@ -52,7 +71,9 @@ object SettingsWidget {
         parentPath: List<NamedEnum>,
         config: Configurable
     ) {
-        settings.filter { it.groups.contains(parentPath) }.forEach { with(it) { buildLayout() } }
+        settings.filter { it.groups.contains(parentPath) }.forEach {
+            it.withDisabled { buildLayout() }
+        }
 
         val subGroupSettings = settings.filter { s ->
             s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath }

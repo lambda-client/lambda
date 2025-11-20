@@ -17,19 +17,10 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BreakSettings
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.EatSettings
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.PlaceSettings
-import com.lambda.config.groups.RotationSettings
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -55,46 +46,22 @@ object HighwayTools : Module(
     description = "Auto highway builder",
     tag = ModuleTag.PLAYER,
 ) {
-    enum class Group(override val displayName: String): NamedEnum {
-        Structure("Structure"),
-        Build("Build"),
-        Break("Break"),
-        Place("Place"),
-        Interact("Interact"),
-        Rotation("Rotation"),
-        Interaction("Interaction"),
-        Inventory("Inventory"),
-        Hotbar("Hotbar"),
-        Eat("Eat")
-    }
-
-    private val height by setting("Height", 4, 2..10, 1).group(Group.Structure)
-    private val width by setting("Width", 6, 1..30, 1).group(Group.Structure)
-    private val pavement by setting("Pavement", Material.Block, "Material for the pavement").group(Group.Structure)
-    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }.group(Group.Structure)
-    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }.group(Group.Structure)
-    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }.group(Group.Structure)
-    private val floor by setting("Floor", Material.None, "Material for the floor").group(Group.Structure)
-    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }.group(Group.Structure)
-    private val rightWall by setting("Right Wall", Material.None, "Build the right wall").group(Group.Structure)
-    private val leftWall by setting("Left Wall", Material.None, "Build the left wall").group(Group.Structure)
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }.group(Group.Structure)
-    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling").group(Group.Structure)
-    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }.group(Group.Structure)
-    private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND)).group(Group.Structure)
-    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)").group(Group.Structure)
-    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once").group(Group.Structure)
-
-    override val buildConfig = BuildSettings(this, Group.Build)
-    override val breakConfig = BreakSettings(this, Group.Break).apply {
-        ::swapMode.edit { defaultValue(BreakConfig.SwapMode.Constant) }
-    }
-    override val placeConfig = PlaceSettings(this, Group.Place)
-    override val interactConfig = InteractSettings(this, Group.Interact)
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val inventoryConfig = InventorySettings(this, Group.Inventory)
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
-    override val eatConfig = EatSettings(this, Group.Eat)
+    private val height by setting("Height", 4, 2..10, 1)
+    private val width by setting("Width", 6, 1..30, 1)
+    private val pavement by setting("Pavement", Material.Block, "Material for the pavement")
+    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
+    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { pavement != Material.None }
+    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { pavement == Material.Block }
+    private val floor by setting("Floor", Material.None, "Material for the floor")
+    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { floor == Material.Block }
+    private val rightWall by setting("Right Wall", Material.None, "Build the right wall")
+    private val leftWall by setting("Left Wall", Material.None, "Build the left wall")
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { rightWall == Material.Block || leftWall == Material.Block }
+    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling")
+    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { ceiling == Material.Block }
+    private val replaceableSolids by setting("Replaceable Solids", setOf(Blocks.MAGMA_BLOCK, Blocks.SOUL_SAND))
+    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
+    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
