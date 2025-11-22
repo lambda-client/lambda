@@ -15,10 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.context
+package com.lambda.config
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.EatConfig
+import com.lambda.context.Automated
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.interacting.InteractConfig

@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.rotating.visibilty
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation

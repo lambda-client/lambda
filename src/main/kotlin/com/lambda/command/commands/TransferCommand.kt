@@ -27,7 +27,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial

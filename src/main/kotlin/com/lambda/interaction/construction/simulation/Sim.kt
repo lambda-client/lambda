@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult

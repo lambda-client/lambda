@@ -23,7 +23,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import imgui.flag.ImGuiInputTextFlags

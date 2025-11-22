@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.context.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext

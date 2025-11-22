@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
-import com.lambda.context.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.processing.ProcessorRegistry

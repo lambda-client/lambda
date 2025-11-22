@@ -17,9 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BreakSettings.Group
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.groups.BuildConfig
-import com.lambda.context.AutomationConfig.Companion.automationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -53,6 +52,11 @@ object PacketMine : Module(
     description = "automatically breaks blocks, and does it faster",
     tag = ModuleTag.PLAYER
 ) {
+    private enum class Group(override val displayName: String) : NamedEnum {
+        General("General"),
+        Renders("Renders")
+    }
+
     private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once").disabled { !breakConfig.rebreak }.group(Group.General)
     private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(Group.General)
     private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.General)
@@ -60,13 +64,13 @@ object PacketMine : Module(
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by  setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(Group.General)
 
-    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").disabled { !breakConfig.renders }.group(Group.Cosmetic)
-    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Cosmetic)
-    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Cosmetic)
-    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Cosmetic)
-    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }.disabled { !breakConfig.renders }.group(Group.Cosmetic)
-    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.disabled { !breakConfig.renders }.group(Group.Cosmetic)
-    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.disabled { !breakConfig.renders }.group(Group.Cosmetic)
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").disabled { !breakConfig.renders }.group(Group.Renders)
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Renders)
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Renders)
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Renders)
+    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }.disabled { !breakConfig.renders }.group(Group.Renders)
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.disabled { !breakConfig.renders }.group(Group.Renders)
+    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.disabled { !breakConfig.renders }.group(Group.Renders)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 

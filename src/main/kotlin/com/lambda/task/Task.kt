@@ -18,7 +18,7 @@
 package com.lambda.task
 
 import com.lambda.Lambda.LOG
-import com.lambda.context.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable

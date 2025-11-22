@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.inventory
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent

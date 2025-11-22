@@ -26,6 +26,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.Configuration.Companion.configurables
 import com.lambda.config.configurations.ModuleConfigs
+import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.threading.runIO
@@ -54,7 +55,8 @@ import kotlin.time.Duration.Companion.minutes
  * @property primary The primary file where the configuration is saved.
  * @property configurables A set of [Configurable] objects that this configuration manages.
  */
-abstract class Configuration : Jsonable {
+abstract class Configuration : Jsonable, Loadable {
+    override val priority = 1
     abstract val configName: String
     abstract val primary: File
 
@@ -62,10 +64,10 @@ abstract class Configuration : Jsonable {
     private val backup: File
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
-    init {
+    override fun load(): String {
         listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
-
         register()
+        return super.load()
     }
 
     // Avoid context-leaking warning
@@ -95,7 +97,7 @@ abstract class Configuration : Jsonable {
         }
     }
 
-    fun save() = runCatching {
+    private fun save() = runCatching {
         primary.createIfNotExists()
             .let {
                 it.writeText(gson.toJson(toJson()))
@@ -107,12 +109,12 @@ abstract class Configuration : Jsonable {
      * Loads the config from the [file]
      * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
      */
-    fun load(file: File) = runCatching {
+    private fun load(file: File) = runCatching {
         file.ifNotExists { LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
             .ifExists { loadFromJson(JsonParser.parseReader(it.reader()).asJsonObject) }
     }
 
-    fun tryLoad() = runIO {
+    open fun tryLoad() = runIO {
         load(primary)
             .onSuccess {
                 val message = "${configName.capitalize()} config loaded."
@@ -135,7 +137,7 @@ abstract class Configuration : Jsonable {
             }
     }
 
-    fun trySave(logToChat: Boolean = false) = runIO {
+    open fun trySave(logToChat: Boolean = false) = runIO {
         save()
             .onSuccess {
                 val message = "Saved ${configName.capitalize()} config."

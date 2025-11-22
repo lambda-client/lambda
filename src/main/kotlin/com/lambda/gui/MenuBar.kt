@@ -22,6 +22,8 @@ import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.config.Configuration
+import com.lambda.config.UserAutomationConfig
+import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
@@ -33,6 +35,7 @@ import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.interaction.BaritoneManager
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.LambdaAPI
 import com.lambda.threading.runSafe
@@ -46,6 +49,7 @@ import imgui.ImGui.closeCurrentPopup
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
+import imgui.type.ImString
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
@@ -53,6 +57,7 @@ import java.util.*
 
 object MenuBar {
     private var aboutRequested = false
+    val newConfigName = ImString()
     val headerLogo = upload("textures/lambda_text_color.png")
     val lambdaLogo = upload("textures/lambda.png")
     val githubLogo = upload("textures/github_logo.png")
@@ -67,6 +72,7 @@ object MenuBar {
             menu("HUD") { buildHudMenu() }
             menu("GUI") { buildGuiMenu() }
             menu("Modules") { buildModulesMenu() }
+            menu("Automation Presets") { buildConfigPresetsMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
             menu("Help") { buildHelpMenu() }
             buildGitHubReference()
@@ -271,6 +277,45 @@ object MenuBar {
                         }
                         // Optionally, offer a "Settings..." item to focus this module’s details UI.
                     }
+            }
+        }
+    }
+
+    private fun ImGuiBuilder.buildConfigPresetsMenu() {
+        button("New Config") { ImGui.openPopup("##new-config") }
+
+        popupContextWindow("##new-config") {
+            inputText("Name", newConfigName)
+            button("Create") {
+                if (newConfigName.isEmpty) return@button
+                UserAutomationConfig(newConfigName.get())
+                newConfigName.clear()
+                closeCurrentPopup()
+                return@button
+            }
+            sameLine()
+            button("Cancel") {
+                newConfigName.clear()
+                closeCurrentPopup()
+            }
+        }
+
+        UserAutomationConfigs.configurables.forEach { config ->
+            if (config !is UserAutomationConfig) throw java.lang.IllegalStateException("All configurables within UserAutomationConfigs must be UserAutomationConfigs!")
+            selectable(config.name)
+
+            popupContextItem("##automation-config-popup-${config.name}") {
+                with(config.linkedModules) { buildLayout() }
+                button("Delete") {
+                    config.linkedModules.value.forEach {
+                        moduleNameMap[it]?.let { module ->
+                            module.automationConfig = module.defaultAutomationConfig
+                        }
+                    }
+                    UserAutomationConfigs.configurables.remove(config)
+                }
+                separator()
+                buildConfigSettingsContext(config)
             }
         }
     }

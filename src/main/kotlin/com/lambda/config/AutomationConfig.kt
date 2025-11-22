@@ -15,10 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.context
+package com.lambda.config
 
-import com.lambda.config.AbstractSetting
-import com.lambda.config.Configurable
 import com.lambda.config.configurations.AutomationConfigs
 import com.lambda.config.groups.BreakSettings
 import com.lambda.config.groups.BuildSettings
@@ -28,6 +26,7 @@ import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.PlaceSettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.context.Automated
 import com.lambda.event.events.onStaticRender
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
@@ -37,8 +36,9 @@ import kotlin.reflect.jvm.isAccessible
 
 @Suppress("unchecked_cast", "unused")
 open class AutomationConfig(
-    override val name: String
-) : Configurable(AutomationConfigs), Automated {
+    override val name: String,
+    configuration: Configuration = AutomationConfigs
+) : Configurable(configuration), Automated {
     enum class Group(override val displayName: String) : NamedEnum {
         Build("Build"),
         Break("Break"),
@@ -65,12 +65,12 @@ open class AutomationConfig(
     companion object {
         context(module: Module)
         fun automationConfig(name: String = module.name, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
-            AutomationConfig(name).apply { edits?.invoke(this) }
+            AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
 
         fun automationConfig(name: String, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
-            AutomationConfig(name).apply { edits?.invoke(this) }
+            AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
 
-        object DEFAULT : AutomationConfig("Default") {
+        object DEFAULT : AutomationConfig("Default Automation Config") {
             val renders by setting("Render", false).group(Group.Render)
             val avoidDesync by setting("Avoid Desync", true, "Cancels incoming inventory update packets if they match previous actions").group(Group.Debug)
             val desyncTimeout by setting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidDesync }.group(Group.Debug)

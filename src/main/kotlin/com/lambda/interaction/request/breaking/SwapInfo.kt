@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.Automated
-import com.lambda.context.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder

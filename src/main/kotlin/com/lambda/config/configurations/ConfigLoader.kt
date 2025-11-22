@@ -21,6 +21,7 @@ import com.lambda.config.Configuration
 import com.lambda.core.Loadable
 
 object ConfigLoader: Loadable {
+    override val priority = 0
     override fun load(): String {
         Configuration.configurations.forEach {
             it.tryLoad()

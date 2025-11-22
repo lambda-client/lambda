@@ -33,7 +33,7 @@ open class BreakSettings(
     baseGroup: NamedEnum,
     vis: () -> Boolean = { true },
 ) : BreakConfig {
-    enum class Group(override val displayName: String) : NamedEnum {
+    private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Cosmetic("Cosmetic")
     }

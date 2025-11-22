@@ -21,8 +21,10 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
+import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.threading.runSafe
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
@@ -43,6 +45,8 @@ class ListSetting<T : Any>(
     description,
     visibility
 ) {
+    private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
+    private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
     private val strListType =
         TypeToken.getParameterized(MutableList::class.java, String::class.java).type
 
@@ -55,7 +59,15 @@ class ListSetting<T : Any>(
                     selectable(
                         it.toString(), isSelected,
                         flags = DontClosePopups
-                    ) { if (isSelected) value.remove(it) else value.add(it) }
+                    ) {
+                        if (isSelected) {
+                            value.remove(it)
+                            runSafe { deselectListeners.forEach { listener -> listener(it) } }
+                        } else {
+                            value.add(it)
+                            runSafe { selectListeners.forEach { listener -> listener(it) } }
+                        }
+                    }
                 }
         }
     }
@@ -72,6 +84,14 @@ class ListSetting<T : Any>(
             .toMutableList()
 
         value = strList
+    }
+
+    fun onSelect(block: SafeContext.(T) -> Unit) = apply {
+        selectListeners.add(block)
+    }
+
+    fun onDeselect(block: SafeContext.(T) -> Unit) = apply {
+        deselectListeners.add(block)
     }
 
     companion object {

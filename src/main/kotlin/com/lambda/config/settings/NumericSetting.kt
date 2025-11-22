@@ -19,7 +19,7 @@ package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.ImGui
 import imgui.ImGui.calcTextSize

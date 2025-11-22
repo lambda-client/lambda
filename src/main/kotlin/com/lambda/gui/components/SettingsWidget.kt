@@ -18,8 +18,10 @@
 package com.lambda.gui.components
 
 import com.lambda.config.AbstractSetting
+import com.lambda.config.AutomationConfig
 import com.lambda.config.Configurable
-import com.lambda.context.MutableAutomationConfig
+import com.lambda.config.MutableAutomationConfig
+import com.lambda.config.UserAutomationConfig
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
@@ -40,18 +42,24 @@ object SettingsWidget {
                 config.settings.forEach { it.reset(silent = true) }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
-            if (config is MutableAutomationConfig) {
+            if (config is MutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
                 button("Automation Config")
+                sameLine()
+                if (config.automationConfig !== config.defaultAutomationConfig) {
+                    text("(${config.automationConfig.name})")
+                }
                 popupContextItem("##automation-config-popup-${config.name}") {
-                    if (config.automationConfig !== config.defaultAutomationConfig) {
-                        text("Linked to the ${config.automationConfig.name} configuration")
-                    }
                     buildConfigSettingsContext(config.automationConfig)
                 }
             }
         }
         separator()
-        val toIgnoreSettings = if (config is Module) setOf(config.keybindSetting, config.disableOnReleaseSetting) else emptySet()
+        val toIgnoreSettings =
+            when (config) {
+                is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting)
+                is UserAutomationConfig -> setOf(config.linkedModules)
+                else -> emptySet()
+            }
         val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
         ungrouped.forEach {
