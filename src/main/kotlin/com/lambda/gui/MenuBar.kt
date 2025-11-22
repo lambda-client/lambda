@@ -22,6 +22,7 @@ import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.config.Configuration
+import com.lambda.config.Configuration.Companion.configurables
 import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.core.Loader
@@ -287,7 +288,7 @@ object MenuBar {
         popupContextWindow("##new-config") {
             inputText("Name", newConfigName)
             button("Create") {
-                if (newConfigName.isEmpty) return@button
+                if (newConfigName.isEmpty && configurables.none { it.name == newConfigName.get() }) return@button
                 UserAutomationConfig(newConfigName.get())
                 newConfigName.clear()
                 closeCurrentPopup()
