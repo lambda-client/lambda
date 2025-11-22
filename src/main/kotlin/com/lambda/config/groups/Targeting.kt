@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.interaction.request.rotating.Rotation.Companion.dist
@@ -43,50 +44,49 @@ import java.util.*
  * based on player settings and entity characteristics. It allows for specifying which types of entities
  * are targetable, the range of targeting, and various other conditions for targeting.
  *
- * @param owner The [Configurable] instance used to get and set configuration options for targeting.
- * @param predicate The predicate used to determine whether the targeting settings are visible and active.
+ * @param c The [Configurable] instance used to get and set configuration options for targeting.
+ * @param vis The predicate used to determine whether the targeting settings are visible and active.
  * @param defaultRange The default range within which entities can be targeted.
  * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class Targeting(
-    private val owner: Configurable,
+    private val c: Configurable,
     baseGroup: NamedEnum,
-    private val predicate: () -> Boolean = { true },
     private val defaultRange: Double,
     private val maxRange: Double,
-) : TargetingConfig {
+) : SettingGroup(), TargetingConfig {
 
     /**
      * The range within which entities can be targeted. This value is configurable and constrained
      * between 1.0 and [maxRange].
      */
-    override val targetingRange by owner.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05) { predicate() }.group(baseGroup)
+    override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05).group(baseGroup)
 
     /**
      * Whether players are included in the targeting scope.
      */
-    override val players by owner.setting("Players", true) { predicate() }.group(baseGroup)
+    override val players by c.setting("Players", true).group(baseGroup)
 
     /**
      * Whether friends are included in the targeting scope.
      * Requires [players] to be true.
      */
-    override val friends by owner.setting("Friends", false) { predicate() && players }.group(baseGroup)
+    override val friends by c.setting("Friends", false) { players }.group(baseGroup)
 
     /**
      * Whether mobs are included in the targeting scope.
      */
-    private val mobs by owner.setting("Mobs", true) { predicate() }.group(baseGroup)
+    private val mobs by c.setting("Mobs", true).group(baseGroup)
 
     /**
      * Whether hostile mobs are included in the targeting scope
      */
-    private val hostilesSetting by owner.setting("Hostiles", true) { predicate() && mobs }.group(baseGroup)
+    private val hostilesSetting by c.setting("Hostiles", true) { mobs }.group(baseGroup)
 
     /**
      * Whether passive animals are included in the targeting scope
      */
-    private val animalsSetting by owner.setting("Animals", true) { predicate() && mobs }.group(baseGroup)
+    private val animalsSetting by c.setting("Animals", true) { mobs }.group(baseGroup)
 
     /**
      * Indicates whether hostile entities are included in the targeting scope.
@@ -101,12 +101,12 @@ abstract class Targeting(
     /**
      * Whether invisible entities are included in the targeting scope.
      */
-    override val invisible by owner.setting("Invisible", true) { predicate() }.group(baseGroup)
+    override val invisible by c.setting("Invisible", true).group(baseGroup)
 
     /**
      * Whether dead entities are included in the targeting scope.
      */
-    override val dead by owner.setting("Dead", false) { predicate() }.group(baseGroup)
+    override val dead by c.setting("Dead", false).group(baseGroup)
 
     /**
      * Validates whether a given entity is targetable by the player based on current settings.
@@ -134,22 +134,21 @@ abstract class Targeting(
      * @property priority The priority used to determine which entity is targeted when multiple candidates are available.
      */
     class Combat(
-        owner: Configurable,
+        c: Configurable,
         baseGroup: NamedEnum,
         defaultRange: Double = 5.0,
         maxRange: Double = 16.0,
-        predicate: () -> Boolean = { true },
-    ) : Targeting(owner, baseGroup, predicate, defaultRange, maxRange) {
+    ) : Targeting(c, baseGroup, defaultRange, maxRange) {
 
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by owner.setting("FOV Limit", 180, 5..180, 1) { predicate() && priority == Priority.Fov }.group(baseGroup)
+        val fov by c.setting("FOV Limit", 180, 5..180, 1) { priority == Priority.Fov }.group(baseGroup)
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.Distance].
          */
-        val priority by owner.setting("Priority", Priority.Distance) { predicate() }.group(baseGroup)
+        val priority by c.setting("Priority", Priority.Distance).group(baseGroup)
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
@@ -186,10 +185,9 @@ abstract class Targeting(
      * Subclass for targeting entities for ESP (Extrasensory Perception) purposes.
      */
     class ESP(
-        owner: Configurable,
+        c: Configurable,
         baseGroup: NamedEnum,
-        predicate: () -> Boolean = { true },
-    ) : Targeting(owner, baseGroup, predicate, 128.0, 1024.0)
+    ) : Targeting(c, baseGroup, 128.0, 1024.0)
 
     /**
      * Enum representing the different priority factors used for determining the best target.

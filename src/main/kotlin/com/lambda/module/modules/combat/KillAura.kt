@@ -60,8 +60,7 @@ object KillAura : Module(
     private val targeting = Targeting.Combat(this, Group.Targeting)
 
     // Aiming
-    private val rotate by setting("Rotate", true).group(Group.Aiming)
-    override val rotationConfig = RotationSettings(this, Group.Aiming) { rotate }
+    override val rotationConfig = RotationSettings(this, Group.Aiming)
 
     val target: LivingEntity?
         get() = targeting.target()
@@ -122,7 +121,7 @@ object KillAura : Module(
         }
 
         // Rotation check
-        if (rotate) {
+        if (rotationConfig.rotate) {
             val angle = RotationManager.activeRotation
 
             if (buildConfig.strictRayCast) {

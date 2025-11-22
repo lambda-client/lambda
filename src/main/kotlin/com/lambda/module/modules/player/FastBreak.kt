@@ -92,6 +92,7 @@ object FastBreak : Module(
                     ::accessStashes
                 )
             }
+            hideAll(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
         }
 
         listen<PlayerEvent.Attack.Block> { it.cancel() }

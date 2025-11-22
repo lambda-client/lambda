@@ -102,18 +102,18 @@ open class AutomationConfig(
         }
 
     @SettingEditorDsl
-    internal inline fun <T : Any> KProperty0<T>.edit(edits: FullEditBuilder<T>.(AbstractSetting<T>) -> Unit) {
+    internal inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(AbstractSetting<T>) -> Unit) {
         val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        FullEditBuilder(setting, this@AutomationConfig).edits(setting)
+        TypedEditBuilder(listOf(setting), this@AutomationConfig).edits(setting)
     }
 
     @SettingEditorDsl
-    internal inline fun <T : Any> KProperty0<T>.editWith(
-        other: KProperty0<*>,
-        edits: FullEditBuilder<T>.(AbstractSetting<*>) -> Unit
+    internal inline fun <T : Any, R : Any> KProperty0<T>.editWith(
+        other: KProperty0<R>,
+        edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
     ) {
         val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        FullEditBuilder(setting, this@AutomationConfig).edits(other.delegate as AbstractSetting<*>)
+        TypedEditBuilder(listOf(setting), this@AutomationConfig).edits(other.delegate as AbstractSetting<R>)
     }
 
     @SettingEditorDsl
@@ -123,11 +123,11 @@ open class AutomationConfig(
     ) { BasicEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<*>>).apply(edits) }
 
     @SettingEditorDsl
-    fun editWith(
+    internal inline fun <T : Any> editWith(
         vararg settings: KProperty0<*>,
-        other: KProperty0<*>,
-        edits: BasicEditBuilder.(AbstractSetting<*>) -> Unit
-    ) { BasicEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<*>>).edits(other.delegate as AbstractSetting<*>) }
+        other: KProperty0<T>,
+        edits: BasicEditBuilder.(AbstractSetting<T>) -> Unit
+    ) { BasicEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<*>>).edits(other.delegate as AbstractSetting<T>) }
 
     @SettingEditorDsl
     internal inline fun <T : Any> editTyped(
@@ -145,6 +145,21 @@ open class AutomationConfig(
     @SettingEditorDsl
     fun hide(vararg settings: KProperty0<*>) =
         this@AutomationConfig.settings.removeAll(settings.map { it.delegate } as List<AbstractSetting<*>>)
+
+    @SettingEditorDsl
+    fun hideAll(settingGroup: SettingGroup) {
+        settings.removeAll(settingGroup.settings)
+    }
+
+    @SettingEditorDsl
+    fun hideAll(vararg settingGroups: SettingGroup) {
+        settings.removeAll(settingGroups.flatMap { it.settings })
+    }
+
+    @SettingEditorDsl
+    fun hideAllExcept(settingGroup: SettingGroup, vararg settings: KProperty0<*>) {
+        this@AutomationConfig.settings.removeIf { it in settingGroup.settings && it !in (settings.toList() as List<AbstractSetting<*>>) }
+    }
 
     open class BasicEditBuilder(val c: Configurable, open val settings: Collection<AbstractSetting<*>>) {
         @SettingEditorDsl
@@ -175,21 +190,6 @@ open class AutomationConfig(
                 it.defaultValue = value
                 it.value = value
             }
-    }
-
-    class FullEditBuilder<T : Any>(
-        private val setting: AbstractSetting<T>,
-        c: Configurable
-    ) : TypedEditBuilder<T>(setOf(setting), c) {
-        @SettingEditorDsl
-        fun name(name: String) {
-            setting.name = name
-        }
-
-        @SettingEditorDsl
-        fun description(description: String) {
-            setting.description = description
-        }
     }
 
     enum class InsertMode {

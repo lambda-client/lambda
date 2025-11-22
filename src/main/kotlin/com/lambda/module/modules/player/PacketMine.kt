@@ -109,12 +109,6 @@ object PacketMine : Module(
 
     init {
         defaultAutomationConfig = automationConfig {
-            buildConfig.apply {
-                editTyped(::pathing, ::stayInRange, ::collectDrops) {
-                    defaultValue(false)
-                    hide()
-                }
-            }
             breakConfig.apply {
                 editTyped(
                     ::avoidLiquids,
@@ -124,20 +118,10 @@ object PacketMine : Module(
                 ) { defaultValue(false) }
                 ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
             }
-            inventoryConfig.apply {
-                editTyped(
-                    ::accessShulkerBoxes,
-                    ::accessEnderChest,
-                    ::accessChests,
-                    ::accessStashes
-                ) {
-                    defaultValue(false)
-                    hide()
-                }
-            }
             hotbarConfig.apply {
                 ::keepTicks.edit { defaultValue(0) }
             }
+            hideAll(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
         }
 
         listen<TickEvent.Post> {

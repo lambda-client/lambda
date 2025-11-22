@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
@@ -81,6 +81,7 @@ object Scaffold : Module(
                     hide()
                 }
             }
+            hideAll(buildConfig, breakConfig, interactConfig, inventoryConfig, eatConfig)
         }
 
         listen<TickEvent.Pre> {
