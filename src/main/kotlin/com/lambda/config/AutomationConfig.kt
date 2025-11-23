@@ -145,11 +145,8 @@ open class AutomationConfig(
     ) = TypedEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<T>>).edits(other.delegate as AbstractSetting<R>)
 
     @SettingEditorDsl
-    fun hide(vararg settings: KProperty0<*>) = {
-        (settings.map { it.delegate } as List<AbstractSetting<*>>).let { removed ->
-            this@AutomationConfig.settings.removeAll(removed)
-            hiddenSettings.addAll(removed)
-        }
+    fun hide(vararg settings: KProperty0<*>) {
+        hideAll((settings.map { it.delegate } as List<AbstractSetting<*>>))
     }
 
     @SettingEditorDsl
@@ -163,10 +160,7 @@ open class AutomationConfig(
 
     @SettingEditorDsl
     fun hideAll(vararg settingGroups: SettingGroup) {
-        settingGroups.flatMap { it.settings }.let { removed ->
-            settings.removeAll(removed)
-            hiddenSettings.addAll(removed)
-        }
+        settingGroups.forEach { hideAll(it.settings) }
     }
 
     @SettingEditorDsl
