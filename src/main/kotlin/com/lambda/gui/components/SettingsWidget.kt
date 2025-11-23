@@ -32,7 +32,7 @@ object SettingsWidget {
     /**
      * Builds the settings context popup content for a given configurable.
      */
-    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
+    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable, hiddenSettings: Set<AbstractSetting<*>> = emptySet()) {
         group {
             if (config is Module) {
                 with(config.keybindSetting) { buildLayout() }
@@ -45,11 +45,11 @@ object SettingsWidget {
             if (config is MutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
                 button("Automation Config")
                 sameLine()
+                popupContextItem("##automation-config-popup-${config.name}") {
+                    buildConfigSettingsContext(config.automationConfig, config.defaultAutomationConfig.hiddenSettings)
+                }
                 if (config.automationConfig !== config.defaultAutomationConfig) {
                     text("(${config.automationConfig.name})")
-                }
-                popupContextItem("##automation-config-popup-${config.name}") {
-                    buildConfigSettingsContext(config.automationConfig)
                 }
             }
         }
@@ -60,7 +60,7 @@ object SettingsWidget {
                 is UserAutomationConfig -> setOf(config.linkedModules)
                 else -> emptySet()
             }
-        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
+        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings - hiddenSettings
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
         ungrouped.forEach {
             it.withDisabled { buildLayout() }

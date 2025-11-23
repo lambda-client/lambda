@@ -62,6 +62,8 @@ open class AutomationConfig(
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
     override val eatConfig = EatSettings(this, Group.Eat)
 
+    val hiddenSettings = mutableSetOf<AbstractSetting<*>>()
+
     companion object {
         context(module: Module)
         fun automationConfig(name: String = module.name, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
@@ -104,7 +106,7 @@ open class AutomationConfig(
     @SettingEditorDsl
     internal inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(AbstractSetting<T>) -> Unit) {
         val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        TypedEditBuilder(listOf(setting), this@AutomationConfig).edits(setting)
+        TypedEditBuilder(this@AutomationConfig, listOf(setting)).edits(setting)
     }
 
     @SettingEditorDsl
@@ -113,7 +115,7 @@ open class AutomationConfig(
         edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
     ) {
         val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        TypedEditBuilder(listOf(setting), this@AutomationConfig).edits(other.delegate as AbstractSetting<R>)
+        TypedEditBuilder(this@AutomationConfig, listOf(setting)).edits(other.delegate as AbstractSetting<R>)
     }
 
     @SettingEditorDsl
@@ -133,43 +135,57 @@ open class AutomationConfig(
     internal inline fun <T : Any> editTyped(
         vararg settings: KProperty0<T>,
         edits: TypedEditBuilder<T>.() -> Unit
-    ) { TypedEditBuilder(settings.map { it.delegate } as List<AbstractSetting<T>>, this@AutomationConfig).apply(edits) }
+    ) { TypedEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<T>>).apply(edits) }
 
     @SettingEditorDsl
     internal inline fun <T : Any, R : Any> editTypedWith(
         vararg settings: KProperty0<T>,
         other: KProperty0<R>,
         edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
-    ) = TypedEditBuilder(settings.map { it.delegate } as List<AbstractSetting<T>>, this@AutomationConfig).edits(other.delegate as AbstractSetting<R>)
+    ) = TypedEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<T>>).edits(other.delegate as AbstractSetting<R>)
 
     @SettingEditorDsl
-    fun hide(vararg settings: KProperty0<*>) =
-        this@AutomationConfig.settings.removeAll(settings.map { it.delegate } as List<AbstractSetting<*>>)
+    fun hide(vararg settings: KProperty0<*>) = {
+        (settings.map { it.delegate } as List<AbstractSetting<*>>).let { removed ->
+            this@AutomationConfig.settings.removeAll(removed)
+            hiddenSettings.addAll(removed)
+        }
+    }
 
     @SettingEditorDsl
-    fun hideAll(settingGroup: SettingGroup) {
-        settings.removeAll(settingGroup.settings)
+    fun hideAll(settingGroup: SettingGroup) = hideAll(settingGroup.settings)
+
+    @SettingEditorDsl
+    fun hideAll(settings: Collection<AbstractSetting<*>>) {
+        this@AutomationConfig.settings.removeAll(settings)
+        hiddenSettings.addAll(settings)
     }
 
     @SettingEditorDsl
     fun hideAll(vararg settingGroups: SettingGroup) {
-        settings.removeAll(settingGroups.flatMap { it.settings })
+        settingGroups.flatMap { it.settings }.let { removed ->
+            settings.removeAll(removed)
+            hiddenSettings.addAll(removed)
+        }
     }
 
     @SettingEditorDsl
     fun hideAllExcept(settingGroup: SettingGroup, vararg settings: KProperty0<*>) {
-        this@AutomationConfig.settings.removeIf { it in settingGroup.settings && it !in (settings.toList() as List<AbstractSetting<*>>) }
+        this@AutomationConfig.settings.removeIf {
+            return@removeIf if (it in settingGroup.settings && it !in (settings.toList() as List<AbstractSetting<*>>)) {
+                hiddenSettings.add(it)
+                true
+            } else false
+        }
     }
 
-    open class BasicEditBuilder(val c: Configurable, open val settings: Collection<AbstractSetting<*>>) {
+    open class BasicEditBuilder(val c: AutomationConfig, open val settings: Collection<AbstractSetting<*>>) {
         @SettingEditorDsl
         fun visibility(vis: () -> Boolean) =
             settings.forEach { it.visibility = vis }
 
         @SettingEditorDsl
-        fun hide() {
-            c.settings.removeAll(settings)
-        }
+        fun hide() = c.hideAll(settings)
 
         @SettingEditorDsl
         fun groups(vararg groups: NamedEnum) =
@@ -181,8 +197,8 @@ open class AutomationConfig(
     }
 
     open class TypedEditBuilder<T : Any>(
-        override val settings: Collection<AbstractSetting<T>>,
-        c: Configurable
+        c: AutomationConfig,
+        override val settings: Collection<AbstractSetting<T>>
     ) : BasicEditBuilder(c, settings) {
         @SettingEditorDsl
         fun defaultValue(value: T) =
