@@ -18,6 +18,7 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.config.groups.HotbarSettings
+import com.lambda.config.groups.InventorySettings
 import com.lambda.config.settings.collections.SetSetting.Companion.immutableSet
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
@@ -28,6 +29,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -37,7 +39,6 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.option.KeyBinding
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
@@ -46,7 +47,6 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
-import org.lwjgl.glfw.GLFW
 
 object BetterFirework : Module(
     name = "BetterFirework",
@@ -54,20 +54,25 @@ object BetterFirework : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework").group(Group.General)
-    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.UNBOUND.code }.group(Group.General)
+    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
 
     private var clientSwing by setting("Swing", true, "Swing hand client side").group(Group.General)
-    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory") { activateButton.key != KeyCode.UNBOUND.code }.group(Group.General)
+    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
 
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
         ::sequenceStageMask.edit { immutableSet(setOf(TickEvent.Pre)) }
     }
 
+    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
+        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)) }
+    }
+
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
-        Hotbar("Hotbar")
+        Hotbar("Hotbar"),
+        Inventory("Inventory")
     }
 
     private var takeoffState = TakeoffState.None
@@ -198,39 +203,40 @@ object BetterFirework : Module(
      * Use a firework from the hotbar or inventory if possible.
      * Return true if a firework has been used
      */
-    fun SafeContext.startFirework(silent: Boolean): Boolean {
+    fun SafeContext.startFirework(silent: Boolean) {
         val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
 
         stack.bestItemMatch(player.hotbar)
             ?.let {
                 val request = HotbarManager.request(HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0))
                 if (request.done) {
-                    player.networkHandler.sendPacket(PlayerInteractItemC2SPacket(Hand.MAIN_HAND, 0, player.yaw, player.pitch))
+                    interaction.interactItem(player, Hand.MAIN_HAND)
                     sendSwing()
                 }
 
-                return true
+                return
             }
 
-        if (!silent) return false
+        if (!silent) return
 
         stack.bestItemMatch(player.hotbarAndStorage)
             ?.let {
-                val swap = player.hotbarAndStorage.indexOf(it)
+                val swapSlotId = player.hotbarAndStorage.indexOf(it)
+                val hotbarSlotToSwapWith = player.hotbar.find { slot -> slot.isEmpty } ?.let { slot -> player.hotbar.indexOf(slot) } ?: 8
 
-                interaction.clickSlot(player.playerScreenHandler.syncId, swap, 0, SlotActionType.SWAP, mc.player)
-
-                val request = HotbarManager.request(HotbarRequest(0, this@BetterFirework, keepTicks = 0))
-                if (request.done) {
-                    player.networkHandler.sendPacket(PlayerInteractItemC2SPacket(Hand.MAIN_HAND, 0, player.yaw, player.pitch))
-                    sendSwing()
-                }
-
-                interaction.clickSlot(player.playerScreenHandler.syncId, swap, 0, SlotActionType.SWAP, mc.player)
-                return true
+                inventoryRequest {
+                    swap(swapSlotId, hotbarSlotToSwapWith)
+                    action {
+                        HotbarManager.request(HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true))
+                            .submit(queueIfClosed = false)
+                            .done.let {
+                                interaction.interactItem(player, Hand.MAIN_HAND)
+                                sendSwing()
+                            }
+                    }
+                    swap(swapSlotId, hotbarSlotToSwapWith)
+                }.submit()
             }
-
-        return false
     }
 
     enum class TakeoffState {
