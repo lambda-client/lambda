@@ -208,12 +208,12 @@ object BetterFirework : Module(
 
         stack.bestItemMatch(player.hotbar)
             ?.let {
-                val request = HotbarManager.request(HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0))
-                if (request.done) {
-                    interaction.interactItem(player, Hand.MAIN_HAND)
-                    sendSwing()
-                }
-
+                HotbarManager.request(HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0))
+                    .done
+                    .let {
+                        interaction.interactItem(player, Hand.MAIN_HAND)
+                        sendSwing()
+                    }
                 return
             }
 
@@ -228,8 +228,8 @@ object BetterFirework : Module(
                     swap(swapSlotId, hotbarSlotToSwapWith)
                     action {
                         HotbarManager.request(HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true))
-                            .submit(queueIfClosed = false)
-                            .done.let {
+                            .done
+                            .let {
                                 interaction.interactItem(player, Hand.MAIN_HAND)
                                 sendSwing()
                             }
