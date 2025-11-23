@@ -27,7 +27,6 @@ import com.lambda.event.events.MouseEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.Module
@@ -163,10 +162,10 @@ object BetterFirework : Module(
     fun onInteract() =
         runSafe {
             when {
-                !fireworkInteract -> false
-                player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET -> false
-                player.isGliding -> false // No need to do special magic if we are already holding fireworks and flying
-                mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel -> false
+                !fireworkInteract ||
+                        player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET ||
+                        player.isGliding || // No need to do special magic if we are already holding fireworks and flying
+                        (mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
                 else -> {
                     mc.itemUseCooldown += 4
                     val cancelInteract = player.canTakeoff || fireworkInteractCancel
@@ -187,8 +186,8 @@ object BetterFirework : Module(
     fun onPick() =
         runSafe {
             when {
-                mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel -> false
-                !activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code -> false
+                (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
+                (!activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code) ||
                 takeoffState != TakeoffState.None -> false // Prevent using multiple times
                 else -> {
                     if (player.canOpenElytra || player.isGliding) {
@@ -219,7 +218,7 @@ object BetterFirework : Module(
 
         stack.bestItemMatch(player.hotbar)
             ?.let {
-                val request = HotbarManager.request(HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0))
+                val request = HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0)
                     .submit(queueIfClosed = false)
                 if (request.done) {
                     interaction.interactItem(player, Hand.MAIN_HAND)
@@ -238,7 +237,7 @@ object BetterFirework : Module(
                 inventoryRequest {
                     swap(swapSlotId, hotbarSlotToSwapWith)
                     action {
-                        val request = HotbarManager.request(HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true))
+                        val request = HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true)
                             .submit(queueIfClosed = false)
                         if (request.done) {
                             interaction.interactItem(player, Hand.MAIN_HAND)
