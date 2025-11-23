@@ -24,6 +24,7 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -54,6 +55,7 @@ object BetterFirework : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework").group(Group.General)
+    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0, KeyCode.Unbound.code), "Firework use key for mid flight activation").group(Group.General)
     private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
@@ -104,7 +106,10 @@ object BetterFirework : Module(
             }
         }
         listen<MouseEvent.Click> {
-            if (it.isPressed && it.satisfies(activateButton)) {
+            if (!it.isPressed) {
+                return@listen
+            }
+            if (it.satisfies(activateButton)) {
                 if (activateButton.mouse == mc.options.pickItemKey.boundKey.code) {
                     return@listen
                 }
@@ -120,22 +125,35 @@ object BetterFirework : Module(
                     }
                 }
             }
+            if (it.satisfies(midFlightActivationKey)) {
+                runSafe {
+                    if (player.isGliding)
+                        takeoffState = TakeoffState.StartFlying
+                }
+            }
         }
         listen<KeyboardEvent.Press> {
-            if (it.isPressed && it.satisfies(activateButton)) {
-                if (activateButton.key == mc.options.pickItemKey.boundKey.code) {
-                    return@listen
+            if (!it.isPressed) {
+                return@listen
+            }
+            if (it.satisfies(activateButton)) {
+                if (activateButton.key != mc.options.pickItemKey.boundKey.code) {
+                    runSafe {
+                        if (takeoffState == TakeoffState.None) {
+                            if (player.canOpenElytra || player.isGliding) {
+                                // If already gliding use another firework
+                                takeoffState = TakeoffState.StartFlying
+                            } else if (player.canTakeoff) {
+                                takeoffState = TakeoffState.Jumping
+                            }
+                        }
+                    }
                 }
+            }
+            if (it.satisfies(midFlightActivationKey)) {
                 runSafe {
-                    if (takeoffState != TakeoffState.None) {
-                        return@listen // Prevent using multiple times
-                    }
-                    if (player.canOpenElytra || player.isGliding) {
-                        // If already gliding use another firework
+                    if (player.isGliding)
                         takeoffState = TakeoffState.StartFlying
-                    } else if (player.canTakeoff) {
-                        takeoffState = TakeoffState.Jumping
-                    }
                 }
             }
         }
