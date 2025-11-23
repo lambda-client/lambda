@@ -24,7 +24,6 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MouseEvent
-import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -44,8 +43,6 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
-import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
 
@@ -236,7 +233,7 @@ object BetterFirework : Module(
         stack.bestItemMatch(player.hotbarAndStorage)
             ?.let {
                 val swapSlotId = player.hotbarAndStorage.indexOf(it)
-                val hotbarSlotToSwapWith = player.hotbar.find { slot -> slot.isEmpty } ?.let { slot -> player.hotbar.indexOf(slot) } ?: 8
+                val hotbarSlotToSwapWith = player.hotbar.find { slot -> slot.isEmpty }?.let { slot -> player.hotbar.indexOf(slot) } ?: 8
 
                 inventoryRequest {
                     swap(swapSlotId, hotbarSlotToSwapWith)
