@@ -84,14 +84,6 @@ object FastBreak : Module(
                     ::breaksPerTick
                 )
             }
-            inventoryConfig.apply {
-                hide(
-                    ::accessShulkerBoxes,
-                    ::accessEnderChest,
-                    ::accessChests,
-                    ::accessStashes
-                )
-            }
             hideAll(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
         }
 

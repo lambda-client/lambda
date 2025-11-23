@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -44,6 +45,9 @@ object Nuker : Module(
     private var task: Task<*>? = null
 
     init {
+        defaultAutomationConfig = automationConfig {
+            hideAll(interactConfig)
+        }
         onEnable {
             task = tickingBlueprint {
                 val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)

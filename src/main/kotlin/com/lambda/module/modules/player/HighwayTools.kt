@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
@@ -87,6 +88,9 @@ object HighwayTools : Module(
     }
 
     init {
+        defaultAutomationConfig = automationConfig {
+            hideAll(interactConfig)
+        }
         onEnable {
             octant = player.octant
             startPos = player.blockPos
