@@ -34,7 +34,7 @@ open class AbstractGUIRenderer(
     attribGroup: VertexAttrib.Group,
     val shader: Shader
 ) {
-    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
+    private val pipeline = VertexPipeline(VertexMode.Triangles, attribGroup)
     private var memoryMapping = true
 
     init {

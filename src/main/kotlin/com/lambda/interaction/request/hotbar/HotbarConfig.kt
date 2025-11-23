@@ -18,14 +18,13 @@
 package com.lambda.interaction.request.hotbar
 
 import com.lambda.event.Event
-import com.lambda.interaction.request.RequestConfig
 
 /**
  * Abstract base class for configuring hotbar slot switch behavior.
  *
  * @param priority The priority of this configuration.
  */
-interface HotbarConfig : RequestConfig {
+interface HotbarConfig {
 
     /**
      * The number of ticks to keep the current hotbar selection active.

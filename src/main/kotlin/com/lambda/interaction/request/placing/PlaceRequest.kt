@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.placing
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.LogContext
@@ -32,9 +33,10 @@ data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated,
-    val onPlace: ((BlockPos) -> Unit)? = null
+    override val nowOrNothing: Boolean = false,
+    val onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     override val done: Boolean
         get() = runSafe {
@@ -46,7 +48,7 @@ data class PlaceRequest(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("PlaceRequest") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
         }
     }

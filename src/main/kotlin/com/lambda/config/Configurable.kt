@@ -91,20 +91,6 @@ abstract class Configurable(
         }
     }
 
-    /**
-     * Creates a [BooleanSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Boolean] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * ```kotlin
-     * private val foo by setting("Foo", true)
-     * ```
-     *
-     * @return The created [BooleanSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Boolean,
@@ -112,22 +98,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = BooleanSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates an [EnumSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Enum] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * ```kotlin
-     * enum class Foo { A, B, C }
-     * private val foo by setting("Foo", Foo.A)
-     * ```
-     *
-     *
-     * @return The created [EnumSetting].
-     */
     inline fun <reified T : Enum<T>> setting(
         name: String,
         defaultValue: T,
@@ -136,16 +106,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = EnumSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [CharSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Char] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [CharSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Char,
@@ -153,20 +113,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = CharSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [StringSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [String] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * ```kotlin
-     * private val foo by setting("Foo", "bar")
-     * ```
-     *
-     * @return The created [StringSetting].
-     */
     fun setting(
         name: String,
         defaultValue: String,
@@ -176,23 +122,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = StringSetting(name, defaultValue, multiline, flags, description, visibility).register()
 
-    /**
-     * Constructs a [ListSetting] instance with the specified parameters and appends it to the [settings] collection.
-     *
-     * The type parameter [T] must either be a primitive type or a type with a registered type adapter in [Lambda.gson].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [List] value of type [T] for the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * ```kotlin
-     * // the parameter type is inferred from the defaultValue
-     * private val foo by setting("Foo", arrayListOf("bar", "baz"))
-     * ```
-     *
-     * @return The created [ListSetting].
-     */
     inline fun <reified T : Any> setting(
         name: String,
         immutableList: List<T>,
@@ -208,23 +137,6 @@ abstract class Configurable(
         visibility,
     ).register()
 
-    /**
-     * Constructs a [MapSetting] instance with the specified parameters and appends it to the [settings] collection.
-     *
-     * The type parameter [K] and [V] must either be a primitive type or a type with a registered type adapter in [Lambda.gson].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Map] value of type [K] and [V] for the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * ```kotlin
-     * // the parameter types are inferred from the defaultValue
-     * private val foo by setting("Foo", mapOf("bar" to 1, "baz" to 2))
-     * ```
-     *
-     * @return The created [MapSetting].
-     */
     inline fun <reified K : Any, reified V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
@@ -238,23 +150,6 @@ abstract class Configurable(
         visibility
     ).register()
 
-    /**
-     * Constructs a [SetSetting] instance with the specified parameters and appends it to the [settings] collection.
-     *
-     * The type parameter [T] must either be a primitive type or a type with a registered type adapter in [Lambda.gson].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Set] value of type [T] for the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * ```kotlin
-     * // the parameter type is inferred from the defaultValue
-     * private val foo by setting("Foo", setOf("bar", "baz"))
-     * ```
-     *
-     * @return The created [SetSetting].
-     */
     inline fun <reified T : Any> setting(
         name: String,
         immutableList: Set<T>,
@@ -270,21 +165,6 @@ abstract class Configurable(
         visibility,
     ).register()
 
-    /**
-     * Creates a [DoubleSetting] with the provided parameters and adds it to the [settings].
-     *
-     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Double] value of the setting.
-     * @param range The range within which the setting's value must fall.
-     * @param step The step to which the setting's value is rounded.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
-     *
-     * @return The created [DoubleSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Double,
@@ -295,21 +175,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = DoubleSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
-    /**
-     * Creates a [FloatSetting] with the provided parameters and adds it to the [settings].
-     *
-     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Float] value of the setting.
-     * @param range The range within which the setting's value must fall.
-     * @param step The step to which the setting's value is rounded.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
-     *
-     * @return The created [FloatSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Float,
@@ -320,21 +185,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = FloatSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
-    /**
-     * Creates an [IntegerSetting] with the provided parameters and adds it to the [settings].
-     *
-     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Int] value of the setting.
-     * @param range The range within which the setting's value must fall.
-     * @param step The step to which the setting's value is rounded.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
-     *
-     * @return The created [IntegerSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Int,
@@ -345,21 +195,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = IntegerSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
-    /**
-     * Creates a [LongSetting] with the provided parameters and adds it to the [settings].
-     *
-     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Long] value of the setting.
-     * @param range The range within which the setting's value must fall.
-     * @param step The step to which the setting's value is rounded.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
-     *
-     * @return The created [LongSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Long,
@@ -370,16 +205,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = LongSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
-    /**
-     * Creates a [KeybindSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [KeyCode] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [KeybindSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Bind,
@@ -387,16 +212,13 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = KeybindSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [ColorSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Color] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [ColorSetting].
-     */
+    fun setting(
+        name: String,
+        defaultValue: KeyCode,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = KeybindSetting(name, defaultValue, description, visibility).register()
+
     fun setting(
         name: String,
         defaultValue: Color,
@@ -404,16 +226,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = ColorSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [Vec3dSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Vec3d] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [Vec3dSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Vec3d,
@@ -421,16 +233,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = Vec3dSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [BlockPos.Mutable] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [BlockPosSetting].
-     */
     fun setting(
         name: String,
         defaultValue: BlockPos.Mutable,
@@ -438,16 +240,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = BlockPosSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [BlockPos] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [BlockPosSetting].
-     */
     fun setting(
         name: String,
         defaultValue: BlockPos,
@@ -455,16 +247,6 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = BlockPosSetting(name, defaultValue, description, visibility).register()
 
-    /**
-     * Creates a [BlockSetting] with the provided parameters and adds it to the [settings].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Block] value of the setting.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     *
-     * @return The created [BlockSetting].
-     */
     fun setting(
         name: String,
         defaultValue: Block,

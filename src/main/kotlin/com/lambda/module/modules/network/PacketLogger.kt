@@ -55,11 +55,11 @@ object PacketLogger : Module(
 
     // ToDo: Implement HUD logging when HUD is done
 //    private val logToHUD by setting("Log To HUD", false, "Log packets to HUD")
-    private val networkSide by setting("Network Side", NetworkSide.ANY, "Side of the network to log packets from")
+    private val networkSide by setting("Network Side", NetworkSide.Any, "Side of the network to log packets from")
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
-    private val scope by setting("Scope", Scope.ANY, "Scope of packets to log")
-    private val whitelist by setting("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist") { scope == Scope.WHITELIST }
-    private val blacklist by setting("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist") { scope == Scope.BLACKLIST }
+    private val scope by setting("Scope", Scope.Any, "Scope of packets to log")
+    private val whitelist by setting("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist") { scope == Scope.Whitelist }
+    private val blacklist by setting("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist") { scope == Scope.Blacklist }
     private val maxRecursionDepth by setting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 
@@ -68,19 +68,19 @@ object PacketLogger : Module(
     private val fileFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSS")
 
     enum class NetworkSide {
-        ANY, CLIENT, SERVER;
+        Any, Client, Server;
 
         fun shouldLog(networkSide: NetworkSide) =
-            this == ANY || this == networkSide
+            this == Any || this == networkSide
     }
 
     enum class Scope {
-        ANY, WHITELIST, BLACKLIST;
+        Any, Whitelist, Blacklist;
 
         fun shouldLog(packet: Packet<*>) = when (this) {
-            ANY -> true
-            WHITELIST -> packet::class.simpleName in whitelist
-            BLACKLIST -> packet::class.simpleName !in blacklist
+            Any -> true
+            Whitelist -> packet::class.simpleName in whitelist
+            Blacklist -> packet::class.simpleName !in blacklist
         }
     }
 
@@ -167,7 +167,7 @@ object PacketLogger : Module(
         listenUnsafe<PacketEvent.Receive.Pre> {
             if (logConcurrent
                 || !scope.shouldLog(it.packet)
-                || !networkSide.shouldLog(NetworkSide.SERVER)
+                || !networkSide.shouldLog(NetworkSide.Server)
             ) return@listenUnsafe
 
             it.packet.logReceived()
@@ -176,7 +176,7 @@ object PacketLogger : Module(
         listenUnsafe<PacketEvent.Send.Pre> {
             if (logConcurrent
                 || !scope.shouldLog(it.packet)
-                || !networkSide.shouldLog(NetworkSide.CLIENT)
+                || !networkSide.shouldLog(NetworkSide.Client)
             ) return@listenUnsafe
 
 
@@ -186,7 +186,7 @@ object PacketLogger : Module(
         listenUnsafeConcurrently<PacketEvent.Receive.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
-                || !networkSide.shouldLog(NetworkSide.SERVER)
+                || !networkSide.shouldLog(NetworkSide.Server)
             ) return@listenUnsafeConcurrently
 
             it.packet.logReceived()
@@ -195,7 +195,7 @@ object PacketLogger : Module(
         listenUnsafeConcurrently<PacketEvent.Send.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
-                || !networkSide.shouldLog(NetworkSide.CLIENT)
+                || !networkSide.shouldLog(NetworkSide.Client)
             ) return@listenUnsafeConcurrently
 
             it.packet.logSent()

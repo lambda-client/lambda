@@ -28,9 +28,9 @@ object Velocity : Module(
     description = "Modifies your velocity",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val knockback by setting("Knockback", true)
-
-    @JvmStatic val explosion by setting("Explosion", true)
+    @JvmStatic val pushed by setting("Pushed", true, "Prevents the player from getting pushed by other entities")
+    private val knockback by setting("Knockback", true, "Prevents the player from taking knockback when being attacked")
+    @JvmStatic val explosion by setting("Explosion", true, "Prevents the player from taking knockback from explosions")
 
     init {
         listen<PacketEvent.Receive.Pre> { event ->

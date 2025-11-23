@@ -17,22 +17,19 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.Lambda.mc
 import com.lambda.context.Automated
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.request.Request.Companion.submit
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.util.BlockUtils
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import java.awt.Color
 
 data class PlaceContext(
@@ -43,38 +40,22 @@ data class PlaceContext(
     override var cachedState: BlockState,
     override val expectedState: BlockState,
     val sneak: Boolean,
-    val insideBlock: Boolean,
     val currentDirIsValid: Boolean = false,
     private val automated: Automated
 ) : BuildContext(), LogContext, Automated by automated {
-    private val baseColor = Color(35, 188, 254, 25)
+    private val baseColor = Color(35, 188, 254, 50)
     private val sideColor = Color(35, 188, 254, 100)
 
-    override fun compareTo(other: BuildContext) =
-        when (other) {
-            is PlaceContext -> compareBy<PlaceContext> {
-                BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
-            }.thenByDescending {
-                if (it.cachedState.fluidState.level != 0) it.blockPos.y else 0
-            }.thenByDescending {
-                it.cachedState.fluidState.level
-            }.thenBy {
-                it.sneak == (mc.player?.isSneaking ?: false)
-            }.thenBy {
-                it.rotationRequest.target.angleDistance
-            }.thenBy {
-                it.hotbarIndex == HotbarManager.serverSlot
-            }.thenBy {
-                it.distance
-            }.thenBy {
-                it.insideBlock
-            }.compare(this, other)
-
-            else -> 1
-        }
+    override val sorter get() = placeConfig.sorter
 
     override fun ShapeBuilder.buildRenderer() {
-        box(blockPos, expectedState, baseColor, sideColor, hitResult.side.mask)
+        val box = with(hitResult.pos) {
+            Box(
+                x - 0.05, y - 0.05, z - 0.05,
+                x + 0.05, y + 0.05, z + 0.05,
+            ).offset(hitResult.side.doubleVector.multiply(0.05))
+        }
+        box(box, baseColor, sideColor)
     }
 
     fun requestDependencies(request: PlaceRequest): Boolean {
@@ -94,7 +75,6 @@ data class PlaceContext(
             value("Cached State", cachedState)
             value("Expected State", expectedState)
             value("Sneak", sneak)
-            value("Inside Block", insideBlock)
             value("Current Dir Is Valid", currentDirIsValid)
         }
     }

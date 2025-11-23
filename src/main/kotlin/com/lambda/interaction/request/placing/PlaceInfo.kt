@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.ActionInfo
@@ -27,7 +28,7 @@ import net.minecraft.util.math.BlockPos
 data class PlaceInfo(
     override val context: PlaceContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
-    val onPlace: ((BlockPos) -> Unit)?,
+    val onPlace: (SafeContext.(BlockPos) -> Unit)?,
     val placeConfig: PlaceConfig
 ) : ActionInfo, LogContext {
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {

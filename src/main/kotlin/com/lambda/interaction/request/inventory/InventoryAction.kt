@@ -15,23 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.transfer
+package com.lambda.interaction.request.inventory
 
 import com.lambda.context.SafeContext
-import com.lambda.task.Task
-import com.lambda.threading.runSafe
 
-abstract class InventoryTransaction : Task<InventoryChanges>() {
-    lateinit var changes: InventoryChanges
+/**
+ * Represents a type of action. Inventory actions are strictly inventory-related.
+ * Other actions can be external actions that happen some time within the sequence of inventory actions
+ * to avoid having to use multiple requests.
+ */
+sealed interface InventoryAction {
+    val action: SafeContext.() -> Unit
 
-    override fun SafeContext.onStart() {
-        changes = InventoryChanges(player.currentScreenHandler.slots)
-    }
-
-    fun finish() {
-        runSafe {
-            changes.detectChanges()
-            success(changes)
-        } ?: failure("Failed to finish transaction")
-    }
+    class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
+    class Other(override val action: SafeContext.() -> Unit) : InventoryAction
 }

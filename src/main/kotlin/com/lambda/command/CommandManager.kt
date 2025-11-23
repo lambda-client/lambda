@@ -103,11 +103,11 @@ object CommandManager {
                     literal(syntax.input.substring(max(0, (position - ERROR_PADDING)), position))
                 }
                 if (position < syntax.input.length) {
-                    styled(color = Communication.LogLevel.ERROR.logoColor, underlined = true) {
+                    styled(color = Communication.LogLevel.Error.logoColor, underlined = true) {
                         literal(syntax.input.substring(position))
                     }
                 }
-                styled(color = Communication.LogLevel.ERROR.logoColor, italic = true) {
+                styled(color = Communication.LogLevel.Error.logoColor, italic = true) {
                     translatable("command.context.here")
                 }
             }

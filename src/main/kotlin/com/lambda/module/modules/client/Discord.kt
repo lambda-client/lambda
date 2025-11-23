@@ -49,10 +49,10 @@ object Discord : Module(
 ) {
     private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
-    private val line1Left by setting("Line 1 Left", LineInfo.WORLD)
-    private val line1Right by setting("Line 1 Right", LineInfo.USERNAME)
-    private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION)
-    private val line2Right by setting("Line 2 Right", LineInfo.FPS)
+    private val line1Left by setting("Line 1 Left", LineInfo.World)
+    private val line1Right by setting("Line 1 Right", LineInfo.Username)
+    private val line2Left by setting("Line 2 Left", LineInfo.Dimension)
+    private val line2Right by setting("Line 2 Right", LineInfo.Fps)
 
     val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
 
@@ -114,12 +114,12 @@ object Discord : Module(
     }
 
     private enum class LineInfo(val value: SafeContext.() -> String) : Nameable {
-        VERSION({ Lambda.VERSION }),
-        WORLD({ worldName }),
-        USERNAME({ mc.session.username }),
-        HEALTH({ "${player.fullHealth} HP" }),
-        HUNGER({ "${player.hungerManager.foodLevel} Hunger" }),
-        DIMENSION({ world.dimensionName }),
-        FPS({ "${mc.currentFps} FPS" });
+        Version({ Lambda.VERSION }),
+        World({ worldName }),
+        Username({ mc.session.username }),
+        Health({ "${player.fullHealth} HP" }),
+        Hunger({ "${player.hungerManager.foodLevel} Hunger" }),
+        Dimension({ world.dimensionName }),
+        Fps({ "${mc.currentFps} FPS" });
     }
 }

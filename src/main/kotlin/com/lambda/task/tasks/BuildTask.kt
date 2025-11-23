@@ -47,9 +47,9 @@ import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.interacting.InteractRequest
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
@@ -204,7 +204,7 @@ class BuildTask private constructor(
                             interactResults,
                             pendingInteractions,
                             this@BuildTask,
-                            null
+                            onInteract = null
                         ).submit()
                     }
                 }
@@ -238,9 +238,9 @@ class BuildTask private constructor(
                         failure("No item in inventory to throw but inventory is full and cant pick up item drop")
                         return@let true
                     }
-                    transfer(player.currentScreenHandler) {
+                    inventoryRequest {
                         throwStack(stackToThrow.id)
-                    }.execute(this@BuildTask)
+                    }.submit()
                     return@let true
                 }
 

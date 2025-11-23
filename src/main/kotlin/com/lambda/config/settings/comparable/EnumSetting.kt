@@ -71,7 +71,6 @@ class EnumSetting<T : Enum<T>>(
         lambdaTooltip(description)
     }
 
-
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->
             suggests { _, builder ->

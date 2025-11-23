@@ -33,6 +33,10 @@ import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotating.RotationManager.activeRequest
+import com.lambda.interaction.request.rotating.RotationManager.activeRotation
+import com.lambda.interaction.request.rotating.RotationManager.serverRotation
+import com.lambda.interaction.request.rotating.RotationManager.updateActiveRotation
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
 import com.lambda.threading.runGameScheduled
@@ -53,6 +57,9 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * Manager designed to rotate the player and adjust movement input to match the camera's direction.
+ */
 object RotationManager : RequestHandler<RotationRequest>(
     1,
     TickEvent.Pre,
@@ -62,8 +69,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 ), Logger {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
-    @JvmStatic
-    var prevServerRotation = Rotation.ZERO
+    @JvmStatic var prevServerRotation = Rotation.ZERO
     var baritoneRequest: RotationRequest? = null
 
     var activeRequest: RotationRequest? = null
@@ -138,6 +144,12 @@ object RotationManager : RequestHandler<RotationRequest>(
         return "Loaded Rotation Manager"
     }
 
+    /**
+     * If the [activeRequest] is from an older tick or null, and the [request]'s target rotation is not null,
+     * the request is accepted and set as the [activeRequest]. The [activeRotation] is then updated.
+     *
+     * @see updateActiveRotation
+     */
     override fun AutomatedSafeContext.handleRequest(request: RotationRequest) {
         activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
@@ -148,6 +160,11 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
+    /**
+     * If the rotation has not been changed this tick, the [activeRequest]'s target rotation is updated, and
+     * likewise the [activeRotation]. The [activeRequest] is then updated, ticking the [RotationRequest.keepTicks]
+     * and [RotationRequest.decayTicks].
+     */
     @JvmStatic
     fun processRotations() = runSafe {
         if (activeRequest != null) activeThisTick = true
@@ -171,6 +188,11 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
+    /**
+     * Calculates and sets the optimal movement input for moving in the direction the player is facing. This
+     * is not the direction the rotation manager is rotated towards, but the underlying player rotation, typically
+     * also the camera's rotation.
+     */
     @JvmStatic
     fun redirectStrafeInputs(input: Input) = runSafe {
         if (activeRequest == baritoneRequest) return@runSafe
@@ -263,11 +285,15 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
+    /**
+     * Updates the [activeRotation]. If [activeRequest] is null, the player's rotation is used.
+     * Otherwise, the [serverRotation] is interpolated towards the [RotationRequest.target] rotation.
+     */
     private fun SafeContext.updateActiveRotation() {
         activeRotation = activeRequest?.let { request ->
             val rotationTo = if (request.keepTicks >= 0)
                 request.target.targetRotation.value
-                    ?: activeRotation // same context gets used again && the rotation is null this tick
+                    ?: activeRotation // the same context gets used again && the rotation is null this tick
             else player.rotation
 
             val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier

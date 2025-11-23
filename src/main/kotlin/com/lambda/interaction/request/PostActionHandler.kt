@@ -25,6 +25,9 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.breaking.BrokenBlockHandler
 import com.lambda.util.collections.LimitedDecayQueue
 
+/**
+ * A simple interface for handlers of actions that need some sort of server response after being executed.
+ */
 abstract class PostActionHandler<T : ActionInfo> {
     abstract val pendingActions: LimitedDecayQueue<T>
 

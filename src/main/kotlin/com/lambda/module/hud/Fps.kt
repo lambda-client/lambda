@@ -51,6 +51,6 @@ object Fps : HudModule(
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        text("Fps: $fps")
+        text("FPS: $fps")
     }
 }

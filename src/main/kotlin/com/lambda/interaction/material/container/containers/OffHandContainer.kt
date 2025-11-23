@@ -26,7 +26,7 @@ import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
 
-object OffHandContainer : MaterialContainer(Rank.OFF_HAND) {
+object OffHandContainer : MaterialContainer(Rank.OffHand) {
     override var stacks: List<ItemStack>
         get() = mc.player?.offHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
@@ -34,5 +34,5 @@ object OffHandContainer : MaterialContainer(Rank.OFF_HAND) {
     override val description = buildText { literal("OffHand") }
 
     context(automated: Automated)
-    override fun deposit(selection: StackSelection) = MainHandContainer.HandDeposit(selection, Hand.OFF_HAND)
+    override fun deposit(selection: StackSelection) = MainHandContainer.HandDeposit(selection, Hand.OFF_HAND, automated)
 }

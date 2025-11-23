@@ -35,6 +35,7 @@ import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractionManager
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.maxPlacementsThisTick
 import com.lambda.interaction.request.placing.PlaceManager.placeBlock
@@ -59,14 +60,12 @@ import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 import kotlin.math.min
 
@@ -122,32 +121,34 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * accepts, and processes the request, as long as the current [activeRequest] is null, and the [BreakManager] has not
-     * been active this tick.
+     * Accepts, and processes the request, as long as the current [activeRequest] is null, and the [BreakManager] has not
+     * been active this tick. If nowOrNothing is true, the request is cleared after the first process.
      *
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: PlaceRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+        if (BreakManager.activeThisTick || InteractionManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
+        if (request.nowOrNothing) {
+            activeRequest = null
+            potentialPlacements = mutableListOf()
+        }
         if (placementsThisTick > 0) activeThisTick = true
     }
 
     /**
-     * If the request is fresh, local variables are populated through the [processRequest] method.
-     * It then attempts to perform as many placements within this tick as possible from the [potentialPlacements] collection.
-     *
-     * If all the [maxPlacementsThisTick] limit is reached and the user has rotations enabled, it will start rotating to
-     * the next predicted placement in the list for optimal speed.
+     * Returns immediately if [BreakManager] or [InteractionManager] have been active this tick.
+     * Otherwise, for fresh requests, [populateFrom] is called to fill the [potentialPlacements] collection.
+     * It then attempts to perform as many placements as possible from the [potentialPlacements] collection within
+     * the [maxPlacementsThisTick] limit.
      *
      * @see populateFrom
      * @see placeBlock
      */
     fun AutomatedSafeContext.processRequest(request: PlaceRequest)  {
-        if (BreakManager.activeThisTick || InteractionManager.activeThisTick) return
-
         logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
@@ -163,7 +164,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 return
             }
             if (!validSneak(player)) return
-            if (tickStage !in placeConfig.placeStageMask) return
+            if (tickStage !in placeConfig.tickStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
             if (!actionResult.isAccepted) {
@@ -183,7 +184,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
     /**
      * Filters the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
-     * setting the maxPlacementsThisTick value.
+     * setting other configurations.
      *
      * @see isPosBlocked
      */
@@ -206,7 +207,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * A modified version of the minecraft interactBlock method, renamed to better suit its usage.
+     * A modified version of the minecraft interactBlock method,
+     * renamed to better suit its usage.
      *
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock
      */
@@ -328,20 +330,24 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             return ActionResult.FAIL
         }
 
-        val stackInHand = player.getStackInHand(hand)
-        val stackCountPre = stackInHand.count
+        if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {
+            val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
+            val inventoryRequest = inventoryRequest {
+                swapHands()
+                action { sendPlacePacket(placeHand, hitResult) }
+                swapHands()
+            }.submit(queueIfClosed = false)
+            if (!inventoryRequest.done) return ActionResult.FAIL
+        } else {
+            sendPlacePacket(hand, hitResult)
+        }
+
         if (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) {
             PlaceInfo(placeContext, request.pendingInteractions, request.onPlace, placeConfig).startPending()
         }
 
-        if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {
-            val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
-            airPlaceOffhandSwap()
-            sendPlacePacket(placeHand, hitResult)
-            airPlaceOffhandSwap()
-        } else {
-            sendPlacePacket(hand, hitResult)
-        }
+        val stackInHand = player.getStackInHand(hand)
+        val stackCountPre = stackInHand.count
 
         if (placeConfig.swing) {
             swingHand(placeConfig.swingType, hand)
@@ -352,7 +358,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
         val itemStack = itemPlacementContext.stack
-        if (!player.abilities.creativeMode) itemStack.decrement(1)
+        itemStack.decrementUnlessCreative(1, player)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.SUCCESS
@@ -376,7 +382,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (placeConfig.sounds) placeSound(state, blockPos)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
-            request.onPlace?.invoke(placeContext.blockPos)
+            request.onPlace?.invoke(this, placeContext.blockPos)
         }
 
         logger.success("Placed ${placeContext.expectedState} at ${placeContext.blockPos}", placeContext, request)
@@ -393,7 +399,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
 
     /**
-     * Plays the block placement sound at a given position.
+     * Plays the block placement sound at a given [pos].
      */
     fun SafeContext.placeSound(state: BlockState, pos: BlockPos) {
         val blockSoundGroup = state.soundGroup
@@ -404,19 +410,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             SoundCategory.BLOCKS,
             (blockSoundGroup.getVolume() + 1.0f) / 2.0f,
             blockSoundGroup.getPitch() * 0.8f
-        )
-    }
-
-    /**
-     * Must be called before and after placing a block to bypass grim's air place checks.
-     */
-    private fun SafeContext.airPlaceOffhandSwap() {
-        connection.sendPacket(
-            PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
-                BlockPos.ORIGIN,
-                Direction.DOWN
-            )
         )
     }
 

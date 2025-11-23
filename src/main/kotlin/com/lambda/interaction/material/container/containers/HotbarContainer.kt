@@ -29,7 +29,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
-object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
+object HotbarContainer : MaterialContainer(Rank.Hotbar) {
     override var stacks: List<ItemStack>
         get() = mc.player?.hotbar ?: emptyList()
         set(_) {}

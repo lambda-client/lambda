@@ -21,6 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
+import com.lambda.interaction.construction.processing.ProcessorRegistry.intermediaryBlockMap
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.checks.BasicChecker.hasBasicRequirements
 import com.lambda.interaction.construction.verify.TargetState
@@ -29,6 +30,10 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.util.*
 
+/**
+ * An interface representing all the information required to simulate a state. All simulators must present their public api
+ * as an extension of the [SimInfo] class to allow easy access through the DSL style sim builder.
+ */
 interface ISimInfo : Automated {
     val pos: BlockPos
     val state: BlockState
@@ -38,7 +43,21 @@ interface ISimInfo : Automated {
     val concurrentResults: MutableSet<BuildResult>
     val dependencyStack: Stack<Sim<*>>
 
+    fun AutomatedSafeContext.matchesTarget(state: BlockState = this@ISimInfo.state, complete: Boolean = true): Boolean {
+        if (targetState.matches(state, pos, if (!complete) preProcessing.ignore else emptySet())) return true
+        else if (complete) return false
+
+        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+            return intermediaryInfo.isIntermediaryBlock(state)
+        }
+
+        return false
+    }
+
     companion object {
+        /**
+         * Creates a [SimInfo], checks its basic requirements, and runs the [simBuilder] block.
+         */
         @SimDsl
         context(_: BuildSimulator)
         suspend fun AutomatedSafeContext.sim(
@@ -56,6 +75,11 @@ interface ISimInfo : Automated {
             ).takeIf { it.hasBasicRequirements() }?.run { simBuilder() }
         }
 
+        /**
+         * Creates a new [SimInfo] using the current [ISimInfo]'s [dependencyStack] and [concurrentResults],
+         * checks its basic requirements, and runs the [simBuilder] block. As simulations tend to make use of
+         * concurrency, a new stack is created and the dependencies from the previous stack are added.
+         */
         @SimDsl
         context(_: AutomatedSafeContext)
         suspend fun ISimInfo.sim(

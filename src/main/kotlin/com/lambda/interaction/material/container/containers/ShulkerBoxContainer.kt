@@ -36,7 +36,7 @@ data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
     val containedIn: MaterialContainer,
     val shulkerStack: ItemStack,
-) : MaterialContainer(Rank.SHULKER_BOX) {
+) : MaterialContainer(Rank.ShulkerBox) {
     override val description =
         buildText {
             highlighted(shulkerStack.name.string)

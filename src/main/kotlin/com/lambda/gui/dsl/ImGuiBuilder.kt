@@ -180,6 +180,7 @@ import net.minecraft.util.math.Vec3i
 import java.awt.Color
 import kotlin.reflect.KMutableProperty0
 import imgui.ImGui.plotLines
+import imgui.flag.ImGuiChildFlags
 
 typealias ProcedureBlock = ImGuiBuilder.() -> Unit
 typealias WrappedBlock<In, Out> = ImGuiBuilder.(In) -> Out
@@ -361,16 +362,6 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun showUserGuide() = ImGui.showUserGuide()
 
-    /**
-     * Creates a new window.
-     *
-     * @param name The title of the window
-     * @param open Boolean property that controls window visibility
-     * @param flags Window flags (see ImGuiWindowFlags)
-     * @param block Content of the window
-     *
-     * @see ImGuiWindowFlags
-     */
     @ImGuiDsl
     inline fun window(
         name: String,
@@ -380,16 +371,6 @@ object ImGuiBuilder {
     ) =
         withBool(open) { window(name, it, flags, block) }
 
-    /**
-     * Creates a new window.
-     *
-     * @param name The title of the window
-     * @param open Optional ImBoolean that controls window visibility
-     * @param flags Window flags (see ImGuiWindowFlags)
-     * @param block Content of the window
-     *
-     * @see ImGuiWindowFlags
-     */
     @ImGuiDsl
     inline fun window(
         name: String,
@@ -405,28 +386,16 @@ object ImGuiBuilder {
         end()
     }
 
-    /**
-     * Creates a child window.
-     *
-     * @param strId Unique identifier for the child
-     * @param width Width of the child (0.0f = auto)
-     * @param height Height of the child (0.0f = auto)
-     * @param border Whether to show a border
-     * @param extraFlags Additional window flags
-     * @param block Content of the child window
-     *
-     * @see ImGuiWindowFlags
-     */
     @ImGuiDsl
     inline fun child(
         strId: String,
         width: Float = 0f,
         height: Float = 0f,
         border: Boolean = false,
-        extraFlags: Int = ImGuiWindowFlags.None,
+        flags: Int = ImGuiChildFlags.None,
         block: ProcedureBlock
     ) {
-        if (beginChild(strId, width, height, border, extraFlags))
+        if (beginChild(strId, width, height, border, flags))
             block()
 
         endChild()
@@ -2079,6 +2048,18 @@ object ImGuiBuilder {
     @ImGuiDsl
     inline fun <T : Any> withInt(property: KMutableProperty0<Int>, block: WrappedBlock<ImInt, T>) =
         ImInt(property()).let { v -> block(v).also { property.set(v.get()) } }
+
+    @ImGuiDsl
+    inline fun withVec2(value: Vec2d, block: WrappedBlock<ImVec2, Unit>) =
+        block(ImVec2(value.x.toFloat(), value.y.toFloat()))
+
+    @ImGuiDsl
+    inline fun withVec2(x: Double, y: Double, block: WrappedBlock<ImVec2, Unit>) =
+        block(ImVec2(x.toFloat(), y.toFloat()))
+
+    @ImGuiDsl
+    inline fun withVec2(x: Float, y: Float, block: WrappedBlock<ImVec2, Unit>) =
+        block(ImVec2(x, y))
 
     @ImGuiDsl
     inline fun <T : Any> withString(

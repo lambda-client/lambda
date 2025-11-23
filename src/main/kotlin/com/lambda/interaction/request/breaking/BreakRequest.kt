@@ -18,31 +18,47 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
-data class BreakRequest(
+/**
+ * Contains the information necessary for initializing and continuing breaks within the [BreakManager].
+ *
+ * The callbacks can be used to keep track of the break progress.
+ *
+ * A private constructor is used to force use of the cleaner [BreakRequestDsl] builder. This is
+ * accessed through the [breakRequest] method.
+ *
+ * @param contexts A collection of [BreakContext]'s gathered from the BuildSimulator.
+ * @param pendingInteractions A mutable, concurrent list to store the pending actions.
+ *
+ * @see com.lambda.interaction.construction.simulation.BuildSimulator
+ */
+data class BreakRequest private constructor(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
-    private val automated: Automated
+    private val automated: Automated,
+    override val nowOrNothing: Boolean = false
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
-    var onStart: ((BlockPos) -> Unit)? = null
-    var onUpdate: ((BlockPos) -> Unit)? = null
-    var onStop: ((BlockPos) -> Unit)? = null
-    var onCancel: ((BlockPos) -> Unit)? = null
-    var onItemDrop: ((ItemEntity) -> Unit)? = null
-    var onReBreakStart: ((BlockPos) -> Unit)? = null
-    var onReBreak: ((BlockPos) -> Unit)? = null
+    var onStart: (SafeContext.(BlockPos) -> Unit)? = null
+    var onUpdate: (SafeContext.(BlockPos) -> Unit)? = null
+    var onStop: (SafeContext.(BlockPos) -> Unit)? = null
+    var onCancel: (SafeContext.(BlockPos) -> Unit)? = null
+    var onItemDrop: (SafeContext.(ItemEntity) -> Unit)? = null
+    var onReBreakStart: (SafeContext.(BlockPos) -> Unit)? = null
+    var onReBreak: (SafeContext.(BlockPos) -> Unit)? = null
 
     override val done: Boolean
         get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
@@ -52,7 +68,7 @@ data class BreakRequest(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Break Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
             group("Callbacks") {
                 value("onStart", onStart != null)
@@ -67,63 +83,65 @@ data class BreakRequest(
     }
 
     @DslMarker
-    annotation class BreakRequestBuilder
+    annotation class BreakRequestDsl
 
-    @BreakRequestBuilder
-    class RequestBuilder(
+    @BreakRequestDsl
+    class BreakRequestBuilder(
         contexts: Collection<BreakContext>,
         pendingInteractions: MutableCollection<BuildContext>,
+        nowOrNothing: Boolean,
         automated: Automated
     ) {
-        val request = BreakRequest(contexts, pendingInteractions, automated)
+        val request = BreakRequest(contexts, pendingInteractions, automated, nowOrNothing)
 
-        @BreakRequestBuilder
-        fun onStart(callback: (BlockPos) -> Unit) {
+        @BreakRequestDsl
+        fun onStart(callback: SafeContext.(BlockPos) -> Unit) {
             request.onStart = callback
         }
 
-        @BreakRequestBuilder
-        fun onUpdate(callback: (BlockPos) -> Unit) {
+        @BreakRequestDsl
+        fun onUpdate(callback: SafeContext.(BlockPos) -> Unit) {
             request.onUpdate = callback
         }
 
-        @BreakRequestBuilder
-        fun onStop(callback: (BlockPos) -> Unit) {
+        @BreakRequestDsl
+        fun onStop(callback: SafeContext.(BlockPos) -> Unit) {
             request.onStop = callback
         }
 
-        @BreakRequestBuilder
-        fun onCancel(callback: (BlockPos) -> Unit) {
+        @BreakRequestDsl
+        fun onCancel(callback: SafeContext.(BlockPos) -> Unit) {
             request.onCancel = callback
         }
 
-        @BreakRequestBuilder
-        fun onItemDrop(callback: (ItemEntity) -> Unit) {
+        @BreakRequestDsl
+        fun onItemDrop(callback: SafeContext.(ItemEntity) -> Unit) {
             request.onItemDrop = callback
         }
 
-        @BreakRequestBuilder
-        fun onReBreakStart(callback: (BlockPos) -> Unit) {
+        @BreakRequestDsl
+        fun onReBreakStart(callback: SafeContext.(BlockPos) -> Unit) {
             request.onReBreakStart = callback
         }
 
-        @BreakRequestBuilder
-        fun onReBreak(callback: (BlockPos) -> Unit) {
+        @BreakRequestDsl
+        fun onReBreak(callback: SafeContext.(BlockPos) -> Unit) {
             request.onReBreak = callback
         }
-
-        @BreakRequestBuilder
-        fun build(): BreakRequest = request
     }
 
     companion object {
         var requestCount = 0
 
-        @BreakRequestBuilder
+        @BreakRequestDsl
         fun Automated.breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,
-            builder: RequestBuilder.() -> Unit
-        ) = RequestBuilder(contexts, pendingInteractions, this).apply(builder).build()
+            nowOrNothing: Boolean = false,
+            builder: (BreakRequestBuilder.() -> Unit)? = null
+        ) = BreakRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
+
+        @BreakRequestDsl
+        private fun BreakRequestBuilder.build(): BreakRequest = request
     }
 }

@@ -28,13 +28,18 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
-object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
-    override val pendingActions = LimitedDecayQueue<InteractionInfo>(
+/**
+ * Designed to handle interactions pending a response from the server.
+ *
+ * @see InteractionManager
+ */
+object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
+    override val pendingActions = LimitedDecayQueue<InteractInfo>(
         AutomationConfig.buildConfig.maxPendingInteractions,
         AutomationConfig.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
+        if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
             mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)

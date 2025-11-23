@@ -36,7 +36,7 @@ public class KeyBindingMixin {
         if (!Objects.equals(instance.getTranslationKey(), "key.sprint")) return;
 
         if (Sprint.INSTANCE.isEnabled()) cir.setReturnValue(true);
-        if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GRIM_STRAFE) cir.setReturnValue(true);
+        if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GrimStrafe) cir.setReturnValue(true);
         if (TargetStrafe.INSTANCE.isEnabled() && TargetStrafe.isActive()) cir.setReturnValue(true);
     }
 }

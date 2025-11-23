@@ -169,20 +169,20 @@ object Matrices {
      *
      * @param pos The position in world coordinates.
      * @param scale The scaling factor. Defaults to `1.0`.
-     * @param mode The rotation mode to apply. Defaults to [ProjRotationMode.TO_CAMERA].
+     * @param mode The rotation mode to apply. Defaults to [ProjRotationMode.ToCamera].
      * @return A [Matrix4f] representing the world projection.
      */
     fun buildWorldProjection(
         pos: Vec3d,
         scale: Double = 1.0,
-        mode: ProjRotationMode = ProjRotationMode.TO_CAMERA
+        mode: ProjRotationMode = ProjRotationMode.ToCamera
     ): Matrix4f =
         Matrix4f().apply {
             val s = 0.025f * scale.toFloat()
 
             val rotation = when (mode) {
-                ProjRotationMode.TO_CAMERA -> mc.gameRenderer.camera.rotation
-                ProjRotationMode.UP -> RotationAxis.POSITIVE_X.rotationDegrees(90f)
+                ProjRotationMode.ToCamera -> mc.gameRenderer.camera.rotation
+                ProjRotationMode.Up -> RotationAxis.POSITIVE_X.rotationDegrees(90f)
             }
 
             translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
@@ -194,7 +194,7 @@ object Matrices {
      * Modes for determining the rotation of the world projection.
      */
     enum class ProjRotationMode {
-        TO_CAMERA,
-        UP
+        ToCamera,
+        Up
     }
 }

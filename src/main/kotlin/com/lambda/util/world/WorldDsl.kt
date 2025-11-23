@@ -36,10 +36,8 @@ import net.minecraft.util.math.Vec3i
 annotation class BlockMarker
 
 /**
- * Searches for blocks in the world
- *
  * Example:
- * ```kotlin
+ * ```
  * val blocks = blockSearch(range = Vec3i(10, 10, 10)) {
  *     it.isOf(Blocks.DIAMOND_BLOCK) // Filter out blocks that are not diamond blocks
  * }
@@ -48,13 +46,6 @@ annotation class BlockMarker
  *     println("Found diamond block at: $pos")
  * }
  * ```
- *
- * @param pos       The position around which to search for blocks. Defaults to the player's current position.
- * @param range     The `x`, `y`, `z` range around the position to search for blocks.
- * @param step      The `x`, `y`, `z` step intervals at which to check for blocks.
- * @param filter    The predicate to filter blocks.
- *
- * @return A map of positions to block states
  */
 @BlockMarker
 fun SafeContext.blockSearch(
@@ -72,10 +63,8 @@ fun SafeContext.blockSearch(
     }.mapKeys { it.key.toBlockPos() }
 
 /**
- * Searches for blocks in the world
- *
  * Example:
- * ```kotlin
+ * ```
  * val blocks = blockSearch(range = Vec3i(10, 10, 10)) {
  *     it.isOf(Blocks.DIAMOND_BLOCK) // Filter out blocks that are not diamond blocks
  * }
@@ -84,13 +73,6 @@ fun SafeContext.blockSearch(
  *     println("Found diamond block at: $pos")
  * }
  * ```
- *
- * @param pos       The position around which to search for blocks
- * @param range     The `x`, `y`, `z` range around the position to search for blocks
- * @param step      The `x`, `y`, `z` step intervals at which to check for blocks
- * @param filter    The predicate to filter blocks.
- *
- * @return A map of positions to block states
  */
 @BlockMarker
 fun SafeContext.blockSearch(
@@ -104,17 +86,12 @@ fun SafeContext.blockSearch(
 annotation class BlockEntityMarker
 
 /**
- * Search for block entities matching the filter
- *
- * ```kotlin
+ * Example
+ * ```
  * val blockEntities = blockEntitySearch<ShulkerBoxEntity>(range = 10.0) {
  *     !it.isRemoved // Filter out existing block entities
  * }
  * ```
- *
- * @param range     The range around the position to search for entities
- * @param pos       The position to start the search from
- * @param filter    The predicate to filter entities
  */
 @BlockEntityMarker
 inline fun <reified T : BlockEntity> SafeContext.blockEntitySearch(
@@ -127,20 +104,12 @@ inline fun <reified T : BlockEntity> SafeContext.blockEntitySearch(
 annotation class EntityMarker
 
 /**
- * Initiates an entity search operation in the world at the specified position
- *
  * Example:
  * ```kotlin
  * val closestPlayer = entitySearch<PlayerEntity>(range = 20.0) {
  *     it.isAlive // Filter out dead entities
  * }
  * ```
- *
- * @param range     The range around the position to search for entities
- * @param pos       The position to start the search from
- * @param filter    The predicate to filter entities
- *
- * @return The closest entity to the position [pos]
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.closestEntity(
@@ -152,20 +121,12 @@ inline fun <reified T : Entity> SafeContext.closestEntity(
         .minByOrNull { pos distSq it.pos }
 
 /**
- * Initiates an entity search operation in the world at the specified position
- *
  * Example:
  * ```kotlin
  * val entities = entitySearch<LivingEntity>(range = 20.0) {
  *     it.isAlive // Filter out dead entities
  * }
  * ```
- *
- * @param range     The range around the position to search for entities
- * @param pos       The position to start the search from
- * @param filter    The predicate to filter entities
- *
- * @return A list of entity [T]
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.entitySearch(
@@ -175,21 +136,13 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
 ) = internalGetEntities<T>(pos.toFastVec(), range, filter = filter)
 
 /**
- * Initiates an optimized entity search operation in the world at the specified position
- *
  * Example:
- * ```kotlin
+ * ```
  * val entities = fastEntitySearch<LivingEntity>(range = 10.0) {
  *     it.isAlive && // Filter out dead entities
  *         it.isGlowing // Filter out entities that are not glowing
  * }
  * ```
- *
- * @param range     The range around the position to search for entities
- * @param pos       The position to start the search from
- * @param filter    The predicate to filter entities
- *
- * @return A sequence of [T]
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
@@ -202,8 +155,6 @@ inline fun <reified T : Entity> SafeContext.fastEntitySearch(
 annotation class FluidMarker
 
 /**
- * Searches for fluids in the world
- *
  * Example:
  * ```kotlin
  * val fluids = fluidSearch<LavaFluid.Still>(range = Vec3i(8.0, 3.0, 8.0)) { // Search for fluids within a box of (8, 3, 8)
@@ -214,13 +165,6 @@ annotation class FluidMarker
  *     println("Found still lava at $pos with state $state")
  * }
  * ```
- *
- * @param range     The `x`, `y`, `z` range around the position to search for fluids
- * @param pos       The position around which to search for fluids
- * @param step      The `x`, `y`, `z` step intervals at which to check for fluids
- * @param filter    The predicate to filter fluids.
- *
- * @return A map of positions to fluid states
  */
 @FluidMarker
 inline fun <reified T : Fluid> SafeContext.fluidSearch(
@@ -237,8 +181,6 @@ inline fun <reified T : Fluid> SafeContext.fluidSearch(
         .mapKeys { it.key.toBlockPos() }
 
 /**
- * Searches for fluids in the world
- *
  * Example:
  * ```kotlin
  * val fluids = fluidSearch<LavaFluid.Still>(range = 8.0) { // Search for fluids in a range of 8 blocks
@@ -249,13 +191,6 @@ inline fun <reified T : Fluid> SafeContext.fluidSearch(
  *     println("Found still lava at $pos with state $state")
  * }
  * ```
- *
- * @param range     The range around the position to search for fluids
- * @param pos       The position around which to search for fluids
- * @param step      The step intervals at which to check for fluids
- * @param filter    The predicate to filter fluids.
- *
- * @return A map of positions to fluid states
  */
 @FluidMarker
 inline fun <reified T : Fluid> SafeContext.fluidSearch(

@@ -27,7 +27,6 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
-import com.lambda.config.settings.complex.Bind.Companion.mouseBind
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
@@ -60,6 +59,9 @@ class KeybindSetting(
     description,
     visibility
 ) {
+    constructor(name: String, defaultValue: KeyCode, description: String, visibility: () -> Boolean)
+            : this(name, Bind(defaultValue.code, 0, -1), description, visibility)
+
     private var listening = false
 
     override fun ImGuiBuilder.buildLayout() {
@@ -113,8 +115,8 @@ class KeybindSetting(
                     // If a mod key is pressed first ignore it unless it was released without any other keys
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
-                            KeyCode.ESCAPE -> {}
-                            KeyCode.BACKSPACE, KeyCode.DELETE -> value = Bind.EMPTY
+                            KeyCode.Escape -> {}
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
                             else -> value = Bind(it.keyCode, it.modifiers, -1)
                         }
 
@@ -143,7 +145,7 @@ class KeybindSetting(
                         } catch(_: NumberFormatException) {
                             return@executeWithResult failure("${name().value()} doesn't match with a mouse button")
                         }
-                        bind = mouseBind(num)
+                        bind = Bind(0, 0, mouse = num)
                     } else {
                         bind = try {
                             Bind(KeyCode.valueOf(name().value()).code, 0)
@@ -166,12 +168,12 @@ data class Bind(
     val mouse: Int = -1,
 ) {
     val truemods = buildList {
-        if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LEFT_SHIFT)
-        if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LEFT_CONTROL)
-        if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LEFT_ALT)
-        if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LEFT_SUPER)
-        if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CAPS_LOCK)
-        if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NUM_LOCK)
+        if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
+        if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
+        if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LeftAlt)
+        if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LeftSuper)
+        if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CapsLock)
+        if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NumLock)
     }
 
     val isMouseBind: Boolean
@@ -197,8 +199,6 @@ data class Bind(
         "Key Code: $key, Modifiers: ${truemods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
-        val EMPTY = Bind(0, 0)
-
-        fun mouseBind(code: Int) = Bind(0, 0, code)
+        val EMPTY = Bind(0, 0, -1)
     }
 }

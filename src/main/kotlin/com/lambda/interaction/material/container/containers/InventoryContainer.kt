@@ -24,7 +24,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
-object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
+object InventoryContainer : MaterialContainer(Rank.Inventory) {
     override var stacks: List<ItemStack>
         get() = mc.player?.combined ?: emptyList()
         set(_) {}

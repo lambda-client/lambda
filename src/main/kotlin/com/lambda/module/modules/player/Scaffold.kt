@@ -21,6 +21,7 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
@@ -59,8 +60,8 @@ object Scaffold : Module(
 
     private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks").group(Group.General)
     private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
-    private val descend by setting("Descend", KeyCode.UNBOUND, "Lower the place position by one to allow the player to lower y level").group(Group.General)
-    private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != KeyCode.UNBOUND }.group(Group.General)
+    private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level").group(Group.General)
+    private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }.group(Group.General)
     override val buildConfig = BuildSettings(this, Group.Build).apply {
         editTyped(::pathing, ::stayInRange, ::collectDrops) {
             defaultValue(false)
@@ -88,7 +89,7 @@ object Scaffold : Module(
             val playerSupport = player.blockPos.down()
             val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
             if (alreadySupported) return@listen
-            val offset = if (isKeyPressed(descend.code)) descendAmount else 0
+            val offset = if (isKeyPressed(descend.key)) descendAmount else 0
             val beneath = playerSupport.down(offset)
             runSafeAutomated {
                 scaffoldPositions(beneath)
@@ -108,7 +109,7 @@ object Scaffold : Module(
         }
 
         listen<MovementEvent.Sneak> {
-            if (descend.code != mc.options.sneakKey.boundKey.code) return@listen
+            if (descend.key != mc.options.sneakKey.boundKey.code) return@listen
             it.sneak = false
         }
     }

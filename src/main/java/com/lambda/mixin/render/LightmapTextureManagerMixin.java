@@ -40,7 +40,7 @@ public class LightmapTextureManagerMixin {
     @Shadow @Final private GpuTexture glTexture;
 
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V", shift = At.Shift.BEFORE))
-    private void updateModify(CallbackInfo ci) {
+    private void injectUpdate(CallbackInfo ci) {
         if (Fullbright.INSTANCE.isEnabled() || XRay.INSTANCE.isEnabled()) {
             RenderSystem.getDevice().createCommandEncoder().createRenderPass(glTexture, OptionalInt.of(ColorHelper.getArgb(255, 255, 255, 255))).close();
         }

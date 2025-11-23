@@ -18,23 +18,21 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.request.Request.Companion.submit
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.interacting.InteractRequest
 import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.util.BlockUtils
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import java.awt.Color
 
-class InteractionContext(
+class InteractContext(
     override val hitResult: BlockHitResult,
     override val rotationRequest: RotationRequest,
     override var hotbarIndex: Int,
@@ -47,25 +45,16 @@ class InteractionContext(
 
     override val blockPos: BlockPos = hitResult.blockPos
 
-    override fun compareTo(other: BuildContext) =
-        when {
-            other is InteractionContext -> compareBy<BuildContext> {
-                BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
-            }.thenByDescending {
-                it.cachedState.fluidState.level
-            }.thenBy {
-                it.rotationRequest.target.angleDistance
-            }.thenBy {
-                it.hotbarIndex == HotbarManager.serverSlot
-            }.thenBy {
-                it.distance
-            }.compare(this, other)
-
-            else -> 1
-        }
+    override val sorter get() = interactConfig.sorter
 
     override fun ShapeBuilder.buildRenderer() {
-        box(blockPos, expectedState, baseColor, sideColor, hitResult.side.mask)
+        val box = with(hitResult.pos) {
+            Box(
+                x - 0.05, y - 0.05, z - 0.05,
+                x + 0.05, y + 0.05, z + 0.05,
+            ).offset(hitResult.side.doubleVector.multiply(0.05))
+        }
+        box(box, baseColor, sideColor)
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {

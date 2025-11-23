@@ -81,7 +81,7 @@ object Particles : Module(
     private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
     private var particles = mutableListOf<Particle>()
-    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
+    private val pipeline = VertexPipeline(VertexMode.Triangles, VertexAttrib.Group.PARTICLE)
     private val shader = shader("renderer/particle")
 
     init {
@@ -164,7 +164,7 @@ object Particles : Module(
         private var position = initialPosition
         private var motion = initialMotion
 
-        private val projRotation = if (lay) Matrices.ProjRotationMode.UP else Matrices.ProjRotationMode.TO_CAMERA
+        private val projRotation = if (lay) Matrices.ProjRotationMode.Up else Matrices.ProjRotationMode.ToCamera
 
         fun update(): Boolean {
             if (mc.paused) return false

@@ -50,36 +50,36 @@ object Speed : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic
-    val mode by setting("Mode", Mode.GRIM_STRAFE).onValueChange { _, _ -> reset() }
+    val mode by setting("Mode", Mode.GrimStrafe).onValueChange { _, _ -> reset() }
 
     // Grim
-    private val diagonal by setting("Diagonal", true).group(Mode.GRIM_STRAFE)
-    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.7, 0.01).group(Mode.GRIM_STRAFE)
+    private val diagonal by setting("Diagonal", true).group(Mode.GrimStrafe)
+    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.7, 0.01).group(Mode.GrimStrafe)
 
     // NCP
-    private val strict by setting("Strict", true).group(Mode.NCP_STRAFE)
-    private val lowerJump by setting("Lower Jump", true).group(Mode.NCP_STRAFE)
-    private val ncpAutoJump by setting("Auto Jump", false).group(Mode.NCP_STRAFE)
-    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01).group(Mode.NCP_STRAFE)
+    private val strict by setting("Strict", true).group(Mode.NcpStrafe)
+    private val lowerJump by setting("Lower Jump", true).group(Mode.NcpStrafe)
+    private val ncpAutoJump by setting("Auto Jump", false).group(Mode.NcpStrafe)
+    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01).group(Mode.NcpStrafe)
 
     override val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
 
     // NCP state variables
     const val NCP_BASE_SPEED = 0.2873
     private const val NCP_AIR_DECAY = 0.9937
-    private var ncpPhase = NCPPhase.SLOWDOWN
+    private var ncpPhase = NCPPhase.SlowDown
     private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
     enum class Mode(override val displayName: String) : NamedEnum {
-        GRIM_STRAFE("Grim Strafe"),
-        NCP_STRAFE("NCP Strafe"),
+        GrimStrafe("Grim Strafe"),
+        NcpStrafe("NCP Strafe"),
     }
 
     private enum class NCPPhase {
-        JUMP,
-        JUMP_POST,
-        SLOWDOWN
+        Jump,
+        JumpPost,
+        SlowDown
     }
 
     init {
@@ -90,8 +90,8 @@ object Speed : Module(
             }
 
             when (mode) {
-                Mode.NCP_STRAFE -> handleStrafe()
-                Mode.GRIM_STRAFE -> handleGrim()
+                Mode.NcpStrafe -> handleStrafe()
+                Mode.GrimStrafe -> handleGrim()
             }
         }
 
@@ -100,17 +100,17 @@ object Speed : Module(
         }
 
         listen<ClientEvent.TimerUpdate> {
-            if (mode != Mode.NCP_STRAFE) return@listen
+            if (mode != Mode.NcpStrafe) return@listen
             if (!shouldWork() || !isInputting) return@listen
             it.speed = ncpTimerBoost
         }
 
         listen<MovementEvent.Jump> {
-            if (mode == Mode.NCP_STRAFE && shouldWork()) it.cancel()
+            if (mode == Mode.NcpStrafe && shouldWork()) it.cancel()
         }
 
         listen<UpdateManagerEvent.Rotation> {
-            if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listen
+            if (mode != Mode.GrimStrafe || !shouldWork()) return@listen
 
             val input = newMovementInput()
             if (!input.isInputting) return@listen
@@ -148,26 +148,26 @@ object Speed : Module(
         val shouldJump = player.input.playerInput.jump || (ncpAutoJump && isInputting)
 
         if (player.isOnGround && shouldJump) {
-            ncpPhase = NCPPhase.JUMP
+            ncpPhase = NCPPhase.Jump
         }
 
         ncpPhase = when (ncpPhase) {
-            NCPPhase.JUMP -> {
+            NCPPhase.Jump -> {
                 if (player.isOnGround) {
                     player.motionY = if (lowerJump) 0.4 else 0.42
                     ncpSpeed = NCP_BASE_SPEED + 0.3
-                    NCPPhase.JUMP_POST
-                } else NCPPhase.SLOWDOWN
+                    NCPPhase.JumpPost
+                } else NCPPhase.SlowDown
             }
 
-            NCPPhase.JUMP_POST -> {
+            NCPPhase.JumpPost -> {
                 ncpSpeed *= if (strict) 0.59 else 0.62
-                NCPPhase.SLOWDOWN
+                NCPPhase.SlowDown
             }
 
-            NCPPhase.SLOWDOWN -> {
+            NCPPhase.SlowDown -> {
                 ncpSpeed = lastDistance * NCP_AIR_DECAY
-                NCPPhase.SLOWDOWN
+                NCPPhase.SlowDown
             }
         }
 
@@ -193,13 +193,13 @@ object Speed : Module(
             || player.isRiding) return false
 
         return when (mode) {
-            Mode.GRIM_STRAFE -> !player.input.handledByBaritone
-            Mode.NCP_STRAFE -> !player.isSneaking
+            Mode.GrimStrafe -> !player.input.handledByBaritone
+            Mode.NcpStrafe -> !player.isSneaking
         }
     }
 
     private fun reset() {
-        ncpPhase = NCPPhase.SLOWDOWN
+        ncpPhase = NCPPhase.SlowDown
         ncpSpeed = NCP_BASE_SPEED
     }
 }

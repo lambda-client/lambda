@@ -26,26 +26,23 @@ class HotbarRequest(
     val slot: Int,
     automated: Automated,
     var keepTicks: Int = automated.hotbarConfig.keepTicks,
-    var swapPause: Int = automated.hotbarConfig.swapPause
+    var swapPause: Int = automated.hotbarConfig.swapPause,
+    override val nowOrNothing: Boolean = true
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     var activeRequestAge = 0
     var swapPauseAge = 0
 
-    val swapPaused get() = swapPauseAge < swapPause
-    val swappedThisTick get() = activeRequestAge <= 0
-    val keeping get() = keepTicks > 0
-
     override val done: Boolean
-        get() = slot == HotbarManager.serverSlot && !swapPaused
+        get() = slot == HotbarManager.activeSlot && swapPauseAge >= swapPause
 
     override fun submit(queueIfClosed: Boolean) =
         HotbarManager.request(this, queueIfClosed)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Hotbar Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Slot", slot)
             value("Keep Ticks", keepTicks)
             value("Swap Pause", swapPause)

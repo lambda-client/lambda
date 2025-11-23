@@ -48,7 +48,7 @@ object RenderTest : Module(
         onDynamicRender {
             entitySearch<LivingEntity>(8.0)
                 .forEach { entity ->
-                    it.box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.AND)
+                    it.box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
                 }
         }
 

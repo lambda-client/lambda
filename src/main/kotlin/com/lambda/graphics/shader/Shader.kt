@@ -44,8 +44,8 @@ class Shader private constructor(name: String) {
         val texts = buildShaderSource(name)
 
         id = createShaderProgram(
-            loadShader(ShaderType.VERTEX_SHADER, texts.first),
-            loadShader(ShaderType.FRAGMENT_SHADER, texts.second)
+            loadShader(ShaderType.VertexShader, texts.first),
+            loadShader(ShaderType.FragmentShader, texts.second)
         )
     }
 

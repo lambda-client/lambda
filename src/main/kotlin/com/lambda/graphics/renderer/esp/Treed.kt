@@ -35,8 +35,8 @@ import net.minecraft.util.math.Vec3d
 open class Treed(static: Boolean) {
     val shader = if (static) staticMode.first else dynamicMode.first
 
-    val faces = VertexPipeline(VertexMode.TRIANGLES, if (static) staticMode.second else dynamicMode.second)
-    val edges = VertexPipeline(VertexMode.LINES, if (static) staticMode.second else dynamicMode.second)
+    val faces = VertexPipeline(VertexMode.Triangles, if (static) staticMode.second else dynamicMode.second)
+    val edges = VertexPipeline(VertexMode.Lines, if (static) staticMode.second else dynamicMode.second)
 
     var faceBuilder = VertexBuilder(); private set
     var edgeBuilder = VertexBuilder(); private set

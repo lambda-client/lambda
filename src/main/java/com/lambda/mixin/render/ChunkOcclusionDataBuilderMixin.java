@@ -15,21 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.transfer.transaction
+package com.lambda.mixin.render;
 
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.transfer.InventoryTransaction
+import com.lambda.module.modules.render.XRay;
+import net.minecraft.client.render.chunk.ChunkOcclusionDataBuilder;
+import net.minecraft.util.math.BlockPos;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
-    val slot: Int,
-) : InventoryTransaction() {
-    override val name: String get() = "Selecting slot #$slot"
-
-    init {
-        listen<TickEvent.Pre> {
-            player.inventory.selectedSlot = slot
-            finish()
-        }
+@Mixin(ChunkOcclusionDataBuilder.class)
+public class ChunkOcclusionDataBuilderMixin {
+    @Inject(method = "markClosed", at = @At("HEAD"), cancellable = true)
+    private void injectMarkClosed(BlockPos pos, CallbackInfo ci) {
+        if (XRay.INSTANCE.isEnabled()) ci.cancel();
     }
 }

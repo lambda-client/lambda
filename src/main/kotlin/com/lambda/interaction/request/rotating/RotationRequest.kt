@@ -33,9 +33,10 @@ data class RotationRequest(
     var decayTicks: Int = automated.rotationConfig.decayTicks,
     val speedMultiplier: Double = 1.0
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     var age = 0
+    override val nowOrNothing = false
 
     override val done: Boolean get() =
         rotationMode == RotationMode.None || runSafe { target.verify() } == true
@@ -45,7 +46,7 @@ data class RotationRequest(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Rotation Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Rotation Mode", rotationMode)
             value("Turn Speed", turnSpeed)
             value("Keep Ticks", keepTicks)

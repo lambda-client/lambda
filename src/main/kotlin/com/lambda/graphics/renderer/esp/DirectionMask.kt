@@ -68,9 +68,9 @@ object DirectionMask {
 
     enum class OutlineMode(val check: (Boolean, Boolean) -> Boolean) {
         // Render engine will add a line if BOTH touching sides are included into the mask
-        AND(Boolean::and),
+        And(Boolean::and),
 
         // Render engine will add a line if ANY OF touching sides is included into the mask
-        OR(Boolean::or)
+        Or(Boolean::or)
     }
 }

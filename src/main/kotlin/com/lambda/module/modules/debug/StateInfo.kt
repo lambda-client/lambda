@@ -34,16 +34,23 @@ object StateInfo : Module(
     description = "Prints the target block's state into chat",
     tag = ModuleTag.DEBUG,
 ) {
-    private val printBind by setting("Print", KeyCode.UNBOUND, "The bind used to print the info to chat")
+    private val printBind by setting("Print", KeyCode.Unbound, "The bind used to print the info to chat")
 
     val propertyFields = Properties::class.java.declaredFields
         .filter { Property::class.java.isAssignableFrom(it.type) }
         .associateBy { it.get(null) as Property<*> }
 
     init {
+        onEnable {
+            val crosshair = mc.crosshairTarget ?: return@onEnable
+            if (crosshair !is BlockHitResult) return@onEnable
+            info(blockState(crosshair.blockPos).betterToString())
+        }
+
         listen<KeyboardEvent.Press> { event ->
-            if (!event.isPressed) return@listen
-            if (event.keyCode != printBind.code) return@listen
+            if (!event.isPressed ||
+                !event.satisfies(printBind)) return@listen
+
             val crosshair = mc.crosshairTarget ?: return@listen
             if (crosshair !is BlockHitResult) return@listen
             info(blockState(crosshair.blockPos).betterToString())

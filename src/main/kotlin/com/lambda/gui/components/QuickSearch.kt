@@ -40,6 +40,7 @@ import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import imgui.type.ImString
 import net.minecraft.client.gui.screen.ChatScreen
+import org.lwjgl.glfw.GLFW
 import kotlin.math.max
 
 // ToDo: Add support for searching of menu bar entries
@@ -303,7 +304,8 @@ object QuickSearch {
     }
 
     private fun handleKeyPress(event: KeyboardEvent.Press) {
-        if (!event.isPressed || !(event.keyCode == KeyCode.LEFT_SHIFT.code || event.keyCode == KeyCode.RIGHT_SHIFT.code)) return
+        if ((!event.isPressed || event.action == GLFW.GLFW_REPEAT) ||
+            !(event.keyCode == KeyCode.LeftShift.code || event.keyCode == KeyCode.RightShift.code)) return
 
         val currentTime = System.currentTimeMillis()
         if (lastShiftKeyCode == event.keyCode &&

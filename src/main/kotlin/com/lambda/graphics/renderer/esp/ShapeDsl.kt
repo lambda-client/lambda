@@ -153,7 +153,7 @@ class ShapeBuilder(
         box     : DynamicAABB,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = edges.apply {
         val boxes = box.pair ?: return@apply
         val camera = cameraPos
@@ -201,7 +201,7 @@ class ShapeBuilder(
         bottomColor : Color,
         topColor    : Color = bottomColor,
         sides       : Int = DirectionMask.ALL,
-        mode        : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode        : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = edges.apply {
         val camera = cameraPos
         val pos1 = box.min - camera
@@ -245,7 +245,7 @@ class ShapeBuilder(
         state   : BlockState,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe {
         val shape = outlineShape(state, pos)
         if (shape.isEmpty) {
@@ -260,7 +260,7 @@ class ShapeBuilder(
         pos     : BlockPos,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe { outline(pos, blockState(pos), color, sides, mode) }
 
     @ShapeDsl
@@ -269,7 +269,7 @@ class ShapeBuilder(
         entity  : BlockEntity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe { outline(pos, entity.cachedState, color, sides, mode) }
 
     @ShapeDsl
@@ -277,7 +277,7 @@ class ShapeBuilder(
         shape   : VoxelShape,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) {
         shape.boundingBoxes
             .forEach { outline(it, color, sides, mode) }
@@ -288,7 +288,7 @@ class ShapeBuilder(
         box     : Box,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) {
         outline(box, color, color, sides, mode)
     }
@@ -300,7 +300,7 @@ class ShapeBuilder(
         filled  : Color,
         outline : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe {
         filled(pos, state, filled, sides)
         outline(pos, state, outline, sides, mode)
@@ -312,7 +312,7 @@ class ShapeBuilder(
         filled  : Color,
         outline : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe {
         filled(pos, filled, sides)
         outline(pos, outline, sides, mode)
@@ -324,7 +324,7 @@ class ShapeBuilder(
         filled  : Color,
         outline : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) {
         filled(box, filled, sides)
         outline(box, outline, sides, mode)
@@ -336,7 +336,7 @@ class ShapeBuilder(
         filled  : Color,
         outline : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) {
         filled(box, filled, sides)
         outline(box, outline, sides, mode)
@@ -347,7 +347,7 @@ class ShapeBuilder(
         entity  : BlockEntity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe {
         filled(entity.pos, entity, color, sides)
         outline(entity.pos, entity, color, sides, mode)
@@ -358,7 +358,7 @@ class ShapeBuilder(
         entity  : Entity,
         color   : Color,
         sides   : Int = DirectionMask.ALL,
-        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR,
+        mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = runSafe {
         filled(entity.boundingBox, color, sides)
         outline(entity.boundingBox, color, sides, mode)

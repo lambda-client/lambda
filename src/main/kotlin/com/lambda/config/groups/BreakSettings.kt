@@ -23,7 +23,6 @@ import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakConfig.AnimationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
-import com.lambda.interaction.request.breaking.BreakConfig.SortMode
 import com.lambda.interaction.request.breaking.BreakConfig.SwingMode
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
@@ -41,7 +40,7 @@ class BreakSettings(
 
     // General
     override val breakMode by c.setting("Break Mode", BreakMode.Packet, visibility = vis).group(baseGroup, Group.General)
-    override val sorter by c.setting("Sorter", SortMode.Tool, "The order in which breaks are performed", visibility = vis).group(baseGroup, Group.General)
+    override val sorter by c.setting("Break Sorter", ActionConfig.SortMode.Tool, "The order in which breaks are performed", visibility = vis).group(baseGroup, Group.General)
     override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once", visibility = vis).group(baseGroup, Group.General)
 
     // Double break
@@ -56,7 +55,7 @@ class BreakSettings(
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)", visibility = vis).group(baseGroup, Group.General)
 
     // Timing
-    override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), description = "The sub-tick timing at which break actions can be performed", visibility = vis).group(baseGroup, Group.General)
+    override val tickStageMask by c.setting("Break Stage Mask", setOf<TickEvent>(TickEvent.Input.Post), description = "The sub-tick timing at which break actions can be performed", visibility = vis).group(baseGroup, Group.General)
 
     // Swap
     override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block", visibility = vis).group(baseGroup, Group.General)

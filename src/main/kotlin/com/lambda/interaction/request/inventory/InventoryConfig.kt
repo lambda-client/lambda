@@ -17,15 +17,17 @@
 
 package com.lambda.interaction.request.inventory
 
+import com.lambda.event.events.TickEvent
 import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.RequestConfig
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 
-interface InventoryConfig : RequestConfig {
+interface InventoryConfig {
+    val actionsPerSecond: Int
+    val tickStageMask: Set<TickEvent>
     val disposables: Set<Block>
     val swapWithDisposables: Boolean
     val providerPriority: Priority
@@ -40,10 +42,10 @@ interface InventoryConfig : RequestConfig {
         get() = ContainerSelection.selectContainer {
             val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
                 addAll(MaterialContainer.Rank.entries)
-                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.SHULKER_BOX)
-                if (!accessEnderChest) remove(MaterialContainer.Rank.ENDER_CHEST)
-                if (!accessChests) remove(MaterialContainer.Rank.CHEST)
-                if (!accessStashes) remove(MaterialContainer.Rank.STASH)
+                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.ShulkerBox)
+                if (!accessEnderChest) remove(MaterialContainer.Rank.EnderChest)
+                if (!accessChests) remove(MaterialContainer.Rank.Chest)
+                if (!accessStashes) remove(MaterialContainer.Rank.Stash)
             }
             ofAnyType(*allowedContainers.toTypedArray())
         }

@@ -15,8 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing
+package com.lambda.context
 
-import com.lambda.task.Task
-
-abstract class ProcessingStep<T> : Task<T>()
+interface IAutomatedSafeContext : SafeContext, Automated

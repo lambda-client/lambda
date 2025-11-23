@@ -20,6 +20,9 @@ package com.lambda.interaction.construction.result
 import com.lambda.context.Automated
 import com.lambda.task.Task
 
+/**
+ * Represents a [BuildResult] with a resolvable [Task]
+ */
 interface Resolvable {
     context(automated: Automated)
     fun resolve(): Task<*>

@@ -23,7 +23,6 @@ import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.construction.result.Contextual
 import com.lambda.interaction.construction.result.Dependent
 import com.lambda.interaction.construction.result.Drawable
@@ -36,6 +35,9 @@ import net.minecraft.entity.Entity
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 /**
@@ -61,12 +63,6 @@ sealed class PlaceResult : BuildResult() {
         override fun ShapeBuilder.buildRenderer() {
             with(context) { buildRenderer() }
         }
-
-        override fun compareResult(other: ComparableResult<Rank>) =
-            when (other) {
-                is Place -> context.compareTo(other.context)
-                else -> super<Contextual>.compareResult(other)
-            }
     }
 
     /**
@@ -90,7 +86,13 @@ sealed class PlaceResult : BuildResult() {
         private val color = Color(252, 3, 3, 100)
 
         override fun ShapeBuilder.buildRenderer() {
-            box(pos, expected, color, color)
+            val box = with(simulated.hitPos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(simulated.side.doubleVector.multiply(0.05))
+            }
+            box(box, color, color)
         }
     }
 
@@ -101,30 +103,33 @@ sealed class PlaceResult : BuildResult() {
      */
     data class BlockedBySelf(
         override val pos: BlockPos
-    ) : Drawable, Navigable, PlaceResult() {
+    ) : Navigable, PlaceResult() {
         override val rank = Rank.PlaceBlockedByPlayer
-        private val color = Color(252, 3, 3, 100)
         override val goal = GoalInverted(GoalBlock(pos))
-
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
-        }
     }
 
     /**
-     * Represents a scenario where block placement is obstructed by an entity.
+     * Represents a scenario where the block placement is obstructed by an entity.
      *
      * @property pos The position of the block that was attempted to be placed.
      */
     data class BlockedByEntity(
         override val pos: BlockPos,
-        val entities: List<Entity>
+        val entities: List<Entity>,
+        val hitPos: Vec3d,
+        val side: Direction
     ) : Drawable, PlaceResult() {
         override val rank = Rank.PlaceBlockedByEntity
         private val color = Color(252, 3, 3, 100)
 
         override fun ShapeBuilder.buildRenderer() {
-            entities.forEach { box(it, color) }
+            val box = with(hitPos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(side.doubleVector.multiply(0.05))
+            }
+            box(box, color, color)
         }
     }
 
@@ -148,7 +153,6 @@ sealed class PlaceResult : BuildResult() {
      * Represents a placement result indicating that the scaffolding placement has exceeded the allowed limits.
      *
      * @property pos The position of the block where the placement attempt occurred.
-     * @property simulated The context of the simulated item placement attempt.
      */
     data class ScaffoldExceeded(
         override val pos: BlockPos

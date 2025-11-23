@@ -90,7 +90,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
             return
         }
 
-        if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
+        if (targetState.getState(pos, state).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
             sim(pos, state, TargetState.Solid(emptySet())) { simPlacement() }
             return
@@ -117,6 +117,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
                     swapStack.inventoryIndexOrSelected,
                     stackSelection,
                     instant,
+                    true,
                     state,
                     this
                 )
@@ -137,6 +138,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
             swapStack.inventoryIndexOrSelected,
             stackSelection,
             instant,
+            false,
             state,
             this
         )
@@ -181,7 +183,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
         }
 
         val silentSwapSelection = selectContainer {
-            ofAnyType(MaterialContainer.Rank.HOTBAR)
+            ofAnyType(MaterialContainer.Rank.Hotbar)
         }
 
         val swapCandidates = stackSelection
@@ -244,7 +246,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
                     return@fold accumulator
                 }
 
-                if (offsetState.block is Waterloggable && !fluidState.isEmpty) {
+                if (offsetState.block is Waterloggable) {
                     accumulator[offsetPos] = offsetState
                     return@fold accumulator
                 }
@@ -276,7 +278,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
                 result(BreakResult.Submerge(liquidPos, liquidState))
                 sim(liquidPos, liquidState, TargetState.Solid(emptySet())) { simPlacement() }
             }
-            result(BreakResult.BlockedByFluid(pos, state))
+            result(BreakResult.BlockedByFluid(pos, state, affectedFluids.keys))
             return true
         }
 

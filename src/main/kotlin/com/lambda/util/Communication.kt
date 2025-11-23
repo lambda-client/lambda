@@ -63,21 +63,21 @@ object Communication {
         .atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG))
 
-    fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
-    fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.DEBUG, textSource = source)
-    fun Any.info(message: String, source: String = "") = log(LogLevel.INFO.text(message), LogLevel.INFO, source)
-    fun Any.info(message: Text, source: Text = Text.empty()) = log(message, LogLevel.INFO, textSource = source)
-    fun Any.warn(message: String, source: String = "") = log(LogLevel.WARN.text(message), LogLevel.WARN, source)
-    fun Any.warn(message: Text, source: Text = Text.empty()) = log(message, LogLevel.WARN, textSource = source)
-    fun Any.logError(message: String, source: String = "") = log(LogLevel.ERROR.text(message), LogLevel.ERROR, source)
-    fun Any.logError(message: Text, source: Text = Text.empty()) = log(message, LogLevel.ERROR, textSource = source)
+    fun Any.debug(message: String, source: String = "") = log(LogLevel.Debug.text(message), LogLevel.Debug, source)
+    fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.Debug, textSource = source)
+    fun Any.info(message: String, source: String = "") = log(LogLevel.Info.text(message), LogLevel.Info, source)
+    fun Any.info(message: Text, source: Text = Text.empty()) = log(message, LogLevel.Info, textSource = source)
+    fun Any.warn(message: String, source: String = "") = log(LogLevel.Warn.text(message), LogLevel.Warn, source)
+    fun Any.warn(message: Text, source: Text = Text.empty()) = log(message, LogLevel.Warn, textSource = source)
+    fun Any.logError(message: String, source: String = "") = log(LogLevel.Error.text(message), LogLevel.Error, source)
+    fun Any.logError(message: Text, source: Text = Text.empty()) = log(message, LogLevel.Error, textSource = source)
     fun Any.logError(message: String, throwable: Throwable) = logError(message, throwable.message ?: "")
 
-    fun Any.toast(message: String, logLevel: LogLevel = LogLevel.INFO) {
+    fun Any.toast(message: String, logLevel: LogLevel = LogLevel.Info) {
         toast(logLevel.text(message), logLevel)
     }
 
-    fun Any.toast(message: Text, logLevel: LogLevel = LogLevel.INFO) {
+    fun Any.toast(message: Text, logLevel: LogLevel = LogLevel.Info) {
         buildText {
             text(this@toast.source(logLevel, color = Color.YELLOW))
         }.let { title ->
@@ -87,7 +87,7 @@ object Communication {
         }
     }
 
-    fun Any.logText(message: Text, logLevel: LogLevel = LogLevel.INFO) {
+    fun Any.logText(message: Text, logLevel: LogLevel = LogLevel.Info) {
         runSafe {
             buildText {
                 text(this@logText.source(logLevel))
@@ -98,7 +98,7 @@ object Communication {
 
     fun Any.log(
         message: Text,
-        logLevel: LogLevel = LogLevel.INFO,
+        logLevel: LogLevel = LogLevel.Info,
         source: String = "",
         textSource: Text = Text.empty(),
     ) {
@@ -242,10 +242,10 @@ object Communication {
         private val messageColor: Color,
         val type: SystemToast.Type,
     ) {
-        DEBUG(Color.WHITE, Color.WHITE, SystemToast.Type.WORLD_BACKUP),
-        INFO(Color.GREEN, Color.WHITE, SystemToast.Type.NARRATOR_TOGGLE),
-        WARN(Color.YELLOW, Color.YELLOW, SystemToast.Type.WORLD_ACCESS_FAILURE),
-        ERROR(Color.RED, Color.RED, SystemToast.Type.WORLD_ACCESS_FAILURE);
+        Debug(Color.WHITE, Color.WHITE, SystemToast.Type.WORLD_BACKUP),
+        Info(Color.GREEN, Color.WHITE, SystemToast.Type.NARRATOR_TOGGLE),
+        Warn(Color.YELLOW, Color.YELLOW, SystemToast.Type.WORLD_ACCESS_FAILURE),
+        Error(Color.RED, Color.RED, SystemToast.Type.WORLD_ACCESS_FAILURE);
 
         fun toast(title: Text, message: Text): SystemToast =
             SystemToast.create(mc, type, title, message)

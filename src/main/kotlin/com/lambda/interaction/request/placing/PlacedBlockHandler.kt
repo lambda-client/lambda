@@ -68,7 +68,7 @@ object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
 
                     if (pending.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
                         with(pending.context) { placeSound(expectedState, blockPos) }
-                    pending.onPlace?.invoke(pending.context.blockPos)
+                    pending.onPlace?.invoke(this, pending.context.blockPos)
                 }
         }
     }

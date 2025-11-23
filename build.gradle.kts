@@ -35,7 +35,8 @@ val mockitoInline: String by project
 val mockkVersion: String by project
 val spairVersion: String by project
 val lwjglVersion: String by project
-
+val sodiumVersion: String by project
+val litematicaVersion: String by project
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -69,6 +70,7 @@ repositories {
     mavenLocal() // Allow the use of local repositories
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
+    maven("https://api.modrinth.com/maven")
     mavenCentral()
 
     // Allow the use of local libraries
@@ -107,7 +109,7 @@ loom {
             property("org.lwjgl.util.DebugFunctions", "true")
             property("mixin.debug.export", "true")
 
-            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
+            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
         }
     }
@@ -171,8 +173,10 @@ dependencies {
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 
-    // Add mods to the mod jar
-    includeMod("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+    // Add mods
+    modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+    modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
+    modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
     // Test implementations
     testImplementation(kotlin("test"))
@@ -213,7 +217,7 @@ tasks {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
+        freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility")
     }
 
     jvmToolchain(21)

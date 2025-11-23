@@ -41,11 +41,40 @@ import kotlin.math.pow
 @DslMarker
 annotation class SimDsl
 
+/**
+ * A class designed to simulate transforming a BlockState at a specified BlockPos to
+ * a TargetState.
+ *
+ * Some [Sim]s might need to call other sims as an intermediary between the current BlockState
+ * and the TargetState. In this case, we use a dependency system to ensure type safety.
+ * All sims must only return either [GenericResult]s or typed [BuildResult]s. For example, the BreakSim
+ * must only return BreakResults. For this reason, each type has its own Dependency result.
+ * To make sure that the results added are of the correct type, each [Sim] must be called from another [Sim].
+ * Assuming the dependency stack has not reached max capacity, the original sim is then added to the dependency stack
+ * kept within the [SimInfo] object. Each [BuildResult] added is then iterated over the dependency stack, calling
+ * [dependentUpon] on each one. By the end, the result will be a nested group, with your initial [BuildResult] at
+ * the very bottom, which is then added to the [ISimInfo.concurrentResults] set. After a sim is completed, the dependency
+ * is then popped from the stack.
+ *
+ * @param T The type of [BuildResult] this sim produces.
+ *
+ * @see com.lambda.interaction.construction.result.Dependent
+ * @see dependentUpon
+ * @see withDependent
+ */
 @SimDsl
 abstract class Sim<T : BuildResult> : Results<T> {
+    /**
+     * Can be overridden to return a typed Dependent result with the initial [buildResult] nested inside.
+     *
+     * @see com.lambda.interaction.construction.result.Dependent
+     */
     @SimDsl
     open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
 
+    /**
+     * Pushes and pops the [dependent] onto and off of the dependency stack unless the [maxSimDependencies] is reached.
+     */
     protected suspend fun ISimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
         // +1 because the build sim counts as a dependent
         if (dependencyStack.size >= maxSimDependencies + 1) return
@@ -54,6 +83,9 @@ abstract class Sim<T : BuildResult> : Results<T> {
         dependencyStack.pop()
     }
 
+    /**
+     * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].
+     */
     suspend fun ISimInfo.scanShape(
         pov: Vec3d,
         voxelShape: VoxelShape,
@@ -66,7 +98,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         val reachSq = buildConfig.interactReach.pow(2)
 
         val validHits = ConcurrentSet<CheckedHit>()
-        val misses = ConcurrentSet<Vec3d>()
+        val misses = ConcurrentSet<Pair<Vec3d, Direction>>()
 
         supervisorScope {
             boxes.forEach { box ->
@@ -77,7 +109,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
 
                     scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { side, vec ->
                         if (pov distSq vec > reachSq) {
-                            misses.add(vec)
+                            misses.add(Pair(vec, side))
                             return@scanSurfaces
                         }
 
@@ -86,12 +118,14 @@ abstract class Sim<T : BuildResult> : Results<T> {
                         val hit = if (buildConfig.strictRayCast) {
                             newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
                         } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
+                            val hitVec =
+                                if (buildConfig.checkSideVisibility) newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
+                                else vec
                             BlockHitResult(hitVec, side, pos, false)
                         }
 
                         if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
-                        val checked = CheckedHit(hit, newRotation, buildConfig.interactReach)
+                        val checked = CheckedHit(hit, newRotation)
 
                         validHits.add(checked)
                     }

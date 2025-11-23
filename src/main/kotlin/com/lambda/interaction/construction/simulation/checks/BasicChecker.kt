@@ -29,6 +29,9 @@ import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
 
 object BasicChecker : Results<PreSimResult> {
+    /**
+     * A sequence of basic checks to make sure that the block is worth simulating.
+     */
     @SimDsl
     context(automatedSafeContext: AutomatedSafeContext)
     fun SimInfo.hasBasicRequirements(): Boolean = with(automatedSafeContext) {

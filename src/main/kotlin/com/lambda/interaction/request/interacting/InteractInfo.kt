@@ -19,16 +19,16 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.context.Automated
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 
-data class InteractionInfo(
-    override val context: InteractionContext,
+data class InteractInfo(
+    override val context: InteractContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
     private val automated: Automated
-) : ActionInfo, InteractConfig by automated.interactConfig, LogContext {
+) : ActionInfo, Automated by automated, LogContext {
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Interaction Info") {
             text(context.getLogContextBuilder())

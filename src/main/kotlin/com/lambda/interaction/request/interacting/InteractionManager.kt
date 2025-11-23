@@ -24,7 +24,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.request.Logger
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.ManagerUtils.newStage
@@ -35,6 +35,10 @@ import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.pendingActions
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPending
+import com.lambda.interaction.request.interacting.InteractionManager.activeRequest
+import com.lambda.interaction.request.interacting.InteractionManager.maxInteractionsThisTick
+import com.lambda.interaction.request.interacting.InteractionManager.populateFrom
+import com.lambda.interaction.request.interacting.InteractionManager.potentialInteractions
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.module.hud.ManagerDebugLoggers.interactionManagerLogger
@@ -44,6 +48,10 @@ import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.util.Hand
 
+/**
+ * Manager responsible for handling block interactions other than placing. It can be accessed from anywhere
+ * through an [InteractRequest]
+ */
 object InteractionManager : RequestHandler<InteractRequest>(
     0,
     TickEvent.Pre,
@@ -51,13 +59,13 @@ object InteractionManager : RequestHandler<InteractRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = {
-        if (InteractionManager.potentialInteractions.isNotEmpty())
+        if (potentialInteractions.isNotEmpty())
             InteractionManager.logger.newStage(InteractionManager.tickStage)
-        InteractionManager.activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
+        activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
     }
 ), PositionBlocking, Logger {
     private var activeRequest: InteractRequest? = null
-    private var potentialInteractions = mutableListOf<InteractionContext>()
+    private var potentialInteractions = mutableListOf<InteractContext>()
 
     private var interactionsThisTick = 0
     private var maxInteractionsThisTick = 0
@@ -90,17 +98,31 @@ object InteractionManager : RequestHandler<InteractRequest>(
         return "Loaded Interaction Manager"
     }
 
+    /**
+     * Attempts to accept and process the request, if there is not already an [activeRequest] and the request's [InteractRequest.contexts]
+     * collection is not empty. If nowOrNothing is true, the request is cleared after the first process.
+     *
+     * @see processRequest
+     */
     override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+        if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
+        if (request.nowOrNothing) {
+            activeRequest = null
+            potentialInteractions = mutableListOf()
+        }
         if (interactionsThisTick > 0) activeThisTick = true
     }
 
+    /**
+     * Handles populating the manager and performing interactions.
+     *
+     * @see populateFrom
+     */
     fun AutomatedSafeContext.processRequest(request: InteractRequest) {
-        if (BreakManager.activeThisTick || PlaceManager.activeThisTick) return
-
         logger.debug("Processing request", request)
 
         if (request.fresh) populateFrom(request)
@@ -116,10 +138,10 @@ object InteractionManager : RequestHandler<InteractRequest>(
                 logger.warning("Dependencies failed for interaction", ctx, request)
                 return
             }
-            if (tickStage !in interactConfig.interactStageMask) return
+            if (tickStage !in interactConfig.tickStageMask) return
 
             if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
-                InteractionInfo(ctx, request.pendingInteractionsList, request).startPending()
+                InteractInfo(ctx, request.pendingInteractionsList, request).startPending()
             }
             if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
@@ -138,6 +160,12 @@ object InteractionManager : RequestHandler<InteractRequest>(
         }
     }
 
+    /**
+     * Populates the [potentialInteractions] collection, and sets the configurations
+     *
+     * @see setPendingConfigs
+     * @see maxInteractionsThisTick
+     */
     private fun Automated.populateFrom(request: InteractRequest) {
         logger.debug("Populating from request", request)
         setPendingConfigs()

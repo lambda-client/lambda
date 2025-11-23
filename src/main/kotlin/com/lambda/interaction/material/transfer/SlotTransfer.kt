@@ -22,7 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
@@ -70,13 +70,11 @@ class SlotTransfer @Ta5kBuilder constructor(
             val nextFrom = selectedFrom.firstOrNull() ?: return@listen
             val nextTo = selectedTo.firstOrNull() ?: return@listen
 
-            transfer(screen) {
-//                moveSlot(nextFrom.id, nextTo.id)
+            inventoryRequest {
                 swap(nextTo.id, 1)
                 swap(nextFrom.id, 1)
-            }.finally { change ->
-                changes merge change
-            }.execute(this@SlotTransfer)
+                onComplete { success() }
+            }.submit(queueIfClosed = false)
         }
     }
 

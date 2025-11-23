@@ -18,7 +18,8 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.processing.ProcessorRegistry.intermediaryBlockMap
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
@@ -64,6 +65,17 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
 
     private suspend fun AutomatedSafeContext.simPostProcessing() {
         val targetState = (targetState as? TargetState.State) ?: return
+
+        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+            intermediaryInfo.getIntermediaryProcess(state)?.let { intermediaryBlock ->
+                simInteraction(
+                    intermediaryBlock.targetBlock.defaultState,
+                    intermediaryBlock.sides,
+                    intermediaryBlock.item
+                )
+            }
+            return
+        }
 
         val mismatchedProperties = state.properties.filter { state.get(it) != targetState.blockState.get(it) }
         mismatchedProperties.forEach { property ->
@@ -119,7 +131,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     private fun AutomatedSafeContext.getSwapStack(item: Item): ItemStack? {
         val stackSelection = item.select()
         val hotbarCandidates = selectContainer {
-            ofAnyType(MaterialContainer.Rank.HOTBAR)
+            ofAnyType(MaterialContainer.Rank.Hotbar)
         }.let { predicate ->
             stackSelection.containerWithMaterial( predicate)
         }
@@ -140,7 +152,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit.blockResult ?: return
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
-            val context = InteractionContext(
+            val context = InteractContext(
                 checkedResult,
                 RotationRequest(rotationTarget, this),
                 swapStack.inventoryIndex,

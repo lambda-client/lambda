@@ -158,6 +158,46 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
+    val pottedBlocks = setOf(
+        Blocks.POTTED_WARPED_FUNGUS,
+        Blocks.POTTED_AZALEA_BUSH,
+        Blocks.POTTED_CLOSED_EYEBLOSSOM,
+        Blocks.POTTED_CACTUS,
+        Blocks.POTTED_PINK_TULIP,
+        Blocks.POTTED_FLOWERING_AZALEA_BUSH,
+        Blocks.POTTED_RED_TULIP,
+        Blocks.POTTED_CORNFLOWER,
+        Blocks.POTTED_DANDELION,
+        Blocks.POTTED_SPRUCE_SAPLING,
+        Blocks.POTTED_WHITE_TULIP,
+        Blocks.POTTED_OAK_SAPLING,
+        Blocks.POTTED_WITHER_ROSE,
+        Blocks.POTTED_PALE_OAK_SAPLING,
+        Blocks.POTTED_ACACIA_SAPLING,
+        Blocks.POTTED_BIRCH_SAPLING,
+        Blocks.POTTED_ALLIUM,
+        Blocks.POTTED_CRIMSON_FUNGUS,
+        Blocks.POTTED_CRIMSON_ROOTS,
+        Blocks.POTTED_JUNGLE_SAPLING,
+        Blocks.POTTED_DEAD_BUSH,
+        Blocks.POTTED_TORCHFLOWER,
+        Blocks.POTTED_BLUE_ORCHID,
+        Blocks.POTTED_BROWN_MUSHROOM,
+        Blocks.POTTED_BAMBOO,
+        Blocks.POTTED_MANGROVE_PROPAGULE,
+        Blocks.POTTED_CHERRY_SAPLING,
+        Blocks.POTTED_AZURE_BLUET,
+        Blocks.POTTED_DARK_OAK_SAPLING,
+        Blocks.POTTED_RED_MUSHROOM,
+        Blocks.POTTED_WARPED_ROOTS,
+        Blocks.POTTED_OPEN_EYEBLOSSOM,
+        Blocks.POTTED_ORANGE_TULIP,
+        Blocks.POTTED_OXEYE_DAISY,
+        Blocks.POTTED_POPPY,
+        Blocks.POTTED_LILY_OF_THE_VALLEY,
+        Blocks.POTTED_FERN
+    )
+
     val interactionBlocks = setOf(
         AbstractCauldronBlock::class,
         AbstractFurnaceBlock::class,

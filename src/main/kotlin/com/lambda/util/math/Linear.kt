@@ -24,56 +24,34 @@ import java.awt.Color
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
-import kotlin.random.Random.Default.nextDouble
 
-/**
- * Iterates over the double range with the specified step.
- */
-fun ClosedRange<Double>.step(step: Double) = object : DoubleIterator() {
+infix fun ClosedRange<Double>.step(step: Double) = object : DoubleIterator() {
     private var next = start
     override fun hasNext() = next <= endInclusive
     override fun nextDouble() = next.also { next += step }
 }
 
-/**
- * Iterates over the float range with the specified step.
- */
-fun ClosedRange<Float>.step(step: Float) = object : FloatIterator() {
+infix fun ClosedRange<Float>.step(step: Float) = object : FloatIterator() {
     private var next = start
     override fun hasNext() = next <= endInclusive
     override fun nextFloat() = next.also { next += step }
 }
 
-/**
- * Returns a random number within the range.
- */
+@JvmName("randomDouble")
 fun ClosedRange<Double>.random(random: Random = Random) = start + (endInclusive - start) * random.nextDouble()
+@JvmName("randomFloat")
+fun ClosedRange<Float>.random(random: Random = Random) = start + (endInclusive - start) * random.nextDouble()
 
-/**
- * Converts a value from one range to a normalized value between 0 and 1.
- */
-fun ClosedRange<Double>.normalize(value: Double): Double =
-    transform(value, 0.0, 1.0)
+fun ClosedRange<Double>.normalize(value: Double): Double = transform(value, 0.0, 1.0)
+fun ClosedRange<Float>.normalize(value: Float): Float = transform(value, 0f, 1f)
 
-/**
- * Converts a value from one range to a normalized value between 0 and 1.
- */
-fun ClosedRange<Float>.normalize(value: Float): Float =
-    transform(value, 0f, 1f)
-
-/**
- * Inverts the range.
- */
+@JvmName("invDouble")
+fun ClosedRange<Double>.inv() = endInclusive to start
+@JvmName("invFloat")
 fun ClosedRange<Float>.inv() = endInclusive to start
 
 /**
  * Converts a value from one range to another while keeping the ratio using linear interpolation.
- *
- * @param value The value to convert.
- * @param min The minimum of the new range.
- * @param max The maximum of the new range.
- *
- * @return The converted value.
  */
 fun ClosedRange<Double>.transform(
     value: Double,
@@ -84,12 +62,6 @@ fun ClosedRange<Double>.transform(
 
 /**
  * Converts a value from one range to another while keeping the ratio using linear interpolation.
- *
- * @param value The value to convert.
- * @param min The minimum of the new range.
- * @param max The maximum of the new range.
- *
- * @return The converted value.
  */
 fun ClosedRange<Float>.transform(
     value: Float,
@@ -98,12 +70,6 @@ fun ClosedRange<Float>.transform(
 ): Float =
     transform(value, start, endInclusive, min, max)
 
-/**
- * Linear interpolation between two axes-aligned boxes.
- *
- * @param start The start box.
- * @param end The end box.
- */
 fun lerp(value: Double, start: Box, end: Box) =
     Box(
         lerp(value, start.minX, end.minX),
@@ -114,21 +80,12 @@ fun lerp(value: Double, start: Box, end: Box) =
         lerp(value, start.maxZ, end.maxZ),
     )
 
-/**
- * Linear interpolation between two 2d vectors.
- *
- * @param start The start vector.
- * @param end The end vector.
- */
 fun lerp(value: Double, start: Vec2d, end: Vec2d) =
     Vec2d(
         lerp(value, start.x, end.x),
         lerp(value, start.y, end.y),
     )
 
-/**
- * Linear interpolation between two 3d vectors.
- */
 fun lerp(value: Double, start: Vec3d, end: Vec3d) =
     Vec3d(
         lerp(value, start.x, end.x),
@@ -136,27 +93,18 @@ fun lerp(value: Double, start: Vec3d, end: Vec3d) =
         lerp(value, start.z, end.z),
     )
 
-/**
- * Linear interpolation between two rotations.
- */
 fun lerp(value: Double, start: Rotation, end: Rotation) =
     Rotation(
         lerp(value, start.yaw, end.yaw),
         lerp(value, start.pitch, end.pitch),
     )
 
-/**
- * Linear interpolation between two rectangles
- */
 fun lerp(value: Double, start: Rect, end: Rect) =
     Rect(
         lerp(value, start.leftTop, end.leftTop),
         lerp(value, start.rightBottom, end.rightBottom),
     )
 
-/**
- * Linear interpolation between two colors.
- */
 fun lerp(value: Double, start: Color, end: Color) =
     Color(
         lerp(value, start.r, end.r).toFloat(),
@@ -172,11 +120,6 @@ fun lerp(value: Double, start: Color, end: Color) =
  * between [start] and [end] based on the interpolation factor [value].
  * The interpolation factor [value] is clamped between zero
  * and one to ensure the result stays within the range of [start] and [end].
- *
- * @param start The start value.
- * @param end The end value.
- * @param value The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
- * @return The interpolated value between [start] and [end].
  */
 fun lerp(value: Double, start: Double, end: Double) =
     transform(value.coerceIn(0.0, 1.0), 0.0, 1.0, start, end)
@@ -188,12 +131,6 @@ fun lerp(value: Double, start: Double, end: Double) =
  * between [start] and [end] based on the interpolation factor [value].
  * The interpolation factor [value] is clamped between zero
  * and one to ensure the result stays within the range of [start] and [end].
- *
- * @param start The start value.
- * @param end The end value.
- * @param value The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
- *
- * @return The interpolated value between [start] and [end].
  */
 fun lerp(value: Float, start: Float, end: Float) =
     transform(value.coerceIn(0f, 1f), 0f, 1f, start, end)
@@ -207,7 +144,6 @@ fun lerp(value: Float, start: Float, end: Float) =
  * @param nStart The new start value.
  * @param nEnd The new end value.
  *
- * @return The converted value.
  * @see <a href="https://en.wikipedia.org/wiki/Linear_map">Linear Map</a>
  */
 fun transform(
@@ -228,7 +164,6 @@ fun transform(
  * @param nStart The new start value.
  * @param nEnd The new end value.
  *
- * @return The converted value.
  * @see <a href="https://en.wikipedia.org/wiki/Linear_map">Linear Map</a>
  */
 fun transform(
@@ -241,23 +176,11 @@ fun transform(
     nStart + (value - ogStart) * ((nEnd - nStart) / (ogEnd - ogStart))
 
 
-/**
- * Coerces a value to be within the range.
- */
 fun ClosedRange<Double>.coerceIn(value: Double) = value.coerceIn(start, endInclusive)
-
-/**
- * Coerces a value to be within the range.
- */
 fun ClosedRange<Float>.coerceIn(value: Float) = value.coerceIn(start, endInclusive)
 
 /**
  * Coerces a value to be within a 2d vector.
- *
- * @param minX The minimum x value.
- * @param maxX The maximum x value.
- * @param minY The minimum y value.
- * @param maxY The maximum y value.
  */
 fun Vec2d.coerceIn(
     minX: Double,

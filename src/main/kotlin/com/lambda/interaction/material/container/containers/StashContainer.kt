@@ -29,7 +29,7 @@ import net.minecraft.util.math.Box
 data class StashContainer(
     val chests: Set<ChestContainer>,
     val pos: Box,
-) : MaterialContainer(Rank.STASH) {
+) : MaterialContainer(Rank.Stash) {
     override var stacks: List<ItemStack>
         get() = chests.flatMap { it.stacks }
         set(_) {}

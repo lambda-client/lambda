@@ -18,17 +18,30 @@
 package com.lambda.interaction.construction.processing
 
 import com.lambda.core.Loadable
+import com.lambda.interaction.construction.processing.ProcessorRegistry.IntermediaryInfo.Companion.intermediaryInfo
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.util.BlockUtils
+import com.lambda.util.BlockUtils.item
 import com.lambda.util.reflections.getInstances
+import net.minecraft.block.Block
 import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
+import net.minecraft.block.FlowerPotBlock
+import net.minecraft.item.Item
+import net.minecraft.item.Items
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import java.util.*
 
 object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor>()
     private val processorCache = Collections.synchronizedMap<BlockState, PreProcessingInfo?>(mutableMapOf())
 
+    /**
+     * List of properties that can be processed after the block is placed. This is often used to ignore these properties
+     * when placing blocks, as sometimes they can only be set to the right state after placement.
+     */
     val postProcessedProperties = setOf(
         Properties.EXTENDED,
         Properties.EYE,
@@ -104,8 +117,31 @@ object ProcessorRegistry : Loadable {
         Properties.DISTANCE_1_7
     )
 
+    /**
+     * Map of blocks that get placed as a different [Block] type, to then be updated afterward. Bamboo and potted flowers are
+     * two examples.
+     *
+     * @see IntermediaryInfo
+     */
+    val intermediaryBlockMap = buildMap<Block, IntermediaryInfo> {
+        this[Blocks.BAMBOO] = intermediaryInfo(IntermediaryProcess(Blocks.BAMBOO_SAPLING, item = Items.BAMBOO))
+        BlockUtils.pottedBlocks.forEach {
+            this[it] = intermediaryInfo(
+                IntermediaryProcess(Blocks.FLOWER_POT, item = Items.FLOWER_POT),
+                IntermediaryProcess(Blocks.FLOWER_POT, it, (it as FlowerPotBlock).content.item)
+            )
+        }
+    }
+
     override fun load() = "Loaded ${processors.size} pre processors"
 
+    /**
+     * [PreProcessingInfo]'s are cached to avoid duplicate computations as block states are immutable.
+     *
+     * @return A [PreProcessingInfo] object containing information about the block state. This method runs through
+     * each pre-processor checking if the state can be accepted. If so, the state is passed through the pre-processor
+     * which can call the functions within the [PreProcessingInfoAccumulator] DSL to modify the information.
+     */
     fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? =
         if (this !is TargetState.State) PreProcessingInfo.DEFAULT
         else {
@@ -123,4 +159,40 @@ object ProcessorRegistry : Loadable {
             }
             processorCache.getOrPut(blockState, get)
         }
+
+    /**
+     * Contains the starting initial block placement and any subsequent intermediary processes to transform the placement
+     * into the final block.
+     *
+     * @see IntermediaryProcess
+     */
+    data class IntermediaryInfo private constructor(
+        val startBlock: IntermediaryProcess,
+        val intermediaryProcesses: List<IntermediaryProcess> = emptyList(),
+    ) {
+        fun getIntermediaryProcess(state: BlockState) = intermediaryProcesses.firstOrNull { it.block === state.block }
+        fun isIntermediaryBlock(state: BlockState) = intermediaryProcesses.any {
+            it.block === state.block || it.targetBlock === state.block
+        } || startBlock.targetBlock === state.block
+
+        companion object {
+            fun intermediaryInfo(
+                startingBlock: IntermediaryProcess,
+                vararg intermediaryProcesses: IntermediaryProcess
+            ) = IntermediaryInfo(startingBlock, intermediaryProcesses.toList())
+        }
+    }
+
+    /**
+     * Holds the required information for placing a [Block] with more than one placement to achieve its target.
+     *
+     * The use of [Block] instead of [BlockState] here is intentional as we would only have to alter the [Properties]s
+     * if the placement was the correct [BlockState]. This is only used when one [Block] needs to transform into another.
+     */
+    data class IntermediaryProcess(
+        val block: Block,
+        val targetBlock: Block = block,
+        val item: Item,
+        val sides: Set<Direction> = Direction.entries.toSet()
+    )
 }

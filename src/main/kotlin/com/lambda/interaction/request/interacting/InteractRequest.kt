@@ -20,7 +20,7 @@ package com.lambda.interaction.request.interacting
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
@@ -28,12 +28,13 @@ import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
 data class InteractRequest(
-    val contexts: Collection<InteractionContext>,
+    val contexts: Collection<InteractContext>,
     val pendingInteractionsList: MutableCollection<BuildContext>,
     private val automated: Automated,
+    override val nowOrNothing: Boolean = false,
     val onInteract: ((BlockPos) -> Unit)?
 ) : Request(), LogContext, Automated by automated {
-    override val requestID = ++requestCount
+    override val requestId = ++requestCount
 
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
@@ -43,7 +44,7 @@ data class InteractRequest(
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Interact Request") {
-            value("Request ID", requestID)
+            value("Request ID", requestId)
             value("Contexts", contexts.size)
         }
     }
