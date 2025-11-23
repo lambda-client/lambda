@@ -67,10 +67,10 @@ open class AutomationConfig(
     companion object {
         context(module: Module)
         fun automationConfig(name: String = module.name, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
-            AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+            AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
 
         fun automationConfig(name: String, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
-            AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+            AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
 
         object DEFAULT : AutomationConfig("Default Automation Config") {
             val renders by setting("Render", false).group(Group.Render)
