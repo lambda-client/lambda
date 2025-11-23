@@ -21,6 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
+import com.lambda.interaction.construction.processing.ProcessorRegistry.intermediaryBlockMap
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.checks.BasicChecker.hasBasicRequirements
 import com.lambda.interaction.construction.verify.TargetState
@@ -41,6 +42,17 @@ interface ISimInfo : Automated {
     val pov: Vec3d
     val concurrentResults: MutableSet<BuildResult>
     val dependencyStack: Stack<Sim<*>>
+
+    fun AutomatedSafeContext.matchesTarget(state: BlockState = this@ISimInfo.state, complete: Boolean = true): Boolean {
+        if (targetState.matches(state, pos, if (!complete) preProcessing.ignore else emptySet())) return true
+        else if (complete) return false
+
+        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+            return intermediaryInfo.isIntermediaryBlock(state)
+        }
+
+        return false
+    }
 
     companion object {
         /**

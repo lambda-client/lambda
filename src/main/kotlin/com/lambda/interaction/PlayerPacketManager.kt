@@ -22,7 +22,6 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedOrderedSet
@@ -95,9 +94,7 @@ object PlayerPacketManager {
             updatePosition && updateRotation -> Full(position, yaw.toFloat(), pitch.toFloat(), onGround, isCollidingHorizontally)
             updatePosition -> PositionAndOnGround(position, onGround, isCollidingHorizontally)
             updateRotation -> LookAndOnGround(yaw.toFloat(), pitch.toFloat(), onGround, isCollidingHorizontally)
-            lastOnGround != onGround || lastHorizontalCollision != isCollidingHorizontally -> {
-                OnGroundOnly(onGround, isCollidingHorizontally)
-            }
+            lastOnGround != onGround || lastHorizontalCollision != isCollidingHorizontally -> OnGroundOnly(onGround, isCollidingHorizontally)
             else -> null
         }?.let {
             PlayerPacketEvent.Send(it).postChecked {

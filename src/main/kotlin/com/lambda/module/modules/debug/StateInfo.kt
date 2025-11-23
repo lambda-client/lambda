@@ -41,6 +41,12 @@ object StateInfo : Module(
         .associateBy { it.get(null) as Property<*> }
 
     init {
+        onEnable {
+            val crosshair = mc.crosshairTarget ?: return@onEnable
+            if (crosshair !is BlockHitResult) return@onEnable
+            info(blockState(crosshair.blockPos).betterToString())
+        }
+
         listen<KeyboardEvent.Press> { event ->
             if (!event.isPressed ||
                 !event.satisfies(printBind)) return@listen

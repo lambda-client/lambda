@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.processing.ProcessorRegistry.intermediaryBlockMap
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
@@ -64,6 +65,17 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
 
     private suspend fun AutomatedSafeContext.simPostProcessing() {
         val targetState = (targetState as? TargetState.State) ?: return
+
+        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+            intermediaryInfo.getIntermediaryProcess(state)?.let { intermediaryBlock ->
+                simInteraction(
+                    intermediaryBlock.targetBlock.defaultState,
+                    intermediaryBlock.sides,
+                    intermediaryBlock.item
+                )
+            }
+            return
+        }
 
         val mismatchedProperties = state.properties.filter { state.get(it) != targetState.blockState.get(it) }
         mismatchedProperties.forEach { property ->

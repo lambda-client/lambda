@@ -98,7 +98,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         val reachSq = buildConfig.interactReach.pow(2)
 
         val validHits = ConcurrentSet<CheckedHit>()
-        val misses = ConcurrentSet<Vec3d>()
+        val misses = ConcurrentSet<Pair<Vec3d, Direction>>()
 
         supervisorScope {
             boxes.forEach { box ->
@@ -109,7 +109,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
 
                     scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { side, vec ->
                         if (pov distSq vec > reachSq) {
-                            misses.add(vec)
+                            misses.add(Pair(vec, side))
                             return@scanSurfaces
                         }
 
@@ -118,7 +118,9 @@ abstract class Sim<T : BuildResult> : Results<T> {
                         val hit = if (buildConfig.strictRayCast) {
                             newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
                         } else {
-                            val hitVec = newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
+                            val hitVec =
+                                if (buildConfig.checkSideVisibility) newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
+                                else vec
                             BlockHitResult(hitVec, side, pos, false)
                         }
 

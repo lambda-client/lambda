@@ -165,7 +165,7 @@ class StackSelection {
             ItemUtils.tools.any { it.getMiningSpeed(it.defaultStack, blockState) > 1f }
         }
         if (hasEfficientTool) itemStack.item.getMiningSpeed(itemStack, blockState) > 1f
-        else false
+        else true
     }
 
     fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { !blockState.isToolRequired || it.isSuitableFor(blockState) }

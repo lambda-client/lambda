@@ -36,6 +36,7 @@ val mockkVersion: String by project
 val spairVersion: String by project
 val lwjglVersion: String by project
 val sodiumVersion: String by project
+val litematicaVersion: String by project
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -108,7 +109,7 @@ loom {
             property("org.lwjgl.util.DebugFunctions", "true")
             property("mixin.debug.export", "true")
 
-            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
+            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
         }
     }
@@ -150,7 +151,6 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
     modImplementation("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
-    modImplementation("maven.modrinth:sodium:$sodiumVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
@@ -173,8 +173,10 @@ dependencies {
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 
-    // Add mods to the mod jar
-    includeMod("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+    // Add mods
+    modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+    modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
+    modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
     // Test implementations
     testImplementation(kotlin("test"))

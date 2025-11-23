@@ -30,8 +30,11 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
+import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
@@ -51,7 +54,13 @@ sealed class GenericResult : BuildResult() {
         private val color = Color(46, 0, 0, 80)
 
         override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+            val box = with(pos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(pos)
+            }
+            box(box, color, color)
         }
 
         override fun compareResult(other: ComparableResult<Rank>): Int {
@@ -96,7 +105,12 @@ sealed class GenericResult : BuildResult() {
                 )
 
         override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box, color, color)
         }
     }
 
@@ -109,20 +123,25 @@ sealed class GenericResult : BuildResult() {
     data class OutOfReach(
         override val pos: BlockPos,
         val pov: Vec3d,
-        val misses: Set<Vec3d>,
+        val misses: Set<Pair<Vec3d, Direction>>,
     ) : Navigable, Drawable, GenericResult() {
         override val name: String get() = "Out of reach at $pos."
         override val rank = Rank.OutOfReach
         private val color = Color(252, 3, 207, 25)
 
         val distance: Double by lazy {
-            misses.minOfOrNull { pov.distanceTo(it) } ?: 0.0
+            misses.minOfOrNull { pov.distanceTo(it.first) } ?: 0.0
         }
 
         override val goal = GoalNear(pos, 3)
 
         override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box, color, color)
         }
 
         override fun compareResult(other: ComparableResult<Rank>): Int {
