@@ -17,13 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BreakSettings
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.PlaceSettings
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.placing.PlaceConfig
@@ -33,7 +27,6 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.NamedEnum
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
 
@@ -47,37 +40,23 @@ object Printer : Module(
         true
     }.getOrDefault(false)
 
-    private val range by setting("Range", 5, 1..7, 1).group(Group.General)
-    private val air by setting("Air", false).group(Group.General)
-
-    override val buildConfig = BuildSettings(this, Group.Build).apply {
-        editTyped(::pathing, ::stayInRange) { defaultValue(false) }
-    }
-    override val breakConfig = BreakSettings(this, Group.Break).apply {
-        editTyped(::efficientOnly, ::suitableToolsOnly) { defaultValue(false) }
-    }
-    override val placeConfig = PlaceSettings(this, Group.Place).apply {
-        ::airPlace.edit { defaultValue(PlaceConfig.AirPlaceMode.Grim) }
-    }
-    override val interactConfig = InteractSettings(this, Group.Interact)
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val inventoryConfig = InventorySettings(this, Group.Inventory)
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
+    private val range by setting("Range", 5, 1..7, 1)
+    private val air by setting("Air", false)
 
     private var buildTask: Task<*>? = null
 
-    private enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Build("Build"),
-        Break("Break"),
-        Place("Place"),
-        Interact("Interact"),
-        Rotation("Rotation"),
-        Inventory("Inventory"),
-        Hotbar("Hotbar")
-    }
-
     init {
+        defaultAutomationConfig = automationConfig {
+            buildConfig.apply {
+                editTyped(::pathing, ::stayInRange) { defaultValue(false) }
+            }
+            breakConfig.apply {
+                editTyped(::efficientOnly, ::suitableToolsOnly) { defaultValue(false) }
+            }
+            placeConfig.apply {
+                ::airPlace.edit { defaultValue(PlaceConfig.AirPlaceMode.Grim) }
+            }
+        }
         onEnable {
             if (!isSchematicHandlerAvailable()) {
                 error("Litematica is not installed!")
