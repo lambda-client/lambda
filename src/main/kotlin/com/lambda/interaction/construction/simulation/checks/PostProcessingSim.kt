@@ -66,7 +66,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     private suspend fun AutomatedSafeContext.simPostProcessing() {
         val targetState = (targetState as? TargetState.State) ?: return
 
-        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+        intermediaryBlockMap[targetState.getState(pos).block]?.let { intermediaryInfo ->
             intermediaryInfo.getIntermediaryProcess(state)?.let { intermediaryBlock ->
                 simInteraction(
                     intermediaryBlock.targetBlock.defaultState,

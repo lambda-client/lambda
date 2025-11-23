@@ -47,7 +47,7 @@ interface ISimInfo : Automated {
         if (targetState.matches(state, pos, if (!complete) preProcessing.ignore else emptySet())) return true
         else if (complete) return false
 
-        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+        intermediaryBlockMap[targetState.getState(pos).block]?.let { intermediaryInfo ->
             return intermediaryInfo.isIntermediaryBlock(state)
         }
 

@@ -121,11 +121,11 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         val validHits = scanShape(pov, shape, pos, setOf(side), preProcessing) ?: return
 
-        selectHitPos(validHits, fakePlayer, targetState.getStack(this@PlaceSim.pos, state).blockItem, supervisorScope)
+        selectHitPos(validHits, fakePlayer, targetState.getStack(this@PlaceSim.pos).blockItem, supervisorScope)
     }
 
     private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
-        val optimalStack = targetState.getStack(pos, state)
+        val optimalStack = targetState.getStack(pos)
         val stackSelection = optimalStack.item.select()
         val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
         val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {

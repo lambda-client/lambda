@@ -33,8 +33,8 @@ interface StateMatcher {
     ): Boolean
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun getStack(pos: BlockPos, state: BlockState): ItemStack
+    fun getStack(pos: BlockPos): ItemStack
     context(automatedSafeContext: AutomatedSafeContext)
-    fun getState(pos: BlockPos, state: BlockState): BlockState
+    fun getState(pos: BlockPos): BlockState
     fun isEmpty(): Boolean
 }
