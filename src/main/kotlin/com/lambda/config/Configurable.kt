@@ -20,7 +20,6 @@ package com.lambda.config
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
-import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
@@ -69,7 +68,9 @@ abstract class Configurable(
     private fun registerConfigurable() = configuration.configurables.add(this)
 
     inline fun <reified T : AbstractSetting<*>> T.register(): T {
-        check(settings.add(this)) { "Setting with name $name already exists for configurable: ${this@Configurable.name}" }
+        if (settings.any { it.name == name })
+            throw IllegalStateException("Setting with name $name already exists for configurable: ${this@Configurable.name}")
+        settings.add(this)
         return this
     }
 

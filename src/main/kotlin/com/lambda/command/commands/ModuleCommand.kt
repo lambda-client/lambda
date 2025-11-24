@@ -32,7 +32,6 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.joinToText
 import com.lambda.util.Communication.warn
-import com.lambda.util.StringUtils
 import com.lambda.util.StringUtils.findSimilarStrings
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents.suggestCommand
@@ -76,7 +75,7 @@ object ModuleCommand : LambdaCommand(
 
         required(string("module name")) { moduleName ->
             suggests { _, builder ->
-                ModuleRegistry.moduleNames.forEach {
+                ModuleRegistry.moduleNameMap.keys.forEach {
                     builder.suggest(it)
                 }
                 builder.buildFuture()
@@ -95,7 +94,7 @@ object ModuleCommand : LambdaCommand(
                             literal("not found!")
                         }
                         val similarModules = name.findSimilarStrings(
-                            ModuleRegistry.moduleNames,
+                            ModuleRegistry.moduleNameMap.keys,
                             3
                         )
                         if (similarModules.isEmpty()) return@buildText

@@ -15,19 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module
+package com.lambda.config
 
-import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
+import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.module.ModuleRegistry.moduleNameMap
 
-object ModuleRegistry : Loadable {
-    override val priority = 1
-
-    val modules = getInstances<Module>()
-        .sortedBy { it.name }
-
-    val moduleNameMap = modules.associateBy { it.name }
-
-    override fun load() =
-        "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+class UserAutomationConfig(override val name: String) : AutomationConfig(name, UserAutomationConfigs) {
+    val linkedModules = setting("Linked Modules", moduleNameMap.filter { it.value.defaultAutomationConfig != Companion.DEFAULT }.keys, emptySet())
+        .onSelect { module -> moduleNameMap[module]?.automationConfig = this@UserAutomationConfig }
+        .onDeselect { module ->
+            moduleNameMap[module]?.let { module ->
+                module.automationConfig = module.defaultAutomationConfig
+            }
+        }
 }

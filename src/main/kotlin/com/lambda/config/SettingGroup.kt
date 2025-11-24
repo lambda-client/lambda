@@ -15,19 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module
+package com.lambda.config
 
-import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
+abstract class SettingGroup() {
+    val settings = mutableListOf<AbstractSetting<*>>()
 
-object ModuleRegistry : Loadable {
-    override val priority = 1
-
-    val modules = getInstances<Module>()
-        .sortedBy { it.name }
-
-    val moduleNameMap = modules.associateBy { it.name }
-
-    override fun load() =
-        "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+    fun <T : Any> AbstractSetting<T>.index(): AbstractSetting<T> {
+        settings.add(this)
+        return this
+    }
 }

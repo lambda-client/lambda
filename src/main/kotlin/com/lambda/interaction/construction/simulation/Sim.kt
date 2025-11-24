@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.context.AutomationConfig.maxSimDependencies
+import com.lambda.config.AutomationConfig
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
@@ -77,7 +77,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
      */
     protected suspend fun ISimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
         // +1 because the build sim counts as a dependent
-        if (dependencyStack.size >= maxSimDependencies + 1) return
+        if (dependencyStack.size >= AutomationConfig.Companion.DEFAULT.maxSimDependencies + 1) return
         dependencyStack.push(dependent)
         block()
         dependencyStack.pop()

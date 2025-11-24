@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.config.AutomationConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -29,7 +30,7 @@ object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,
 ) {
-    override val rotationConfig = RotationSettings(this)
+    override val rotationConfig = RotationSettings(this, AutomationConfig.Group.Rotation)
     var hitPos: HitResult? = null
     
     init {
