@@ -18,36 +18,30 @@
 package com.lambda.config.configurations
 
 import com.google.gson.JsonParser
-import com.lambda.config.DynamicConfiguration
+import com.lambda.config.Configuration
 import com.lambda.config.UserAutomationConfig
 import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.util.FileUtils.ifExists
 import com.lambda.util.FolderRegister
 import java.io.File
 
-object UserAutomationConfigs : DynamicConfiguration() {
+object UserAutomationConfigs : Configuration() {
     override val configName = "custom-automation"
     override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
 
-    override fun load(): String {
-        onPreLoad {
-            primary.ifExists {
-                JsonParser.parseReader(it.reader()).asJsonObject.entrySet().forEach { (name, _) ->
-                    if (configurables.any { config -> config.name == name }) return@forEach
-                    UserAutomationConfig(name)
-                }
+    override fun internalTryLoad() {
+        primary.ifExists {
+            JsonParser.parseReader(it.reader()).asJsonObject.entrySet().forEach { (name, _) ->
+                if (configurables.any { config -> config.name == name }) return@forEach
+                UserAutomationConfig(name)
             }
         }
-
-        onPostLoad {
-            configurables.forEach {
-                val config = it as? UserAutomationConfig ?: throw IllegalStateException("UserAutomationConfigs contains non-AutomationConfig")
-                config.linkedModules.value.forEach { moduleName ->
-                    moduleNameMap[moduleName]?.automationConfig = config
-                }
+        super.internalTryLoad()
+        configurables.forEach {
+            val config = it as? UserAutomationConfig ?: throw IllegalStateException("UserAutomationConfigs contains non-AutomationConfig")
+            config.linkedModules.value.forEach { moduleName ->
+                moduleNameMap[moduleName]?.automationConfig = config
             }
         }
-
-        return super.load()
     }
 }

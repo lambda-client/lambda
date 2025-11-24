@@ -105,6 +105,20 @@ abstract class Configuration : Jsonable, Loadable {
             }
     }
 
+    protected open fun internalTrySave(logToChat: Boolean) {
+        save()
+            .onSuccess {
+                val message = "Saved ${configName.capitalize()} config."
+                LOG.info(message)
+                if (logToChat) info(message)
+            }
+            .onFailure {
+                val message = "Failed to save ${configName.capitalize()} config"
+                LOG.error(message, it)
+                logError(message)
+            }
+    }
+
     /**
      * Loads the config from the [file]
      * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
@@ -114,7 +128,7 @@ abstract class Configuration : Jsonable, Loadable {
             .ifExists { loadFromJson(JsonParser.parseReader(it.reader()).asJsonObject) }
     }
 
-    open fun tryLoad() = runIO {
+    protected open fun internalTryLoad() {
         load(primary)
             .onSuccess {
                 val message = "${configName.capitalize()} config loaded."
@@ -137,19 +151,8 @@ abstract class Configuration : Jsonable, Loadable {
             }
     }
 
-    open fun trySave(logToChat: Boolean = false) = runIO {
-        save()
-            .onSuccess {
-                val message = "Saved ${configName.capitalize()} config."
-                LOG.info(message)
-                if (logToChat) info(message)
-            }
-            .onFailure {
-                val message = "Failed to save ${configName.capitalize()} config"
-                LOG.error(message, it)
-                logError(message)
-            }
-    }
+    fun tryLoad() = runIO { internalTryLoad() }
+    fun trySave(logToChat: Boolean = false) = runIO { internalTrySave(logToChat) }
 
     companion object {
         val configurations = mutableSetOf<Configuration>()
