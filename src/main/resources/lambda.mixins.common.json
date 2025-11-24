@@ -13,6 +13,7 @@
     "entity.ClientPlayInteractionManagerMixin",
     "entity.EntityMixin",
     "entity.FireworkRocketEntityMixin",
+    "entity.HandledScreensMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
     "entity.PlayerInventoryMixin",
