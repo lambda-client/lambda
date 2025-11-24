@@ -38,7 +38,7 @@ object UserAutomationConfigs : Configuration() {
         }
         super.internalTryLoad()
         configurables.forEach {
-            val config = it as? UserAutomationConfig ?: throw IllegalStateException("UserAutomationConfigs contains non-AutomationConfig")
+            val config = it as? UserAutomationConfig ?: throw IllegalStateException("UserAutomationConfigs contains non-UserAutomationConfig")
             config.linkedModules.value.forEach { moduleName ->
                 moduleNameMap[moduleName]?.automationConfig = config
             }
