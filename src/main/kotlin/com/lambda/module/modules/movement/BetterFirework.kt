@@ -187,8 +187,8 @@ object BetterFirework : Module(
         runSafe {
             when {
                 (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
-                (!activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code) ||
-                takeoffState != TakeoffState.None -> false // Prevent using multiple times
+                        (!activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code) ||
+                        takeoffState != TakeoffState.None -> false // Prevent using multiple times
                 else -> {
                     if (player.canOpenElytra || player.isGliding) {
                         // If already gliding use another firework
