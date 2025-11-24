@@ -37,6 +37,7 @@ val spairVersion: String by project
 val lwjglVersion: String by project
 val sodiumVersion: String by project
 val litematicaVersion: String by project
+val maLiLibVersion: String by project
 
 val libs = file("libs")
 val targets = listOf("fabric.mod.json")
@@ -176,6 +177,7 @@ dependencies {
     // Add mods
     modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")
     modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
+    modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
     // Test implementations

@@ -27,6 +27,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import fi.dy.masa.litematica.data.DataManager
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
 
@@ -35,8 +36,8 @@ object Printer : Module(
     description = "Automatically prints schematics",
     tag = ModuleTag.PLAYER
 ) {
-    private fun isSchematicHandlerAvailable(): Boolean = runCatching {
-        Class.forName("fi.dy.masa.litematica.world.SchematicWorldHandler")
+    private fun isLitematicaAvailable(): Boolean = runCatching {
+        Class.forName("fi.dy.masa.litematica.Litematica")
         true
     }.getOrDefault(false)
 
@@ -58,7 +59,7 @@ object Printer : Module(
             }
         }
         onEnable {
-            if (!isSchematicHandlerAvailable()) {
+            if (!isLitematicaAvailable()) {
                 error("Litematica is not installed!")
                 disable()
                 return@onEnable
@@ -68,6 +69,7 @@ object Printer : Module(
                 BlockPos.iterateOutwards(player.blockPos, range, range, range)
                     .asSequence()
                     .map { it.blockPos }
+                    .filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
                     .associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
                     .filter { air || !it.value.blockState.isAir }
             }.build(finishOnDone = false).run()
