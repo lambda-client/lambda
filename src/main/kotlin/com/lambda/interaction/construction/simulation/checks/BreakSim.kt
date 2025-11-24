@@ -90,7 +90,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
             return
         }
 
-        if (targetState.getState(pos, state).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
+        if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
             sim(pos, state, TargetState.Solid(emptySet())) { simPlacement() }
             return
