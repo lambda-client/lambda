@@ -26,6 +26,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
 import imgui.ImGui
+import imgui.flag.ImGuiPopupFlags
 import imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
@@ -43,12 +44,15 @@ object SettingsWidget {
             }
             lambdaTooltip("Resets all settings for this module to their default values")
             if (config is MutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
-                button("Automation Config")
-                sameLine()
-                popupContextItem("##automation-config-popup-${config.name}") {
+                button("Automation Config") {
+                    ImGui.openPopup("##automation-config-popup-${config.name}")
+                }
+                ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+                popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
                     buildConfigSettingsContext(config.automationConfig, config.defaultAutomationConfig.hiddenSettings)
                 }
                 if (config.automationConfig !== config.defaultAutomationConfig) {
+                    sameLine()
                     text("(${config.automationConfig.name})")
                 }
             }
