@@ -79,7 +79,6 @@ open class AutomationConfig(
             val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree").group(Group.Debug)
             val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001).group(Group.Debug)
             val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager").group(Group.Debug)
-            val maxSimDependencies by setting("Max Sim Dependencies", 3, 0..10, 1, "Maximum dependency build results").group(Group.Debug)
 
             @Volatile
             var drawables = listOf<Drawable>()

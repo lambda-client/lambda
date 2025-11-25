@@ -29,6 +29,7 @@ interface BuildConfig {
     val interactionsPerTick: Int
     val maxPendingInteractions: Int
     val interactionTimeout: Int
+    val maxBuildDependencies: Int
 
     val useDefaultReach: Boolean
     val attackReach: Double

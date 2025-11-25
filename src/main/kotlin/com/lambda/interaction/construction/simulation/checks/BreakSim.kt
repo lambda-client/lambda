@@ -277,7 +277,6 @@ class BreakSim private constructor(simInfo: ISimInfo)
 
             affectedFluids.forEach { (liquidPos, liquidState) ->
                 result(BreakResult.Submerge(liquidPos, liquidState))
-                sim(liquidPos, liquidState, TargetState.Solid(emptySet())) { simPlacement() }
             }
             result(BreakResult.BlockedByFluid(pos, state, affectedFluids.keys))
             return true
