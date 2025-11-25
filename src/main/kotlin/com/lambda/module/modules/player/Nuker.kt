@@ -38,6 +38,7 @@ object Nuker : Module(
     private val height by setting("Height", 4, 1..8, 1)
     private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
+    private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
     private val fillFluids by setting("Fill Fluids", false, "Removes liquids by filling them in before breaking")
     private val fillFloor by setting("Fill Floor", false)
     private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
@@ -50,6 +51,8 @@ object Nuker : Module(
         }
         onEnable {
             task = tickingBlueprint {
+                if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
+
                 val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                     .asSequence()
                     .map { it.blockPos }

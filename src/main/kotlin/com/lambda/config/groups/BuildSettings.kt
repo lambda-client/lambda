@@ -37,6 +37,7 @@ class BuildSettings(
     override val pathing by c.setting("Pathing", true, "Path to blocks").group(baseGroup, Group.General).index()
     override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks").group(baseGroup, Group.General).index()
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks").group(baseGroup, Group.General).index()
+    override val spleefEntities by c.setting("Spleef Entities", false, "Breaks blocks beneath entities blocking placements to get them out of the way").group(baseGroup, Group.General).index()
     override val interactionsPerTick by c.setting("Interactions Per Tick", 5, 1..30, 1, "The amount of interactions that can happen per tick").group(baseGroup, Group.General).index()
     override val maxPendingInteractions by c.setting("Max Pending Interactions", 15, 1..30, 1, "The maximum count of pending interactions to allow before pausing future interactions").group(baseGroup, Group.General).index()
     override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks").group(baseGroup, Group.General).index()

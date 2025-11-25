@@ -277,20 +277,23 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         if (collidingEntities.isNotEmpty()) {
             collidingEntities
-                .mapNotNull { entity ->
-                    if (entity === player) {
-                        result(PlaceResult.BlockedBySelf(pos))
-                        return@mapNotNull null
+                .takeIf { buildConfig.spleefEntities }
+                ?.run {
+                    mapNotNull { entity ->
+                        if (entity === player) {
+                            result(PlaceResult.BlockedBySelf(pos))
+                            return@mapNotNull null
+                        }
+                        val hitbox = entity.boundingBox
+                        entity.getPositionsWithinHitboxXZ(
+                            (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
+                            pos.y
+                        )
                     }
-                    val hitbox = entity.boundingBox
-                    entity.getPositionsWithinHitboxXZ(
-                        (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
-                        pos.y
-                    )
-                }
-                .flatten()
-                .forEach { support ->
-                    sim(support, blockState(support), TargetState.Empty) { simBreak() }
+                        .flatten()
+                        .forEach { support ->
+                            sim(support, blockState(support), TargetState.Empty) { simBreak() }
+                        }
                 }
             result(PlaceResult.BlockedByEntity(pos, collidingEntities, context.hitPos, context.side))
         }
