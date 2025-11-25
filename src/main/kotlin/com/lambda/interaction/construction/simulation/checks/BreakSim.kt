@@ -148,6 +148,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
     }
 
     private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
+        // Stack size 0 to account for attacking with an empty hand. Empty slots have stack size 0
         val stackSelection = selectStack(
             count = 0,
             sorter = compareByDescending<ItemStack> {
@@ -186,18 +187,18 @@ class BreakSim private constructor(simInfo: ISimInfo)
             ofAnyType(MaterialContainer.Rank.Hotbar)
         }
 
-        val swapCandidates = stackSelection
+        val hotbarCandidates = stackSelection
             .containerWithMaterial(silentSwapSelection)
             .map { it.matchingStacks(stackSelection) }
             .flatten()
-        if (swapCandidates.isEmpty()) {
+        if (hotbarCandidates.isEmpty()) {
             result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
             return null
         }
 
         var bestStack = ItemStack.EMPTY
         var bestBreakDelta = -1f
-        swapCandidates.forEach { stack ->
+        hotbarCandidates.forEach { stack ->
             val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
             if (breakDelta > bestBreakDelta ||
                 (stack == player.mainHandStack && breakDelta >= bestBreakDelta)
