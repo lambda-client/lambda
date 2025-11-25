@@ -66,7 +66,11 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
                         return@inventoryRequest
                     }
 
-                    val slot = player.currentScreenHandler.slots.firstOrNull { it.stack == moveStack } ?: throw NotInInventoryException()
+                    val slot = player.currentScreenHandler.slots.firstOrNull { it.stack == moveStack }
+                        ?: run {
+                            failure(IllegalStateException("Cannot find stack in inventory"))
+                            return@inventoryRequest
+                        }
                     swap(slot.id, player.inventory.selectedSlot)
 
                     if (hand == Hand.OFF_HAND) swapHands()
@@ -79,6 +83,4 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
 
     context(automated: Automated)
     override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND, automated)
-
-    class NotInInventoryException : IllegalStateException("Cannot find stack in inventory")
 }

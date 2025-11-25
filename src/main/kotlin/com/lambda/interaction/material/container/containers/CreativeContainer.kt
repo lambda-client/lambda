@@ -49,7 +49,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
             listen<TickEvent.Pre> {
                 if (!gamemode.isCreative) {
                     // ToDo: Maybe switch gamemode?
-                    throw NotInCreativeModeException()
+                    failure(NotInCreativeModeException())
                 }
 
                 inventoryRequest {
@@ -80,7 +80,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
 
                     if (!gamemode.isCreative) {
                         // ToDo: Maybe switch gamemode?
-                        throw NotInCreativeModeException()
+                        failure(NotInCreativeModeException())
                     }
 
                     inventoryRequest {
@@ -91,7 +91,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
                     return@listen
                 }
 
-                throw NoOptimalStackException()
+                failure(IllegalStateException("Cannot move item: no optimal stack"))
             }
         }
     }
@@ -101,5 +101,4 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
     override fun withdraw(selection: StackSelection) = CreativeWithdrawal(selection, automated)
 
     class NotInCreativeModeException : IllegalStateException("Insufficient permission: not in creative mode")
-    class NoOptimalStackException : IllegalStateException("Cannot move item: no optimal stack")
 }
