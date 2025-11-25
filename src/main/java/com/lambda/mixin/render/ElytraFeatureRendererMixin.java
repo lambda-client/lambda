@@ -54,7 +54,7 @@ public class ElytraFeatureRendererMixin<T extends LivingEntity> {
 
     @WrapMethod(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/state/BipedEntityRenderState;FF)V")
     private void injectRender(MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, BipedEntityRenderState bipedEntityRenderState, float f, float g, Operation<Void> original) {
-        if (NoRender.INSTANCE.isDisabled() && !NoRender.getNoElytra())
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoElytra())
             original.call(matrixStack, vertexConsumerProvider, i, bipedEntityRenderState, f, g);
     }
 }
