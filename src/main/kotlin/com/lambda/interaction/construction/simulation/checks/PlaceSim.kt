@@ -180,7 +180,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
             val rotationRequest = if (placeConfig.axisRotate && (targetState as? TargetState.State)?.blockState?.contains(Properties.ROTATION) != true)
                 lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
-            else lookAt(rotatePlaceTest.rotation, 0.001)
+            else lookAt(rotatePlaceTest.rotation)
 
             val swapStack = getSwapStack() ?: return
             if (!swapStack.item.isEnabled(world.enabledFeatures)) {

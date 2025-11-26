@@ -46,7 +46,7 @@ annotation class RotationDsl
  * @return A [RotationTarget] instance.
  */
 @RotationDsl
-fun lookAt(angle: Rotation, maxAngleDistance: Double = 10.0) =
+fun lookAt(angle: Rotation, maxAngleDistance: Double = 0.001) =
     RotationTarget(null, {
         RotationManager.activeRotation dist angle < maxAngleDistance
     }) { angle }

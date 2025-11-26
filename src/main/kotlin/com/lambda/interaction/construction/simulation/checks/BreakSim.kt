@@ -129,7 +129,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
         val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), preProcessing) ?: return
 
         val bestHit = buildConfig.pointSelection.select(validHits) ?: return
-        val target = lookAt(bestHit.targetRotation, 0.001)
+        val target = lookAt(bestHit.targetRotation)
         val rotationRequest = RotationRequest(target, this)
 
         val breakContext = BreakContext(

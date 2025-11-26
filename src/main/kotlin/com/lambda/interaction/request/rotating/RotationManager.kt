@@ -69,7 +69,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
     @JvmStatic var prevServerRotation = Rotation.ZERO
-    var baritoneRequest: RotationRequest? = null
+    private var usingBaritoneRotation = false
 
     var activeRequest: RotationRequest? = null
     private var changedThisTick = false
@@ -89,6 +89,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            usingBaritoneRotation = false
             activeRequest?.let { request ->
                 request.age++
             }
@@ -177,7 +178,8 @@ object RotationManager : RequestHandler<RotationRequest>(
     @JvmStatic
     fun handleBaritoneRotation(yaw: Float) {
         runSafe {
-            baritoneRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager)
+            activeRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager)
+            usingBaritoneRotation = true
         }
     }
 
@@ -188,7 +190,7 @@ object RotationManager : RequestHandler<RotationRequest>(
      */
     @JvmStatic
     fun redirectStrafeInputs(input: Input) = runSafe {
-        if (activeRequest == baritoneRequest) return@runSafe
+        if (usingBaritoneRotation) return@runSafe
 
         val movementYaw = movementYaw ?: return@runSafe
         val playerYaw = player.yaw
@@ -272,7 +274,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         prevServerRotation = serverRotation
         serverRotation = activeRotation
 
-        if (activeRequest?.rotationMode == RotationMode.Lock) {
+        if (activeRequest?.rotationConfig?.rotationMode == RotationMode.Lock) {
             mc.player?.yaw = serverRotation.yawF
             mc.player?.pitch = serverRotation.pitchF
         }
@@ -285,19 +287,15 @@ object RotationManager : RequestHandler<RotationRequest>(
     private fun SafeContext.updateActiveRotation() {
         activeRotation = activeRequest?.let { active ->
             val rotationTo = if (active.keepTicks >= 0)
-                active.target.targetRotation.value
-                    ?: activeRotation // the same context gets used again && the rotation is null this tick
+                active.target.targetRotation.value ?: activeRotation // the same context gets used again && the rotation is null this tick
             else player.rotation
-
-            val speedMultiplier = if (active.keepTicks < 0) 1.0 else active.speedMultiplier
-            val turnSpeed = active.turnSpeed * speedMultiplier
 
             if (active.keepTicks-- <= 0) {
                 active.decayTicks--
             }
 
             // Important: do NOT wrap the result yaw; keep it continuous to match vanilla packets
-            serverRotation.slerp(rotationTo, turnSpeed)
+            serverRotation.slerp(rotationTo, active.rotationConfig.turnSpeed)
         } ?: player.rotation
 
         logger.debug("Active rotation set to $activeRotation", activeRequest)
@@ -313,45 +311,43 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     @JvmStatic
     val lockRotation
-        get() = activeRequest?.let {
-            if (it.rotationMode == RotationMode.Lock && it.keepTicks > 0 && it.decayTicks > 0)
-                return@let activeRotation
-            else null
+        get() = activeRequest?.let { active ->
+            activeRotation.takeIf { active.rotationConfig.rotationMode == RotationMode.Lock && active.keepTicks > 0 && active.decayTicks > 0 }
         }
 
     @JvmStatic
     val headYaw
-        get() = if (activeRequest == null) null else activeRotation.yawF
+        get() = activeRotation.yawF.takeIf { activeRequest != null }
 
     @JvmStatic
     val headPitch
-        get() = if (activeRequest == null) null else activeRotation.pitchF
+        get() = activeRotation.pitchF.takeIf { activeRequest != null }
 
     @JvmStatic
     val handYaw
-        get() = if (activeRequest?.rotationMode == RotationMode.Lock) activeRotation.yawF else null
+        get() = activeRotation.yawF.takeIf { activeRequest?.rotationConfig?.rotationMode == RotationMode.Lock }
 
     @JvmStatic
     val handPitch
-        get() = if (activeRequest?.rotationMode == RotationMode.Lock) activeRotation.pitchF else null
+        get() = activeRotation.pitchF.takeIf { activeRequest?.rotationConfig?.rotationMode == RotationMode.Lock }
 
     @JvmStatic
     val movementYaw: Float?
         get() {
-            if (activeRequest == null || activeRequest?.rotationMode == RotationMode.Silent) return null
-            return activeRotation.yaw.toFloat()
+            return if (activeRequest == null || activeRequest?.rotationConfig?.rotationMode == RotationMode.Silent) null
+            else activeRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            if (activeRequest == null || activeRequest?.rotationMode == RotationMode.Silent) return null
-            return activeRotation.pitch.toFloat()
+            return if (activeRequest == null || activeRequest?.rotationConfig?.rotationMode == RotationMode.Silent) null
+            else activeRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        if (activeRequest == null || activeRequest?.rotationMode == RotationMode.Silent) return null
+        if (activeRequest == null || activeRequest?.rotationConfig?.rotationMode == RotationMode.Silent) return null
 
         val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
