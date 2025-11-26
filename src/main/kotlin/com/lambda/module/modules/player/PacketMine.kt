@@ -18,13 +18,11 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.automationConfig
-import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.results.BreakResult
@@ -32,7 +30,6 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -64,13 +61,15 @@ object PacketMine : Module(
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by  setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(Group.General)
 
-    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").disabled { !breakConfig.renders }.group(Group.Renders)
-    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Renders)
-    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Renders)
-    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.disabled { !breakConfig.renders }.group(Group.Renders)
-    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }.disabled { !breakConfig.renders }.group(Group.Renders)
-    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.disabled { !breakConfig.renders }.group(Group.Renders)
-    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.disabled { !breakConfig.renders }.group(Group.Renders)
+    private val renderRebreak by setting("Render Rebreak", true, "Displays what block is being checked for rebreak").group(Group.Renders)
+    private val rebreakColor by setting("Rebreak Color", Color.RED) { renderRebreak }.group(Group.Renders)
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued").group(Group.Renders)
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }.group(Group.Renders)
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }.group(Group.Renders)
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }.group(Group.Renders)
+    private val staticColor by setting("Color", Color(255, 0, 0, 60)) { renderQueue && !dynamicColor }.group(Group.Renders)
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
+    private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
@@ -81,7 +80,8 @@ object PacketMine : Module(
     private val queuePositions = ArrayList<MutableCollection<BlockPos>>()
     private val SafeContext.queueSorted
         get() = when (queueOrder) {
-            QueueOrder.Standard -> queuePositions
+            QueueOrder.Standard,
+            QueueOrder.Efficient -> queuePositions
             QueueOrder.Reversed -> queuePositions.asReversed()
             QueueOrder.Closest -> queuePositions.sortedBy {
                 it.firstOrNull()
@@ -92,20 +92,8 @@ object PacketMine : Module(
             }
         }
 
-    private var reBreakPos: BlockPos? = null
+    private var rebreakPos: BlockPos? = null
     private var attackedThisTick = false
-
-    override val buildConfig = object : BuildConfig by super.buildConfig {
-        override val pathing = false
-        override val stayInRange = false
-        override val collectDrops = false
-    }
-    override val inventoryConfig = object : InventoryConfig by super.inventoryConfig {
-        override val accessShulkerBoxes = false
-        override val accessEnderChest = false
-        override val accessChests = false
-        override val accessStashes = false
-    }
 
     init {
         defaultAutomationConfig = automationConfig {
@@ -169,12 +157,15 @@ object PacketMine : Module(
             if (!attackedThisTick) {
                 requestBreakManager((breakPositions + queueSorted.flatten()).toList())
                 if (!breakConfig.rebreak || (rebreakMode != RebreakMode.Auto && rebreakMode != RebreakMode.AutoConstant)) return@listen
-                val reBreak = reBreakPos ?: return@listen
+                val reBreak = rebreakPos ?: return@listen
                 requestBreakManager(listOf(reBreak), true)
             }
         }
 
-        onStaticRender {
+        onStaticRender { event ->
+            if (renderRebreak) {
+                rebreakPos?.let { event.outline(it, rebreakColor) }
+            }
             if (!renderQueue) return@onStaticRender
             queueSorted.forEachIndexed { index, positions ->
                 positions.forEach { pos ->
@@ -186,7 +177,7 @@ object PacketMine : Module(
                     }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
                     boxes.forEach { box ->
-                        it.box(box, color, color.setAlpha(1.0))
+                        event.box(box, color, color.setAlpha(1.0))
                     }
                 }
             }
@@ -196,7 +187,7 @@ object PacketMine : Module(
             breakPositions[0] = null
             breakPositions[1] = null
             queuePositions.clear()
-            reBreakPos = null
+            rebreakPos = null
             attackedThisTick = false
         }
     }
@@ -212,8 +203,8 @@ object PacketMine : Module(
             onUpdate { onProgress(it) }
             onStop { removeBreak(it); breaks++ }
             onCancel { removeBreak(it, true) }
-            onReBreakStart { reBreakPos = it }
-            onReBreak { removeBreak(it); reBreakPos = it }
+            onReBreakStart { rebreakPos = it }
+            onReBreak { removeBreak(it); rebreakPos = it }
         }.submit()
     }
 
@@ -228,12 +219,15 @@ object PacketMine : Module(
         runSafeAutomated {
             positions
                 .filterNotNull()
-                .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
-                .toBlueprint()
+                .associateWith { TargetState.Empty }
                 .simulate()
                 .filterIsInstance<BreakResult.Break>()
+                .let {
+                    if (queueOrder == QueueOrder.Efficient) it.sorted()
+                    else it.sortedBy { ctx -> positions.indexOf(ctx.pos) }
+                }
                 .map { it.context }
-                .toCollection(mutableListOf())
+
         }
 
     private fun addBreak(pos: BlockPos) {
@@ -241,7 +235,7 @@ object PacketMine : Module(
             breakPositions[1] = breakPositions[0]
         }
         breakPositions[0] = pos
-        reBreakPos = null
+        rebreakPos = null
     }
 
     private fun removeBreak(pos: BlockPos, includeReBreak: Boolean = false) {
@@ -250,8 +244,8 @@ object PacketMine : Module(
                 breakPositions[index] = null
             }
         }
-        if (includeReBreak && pos == reBreakPos) {
-            reBreakPos = null
+        if (includeReBreak && pos == rebreakPos) {
+            rebreakPos = null
         }
     }
 
@@ -288,6 +282,7 @@ object PacketMine : Module(
     ) : NamedEnum, Describable {
         Manual("Manual", "Re-break only when you trigger it explicitly."),
         Auto("Auto", "Automatically re-break when it’s beneficial or required."),
+        //ToDo: Implement auto constant rebreak
         AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
     }
 
@@ -297,7 +292,8 @@ object PacketMine : Module(
     ) : NamedEnum, Describable {
         Standard("Standard", "Process in planned order (first in, first out)."),
         Reversed("Reversed", "Process in reverse planned order (last in, first out)."),
-        Closest("Closest", "Process the closest targets first.")
+        Closest("Closest", "Process the closest targets first."),
+        Efficient("Efficient", "Process the most efficient targets first.")
     }
 
     private enum class RenderMode(

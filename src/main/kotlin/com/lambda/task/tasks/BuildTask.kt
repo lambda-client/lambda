@@ -19,9 +19,9 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -121,7 +121,7 @@ class BuildTask private constructor(
     }
 
     private fun SafeContext.simulateAndProcess() {
-        val results = runSafeAutomated { blueprint.simulate() }
+        val results = runSafeAutomated { blueprint.structure.simulate() }
 
         DEFAULT.drawables = results
             .filterIsInstance<Drawable>()

@@ -54,7 +54,6 @@ class PlaceContainer @Ta5kBuilder constructor(
                 .filter { !ManagerUtils.isPosBlocked(it) }
                 .flatMap {
                     it.toStructure(TargetState.Stack(startStack))
-                        .toBlueprint()
                         .simulate()
                 }
         }

@@ -31,7 +31,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
@@ -418,7 +417,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
 
         breaks = newBreaks
-            .sortedByDescending { it.instantBreak }
             .take(
                 min(
                     breakConfig.maxPendingBreaks - pendingBreakCount,
@@ -563,7 +561,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         abandonedInfo.request.runSafeAutomated {
             abandonedInfo.context.blockPos
                 .toStructure(TargetState.Empty)
-                .toBlueprint()
                 .simulate()
                 .filterIsInstance<BreakResult.Break>()
                 .filter { canAccept(it.context) }

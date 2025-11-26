@@ -54,7 +54,7 @@ data class Simulation(
                 val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)
                 if (!isWalkable) return@getOrPut emptySet()
                 if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
-                blueprint.simulate(pov)
+                blueprint.structure.simulate(pov)
             } ?: emptySet()
         }
 

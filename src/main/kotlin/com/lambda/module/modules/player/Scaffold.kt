@@ -24,7 +24,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
@@ -93,7 +92,6 @@ object Scaffold : Module(
             runSafeAutomated {
                 scaffoldPositions(beneath)
                     .associateWith { TargetState.Solid(emptySet()) }
-                    .toBlueprint()
                     .simulate()
                     .filterIsInstance<PlaceResult.Place>()
                     .minByOrNull { it.pos distSq beneath }
