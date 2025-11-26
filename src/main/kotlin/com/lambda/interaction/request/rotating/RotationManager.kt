@@ -41,7 +41,6 @@ import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
@@ -173,12 +172,6 @@ object RotationManager : RequestHandler<RotationRequest>(
             activeRequest?.target?.targetRotation?.update()
             updateActiveRotation()
         }
-
-        // Tick and reset the context
-        activeRequest?.let {
-            if (it.keepTicks-- > 0) return@let
-            it.decayTicks--
-        }
     }
 
     @JvmStatic
@@ -290,14 +283,18 @@ object RotationManager : RequestHandler<RotationRequest>(
      * Otherwise, the [serverRotation] is interpolated towards the [RotationRequest.target] rotation.
      */
     private fun SafeContext.updateActiveRotation() {
-        activeRotation = activeRequest?.let { request ->
-            val rotationTo = if (request.keepTicks >= 0)
-                request.target.targetRotation.value
+        activeRotation = activeRequest?.let { active ->
+            val rotationTo = if (active.keepTicks >= 0)
+                active.target.targetRotation.value
                     ?: activeRotation // the same context gets used again && the rotation is null this tick
             else player.rotation
 
-            val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
-            val turnSpeed = request.turnSpeed * speedMultiplier
+            val speedMultiplier = if (active.keepTicks < 0) 1.0 else active.speedMultiplier
+            val turnSpeed = active.turnSpeed * speedMultiplier
+
+            if (active.keepTicks-- <= 0) {
+                active.decayTicks--
+            }
 
             // Important: do NOT wrap the result yaw; keep it continuous to match vanilla packets
             serverRotation.slerp(rotationTo, turnSpeed)
@@ -314,12 +311,13 @@ object RotationManager : RequestHandler<RotationRequest>(
         activeRequest = null
     }
 
-    private val smoothRotation
-        get() = lerp(mc.partialTicks, serverRotation, activeRotation)
-
     @JvmStatic
     val lockRotation
-        get() = if (activeRequest?.rotationMode == RotationMode.Lock) smoothRotation else null
+        get() = activeRequest?.let {
+            if (it.rotationMode == RotationMode.Lock && it.keepTicks > 0 && it.decayTicks > 0)
+                return@let activeRotation
+            else null
+        }
 
     @JvmStatic
     val headYaw
