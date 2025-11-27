@@ -67,8 +67,8 @@ object Printer : Module(
             buildTask = TickingBlueprint {
                 val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@TickingBlueprint emptyMap()
                 BlockPos.iterateOutwards(player.blockPos, range, range, range)
-                    .asSequence()
                     .map { it.blockPos }
+                    .asSequence()
                     .filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
                     .associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
                     .filter { air || !it.value.blockState.isAir }

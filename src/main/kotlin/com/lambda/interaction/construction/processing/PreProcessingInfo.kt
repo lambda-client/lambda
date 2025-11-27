@@ -25,14 +25,12 @@ interface PreProcessingInfo {
     val surfaceScan: SurfaceScan
     val ignore: Set<Property<*>>
     val sides: Set<Direction>
-    val shouldBeOmitted: Boolean
 
     companion object {
         val DEFAULT = object : PreProcessingInfo {
             override val surfaceScan = SurfaceScan.DEFAULT
             override val ignore = setOf<Property<*>>()
             override val sides = Direction.entries.toSet()
-            override val shouldBeOmitted = false
         }
     }
 }

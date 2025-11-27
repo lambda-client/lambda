@@ -19,7 +19,6 @@ package com.lambda.interaction.request.rotating.visibilty
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.Rotation.Companion.dist
 import com.lambda.interaction.request.rotating.RotationManager
@@ -83,7 +82,7 @@ fun lookAtHit(hit: RequestedHit, rotation: SafeContext.() -> Rotation?) =
 @RotationDsl
 fun Automated.lookAtHit(hit: HitResult): RotationTarget? {
     return when (hit) {
-        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), SurfaceScan.DEFAULT)
+        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side))
         is EntityHitResult -> lookAtEntity(hit.entity as? LivingEntity ?: return null)
         else -> null
     }
@@ -107,7 +106,7 @@ fun Automated.lookAtEntity(entity: LivingEntity): RotationTarget {
                 buildConfig.attackReach,
                 player.eyePos,
                 ALL_SIDES,
-                SurfaceScan.DEFAULT,
+                null,
                 false,
                 InteractionMask.Entity
             ) { requestedHit.verifyHit(hit) }?.rotation
@@ -127,7 +126,6 @@ fun Automated.lookAtEntity(entity: LivingEntity): RotationTarget {
 fun Automated.lookAtBlock(
     pos: BlockPos,
     sides: Set<Direction> = ALL_SIDES,
-    surfaceScan: SurfaceScan = SurfaceScan.DEFAULT
 ): RotationTarget {
     val requestedHit = blockHit(pos, sides, buildConfig.interactReach)
 
@@ -138,7 +136,7 @@ fun Automated.lookAtBlock(
                 buildConfig.interactReach,
                 player.eyePos,
                 sides,
-                surfaceScan,
+                null,
                 false,
                 InteractionMask.Block
             ) { requestedHit.verifyHit(hit) }?.rotation

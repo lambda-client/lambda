@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.interaction.construction.processing.PreProcessingInfo
+import com.lambda.interaction.construction.processing.PreProcessingData
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
@@ -91,7 +91,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         voxelShape: VoxelShape,
         pos: BlockPos,
         sides: Set<Direction>,
-        preProcessing: PreProcessingInfo
+        preProcessing: PreProcessingData
     ): Set<CheckedHit>? {
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 
@@ -108,7 +108,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
                     else sides
 
                     if (!buildConfig.strictRayCast) {
-                        box.getClosestPoints(pov, sides, preProcessing.surfaceScan, placeConfig.airPlace.isEnabled) { vec, side ->
+                        box.getClosestPoints(pov, sides, preProcessing, placeConfig.airPlace.isEnabled) { vec, side ->
                             if (pov distSq vec > reachSq)
                                 misses.add(Pair(vec, side))
                             else {
@@ -120,7 +120,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
                                 )
                             }
                         }
-                    } else box.scanSurfaces(sides, buildConfig.resolution, preProcessing.surfaceScan, false) { side, vec ->
+                    } else box.scanSurfaces(sides, buildConfig.resolution, preProcessing, false) { side, vec ->
                         if (pov distSq vec > reachSq) {
                             misses.add(Pair(vec, side))
                             return@scanSurfaces
