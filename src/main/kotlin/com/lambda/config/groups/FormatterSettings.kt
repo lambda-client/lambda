@@ -50,34 +50,4 @@ class FormatterSettings(
 
     val timeFormat by owner.setting("Time Format", FormatterConfig.Time.IsoDateTime) { vis() }.group(*baseGroup)
     override val format get() = timeFormat.format
-
-    infix fun format(value: Short)  = "%d".format(locale, value)
-    infix fun format(value: Int)    = "%d".format(locale, value)
-    infix fun format(value: Long)   = "%d".format(locale, value)
-    infix fun format(value: Float)  = "%,.${precision}f".format(locale, value)
-    infix fun format(value: Double) = "%,.${precision}f".format(locale, value)
-
-    infix fun format(tuple: Vec2f)      = "$prefix${format(tuple.x)}$separator${format(tuple.y)}$postfix"
-    infix fun format(tuple: Vec2d)      = "$prefix${format(tuple.x)}$separator${format(tuple.y)}$postfix"
-    infix fun format(tuple: Vec3i)      = "$prefix${format(tuple.x)}$separator${format(tuple.y)}$separator${format(tuple.z)}$postfix"
-    infix fun format(tuple: Vec3d)      = "$prefix${format(tuple.x)}$separator${format(tuple.y)}$separator${format(tuple.z)}$postfix"
-    infix fun format(tuple: Vector3f)   = "$prefix${format(tuple.x)}$separator${format(tuple.y)}$separator${format(tuple.z)}$postfix"
-    infix fun format(tuple: Vector4f)   = "$prefix${format(tuple.x)}$separator${format(tuple.y)}$separator${format(tuple.z)}$separator${format(tuple.w)}$postfix"
-
-    infix fun format(tuple: ShortArray)       = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    infix fun format(tuple: IntArray)         = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    infix fun format(tuple: LongArray)        = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    infix fun format(tuple: FloatArray)       = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    infix fun format(tuple: DoubleArray)      = tuple.joinToString(separator, prefix, postfix) { format(it) }
-
-    @JvmName("formatVec2fList") infix fun format(tuple: List<Vec2f>) = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    @JvmName("formatVec2dList") infix fun format(tuple: List<Vec2d>) = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    @JvmName("formatVec3iList") infix fun format(tuple: List<Vec3i>) = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    @JvmName("formatVec3dList") infix fun format(tuple: List<Vec3d>) = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    @JvmName("formatVector3fList") infix fun format(tuple: List<Vector3f>) = tuple.joinToString(separator, prefix, postfix) { format(it) }
-    @JvmName("formatVector4fList") infix fun format(tuple: List<Vector4f>) = tuple.joinToString(separator, prefix, postfix) { format(it) }
-
-    infix fun format(time: LocalDate): String       = time.format(format)
-    infix fun format(time: LocalDateTime): String   = time.format(format)
-    infix fun format(time: ZonedDateTime): String   = time.format(format)
 }

@@ -23,15 +23,13 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Formatting.asString
+import com.lambda.util.Formatting.format
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
-import com.lambda.util.extension.isOverworld
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
-import java.util.Locale
 
 object Coordinates : HudModule(
     name = "Coordinates",
@@ -49,10 +47,10 @@ object Coordinates : HudModule(
 
     override fun ImGuiBuilder.buildLayout() {
         runSafe {
-            val position = formatter.format(player.pos)
+            val position = player.pos.format(formatter)
             val otherDimensionPos =
-                if (world.isNether) otherFormatter.format(player.overworldCoord.let { Vec2d(it.x, it.z) })
-                else otherFormatter.format(player.netherCoord.let { Vec2d(it.x, it.z) })
+                if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(otherFormatter)
+                else player.netherCoord.let { Vec2d(it.x, it.z) }.format(otherFormatter)
 
             val text = "$position $otherDimensionPos"
 

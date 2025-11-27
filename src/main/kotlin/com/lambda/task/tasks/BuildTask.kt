@@ -54,7 +54,7 @@ import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.Formatting.string
+import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
@@ -70,7 +70,7 @@ class BuildTask private constructor(
     private val lifeMaintenance: Boolean,
     automated: Automated
 ) : Task<Structure>(), Automated by automated {
-    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
+    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
     private val atMaxPendingInteractions
