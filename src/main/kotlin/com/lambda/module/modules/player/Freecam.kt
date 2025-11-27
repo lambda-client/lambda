@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotating.Rotation
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationMode
+import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.interaction.request.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -55,11 +56,16 @@ object Freecam : Module(
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-    private val rotateToTarget by setting("Rotate to target", true)
+    private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode")
+    private val relative by setting("Relative", false, "Moves freecam relative to player position").onValueChange { _, it ->
+        if (it) lastPlayerPosition = player.pos
+    }
+    private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement", { relative })
 
     override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
     private var lastPerspective = Perspective.FIRST_PERSON
+    private var lastPlayerPosition: Vec3d = Vec3d.ZERO
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
     private val lerpPos: Vec3d
@@ -90,6 +96,7 @@ object Freecam : Module(
             position = player.eyePos
             rotation = player.rotation
             velocity = Vec3d.ZERO
+            lastPlayerPosition = player.pos
         }
 
         onDisable {
@@ -97,10 +104,16 @@ object Freecam : Module(
         }
 
         listen<UpdateManagerEvent.Rotation> {
-            if (!rotateToTarget) return@listen
-
-            mc.crosshairTarget?.let {
-                lookAtHit(it)?.requestBy(this@Freecam)
+            when (rotateMode) {
+                FreecamRotationMode.None -> return@listen
+                FreecamRotationMode.KeepRotation -> {
+                    lookAt(rotation).requestBy(this@Freecam)
+                }
+                FreecamRotationMode.LookAtTarget -> {
+                    mc.crosshairTarget?.let {
+                        lookAtHit(it)?.requestBy(this@Freecam)
+                    }
+                }
             }
         }
 
@@ -135,6 +148,12 @@ object Freecam : Module(
             // Update position
             prevPosition = position
             position += velocity
+
+            if (relative) {
+                val delta = player.pos.subtract(lastPlayerPosition)
+                position += if (keepYLevel) Vec3d(delta.x, 0.0, delta.z) else delta
+                lastPlayerPosition = player.pos
+            }
         }
 
         listen<RenderEvent.UpdateTarget> {
@@ -144,5 +163,11 @@ object Freecam : Module(
                 .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
         }
+    }
+
+    enum class FreecamRotationMode {
+        None,
+        LookAtTarget,
+        KeepRotation
     }
 }
