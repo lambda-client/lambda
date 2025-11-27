@@ -57,14 +57,14 @@ object BetterFirework : Module(
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
 
     private var clientSwing by setting("Swing", true, "Swing hand client side").group(Group.General)
-    private var silentUse by setting("Silent", true, "Silent use fireworks from the inventory") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
+    private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
 
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
-        ::sequenceStageMask.edit { immutableSet(setOf(TickEvent.Pre)) }
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar, vis = { false }).apply {
+        ::sequenceStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
     }
 
-    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
-        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)) }
+    override val inventoryConfig = InventorySettings(this, Group.Inventory, vis = { false }).apply {
+        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
     }
 
     private enum class Group(override val displayName: String) : NamedEnum {
@@ -96,7 +96,7 @@ object BetterFirework : Module(
                         player.startGliding()
                         connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
                     }
-                    startFirework(silentUse)
+                    startFirework(invUse)
                     takeoffState = TakeoffState.None
                 }
             }
