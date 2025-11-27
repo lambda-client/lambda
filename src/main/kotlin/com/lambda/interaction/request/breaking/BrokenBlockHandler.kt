@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -49,7 +49,7 @@ import net.minecraft.util.math.ChunkSectionPos
  */
 object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     override val pendingActions = LimitedDecayQueue<BreakInfo>(
-        AutomationConfig.buildConfig.maxPendingInteractions, AutomationConfig.buildConfig.interactionTimeout * 50L
+        DEFAULT.buildConfig.maxPendingInteractions, DEFAULT.buildConfig.interactionTimeout * 50L
     ) { info ->
         runSafe {
             val pos = info.context.blockPos
@@ -61,7 +61,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
                 BreakManager.logger.error(message)
                 warn(message)
-            } else if (!AutomationConfig.ignoreItemDropWarnings) {
+            } else if (!DEFAULT.ignoreItemDropWarnings) {
                 val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
                 BreakManager.logger.warn(message)
                 warn(message)

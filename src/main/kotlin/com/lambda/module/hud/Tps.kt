@@ -20,7 +20,7 @@ package com.lambda.module.hud
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Formatting.string
+import com.lambda.util.Formatting.format
 import com.lambda.util.ServerTPS
 import com.lambda.util.ServerTPS.recentData
 import imgui.ImVec2
@@ -45,10 +45,10 @@ object Tps : HudModule(
         val current = data.last()
         val avg = data.average().toFloat()
         if (!showGraph) {
-            text("${format.displayName}: ${avg.string}${format.unit}")
+            text("${format.displayName}: ${avg.format()}${format.unit}")
             return
         }
-        val overlay = "cur ${current.string}${format.unit} | avg ${avg.string}${format.unit}"
+        val overlay = "cur ${current.format()}${format.unit} | avg ${avg.format()}${format.unit}"
 
         plotLines(
             label = "##TPSPlot",

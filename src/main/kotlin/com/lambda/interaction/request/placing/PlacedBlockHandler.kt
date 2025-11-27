@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request.placing
 
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.processing.ProcessorRegistry
@@ -31,8 +31,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
     override val pendingActions = LimitedDecayQueue<PlaceInfo>(
-        AutomationConfig.buildConfig.maxPendingInteractions,
-        AutomationConfig.buildConfig.interactionTimeout * 50L
+        DEFAULT.buildConfig.maxPendingInteractions,
+        DEFAULT.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
         if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {

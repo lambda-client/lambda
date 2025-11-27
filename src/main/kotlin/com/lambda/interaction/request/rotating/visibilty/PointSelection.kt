@@ -33,7 +33,7 @@ enum class PointSelection(
         "By Rotation",
         "Choose the point that needs the least rotation from your current view (minimal camera turn).",
         select = { hits ->
-            hits.minByOrNull { RotationManager.activeRotation dist it.targetRotation }
+            hits.minByOrNull { RotationManager.activeRotation dist it.rotation }
         }
     ),
     Optimum(

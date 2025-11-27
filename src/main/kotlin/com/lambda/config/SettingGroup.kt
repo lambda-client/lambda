@@ -15,15 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.config
 
-import net.minecraft.util.math.Direction
+abstract class SettingGroup() {
+    val settings = mutableListOf<AbstractSetting<*>>()
 
-data class SurfaceScan(
-    val mode: ScanMode,
-    val axis: Direction.Axis
-) {
-    companion object {
-        val DEFAULT = SurfaceScan(ScanMode.Full, Direction.Axis.Y)
+    fun <T : Any> AbstractSetting<T>.index(): AbstractSetting<T> {
+        settings.add(this)
+        return this
     }
 }

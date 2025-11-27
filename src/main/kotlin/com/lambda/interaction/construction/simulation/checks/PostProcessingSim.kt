@@ -66,7 +66,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     private suspend fun AutomatedSafeContext.simPostProcessing() {
         val targetState = (targetState as? TargetState.State) ?: return
 
-        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+        intermediaryBlockMap[targetState.getState(pos).block]?.let { intermediaryInfo ->
             intermediaryInfo.getIntermediaryProcess(state)?.let { intermediaryBlock ->
                 simInteraction(
                     intermediaryBlock.targetBlock.defaultState,
@@ -151,7 +151,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     ) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit.blockResult ?: return
-            val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
+            val rotationTarget = lookAt(checkedHit.rotation)
             val context = InteractContext(
                 checkedResult,
                 RotationRequest(rotationTarget, this),

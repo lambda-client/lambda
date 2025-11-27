@@ -17,30 +17,27 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.groups.BuildConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.Request.Companion.submit
+import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.KeyCode
 import com.lambda.util.InputUtils.isKeyPressed
-import com.lambda.util.NamedEnum
+import com.lambda.util.KeyCode
 import com.lambda.util.math.distSq
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -50,41 +47,42 @@ object Scaffold : Module(
     description = "Places blocks under the player",
     tag = ModuleTag.PLAYER,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Build("Build"),
-        Rotation("Rotation"),
-        Hotbar("Hotbar"),
-        Inventory("Inventory")
-    }
-
-    private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks").group(Group.General)
-    private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }.group(Group.General)
-    private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level").group(Group.General)
-    private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }.group(Group.General)
-    override val buildConfig = BuildSettings(this, Group.Build).apply {
-        editTyped(::pathing, ::stayInRange, ::collectDrops) {
-            defaultValue(false)
-            hide()
-        }
-    }
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
-    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
-        ::disposables.edit {
-            name("Blocks")
-            description("Blocks to use as scaffolding")
-            groups(Group.General)
-        }
-        editTyped(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
-            defaultValue(false)
-            hide()
-        }
-    }
+    private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
+    private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }
+    private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
+    private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
     private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
+    override val buildConfig = object : BuildConfig by super.buildConfig {
+        override val pathing = false
+        override val stayInRange = false
+        override val collectDrops = false
+    }
+    override val inventoryConfig = object : InventoryConfig by super.inventoryConfig {
+        override val accessShulkerBoxes = false
+        override val accessEnderChest = false
+        override val accessChests = false
+        override val accessStashes = false
+    }
+
     init {
+        defaultAutomationConfig = automationConfig {
+            buildConfig.apply {
+                editTyped(::pathing, ::stayInRange, ::collectDrops) {
+                    defaultValue(false)
+                    hide()
+                }
+            }
+            inventoryConfig.apply {
+                editTyped(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
+                    defaultValue(false)
+                    hide()
+                }
+            }
+            hideAll(buildConfig, breakConfig, interactConfig, inventoryConfig, eatConfig)
+        }
+
         listen<TickEvent.Pre> {
             val playerSupport = player.blockPos.down()
             val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
@@ -94,7 +92,6 @@ object Scaffold : Module(
             runSafeAutomated {
                 scaffoldPositions(beneath)
                     .associateWith { TargetState.Solid(emptySet()) }
-                    .toBlueprint()
                     .simulate()
                     .filterIsInstance<PlaceResult.Place>()
                     .minByOrNull { it.pos distSq beneath }

@@ -20,11 +20,11 @@ package com.lambda.module
 import com.lambda.Lambda
 import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
+import com.lambda.config.AutomationConfig
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
-import com.lambda.config.configurations.ModuleConfig
-import com.lambda.context.Automated
-import com.lambda.context.AutomationConfig
+import com.lambda.config.MutableAutomationConfig
+import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
@@ -67,7 +67,7 @@ import com.lambda.util.Nameable
  * ```
  *
  * These settings are persisted in the `lambda/config/modules.json` config file.
- * See [ModuleConfig.primary] and [Configuration] for more details.
+ * See [ModuleConfigs.primary] and [Configuration] for more details.
  *
  * In the `init` block, you can add hooks like [onEnable], [onDisable], [onToggle] and add listeners.
  *
@@ -120,7 +120,13 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, Configurable(ModuleConfig), Automated by AutomationConfig {
+) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig {
+    final override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Companion.DEFAULT
+        set(value) {
+            field = value
+            automationConfig = value
+        }
+    final override var automationConfig = defaultAutomationConfig
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }

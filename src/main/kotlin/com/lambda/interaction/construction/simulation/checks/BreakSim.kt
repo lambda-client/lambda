@@ -90,7 +90,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
             return
         }
 
-        if (targetState.getState(pos, state).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
+        if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
             sim(pos, state, TargetState.Solid(emptySet())) { simPlacement() }
             return
@@ -129,7 +129,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
         val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), preProcessing) ?: return
 
         val bestHit = buildConfig.pointSelection.select(validHits) ?: return
-        val target = lookAt(bestHit.targetRotation, 0.001)
+        val target = lookAt(bestHit.rotation)
         val rotationRequest = RotationRequest(target, this)
 
         val breakContext = BreakContext(
@@ -148,6 +148,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
     }
 
     private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
+        // Stack size 0 to account for attacking with an empty hand. Empty slots have stack size 0
         val stackSelection = selectStack(
             count = 0,
             sorter = compareByDescending<ItemStack> {
@@ -186,18 +187,18 @@ class BreakSim private constructor(simInfo: ISimInfo)
             ofAnyType(MaterialContainer.Rank.Hotbar)
         }
 
-        val swapCandidates = stackSelection
+        val hotbarCandidates = stackSelection
             .containerWithMaterial(silentSwapSelection)
             .map { it.matchingStacks(stackSelection) }
             .flatten()
-        if (swapCandidates.isEmpty()) {
+        if (hotbarCandidates.isEmpty()) {
             result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
             return null
         }
 
         var bestStack = ItemStack.EMPTY
         var bestBreakDelta = -1f
-        swapCandidates.forEach { stack ->
+        hotbarCandidates.forEach { stack ->
             val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
             if (breakDelta > bestBreakDelta ||
                 (stack == player.mainHandStack && breakDelta >= bestBreakDelta)
@@ -276,7 +277,6 @@ class BreakSim private constructor(simInfo: ISimInfo)
 
             affectedFluids.forEach { (liquidPos, liquidState) ->
                 result(BreakResult.Submerge(liquidPos, liquidState))
-                sim(liquidPos, liquidState, TargetState.Solid(emptySet())) { simPlacement() }
             }
             result(BreakResult.BlockedByFluid(pos, state, affectedFluids.keys))
             return true

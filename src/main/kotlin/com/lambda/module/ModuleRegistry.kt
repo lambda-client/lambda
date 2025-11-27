@@ -26,7 +26,7 @@ object ModuleRegistry : Loadable {
     val modules = getInstances<Module>()
         .sortedBy { it.name }
 
-    val moduleNames = modules.map { it.name }.toSet()
+    val moduleNameMap = modules.associateBy { it.name }
 
     override fun load() =
         "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"

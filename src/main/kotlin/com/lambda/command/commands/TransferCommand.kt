@@ -27,7 +27,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
@@ -53,7 +53,7 @@ object TransferCommand : LambdaCommand(
                         val selection = selectStack(count) {
                             isItem(stack(ctx).value().item)
                         }
-                        with(AutomationConfig) {
+                        with(AutomationConfig.Companion.DEFAULT) {
                             selection.containerWithMaterial().forEachIndexed { i, container ->
                                 builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
                             }
@@ -65,7 +65,7 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount(ctx).value()) {
                                 isItem(stack(ctx).value().item)
                             }
-                            with(AutomationConfig) {
+                            with(AutomationConfig.Companion.DEFAULT) {
                                 containerWithSpace(selection).forEachIndexed { i, container ->
                                     builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
                                 }
@@ -84,7 +84,7 @@ object TransferCommand : LambdaCommand(
                                 it.name == to().value().split(".").last().trim()
                             } ?: return@executeWithResult failure("To container not found")
 
-                            with(AutomationConfig) {
+                            with(AutomationConfig.Companion.DEFAULT) {
                                 when (val transaction = fromContainer.transfer(selection, toContainer)) {
                                     is TransferResult.ContainerTransfer -> {
                                         info("${transaction.name} started.")

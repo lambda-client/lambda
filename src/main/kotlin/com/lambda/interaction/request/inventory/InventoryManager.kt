@@ -17,11 +17,11 @@
 
 package com.lambda.interaction.request.inventory
 
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig
-import com.lambda.context.AutomationConfig.avoidDesync
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -39,6 +39,7 @@ import com.lambda.util.item.ItemStackUtils.equal
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
 import net.minecraft.screen.PlayerScreenHandler
@@ -61,14 +62,16 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     private var actions = mutableListOf<InventoryAction>()
 
     private var slots = listOf<ItemStack>()
-    private var alteredSlots = LimitedDecayQueue<Pair<Int, Pair<ItemStack, ItemStack>>>(
-        Int.MAX_VALUE, AutomationConfig.desyncTimeout * 50L
+    private var alteredSlots = LimitedDecayQueue<InventoryChange>(
+        Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L
     )
 
     private var screenHandler: ScreenHandler? = null
         set(value) {
-            if (value != null && field?.syncId != value.syncId)
+            if (value != null && field?.syncId != value.syncId) {
+                alteredSlots.clear()
                 slots = getStacks(value.slots)
+            }
             field = value
         }
 
@@ -83,7 +86,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         super.load()
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-            if (avoidDesync) indexInventoryChanges()
+            if (DEFAULT.avoidDesync) indexInventoryChanges()
             if (++secondCounter >= 20) {
                 secondCounter = 0
                 actionsThisSecond = 0
@@ -91,6 +94,14 @@ object InventoryManager : RequestHandler<InventoryRequest>(
             actionsThisTick = 0
             activeRequest = null
             actions = mutableListOf()
+        }
+
+        listen<PacketEvent.Send.Pre> { event ->
+            if (event.packet is CloseHandledScreenC2SPacket &&
+                event.packet.syncId != player.currentScreenHandler.syncId
+                ) {
+                screenHandler = player.playerScreenHandler
+            }
         }
 
         return "Loaded Inventory Manager"
@@ -125,7 +136,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         activeRequest = request
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
-        alteredSlots.setDecayTime(AutomationConfig.desyncTimeout * 50L)
+        alteredSlots.setDecayTime(DEFAULT.desyncTimeout * 50L)
     }
 
     /**
@@ -137,14 +148,13 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         activeRequest?.let { active ->
             PlaceManager.logger.debug("Processing request", active)
             if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
-            screenHandler = player.currentScreenHandler
             val iterator = actions.iterator()
             while (iterator.hasNext()) {
                 val action = iterator.next()
                 if (action is InventoryAction.Inventory && actionsThisSecond + 1 > maxActionsThisSecond && !active.mustPerform)
                     break
                 action.action(this)
-                if (avoidDesync) indexInventoryChanges()
+                if (DEFAULT.avoidDesync) indexInventoryChanges()
                 actionsThisTick++
                 actionsThisSecond++
                 iterator.remove()
@@ -170,7 +180,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         if (player.currentScreenHandler.syncId != screenHandler?.syncId) return
         val changes = screenHandler?.slots
             ?.filter { !it.stack.equal(slots[it.id]) }
-            ?.map { Pair(it.id, Pair(slots[it.id], it.stack.copy())) }
+            ?.map { InventoryChange(it.id, slots[it.id], it.stack.copy()) }
             ?: emptyList()
         alteredSlots.addAll(changes)
         slots = getStacks(player.currentScreenHandler.slots)
@@ -186,11 +196,10 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     @JvmStatic
     fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){
         runSafe {
-            if (!mc.isOnThread || !avoidDesync) {
+            if (!mc.isOnThread || !DEFAULT.avoidDesync) {
                 original.call(packet)
                 return
             }
-            screenHandler = player.currentScreenHandler
             val packetScreenHandler =
                 when (packet.syncId) {
                     0 -> player.playerScreenHandler
@@ -200,7 +209,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
             val alteredContents = mutableListOf<ItemStack>()
             packet.contents.forEachIndexed { index, incomingStack ->
                 val matches = alteredSlots.removeIf { cached ->
-                    incomingStack.equal(cached.second.second)
+                    incomingStack.equal(cached.after)
                 }
                 if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
                 else alteredContents.add(incomingStack)
@@ -219,8 +228,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     @JvmStatic
     fun onSlotUpdate(packet: ScreenHandlerSlotUpdateS2CPacket, original: Operation<Void>) {
         runSafe {
-            screenHandler = player.currentScreenHandler
-            if (!mc.isOnThread || !avoidDesync) {
+            if (!mc.isOnThread || !DEFAULT.avoidDesync) {
                 original.call(packet)
                 return
             }
@@ -232,7 +240,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
             } ?: false
 
             val matches = alteredSlots.removeIf {
-                it.first == packet.slot && it.second.second.equal(itemStack)
+                it.syncId == packet.slot && it.after.equal(itemStack)
             }
 
             if (packet.syncId == 0) {
@@ -255,6 +263,17 @@ object InventoryManager : RequestHandler<InventoryRequest>(
         }
         original.call(packet)
     }
+
+    @JvmStatic
+    fun onSetScreenHandler(screenHandler: ScreenHandler) {
+        this.screenHandler = screenHandler
+    }
+
+    private data class InventoryChange(
+        val syncId: Int,
+        val before: ItemStack,
+        val after: ItemStack
+    )
 
     override fun preEvent() = UpdateManagerEvent.Inventory.post()
 }

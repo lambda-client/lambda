@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.PostSimResult
 import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
@@ -27,6 +26,7 @@ import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.
 import com.lambda.interaction.construction.simulation.checks.PostProcessingSim.Companion.simPostProcessing
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.Structure
 import io.ktor.util.collections.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,14 +46,14 @@ object BuildSimulator : Sim<PostSimResult>() {
      * @see simBreak
      */
     context(automatedSafeContext: AutomatedSafeContext)
-    fun Blueprint.simulate(
+    fun Structure.simulate(
         pov: Vec3d = automatedSafeContext.player.eyePos
     ): Set<BuildResult> = runBlocking(Dispatchers.Default) {
         supervisorScope {
             val concurrentSet = ConcurrentSet<BuildResult>()
 
             with(automatedSafeContext) {
-                structure.forEach { (pos, targetState) ->
+                forEach { (pos, targetState) ->
                     launch {
                         sim(pos, blockState(pos), targetState, pov, concurrentSet) {
                             if (targetState is TargetState.State && matchesTarget(complete = false)) {

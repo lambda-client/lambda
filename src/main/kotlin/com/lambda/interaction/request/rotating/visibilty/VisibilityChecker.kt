@@ -17,8 +17,9 @@
 
 package com.lambda.interaction.request.rotating.visibilty
 
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.AutomationConfig
+import com.lambda.interaction.construction.processing.PreProcessingData
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotating.Rotation
@@ -33,7 +34,8 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.util.*
-import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 
 /**
@@ -59,7 +61,8 @@ object VisibilityChecker {
         reach: Double,
         eye: Vec3d,
         sides: Set<Direction>,
-        scan: SurfaceScan,
+        preProcessing: PreProcessingData?,
+        allowInsideBox: Boolean,
         targetType: InteractionMask,
         verify: CheckedHit.() -> Boolean
     ): CheckedHit? {
@@ -72,7 +75,7 @@ object VisibilityChecker {
         }
 
         return buildConfig.pointSelection.select(
-            collectHitsFor(boxes, reach, eye, sides, scan, targetType, verify)
+            collectHitsFor(boxes, reach, eye, sides, preProcessing, allowInsideBox, targetType, verify)
         )
     }
 
@@ -83,7 +86,7 @@ object VisibilityChecker {
      * @param reach The maximum reach distance for the interaction.
      * @param eye The player's eye position.
      * @param sides Set of block sides to consider for targeting.
-     * @param scan Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
+     * @param preProcessing Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
      * @param interaction Specifies interaction settings, such as side visibility and resolution.
      * @param verify A lambda to verify if a [CheckedHit] meets the desired criteria.
      *
@@ -94,7 +97,8 @@ object VisibilityChecker {
         reach: Double,
         eye: Vec3d = player.eyePos,
         sides: Set<Direction> = ALL_SIDES,
-        scan: SurfaceScan = SurfaceScan.DEFAULT,
+        preProcessing: PreProcessingData?,
+        allowInsideBox: Boolean,
         targetType: InteractionMask,
         verify: CheckedHit.() -> Boolean,
     ) = mutableListOf<CheckedHit>().apply {
@@ -103,7 +107,7 @@ object VisibilityChecker {
         boxes.forEach { box ->
             val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), buildConfig.resolution, scan) { _, vec ->
+            box.scanSurfaces(visible.intersect(sides), buildConfig.resolution, preProcessing, allowInsideBox) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
@@ -124,7 +128,8 @@ object VisibilityChecker {
         reach: Double,
         eye: Vec3d,
         sides: Set<Direction>,
-        scan: SurfaceScan,
+        preProcessing: PreProcessingData?,
+        allowInsideBox: Boolean,
         targetType: InteractionMask,
         entity: LivingEntity?,
         verify: CheckedHit.() -> Boolean,
@@ -134,7 +139,7 @@ object VisibilityChecker {
         boxes.forEach { box ->
             val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), buildConfig.resolution, scan) { _, vec ->
+            box.scanSurfaces(visible.intersect(sides), buildConfig.resolution, preProcessing, allowInsideBox) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
@@ -154,81 +159,86 @@ object VisibilityChecker {
      * Scans the surfaces of a given box on the [sides] specified
      * and executes a callback for each point calculated based on the scanning parameters.
      *
-     * @param box The 3D box whose surfaces will be scanned.
      * @param sides A set of sides to scan
      * @param resolution The number of intervals into which each dimension is divided for scanning (default is 5).
-     * @param scan Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
+     * @param preProcessing Configuration specifying the axis and mode of the scan.
      * @param check A callback function that performs an action for each surface point, receiving the direction of the surface and the current 3D vector.
      */
-    fun scanSurfaces(
-        box: Box,
-        sides: Set<Direction> = emptySet(),
+    fun Box.scanSurfaces(
+        sides: Set<Direction>,
         resolution: Int = 5,
-        scan: SurfaceScan = SurfaceScan.DEFAULT,
+        preProcessing: PreProcessingData?,
+        allowInsideBox: Boolean,
         check: (Direction, Vec3d) -> Unit
     ) {
-        sides.forEach { side ->
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box
-                .contract(AutomationConfig.shrinkFactor)
-                .offset(side.doubleVector.multiply(AutomationConfig.shrinkFactor))
+        val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
+        (sides - invalidSides).forEach { side ->
+            val (minX, minY, minZ, maxX, maxY, maxZ) = scanBox
+                .offset(side.doubleVector.multiply(DEFAULT.shrinkFactor))
                 .bounds(side)
 
-            // Determine the bounds to scan based on the axis and mode. Skip if no part of the face is in the desired bounds
-            val (startX, endX) = if (scan.axis == Direction.Axis.X && maxX != minX) {
-                when (scan.mode) {
-                    ScanMode.GreaterBlockHalf -> (floor(minX) + 0.501).let { center ->
-                        if (maxX < center) return@forEach
-                        minX.coerceAtLeast(center) to maxX
-                    }
-                    ScanMode.LesserBlockHalf -> (floor(maxX) + 0.499).let { center ->
-                        if (minX > center) return@forEach
-                        minX to maxX.coerceAtMost(center)
-                    }
-                    ScanMode.Full -> minX to maxX
-                }
-            } else minX to maxX
-
-            val (startY, endY) = if (scan.axis == Direction.Axis.Y && maxY != minY) {
-                when (scan.mode) {
-                    ScanMode.GreaterBlockHalf -> (floor(minY) + 0.501).let { center ->
-                        if (maxY < center) return@forEach
-                        minY.coerceAtLeast(center) to maxY
-                    }
-                    ScanMode.LesserBlockHalf -> (floor(maxY) + 0.499).let { center ->
-                        if (minY > center) return@forEach
-                        minY to maxY.coerceAtMost(center)
-                    }
-                    ScanMode.Full -> minY to maxY
-                }
-            } else minY to maxY
-
-            val (startZ, endZ) = if (scan.axis == Direction.Axis.Z && maxZ != minZ) {
-                when (scan.mode) {
-                    ScanMode.GreaterBlockHalf -> (floor(minZ) + 0.501).let { center ->
-                        if (maxZ < center) return@forEach
-                        minZ.coerceAtLeast(center) to maxZ
-                    }
-                    ScanMode.LesserBlockHalf -> (floor(maxZ) + 0.499).let { center ->
-                        if (minZ > center) return@forEach
-                        minZ to maxZ.coerceAtMost(center)
-                    }
-                    ScanMode.Full -> minZ to maxZ
-                }
-            } else minZ to maxZ
-
-            val stepX = (endX - startX) / resolution
-            val stepY = (endY - startY) / resolution
-            val stepZ = (endZ - startZ) / resolution
+            val stepX = (maxX - minX) / resolution
+            val stepY = (maxY - minY) / resolution
+            val stepZ = (maxZ - minZ) / resolution
 
             (0..resolution).forEach outer@{ i ->
-                val x = if (stepX != 0.0) startX + (stepX * i) else startX
+                val x = if (stepX != 0.0) minX + (stepX * i) else minX
                 (0..resolution).forEach inner@{ j ->
-                    val y = if (stepY != 0.0) startY + (stepY * j) else startY
-                    val z = if (stepZ != 0.0) startZ + stepZ * ((if (stepX != 0.0) j else i)) else startZ
+                    val y = if (stepY != 0.0) minY + (stepY * j) else minY
+                    val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
                     check(side, Vec3d(x, y, z))
                 }
             }
         }
+    }
+
+    private fun Box.getScanBox(
+        preProcessing: PreProcessingData?,
+        allowInsideBox: Boolean
+    ): Pair<Box, Set<Direction>>? =
+        with(contract(DEFAULT.shrinkFactor)) {
+            if (preProcessing == null || preProcessing.info.surfaceScan.mode == ScanMode.Full) return Pair(this, emptySet())
+
+            val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X,  preProcessing.info.surfaceScan)
+            val (newYBounds, shrunkYSide) = toScanRange(minY, maxY, preProcessing.pos.y, Direction.Axis.Y, preProcessing.info.surfaceScan)
+            val (newZBounds, shrunkZSide) = toScanRange(minZ, maxZ, preProcessing.pos.z, Direction.Axis.Z, preProcessing.info.surfaceScan)
+
+            if (newXBounds.isEmpty() || newYBounds.isEmpty() || newZBounds.isEmpty()) return null
+
+            val invalidSides = buildSet {
+                if (!allowInsideBox) {
+                    addAll(listOfNotNull(shrunkXSide, shrunkYSide, shrunkZSide))
+                }
+            }
+
+            val box = Box(
+                newXBounds.start, newYBounds.start, newZBounds.start,
+                newXBounds.endInclusive, newYBounds.endInclusive, newZBounds.endInclusive
+            )
+            return Pair(box, invalidSides)
+        }
+
+    private fun toScanRange(
+        min: Double,
+        max: Double,
+        origin: Int,
+        axis: Direction.Axis,
+        scan: SurfaceScan
+    ): Pair<ClosedRange<Double>, Direction?> {
+        val range = if (scan.axis == axis) {
+            when (scan.mode) {
+                ScanMode.GreaterBlockHalf -> max(origin + 0.501, min)..max
+                else -> min..min(origin + 0.499, max)
+            }
+        } else min..max
+        return Pair(
+            range,
+            when (scan.mode) {
+                ScanMode.GreaterBlockHalf if range.start > min -> axis.negativeDirection
+                ScanMode.LesserBlockHalf if range.endInclusive < max -> axis.positiveDirection
+                else -> null
+            }
+        )
     }
 
     /**
@@ -239,10 +249,13 @@ object VisibilityChecker {
      * @param visibilityCheck Whether to check the visibility of the side.
      * @return A set of directions corresponding to the visible sides of the box.
      */
-    private fun visibleSides(box: Box, eye: Vec3d, visibilityCheck: Boolean) =
-        if (visibilityCheck) {
-            box.getVisibleSurfaces(eye)
-        } else Direction.entries.toSet()
+    private fun visibleSides(
+        box: Box,
+        eye: Vec3d,
+        visibilityCheck: Boolean
+    ) = if (visibilityCheck) {
+        box.getVisibleSurfaces(eye)
+    } else Direction.entries.toSet()
 
     /**
      * Gets the bounding coordinates of a box's side, specifying min and max values for each axis.
@@ -259,6 +272,53 @@ object VisibilityChecker {
             Direction.WEST -> doubleArrayOf(minX, minY, minZ, minX, maxY, maxZ)
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
+
+    fun Box.getClosestPoints(
+        pov: Vec3d,
+        sides: Set<Direction>,
+        preProcessing: PreProcessingData,
+        allowInsideBox: Boolean,
+        check: (Vec3d, Direction) -> Unit
+    ) {
+        val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
+        with(scanBox) {
+            (sides - invalidSides).forEach { side ->
+                val pos = when (side) {
+                    Direction.DOWN -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        minY + DEFAULT.shrinkFactor,
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                    Direction.UP -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        maxY + DEFAULT.shrinkFactor,
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                    Direction.NORTH -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        pov.y.coerceIn(minY, maxY),
+                        minZ + DEFAULT.shrinkFactor
+                    )
+                    Direction.SOUTH -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        pov.y.coerceIn(minY, maxY),
+                        maxZ + DEFAULT.shrinkFactor
+                    )
+                    Direction.WEST -> Vec3d(
+                        minX + DEFAULT.shrinkFactor,
+                        pov.y.coerceIn(minY, maxY),
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                    Direction.EAST -> Vec3d(
+                        maxX + DEFAULT.shrinkFactor,
+                        pov.y.coerceIn(minY, maxY),
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                }
+                check(pos, side)
+            }
+        }
+    }
 
     /**
      * Determines which surfaces of the box are visible from a specific position, typically the player's eyes.
@@ -291,6 +351,6 @@ object VisibilityChecker {
 
     class CheckedHit(
         val hit: HitResult,
-        val targetRotation: Rotation
+        val rotation: Rotation
     )
 }

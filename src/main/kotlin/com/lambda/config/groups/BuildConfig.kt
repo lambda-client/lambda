@@ -26,9 +26,11 @@ interface BuildConfig {
     val pathing: Boolean
     val stayInRange: Boolean
     val collectDrops: Boolean
+    val spleefEntities: Boolean
     val interactionsPerTick: Int
     val maxPendingInteractions: Int
     val interactionTimeout: Int
+    val maxBuildDependencies: Int
 
     val useDefaultReach: Boolean
     val attackReach: Double

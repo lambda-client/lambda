@@ -15,15 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.verify
+package com.lambda.config
 
-import net.minecraft.util.math.Direction
+import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.module.ModuleRegistry.moduleNameMap
 
-data class SurfaceScan(
-    val mode: ScanMode,
-    val axis: Direction.Axis
-) {
-    companion object {
-        val DEFAULT = SurfaceScan(ScanMode.Full, Direction.Axis.Y)
-    }
+class UserAutomationConfig(override val name: String) : AutomationConfig(name, UserAutomationConfigs) {
+    val linkedModules = setting("Linked Modules", moduleNameMap.filter { it.value.defaultAutomationConfig != Companion.DEFAULT }.keys, emptySet())
+        .onSelect { module -> moduleNameMap[module]?.automationConfig = this@UserAutomationConfig }
+        .onDeselect { module ->
+            moduleNameMap[module]?.let { module ->
+                module.automationConfig = module.defaultAutomationConfig
+            }
+        }
 }

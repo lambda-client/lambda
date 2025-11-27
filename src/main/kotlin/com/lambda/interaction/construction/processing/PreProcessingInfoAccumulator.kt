@@ -25,7 +25,6 @@ class PreProcessingInfoAccumulator(
     override var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
     override val ignore: MutableSet<Property<*>> = ProcessorRegistry.postProcessedProperties.toMutableSet(),
     override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
-    override var shouldBeOmitted: Boolean = false
 ) : PreProcessingInfo {
     @InfoAccumulator
     fun offerSurfaceScan(scan: SurfaceScan) {
@@ -47,11 +46,6 @@ class PreProcessingInfoAccumulator(
     @InfoAccumulator
     fun retainSides(vararg sides: Direction) {
         this.sides.retainAll(sides.toSet())
-    }
-
-    @InfoAccumulator
-    fun omitPlacement() {
-        shouldBeOmitted = true
     }
 
     @InfoAccumulator

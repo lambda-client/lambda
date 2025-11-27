@@ -19,9 +19,9 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
+import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
-import com.lambda.context.AutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -54,7 +54,7 @@ import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.Formatting.string
+import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
@@ -70,7 +70,7 @@ class BuildTask private constructor(
     private val lifeMaintenance: Boolean,
     automated: Automated
 ) : Task<Structure>(), Automated by automated {
-    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
+    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
     private val atMaxPendingInteractions
@@ -121,9 +121,9 @@ class BuildTask private constructor(
     }
 
     private fun SafeContext.simulateAndProcess() {
-        val results = runSafeAutomated { blueprint.simulate() }
+        val results = runSafeAutomated { blueprint.structure.simulate() }
 
-        AutomationConfig.drawables = results
+        DEFAULT.drawables = results
             .filterIsInstance<Drawable>()
             .plus(pendingInteractions.toList())
 
@@ -258,7 +258,7 @@ class BuildTask private constructor(
         @Ta5kBuilder
         fun Automated.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
             blueprint: () -> Blueprint
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
@@ -267,7 +267,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -275,7 +275,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -294,7 +294,7 @@ class BuildTask private constructor(
         fun Automated.breakBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = AutomationConfig.buildConfig.collectDrops,
+            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

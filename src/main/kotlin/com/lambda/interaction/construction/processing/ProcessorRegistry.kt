@@ -142,23 +142,22 @@ object ProcessorRegistry : Loadable {
      * each pre-processor checking if the state can be accepted. If so, the state is passed through the pre-processor
      * which can call the functions within the [PreProcessingInfoAccumulator] DSL to modify the information.
      */
-    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? =
-        if (this !is TargetState.State) PreProcessingInfo.DEFAULT
-        else {
-            val get: () -> PreProcessingInfo? = get@{
-                val infoAccumulator = PreProcessingInfoAccumulator()
+    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingData? {
+        if (this !is TargetState.State) return PreProcessingData(PreProcessingInfo.DEFAULT, pos)
 
-                processors.forEach { processor ->
-                    if (!processor.acceptsState(blockState)) return@forEach
-                    processor.preProcess(blockState, pos, infoAccumulator)
-                    if (infoAccumulator.shouldBeOmitted)
-                        return@get null
-                }
+        val get: () -> PreProcessingInfo? = get@{
+            val infoAccumulator = PreProcessingInfoAccumulator()
 
-                infoAccumulator.complete()
+            processors.forEach { processor ->
+                if (!processor.acceptsState(blockState)) return@forEach
+                processor.preProcess(blockState, pos, infoAccumulator)
             }
-            processorCache.getOrPut(blockState, get)
+
+            infoAccumulator.complete()
         }
+        val preProcessingInfo = processorCache.getOrPut(blockState, get) ?: return null
+        return PreProcessingData(preProcessingInfo, pos)
+    }
 
     /**
      * Contains the starting initial block placement and any subsequent intermediary processes to transform the placement
@@ -196,3 +195,5 @@ object ProcessorRegistry : Loadable {
         val sides: Set<Direction> = Direction.entries.toSet()
     )
 }
+
+data class PreProcessingData(val info: PreProcessingInfo, val pos: BlockPos)

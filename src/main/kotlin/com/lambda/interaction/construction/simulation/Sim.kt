@@ -17,12 +17,12 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.context.AutomationConfig.maxSimDependencies
-import com.lambda.interaction.construction.processing.PreProcessingInfo
+import com.lambda.interaction.construction.processing.PreProcessingData
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getClosestPoints
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.util.math.distSq
@@ -77,7 +77,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
      */
     protected suspend fun ISimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
         // +1 because the build sim counts as a dependent
-        if (dependencyStack.size >= maxSimDependencies + 1) return
+        if (dependencyStack.size >= buildConfig.maxBuildDependencies + 1) return
         dependencyStack.push(dependent)
         block()
         dependencyStack.pop()
@@ -91,7 +91,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         voxelShape: VoxelShape,
         pos: BlockPos,
         sides: Set<Direction>,
-        preProcessing: PreProcessingInfo
+        preProcessing: PreProcessingData
     ): Set<CheckedHit>? {
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 
@@ -103,26 +103,31 @@ abstract class Sim<T : BuildResult> : Results<T> {
         supervisorScope {
             boxes.forEach { box ->
                 launch {
-                    val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast) {
+                    val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast)
                         sides.intersect(box.getVisibleSurfaces(pov))
-                    } else sides
+                    else sides
 
-                    scanSurfaces(box, sides, buildConfig.resolution, preProcessing.surfaceScan) { side, vec ->
+                    if (!buildConfig.strictRayCast) {
+                        box.getClosestPoints(pov, sides, preProcessing, placeConfig.airPlace.isEnabled) { vec, side ->
+                            if (pov distSq vec > reachSq)
+                                misses.add(Pair(vec, side))
+                            else {
+                                validHits.add(
+                                    CheckedHit(
+                                        BlockHitResult(vec, side, pos, false),
+                                        pov.rotationTo(vec)
+                                    )
+                                )
+                            }
+                        }
+                    } else box.scanSurfaces(sides, buildConfig.resolution, preProcessing, false) { side, vec ->
                         if (pov distSq vec > reachSq) {
                             misses.add(Pair(vec, side))
                             return@scanSurfaces
                         }
 
                         val newRotation = pov.rotationTo(vec)
-
-                        val hit = if (buildConfig.strictRayCast) {
-                            newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
-                        } else {
-                            val hitVec =
-                                if (buildConfig.checkSideVisibility) newRotation.castBox(box, buildConfig.interactReach, pov) ?: return@scanSurfaces
-                                else vec
-                            BlockHitResult(hitVec, side, pos, false)
-                        }
+                        val hit = newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
 
                         if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
                         val checked = CheckedHit(hit, newRotation)

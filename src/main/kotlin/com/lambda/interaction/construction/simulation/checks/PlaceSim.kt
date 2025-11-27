@@ -90,7 +90,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
     private suspend fun AutomatedSafeContext.simPlacements() =
         supervisorScope {
-            preProcessing.sides.forEach { side ->
+            preProcessing.info.sides.forEach { side ->
                 val neighborPos = pos.offset(side)
                 val neighborSide = side.opposite
                 launch { testBlock(neighborPos, neighborSide, this@supervisorScope) }
@@ -121,11 +121,11 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         val validHits = scanShape(pov, shape, pos, setOf(side), preProcessing) ?: return
 
-        selectHitPos(validHits, fakePlayer, targetState.getStack(this@PlaceSim.pos, state).blockItem, supervisorScope)
+        selectHitPos(validHits, fakePlayer, targetState.getStack(this@PlaceSim.pos).blockItem, supervisorScope)
     }
 
     private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
-        val optimalStack = targetState.getStack(pos, state)
+        val optimalStack = targetState.getStack(pos)
         val stackSelection = optimalStack.item.select()
         val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
         val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
@@ -180,7 +180,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
             val rotationRequest = if (placeConfig.axisRotate && (targetState as? TargetState.State)?.blockState?.contains(Properties.ROTATION) != true)
                 lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
-            else lookAt(rotatePlaceTest.rotation, 0.001)
+            else lookAt(rotatePlaceTest.rotation)
 
             val swapStack = getSwapStack() ?: return
             if (!swapStack.item.isEnabled(world.enabledFeatures)) {
@@ -216,7 +216,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         val currentDirIsValid = testPlaceState(context) != null
 
         if (!placeConfig.axisRotate) {
-            fakePlayer.rotation = checkedHit.targetRotation
+            fakePlayer.rotation = checkedHit.rotation
             return testPlaceState(context)?.let { RotatePlaceTest(it, currentDirIsValid, fakePlayer.rotation) }
         }
 
@@ -277,20 +277,23 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         if (collidingEntities.isNotEmpty()) {
             collidingEntities
-                .mapNotNull { entity ->
-                    if (entity === player) {
-                        result(PlaceResult.BlockedBySelf(pos))
-                        return@mapNotNull null
+                .takeIf { buildConfig.spleefEntities }
+                ?.run {
+                    mapNotNull { entity ->
+                        if (entity === player) {
+                            result(PlaceResult.BlockedBySelf(pos))
+                            return@mapNotNull null
+                        }
+                        val hitbox = entity.boundingBox
+                        entity.getPositionsWithinHitboxXZ(
+                            (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
+                            pos.y
+                        )
                     }
-                    val hitbox = entity.boundingBox
-                    entity.getPositionsWithinHitboxXZ(
-                        (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
-                        pos.y
-                    )
-                }
-                .flatten()
-                .forEach { support ->
-                    sim(support, blockState(support), TargetState.Empty) { simBreak() }
+                        .flatten()
+                        .forEach { support ->
+                            sim(support, blockState(support), TargetState.Empty) { simBreak() }
+                        }
                 }
             result(PlaceResult.BlockedByEntity(pos, collidingEntities, context.hitPos, context.side))
         }

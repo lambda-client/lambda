@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.processing.PreProcessingInfo
+import com.lambda.interaction.construction.processing.PreProcessingData
 import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
 import com.lambda.interaction.construction.processing.ProcessorRegistry.intermediaryBlockMap
 import com.lambda.interaction.construction.result.BuildResult
@@ -38,16 +38,16 @@ interface ISimInfo : Automated {
     val pos: BlockPos
     val state: BlockState
     val targetState: TargetState
-    val preProcessing: PreProcessingInfo
+    val preProcessing: PreProcessingData
     val pov: Vec3d
     val concurrentResults: MutableSet<BuildResult>
     val dependencyStack: Stack<Sim<*>>
 
     fun AutomatedSafeContext.matchesTarget(state: BlockState = this@ISimInfo.state, complete: Boolean = true): Boolean {
-        if (targetState.matches(state, pos, if (!complete) preProcessing.ignore else emptySet())) return true
+        if (targetState.matches(state, pos, if (!complete) preProcessing.info.ignore else emptySet())) return true
         else if (complete) return false
 
-        intermediaryBlockMap[targetState.getState(pos, state).block]?.let { intermediaryInfo ->
+        intermediaryBlockMap[targetState.getState(pos).block]?.let { intermediaryInfo ->
             return intermediaryInfo.isIntermediaryBlock(state)
         }
 
@@ -102,7 +102,7 @@ data class SimInfo(
     override val pos: BlockPos,
     override val state: BlockState,
     override val targetState: TargetState,
-    override val preProcessing: PreProcessingInfo,
+    override val preProcessing: PreProcessingData,
     override val pov: Vec3d,
     override val dependencyStack: Stack<Sim<*>>,
     override val concurrentResults: MutableSet<BuildResult>,

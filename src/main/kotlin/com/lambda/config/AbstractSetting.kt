@@ -102,6 +102,7 @@ abstract class AbstractSetting<T : Any>(
     var visibility: () -> Boolean,
 ) : Jsonable, Nameable, Describable, Layout {
     private val listeners = mutableListOf<ValueListener<T>>()
+    var disabled = { false }
     var groups: MutableList<List<NamedEnum>> = mutableListOf()
 
     var value by Delegates.observable(defaultValue) { _, from, to ->
@@ -150,6 +151,10 @@ abstract class AbstractSetting<T : Any>(
 
     fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
         listeners.add(ValueListener(false, block))
+    }
+
+    fun disabled(predicate: () -> Boolean) = apply {
+        disabled = predicate
     }
 
     fun group(path: List<NamedEnum>, vararg continuation: NamedEnum) = apply {

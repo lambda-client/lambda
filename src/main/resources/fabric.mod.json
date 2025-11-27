@@ -1,19 +1,17 @@
 {
   "schemaVersion": 1,
-  "id": "${modId}",
-  "version": "${modVersion}",
-  "name": "${modName}",
-  "description": "${modDescription}",
-  "authors": [
-    "${modAuthors}"
-  ],
+  "id": "$modId",
+  "version": "$modVersion",
+  "name": "$modName",
+  "description": "$modDescription",
+  "authors": ["$modAuthors"],
   "contact": {
     "homepage": "https://github.com/lambda-client/lambda",
     "sources": "https://github.com/lambda-client/lambda"
   },
   "license": "GNU General Public License v3.0",
-  "icon": "${modIcon}",
-  "environment": "*",
+  "icon": "$modIcon",
+  "environment": "client",
   "entrypoints": {
     "client": [
       {
@@ -27,10 +25,11 @@
   ],
   "accessWidener": "${modId}.accesswidener",
   "depends": {
-    "fabricloader": ">=${fabricLoaderVersion}",
-    "minecraft": "~${minecraftVersion}",
-    "fabric-api": ">=${fabricApiVersion}+${minecraftVersion}",
-    "fabric-language-kotlin": ">=${kotlinFabricVersion}",
-    "java": ">=${javaVersion}"
+    "fabricloader": ">=$fabricLoaderVersion",
+    "minecraft": "~$minecraftVersion",
+    "fabric-api": ">=$fabricApiVersion+$minecraftVersion",
+    "fabric-language-kotlin": ">=$kotlinFabricVersion",
+    "java": ">=$javaVersion",
+    "baritone": "*"
   }
 }

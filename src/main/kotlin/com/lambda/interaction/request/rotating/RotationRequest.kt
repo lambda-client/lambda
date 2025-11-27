@@ -27,11 +27,8 @@ import com.lambda.threading.runSafe
 data class RotationRequest(
     val target: RotationTarget,
     private val automated: Automated,
-    val rotationMode: RotationMode = automated.rotationConfig.rotationMode,
-    val turnSpeed: Double = automated.rotationConfig.turnSpeed,
     var keepTicks: Int = automated.rotationConfig.keepTicks,
     var decayTicks: Int = automated.rotationConfig.decayTicks,
-    val speedMultiplier: Double = 1.0
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
 
@@ -39,7 +36,7 @@ data class RotationRequest(
     override val nowOrNothing = false
 
     override val done: Boolean get() =
-        rotationMode == RotationMode.None || runSafe { target.verify() } == true
+        rotationConfig.rotationMode == RotationMode.None || runSafe { target.verify() } == true
 
     override fun submit(queueIfClosed: Boolean): RotationRequest =
         RotationManager.request(this, queueIfClosed)
@@ -47,12 +44,9 @@ data class RotationRequest(
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Rotation Request") {
             value("Request ID", requestId)
-            value("Rotation Mode", rotationMode)
-            value("Turn Speed", turnSpeed)
+            value("Age", age)
             value("Keep Ticks", keepTicks)
             value("Decay Ticks", decayTicks)
-            value("Speed Multiplier", speedMultiplier)
-            value("Age", age)
         }
     }
 

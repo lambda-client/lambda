@@ -25,11 +25,11 @@ import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
-import com.lambda.context.AutomationConfig
+import com.lambda.config.AutomationConfig
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 
-object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig {
+object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
     override val name = "baritone"
 
     private val baritone = BaritoneAPI.getProvider()

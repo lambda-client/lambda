@@ -18,14 +18,21 @@
 package com.lambda.config.configurations
 
 import com.lambda.config.Configuration
-import com.lambda.core.Loadable
+import com.lambda.config.configurations.ModuleConfigs.configName
+import com.lambda.config.configurations.ModuleConfigs.primary
+import com.lambda.util.FolderRegister
+import java.io.File
 
-object ConfigLoader: Loadable {
-    override val priority = 0
-    override fun load(): String {
-        Configuration.configurations.forEach {
-            it.tryLoad()
-        }
-        return "Loading ${Configuration.configurations.size} configurations"
-    }
+
+/**
+ * The [ModuleConfigs] object represents the configuration file for the [Module]s.
+ *
+ * This object is used to save and load the settings of all [Module]s in the system.
+ *
+ * @property configName The name of the configuration.
+ * @property primary The primary file where the configuration is saved.
+ */
+object ModuleConfigs : Configuration() {
+    override val configName get() = "modules"
+    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
 }

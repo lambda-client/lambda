@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.context.Automated
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BuildResult
@@ -28,8 +27,6 @@ import com.lambda.interaction.construction.result.Dependent
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.Rank
-import com.lambda.interaction.construction.result.Resolvable
-import com.lambda.task.tasks.BuildTask.Companion.breakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemPlacementContext
@@ -142,11 +139,8 @@ sealed class PlaceResult : BuildResult() {
     data class CantReplace(
         override val pos: BlockPos,
         val simulated: ItemPlacementContext,
-    ) : Resolvable, PlaceResult() {
+    ) : PlaceResult() {
         override val rank = Rank.PlaceCantReplace
-
-        context(automated: Automated)
-        override fun resolve() = automated.breakBlock(pos)
     }
 
     /**
