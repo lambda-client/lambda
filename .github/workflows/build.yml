@@ -51,7 +51,6 @@ jobs:
       - name: Generate Summary
         if: steps.upload.conclusion == 'success'
         run: |
-          https://maven.lambda-client.org/snapshots/com/lambda/lambda/1.0.0+1.21.5/lambda-1.0.0+1.21.5.jar
           cat << EOF >> $GITHUB_STEP_SUMMARY
           ### [Lambda ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](${{ secrets.MAVEN_URL }}/snapshots/com/lambda/lambda/${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar))
           EOF
