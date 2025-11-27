@@ -48,7 +48,7 @@ object BuildSimulator : Sim<PostSimResult>() {
     context(automatedSafeContext: AutomatedSafeContext)
     fun Structure.simulate(
         pov: Vec3d = automatedSafeContext.player.eyePos
-    ) : Set<BuildResult> = runBlocking(Dispatchers.Default) {
+    ): Set<BuildResult> = runBlocking(Dispatchers.Default) {
         supervisorScope {
             val concurrentSet = ConcurrentSet<BuildResult>()
 

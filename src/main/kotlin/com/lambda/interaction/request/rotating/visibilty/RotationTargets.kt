@@ -108,8 +108,9 @@ fun Automated.lookAtEntity(entity: LivingEntity): RotationTarget {
                 player.eyePos,
                 ALL_SIDES,
                 SurfaceScan.DEFAULT,
+                false,
                 InteractionMask.Entity
-            ) { requestedHit.verifyHit(hit) }?.targetRotation
+            ) { requestedHit.verifyHit(hit) }?.rotation
         }
     }
 }
@@ -138,8 +139,9 @@ fun Automated.lookAtBlock(
                 player.eyePos,
                 sides,
                 surfaceScan,
+                false,
                 InteractionMask.Block
-            ) { requestedHit.verifyHit(hit) }?.targetRotation
+            ) { requestedHit.verifyHit(hit) }?.rotation
         }
     }
 }

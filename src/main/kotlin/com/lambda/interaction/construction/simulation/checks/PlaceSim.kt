@@ -216,7 +216,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         val currentDirIsValid = testPlaceState(context) != null
 
         if (!placeConfig.axisRotate) {
-            fakePlayer.rotation = checkedHit.targetRotation
+            fakePlayer.rotation = checkedHit.rotation
             return testPlaceState(context)?.let { RotatePlaceTest(it, currentDirIsValid, fakePlayer.rotation) }
         }
 

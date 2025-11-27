@@ -72,7 +72,7 @@ open class AutomationConfig(
         fun automationConfig(name: String, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
             AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
 
-        object DEFAULT : AutomationConfig("Default Automation Config") {
+        object DEFAULT : AutomationConfig("Default") {
             val renders by setting("Render", false).group(Group.Render)
             val avoidDesync by setting("Avoid Desync", true, "Cancels incoming inventory update packets if they match previous actions").group(Group.Debug)
             val desyncTimeout by setting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidDesync }.group(Group.Debug)

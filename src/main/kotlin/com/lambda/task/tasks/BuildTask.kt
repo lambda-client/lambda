@@ -132,7 +132,7 @@ class BuildTask private constructor(
             .sorted()
 
         val bestResult = resultsNotBlocked.firstOrNull() ?: return
-        handleResult(bestResult, resultsNotBlocked)
+//        handleResult(bestResult, resultsNotBlocked)
     }
 
     private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {

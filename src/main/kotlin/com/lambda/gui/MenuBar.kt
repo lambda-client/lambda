@@ -21,6 +21,7 @@ import com.lambda.Lambda
 import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
+import com.lambda.config.AutomationConfig
 import com.lambda.config.Configuration
 import com.lambda.config.Configuration.Companion.configurables
 import com.lambda.config.UserAutomationConfig
@@ -34,6 +35,8 @@ import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.gui.dsl.ImGuiBuilder.popupContextItem
+import com.lambda.gui.dsl.ImGuiBuilder.selectable
 import com.lambda.interaction.BaritoneManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
@@ -73,7 +76,7 @@ object MenuBar {
             menu("HUD") { buildHudMenu() }
             menu("GUI") { buildGuiMenu() }
             menu("Modules") { buildModulesMenu() }
-            menu("Automation Presets") { buildConfigPresetsMenu() }
+            menu("Automation Configs") { buildConfigPresetsMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
             menu("Help") { buildHelpMenu() }
             buildGitHubReference()
@@ -303,9 +306,15 @@ object MenuBar {
 
         UserAutomationConfigs.configurables.forEach { config ->
             if (config !is UserAutomationConfig) throw java.lang.IllegalStateException("All configurables within UserAutomationConfigs must be UserAutomationConfigs!")
-            selectable(config.name)
+            buildAutomationConfigSelectable(config)
+        }
+        buildAutomationConfigSelectable(AutomationConfig.Companion.DEFAULT)
+    }
 
-            popupContextItem("##automation-config-popup-${config.name}") {
+    private fun buildAutomationConfigSelectable(config: AutomationConfig) {
+        selectable(config.name)
+        popupContextItem("##automation-config-popup-${config.name}") {
+            if (config is UserAutomationConfig) {
                 with(config.linkedModules) { buildLayout() }
                 button("Delete") {
                     config.linkedModules.value.forEach {
@@ -316,8 +325,8 @@ object MenuBar {
                     UserAutomationConfigs.configurables.remove(config)
                 }
                 separator()
-                buildConfigSettingsContext(config)
             }
+            buildConfigSettingsContext(config)
         }
     }
 

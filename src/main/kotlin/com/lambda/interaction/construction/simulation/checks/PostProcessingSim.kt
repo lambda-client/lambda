@@ -151,7 +151,7 @@ class PostProcessingSim private constructor(simInfo: ISimInfo)
     ) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit.blockResult ?: return
-            val rotationTarget = lookAt(checkedHit.targetRotation)
+            val rotationTarget = lookAt(checkedHit.rotation)
             val context = InteractContext(
                 checkedResult,
                 RotationRequest(rotationTarget, this),
