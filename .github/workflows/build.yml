@@ -49,7 +49,6 @@ jobs:
         run: ./gradlew publish -PmavenType=snapshots -PcommitHash=${{ env.COMMIT_HASH }} -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
       - name: Publish snapshot to maven
-        id: upload
         run: ./gradlew publish -PmavenType=snapshots -PcommitHash=SNAPSHOT -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
       - name: Generate Summary
