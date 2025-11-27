@@ -60,7 +60,7 @@ object Freecam : Module(
     private val relative by setting("Relative", false, "Moves freecam relative to player position").onValueChange { _, it ->
         if (it) lastPlayerPosition = player.pos
     }
-    private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement", { relative })
+    private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { relative }
 
     override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
@@ -106,14 +106,8 @@ object Freecam : Module(
         listen<UpdateManagerEvent.Rotation> {
             when (rotateMode) {
                 FreecamRotationMode.None -> return@listen
-                FreecamRotationMode.KeepRotation -> {
-                    lookAt(rotation).requestBy(this@Freecam)
-                }
-                FreecamRotationMode.LookAtTarget -> {
-                    mc.crosshairTarget?.let {
-                        lookAtHit(it)?.requestBy(this@Freecam)
-                    }
-                }
+                FreecamRotationMode.KeepRotation -> lookAt(rotation).requestBy(this@Freecam)
+                FreecamRotationMode.LookAtTarget -> mc.crosshairTarget?.let { lookAtHit(it)?.requestBy(this@Freecam) }
             }
         }
 
