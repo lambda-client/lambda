@@ -238,7 +238,7 @@ publishing {
     val mavenUrl = if (project.findProperty("mavenType") == "releases") "https://maven.lambda-client.org/releases" else "https://maven.lambda-client.org/snapshots"
 
     val isSnapshots = publishType == "snapshots"
-    val isValidCommit = commitHash.matches(Regex("[A-Fa-f0-9]+"))
+    val isValidCommit = commitHash.matches(Regex("[A-Fa-f0-9]+")) || commitHash == "SNAPSHOT"
 
     if (!isSnapshots && isValidCommit)
         println("WARNING: Commit hash for snapshot releases was supplied but the publish type is 'releases'. The commit will be omitted.")
