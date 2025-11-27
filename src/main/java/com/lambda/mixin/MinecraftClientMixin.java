@@ -24,6 +24,7 @@ import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.gui.DearImGui;
 import com.lambda.gui.components.ClickGuiLayout;
+import com.lambda.module.modules.movement.BetterFirework;
 import com.lambda.module.modules.player.Interact;
 import com.lambda.module.modules.player.InventoryMove;
 import com.lambda.module.modules.player.PacketMine;
@@ -187,6 +188,18 @@ public class MinecraftClientMixin {
         if (!Interact.INSTANCE.isEnabled()) return;
 
         itemUseCooldown = Interact.getPlaceDelay();
+    }
+
+    @WrapMethod(method = "doItemUse")
+    void injectItemUse(Operation<Void> original) {
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract())
+            original.call();
+    }
+
+    @WrapMethod(method = "doItemPick")
+    void injectItemPick(Operation<Void> original) {
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick())
+            original.call();
     }
 
     @WrapMethod(method = "getTargetMillisPerTick")

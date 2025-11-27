@@ -176,6 +176,12 @@ data class Bind(
         if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NumLock)
     }
 
+    val isMouseBind: Boolean
+        get() = mouse >= 0
+
+    val isKeyBind: Boolean
+        get() = key > 0
+
     val name: String
         get() {
             if (mouse < 0 && modifiers <= 0 && key <= 0) return "Unbound"
