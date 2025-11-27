@@ -49,7 +49,7 @@ jobs:
         run: ./gradlew publish -PmavenType=snapshots -PcommitHash=${{ env.COMMIT_HASH }} -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
       - name: Generate Summary
-        if: ${{ steps.upload.outputs.result == 'success' }}
+        if: steps.upload.conclusion == 'success'
         run: |
           https://maven.lambda-client.org/snapshots/com/lambda/lambda/1.0.0+1.21.5/lambda-1.0.0+1.21.5.jar
           cat << EOF >> $GITHUB_STEP_SUMMARY
@@ -57,7 +57,7 @@ jobs:
           EOF
 
       - name: Failover Upload
-        if: ${{ steps.upload.outputs.result == 'failure' }}
+        if: steps.upload.conclusion == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: lambda-nightly
