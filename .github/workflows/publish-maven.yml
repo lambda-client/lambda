@@ -6,48 +6,11 @@ on:
       - '*'
 
 jobs:
-  check-runner:
-    name: Check Runner Availability
-    runs-on: ubuntu-latest
-
-    outputs:
-      runner-label: ${{ steps.set-runner.outputs.runner-label }}
-
-    steps:
-      - name: Set runner
-        id: set-runner
-        run: |
-          runners=$(curl -v -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runners" --http1.1)
-          if [ $? -ne 0 ]; then
-            echo "Error: Failed to fetch runners from GitHub API" >&2
-            exit 1
-          fi
-
-          runners_count=$(echo "$runners" | jq '.runners | length')
-          if [ "$runners_count" -eq 0 ]; then
-            echo "No runners available or failed to retrieve runners." >&2
-            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          available=$(echo "$runners" | jq '.runners[] | select(.status == "online" and .busy == false and .labels[] .name == "self-hosted")')
-          if [ $? -ne 0 ]; then
-            echo "Error: Failed to parse JSON response" >&2
-            exit 1
-          fi
-
-          if [ -n "$available" ]; then
-            echo "runner-label=lambda-linux-runner" >> $GITHUB_OUTPUT
-          else
-            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
-          fi
-
   publish:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
-    needs: check-runner
     runs-on: ${{ needs.check-runner.outputs.runner-label }}
 
     name: Publish artifacts to maven
@@ -61,6 +24,15 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+          architecture: x64
+          cache: 'gradle'
+
+      - name: Read Gradle Properties
+        uses: BrycensRanch/read-properties-action@v1.0.4
+        id: all
+        with:
+          file: gradle.properties
+          all: true
 
       - name: Publish to Maven
-        run: ./gradlew publish -PreposiliteUsername=${{ secrets.MAVEN_USER }} -PreposilitePassword=${{ secrets.MAVEN_TOKEN }}
+        run: ./gradlew publish -PmavenType=releases -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
