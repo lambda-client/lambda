@@ -27,7 +27,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication
 import com.lambda.util.Communication.prefix
-import com.lambda.util.Formatting.string
+import com.lambda.util.Formatting.format
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -125,7 +125,7 @@ object AutoDisconnect : Module(
     private fun SafeContext.damageDisconnect(source: DamageSource, amount: Float) {
         buildText {
             literal("Got ")
-            highlighted(amount.string)
+            highlighted(amount.format())
             literal(" damage of type ")
             highlighted(source.name)
             source.attacker?.let {
@@ -140,7 +140,7 @@ object AutoDisconnect : Module(
             }
             source.position?.let {
                 literal(" at position ")
-                highlighted(it.string)
+                highlighted(it.format())
             }
             literal(".")
         }.let {
@@ -160,11 +160,11 @@ object AutoDisconnect : Module(
         text(text)
         literal("\n\n")
         literal("Disconnected at ")
-        highlighted(player.pos.string)
+        highlighted(player.pos.format())
         literal(" on ")
         highlighted(Communication.currentTime())
         literal(" with ")
-        highlighted(player.fullHealth.string)
+        highlighted(player.fullHealth.format())
         literal(" health.")
         if (player.isSubmergedInWater) {
             literal("\n")
@@ -197,7 +197,7 @@ object AutoDisconnect : Module(
             if (player.fullHealth < minimumHealth) {
                 buildText {
                     literal("Health ")
-                    highlighted(player.fullHealth.string)
+                    highlighted(player.fullHealth.format())
                     literal(" below minimum of ")
                     highlighted("$minimumHealth")
                     literal("!")
@@ -223,7 +223,7 @@ object AutoDisconnect : Module(
             }?.let { creeper ->
                 buildText {
                     literal("An ignited creeper was ")
-                    highlighted(creeper.pos.distanceTo(player.pos).string)
+                    highlighted(creeper.pos.distanceTo(player.pos).format())
                     literal(" blocks away!")
                 }
             }
@@ -238,7 +238,7 @@ object AutoDisconnect : Module(
                     literal("The player ")
                     text(otherPlayer.name)
                     literal(" was ")
-                    highlighted("${otherPlayer.distanceTo(player).string} blocks away")
+                    highlighted("${otherPlayer.distanceTo(player).format()} blocks away")
                     literal("!")
                 }
             }

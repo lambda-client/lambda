@@ -17,14 +17,17 @@
 
 package com.lambda.module.hud
 
+import com.lambda.config.groups.FormatterConfig
+import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Formatting.asString
-import com.lambda.util.Formatting.string
+import com.lambda.util.Formatting.format
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
+import com.lambda.util.math.Vec2d
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
@@ -33,19 +36,34 @@ object Coordinates : HudModule(
     description = "Show your coordinates",
     tag = ModuleTag.HUD,
 ) {
+    private val page by setting("Page", Page.CurrentDimension)
     private val showDimension by setting("Show Dimension", true)
-    private val decimals by setting("Decimals", 2, 0..4, 1)
+
+    private val formatter = FormatterSettings(this, Page.CurrentDimension).apply { ::timeFormat.edit { hide() } }
+    private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
+        ::timeFormat.edit { hide() }
+        ::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
+    }
 
     override fun ImGuiBuilder.buildLayout() {
         runSafe {
-            val pos = player.pos.asString(decimals)
-            val coord = if (world.isNether) {
-                "$pos [${player.overworldCoord.x.string}, ${player.overworldCoord.z.string}]"
-            } else {
-                "$pos [${player.netherCoord.x.string}, ${player.netherCoord.z.string}]"
-            }
-            val dimension = if (showDimension) " ${world.dimensionName}" else ""
-            textCopyable("$coord$dimension")
+            val position = player.pos.format(formatter)
+            val otherDimensionPos =
+                if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(otherFormatter)
+                else player.netherCoord.let { Vec2d(it.x, it.z) }.format(otherFormatter)
+
+            val text = "$position $otherDimensionPos"
+
+            val withDimension =
+                if (showDimension) "$text ${world.dimensionName}"
+                else text
+
+            textCopyable(withDimension)
         }
+    }
+
+    enum class Page(override val displayName: String) : NamedEnum {
+        CurrentDimension("Current Dimension"),
+        OtherDimension("Other Dimension"),
     }
 }
