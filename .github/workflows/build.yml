@@ -52,7 +52,7 @@ jobs:
         if: steps.upload.conclusion == 'success'
         run: |
           cat << EOF >> $GITHUB_STEP_SUMMARY
-          ### [Lambda ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](${{ secrets.MAVEN_URL }}/snapshots/com/lambda/lambda/${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar))
+          ### [Lambda ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://maven.lambda-client.org/snapshots/com/lambda/lambda/${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
           EOF
 
       - name: Failover Upload
