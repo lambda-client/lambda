@@ -53,7 +53,7 @@ object Freecam : Module(
     tag = ModuleTag.PLAYER,
     autoDisable = true,
 ) {
-    private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
+    private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s")
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
     private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode")
@@ -159,9 +159,9 @@ object Freecam : Module(
         }
     }
 
-    enum class FreecamRotationMode {
-        None,
-        LookAtTarget,
-        KeepRotation
+    enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
+        None("None", "No rotation changes"),
+        LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
+        KeepRotation("Keep Rotation", "Look in the same direction as the camera");
     }
 }
