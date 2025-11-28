@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.edit
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.hideAll
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.settings.collections.SetSetting.Companion.immutableSet
@@ -59,11 +61,13 @@ object BetterFirework : Module(
     private var clientSwing by setting("Swing", true, "Swing hand client side").group(Group.General)
     private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
 
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar, vis = { false }).apply {
-        ::sequenceStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
+        hideAll(this)
+        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
     }
 
-    override val inventoryConfig = InventorySettings(this, Group.Inventory, vis = { false }).apply {
+    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
+        hideAll(this)
         ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
     }
 
@@ -219,7 +223,7 @@ object BetterFirework : Module(
         stack.bestItemMatch(player.hotbar)
             ?.let {
                 val request = HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0)
-                    .submit(queueIfClosed = false)
+                    .submit(queueIfMismatchedStage = false)
                 if (request.done) {
                     interaction.interactItem(player, Hand.MAIN_HAND)
                     sendSwing()
@@ -238,7 +242,7 @@ object BetterFirework : Module(
                     swap(swapSlotId, hotbarSlotToSwapWith)
                     action {
                         val request = HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true)
-                            .submit(queueIfClosed = false)
+                            .submit(queueIfMismatchedStage = false)
                         if (request.done) {
                             interaction.interactItem(player, Hand.MAIN_HAND)
                             sendSwing()

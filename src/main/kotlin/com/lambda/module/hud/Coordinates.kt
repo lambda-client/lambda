@@ -17,6 +17,7 @@
 
 package com.lambda.module.hud
 
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.edit
 import com.lambda.config.groups.FormatterConfig
 import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder

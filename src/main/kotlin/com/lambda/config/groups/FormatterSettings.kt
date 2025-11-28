@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.Vec2d
 import net.minecraft.util.math.Vec2f
@@ -33,7 +34,7 @@ class FormatterSettings(
     owner: Configurable,
     vararg baseGroup: NamedEnum,
     vis: () -> Boolean = { true }
-) : FormatterConfig, SettingGroup(owner) {
+) : FormatterConfig, SettingGroup() {
     val localeEnum by owner.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers", vis).group(*baseGroup)
     override val locale get() = localeEnum.locale
 
