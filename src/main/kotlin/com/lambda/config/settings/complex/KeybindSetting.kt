@@ -65,9 +65,12 @@ class KeybindSetting(
     private var listening = false
 
     override fun ImGuiBuilder.buildLayout() {
+        text(name)
+        sameLine()
+
         val bind = value
         val preview =
-            if (listening) "$name: Press any key…"
+            if (listening) "Press any key…"
             else bind.name
 
         if (listening) {
