@@ -32,7 +32,7 @@ jobs:
       - name: Set-Up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'oracle'
           java-version: '21'
           architecture: x64
           cache: 'gradle'
