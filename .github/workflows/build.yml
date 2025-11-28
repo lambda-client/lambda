@@ -34,8 +34,8 @@ jobs:
         with:
           distribution: 'oracle'
           java-version: '21'
-          architecture: x64
-          cache: 'gradle'
+          #architecture: x64
+          #cache: 'gradle'
 
       - name: Read Gradle Properties
         uses: BrycensRanch/read-properties-action@v1.0.4
