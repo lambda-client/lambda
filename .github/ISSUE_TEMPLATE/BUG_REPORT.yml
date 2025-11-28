@@ -23,14 +23,11 @@ body:
       value: "The game should have loaded"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: version
     attributes:
       label: Version
       description: What version of Lambda are you using?
-      options:
-        - 1.0.0
-      default: 0
     validations:
       required: true
   - type: input

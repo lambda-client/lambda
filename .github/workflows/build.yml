@@ -25,10 +25,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Get Short Commit Hash
-        id: vars
-        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
       - name: Set-Up JDK
         uses: actions/setup-java@v4
         with:
@@ -43,10 +39,6 @@ jobs:
         with:
           file: gradle.properties
           all: true
-
-      - name: Publish commit to maven
-        id: upload
-        run: ./gradlew publish -PmavenType=snapshots -PcommitHash=${{ env.COMMIT_HASH }} -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
       - name: Publish snapshot to maven
         run: ./gradlew publish -PmavenType=snapshots -PcommitHash=SNAPSHOT -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
