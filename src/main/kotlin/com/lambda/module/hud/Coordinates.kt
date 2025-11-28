@@ -41,17 +41,17 @@ object Coordinates : HudModule(
     private val showDimension by setting("Show Dimension", true)
 
     private val formatter = FormatterSettings(this, Page.CurrentDimension).apply { ::timeFormat.edit { hide() } }
-    private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
-        ::timeFormat.edit { hide() }
-        ::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
-    }
+//    private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
+//        ::timeFormat.edit { hide() }
+//        ::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
+//    }
 
     override fun ImGuiBuilder.buildLayout() {
         runSafe {
             val position = player.pos.format(formatter)
-            val otherDimensionPos =
-                if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(otherFormatter)
-                else player.netherCoord.let { Vec2d(it.x, it.z) }.format(otherFormatter)
+            val otherDimensionPos = // ToDo: The system has forced my hand, too bad!. We need to find a way to allow duplicate setting names.
+                if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
+                else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 
             val text = "$position $otherDimensionPos"
 

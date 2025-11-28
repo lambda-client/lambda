@@ -32,23 +32,22 @@ import java.time.ZonedDateTime
 
 class FormatterSettings(
     owner: Configurable,
-    vararg baseGroup: NamedEnum,
-    vis: () -> Boolean = { true }
+    baseGroup: NamedEnum,
 ) : FormatterConfig, SettingGroup() {
-    val localeEnum by owner.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers", vis).group(*baseGroup)
+    val localeEnum by owner.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers").group(baseGroup).index()
     override val locale get() = localeEnum.locale
 
-    val sep by owner.setting("Separator", FormatterConfig.TupleSeparator.Comma, "Separator for string serialization of tuple data structures", vis).group(*baseGroup)
-    val customSep by owner.setting("Custom Separator", "") { vis() && sep == FormatterConfig.TupleSeparator.Custom }.group(*baseGroup)
+    val sep by owner.setting("Separator", FormatterConfig.TupleSeparator.Comma, "Separator for string serialization of tuple data structures").group(baseGroup).index()
+    val customSep by owner.setting("Custom Separator", "") { sep == FormatterConfig.TupleSeparator.Custom }.group(baseGroup).index()
     override val separator get() = if (sep == FormatterConfig.TupleSeparator.Custom) customSep else sep.separator
 
-    val group by owner.setting("Tuple Prefix", FormatterConfig.TupleGrouping.Parentheses) { vis() }.group(*baseGroup)
+    val group by owner.setting("Tuple Prefix", FormatterConfig.TupleGrouping.Parentheses).group(baseGroup).index()
     override val prefix get() = group.prefix
     override val postfix get() = group.postfix
 
-    val floatingPrecision by owner.setting("Floating Precision", 3, 0..6, 1, "Precision for floating point numbers") { vis() }.group(*baseGroup)
+    val floatingPrecision by owner.setting("Floating Precision", 3, 0..6, 1, "Precision for floating point numbers").group(baseGroup).index()
     override val precision get() = floatingPrecision
 
-    val timeFormat by owner.setting("Time Format", FormatterConfig.Time.IsoDateTime) { vis() }.group(*baseGroup)
+    val timeFormat by owner.setting("Time Format", FormatterConfig.Time.IsoDateTime).group(baseGroup).index()
     override val format get() = timeFormat.format
 }
