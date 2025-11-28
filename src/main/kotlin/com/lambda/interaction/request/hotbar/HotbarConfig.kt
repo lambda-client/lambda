@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request.hotbar
 
-import com.lambda.event.Event
+import com.lambda.event.events.TickEvent
 
 /**
  * Abstract base class for configuring hotbar slot switch behavior.
@@ -53,5 +53,5 @@ interface HotbarConfig {
     /**
      * The sub-tick timings at which hotbar actions can be performed
      */
-    val sequenceStageMask: Set<Event>
+    val tickStageMask: Set<TickEvent>
 }

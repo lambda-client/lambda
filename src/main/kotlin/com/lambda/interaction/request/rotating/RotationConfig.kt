@@ -17,6 +17,9 @@
 
 package com.lambda.interaction.request.rotating
 
+import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
+
 interface RotationConfig {
     /**
      * - [RotationMode.Silent] Spoofing server-side rotation.
@@ -41,6 +44,8 @@ interface RotationConfig {
      */
     val decayTicks: Int
 
+    val tickStageMask: Set<TickEvent>
+
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
     open class Instant(mode: RotationMode) : RotationConfig {
@@ -48,5 +53,6 @@ interface RotationConfig {
         override val keepTicks = 1
         override val decayTicks = 1
         override val turnSpeed = 360.0
+        override val tickStageMask = ALL_STAGES.toSet()
     }
 }

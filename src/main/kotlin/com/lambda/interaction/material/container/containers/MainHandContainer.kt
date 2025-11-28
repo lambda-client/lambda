@@ -76,7 +76,7 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
                     if (hand == Hand.OFF_HAND) swapHands()
 
                     onComplete { success() }
-                }.submit(queueIfClosed = false)
+                }.submit(queueIfMismatchedStage = false)
             }
         }
     }

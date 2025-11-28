@@ -46,10 +46,11 @@ class InventoryRequest private constructor(
     val onComplete: (SafeContext.() -> Unit)?
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
+    override val tickStageMask get() = inventoryConfig.tickStageMask
     override var done = false
 
-    override fun submit(queueIfClosed: Boolean) =
-        InventoryManager.request(this, queueIfClosed)
+    override fun submit(queueIfMismatchedStage: Boolean) =
+        InventoryManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Inventory Request") {

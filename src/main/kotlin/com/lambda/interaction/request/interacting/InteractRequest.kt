@@ -35,12 +35,13 @@ data class InteractRequest(
     val onInteract: ((BlockPos) -> Unit)?
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
+    override val tickStageMask get() = interactConfig.tickStageMask
 
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
 
-    override fun submit(queueIfClosed: Boolean) =
-        InteractionManager.request(this, queueIfClosed)
+    override fun submit(queueIfMismatchedStage: Boolean) =
+        InteractionManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Interact Request") {

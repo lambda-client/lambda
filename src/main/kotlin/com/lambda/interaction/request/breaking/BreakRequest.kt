@@ -51,6 +51,7 @@ data class BreakRequest private constructor(
     override val nowOrNothing: Boolean = false
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
+    override val tickStageMask get() = breakConfig.tickStageMask
 
     var onStart: (SafeContext.(BlockPos) -> Unit)? = null
     var onUpdate: (SafeContext.(BlockPos) -> Unit)? = null
@@ -63,8 +64,8 @@ data class BreakRequest private constructor(
     override val done: Boolean
         get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
 
-    override fun submit(queueIfClosed: Boolean) =
-        BreakManager.request(this, queueIfClosed)
+    override fun submit(queueIfMismatchedStage: Boolean) =
+        BreakManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Break Request") {

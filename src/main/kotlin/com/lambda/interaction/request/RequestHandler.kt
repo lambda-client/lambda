@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafeAutomated
@@ -77,6 +78,7 @@ abstract class RequestHandler<R : Request>(
         listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
             tickStage = stage
             queuedRequest?.let { request ->
+                if (tickStage !in request.tickStageMask) return@let
                 request.runSafeAutomated { handleRequest(request) }
                 request.fresh = false
                 queuedRequest = null
@@ -96,15 +98,18 @@ abstract class RequestHandler<R : Request>(
      * Registers a new request
      *
      * @param request The request to register.
-     * @param queueIfClosed queues the request for the next time the handlers accepting requests
+     * @param queueIfMismatchedStage queues the request for the next time the handlers accepting requests
      * @return The registered request.
      */
-    fun request(request: R, queueIfClosed: Boolean = true): R {
-        if (!acceptingRequests) {
-            val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
-            if (queueIfClosed && canOverrideQueued) {
-                queuedRequest = request
-            }
+    fun request(request: R, queueIfMismatchedStage: Boolean = true): R {
+        val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
+        if (!canOverrideQueued) return request
+        if ((!acceptingRequests || tickStage !in request.tickStageMask)) {
+            if (!queueIfMismatchedStage || request.nowOrNothing) return request
+            val currentStageIndex = ALL_STAGES.indexOf(tickStage)
+            if (openStages.none { ALL_STAGES.indexOf(it) > currentStageIndex && it in request.tickStageMask })
+                return request
+            queuedRequest = request
             return request
         }
 

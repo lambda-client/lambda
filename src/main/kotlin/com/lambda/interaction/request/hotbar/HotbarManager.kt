@@ -113,7 +113,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
         logger.debug("Handling request:", request)
 
-        if (request.nowOrNothing && tickStage !in hotbarConfig.sequenceStageMask) return
+        if (request.nowOrNothing && tickStage !in hotbarConfig.tickStageMask) return
 
         activeRequest?.let { active ->
             if (active.activeRequestAge <= 0 && active.keepTicks > 0) {
@@ -144,7 +144,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     private fun SafeContext.setActiveSlot(): Boolean {
         activeRequest?.let { activeRequest ->
             if (serverSlot != activeRequest.slot) {
-                if (tickStage !in activeRequest.hotbarConfig.sequenceStageMask) return false
+                if (tickStage !in activeRequest.hotbarConfig.tickStageMask) return false
                 if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return false
                 swapsThisTick++
                 swappedTicks = 0
@@ -160,14 +160,14 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     /**
      * Called after every [tickStage] closes. This method checks if the current [activeRequest] should be stopped.
      * This action is counted as another swap, so the conditions for a regular swap must be met. If the requests
-     * [HotbarConfig.sequenceStageMask] does not contain the current tick stage, no actions can be performed.
+     * [HotbarConfig.tickStageMask] does not contain the current tick stage, no actions can be performed.
      *
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot
      */
     private fun SafeContext.checkResetSwap() {
         activeRequest?.let { active ->
             val canStopSwap = swapsThisTick < maxSwapsThisTick
-            if (active.keepTicks <= 0 && tickStage in active.hotbarConfig.sequenceStageMask && canStopSwap) {
+            if (active.keepTicks <= 0 && tickStage in active.hotbarConfig.tickStageMask && canStopSwap) {
                 logger.debug("Clearing request and syncing slot", activeRequest)
                 val prevSlot = activeSlot
                 activeRequest = null

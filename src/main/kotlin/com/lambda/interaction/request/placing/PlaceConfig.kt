@@ -19,7 +19,6 @@ package com.lambda.interaction.request.placing
 
 import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
-import com.lambda.event.Event
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
@@ -29,7 +28,6 @@ interface PlaceConfig : ActionConfig {
     val axisRotateSetting: Boolean
     val axisRotate
         get() = rotateForPlace && airPlace.isEnabled && axisRotateSetting
-    val tickStageMask: Set<Event>
     val placeConfirmationMode: PlaceConfirmationMode
     val maxPendingPlacements: Int
     val placementsPerTick: Int

@@ -59,7 +59,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
                         }
                     }
                     onComplete { success() }
-                }.submit(queueIfClosed = false)
+                }.submit(queueIfMismatchedStage = false)
             }
         }
     }
@@ -87,7 +87,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
                         clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
                         action { player.inventory.selectedStack = optimalStack }
                         onComplete { success() }
-                    }.submit(queueIfClosed = false)
+                    }.submit(queueIfMismatchedStage = false)
                     return@listen
                 }
 

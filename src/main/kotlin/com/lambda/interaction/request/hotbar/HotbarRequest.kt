@@ -30,6 +30,7 @@ class HotbarRequest(
     override val nowOrNothing: Boolean = true
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
+    override val tickStageMask get() = hotbarConfig.tickStageMask
 
     var activeRequestAge = 0
     var swapPauseAge = 0
@@ -37,8 +38,8 @@ class HotbarRequest(
     override val done: Boolean
         get() = slot == HotbarManager.activeSlot && swapPauseAge >= swapPause
 
-    override fun submit(queueIfClosed: Boolean) =
-        HotbarManager.request(this, queueIfClosed)
+    override fun submit(queueIfMismatchedStage: Boolean) =
+        HotbarManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Hotbar Request") {

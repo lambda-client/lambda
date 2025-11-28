@@ -74,7 +74,7 @@ class SlotTransfer @Ta5kBuilder constructor(
                 swap(nextTo.id, 1)
                 swap(nextFrom.id, 1)
                 onComplete { success() }
-            }.submit(queueIfClosed = false)
+            }.submit(queueIfMismatchedStage = false)
         }
     }
 

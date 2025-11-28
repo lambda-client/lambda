@@ -37,14 +37,15 @@ data class PlaceRequest(
     val onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
+    override val tickStageMask get() = placeConfig.tickStageMask
 
     override val done: Boolean
         get() = runSafe {
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
         } == true
 
-    override fun submit(queueIfClosed: Boolean) =
-        PlaceManager.request(this, queueIfClosed)
+    override fun submit(queueIfMismatchedStage: Boolean) =
+        PlaceManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("PlaceRequest") {

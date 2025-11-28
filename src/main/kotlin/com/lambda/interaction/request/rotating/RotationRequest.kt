@@ -31,6 +31,7 @@ data class RotationRequest(
     var decayTicks: Int = automated.rotationConfig.decayTicks,
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
+    override val tickStageMask get() = rotationConfig.tickStageMask
 
     var age = 0
     override val nowOrNothing = false
@@ -38,8 +39,8 @@ data class RotationRequest(
     override val done: Boolean get() =
         rotationConfig.rotationMode == RotationMode.None || runSafe { target.verify() } == true
 
-    override fun submit(queueIfClosed: Boolean): RotationRequest =
-        RotationManager.request(this, queueIfClosed)
+    override fun submit(queueIfMismatchedStage: Boolean): RotationRequest =
+        RotationManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Rotation Request") {

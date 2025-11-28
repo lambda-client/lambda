@@ -18,6 +18,7 @@
 package com.lambda.interaction.request
 
 import com.lambda.context.Automated
+import com.lambda.event.events.TickEvent
 
 /**
  * A simple format to ensure basic requirements and information when requesting a manager.
@@ -30,11 +31,12 @@ abstract class Request : Automated {
     abstract val requestId: Int
     var fresh = true
 
+    abstract val tickStageMask: Set<TickEvent>
     abstract val nowOrNothing: Boolean
 
     abstract val done: Boolean
 
-    abstract fun submit(queueIfClosed: Boolean = true): Request
+    abstract fun submit(queueIfMismatchedStage: Boolean = true): Request
 
     companion object {
         fun submit(request: Request, queueIfClosed: Boolean = true) =

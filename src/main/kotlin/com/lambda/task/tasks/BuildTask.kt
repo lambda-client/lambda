@@ -179,7 +179,7 @@ class BuildTask private constructor(
                             onItemDrop?.let { onItemDrop ->
                                 onItemDrop { onItemDrop(it) }
                             }
-                        }.submit()
+                        }.submit(queueIfMismatchedStage = true)
                         return
                     }
                     is PlaceResult.Place -> {
@@ -192,7 +192,7 @@ class BuildTask private constructor(
                             placeResults,
                             pendingInteractions,
                             this@BuildTask
-                        ) { placements++ }.submit()
+                        ) { placements++ }.submit(queueIfMismatchedStage = true)
                     }
                     is InteractResult.Interact -> {
                         val interactResults = allResults
@@ -205,7 +205,7 @@ class BuildTask private constructor(
                             pendingInteractions,
                             this@BuildTask,
                             onInteract = null
-                        ).submit()
+                        ).submit(queueIfMismatchedStage = true)
                     }
                 }
             }

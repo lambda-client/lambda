@@ -19,7 +19,6 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
-import com.lambda.event.Event
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
@@ -38,8 +37,6 @@ interface BreakConfig : ActionConfig {
     //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
 //    abstract val desyncFix: Boolean
     val breakDelay: Int
-
-    val tickStageMask: Set<Event>
 
     val swapMode: SwapMode
 

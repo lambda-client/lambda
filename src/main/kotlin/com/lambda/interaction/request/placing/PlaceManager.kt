@@ -336,7 +336,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 swapHands()
                 action { sendPlacePacket(placeHand, hitResult) }
                 swapHands()
-            }.submit(queueIfClosed = false)
+            }.submit(queueIfMismatchedStage = false)
             if (!inventoryRequest.done) return ActionResult.FAIL
         } else {
             sendPlacePacket(hand, hitResult)
