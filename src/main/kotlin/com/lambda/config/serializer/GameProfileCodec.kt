@@ -24,6 +24,8 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import com.lambda.config.Codec
+import com.lambda.config.Stringifiable
 import com.mojang.authlib.GameProfile
 import java.lang.reflect.Type
 import java.util.*
@@ -32,26 +34,24 @@ import java.util.*
 // But who cares, I'm doing it again.
 // What you gon' do bout it, huh?
 // That's what I thought.
-object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<GameProfile> {
+object GameProfileCodec : Codec<GameProfile>, Stringifiable<GameProfile> {
     override fun serialize(
-        src: GameProfile?,
+        src: GameProfile,
         typeOfSrc: Type?,
         context: JsonSerializationContext?,
     ): JsonElement =
-        src?.let {
-            JsonObject().apply {
-                addProperty("name", it.name)
-                addProperty("id", it.id.toString())
-            }
-        } ?: JsonNull.INSTANCE
+        JsonObject().apply {
+            addProperty("name", src.name)
+            addProperty("id", src.id.toString())
+        }
 
     override fun deserialize(
-        json: JsonElement?,
+        json: JsonElement,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): GameProfile {
-        val name = json?.asJsonObject?.get("name")?.asString ?: "nil"
-        val id = json?.asJsonObject?.get("id")?.asString ?: "00000000-0000-0000-0000-000000000000"
+        val name = json.asJsonObject.get("name")?.asString ?: "nil"
+        val id = json.asJsonObject.get("id")?.asString ?: "00000000-0000-0000-0000-000000000000"
         val parsedId =
             if (id.length == 32) id.replaceFirst(
                 "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(),
@@ -61,4 +61,6 @@ object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<Gam
 
         return GameProfile(UUID.fromString(parsedId), name)
     }
+
+    override fun stringify(value: GameProfile) = value.toString()
 }

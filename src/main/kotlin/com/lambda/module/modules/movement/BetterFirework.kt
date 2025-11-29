@@ -21,7 +21,6 @@ import com.lambda.config.AutomationConfig.Companion.DEFAULT.edit
 import com.lambda.config.AutomationConfig.Companion.DEFAULT.hideAll
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InventorySettings
-import com.lambda.config.settings.collections.SetSetting.Companion.immutableSet
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.KeyboardEvent
@@ -63,12 +62,14 @@ object BetterFirework : Module(
 
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
         hideAll(this)
-        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
+        // FixMe: Bring this back
+        ::tickStageMask.edit { /*immutableCollection(setOf(TickEvent.Pre));*/ defaultValue(mutableSetOf(TickEvent.Pre)) }
     }
 
     override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
         hideAll(this)
-        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
+        // FixMe: Bring this back
+        ::tickStageMask.edit { /*immutableCollection(setOf(TickEvent.Pre));*/ defaultValue(mutableSetOf(TickEvent.Pre)) }
     }
 
     private enum class Group(override val displayName: String) : NamedEnum {

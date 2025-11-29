@@ -24,9 +24,8 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
-import com.lambda.config.settings.collections.ListSetting
+import com.lambda.config.settings.collections.CollectionSettings
 import com.lambda.config.settings.collections.MapSetting
-import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.Bind
@@ -124,20 +123,40 @@ abstract class Configurable(
     ) = StringSetting(name, defaultValue, multiline, flags, description, visibility).register()
 
     inline fun <reified T : Any> setting(
-        name: String,
-        immutableList: List<T>,
-        defaultValue: List<T>,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(
+	    name: String,
+	    immutableList: Collection<T>,
+	    defaultValue: Collection<T> = immutableList,
+	    description: String = "",
+	    serializer: Stringifiable<T>,
+	    noinline visibility: () -> Boolean = { true },
+    ) = CollectionSettings(
         name,
         immutableList,
         defaultValue.toMutableList(),
         TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
+        serializer,
         visibility,
     ).register()
 
+    inline fun <reified T : Any> setting(
+        name: String,
+        immutableList: Collection<T>,
+        defaultValue: Collection<T> = immutableList,
+        description: String = "",
+        crossinline serializer: (T) -> String = { if (it::class.java.isPrimitive) it.toString() else it::class.java.simpleName },
+        noinline visibility: () -> Boolean = { true },
+    ) = CollectionSettings(
+        name,
+        immutableList,
+        defaultValue.toMutableList(),
+        TypeToken.getParameterized(Collection::class.java, T::class.java).type,
+        description,
+        object : Stringifiable<T> { override fun stringify(value: T) = serializer(value) },
+        visibility,
+    ).register()
+
+    // ToDo: Actually implement maps
     inline fun <reified K : Any, reified V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
@@ -149,21 +168,6 @@ abstract class Configurable(
         TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type,
         description,
         visibility
-    ).register()
-
-    inline fun <reified T : Any> setting(
-        name: String,
-        immutableList: Set<T>,
-        defaultValue: Set<T> = immutableList,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(
-        name,
-        immutableList,
-        defaultValue.toMutableSet(),
-        TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
-        description,
-        visibility,
     ).register()
 
     fun setting(

@@ -51,7 +51,7 @@ interface BreakConfig : ActionConfig {
 
     val avoidLiquids: Boolean
     val avoidSupporting: Boolean
-    val ignoredBlocks: Set<Block>
+    val ignoredBlocks: Collection<Block>
 
     val efficientOnly: Boolean
     val suitableToolsOnly: Boolean

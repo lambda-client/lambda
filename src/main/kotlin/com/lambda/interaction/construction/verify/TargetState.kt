@@ -79,7 +79,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = true
     }
 
-    data class Solid(val replace: Set<net.minecraft.block.Block>) : TargetState(Type.Solid) {
+    data class Solid(val replace: Collection<net.minecraft.block.Block>) : TargetState(Type.Solid) {
         override fun toString() = "Solid"
 
         context(safeContext: SafeContext)

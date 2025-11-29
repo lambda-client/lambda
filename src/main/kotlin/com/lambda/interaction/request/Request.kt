@@ -31,7 +31,7 @@ abstract class Request : Automated {
     abstract val requestId: Int
     var fresh = true
 
-    abstract val tickStageMask: Set<TickEvent>
+    abstract val tickStageMask: Collection<TickEvent>
     abstract val nowOrNothing: Boolean
 
     abstract val done: Boolean

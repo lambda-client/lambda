@@ -23,7 +23,7 @@ import com.lambda.util.NamedEnum
 
 interface ActionConfig {
     val sorter: SortMode
-    val tickStageMask: Set<TickEvent>
+    val tickStageMask: Collection<TickEvent>
 
     enum class SortMode(
         override val displayName: String,

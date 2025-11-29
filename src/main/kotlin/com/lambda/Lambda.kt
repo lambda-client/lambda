@@ -19,13 +19,14 @@ package com.lambda
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.lambda.config.serializer.BlockPosSerializer
-import com.lambda.config.serializer.BlockSerializer
+import com.lambda.config.serializer.BlockPosCodec
+import com.lambda.config.serializer.BlockCodec
 import com.lambda.config.serializer.ColorSerializer
-import com.lambda.config.serializer.GameProfileSerializer
-import com.lambda.config.serializer.ItemStackSerializer
-import com.lambda.config.serializer.KeyCodeSerializer
-import com.lambda.config.serializer.OptionalSerializer
+import com.lambda.config.serializer.GameProfileCodec
+import com.lambda.config.serializer.ItemCodec
+import com.lambda.config.serializer.ItemStackCodec
+import com.lambda.config.serializer.KeyCodeCodec
+import com.lambda.config.serializer.OptionalCodec
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -37,7 +38,12 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
+import net.minecraft.item.ArrowItem
+import net.minecraft.item.BlockItem
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.item.PotionItem
+import net.minecraft.item.RangedWeaponItem
 import net.minecraft.registry.DynamicRegistryManager
 import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
@@ -66,14 +72,20 @@ object Lambda : ClientModInitializer {
 
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
-        .registerTypeAdapter(KeyCode::class.java, KeyCodeSerializer)
+        .registerTypeAdapter(KeyCode::class.java, KeyCodeCodec)
         .registerTypeAdapter(Color::class.java, ColorSerializer)
-        .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
-        .registerTypeAdapter(Block::class.java, BlockSerializer)
-        .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
-        .registerTypeAdapter(Optional::class.java, OptionalSerializer)
-        .registerTypeAdapter(ItemStack::class.java, ItemStackSerializer)
+        .registerTypeAdapter(BlockPos::class.java, BlockPosCodec)
+        .registerTypeAdapter(Block::class.java, BlockCodec)
+        .registerTypeAdapter(GameProfile::class.java, GameProfileCodec)
+        .registerTypeAdapter(Optional::class.java, OptionalCodec)
+        .registerTypeAdapter(ItemStack::class.java, ItemStackCodec)
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
+        // We have to add all item sub classes :/. I probably missed some
+        .registerTypeAdapter(Item::class.java, ItemCodec)
+        .registerTypeAdapter(BlockItem::class.java, ItemCodec)
+        .registerTypeAdapter(ArrowItem::class.java, ItemCodec)
+        .registerTypeAdapter(PotionItem::class.java, ItemCodec)
+        .registerTypeAdapter(RangedWeaponItem::class.java, ItemCodec)
         .create()
 
     override fun onInitializeClient() {} // nop

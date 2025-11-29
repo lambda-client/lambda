@@ -18,29 +18,29 @@
 package com.lambda.config.serializer
 
 import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
-import com.mojang.serialization.JsonOps
-import net.minecraft.block.Block
+import com.lambda.config.Codec
+import com.lambda.config.Stringifiable
+import net.minecraft.item.Item
 import net.minecraft.registry.Registries
+import net.minecraft.util.Identifier
 import java.lang.reflect.Type
 
-object BlockSerializer : JsonSerializer<Block>, JsonDeserializer<Block> {
-    override fun serialize(
-        src: Block,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement =
-        Registries.BLOCK.codec.encodeStart(JsonOps.INSTANCE, src)
-            .orThrow
+object ItemCodec : Codec<Item>, Stringifiable<Item> {
+	override fun serialize(
+		item: Item,
+		typeOfSrc: Type,
+		context: JsonSerializationContext
+	): JsonElement = JsonPrimitive(item.toString())
 
-    override fun deserialize(
-        json: JsonElement?,
-        typeOfT: Type?,
-        context: JsonDeserializationContext?,
-    ): Block =
-        Registries.BLOCK.codec.parse(JsonOps.INSTANCE, json)
-            .orThrow
+	override fun deserialize(
+		json: JsonElement,
+		typeOfT: Type,
+		context: JsonDeserializationContext
+	): Item =
+		Registries.ITEM.get(Identifier.of(json.asString)) // Watch out!! Errors are silently catched by gson!!
+
+	override fun stringify(value: Item) = value.name.string.replaceFirstChar { it.uppercase() }
 }

@@ -27,8 +27,8 @@ import net.minecraft.block.Block
 
 interface InventoryConfig {
     val actionsPerSecond: Int
-    val tickStageMask: Set<TickEvent>
-    val disposables: Set<Block>
+    val tickStageMask: Collection<TickEvent>
+    val disposables: Collection<Block>
     val swapWithDisposables: Boolean
     val providerPriority: Priority
     val storePriority: Priority

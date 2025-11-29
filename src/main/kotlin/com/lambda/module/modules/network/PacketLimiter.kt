@@ -53,7 +53,7 @@ object PacketLimiter : Module(
     )
 
     // ToDo: Find a way to have a list of serverbound packets
-    private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets, defaultIgnorePackets, "Packets to ignore when limiting")
+    private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets, description = "Packets to ignore when limiting")
 
     init {
         onEnable {

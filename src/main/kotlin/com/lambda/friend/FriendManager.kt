@@ -19,6 +19,7 @@ package com.lambda.friend
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
+import com.lambda.config.serializer.GameProfileCodec
 import com.lambda.core.Loadable
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
@@ -41,7 +42,7 @@ import java.util.*
 //  - Improve save file structure.
 object FriendManager : Configurable(FriendConfig), Loadable {
     override val name = "friends"
-    val friends by setting("friends", emptySet(), setOf<GameProfile>())
+    val friends by setting("friends", emptySet(), setOf(), serializer = GameProfileCodec)
 
     fun befriend(profile: GameProfile) = friends.add(profile)
     fun unfriend(profile: GameProfile): Boolean = friends.remove(profile)

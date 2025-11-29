@@ -20,28 +20,21 @@ package com.lambda.config.serializer
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.google.gson.JsonNull
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
-import com.mojang.serialization.JsonOps
-import net.minecraft.item.ItemStack
+import com.lambda.config.Codec
 import java.lang.reflect.Type
-import kotlin.jvm.optionals.getOrElse
+import java.util.*
 
-object ItemStackSerializer : JsonSerializer<ItemStack>, JsonDeserializer<ItemStack> {
-    override fun serialize(
-        stack: ItemStack,
-        typeOfSrc: Type,
-        context: JsonSerializationContext
-    ): JsonElement =
-        ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack)
-            .orThrow
+object OptionalCodec : Codec<Optional<Any>> {
+    override fun serialize(src: Optional<Any>?, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement =
+        src?.map { context?.serialize(it) }?.orElse(JsonNull.INSTANCE) ?: JsonNull.INSTANCE
 
     override fun deserialize(
-        json: JsonElement,
-        typeOfT: Type,
-        context: JsonDeserializationContext
-    ): ItemStack =
-        ItemStack.CODEC.parse(JsonOps.INSTANCE, json)
-            .result()
-            .getOrElse { ItemStack.EMPTY }
+        json: JsonElement?,
+        typeOfT: Type?,
+        context: JsonDeserializationContext?,
+    ): Optional<Any> =
+        Optional.ofNullable(json?.let { context?.deserialize(it, typeOfT) ?: Optional.empty<Any>() })
 }

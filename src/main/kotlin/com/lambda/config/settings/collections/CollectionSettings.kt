@@ -18,10 +18,10 @@
 package com.lambda.config.settings.collections
 
 import com.google.gson.JsonElement
-import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import com.lambda.config.AutomationConfig
+import com.lambda.config.Stringifiable
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -31,14 +31,15 @@ import java.lang.reflect.Type
 /**
  * @see [com.lambda.config.Configurable]
  */
-class ListSetting<T : Any>(
+class CollectionSettings<T : Any>(
     override var name: String,
-    private var immutableList: List<T>,
-    defaultValue: MutableList<T>,
+    private var immutableCollection: Collection<T>,
+    defaultValue: MutableCollection<T>,
     type: Type,
     description: String,
+    private val serializer: Stringifiable<T>,
     visibility: () -> Boolean,
-) : AbstractSetting<MutableList<T>>(
+) : AbstractSetting<MutableCollection<T>>(
     name,
     defaultValue,
     type,
@@ -47,17 +48,15 @@ class ListSetting<T : Any>(
 ) {
     private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
     private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
-    private val strListType =
-        TypeToken.getParameterized(MutableList::class.java, String::class.java).type
 
     override fun ImGuiBuilder.buildLayout() {
         combo("##$name", "$name: ${value.size} item(s)") {
-            immutableList
+            immutableCollection
                 .forEach {
                     val isSelected = value.contains(it)
 
                     selectable(
-                        it.toString(), isSelected,
+                        serializer.stringify(it), isSelected,
                         flags = DontClosePopups
                     ) {
                         if (isSelected) {
@@ -72,18 +71,11 @@ class ListSetting<T : Any>(
         }
     }
 
-    // When serializing the list to json we do not want to serialize the elements' classes, but
-    // their stringified representation.
-    // If we do serialize the classes we'll run into missing type adapters errors by Gson.
-    override fun toJson(): JsonElement =
-        gson.toJsonTree(value.map { it.toString() })
+    override fun toJson(): JsonElement = gson.toJsonTree(value)
 
     override fun loadFromJson(serialized: JsonElement) {
-        val strList = gson.fromJson<MutableList<String>>(serialized, strListType)
-            .mapNotNull { str -> immutableList.find { it.toString() == str } }
+        value = gson.fromJson<MutableList<T>>(serialized, type)
             .toMutableList()
-
-        value = strList
     }
 
     fun onSelect(block: SafeContext.(T) -> Unit) = apply {
@@ -97,8 +89,8 @@ class ListSetting<T : Any>(
     companion object {
         @AutomationConfig.SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T : Any> AutomationConfig.TypedEditBuilder<MutableList<T>>.immutableList(immutableList: List<T>) {
-            (settings as Collection<ListSetting<T>>).forEach { it.immutableList = immutableList }
+        fun <T : Any> AutomationConfig.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+            (settings as Collection<CollectionSettings<T>>).forEach { it.immutableCollection = collection }
         }
     }
 }

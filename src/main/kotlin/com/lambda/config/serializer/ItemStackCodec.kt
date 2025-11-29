@@ -18,22 +18,32 @@
 package com.lambda.config.serializer
 
 import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
-import com.google.gson.JsonNull
 import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
+import com.lambda.config.Codec
+import com.lambda.config.Stringifiable
+import com.mojang.serialization.JsonOps
+import net.minecraft.item.ItemStack
 import java.lang.reflect.Type
-import java.util.*
+import kotlin.jvm.optionals.getOrElse
 
-object OptionalSerializer : JsonSerializer<Optional<Any>>, JsonDeserializer<Optional<Any>> {
-    override fun serialize(src: Optional<Any>?, typeOfSrc: Type?, context: JsonSerializationContext?): JsonElement =
-        src?.map { context?.serialize(it) }?.orElse(JsonNull.INSTANCE) ?: JsonNull.INSTANCE
+object ItemStackCodec : Codec<ItemStack>, Stringifiable<ItemStack> {
+    override fun serialize(
+        stack: ItemStack,
+        typeOfSrc: Type,
+        context: JsonSerializationContext
+    ): JsonElement =
+        ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack)
+            .orThrow
 
     override fun deserialize(
-        json: JsonElement?,
-        typeOfT: Type?,
-        context: JsonDeserializationContext?,
-    ): Optional<Any> =
-        Optional.ofNullable(json?.let { context?.deserialize(it, typeOfT) ?: Optional.empty<Any>() })
+        json: JsonElement,
+        typeOfT: Type,
+        context: JsonDeserializationContext
+    ): ItemStack =
+        ItemStack.CODEC.parse(JsonOps.INSTANCE, json)
+            .result()
+            .getOrElse { ItemStack.EMPTY }
+
+    override fun stringify(value: ItemStack) = value.itemName.string.uppercase()
 }

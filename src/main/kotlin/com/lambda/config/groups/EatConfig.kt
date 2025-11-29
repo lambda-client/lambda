@@ -31,19 +31,19 @@ import net.minecraft.item.ItemStack
 interface EatConfig {
     val eatOnHunger: Boolean
     val minFoodLevel: Int
-    val nutritiousFood: List<Item>
+    val nutritiousFood: Collection<Item>
     val saturated: Saturation
 
     val eatOnFire: Boolean
-    val resistanceFood: List<Item>
+    val resistanceFood: Collection<Item>
 
     val eatOnDamage: Boolean
     val minDamage: Int
-    val regenerationFood: List<Item>
+    val regenerationFood: Collection<Item>
 
     val selectionPriority: SelectionPriority
     val ignoreBadFood: Boolean
-    val badFood: List<Item>
+    val badFood: Collection<Item>
 
     enum class Saturation(
         override val displayName: String,

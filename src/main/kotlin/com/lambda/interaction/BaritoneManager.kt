@@ -26,6 +26,8 @@ import com.lambda.config.configurations.LambdaConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.config.AutomationConfig
+import com.lambda.config.serializer.BlockCodec
+import com.lambda.config.serializer.ItemCodec
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 
@@ -171,7 +173,7 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
             setting("Sprint In Water", sprintInWater.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> sprintInWater.value = it }
 
             setting("Allow Break", allowBreak.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowBreak.value = it }
-            setting("Allow Break Anyway", allowBreakAnyway.value.toSet()).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowBreakAnyway.value = it.toList() }
+            setting("Allow Break Anyway", allowBreakAnyway.value, serializer = BlockCodec).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowBreakAnyway.value = it.toList() }
             setting("Allow Sprint", allowSprint.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowSprint.value = it }
             setting("Allow Place", allowPlace.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowPlace.value = it }
             setting("Allow Place In Fluids Source", allowPlaceInFluidsSource.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowPlaceInFluidsSource.value = it }
@@ -262,18 +264,19 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
             setting("Schematic Fallback Extension", schematicFallbackExtension.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> schematicFallbackExtension.value = it }
             setting("Builder Tick Scan Radius", builderTickScanRadius.value, 0..64).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> builderTickScanRadius.value = it }
 
-            setting("Acceptable Throwaway Items", acceptableThrowawayItems.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> acceptableThrowawayItems.value = it.toList() }
-            setting("Blocks To Avoid", blocksToAvoid.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToAvoid.value = it.toList() }
-            setting("Blocks To Disallow Breaking", blocksToDisallowBreaking.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToDisallowBreaking.value = it.toList() }
-            setting("Blocks To Avoid Breaking", blocksToAvoidBreaking.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToAvoidBreaking.value = it.toList() }
-            setting("Build Ignore Blocks", buildIgnoreBlocks.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreBlocks.value = it.toList() }
-            setting("Build Skip Blocks", buildSkipBlocks.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildSkipBlocks.value = it.toList() }
-            setting("Build Valid Substitutes", buildValidSubstitutes.value.mapValues { (_, v) -> v.toSet() }).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildValidSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
-            setting("Build Substitutes", buildSubstitutes.value.mapValues { (_, v) -> v.toSet() }).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
-            setting("Ok If Air", okIfAir.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> okIfAir.value = it.toList() }
+            setting("Acceptable Throwaway Items", acceptableThrowawayItems.value, serializer = ItemCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> acceptableThrowawayItems.value = it.toList() }
+            setting("Blocks To Avoid", blocksToAvoid.value, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToAvoid.value = it.toList() }
+            setting("Blocks To Disallow Breaking", blocksToDisallowBreaking.value, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToDisallowBreaking.value = it.toList() }
+            setting("Blocks To Avoid Breaking", blocksToAvoidBreaking.value, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToAvoidBreaking.value = it.toList() }
+            setting("Build Ignore Blocks", buildIgnoreBlocks.value, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreBlocks.value = it.toList() }
+            setting("Build Skip Blocks", buildSkipBlocks.value, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildSkipBlocks.value = it.toList() }
+            // FixMe: lmao fuck this im so done
+            //setting("Build Valid Substitutes", buildValidSubstitutes.value.flatMap { it.value }, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildValidSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
+            //setting("Build Substitutes", buildSubstitutes.value.flatMap { it.value }, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
+            setting("Ok If Air", okIfAir.value, serializer = BlockCodec).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> okIfAir.value = it.toList() }
             setting("Build Ignore Existing", buildIgnoreExisting.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreExisting.value = it }
             setting("Build Ignore Direction", buildIgnoreDirection.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreDirection.value = it }
-            setting("Build Ignore Properties", buildIgnoreProperties.value.toSet()).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreProperties.value = it.toList() }
+            setting("Build Ignore Properties", buildIgnoreProperties.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreProperties.value = it.toList() }
             setting("Avoid Updating Falling Blocks", avoidUpdatingFallingBlocks.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> avoidUpdatingFallingBlocks.value = it }
 
             // RENDERING
