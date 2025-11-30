@@ -24,7 +24,9 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
+import com.lambda.config.settings.collections.BlockCollectionSetting
 import com.lambda.config.settings.collections.CollectionSettings
+import com.lambda.config.settings.collections.ItemCollectionSetting
 import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
@@ -43,6 +45,8 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import imgui.flag.ImGuiInputTextFlags
 import net.minecraft.block.Block
+import net.minecraft.item.Item
+import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
@@ -122,20 +126,30 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = StringSetting(name, defaultValue, multiline, flags, description, visibility).register()
 
-    inline fun <reified T : Any> setting(
-	    name: String,
-	    immutableList: Collection<T>,
-	    defaultValue: Collection<T> = immutableList,
-	    description: String = "",
-	    serializer: Stringifiable<T>,
-	    noinline visibility: () -> Boolean = { true },
-    ) = CollectionSettings(
+
+    fun setting(
+        name: String,
+        defaultValue: Collection<Block>,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = BlockCollectionSetting(
         name,
-        immutableList,
+        Registries.BLOCK.toList(),
         defaultValue.toMutableList(),
-        TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
-        serializer,
+        visibility,
+    ).register()
+
+    fun setting(
+        name: String,
+        defaultValue: Collection<Item>,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = ItemCollectionSetting(
+        name,
+        Registries.ITEM.toList(),
+        defaultValue.toMutableList(),
+        description,
         visibility,
     ).register()
 
@@ -144,7 +158,6 @@ abstract class Configurable(
         immutableList: Collection<T>,
         defaultValue: Collection<T> = immutableList,
         description: String = "",
-        crossinline serializer: (T) -> String = { if (it::class.java.isPrimitive) it.toString() else it::class.java.simpleName },
         noinline visibility: () -> Boolean = { true },
     ) = CollectionSettings(
         name,
@@ -152,7 +165,6 @@ abstract class Configurable(
         defaultValue.toMutableList(),
         TypeToken.getParameterized(Collection::class.java, T::class.java).type,
         description,
-        object : Stringifiable<T> { override fun stringify(value: T) = serializer(value) },
         visibility,
     ).register()
 

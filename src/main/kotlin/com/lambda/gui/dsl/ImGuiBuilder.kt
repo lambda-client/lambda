@@ -1583,15 +1583,19 @@ object ImGuiBuilder {
         lambdaTooltip(description())
     }
 
+    @ImGuiDsl
+    fun openPopup(strId: String, flags: Int = ImGuiPopupFlags.None) =
+        ImGui.openPopup(strId, flags)
+
     /**
-     * Creates a popup.
+     * Creates a popup. You must first call [openPopup] with the same [strId]
      *
      * @param strId Unique identifier
      * @param flags Popup flags
      * @param block Content of the popup
      */
     @ImGuiDsl
-    inline fun popup(strId: String, flags: Int = ImGuiPopupFlags.None, block: ProcedureBlock) {
+    inline fun popup(strId: String, flags: Int = ImGuiPopupFlags.AnyPopup, block: ProcedureBlock) {
         if (beginPopup(strId, flags)) {
             block()
             endPopup()

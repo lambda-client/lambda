@@ -21,23 +21,20 @@ import com.google.gson.JsonElement
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import com.lambda.config.AutomationConfig
-import com.lambda.config.Stringifiable
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.threading.runSafe
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class CollectionSettings<T : Any>(
+open class CollectionSettings<T : Any>(
     override var name: String,
     private var immutableCollection: Collection<T>,
     defaultValue: MutableCollection<T>,
     type: Type,
     description: String,
-    private val serializer: Stringifiable<T>,
     visibility: () -> Boolean,
 ) : AbstractSetting<MutableCollection<T>>(
     name,
@@ -49,6 +46,14 @@ class CollectionSettings<T : Any>(
     private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
     private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
 
+    fun onSelect(block: SafeContext.(T) -> Unit) = apply {
+        selectListeners.add(block)
+    }
+
+    fun onDeselect(block: SafeContext.(T) -> Unit) = apply {
+        deselectListeners.add(block)
+    }
+
     override fun ImGuiBuilder.buildLayout() {
         combo("##$name", "$name: ${value.size} item(s)") {
             immutableCollection
@@ -56,34 +61,20 @@ class CollectionSettings<T : Any>(
                     val isSelected = value.contains(it)
 
                     selectable(
-                        serializer.stringify(it), isSelected,
-                        flags = DontClosePopups
+                        label = it.toString(),
+                        selected = isSelected,
+                        flags = DontClosePopups,
                     ) {
-                        if (isSelected) {
-                            value.remove(it)
-                            runSafe { deselectListeners.forEach { listener -> listener(it) } }
-                        } else {
-                            value.add(it)
-                            runSafe { selectListeners.forEach { listener -> listener(it) } }
-                        }
+                        if (isSelected) value.remove(it)
+                        else value.add(it)
                     }
                 }
         }
     }
 
-    override fun toJson(): JsonElement = gson.toJsonTree(value)
-
     override fun loadFromJson(serialized: JsonElement) {
-        value = gson.fromJson<MutableList<T>>(serialized, type)
+        value = gson.fromJson<Collection<T>>(serialized, type)
             .toMutableList()
-    }
-
-    fun onSelect(block: SafeContext.(T) -> Unit) = apply {
-        selectListeners.add(block)
-    }
-
-    fun onDeselect(block: SafeContext.(T) -> Unit) = apply {
-        deselectListeners.add(block)
     }
 
     companion object {

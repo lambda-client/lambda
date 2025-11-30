@@ -19,7 +19,6 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
-import com.lambda.config.serializer.ItemCodec
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
 import net.minecraft.item.Items
@@ -36,13 +35,13 @@ class EatSettings(
     override val eatOnHunger by c.setting("Eat On Hunger", true, "Whether to eat when hungry").group(baseGroup).index()
     override val minFoodLevel by c.setting("Minimum Food Level", 6, 0..20, 1, "The minimum food level to eat food", " food level") { eatOnHunger }.group(baseGroup).index()
     override val saturated by c.setting("Saturated", EatConfig.Saturation.EatSmart, "When to stop eating") { eatOnHunger }.group(baseGroup).index()
-    override val nutritiousFood by c.setting<Item>("Nutritious Food", nutritiousFoodDefaults, nutritiousFoodDefaults, "Items that are be considered nutritious", ItemCodec) { eatOnHunger }.group(baseGroup).index()
+    override val nutritiousFood by c.setting("Nutritious Food", nutritiousFoodDefaults, description = "Items that are be considered nutritious") { eatOnHunger }.group(baseGroup).index()
     override val selectionPriority by c.setting("Selection Priority", EatConfig.SelectionPriority.MostNutritious, "The priority for selecting food items") { eatOnHunger }.group(baseGroup).index()
     override val eatOnFire by c.setting("Eat On Fire", true, "Whether to eat when on fire").group(baseGroup).index()
-    override val resistanceFood by c.setting<Item>("Resistance Food", resistanceFoodDefaults, resistanceFoodDefaults, "Items that give Fire Resistance", ItemCodec) { eatOnFire }.group(baseGroup).index()
+    override val resistanceFood by c.setting("Resistance Food", resistanceFoodDefaults, description = "Items that give Fire Resistance") { eatOnFire }.group(baseGroup).index()
     override val eatOnDamage by c.setting("Eat On Damage", true, "Whether to eat when damaged").group(baseGroup).index()
     override val minDamage by c.setting("Minimum Damage", 10, 0..20, 1, "The minimum damage threshold to trigger eating") { eatOnDamage }.group(baseGroup).index()
-    override val regenerationFood by c.setting<Item>("Regeneration Food", regenerationFoodDefaults, regenerationFoodDefaults, "Items that give Regeneration", ItemCodec) { eatOnDamage }.group(baseGroup).index()
+    override val regenerationFood by c.setting("Regeneration Food", regenerationFoodDefaults, description = "Items that give Regeneration") { eatOnDamage }.group(baseGroup).index()
     override val ignoreBadFood by c.setting("Ignore Bad Food", true, "Whether to eat when the food is bad").group(baseGroup).index()
-    override val badFood by c.setting<Item>("Bad Food", negativeFoodDefaults, negativeFoodDefaults, "Items that are considered bad food", ItemCodec) { ignoreBadFood }.group(baseGroup).index()
+    override val badFood by c.setting("Bad Food", negativeFoodDefaults, description = "Items that are considered bad food") { ignoreBadFood }.group(baseGroup).index()
 }
