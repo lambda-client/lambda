@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.collections
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.serializer.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
@@ -32,7 +33,7 @@ class ItemCollectionSetting(
 	name,
 	immutableCollection,
 	defaultValue,
-	Item::class.java,
+	TypeToken.getParameterized(Collection::class.java, Item::class.java).type,
 	description,
 	visibility,
 ) {

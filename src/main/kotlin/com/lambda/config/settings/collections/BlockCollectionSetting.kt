@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.collections
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.serializer.BlockCodec
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
@@ -32,7 +33,7 @@ class BlockCollectionSetting(
 	name,
 	immutableCollection,
 	defaultValue,
-	Block::class.java,
+	TypeToken.getParameterized(Collection::class.java, Block::class.java).type,
 	description,
 	visibility,
 ) {
