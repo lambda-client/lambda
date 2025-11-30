@@ -17,11 +17,8 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.edit
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.hideAll
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.settings.collections.SetSetting.Companion.immutableSet
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.KeyboardEvent
@@ -61,16 +58,6 @@ object BetterFirework : Module(
     private var clientSwing by setting("Swing", true, "Swing hand client side").group(Group.General)
     private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
 
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar).apply {
-        hideAll(this)
-        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
-    }
-
-    override val inventoryConfig = InventorySettings(this, Group.Inventory).apply {
-        hideAll(this)
-        ::tickStageMask.edit { immutableSet(setOf(TickEvent.Pre)); defaultValue(mutableSetOf(TickEvent.Pre)) }
-    }
-
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Hotbar("Hotbar"),
@@ -86,6 +73,14 @@ object BetterFirework : Module(
         get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
     init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(hotbarConfig, inventoryConfig)
+				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+				inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+			}
+		}
+
         listen<TickEvent.Pre> {
             when (takeoffState) {
                 TakeoffState.None -> {}

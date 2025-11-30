@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
@@ -70,21 +71,23 @@ object FastBreak : Module(
     }
 
     init {
-        defaultAutomationConfig = automationConfig {
-            breakConfig.apply {
-                editTyped(
-                    ::avoidLiquids,
-                    ::avoidSupporting,
-                    ::efficientOnly,
-                    ::suitableToolsOnly
-                ) { defaultValue(false) }
-                hide(
-                    ::rotateForBreak,
-                    ::doubleBreak,
-                    ::breaksPerTick
-                )
-            }
-            hideAll(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
+        setDefaultAutomationConfig {
+			applyEdits {
+				breakConfig.apply {
+					editTyped(
+						::avoidLiquids,
+						::avoidSupporting,
+						::efficientOnly,
+						::suitableToolsOnly
+					) { defaultValue(false) }
+					hide(
+						::rotateForBreak,
+						::doubleBreak,
+						::breaksPerTick
+					)
+				}
+				hideGroups(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
+			}
         }
 
         listen<PlayerEvent.Attack.Block> { it.cancel() }

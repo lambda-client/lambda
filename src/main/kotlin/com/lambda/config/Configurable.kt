@@ -60,6 +60,7 @@ abstract class Configurable(
     private val configuration: Configuration,
 ) : Jsonable, Nameable {
     val settings = mutableListOf<AbstractSetting<*>>()
+	val settingGroups = mutableListOf<SettingGroup>()
 
     init {
         registerConfigurable()

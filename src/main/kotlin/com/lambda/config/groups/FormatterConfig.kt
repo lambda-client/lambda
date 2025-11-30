@@ -17,12 +17,13 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.ISettingGroup
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import java.util.*
 
-interface FormatterConfig {
+interface FormatterConfig : ISettingGroup {
     val locale: Locale
     val separator: String
     val prefix: String

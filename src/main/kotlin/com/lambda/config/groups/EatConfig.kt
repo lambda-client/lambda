@@ -17,6 +17,7 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.ISettingGroup
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -28,7 +29,7 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
-interface EatConfig {
+interface EatConfig : ISettingGroup {
     val eatOnHunger: Boolean
     val minFoodLevel: Int
     val nutritiousFood: List<Item>

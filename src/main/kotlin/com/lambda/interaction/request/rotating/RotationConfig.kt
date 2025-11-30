@@ -17,10 +17,12 @@
 
 package com.lambda.interaction.request.rotating
 
+import com.lambda.config.AbstractSetting
+import com.lambda.config.ISettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
-interface RotationConfig {
+interface RotationConfig : ISettingGroup {
     /**
      * - [RotationMode.Silent] Spoofing server-side rotation.
      * - [RotationMode.Sync] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
@@ -49,6 +51,7 @@ interface RotationConfig {
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
     open class Instant(mode: RotationMode) : RotationConfig {
+	    override val settings = mutableListOf<AbstractSetting<*>>()
         override val rotationMode = mode
         override val keepTicks = 1
         override val decayTicks = 1

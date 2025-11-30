@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.config.ISettingGroup
 import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.util.Describable
@@ -24,7 +25,7 @@ import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 import java.awt.Color
 
-interface BreakConfig : ActionConfig {
+interface BreakConfig : ActionConfig, ISettingGroup {
     val breakMode: BreakMode
     val rebreak: Boolean
 

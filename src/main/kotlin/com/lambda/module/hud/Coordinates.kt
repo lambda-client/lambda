@@ -17,8 +17,7 @@
 
 package com.lambda.module.hud
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.edit
-import com.lambda.config.groups.FormatterConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
@@ -33,38 +32,41 @@ import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
 object Coordinates : HudModule(
-    name = "Coordinates",
-    description = "Show your coordinates",
-    tag = ModuleTag.HUD,
+	name = "Coordinates",
+	description = "Show your coordinates",
+	tag = ModuleTag.HUD,
 ) {
-    private val page by setting("Page", Page.CurrentDimension)
-    private val showDimension by setting("Show Dimension", true)
+	enum class Group(override val displayName: String) : NamedEnum {
+		CurrentDimension("Current Dimension"),
+		OtherDimension("Other Dimension"),
+	}
 
-    private val formatter = FormatterSettings(this, Page.CurrentDimension).apply { ::timeFormat.edit { hide() } }
-//    private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
-//        ::timeFormat.edit { hide() }
-//        ::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
-//    }
+	private val showDimension by setting("Show Dimension", true)
 
-    override fun ImGuiBuilder.buildLayout() {
-        runSafe {
-            val position = player.pos.format(formatter)
-            val otherDimensionPos = // ToDo: The system has forced my hand, too bad!. We need to find a way to allow duplicate setting names.
-                if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
-                else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
+	private val formatter = FormatterSettings(this, Group.CurrentDimension).apply {
+		applyEdits {
+			::timeFormat.edit { hide() }
+		}
+	}
+//	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
+//		::timeFormat.edit { hide() }
+//		::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
+//	}
 
-            val text = "$position $otherDimensionPos"
+	override fun ImGuiBuilder.buildLayout() {
+		runSafe {
+			val position = player.pos.format(formatter)
+			val otherDimensionPos = // ToDo: The system has forced my hand, too bad!. We need to find a way to allow duplicate setting names.
+				if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
+				else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 
-            val withDimension =
-                if (showDimension) "$text ${world.dimensionName}"
-                else text
+			val text = "$position $otherDimensionPos"
 
-            textCopyable(withDimension)
-        }
-    }
+			val withDimension =
+				if (showDimension) "$text ${world.dimensionName}"
+				else text
 
-    enum class Page(override val displayName: String) : NamedEnum {
-        CurrentDimension("Current Dimension"),
-        OtherDimension("Other Dimension"),
-    }
+			textCopyable(withDimension)
+		}
+	}
 }

@@ -17,8 +17,12 @@
 
 package com.lambda.config
 
-abstract class SettingGroup() {
-    val settings = mutableListOf<AbstractSetting<*>>()
+interface ISettingGroup {
+	val settings: MutableList<AbstractSetting<*>>
+}
+
+abstract class SettingGroup() : ISettingGroup {
+    override val settings = mutableListOf<AbstractSetting<*>>()
 
     fun <T : Any> AbstractSetting<T>.index(): AbstractSetting<T> {
         settings.add(this)

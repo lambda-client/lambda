@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.config.ISettingGroup
 import com.lambda.event.events.TickEvent
 
 /**
@@ -24,8 +25,7 @@ import com.lambda.event.events.TickEvent
  *
  * @param priority The priority of this configuration.
  */
-interface HotbarConfig {
-
+interface HotbarConfig : ISettingGroup {
     /**
      * The number of ticks to keep the current hotbar selection active.
      */

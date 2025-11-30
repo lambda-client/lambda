@@ -21,7 +21,8 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
-import com.lambda.config.AutomationConfig
+import com.lambda.config.SettingEditorDsl
+import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -95,9 +96,9 @@ class SetSetting<T : Any>(
     }
 
     companion object {
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T : Any> AutomationConfig.TypedEditBuilder<MutableSet<T>>.immutableSet(immutableSet: Set<T>) {
+        fun <T : Any> SettingGroupEditor.TypedEditBuilder<MutableSet<T>>.immutableSet(immutableSet: Set<T>) {
             (settings as Collection<SetSetting<T>>).forEach { it.immutableSet = immutableSet }
         }
     }

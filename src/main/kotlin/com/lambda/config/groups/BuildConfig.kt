@@ -17,11 +17,12 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.ISettingGroup
 import com.lambda.interaction.request.rotating.visibilty.PointSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface BuildConfig {
+interface BuildConfig : ISettingGroup {
     // General
     val pathing: Boolean
     val stayInRange: Boolean

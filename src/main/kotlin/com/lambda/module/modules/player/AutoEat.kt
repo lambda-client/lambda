@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.config.groups.EatSettings
 import com.lambda.config.groups.InventorySettings
@@ -46,16 +47,18 @@ object AutoEat : Module(
     private var eatTask: EatTask? = null
 
     init {
-        defaultAutomationConfig = automationConfig {
-            hideAll(
-                buildConfig,
-                breakConfig,
-                placeConfig,
-                interactConfig,
-                rotationConfig,
-                inventoryConfig,
-                hotbarConfig,
-            )
+        setDefaultAutomationConfig {
+			applyEdits {
+				hideGroups(
+					buildConfig,
+					breakConfig,
+					placeConfig,
+					interactConfig,
+					rotationConfig,
+					inventoryConfig,
+					hotbarConfig,
+				)
+			}
         }
 
         listen<TickEvent.Pre> {
