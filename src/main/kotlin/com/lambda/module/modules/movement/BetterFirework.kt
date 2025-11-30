@@ -19,10 +19,6 @@ package com.lambda.module.modules.movement
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.edit
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.hideAll
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InventorySettings
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.KeyboardEvent
