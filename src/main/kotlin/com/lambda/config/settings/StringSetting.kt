@@ -23,7 +23,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
-import com.lambda.config.AutomationConfig
+import com.lambda.config.SettingEditorDsl
+import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import imgui.flag.ImGuiInputTextFlags
@@ -64,15 +65,15 @@ class StringSetting(
     }
 
     companion object {
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun AutomationConfig.TypedEditBuilder<String>.multiline(multiline: Boolean) {
+        fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
             (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
         }
 
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun AutomationConfig.TypedEditBuilder<String>.flags(flags: Int) {
+        fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
             (settings as Collection<StringSetting>).forEach { it.flags = flags }
         }
     }

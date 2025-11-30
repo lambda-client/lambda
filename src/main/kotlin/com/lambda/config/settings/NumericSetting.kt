@@ -19,7 +19,8 @@ package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
-import com.lambda.config.AutomationConfig
+import com.lambda.config.SettingEditorDsl
+import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.ImGui
 import imgui.ImGui.calcTextSize
@@ -97,21 +98,21 @@ abstract class NumericSetting<T>(
     }
 
     companion object {
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T> AutomationConfig.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+        fun <T> SettingGroupEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
         }
 
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T> AutomationConfig.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+        fun <T> SettingGroupEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
         }
 
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T> AutomationConfig.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+        fun <T> SettingGroupEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
         }
     }

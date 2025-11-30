@@ -20,7 +20,8 @@ package com.lambda.config.settings.collections
 import com.google.gson.JsonElement
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
-import com.lambda.config.AutomationConfig
+import com.lambda.config.SettingEditorDsl
+import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
@@ -78,9 +79,9 @@ open class CollectionSettings<T : Any>(
     }
 
     companion object {
-        @AutomationConfig.SettingEditorDsl
+        @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T : Any> AutomationConfig.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+        fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
             (settings as Collection<CollectionSettings<T>>).forEach { it.immutableCollection = collection }
         }
     }

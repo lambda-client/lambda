@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -96,21 +97,23 @@ object PacketMine : Module(
     private var attackedThisTick = false
 
     init {
-        defaultAutomationConfig = automationConfig {
-            breakConfig.apply {
-                editTyped(
-                    ::avoidLiquids,
-                    ::avoidSupporting,
-                    ::efficientOnly,
-                    ::suitableToolsOnly
-                ) { defaultValue(false) }
-                ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
-            }
-            hotbarConfig.apply {
-                ::keepTicks.edit { defaultValue(0) }
-            }
-            hideAll(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
-        }
+        setDefaultAutomationConfig {
+			applyEdits {
+				breakConfig.apply {
+					editTyped(
+						::avoidLiquids,
+						::avoidSupporting,
+						::efficientOnly,
+						::suitableToolsOnly
+					) { defaultValue(false) }
+					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
+				}
+				hotbarConfig.apply {
+					::keepTicks.edit { defaultValue(0) }
+				}
+				hideGroups(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
+			}
+		}
 
         listen<TickEvent.Post> {
             attackedThisTick = false

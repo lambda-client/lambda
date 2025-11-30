@@ -31,10 +31,8 @@ import com.lambda.event.events.onStaticRender
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
-import kotlin.reflect.KProperty0
-import kotlin.reflect.jvm.isAccessible
 
-@Suppress("unchecked_cast", "unused")
+
 open class AutomationConfig(
     override val name: String,
     configuration: Configuration = AutomationConfigs
@@ -45,7 +43,6 @@ open class AutomationConfig(
         Place("Place"),
         Interact("Interact"),
         Rotation("Rotation"),
-        Interaction("Interaction"),
         Inventory("Inventory"),
         Hotbar("Hotbar"),
         Eat("Eat"),
@@ -66,11 +63,19 @@ open class AutomationConfig(
 
     companion object {
         context(module: Module)
-        fun automationConfig(name: String = module.name, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
-            AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
+        fun MutableAutomationConfig.setDefaultAutomationConfig(
+	        name: String = module.name,
+	        edits: (AutomationConfig.() -> Unit)? = null
+		) {
+	        defaultAutomationConfig = AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
+		}
 
-        fun automationConfig(name: String, edits: (AutomationConfig.() -> Unit)? = null): AutomationConfig =
-            AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
+        fun MutableAutomationConfig.setDefaultAutomationConfig(
+	        name: String,
+	        edits: (AutomationConfig.() -> Unit)? = null
+		) {
+			defaultAutomationConfig = AutomationConfig("Default $name Automation Config").apply { edits?.invoke(this) }
+		}
 
         object DEFAULT : AutomationConfig("Default") {
             val renders by setting("Render", false).group(Group.Render)
@@ -90,119 +95,5 @@ open class AutomationConfig(
                 }
             }
         }
-    }
-
-    @DslMarker
-    annotation class SettingEditorDsl
-
-    private val KProperty0<*>.delegate
-        get() = try {
-            apply { isAccessible = true }.getDelegate()
-        } catch (e: Exception) {
-            throw IllegalStateException("Could not access delegate for property $name", e)
-        }
-
-    @SettingEditorDsl
-    internal inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(AbstractSetting<T>) -> Unit) {
-        val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        TypedEditBuilder(this@AutomationConfig, listOf(setting)).edits(setting)
-    }
-
-    @SettingEditorDsl
-    internal inline fun <T : Any, R : Any> KProperty0<T>.editWith(
-        other: KProperty0<R>,
-        edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
-    ) {
-        val setting = delegate as? AbstractSetting<T> ?: throw IllegalStateException("Setting delegate did not match current value's type")
-        TypedEditBuilder(this@AutomationConfig, listOf(setting)).edits(other.delegate as AbstractSetting<R>)
-    }
-
-    @SettingEditorDsl
-    fun edit(
-        vararg settings: KProperty0<*>,
-        edits: BasicEditBuilder.() -> Unit
-    ) { BasicEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<*>>).apply(edits) }
-
-    @SettingEditorDsl
-    internal inline fun <T : Any> editWith(
-        vararg settings: KProperty0<*>,
-        other: KProperty0<T>,
-        edits: BasicEditBuilder.(AbstractSetting<T>) -> Unit
-    ) { BasicEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<*>>).edits(other.delegate as AbstractSetting<T>) }
-
-    @SettingEditorDsl
-    internal inline fun <T : Any> editTyped(
-        vararg settings: KProperty0<T>,
-        edits: TypedEditBuilder<T>.() -> Unit
-    ) { TypedEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<T>>).apply(edits) }
-
-    @SettingEditorDsl
-    internal inline fun <T : Any, R : Any> editTypedWith(
-        vararg settings: KProperty0<T>,
-        other: KProperty0<R>,
-        edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
-    ) = TypedEditBuilder(this@AutomationConfig, settings.map { it.delegate } as List<AbstractSetting<T>>).edits(other.delegate as AbstractSetting<R>)
-
-    @SettingEditorDsl
-    fun hide(vararg settings: KProperty0<*>) {
-        hideAll((settings.map { it.delegate } as List<AbstractSetting<*>>))
-    }
-
-    @SettingEditorDsl
-    fun hideAll(settingGroup: SettingGroup) = hideAll(settingGroup.settings)
-
-    @SettingEditorDsl
-    fun hideAll(settings: Collection<AbstractSetting<*>>) {
-        this@AutomationConfig.settings.removeAll(settings)
-        hiddenSettings.addAll(settings)
-    }
-
-    @SettingEditorDsl
-    fun hideAll(vararg settingGroups: SettingGroup) {
-        settingGroups.forEach { hideAll(it.settings) }
-    }
-
-    @SettingEditorDsl
-    fun hideAllExcept(settingGroup: SettingGroup, vararg settings: KProperty0<*>) {
-        this@AutomationConfig.settings.removeIf {
-            return@removeIf if (it in settingGroup.settings && it !in (settings.toList() as List<AbstractSetting<*>>)) {
-                hiddenSettings.add(it)
-                true
-            } else false
-        }
-    }
-
-    open class BasicEditBuilder(val c: AutomationConfig, open val settings: Collection<AbstractSetting<*>>) {
-        @SettingEditorDsl
-        fun visibility(vis: () -> Boolean) =
-            settings.forEach { it.visibility = vis }
-
-        @SettingEditorDsl
-        fun hide() = c.hideAll(settings)
-
-        @SettingEditorDsl
-        fun groups(vararg groups: NamedEnum) =
-            settings.forEach { it.groups = mutableListOf(groups.toList()) }
-
-        @SettingEditorDsl
-        fun groups(groups: MutableList<List<NamedEnum>>) =
-            settings.forEach { it.groups = groups }
-    }
-
-    open class TypedEditBuilder<T : Any>(
-        c: AutomationConfig,
-        override val settings: Collection<AbstractSetting<T>>
-    ) : BasicEditBuilder(c, settings) {
-        @SettingEditorDsl
-        fun defaultValue(value: T) =
-            settings.forEach {
-                it.defaultValue = value
-                it.value = value
-            }
-    }
-
-    enum class InsertMode {
-        Above,
-        Below
     }
 }

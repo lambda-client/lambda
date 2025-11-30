@@ -31,7 +31,7 @@ import java.awt.Color
 
 open class BreakSettings(
     c: Configurable,
-    baseGroup: NamedEnum,
+    baseGroup: NamedEnum
 ) : SettingGroup(), BreakConfig {
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),

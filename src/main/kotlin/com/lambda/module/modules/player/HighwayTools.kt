@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
@@ -88,8 +89,10 @@ object HighwayTools : Module(
     }
 
     init {
-        defaultAutomationConfig = automationConfig {
-            hideAll(interactConfig)
+        setDefaultAutomationConfig {
+			applyEdits {
+				hideGroup(interactConfig)
+			}
         }
         onEnable {
             octant = player.octant

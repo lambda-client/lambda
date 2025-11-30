@@ -17,12 +17,13 @@
 
 package com.lambda.interaction.request.interacting
 
+import com.lambda.config.ISettingGroup
 import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface InteractConfig : ActionConfig {
+interface InteractConfig : ActionConfig, ISettingGroup {
     val rotate: Boolean
     val swingHand: Boolean
     val interactSwingType: BuildConfig.SwingType

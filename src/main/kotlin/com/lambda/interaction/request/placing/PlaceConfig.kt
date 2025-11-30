@@ -17,17 +17,17 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.config.ISettingGroup
 import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface PlaceConfig : ActionConfig {
+interface PlaceConfig : ActionConfig, ISettingGroup {
     val rotateForPlace: Boolean
     val airPlace: AirPlaceMode
     val axisRotateSetting: Boolean
-    val axisRotate
-        get() = rotateForPlace && airPlace.isEnabled && axisRotateSetting
+    val axisRotate get() = rotateForPlace && airPlace.isEnabled && axisRotateSetting
     val placeConfirmationMode: PlaceConfirmationMode
     val maxPendingPlacements: Int
     val placementsPerTick: Int

@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
@@ -67,21 +68,23 @@ object Scaffold : Module(
     }
 
     init {
-        defaultAutomationConfig = automationConfig {
-            buildConfig.apply {
-                editTyped(::pathing, ::stayInRange, ::collectDrops) {
-                    defaultValue(false)
-                    hide()
-                }
-            }
-            inventoryConfig.apply {
-                editTyped(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
-                    defaultValue(false)
-                    hide()
-                }
-            }
-            hideAll(buildConfig, breakConfig, interactConfig, inventoryConfig, eatConfig)
-        }
+        setDefaultAutomationConfig {
+			applyEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange, ::collectDrops) {
+						defaultValue(false)
+						hide()
+					}
+				}
+				inventoryConfig.apply {
+					editTyped(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
+						defaultValue(false)
+						hide()
+					}
+				}
+				hideGroups(buildConfig, breakConfig, interactConfig, inventoryConfig, eatConfig)
+			}
+		}
 
         listen<TickEvent.Pre> {
             val playerSupport = player.blockPos.down()
