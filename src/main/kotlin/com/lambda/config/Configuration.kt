@@ -100,7 +100,7 @@ abstract class Configuration : Jsonable, Loadable {
     private fun save() = runCatching {
         primary.createIfNotExists()
             .let {
-                it.writeText(toJson().toString())
+                it.writeText(gson.toJson(toJson()))
                 it.copyTo(backup, true)
             }
     }
