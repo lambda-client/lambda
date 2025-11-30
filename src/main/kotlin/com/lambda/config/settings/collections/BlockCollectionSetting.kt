@@ -29,7 +29,7 @@ class BlockCollectionSetting(
 	defaultValue: MutableCollection<Block>,
 	description: String,
 	visibility: () -> Boolean,
-) : CollectionSettings<Block>(
+) : CollectionSetting<Block>(
 	name,
 	immutableCollection,
 	defaultValue,

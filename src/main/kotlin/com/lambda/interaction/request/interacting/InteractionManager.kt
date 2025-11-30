@@ -54,10 +54,6 @@ import net.minecraft.util.Hand
  */
 object InteractionManager : RequestHandler<InteractRequest>(
     0,
-    TickEvent.Pre,
-    TickEvent.Input.Pre,
-    TickEvent.Input.Post,
-    TickEvent.Player.Post,
     onOpen = {
         if (potentialInteractions.isNotEmpty())
             InteractionManager.logger.newStage(InteractionManager.tickStage)

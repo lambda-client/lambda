@@ -29,7 +29,7 @@ class ItemCollectionSetting(
 	defaultValue: MutableCollection<Item>,
 	description: String,
 	visibility: () -> Boolean,
-) : CollectionSettings<Item>(
+) : CollectionSetting<Item>(
 	name,
 	immutableCollection,
 	defaultValue,

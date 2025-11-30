@@ -33,7 +33,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
-import com.lambda.util.NamedEnum
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.client.network.ClientPlayerEntity
@@ -49,20 +48,14 @@ object BetterFirework : Module(
     description = "Automatic takeoff with fireworks",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework").group(Group.General)
-    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0, KeyCode.Unbound.code), "Firework use key for mid flight activation").group(Group.General)
-    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
+    private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
+    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0, KeyCode.Unbound.code), "Firework use key for mid flight activation")
+    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
 
-    private var clientSwing by setting("Swing", true, "Swing hand client side").group(Group.General)
-    private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }.group(Group.General)
-
-    private enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Hotbar("Hotbar"),
-        Inventory("Inventory")
-    }
+    private var clientSwing by setting("Swing", true, "Swing hand client side")
+    private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
 
     private var takeoffState = TakeoffState.None
 

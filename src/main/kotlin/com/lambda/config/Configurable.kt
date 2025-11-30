@@ -25,7 +25,7 @@ import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.BlockCollectionSetting
-import com.lambda.config.settings.collections.CollectionSettings
+import com.lambda.config.settings.collections.CollectionSetting
 import com.lambda.config.settings.collections.ItemCollectionSetting
 import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.comparable.BooleanSetting
@@ -160,7 +160,7 @@ abstract class Configurable(
         defaultValue: Collection<T> = immutableList,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = CollectionSettings(
+    ) = CollectionSetting(
         name,
         immutableList,
         defaultValue.toMutableList(),

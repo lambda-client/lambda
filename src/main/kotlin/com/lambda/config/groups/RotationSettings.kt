@@ -19,6 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationMode
@@ -42,7 +43,7 @@ class RotationSettings(
     /** How many ticks to wait before resetting the rotation */
     override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate }.group(baseGroup).index()
 
-    override val tickStageMask = ALL_STAGES.toSet()
+    override val tickStageMask = ALL_STAGES.subList(0, ALL_STAGES.indexOf(TickEvent.Player.Post)).toSet()
 
     /** Whether the rotation is instant */
     var instant by c.setting("Instant Rotation", true, "Instantly rotate") { rotate }.group(baseGroup).index()

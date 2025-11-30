@@ -30,7 +30,7 @@ import java.lang.reflect.Type
 /**
  * @see [com.lambda.config.Configurable]
  */
-open class CollectionSettings<T : Any>(
+open class CollectionSetting<T : Any>(
     override var name: String,
     private var immutableCollection: Collection<T>,
     defaultValue: MutableCollection<T>,
@@ -82,7 +82,7 @@ open class CollectionSettings<T : Any>(
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-            (settings as Collection<CollectionSettings<T>>).forEach { it.immutableCollection = collection }
+            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
         }
     }
 }

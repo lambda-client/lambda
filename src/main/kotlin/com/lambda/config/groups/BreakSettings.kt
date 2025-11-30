@@ -20,6 +20,7 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakConfig.AnimationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
@@ -56,7 +57,7 @@ open class BreakSettings(
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)").group(baseGroup, Group.General).index()
 
     // Timing
-    override val tickStageMask by c.setting("Break Stage Mask", setOf<TickEvent>(TickEvent.Input.Post), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
+    override val tickStageMask by c.setting("Break Stage Mask", ALL_STAGES.toSet(), setOf(TickEvent.Input.Post), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
 
     // Swap
     override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block").group(baseGroup, Group.General).index()

@@ -71,10 +71,6 @@ import kotlin.math.min
 
 object PlaceManager : RequestHandler<PlaceRequest>(
     0,
-    TickEvent.Pre,
-    TickEvent.Input.Pre,
-    TickEvent.Input.Post,
-    TickEvent.Player.Post,
     onOpen = {
         if (potentialPlacements.isNotEmpty())
             PlaceManager.logger.newStage(PlaceManager.tickStage)
