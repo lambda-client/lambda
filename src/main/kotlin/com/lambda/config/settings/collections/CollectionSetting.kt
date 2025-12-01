@@ -25,67 +25,38 @@ import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.threading.runSafe
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
+ * This generic collection settings handles all [Comparable] values (i.e not classes) and serialize
+ * their values by calling [Any.toString] and loads them by comparing what's in the [immutableCollection].
+ * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSetting].
+ *
+ * If you wish to use a different codec or simply display values differently you must create your own
+ * collection setting.
+ *
  * @see [com.lambda.config.Configurable]
  */
-class SetSetting<T : Any>(
+open class CollectionSetting<T : Any>(
     override var name: String,
-    private var immutableSet: Set<T>,
-    defaultValue: MutableSet<T>,
+    private var immutableCollection: Collection<T>,
+    defaultValue: MutableCollection<T>,
     type: Type,
     description: String,
     visibility: () -> Boolean,
-) : AbstractSetting<MutableSet<T>>(
+) : AbstractSetting<MutableCollection<T>>(
     name,
     defaultValue,
     type,
     description,
     visibility
 ) {
+    private val strListType =
+        TypeToken.getParameterized(Collection::class.java, String::class.java).type
+
     private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
     private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
-    private val strSetType =
-        TypeToken.getParameterized(Set::class.java, String::class.java).type
-
-    override fun ImGuiBuilder.buildLayout() {
-        combo("##$name", "$name: ${value.size} item(s)") {
-            immutableSet
-                .forEach {
-                    val isSelected = value.contains(it)
-
-                    selectable(
-                        it.toString(), isSelected,
-                        flags = DontClosePopups
-                    ) {
-                        if (isSelected) {
-                            value.remove(it)
-                            runSafe { deselectListeners.forEach { listener -> listener(it) } }
-                        } else {
-                            value.add(it)
-                            runSafe { selectListeners.forEach { listener -> listener(it) } }
-                        }
-                    }
-                }
-        }
-    }
-
-    // When serializing the list to json we do not want to serialize the elements' classes, but
-    // their stringified representation.
-    // If we do serialize the classes we'll run into missing type adapters errors by Gson.
-    override fun toJson(): JsonElement =
-        gson.toJsonTree(value.map { it.toString() })
-
-    override fun loadFromJson(serialized: JsonElement) {
-        val strSet = gson.fromJson<Set<String>>(serialized, strSetType)
-            .mapNotNull { str -> immutableSet.find { it.toString() == str } }
-            .toMutableSet()
-
-        value = strSet
-    }
 
     fun onSelect(block: SafeContext.(T) -> Unit) = apply {
         selectListeners.add(block)
@@ -95,11 +66,40 @@ class SetSetting<T : Any>(
         deselectListeners.add(block)
     }
 
+    override fun ImGuiBuilder.buildLayout() {
+        combo("##$name", "$name: ${value.size} item(s)") {
+            immutableCollection
+                .forEach {
+                    val isSelected = value.contains(it)
+
+                    selectable(
+                        label = it.toString(),
+                        selected = isSelected,
+                        flags = DontClosePopups,
+                    ) {
+                        if (isSelected) value.remove(it)
+                        else value.add(it)
+                    }
+                }
+        }
+    }
+
+    override fun toJson(): JsonElement =
+        gson.toJsonTree(value.map { it.toString() })
+
+    override fun loadFromJson(serialized: JsonElement) {
+        val strList = gson.fromJson<Collection<String>>(serialized, strListType)
+            .mapNotNull { str -> immutableCollection.find { it.toString() == str } }
+            .toMutableList()
+
+        value = strList
+    }
+
     companion object {
         @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T : Any> SettingGroupEditor.TypedEditBuilder<MutableSet<T>>.immutableSet(immutableSet: Set<T>) {
-            (settings as Collection<SetSetting<T>>).forEach { it.immutableSet = immutableSet }
+        fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
         }
     }
 }

@@ -26,6 +26,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
@@ -61,10 +62,7 @@ import kotlin.math.sin
  */
 object RotationManager : RequestHandler<RotationRequest>(
     1,
-    TickEvent.Pre,
-    TickEvent.Input.Pre,
-    TickEvent.Input.Post,
-    TickEvent.Player.Post,
+	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),
 ), Logger {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO

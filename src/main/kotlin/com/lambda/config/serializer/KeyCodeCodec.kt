@@ -18,35 +18,31 @@
 package com.lambda.config.serializer
 
 import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.google.gson.JsonNull
 import com.google.gson.JsonParseException
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import com.lambda.config.Codec
-import com.lambda.config.Stringifiable
-import java.awt.Color
+import com.lambda.util.KeyCode
 import java.lang.reflect.Type
 
-object ColorSerializer : Codec<Color>, Stringifiable<Color> {
+object KeyCodeCodec : Codec<KeyCode> {
     override fun serialize(
-        src: Color,
-        typeOfSrc: Type,
+        src: KeyCode?,
+        typeOfSrc: Type?,
         context: JsonSerializationContext?,
     ): JsonElement =
-        JsonPrimitive("${src.red},${src.green},${src.blue},${src.alpha}")
+        src?.let {
+            JsonPrimitive(it.name)
+        } ?: JsonNull.INSTANCE
 
     override fun deserialize(
-        json: JsonElement,
-        typeOfT: Type,
+        json: JsonElement?,
+        typeOfT: Type?,
         context: JsonDeserializationContext?,
-    ): Color =
-        json.asString.split(",").let {
-            when (it.size) {
-                3 -> Color(it[0].toInt(), it[1].toInt(), it[2].toInt())
-                4 -> Color(it[0].toInt(), it[1].toInt(), it[2].toInt(), it[3].toInt())
-                else -> throw JsonParseException("Invalid color format")
-            }
-        }
-
-    override fun stringify(value: Color) = "${value.red},${value.green},${value.blue},${value.alpha}"
+    ): KeyCode =
+        json?.asString?.let(KeyCode::fromKeyName) ?: throw JsonParseException("Invalid key code format")
 }

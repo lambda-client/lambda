@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.serializer.BlockCodec
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
@@ -42,7 +43,7 @@ object BlockESP : Module(
 ) {
     // ToDo: Toggle searching, solve memory leak
     private val searchBlocks by setting("Search Blocks", true, "Search for blocks around the player")
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), setOf(Blocks.BEDROCK), "Render blocks") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), description = "Render blocks") { searchBlocks }.onValueChange(::rebuildMesh)
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
     private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)

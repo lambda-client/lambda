@@ -53,5 +53,5 @@ interface HotbarConfig : ISettingGroup {
     /**
      * The sub-tick timings at which hotbar actions can be performed
      */
-    val tickStageMask: Set<TickEvent>
+    val tickStageMask: Collection<TickEvent>
 }

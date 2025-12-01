@@ -35,10 +35,12 @@ import kotlin.reflect.KClass
  */
 abstract class RequestHandler<R : Request>(
     val stagePriority: Int,
-    private vararg val openStages: Event,
+    vararg val blacklistedStages: TickEvent,
     private val onOpen: (SafeContext.() -> Unit)? = null,
     private val onClose: (SafeContext.() -> Unit)? = null
 ) : Loadable {
+	val openStages: List<TickEvent> = ALL_STAGES.filter { it !in blacklistedStages }
+
     /**
      * Represents if the handler is accepting requests at any given time
      */

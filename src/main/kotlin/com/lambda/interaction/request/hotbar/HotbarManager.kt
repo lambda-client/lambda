@@ -47,10 +47,6 @@ import net.minecraft.item.ItemStack
  */
 object HotbarManager : RequestHandler<HotbarRequest>(
     1,
-    TickEvent.Pre,
-    TickEvent.Input.Pre,
-    TickEvent.Input.Post,
-    TickEvent.Player.Post,
     onOpen = {
         if (activeRequest != null) {
             setActiveSlot()

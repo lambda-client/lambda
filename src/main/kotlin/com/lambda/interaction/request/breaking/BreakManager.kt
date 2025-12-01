@@ -112,10 +112,6 @@ import kotlin.math.min
  */
 object BreakManager : RequestHandler<BreakRequest>(
     0,
-    TickEvent.Pre,
-    TickEvent.Input.Pre,
-    TickEvent.Input.Post,
-    TickEvent.Player.Post,
     onOpen = {
         if (activeInfos.isNotEmpty() || breaks.isNotEmpty())
             BreakManager.logger.newStage(BreakManager.tickStage)

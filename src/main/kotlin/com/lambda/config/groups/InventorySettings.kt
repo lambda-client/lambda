@@ -19,7 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
-import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
@@ -35,8 +35,8 @@ class InventorySettings(
     }
 
     override val actionsPerSecond by c.setting("Actions Per Second", 100, 0..100, 1, "How many inventory actions can be performed per tick").group(baseGroup, Group.General).index()
-    override val tickStageMask by c.setting("Inventory Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Input.Post, TickEvent.Player.Post), description = "The sub-tick timing at which inventory actions are performed").group(baseGroup, Group.General).index()
-    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, ItemUtils.defaultDisposables, "Items that will be ignored when checking for a free slot").group(baseGroup, Group.Container).index()
+    override val tickStageMask by c.setting("Inventory Stage Mask", ALL_STAGES.toSet(), description = "The sub-tick timing at which inventory actions are performed").group(baseGroup, Group.General).index()
+    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, description = "Items that will be ignored when checking for a free slot").group(baseGroup, Group.Container).index()
     override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones").group(baseGroup, Group.Container).index()
     override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from").group(baseGroup, Group.Container).index()
     override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to").group(baseGroup, Group.Container).index()

@@ -20,7 +20,6 @@ package com.lambda.interaction.request.rotating
 import com.lambda.config.AbstractSetting
 import com.lambda.config.ISettingGroup
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
 interface RotationConfig : ISettingGroup {
     /**
@@ -56,6 +55,6 @@ interface RotationConfig : ISettingGroup {
         override val keepTicks = 1
         override val decayTicks = 1
         override val turnSpeed = 360.0
-        override val tickStageMask = ALL_STAGES.toSet()
+        override val tickStageMask = RotationManager.openStages.toSet()
     }
 }

@@ -20,28 +20,33 @@ package com.lambda.config.serializer
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
-import com.google.gson.JsonNull
-import com.google.gson.JsonParseException
-import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
-import com.lambda.util.KeyCode
+import com.lambda.config.Codec
+import com.lambda.config.Stringifiable
+import com.lambda.util.Formatting.format
+import com.mojang.serialization.JsonOps
+import net.minecraft.util.math.BlockPos
 import java.lang.reflect.Type
+import kotlin.jvm.optionals.getOrElse
 
-object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
+object BlockPosCodec : Codec<BlockPos>, Stringifiable<BlockPos> {
     override fun serialize(
-        src: KeyCode?,
-        typeOfSrc: Type?,
-        context: JsonSerializationContext?,
+        src: BlockPos,
+        typeOfSrc: Type,
+        context: JsonSerializationContext,
     ): JsonElement =
-        src?.let {
-            JsonPrimitive(it.name)
-        } ?: JsonNull.INSTANCE
+        BlockPos.CODEC.encodeStart(JsonOps.INSTANCE, src)
+            .orThrow
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
-    ): KeyCode =
-        json?.asString?.let(KeyCode::fromKeyName) ?: throw JsonParseException("Invalid key code format")
+    ): BlockPos =
+        BlockPos.CODEC.parse(JsonOps.INSTANCE, json)
+            .result()
+            .getOrElse { BlockPos.ORIGIN }
+
+    override fun stringify(value: BlockPos) = value.format()
 }

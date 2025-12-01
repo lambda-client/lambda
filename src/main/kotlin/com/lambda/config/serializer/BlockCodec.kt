@@ -18,30 +18,31 @@
 package com.lambda.config.serializer
 
 import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
+import com.lambda.config.Codec
+import com.lambda.config.Stringifiable
 import com.mojang.serialization.JsonOps
-import net.minecraft.util.math.BlockPos
+import net.minecraft.block.Block
+import net.minecraft.registry.Registries
 import java.lang.reflect.Type
-import kotlin.jvm.optionals.getOrElse
 
-object BlockPosSerializer : JsonSerializer<BlockPos>, JsonDeserializer<BlockPos> {
+object BlockCodec : Codec<Block>, Stringifiable<Block> {
     override fun serialize(
-        src: BlockPos,
+        src: Block,
         typeOfSrc: Type,
         context: JsonSerializationContext,
     ): JsonElement =
-        BlockPos.CODEC.encodeStart(JsonOps.INSTANCE, src)
+        Registries.BLOCK.codec.encodeStart(JsonOps.INSTANCE, src)
             .orThrow
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
-    ): BlockPos =
-        BlockPos.CODEC.parse(JsonOps.INSTANCE, json)
-            .result()
-            .getOrElse { BlockPos.ORIGIN }
+    ): Block =
+        Registries.BLOCK.codec.parse(JsonOps.INSTANCE, json)
+            .orThrow
+
+    override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
 }

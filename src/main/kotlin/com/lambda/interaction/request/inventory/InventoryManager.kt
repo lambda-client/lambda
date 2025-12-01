@@ -52,10 +52,6 @@ import net.minecraft.screen.slot.Slot
  */
 object InventoryManager : RequestHandler<InventoryRequest>(
     1,
-    TickEvent.Pre,
-    TickEvent.Input.Pre,
-    TickEvent.Input.Post,
-    TickEvent.Player.Post,
     onOpen = { processActiveRequest() }
 ), Logger {
     private var activeRequest: InventoryRequest? = null

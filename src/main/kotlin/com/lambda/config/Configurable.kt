@@ -24,9 +24,11 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
-import com.lambda.config.settings.collections.ListSetting
+import com.lambda.config.settings.collections.BlockCollectionSetting
+import com.lambda.config.settings.collections.ClassCollectionSetting
+import com.lambda.config.settings.collections.CollectionSetting
+import com.lambda.config.settings.collections.ItemCollectionSetting
 import com.lambda.config.settings.collections.MapSetting
-import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.Bind
@@ -44,6 +46,8 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import imgui.flag.ImGuiInputTextFlags
 import net.minecraft.block.Block
+import net.minecraft.item.Item
+import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
@@ -124,21 +128,63 @@ abstract class Configurable(
         visibility: () -> Boolean = { true },
     ) = StringSetting(name, defaultValue, multiline, flags, description, visibility).register()
 
-    inline fun <reified T : Any> setting(
+
+    fun setting(
         name: String,
-        immutableList: List<T>,
-        defaultValue: List<T>,
+        defaultValue: Collection<Block>,
         description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(
+        visibility: () -> Boolean = { true },
+    ) = BlockCollectionSetting(
         name,
-        immutableList,
+        Registries.BLOCK.toList(),
         defaultValue.toMutableList(),
-        TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
         visibility,
     ).register()
 
+    fun setting(
+        name: String,
+        defaultValue: Collection<Item>,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = ItemCollectionSetting(
+        name,
+        Registries.ITEM.toList(),
+        defaultValue.toMutableList(),
+        description,
+        visibility,
+    ).register()
+
+    inline fun <reified T : Comparable<T>> setting(
+        name: String,
+        immutableList: Collection<T>,
+        defaultValue: Collection<T> = immutableList,
+        description: String = "",
+        noinline visibility: () -> Boolean = { true },
+    ) = CollectionSetting(
+        name,
+        immutableList,
+        defaultValue.toMutableList(),
+        TypeToken.getParameterized(Collection::class.java, T::class.java).type,
+        description,
+        visibility,
+    ).register()
+
+    inline fun <reified T : Any> setting(
+        name: String,
+        immutableList: Collection<T>,
+        defaultValue: Collection<T> = immutableList,
+        description: String = "",
+        noinline visibility: () -> Boolean = { true },
+    ) = ClassCollectionSetting(
+        name,
+        immutableList,
+        defaultValue.toMutableList(),
+        description,
+        visibility,
+    ).register()
+
+    // ToDo: Actually implement maps
     inline fun <reified K : Any, reified V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
@@ -150,21 +196,6 @@ abstract class Configurable(
         TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type,
         description,
         visibility
-    ).register()
-
-    inline fun <reified T : Any> setting(
-        name: String,
-        immutableList: Set<T>,
-        defaultValue: Set<T> = immutableList,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(
-        name,
-        immutableList,
-        defaultValue.toMutableSet(),
-        TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
-        description,
-        visibility,
     ).register()
 
     fun setting(
