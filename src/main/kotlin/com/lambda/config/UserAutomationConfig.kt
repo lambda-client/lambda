@@ -18,14 +18,25 @@
 package com.lambda.config
 
 import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry.moduleNameMap
 
 class UserAutomationConfig(override val name: String) : AutomationConfig(name, UserAutomationConfigs) {
     val linkedModules = setting<String>("Linked Modules", emptySet(), moduleNameMap.filter { it.value.defaultAutomationConfig != Companion.DEFAULT }.keys)
-        .onSelect { module -> moduleNameMap[module]?.automationConfig = this@UserAutomationConfig }
-        .onDeselect { module ->
-            moduleNameMap[module]?.let { module ->
-                module.automationConfig = module.defaultAutomationConfig
-            }
+        .onSelect { name ->
+	        moduleNameMap[name]?.let {
+		        it.removeLink()
+		        it.automationConfig = this@UserAutomationConfig
+	        }
         }
+
+	    .onDeselect { name ->
+		    moduleNameMap[name]?.let { module ->
+			    module.automationConfig = module.defaultAutomationConfig
+		    }
+	    }
+
+	private fun Module.removeLink() {
+		(automationConfig as UserAutomationConfig).linkedModules.value -= name
+	}
 }

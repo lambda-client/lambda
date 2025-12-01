@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
@@ -65,6 +65,12 @@ object HighwayTools : Module(
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)")
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once")
 
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			hideGroup(interactConfig)
+		}
+	}
+
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
     private var startPos = BlockPos.ORIGIN
@@ -89,11 +95,6 @@ object HighwayTools : Module(
     }
 
     init {
-        setDefaultAutomationConfig {
-			applyEdits {
-				hideGroup(interactConfig)
-			}
-        }
         onEnable {
             octant = player.octant
             startPos = player.blockPos

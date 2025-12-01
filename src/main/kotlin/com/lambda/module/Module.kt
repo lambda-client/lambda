@@ -121,7 +121,7 @@ abstract class Module(
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig {
-    final override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Companion.DEFAULT
+    override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Companion.DEFAULT
         set(value) {
             field = value
             automationConfig = value

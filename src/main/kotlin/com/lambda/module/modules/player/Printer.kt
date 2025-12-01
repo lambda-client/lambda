@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -45,16 +45,17 @@ object Printer : Module(
     private val range by setting("Range", 5, 1..7, 1)
     private val air by setting("Air", false)
 
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
+			editTyped(breakConfig::efficientOnly, breakConfig::suitableToolsOnly) { defaultValue(false) }
+			placeConfig::airPlace.edit { defaultValue(PlaceConfig.AirPlaceMode.Grim) }
+		}
+	}
+
     private var buildTask: Task<*>? = null
 
     init {
-        setDefaultAutomationConfig {
-			applyEdits {
-				editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
-				editTyped(breakConfig::efficientOnly, breakConfig::suitableToolsOnly) { defaultValue(false) }
-				placeConfig::airPlace.edit { defaultValue(PlaceConfig.AirPlaceMode.Grim) }
-			}
-		}
         onEnable {
             if (!isLitematicaAvailable()) {
                 error("Litematica is not installed!")

@@ -17,11 +17,9 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
-import com.lambda.config.groups.EatSettings
-import com.lambda.config.groups.InventorySettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -30,37 +28,21 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.EatTask
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.NamedEnum
 
 object AutoEat : Module(
     name = "AutoEat",
     description = "Eats food when you are hungry",
     tag = ModuleTag.PLAYER,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        Eating("Eating"),
-        Inventory("Inventory")
-    }
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			hideAllGroupsExcept(eatConfig)
+		}
+	}
 
-    override val eatConfig = EatSettings(this, Group.Eating)
-    override val inventoryConfig = InventorySettings(this, Group.Inventory)
     private var eatTask: EatTask? = null
 
     init {
-        setDefaultAutomationConfig {
-			applyEdits {
-				hideGroups(
-					buildConfig,
-					breakConfig,
-					placeConfig,
-					interactConfig,
-					rotationConfig,
-					inventoryConfig,
-					hotbarConfig,
-				)
-			}
-        }
-
         listen<TickEvent.Pre> {
             val reason = runSafeAutomated { reasonEating() }
             if (eatTask != null || !reason.shouldEat()) return@listen

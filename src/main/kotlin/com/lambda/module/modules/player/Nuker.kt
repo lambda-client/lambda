@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
@@ -44,14 +44,15 @@ object Nuker : Module(
     private val fillFloor by setting("Fill Floor", false)
     private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			hideGroup(interactConfig)
+		}
+	}
+
     private var task: Task<*>? = null
 
     init {
-        setDefaultAutomationConfig {
-			applyEdits {
-				hideGroup(interactConfig)
-			}
-        }
         onEnable {
             task = tickingBlueprint {
                 if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
