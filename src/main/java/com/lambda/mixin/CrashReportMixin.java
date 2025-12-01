@@ -21,7 +21,7 @@ import com.lambda.Lambda;
 import com.lambda.config.AbstractSetting;
 import com.lambda.module.Module;
 import com.lambda.module.ModuleRegistry;
-import com.lambda.util.DynamicException;
+import com.lambda.util.DynamicExceptionKt;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;
@@ -47,7 +47,7 @@ public class CrashReportMixin {
     @Inject(method = "<init>(Ljava/lang/String;Ljava/lang/Throwable;)V", at = @At("TAIL"))
     void injectConstructor(String message, Throwable cause, CallbackInfo ci) {
         if (!Lambda.INSTANCE.isDebug() && MinecraftClient.getInstance() != null) {
-            this.cause = new DynamicException(cause);
+            this.cause = DynamicExceptionKt.dynamicException(cause);
         }
     }
 
