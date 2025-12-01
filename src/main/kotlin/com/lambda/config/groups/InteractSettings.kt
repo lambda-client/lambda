@@ -31,7 +31,7 @@ class InteractSettings(
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting").group(baseGroup).index()
     override val sorter by c.setting("Interact Sorter", ActionConfig.SortMode.Tool, "The order in which interactions are performed").group(baseGroup).index()
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting").group(baseGroup).index()
-    override val tickStageMask by c.setting("Interact Stage Mask", ALL_STAGES.toSet(), setOf(TickEvent.Input.Post), description = "The sub-tick timing at which interact actions are performed").group(baseGroup).index()
+    override val tickStageMask by c.setting("Interact Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), description = "The sub-tick timing at which interact actions are performed").group(baseGroup).index()
     override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swingHand }.group(baseGroup).index()
     override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractConfig.InteractConfirmationMode.InteractThenAwait, "The style of confirmation for interactions").group(baseGroup).index()
 }

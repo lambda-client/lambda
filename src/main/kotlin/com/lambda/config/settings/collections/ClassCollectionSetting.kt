@@ -21,10 +21,14 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.StringUtils.levenshteinDistance
+import com.lambda.util.reflections.className
+import imgui.ImGuiListClipper
+import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 
 /**
- * @see [com.lambda.config.settings.collections.CollectionSettings]
+ * @see [com.lambda.config.settings.collections.CollectionSetting]
  * @see [com.lambda.config.Configurable]
  */
 class ClassCollectionSetting<T : Any>(
@@ -35,33 +39,49 @@ class ClassCollectionSetting<T : Any>(
 	visibility: () -> Boolean,
 ) : CollectionSetting<T>(
 	name,
-	immutableCollection,
 	defaultValue,
+	immutableCollection,
 	TypeToken.getParameterized(Collection::class.java, Any::class.java).type,
 	description,
 	visibility,
 ) {
-	override fun ImGuiBuilder.buildLayout() {
-		combo("##$name", "$name: ${value.size} item(s)") {
-			immutableCollection
-				.forEach {
-					val isSelected = value.contains(it)
+	private var searchFilter = ""
 
-					selectable(
-						label = it.className,
-						selected = isSelected,
-						flags = DontClosePopups,
-					) {
-						if (isSelected) value.remove(it)
-						else value.add(it)
+	override fun ImGuiBuilder.buildLayout() {
+		val text = if (value.size == 1) "item" else "items"
+
+		combo("##$name", "$name: ${value.size} $text") {
+			inputText("##$name-SearchBox", ::searchFilter)
+
+			child(
+				strId = "##$name-ComboOptionsChild",
+				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
+			) {
+				val list = immutableCollection
+					.filter { searchFilter == "" || searchFilter.levenshteinDistance(it.className) < 3 }
+
+				ImGuiListClipper.forEach { // not actually iterating
+					it.begin(list.size)
+
+					while (it.step()) {
+						for (i in it.displayStart..it.displayEnd) {
+							val v = list.getOrNull(i) ?: continue
+							val selected = value.contains(v)
+
+							selectable(
+								label = v.className,
+								selected = selected,
+								flags = DontClosePopups
+							) {
+								if (selected) value.remove(v)
+								else value.add(v)
+							}
+						}
 					}
 				}
+			}
 		}
 	}
-
-	val Any.className: String get() = this::class.java.name
-		.substringAfter("${this::class.java.packageName}.")
-		.replace('$', '.')
 
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
 	// If we do serialize the classes we'll run into missing type adapters errors by Gson.

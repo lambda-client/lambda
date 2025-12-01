@@ -26,8 +26,6 @@ import com.lambda.config.configurations.LambdaConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.config.AutomationConfig
-import com.lambda.config.serializer.BlockCodec
-import com.lambda.config.serializer.ItemCodec
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 

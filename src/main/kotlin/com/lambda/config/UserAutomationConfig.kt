@@ -21,7 +21,7 @@ import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.module.ModuleRegistry.moduleNameMap
 
 class UserAutomationConfig(override val name: String) : AutomationConfig(name, UserAutomationConfigs) {
-    val linkedModules = setting<String>("Linked Modules", moduleNameMap.filter { it.value.defaultAutomationConfig != Companion.DEFAULT }.keys, emptySet())
+    val linkedModules = setting<String>("Linked Modules", emptySet(), moduleNameMap.filter { it.value.defaultAutomationConfig != Companion.DEFAULT }.keys)
         .onSelect { module -> moduleNameMap[module]?.automationConfig = this@UserAutomationConfig }
         .onDeselect { module ->
             moduleNameMap[module]?.let { module ->

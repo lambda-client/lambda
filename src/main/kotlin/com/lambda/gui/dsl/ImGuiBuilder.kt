@@ -392,10 +392,25 @@ object ImGuiBuilder {
         width: Float = 0f,
         height: Float = 0f,
         border: Boolean = false,
-        flags: Int = ImGuiChildFlags.None,
+        windowFlags: Int = ImGuiWindowFlags.None,
         block: ProcedureBlock
     ) {
-        if (beginChild(strId, width, height, border, flags))
+        if (beginChild(strId, width, height, border, windowFlags))
+            block()
+
+        endChild()
+    }
+
+    @ImGuiDsl
+    inline fun child(
+        strId: String,
+        width: Float = 0f,
+        height: Float = 0f,
+        childFlags: Int = ImGuiChildFlags.None,
+        windowFlags: Int = ImGuiWindowFlags.None,
+        block: ProcedureBlock
+    ) {
+        if (beginChild(strId, width, height, childFlags, windowFlags))
             block()
 
         endChild()

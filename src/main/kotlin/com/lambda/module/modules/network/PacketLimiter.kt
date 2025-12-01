@@ -23,6 +23,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.collections.LimitedDecayQueue
+import com.lambda.util.reflections.className
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
@@ -44,13 +45,15 @@ object PacketLimiter : Module(
         .onValueChange { _, to -> packetQueue.setDecayTime(to) }
 
     private val defaultIgnorePackets = setOf(
-        CommonPongC2SPacket::class,
-        PositionAndOnGround::class,
-        Full::class,
-        LookAndOnGround::class,
-        OnGroundOnly::class,
-        TeleportConfirmC2SPacket::class
+        nameOf<CommonPongC2SPacket>(),
+        nameOf<PositionAndOnGround>(),
+        nameOf<Full>(),
+        nameOf<LookAndOnGround>(),
+        nameOf<OnGroundOnly>(),
+        nameOf<TeleportConfirmC2SPacket>()
     )
+
+    inline fun <reified T> nameOf(): String = T::class.className
 
     // ToDo: Find a way to have a list of serverbound packets
     private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets, description = "Packets to ignore when limiting")
@@ -61,7 +64,7 @@ object PacketLimiter : Module(
         }
 
         listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
-            if (it.packet::class in ignorePackets) return@listen
+            if (it.packet::class.java.name in ignorePackets) return@listen
 
 //            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
             if (packetQueue.add(it)) return@listen

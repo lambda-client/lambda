@@ -57,7 +57,7 @@ open class BreakSettings(
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)").group(baseGroup, Group.General).index()
 
     // Timing
-    override val tickStageMask by c.setting("Break Stage Mask", ALL_STAGES.toSet(), setOf(TickEvent.Input.Post), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
+    override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
 
     // Swap
     override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block").group(baseGroup, Group.General).index()

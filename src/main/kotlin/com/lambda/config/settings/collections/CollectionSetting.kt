@@ -25,6 +25,9 @@ import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.StringUtils.levenshteinDistance
+import imgui.ImGuiListClipper
+import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
@@ -40,8 +43,8 @@ import java.lang.reflect.Type
  */
 open class CollectionSetting<T : Any>(
     override var name: String,
-    private var immutableCollection: Collection<T>,
     defaultValue: MutableCollection<T>,
+    private var immutableCollection: Collection<T>,
     type: Type,
     description: String,
     visibility: () -> Boolean,
@@ -52,6 +55,7 @@ open class CollectionSetting<T : Any>(
     description,
     visibility
 ) {
+    private var searchFilter = ""
     private val strListType =
         TypeToken.getParameterized(Collection::class.java, String::class.java).type
 
@@ -67,20 +71,38 @@ open class CollectionSetting<T : Any>(
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        combo("##$name", "$name: ${value.size} item(s)") {
-            immutableCollection
-                .forEach {
-                    val isSelected = value.contains(it)
+        val text = if (value.size == 1) "item" else "items"
 
-                    selectable(
-                        label = it.toString(),
-                        selected = isSelected,
-                        flags = DontClosePopups,
-                    ) {
-                        if (isSelected) value.remove(it)
-                        else value.add(it)
+        combo("##$name", "$name: ${value.size} $text") {
+            inputText("##$name-SearchBox", ::searchFilter)
+
+            child(
+                strId = "##$name-ComboOptionsChild",
+                childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
+            ) {
+                val list = immutableCollection
+                    .filter { searchFilter == "" || searchFilter.levenshteinDistance(it.toString()) < 3 }
+
+                ImGuiListClipper.forEach { // not actually iterating
+                    it.begin(list.size)
+
+                    while (it.step()) {
+                        for (i in it.displayStart..it.displayEnd) {
+                            val v = list.getOrNull(i) ?: continue
+                            val selected = value.contains(v)
+
+                            selectable(
+                                label = v.toString(),
+                                selected = selected,
+                                flags = DontClosePopups
+                            ) {
+                                if (selected) value.remove(v)
+                                else value.add(v)
+                            }
+                        }
                     }
                 }
+            }
         }
     }
 

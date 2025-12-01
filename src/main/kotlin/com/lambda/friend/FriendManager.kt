@@ -19,7 +19,6 @@ package com.lambda.friend
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
-import com.lambda.config.serializer.GameProfileCodec
 import com.lambda.core.Loadable
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText

@@ -44,13 +44,18 @@ import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import com.lambda.util.reflections.getInstancesImplementingWithParameters
 import imgui.flag.ImGuiInputTextFlags
+import io.github.classgraph.ClassInfoList
 import net.minecraft.block.Block
 import net.minecraft.item.Item
+import net.minecraft.network.listener.ClientPlayPacketListener
+import net.minecraft.network.packet.Packet
 import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.reflect.KClass
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -132,11 +137,12 @@ abstract class Configurable(
     fun setting(
         name: String,
         defaultValue: Collection<Block>,
+        immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
     ) = BlockCollectionSetting(
         name,
-        Registries.BLOCK.toList(),
+        immutableCollection,
         defaultValue.toMutableList(),
         description,
         visibility,
@@ -145,11 +151,12 @@ abstract class Configurable(
     fun setting(
         name: String,
         defaultValue: Collection<Item>,
+        immutableCollection: Collection<Item> = Registries.ITEM.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
     ) = ItemCollectionSetting(
         name,
-        Registries.ITEM.toList(),
+        immutableCollection,
         defaultValue.toMutableList(),
         description,
         visibility,
@@ -157,25 +164,25 @@ abstract class Configurable(
 
     inline fun <reified T : Comparable<T>> setting(
         name: String,
-        immutableList: Collection<T>,
-        defaultValue: Collection<T> = immutableList,
+        defaultValue: Collection<T>,
+        immutableList: Collection<T> = defaultValue,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
     ) = CollectionSetting(
         name,
-        immutableList,
         defaultValue.toMutableList(),
+        immutableList,
         TypeToken.getParameterized(Collection::class.java, T::class.java).type,
         description,
         visibility,
     ).register()
 
     inline fun <reified T : Any> setting(
-        name: String,
-        immutableList: Collection<T>,
-        defaultValue: Collection<T> = immutableList,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
+	    name: String,
+	    defaultValue: Collection<T>,
+	    immutableList: Collection<T> = defaultValue,
+	    description: String = "",
+	    noinline visibility: () -> Boolean = { true },
     ) = ClassCollectionSetting(
         name,
         immutableList,

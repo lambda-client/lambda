@@ -22,6 +22,9 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.serializer.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.StringUtils.levenshteinDistance
+import imgui.ImGuiListClipper
+import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import net.minecraft.item.Item
 
@@ -33,40 +36,46 @@ class ItemCollectionSetting(
 	visibility: () -> Boolean,
 ) : CollectionSetting<Item>(
 	name,
-	immutableCollection,
 	defaultValue,
+	immutableCollection,
 	TypeToken.getParameterized(Collection::class.java, Item::class.java).type,
 	description,
 	visibility,
 ) {
+	private var searchFilter = ""
+
 	override fun ImGuiBuilder.buildLayout() {
 		val text = if (value.size == 1) "item" else "items"
 
 		combo("##$name", "$name: ${value.size} $text") {
-			value.toMutableList() // Copy the list instead of iterating the immutable one
-				.forEach {
-					selectable(
-						label = ItemCodec.stringify(it),
-						selected = true,
-						flags = DontClosePopups
-					) { value.remove(it) }
+			inputText("##$name-SearchBox", ::searchFilter)
+
+			child(
+				strId = "##$name-ComboOptionsChild",
+				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
+			) {
+				val list = immutableCollection
+					.filter { searchFilter == "" || searchFilter.levenshteinDistance(ItemCodec.stringify(it)) < 3 }
+
+				ImGuiListClipper.forEach { // not actually iterating
+					it.begin(list.size)
+
+					while (it.step()) {
+						for (i in it.displayStart..it.displayEnd) {
+							val v = list.getOrNull(i) ?: continue
+							val selected = value.contains(v)
+
+							selectable(
+								label = ItemCodec.stringify(v),
+								selected = selected,
+								flags = DontClosePopups
+							) {
+								if (selected) value.remove(v)
+								else value.add(v)
+							}
+						}
+					}
 				}
-		}
-
-		button("Add") { openPopup("Items") }
-
-		popup("Items") {
-			filter("Search for items") { filter ->
-				immutableCollection
-					.filter {
-						//filter.inputBuffer.levenshteinDistance(ItemCodec.stringify(it)) < 3 &&
-								!value.contains(it)
-					}
-					.forEach {
-						text(ItemCodec.stringify(it))
-						sameLine()
-						button("Add") { value.add(it) }
-					}
 			}
 		}
 	}

@@ -53,7 +53,6 @@ import imgui.ImGui.closeCurrentPopup
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
-import imgui.type.ImString
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
@@ -61,7 +60,7 @@ import java.util.*
 
 object MenuBar {
     private var aboutRequested = false
-    val newConfigName = ImString()
+    var newConfigName = ""
     val headerLogo = upload("textures/lambda_text_color.png")
     val lambdaLogo = upload("textures/lambda.png")
     val githubLogo = upload("textures/github_logo.png")
@@ -289,17 +288,17 @@ object MenuBar {
         button("New Config") { ImGui.openPopup("##new-config") }
 
         popupContextWindow("##new-config") {
-            inputText("Name", newConfigName)
+            inputText("Name", ::newConfigName)
             button("Create") {
-                if (newConfigName.isEmpty && configurables.none { it.name == newConfigName.get() }) return@button
-                UserAutomationConfig(newConfigName.get())
-                newConfigName.clear()
+                if (newConfigName.isEmpty() && configurables.none { it.name == newConfigName }) return@button
+                UserAutomationConfig(newConfigName)
+                newConfigName = ""
                 closeCurrentPopup()
                 return@button
             }
             sameLine()
             button("Cancel") {
-                newConfigName.clear()
+                newConfigName = ""
                 closeCurrentPopup()
             }
         }
