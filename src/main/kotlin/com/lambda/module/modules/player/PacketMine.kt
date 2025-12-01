@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -72,6 +72,24 @@ object PacketMine : Module(
     private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
     private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
 
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			breakConfig.apply {
+				editTyped(
+					::avoidLiquids,
+					::avoidSupporting,
+					::efficientOnly,
+					::suitableToolsOnly
+				) { defaultValue(false) }
+				::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
+			}
+			hotbarConfig.apply {
+				::keepTicks.edit { defaultValue(0) }
+			}
+			hideGroups(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
+		}
+	}
+
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     private var breaks = 0
@@ -97,24 +115,6 @@ object PacketMine : Module(
     private var attackedThisTick = false
 
     init {
-        setDefaultAutomationConfig {
-			applyEdits {
-				breakConfig.apply {
-					editTyped(
-						::avoidLiquids,
-						::avoidSupporting,
-						::efficientOnly,
-						::suitableToolsOnly
-					) { defaultValue(false) }
-					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
-				}
-				hotbarConfig.apply {
-					::keepTicks.edit { defaultValue(0) }
-				}
-				hideGroups(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
-			}
-		}
-
         listen<TickEvent.Post> {
             attackedThisTick = false
         }

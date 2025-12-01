@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
@@ -57,6 +57,14 @@ object BetterFirework : Module(
     private var clientSwing by setting("Swing", true, "Swing hand client side")
     private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
 
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			hideAllGroupsExcept(hotbarConfig, inventoryConfig)
+			hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+			inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+		}
+	}
+
     private var takeoffState = TakeoffState.None
 
     val ClientPlayerEntity.canTakeoff: Boolean
@@ -66,14 +74,6 @@ object BetterFirework : Module(
         get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
     init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(hotbarConfig, inventoryConfig)
-				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-				inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-			}
-		}
-
         listen<TickEvent.Pre> {
             when (takeoffState) {
                 TakeoffState.None -> {}

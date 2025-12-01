@@ -17,9 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.AutomationConfig.Companion.automationConfig
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.BuildConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -27,9 +26,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -40,55 +37,43 @@ object FastBreak : Module(
     description = "Break blocks faster.",
     tag = ModuleTag.PLAYER,
 ) {
+	override var defaultAutomationConfig = automationConfig {
+		applyEdits {
+			hideAllGroupsExcept(breakConfig, rotationConfig, hotbarConfig)
+			buildConfig.apply {
+				editTyped(
+					::pathing,
+					::stayInRange,
+					::useDefaultReach,
+					::checkSideVisibility,
+					::strictRayCast
+				) { defaultValue(false) }
+				::interactionsPerTick.edit { defaultValue(1) }
+				::interactReach.edit { defaultValue(Double.MAX_VALUE) }
+			}
+			breakConfig.apply {
+				editTyped(
+					::avoidLiquids,
+					::avoidSupporting,
+					::efficientOnly,
+					::suitableToolsOnly
+				) { defaultValue(false) }
+				editTyped(
+					::rotateForBreak,
+					::doubleBreak
+				) { defaultValue(false); hide() }
+				::breaksPerTick.edit { defaultValue(1); hide() }
+				::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
+				::maxPendingBreaks.edit { defaultValue(Int.MAX_VALUE); hide() }
+				hide(::sorter, ::unsafeCancels)
+			}
+			hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
+		}
+	}
+
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
-	override val buildConfig = object : BuildConfig by super.buildConfig {
-		override val pathing = false
-		override val stayInRange = false
-		override val interactionsPerTick = 1
-		override val useDefaultReach = false
-		override val interactReach = Double.MAX_VALUE
-		override val checkSideVisibility = false
-		override val strictRayCast = false
-	}
-
-    override val breakConfig = object : BreakConfig by super.breakConfig {
-        override val rotateForBreak = false
-        override val doubleBreak = false
-        override val breaksPerTick = 1
-	    override val tickStageMask = setOf(TickEvent.Input.Post)
-	    override val maxPendingBreaks = Int.MAX_VALUE
-    }
-
-	override val hotbarConfig = object : HotbarConfig by super.hotbarConfig {
-		override val tickStageMask = setOf(TickEvent.Input.Post)
-	}
-
     init {
-        setDefaultAutomationConfig {
-			applyEdits {
-				breakConfig.apply {
-					editTyped(
-						::avoidLiquids,
-						::avoidSupporting,
-						::efficientOnly,
-						::suitableToolsOnly
-					) { defaultValue(false) }
-					hide(
-						::rotateForBreak,
-						::doubleBreak,
-						::breaksPerTick,
-						::sorter,
-						::unsafeCancels,
-						::tickStageMask,
-						::maxPendingBreaks
-					)
-				}
-				hide(hotbarConfig::tickStageMask)
-				hideAllGroupsExcept(breakConfig, rotationConfig, hotbarConfig)
-			}
-        }
-
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
