@@ -135,16 +135,18 @@ abstract class Configuration : Jsonable, Loadable {
                 LOG.info(message)
                 info(message)
             }
-            .onFailure {
-                var message: String
+            .onFailure { primaryError ->
+                throw primaryError
+                LOG.error(primaryError)
+
                 runCatching { load(backup) }
                     .onSuccess {
-                        message = "${configName.capitalize()} config loaded from backup"
+                        val message = "${configName.capitalize()} config loaded from backup"
                         LOG.info(message)
                         info(message)
                     }
                     .onFailure { error ->
-                        message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                        val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
                         LOG.error(message, error)
                         logError(message)
                     }

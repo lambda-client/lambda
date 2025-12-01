@@ -18,6 +18,7 @@
 package com.lambda.config.settings.collections
 
 import com.google.gson.JsonElement
+import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import com.lambda.config.SettingEditorDsl
@@ -28,6 +29,13 @@ import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
+ * This generic collection settings handles all [Comparable] values (i.e not classes) and serialize
+ * their values by calling [Any.toString] and loads them by comparing what's in the [immutableCollection].
+ * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSetting].
+ *
+ * If you wish to use a different codec or simply display values differently you must create your own
+ * collection setting.
+ *
  * @see [com.lambda.config.Configurable]
  */
 open class CollectionSetting<T : Any>(
@@ -44,6 +52,9 @@ open class CollectionSetting<T : Any>(
     description,
     visibility
 ) {
+    private val strListType =
+        TypeToken.getParameterized(Collection::class.java, String::class.java).type
+
     private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
     private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
 
@@ -73,9 +84,15 @@ open class CollectionSetting<T : Any>(
         }
     }
 
+    override fun toJson(): JsonElement =
+        gson.toJsonTree(value.map { it.toString() })
+
     override fun loadFromJson(serialized: JsonElement) {
-        value = gson.fromJson<Collection<T>>(serialized, type)
+        val strList = gson.fromJson<Collection<String>>(serialized, strListType)
+            .mapNotNull { str -> immutableCollection.find { it.toString() == str } }
             .toMutableList()
+
+        value = strList
     }
 
     companion object {

@@ -80,7 +80,6 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(Optional::class.java, OptionalCodec)
         .registerTypeAdapter(ItemStack::class.java, ItemStackCodec)
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
-        // We have to add all item sub classes :/. I probably missed some
         .registerTypeAdapter(Item::class.java, ItemCodec)
         .registerTypeAdapter(BlockItem::class.java, ItemCodec)
         .registerTypeAdapter(ArrowItem::class.java, ItemCodec)
