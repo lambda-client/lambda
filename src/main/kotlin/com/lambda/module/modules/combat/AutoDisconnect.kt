@@ -41,9 +41,12 @@ import com.lambda.util.text.text
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
+import net.minecraft.entity.effect.StatusEffect
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
+import net.minecraft.registry.Registries
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
 import net.minecraft.world.GameMode
@@ -251,10 +254,10 @@ object AutoDisconnect : Module(
             else null
         }),
         FallDamage({ falls }, {
-            if (isFallDeadly() && player.fallDistance > fallDistance)
-                buildText {
-                    literal("You were about to fall and die")
-                }
+            if (isFallDeadly() && player.fallDistance > fallDistance &&
+                !player.hasStatusEffect(StatusEffects.LEVITATION) &&
+                (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SURVIVAL)
+            ) buildText { literal("You were about to fall and die") }
             else null
         })
     }
