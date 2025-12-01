@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.comparable
 
+import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -50,6 +51,11 @@ class EnumSetting<T : Enum<T>>(
 ) {
     var index by Delegates.observable(value.ordinal) { _, _, to ->
         value = value.enumValues[to % value.enumValues.size]
+    }
+
+    override fun loadFromJson(serialized: JsonElement) {
+        super.loadFromJson(serialized)
+        index = value.ordinal // super bug fix for imgui
     }
 
     override fun ImGuiBuilder.buildLayout() {
