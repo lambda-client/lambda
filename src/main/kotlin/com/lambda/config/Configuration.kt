@@ -136,7 +136,6 @@ abstract class Configuration : Jsonable, Loadable {
                 info(message)
             }
             .onFailure { primaryError ->
-                throw primaryError
                 LOG.error(primaryError)
 
                 runCatching { load(backup) }

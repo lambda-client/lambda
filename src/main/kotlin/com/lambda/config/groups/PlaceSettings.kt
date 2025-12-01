@@ -34,7 +34,7 @@ class PlaceSettings(
     override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces").group(baseGroup).index()
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }.group(baseGroup).index()
     override val sorter by c.setting("Place Sorter", ActionConfig.SortMode.Tool, "The order in which placements are performed").group(baseGroup).index()
-    override val tickStageMask by c.setting("Place Stage mask", ALL_STAGES.toSet(), setOf(TickEvent.Input.Post),  description = "The sub-tick timing at which place actions are performed").group(baseGroup).index()
+    override val tickStageMask by c.setting("Place Stage Mask", ALL_STAGES.toSet(), setOf(TickEvent.Input.Post),  description = "The sub-tick timing at which place actions are performed").group(baseGroup).index()
     override val placeConfirmationMode by c.setting("Place Confirmation", PlaceConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation").group(baseGroup).index()
     override val maxPendingPlacements by c.setting("Max Pending Placements", 5, 0..30, 1, "The maximum amount of pending placements").group(baseGroup).index()
     override val placementsPerTick by c.setting("Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick").group(baseGroup).index()

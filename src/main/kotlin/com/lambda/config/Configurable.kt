@@ -25,6 +25,7 @@ import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.BlockCollectionSetting
+import com.lambda.config.settings.collections.ClassCollectionSetting
 import com.lambda.config.settings.collections.CollectionSetting
 import com.lambda.config.settings.collections.ItemCollectionSetting
 import com.lambda.config.settings.collections.MapSetting
@@ -154,7 +155,7 @@ abstract class Configurable(
         visibility,
     ).register()
 
-    inline fun <reified T : Any> setting(
+    inline fun <reified T : Comparable<T>> setting(
         name: String,
         immutableList: Collection<T>,
         defaultValue: Collection<T> = immutableList,
@@ -165,6 +166,20 @@ abstract class Configurable(
         immutableList,
         defaultValue.toMutableList(),
         TypeToken.getParameterized(Collection::class.java, T::class.java).type,
+        description,
+        visibility,
+    ).register()
+
+    inline fun <reified T : Any> setting(
+        name: String,
+        immutableList: Collection<T>,
+        defaultValue: Collection<T> = immutableList,
+        description: String = "",
+        noinline visibility: () -> Boolean = { true },
+    ) = ClassCollectionSetting(
+        name,
+        immutableList,
+        defaultValue.toMutableList(),
         description,
         visibility,
     ).register()
