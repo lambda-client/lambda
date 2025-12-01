@@ -26,7 +26,7 @@ import kotlin.math.max
 class BuildSettings(
     c: Configurable,
     baseGroup: NamedEnum,
-) : SettingGroup(), BuildConfig {
+) : SettingGroup(c), BuildConfig {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Reach("Reach"),

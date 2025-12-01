@@ -34,7 +34,7 @@ import kotlin.random.Random
 class RotationSettings(
     c: Configurable,
     baseGroup: NamedEnum,
-) : SettingGroup(), RotationConfig {
+) : SettingGroup(c), RotationConfig {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction").group(baseGroup).index()
 
     /** How many ticks to keep the rotation before resetting */

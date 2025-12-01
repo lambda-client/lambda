@@ -54,7 +54,7 @@ abstract class Targeting(
     baseGroup: NamedEnum,
     private val defaultRange: Double,
     private val maxRange: Double,
-) : SettingGroup(), TargetingConfig {
+) : SettingGroup(c), TargetingConfig {
     /**
      * The range within which entities can be targeted. This value is configurable and constrained
      * between 1.0 and [maxRange].

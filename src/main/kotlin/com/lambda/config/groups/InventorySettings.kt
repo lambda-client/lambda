@@ -27,7 +27,7 @@ import com.lambda.util.item.ItemUtils
 class InventorySettings(
     c: Configurable,
     baseGroup: NamedEnum
-) : SettingGroup(), InventoryConfig {
+) : SettingGroup(c), InventoryConfig {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Container("Container"),

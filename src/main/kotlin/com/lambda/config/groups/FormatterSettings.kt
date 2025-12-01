@@ -20,34 +20,25 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
-import com.lambda.util.math.Vec2d
-import net.minecraft.util.math.Vec2f
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
-import org.joml.Vector3f
-import org.joml.Vector4f
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
 
 class FormatterSettings(
-    owner: Configurable,
-    baseGroup: NamedEnum,
-) : FormatterConfig, SettingGroup() {
-    val localeEnum by owner.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers").group(baseGroup).index()
+	c: Configurable,
+	baseGroup: NamedEnum,
+) : FormatterConfig, SettingGroup(c) {
+    val localeEnum by c.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers").group(baseGroup).index()
     override val locale get() = localeEnum.locale
 
-    val sep by owner.setting("Separator", FormatterConfig.TupleSeparator.Comma, "Separator for string serialization of tuple data structures").group(baseGroup).index()
-    val customSep by owner.setting("Custom Separator", "") { sep == FormatterConfig.TupleSeparator.Custom }.group(baseGroup).index()
+    val sep by c.setting("Separator", FormatterConfig.TupleSeparator.Comma, "Separator for string serialization of tuple data structures").group(baseGroup).index()
+    val customSep by c.setting("Custom Separator", "") { sep == FormatterConfig.TupleSeparator.Custom }.group(baseGroup).index()
     override val separator get() = if (sep == FormatterConfig.TupleSeparator.Custom) customSep else sep.separator
 
-    val group by owner.setting("Tuple Prefix", FormatterConfig.TupleGrouping.Parentheses).group(baseGroup).index()
+    val group by c.setting("Tuple Prefix", FormatterConfig.TupleGrouping.Parentheses).group(baseGroup).index()
     override val prefix get() = group.prefix
     override val postfix get() = group.postfix
 
-    val floatingPrecision by owner.setting("Floating Precision", 3, 0..6, 1, "Precision for floating point numbers").group(baseGroup).index()
+    val floatingPrecision by c.setting("Floating Precision", 3, 0..6, 1, "Precision for floating point numbers").group(baseGroup).index()
     override val precision get() = floatingPrecision
 
-    val timeFormat by owner.setting("Time Format", FormatterConfig.Time.IsoDateTime).group(baseGroup).index()
+    val timeFormat by c.setting("Time Format", FormatterConfig.Time.IsoDateTime).group(baseGroup).index()
     override val format get() = timeFormat.format
 }

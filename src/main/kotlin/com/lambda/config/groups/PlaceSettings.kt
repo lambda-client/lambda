@@ -29,7 +29,7 @@ import com.lambda.util.NamedEnum
 class PlaceSettings(
     c: Configurable,
     baseGroup: NamedEnum
-) : SettingGroup(), PlaceConfig {
+) : SettingGroup(c), PlaceConfig {
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing").group(baseGroup).index()
     override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces").group(baseGroup).index()
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }.group(baseGroup).index()

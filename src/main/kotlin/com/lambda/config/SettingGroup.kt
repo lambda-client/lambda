@@ -21,8 +21,12 @@ interface ISettingGroup {
 	val settings: MutableList<AbstractSetting<*>>
 }
 
-abstract class SettingGroup() : ISettingGroup {
+abstract class SettingGroup(c: Configurable) : ISettingGroup {
     override val settings = mutableListOf<AbstractSetting<*>>()
+
+	init {
+		c.settingGroups.add(this)
+	}
 
     fun <T : Any> AbstractSetting<T>.index(): AbstractSetting<T> {
         settings.add(this)

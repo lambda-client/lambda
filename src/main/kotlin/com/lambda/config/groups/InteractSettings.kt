@@ -27,7 +27,7 @@ import com.lambda.util.NamedEnum
 class InteractSettings(
     c: Configurable,
     baseGroup: NamedEnum
-) : SettingGroup(), InteractConfig {
+) : SettingGroup(c), InteractConfig {
     override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting").group(baseGroup).index()
     override val sorter by c.setting("Interact Sorter", ActionConfig.SortMode.Tool, "The order in which interactions are performed").group(baseGroup).index()
     override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting").group(baseGroup).index()
