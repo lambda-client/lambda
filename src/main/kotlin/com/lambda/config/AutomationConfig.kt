@@ -62,15 +62,20 @@ open class AutomationConfig(
     val hiddenSettings = mutableSetOf<AbstractSetting<*>>()
 
     companion object {
-        fun Module.automationConfig(
-	        name: String = this.name,
+		context(module: Module)
+        fun MutableAutomationConfig.setDefaultAutomationConfig(
+	        name: String = module.name,
 	        edits: (AutomationConfig.() -> Unit)? = null
-		) = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+		) {
+			defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+		}
 
-        fun automationConfig(
+        fun MutableAutomationConfig.setDefaultAutomationConfig(
 	        name: String,
 	        edits: (AutomationConfig.() -> Unit)? = null
-		) = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+		) {
+			defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+		}
 
         object DEFAULT : AutomationConfig("Default") {
             val renders by setting("Render", false).group(Group.Render)

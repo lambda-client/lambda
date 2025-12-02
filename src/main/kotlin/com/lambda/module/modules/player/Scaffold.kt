@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
@@ -50,21 +50,21 @@ object Scaffold : Module(
     private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
-	override var defaultAutomationConfig = automationConfig {
-		applyEdits {
-			buildConfig.apply {
-				editTyped(::pathing, ::stayInRange, ::collectDrops) {
-					defaultValue(false)
-					hide()
-				}
-			}
-			hideAllGroupsExcept(placeConfig, rotationConfig, hotbarConfig)
-		}
-	}
-
     private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
     init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange, ::collectDrops) {
+						defaultValue(false)
+						hide()
+					}
+				}
+				hideAllGroupsExcept(placeConfig, rotationConfig, hotbarConfig)
+			}
+		}
+
         listen<TickEvent.Pre> {
             val playerSupport = player.blockPos.down()
             val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
