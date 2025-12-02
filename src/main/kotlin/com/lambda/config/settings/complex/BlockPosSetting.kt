@@ -15,63 +15,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings
+package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.greedyString
+import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
-import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
-import imgui.flag.ImGuiInputTextFlags
 import net.minecraft.command.CommandRegistryAccess
+import net.minecraft.util.math.BlockPos
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class StringSettingCore(
-    defaultValue: String,
-    var multiline: Boolean = false,
-    var flags: Int = ImGuiInputTextFlags.None,
-) : SettingCore<String>(
+class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 	defaultValue,
-	TypeToken.get(String::class.java).type
+	TypeToken.get(BlockPos::class.java).type
 ) {
-	context(setting: Setting<*, String>)
+	context(setting: Setting<*, BlockPos>)
     override fun ImGuiBuilder.buildLayout() {
-        if (multiline) {
-            inputTextMultiline(setting.name, ::value, flags = flags)
-        } else {
-            inputText(setting.name, ::value, flags)
-        }
+        inputVec3i(setting.name, value) { value = it.blockPos }
         lambdaTooltip(setting.description)
     }
 
-	context(setting: Setting<*, String>)
+	context(setting: Setting<*, BlockPos>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(greedyString(setting.name)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
+        required(integer("X", -30000000, 30000000)) { x ->
+            required(integer("Y", -64, 255)) { y ->
+                required(integer("Z", -30000000, 30000000)) { z ->
+                    execute {
+                        setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
+                    }
+                }
             }
-        }
-    }
-
-    companion object {
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
-            (settings as Collection<StringSettingCore>).forEach { it.multiline = multiline }
-        }
-
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
-            (settings as Collection<StringSettingCore>).forEach { it.flags = flags }
         }
     }
 }

@@ -21,26 +21,26 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.LOG
-import com.lambda.config.settings.CharSettingCore
-import com.lambda.config.settings.FunctionSettingCore
-import com.lambda.config.settings.StringSettingCore
-import com.lambda.config.settings.collections.BlockCollectionSettingCore
-import com.lambda.config.settings.collections.ClassCollectionSettingCore
-import com.lambda.config.settings.collections.CollectionSettingCore
-import com.lambda.config.settings.collections.ItemCollectionSettingCore
-import com.lambda.config.settings.collections.MapSettingCore
-import com.lambda.config.settings.comparable.BooleanSettingCore
-import com.lambda.config.settings.comparable.EnumSettingCore
+import com.lambda.config.settings.CharSetting
+import com.lambda.config.settings.FunctionSetting
+import com.lambda.config.settings.StringSetting
+import com.lambda.config.settings.collections.BlockCollectionSetting
+import com.lambda.config.settings.collections.ClassCollectionSetting
+import com.lambda.config.settings.collections.CollectionSetting
+import com.lambda.config.settings.collections.ItemCollectionSetting
+import com.lambda.config.settings.collections.MapSetting
+import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.BlockPosSettingCore
-import com.lambda.config.settings.complex.BlockSettingCore
-import com.lambda.config.settings.complex.ColorSettingCore
+import com.lambda.config.settings.complex.BlockPosSetting
+import com.lambda.config.settings.complex.BlockSetting
+import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeybindSettingCore
-import com.lambda.config.settings.complex.Vec3DSettingCore
-import com.lambda.config.settings.numeric.DoubleSettingCore
-import com.lambda.config.settings.numeric.FloatSettingCore
-import com.lambda.config.settings.numeric.IntegerSettingCore
-import com.lambda.config.settings.numeric.LongSettingCore
+import com.lambda.config.settings.complex.Vec3DSetting
+import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.config.settings.numeric.FloatSetting
+import com.lambda.config.settings.numeric.IntegerSetting
+import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
@@ -101,7 +101,7 @@ abstract class Configurable(
         defaultValue: Boolean,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BooleanSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, BooleanSetting(defaultValue), visibility).register()
 
     inline fun <reified T : Enum<T>> setting(
         name: String,
@@ -109,14 +109,14 @@ abstract class Configurable(
         description: String = "",
         noinline
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description,EnumSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description,EnumSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
         defaultValue: Char,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, CharSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, CharSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
@@ -125,7 +125,7 @@ abstract class Configurable(
         flags: Int = ImGuiInputTextFlags.None,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, StringSettingCore(defaultValue, multiline, flags), visibility).register()
+    ) = Setting(name, description, StringSetting(defaultValue, multiline, flags), visibility).register()
 
 	@JvmName("collectionSetting1")
     fun setting(
@@ -134,7 +134,7 @@ abstract class Configurable(
         immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockCollectionSettingCore(immutableCollection, defaultValue.toMutableList()), visibility).register()
+    ) = Setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), visibility).register()
 
 	@JvmName("collectionSetting2")
     fun setting(
@@ -143,7 +143,7 @@ abstract class Configurable(
         immutableCollection: Collection<Item> = Registries.ITEM.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ItemCollectionSettingCore(immutableCollection, defaultValue.toMutableList()), visibility).register()
+    ) = Setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), visibility).register()
 
 	@JvmName("collectionSetting3")
     inline fun <reified T : Comparable<T>> setting(
@@ -155,7 +155,7 @@ abstract class Configurable(
     ) = Setting(
 	    name,
 	    description,
-	    CollectionSettingCore(
+	    CollectionSetting(
 		    defaultValue.toMutableList(),
 		    immutableList,
 		    TypeToken.getParameterized(Collection::class.java, T::class.java).type
@@ -170,7 +170,7 @@ abstract class Configurable(
 	    immutableList: Collection<T> = defaultValue,
 	    description: String = "",
 	    noinline visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ClassCollectionSettingCore(immutableList, defaultValue.toMutableList()), visibility).register()
+    ) = Setting(name, description, ClassCollectionSetting(immutableList, defaultValue.toMutableList()), visibility).register()
 
     // ToDo: Actually implement maps
     inline fun <reified K : Any, reified V : Any> setting(
@@ -181,7 +181,7 @@ abstract class Configurable(
     ) = Setting(
 	    name,
 	    description,
-	    MapSettingCore(
+	    MapSetting(
 		    defaultValue.toMutableMap(),
 		    TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type
 		),
@@ -196,7 +196,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, DoubleSettingCore(defaultValue, range, step, unit), visibility).register()
+    ) = Setting(name, description, DoubleSetting(defaultValue, range, step, unit), visibility).register()
 
     fun setting(
         name: String,
@@ -206,7 +206,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, FloatSettingCore(defaultValue, range, step, unit), visibility).register()
+    ) = Setting(name, description, FloatSetting(defaultValue, range, step, unit), visibility).register()
 
     fun setting(
         name: String,
@@ -216,7 +216,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, IntegerSettingCore(defaultValue, range, step, unit), visibility).register()
+    ) = Setting(name, description, IntegerSetting(defaultValue, range, step, unit), visibility).register()
 
     fun setting(
         name: String,
@@ -226,7 +226,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, LongSettingCore(defaultValue, range, step, unit), visibility).register()
+    ) = Setting(name, description, LongSetting(defaultValue, range, step, unit), visibility).register()
 
     fun setting(
         name: String,
@@ -247,40 +247,40 @@ abstract class Configurable(
         defaultValue: Color,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ColorSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, ColorSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
         defaultValue: Vec3d,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, Vec3DSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, Vec3DSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
         defaultValue: BlockPos.Mutable,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockPosSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, BlockPosSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
         defaultValue: BlockPos,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockPosSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, BlockPosSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
         defaultValue: Block,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, BlockSetting(defaultValue), visibility).register()
 
     fun setting(
         name: String,
         defaultValue: () -> Unit,
         description: String = "",
         visibility: () -> Boolean = { true }
-    ) = Setting(name, description, FunctionSettingCore(defaultValue), visibility).register()
+    ) = Setting(name, description, FunctionSetting(defaultValue), visibility).register()
 }

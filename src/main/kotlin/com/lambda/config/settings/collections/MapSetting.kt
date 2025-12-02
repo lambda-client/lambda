@@ -15,27 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings
+package com.lambda.config.settings.collections
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonNull
-import com.google.gson.reflect.TypeToken
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
+import java.lang.reflect.Type
 
-open class FunctionSettingCore<T>(defaultValue: () -> T) : SettingCore<() -> T>(
+/**
+ * @see [com.lambda.config.Configurable]
+ */
+class MapSetting<K, V>(
+	defaultValue: MutableMap<K, V>,
+	type: Type
+) : SettingCore<MutableMap<K, V>>(
 	defaultValue,
-	TypeToken.get(defaultValue::class.java).type
+	type
 ) {
-    context(setting: Setting<*, () -> T>)
-	override fun ImGuiBuilder.buildLayout() {
-        button(setting.name) { value() }
-        lambdaTooltip(setting.description)
-    }
-
-	context(setting: Setting<*, () -> T>)
-    override fun toJson(): JsonElement = JsonNull.INSTANCE
-	context(setting: Setting<*, () -> T>)
-    override fun loadFromJson(serialized: JsonElement) { value = defaultValue }
+    context(setting: Setting<*, MutableMap<K, V>>)
+	override fun ImGuiBuilder.buildLayout() {}
 }

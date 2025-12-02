@@ -34,7 +34,7 @@ import kotlin.reflect.KProperty
 /**
  * @see [com.lambda.config.Configurable]
  */
-abstract class NumericSettingCore<T>(
+abstract class NumericSetting<T>(
     value: T,
     open var range: ClosedRange<T>,
     open var step: T,
@@ -61,7 +61,7 @@ abstract class NumericSettingCore<T>(
     override fun ImGuiBuilder.buildLayout() {
         val showReset = setting.isModified
         val resetButtonText = "R"
-        val valueString = this@NumericSettingCore.toString()
+        val valueString = this@NumericSetting.toString()
 
         buildSlider()
         lambdaTooltip(setting.description)
@@ -98,19 +98,19 @@ abstract class NumericSettingCore<T>(
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T> SettingGroupEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSettingCore<T>>).forEach { it.range = range }
+            (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
         }
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T> SettingGroupEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSettingCore<T>>).forEach { it.step = step }
+            (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
         }
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T> SettingGroupEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSettingCore<T>>).forEach { it.unit = unit}
+            (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
         }
     }
 }

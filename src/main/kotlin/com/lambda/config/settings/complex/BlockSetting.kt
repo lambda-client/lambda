@@ -15,50 +15,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.numeric
+package com.lambda.config.settings.complex
 
-import com.lambda.brigadier.argument.float
+import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.argument.blockState
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
-import com.lambda.config.settings.NumericSettingCore
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
-import kotlin.math.roundToInt
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class FloatSettingCore(
-    defaultValue: Float,
-    override var range: ClosedRange<Float>,
-    override var step: Float = 1f,
-    unit: String,
-) : NumericSettingCore<Float>(
-    defaultValue,
-    range,
-    step,
-    unit
+class BlockSetting(defaultValue: Block) : SettingCore<Block>(
+	defaultValue,
+	TypeToken.get(Block::class.java).type
 ) {
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
-        set(index) {
-            value = (range.start + index * step).coerceIn(range)
-        }
+	context(setting: Setting<*, Block>)
+    override fun ImGuiBuilder.buildLayout() {}
 
-	context(setting: Setting<*, Float>)
-    override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
-    }
-
-	context(setting: Setting<*, Float>)
+	context(setting: Setting<*, Block>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(float(setting.name, range.start, range.endInclusive)) { parameter ->
+        required(blockState(setting.name, registry)) { argument ->
             execute {
-                setting.trySetValue(parameter().value())
+                setting.trySetValue(argument().value().blockState.block)
             }
         }
     }

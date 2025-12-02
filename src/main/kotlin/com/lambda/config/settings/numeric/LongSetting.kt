@@ -15,46 +15,50 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.complex
+package com.lambda.config.settings.numeric
 
-import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.long
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
-import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
-import com.lambda.config.SettingCore
+import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import java.awt.Color
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class ColorSettingCore(defaultValue: Color) : SettingCore<Color>(
-	defaultValue,
-	TypeToken.get(Color::class.java).type
+class LongSetting(
+    defaultValue: Long,
+    override var range: ClosedRange<Long>,
+    override var step: Long = 1,
+    unit: String
+) : NumericSetting<Long>(
+    defaultValue,
+    range,
+    step,
+    unit
 ) {
-    context(setting: Setting<*, Color>)
-	override fun ImGuiBuilder.buildLayout() {
-        colorEdit(setting.name, ::value)
-        lambdaTooltip(setting.description)
+    // ToDo: No worky for super large numbers
+    private var valueIndex: Int
+        get() = ((value - range.start) / step).toInt()
+        set(index) {
+            value = (range.start + index * step).coerceIn(range)
+        }
+
+	context(setting: Setting<*, Long>)
+    override fun ImGuiBuilder.buildSlider() {
+        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
     }
 
-	context(setting: Setting<*, Color>)
+	context(setting: Setting<*, Long>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("Red", 0, 255)) { red ->
-            required(integer("Green", 0, 255)) { green ->
-                required(integer("Blue", 0, 255)) { blue ->
-                    optional(integer("Alpha", 0, 255)) { alpha ->
-                        execute {
-                            val alphaValue = alpha?.let { it().value() } ?: 255
-                            setting.trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
-                        }
-                    }
-                }
+        required(long(setting.name, range.start, range.endInclusive)) { parameter ->
+            execute {
+                setting.trySetValue(parameter().value())
             }
         }
     }

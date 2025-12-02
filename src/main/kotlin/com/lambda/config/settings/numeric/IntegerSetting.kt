@@ -17,47 +17,38 @@
 
 package com.lambda.config.settings.numeric
 
-
-import com.lambda.brigadier.argument.double
+import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
-import com.lambda.config.settings.NumericSettingCore
+import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import kotlin.math.roundToInt
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class DoubleSettingCore(
-    defaultValue: Double,
-    override var range: ClosedRange<Double>,
-    override var step: Double,
-	unit: String
-) : NumericSettingCore<Double>(
+class IntegerSetting(
+    defaultValue: Int,
+    override var range: ClosedRange<Int>,
+    override var step: Int = 1,
+    unit: String
+) : NumericSetting<Int>(
     defaultValue,
     range,
     step,
-	unit
+    unit
 ) {
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
-        set(index) {
-            value = (range.start + index * step).coerceIn(range)
-        }
-
-	context(setting: Setting<*, Double>)
+	context(setting: Setting<*, Int>)
     override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
+        slider("##${setting.name}", ::value, range.start, range.endInclusive, "")
     }
 
-	context(setting: Setting<*, Double>)
+	context(setting: Setting<*, Int>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(double(setting.name, range.start, range.endInclusive)) { parameter ->
+        required(integer(setting.name, range.start, range.endInclusive)) { parameter ->
             execute {
                 setting.trySetValue(parameter().value())
             }

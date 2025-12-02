@@ -21,25 +21,28 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.Setting
-import com.lambda.config.serializer.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.StringUtils.levenshteinDistance
+import com.lambda.util.reflections.className
 import imgui.ImGuiListClipper
 import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
-import net.minecraft.item.Item
 
-class ItemCollectionSettingCore(
-	private val immutableCollection: Collection<Item>,
-	defaultValue: MutableCollection<Item>
-) : CollectionSettingCore<Item>(
+/**
+ * @see [com.lambda.config.settings.collections.CollectionSetting]
+ * @see [com.lambda.config.Configurable]
+ */
+class ClassCollectionSetting<T : Any>(
+	private val immutableCollection: Collection<T>,
+	defaultValue: MutableCollection<T>
+) : CollectionSetting<T>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Item::class.java).type
+	TypeToken.getParameterized(Collection::class.java, Any::class.java).type
 ) {
 	private var searchFilter = ""
 
-	context(setting: Setting<*, MutableCollection<Item>>)
+	context(setting: Setting<*, MutableCollection<T>>)
 	override fun ImGuiBuilder.buildLayout() {
 		val text = if (value.size == 1) "item" else "items"
 
@@ -51,7 +54,7 @@ class ItemCollectionSettingCore(
 				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
 			) {
 				val list = immutableCollection
-					.filter { searchFilter == "" || searchFilter.levenshteinDistance(ItemCodec.stringify(it)) < 3 }
+					.filter { searchFilter == "" || searchFilter.levenshteinDistance(it.className) < 3 }
 
 				ImGuiListClipper.forEach { // not actually iterating
 					it.begin(list.size)
@@ -62,7 +65,7 @@ class ItemCollectionSettingCore(
 							val selected = value.contains(v)
 
 							selectable(
-								label = ItemCodec.stringify(v),
+								label = v.className,
 								selected = selected,
 								flags = DontClosePopups
 							) {
@@ -76,12 +79,18 @@ class ItemCollectionSettingCore(
 		}
 	}
 
-	context(setting: Setting<*, MutableCollection<Item>>)
-	override fun toJson(): JsonElement = gson.toJsonTree(value, type)
+	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
+	// If we do serialize the classes we'll run into missing type adapters errors by Gson.
+	// This is intended behaviour. If you wish your collection settings to display something else then you must extend this class.
+	context(setting: Setting<*, MutableCollection<T>>)
+	override fun toJson(): JsonElement = gson.toJsonTree(value.map { it.className })
 
-	context(setting: Setting<*, MutableCollection<Item>>)
+	context(setting: Setting<*, MutableCollection<T>>)
 	override fun loadFromJson(serialized: JsonElement) {
-		value = gson.fromJson<Collection<Item>>(serialized, type)
+		val strList = gson.fromJson<MutableList<String>>(serialized, type)
+			.mapNotNull { str -> immutableCollection.find { it.className == str } }
 			.toMutableList()
+
+		value = strList
 	}
 }

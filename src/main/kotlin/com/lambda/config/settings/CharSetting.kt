@@ -33,7 +33,7 @@ import net.minecraft.command.CommandRegistryAccess
 /**
  * @see [com.lambda.config.Configurable]
  */
-class CharSettingCore(defaultValue: Char) : SettingCore<Char>(
+class CharSetting(defaultValue: Char) : SettingCore<Char>(
 	defaultValue,
 	TypeToken.get(Char::class.java).type
 ) {

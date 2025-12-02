@@ -38,7 +38,7 @@ import kotlin.properties.Delegates
 /**
  * @see [com.lambda.config.Configurable]
  */
-class EnumSettingCore<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
+class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
 	defaultValue,
 	TypeToken.get(defaultValue.declaringJavaClass).type
 ) {

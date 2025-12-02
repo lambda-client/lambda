@@ -15,42 +15,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.numeric
+package com.lambda.config.settings.complex
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
+import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
-import com.lambda.config.settings.NumericSettingCore
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import java.awt.Color
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class IntegerSettingCore(
-    defaultValue: Int,
-    override var range: ClosedRange<Int>,
-    override var step: Int = 1,
-    unit: String
-) : NumericSettingCore<Int>(
-    defaultValue,
-    range,
-    step,
-    unit
+class ColorSetting(defaultValue: Color) : SettingCore<Color>(
+	defaultValue,
+	TypeToken.get(Color::class.java).type
 ) {
-	context(setting: Setting<*, Int>)
-    override fun ImGuiBuilder.buildSlider() {
-        slider("##${setting.name}", ::value, range.start, range.endInclusive, "")
+    context(setting: Setting<*, Color>)
+	override fun ImGuiBuilder.buildLayout() {
+        colorEdit(setting.name, ::value)
+        lambdaTooltip(setting.description)
     }
 
-	context(setting: Setting<*, Int>)
+	context(setting: Setting<*, Color>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer(setting.name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
+        required(integer("Red", 0, 255)) { red ->
+            required(integer("Green", 0, 255)) { green ->
+                required(integer("Blue", 0, 255)) { blue ->
+                    optional(integer("Alpha", 0, 255)) { alpha ->
+                        execute {
+                            val alphaValue = alpha?.let { it().value() } ?: 255
+                            setting.trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
+                        }
+                    }
+                }
             }
         }
     }

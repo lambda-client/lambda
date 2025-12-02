@@ -18,38 +18,34 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-class BlockPosSettingCore(defaultValue: BlockPos) : SettingCore<BlockPos>(
+class Vec3DSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
 	defaultValue,
-	TypeToken.get(BlockPos::class.java).type
+	TypeToken.get(Vec3d::class.java).type
 ) {
-	context(setting: Setting<*, BlockPos>)
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3i(setting.name, value) { value = it.blockPos }
+    context(setting: Setting<*, Vec3d>)
+	override fun ImGuiBuilder.buildLayout() {
+        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
         lambdaTooltip(setting.description)
     }
 
-	context(setting: Setting<*, BlockPos>)
+	context(setting: Setting<*, Vec3d>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("X", -30000000, 30000000)) { x ->
-            required(integer("Y", -64, 255)) { y ->
-                required(integer("Z", -30000000, 30000000)) { z ->
+        required(double("X", -30000000.0, 30000000.0)) { x ->
+            required(double("Y", -64.0, 255.0)) { y ->
+                required(double("Z", -30000000.0, 30000000.0)) { z ->
                     execute {
-                        setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
+                        setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
                     }
                 }
             }

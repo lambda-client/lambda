@@ -17,46 +17,47 @@
 
 package com.lambda.config.settings.numeric
 
-import com.lambda.brigadier.argument.long
+
+import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
-import com.lambda.config.settings.NumericSettingCore
+import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import kotlin.math.roundToInt
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class LongSettingCore(
-    defaultValue: Long,
-    override var range: ClosedRange<Long>,
-    override var step: Long = 1,
-    unit: String
-) : NumericSettingCore<Long>(
+class DoubleSetting(
+    defaultValue: Double,
+    override var range: ClosedRange<Double>,
+    override var step: Double,
+	unit: String
+) : NumericSetting<Double>(
     defaultValue,
     range,
     step,
-    unit
+	unit
 ) {
-    // ToDo: No worky for super large numbers
     private var valueIndex: Int
-        get() = ((value - range.start) / step).toInt()
+        get() = ((value - range.start) / step).roundToInt()
         set(index) {
             value = (range.start + index * step).coerceIn(range)
         }
 
-	context(setting: Setting<*, Long>)
+	context(setting: Setting<*, Double>)
     override fun ImGuiBuilder.buildSlider() {
         val maxIndex = ((range.endInclusive - range.start) / step).toInt()
         slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
     }
 
-	context(setting: Setting<*, Long>)
+	context(setting: Setting<*, Double>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(long(setting.name, range.start, range.endInclusive)) { parameter ->
+        required(double(setting.name, range.start, range.endInclusive)) { parameter ->
             execute {
                 setting.trySetValue(parameter().value())
             }

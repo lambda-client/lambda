@@ -30,7 +30,6 @@ import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
 import com.lambda.context.SafeContext
-import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info

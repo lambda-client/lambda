@@ -35,14 +35,14 @@ import java.lang.reflect.Type
 /**
  * This generic collection settings handles all [Comparable] values (i.e not classes) and serialize
  * their values by calling [Any.toString] and loads them by comparing what's in the [immutableCollection].
- * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSettingCore].
+ * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSetting].
  *
  * If you wish to use a different codec or simply display values differently you must create your own
  * collection setting.
  *
  * @see [com.lambda.config.Configurable]
  */
-open class CollectionSettingCore<R : Any>(
+open class CollectionSetting<R : Any>(
 	defaultValue: MutableCollection<R>,
 	private var immutableCollection: Collection<R>,
 	type: Type
@@ -108,18 +108,18 @@ open class CollectionSettingCore<R : Any>(
     }
 
 	companion object {
-		fun <T : Any> Setting<CollectionSettingCore<T>, MutableCollection<T>>.onSelect(block: SafeContext.(T) -> Unit) = apply {
+		fun <T : Any> Setting<CollectionSetting<T>, MutableCollection<T>>.onSelect(block: SafeContext.(T) -> Unit) = apply {
 			core.selectListeners.add(block)
 		}
 
-		fun <T : Any> Setting<CollectionSettingCore<T>, MutableCollection<T>>.onDeselect(block: SafeContext.(T) -> Unit) = apply {
+		fun <T : Any> Setting<CollectionSetting<T>, MutableCollection<T>>.onDeselect(block: SafeContext.(T) -> Unit) = apply {
 			core.deselectListeners.add(block)
 		}
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-            (settings as Collection<CollectionSettingCore<T>>).forEach { it.immutableCollection = collection }
+            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
         }
     }
 }

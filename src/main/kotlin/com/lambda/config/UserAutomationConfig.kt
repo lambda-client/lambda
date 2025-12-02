@@ -18,8 +18,8 @@
 package com.lambda.config
 
 import com.lambda.config.configurations.UserAutomationConfigs
-import com.lambda.config.settings.collections.CollectionSettingCore.Companion.onDeselect
-import com.lambda.config.settings.collections.CollectionSettingCore.Companion.onSelect
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry.moduleNameMap
 

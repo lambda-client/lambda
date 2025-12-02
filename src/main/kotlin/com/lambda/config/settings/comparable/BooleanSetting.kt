@@ -15,10 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.complex
+package com.lambda.config.settings.comparable
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.double
+import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
@@ -27,27 +27,25 @@ import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import net.minecraft.util.math.Vec3d
 
-class Vec3DSettingCore(defaultValue: Vec3d, ) : SettingCore<Vec3d>(
+/**
+ * @see [com.lambda.config.Configurable]
+ */
+class BooleanSetting(defaultValue: Boolean) : SettingCore<Boolean>(
 	defaultValue,
-	TypeToken.get(Vec3d::class.java).type
+	TypeToken.get(Boolean::class.java).type
 ) {
-    context(setting: Setting<*, Vec3d>)
+    context(setting: Setting<*, Boolean>)
 	override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
+        checkbox(setting.name, ::value)
         lambdaTooltip(setting.description)
     }
 
-	context(setting: Setting<*, Vec3d>)
+	context(setting: Setting<*, Boolean>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(double("X", -30000000.0, 30000000.0)) { x ->
-            required(double("Y", -64.0, 255.0)) { y ->
-                required(double("Z", -30000000.0, 30000000.0)) { z ->
-                    execute {
-                        setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
-                    }
-                }
+        required(boolean(setting.name)) { parameter ->
+            execute {
+                setting.trySetValue(parameter().value())
             }
         }
     }
