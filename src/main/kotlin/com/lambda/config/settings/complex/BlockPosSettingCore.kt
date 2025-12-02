@@ -21,43 +21,35 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
-import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import java.awt.Color
+import net.minecraft.util.math.BlockPos
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class ColorSetting(
-    override var name: String,
-    defaultValue: Color,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Color>(
-    name,
-    defaultValue,
-    TypeToken.get(Color::class.java).type,
-    description,
-    visibility
+class BlockPosSettingCore(defaultValue: BlockPos) : SettingCore<BlockPos>(
+	defaultValue,
+	TypeToken.get(BlockPos::class.java).type
 ) {
+	context(setting: Setting<*, BlockPos>)
     override fun ImGuiBuilder.buildLayout() {
-        colorEdit(name, ::value)
-        lambdaTooltip(description)
+        inputVec3i(setting.name, value) { value = it.blockPos }
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, BlockPos>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("Red", 0, 255)) { red ->
-            required(integer("Green", 0, 255)) { green ->
-                required(integer("Blue", 0, 255)) { blue ->
-                    optional(integer("Alpha", 0, 255)) { alpha ->
-                        execute {
-                            val alphaValue = alpha?.let { it().value() } ?: 255
-                            trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
-                        }
+        required(integer("X", -30000000, 30000000)) { x ->
+            required(integer("Y", -64, 255)) { y ->
+                required(integer("Z", -30000000, 30000000)) { z ->
+                    execute {
+                        setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
                     }
                 }
             }

@@ -42,7 +42,7 @@ import kotlin.time.Duration.Companion.minutes
 
 
 /**
- * Represents a compound of [Configurable] objects whose [AbstractSetting]s
+ * Represents a compound of [Configurable] objects whose [SettingCore]s
  * are saved into a single [Configuration] file ([Configuration.primary]).
  *
  * This class also handles the concurrent loading and saving of persisted data on the `Dispatchers.IO` thread.
@@ -159,12 +159,12 @@ abstract class Configuration : Jsonable, Loadable {
         val configurations = mutableSetOf<Configuration>()
         val configurables: Set<Configurable>
             get() = configurations.flatMapTo(mutableSetOf()) { it.configurables }
-        val settings: Set<AbstractSetting<*>>
+        val settings: Set<Setting<out SettingCore<*>, *>>
             get() = configurables.flatMapTo(mutableSetOf()) { it.settings }
 
         //ToDo: Store owner in setting
-        fun configurableBySetting(setting: AbstractSetting<*>) =
-            configurables.find { it.settings.contains(setting) }
+        fun configurableBySetting(setting: Setting<*, *>) =
+            configurables.find { it.settings.any { del -> del.name == setting.name } }
 
         fun configurableByName(name: String) =
             configurables.find { it.name == name }
@@ -172,10 +172,10 @@ abstract class Configuration : Jsonable, Loadable {
         fun configurableByCommandName(name: String) =
             configurables.find { it.commandName == name }
 
-        fun settingByName(configurable: Configurable, name: String) =
+        fun settingDelegateByName(configurable: Configurable, name: String) =
             configurable.settings.find { it.name == name }
 
-        fun settingByCommandName(configurable: Configurable, name: String) =
+        fun settingDelegateByCommandName(configurable: Configurable, name: String) =
             configurable.settings.find { it.commandName == name }
     }
 }

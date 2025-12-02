@@ -18,37 +18,36 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.blockState
+import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
-import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
+import net.minecraft.util.math.Vec3d
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-class BlockSetting(
-    override var name: String,
-    defaultValue: Block,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Block>(
-    name,
-    defaultValue,
-    TypeToken.get(Block::class.java).type,
-    description,
-    visibility
+class Vec3DSettingCore(defaultValue: Vec3d, ) : SettingCore<Vec3d>(
+	defaultValue,
+	TypeToken.get(Vec3d::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {}
+    context(setting: Setting<*, Vec3d>)
+	override fun ImGuiBuilder.buildLayout() {
+        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
+        lambdaTooltip(setting.description)
+    }
 
+	context(setting: Setting<*, Vec3d>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(blockState(name, registry)) { argument ->
-            execute {
-                trySetValue(argument().value().blockState.block)
+        required(double("X", -30000000.0, 30000000.0)) { x ->
+            required(double("Y", -64.0, 255.0)) { y ->
+                required(double("Z", -30000000.0, 30000000.0)) { z ->
+                    execute {
+                        setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
+                    }
+                }
             }
         }
     }

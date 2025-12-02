@@ -17,51 +17,48 @@
 
 package com.lambda.config.settings.numeric
 
-import com.lambda.brigadier.argument.float
+import com.lambda.brigadier.argument.long
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.settings.NumericSetting
+import com.lambda.config.Setting
+import com.lambda.config.settings.NumericSettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import kotlin.math.roundToInt
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class FloatSetting(
-    override var name: String,
-    defaultValue: Float,
-    override var range: ClosedRange<Float>,
-    override var step: Float = 1f,
-    description: String,
-    unit: String,
-    visibility: () -> Boolean
-) : NumericSetting<Float>(
-    name,
+class LongSettingCore(
+    defaultValue: Long,
+    override var range: ClosedRange<Long>,
+    override var step: Long = 1,
+    unit: String
+) : NumericSettingCore<Long>(
     defaultValue,
     range,
     step,
-    description,
-    unit,
-    visibility
+    unit
 ) {
+    // ToDo: No worky for super large numbers
     private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
+        get() = ((value - range.start) / step).toInt()
         set(index) {
             value = (range.start + index * step).coerceIn(range)
         }
 
+	context(setting: Setting<*, Long>)
     override fun ImGuiBuilder.buildSlider() {
         val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##$name", ::valueIndex, 0, maxIndex, "")
+        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
     }
 
+	context(setting: Setting<*, Long>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(float(name, range.start, range.endInclusive)) { parameter ->
+        required(long(setting.name, range.start, range.endInclusive)) { parameter ->
             execute {
-                trySetValue(parameter().value())
+                setting.trySetValue(parameter().value())
             }
         }
     }

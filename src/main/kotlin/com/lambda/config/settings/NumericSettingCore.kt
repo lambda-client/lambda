@@ -18,7 +18,8 @@
 package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -33,61 +34,57 @@ import kotlin.reflect.KProperty
 /**
  * @see [com.lambda.config.Configurable]
  */
-abstract class NumericSetting<T>(
-    override var name: String,
+abstract class NumericSettingCore<T>(
     value: T,
     open var range: ClosedRange<T>,
     open var step: T,
-    description: String,
-    var unit: String,
-    visibility: () -> Boolean
-) : AbstractSetting<T>(
-    name,
-    value,
-    TypeToken.get(value::class.java).type,
-    description,
-    visibility
+    var unit: String
+) : SettingCore<T>(
+	value,
+	TypeToken.get(value::class.java).type
 ) where T : Number, T : Comparable<T> {
     private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
     override fun toString() = "${formatter.format(value)}$unit"
 
-    override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
         value = valueIn.coerceIn(range)
     }
 
     /**
      * Subclasses must implement this to provide their specific slider widget.
      */
+    context(setting: Setting<*, T>)
     protected abstract fun ImGuiBuilder.buildSlider()
 
+	context(setting: Setting<*, T>)
     override fun ImGuiBuilder.buildLayout() {
-        val showReset = isModified
+        val showReset = setting.isModified
         val resetButtonText = "R"
-        val valueString = this@NumericSetting.toString()
+        val valueString = this@NumericSettingCore.toString()
 
         buildSlider()
-        lambdaTooltip(description)
+        lambdaTooltip(setting.description)
 
         val itemRectMin = ImGui.getItemRectMin()
         val itemRectMax = ImGui.getItemRectMax()
         val textHeight = ImGui.getTextLineHeight()
         val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-        val labelWidth = calcTextSize(name).x
+        val labelWidth = calcTextSize(setting.name).x
         val valueWidth = calcTextSize(valueString).x
 
         val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
         val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
 
-        windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
+        windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), setting.name)
         if (labelEndPosX < valueStartPosX) {
             windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
         }
 
         sameLine(0.0f, style.itemSpacing.x)
         if (showReset) {
-            button("$resetButtonText##$name") {
-                reset()
+            button("$resetButtonText##${setting.name}") {
+                setting.reset()
             }
             onItemHover {
                 tooltip { text("Reset to default") }
@@ -101,19 +98,19 @@ abstract class NumericSetting<T>(
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T> SettingGroupEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
+            (settings as Collection<NumericSettingCore<T>>).forEach { it.range = range }
         }
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T> SettingGroupEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
+            (settings as Collection<NumericSettingCore<T>>).forEach { it.step = step }
         }
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T> SettingGroupEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
+            (settings as Collection<NumericSettingCore<T>>).forEach { it.unit = unit}
         }
     }
 }

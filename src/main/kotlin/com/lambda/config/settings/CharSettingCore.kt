@@ -15,13 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.numeric
+package com.lambda.config.settings
 
-import com.lambda.brigadier.argument.integer
+import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
-import com.lambda.brigadier.execute
+import com.lambda.brigadier.argument.word
+import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
-import com.lambda.config.settings.NumericSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -29,31 +33,20 @@ import net.minecraft.command.CommandRegistryAccess
 /**
  * @see [com.lambda.config.Configurable]
  */
-class IntegerSetting(
-    override var name: String,
-    defaultValue: Int,
-    override var range: ClosedRange<Int>,
-    override var step: Int = 1,
-    description: String,
-    unit: String,
-    visibility: () -> Boolean
-) : NumericSetting<Int>(
-    name,
-    defaultValue,
-    range,
-    step,
-    description,
-    unit,
-    visibility
+class CharSettingCore(defaultValue: Char) : SettingCore<Char>(
+	defaultValue,
+	TypeToken.get(Char::class.java).type
 ) {
-    override fun ImGuiBuilder.buildSlider() {
-        slider("##$name", ::value, range.start, range.endInclusive, "")
-    }
+    context(setting: Setting<*, Char>)
+	override fun ImGuiBuilder.buildLayout() {}
 
+	context(setting: Setting<*, Char>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer(name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                trySetValue(parameter().value())
+        required(word(setting.name)) { parameter ->
+            executeWithResult {
+                val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
+                setting.trySetValue(char)
+                return@executeWithResult success()
             }
         }
     }

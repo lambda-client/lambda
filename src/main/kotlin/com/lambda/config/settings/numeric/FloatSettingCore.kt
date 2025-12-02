@@ -15,42 +15,50 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.comparable
+package com.lambda.config.settings.numeric
 
-import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.boolean
+import com.lambda.brigadier.argument.float
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.settings.NumericSettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import kotlin.math.roundToInt
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class BooleanSetting(
-    override var name: String,
-    defaultValue: Boolean,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Boolean>(
-    name,
+class FloatSettingCore(
+    defaultValue: Float,
+    override var range: ClosedRange<Float>,
+    override var step: Float = 1f,
+    unit: String,
+) : NumericSettingCore<Float>(
     defaultValue,
-    TypeToken.get(Boolean::class.java).type,
-    description,
-    visibility
+    range,
+    step,
+    unit
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        checkbox(name, ::value)
-        lambdaTooltip(description)
+    private var valueIndex: Int
+        get() = ((value - range.start) / step).roundToInt()
+        set(index) {
+            value = (range.start + index * step).coerceIn(range)
+        }
+
+	context(setting: Setting<*, Float>)
+    override fun ImGuiBuilder.buildSlider() {
+        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
     }
 
+	context(setting: Setting<*, Float>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(boolean(name)) { parameter ->
+        required(float(setting.name, range.start, range.endInclusive)) { parameter ->
             execute {
-                trySetValue(parameter().value())
+                setting.trySetValue(parameter().value())
             }
         }
     }

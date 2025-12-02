@@ -79,10 +79,10 @@ object ConfigCommand : LambdaCommand(
                         val conf = Configuration.configurableByCommandName(confName) ?: run {
                             return@executeWithResult failure("$confName is not a valid configurable.")
                         }
-                        val set = Configuration.settingByCommandName(conf, settingName) ?: run {
+                        val setDel = Configuration.settingDelegateByCommandName(conf, settingName) ?: run {
                             return@executeWithResult failure("$settingName is not a valid setting for $confName.")
                         }
-                        set.reset()
+                        setDel.reset()
                         return@executeWithResult success()
                     }
                 }

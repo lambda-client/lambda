@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.request.rotating
 
-import com.lambda.config.AbstractSetting
 import com.lambda.config.ISettingGroup
+import com.lambda.config.Setting
 import com.lambda.event.events.TickEvent
 
 interface RotationConfig : ISettingGroup {
@@ -50,7 +50,7 @@ interface RotationConfig : ISettingGroup {
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
     open class Instant(mode: RotationMode) : RotationConfig {
-	    override val settings = mutableListOf<AbstractSetting<*>>()
+	    override val settings = mutableListOf<Setting<*, *>>()
         override val rotationMode = mode
         override val keepTicks = 1
         override val decayTicks = 1

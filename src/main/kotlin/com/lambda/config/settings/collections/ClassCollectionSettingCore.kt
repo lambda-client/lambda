@@ -20,6 +20,7 @@ package com.lambda.config.settings.collections
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
+import com.lambda.config.Setting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.StringUtils.levenshteinDistance
 import com.lambda.util.reflections.className
@@ -28,33 +29,28 @@ import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 
 /**
- * @see [com.lambda.config.settings.collections.CollectionSetting]
+ * @see [com.lambda.config.settings.collections.CollectionSettingCore]
  * @see [com.lambda.config.Configurable]
  */
-class ClassCollectionSetting<T : Any>(
-	override var name: String,
+class ClassCollectionSettingCore<T : Any>(
 	private val immutableCollection: Collection<T>,
-	defaultValue: MutableCollection<T>,
-	description: String,
-	visibility: () -> Boolean,
-) : CollectionSetting<T>(
-	name,
+	defaultValue: MutableCollection<T>
+) : CollectionSettingCore<T>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Any::class.java).type,
-	description,
-	visibility,
+	TypeToken.getParameterized(Collection::class.java, Any::class.java).type
 ) {
 	private var searchFilter = ""
 
+	context(setting: Setting<*, MutableCollection<T>>)
 	override fun ImGuiBuilder.buildLayout() {
 		val text = if (value.size == 1) "item" else "items"
 
-		combo("##$name", "$name: ${value.size} $text") {
-			inputText("##$name-SearchBox", ::searchFilter)
+		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
+			inputText("##${setting.name}-SearchBox", ::searchFilter)
 
 			child(
-				strId = "##$name-ComboOptionsChild",
+				strId = "##${setting.name}-ComboOptionsChild",
 				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
 			) {
 				val list = immutableCollection
@@ -86,8 +82,10 @@ class ClassCollectionSetting<T : Any>(
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
 	// If we do serialize the classes we'll run into missing type adapters errors by Gson.
 	// This is intended behaviour. If you wish your collection settings to display something else then you must extend this class.
+	context(setting: Setting<*, MutableCollection<T>>)
 	override fun toJson(): JsonElement = gson.toJsonTree(value.map { it.className })
 
+	context(setting: Setting<*, MutableCollection<T>>)
 	override fun loadFromJson(serialized: JsonElement) {
 		val strList = gson.fromJson<MutableList<String>>(serialized, type)
 			.mapNotNull { str -> immutableCollection.find { it.className == str } }

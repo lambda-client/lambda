@@ -20,7 +20,8 @@ package com.lambda.config.settings.collections
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
@@ -34,50 +35,37 @@ import java.lang.reflect.Type
 /**
  * This generic collection settings handles all [Comparable] values (i.e not classes) and serialize
  * their values by calling [Any.toString] and loads them by comparing what's in the [immutableCollection].
- * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSetting].
+ * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSettingCore].
  *
  * If you wish to use a different codec or simply display values differently you must create your own
  * collection setting.
  *
  * @see [com.lambda.config.Configurable]
  */
-open class CollectionSetting<T : Any>(
-    override var name: String,
-    defaultValue: MutableCollection<T>,
-    private var immutableCollection: Collection<T>,
-    type: Type,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<MutableCollection<T>>(
-    name,
-    defaultValue,
-    type,
-    description,
-    visibility
+open class CollectionSettingCore<R : Any>(
+	defaultValue: MutableCollection<R>,
+	private var immutableCollection: Collection<R>,
+	type: Type
+) : SettingCore<MutableCollection<R>>(
+	defaultValue,
+	type
 ) {
     private var searchFilter = ""
     private val strListType =
         TypeToken.getParameterized(Collection::class.java, String::class.java).type
 
-    private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
-    private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
+    val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+    val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
-    fun onSelect(block: SafeContext.(T) -> Unit) = apply {
-        selectListeners.add(block)
-    }
-
-    fun onDeselect(block: SafeContext.(T) -> Unit) = apply {
-        deselectListeners.add(block)
-    }
-
+	context(setting: Setting<*, MutableCollection<R>>)
     override fun ImGuiBuilder.buildLayout() {
         val text = if (value.size == 1) "item" else "items"
 
-        combo("##$name", "$name: ${value.size} $text") {
-            inputText("##$name-SearchBox", ::searchFilter)
+        combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
+            inputText("##${setting.name}-SearchBox", ::searchFilter)
 
             child(
-                strId = "##$name-ComboOptionsChild",
+                strId = "##${setting.name}-ComboOptionsChild",
                 childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
             ) {
                 val list = immutableCollection
@@ -106,9 +94,11 @@ open class CollectionSetting<T : Any>(
         }
     }
 
+	context(setting: Setting<*, MutableCollection<R>>)
     override fun toJson(): JsonElement =
         gson.toJsonTree(value.map { it.toString() })
 
+	context(setting: Setting<*, MutableCollection<R>>)
     override fun loadFromJson(serialized: JsonElement) {
         val strList = gson.fromJson<Collection<String>>(serialized, strListType)
             .mapNotNull { str -> immutableCollection.find { it.toString() == str } }
@@ -117,11 +107,19 @@ open class CollectionSetting<T : Any>(
         value = strList
     }
 
-    companion object {
+	companion object {
+		fun <T : Any> Setting<CollectionSettingCore<T>, MutableCollection<T>>.onSelect(block: SafeContext.(T) -> Unit) = apply {
+			core.selectListeners.add(block)
+		}
+
+		fun <T : Any> Setting<CollectionSettingCore<T>, MutableCollection<T>>.onDeselect(block: SafeContext.(T) -> Unit) = apply {
+			core.deselectListeners.add(block)
+		}
+
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
+            (settings as Collection<CollectionSettingCore<T>>).forEach { it.immutableCollection = collection }
         }
     }
 }

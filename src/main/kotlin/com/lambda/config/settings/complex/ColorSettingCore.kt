@@ -15,45 +15,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings
+package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.CommandResult.Companion.failure
-import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
-import com.lambda.brigadier.argument.word
-import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
+import java.awt.Color
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class CharSetting(
-    override var name: String,
-    defaultValue: Char,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Char>(
-    name,
-    defaultValue,
-    TypeToken.get(Char::class.java).type,
-    description,
-    visibility
+class ColorSettingCore(defaultValue: Color) : SettingCore<Color>(
+	defaultValue,
+	TypeToken.get(Color::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-
+    context(setting: Setting<*, Color>)
+	override fun ImGuiBuilder.buildLayout() {
+        colorEdit(setting.name, ::value)
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, Color>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(name)) { parameter ->
-            executeWithResult {
-                val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
-                trySetValue(char)
-                return@executeWithResult success()
+        required(integer("Red", 0, 255)) { red ->
+            required(integer("Green", 0, 255)) { green ->
+                required(integer("Blue", 0, 255)) { blue ->
+                    optional(integer("Alpha", 0, 255)) { alpha ->
+                        execute {
+                            val alphaValue = alpha?.let { it().value() } ?: 255
+                            setting.trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
+                        }
+                    }
+                }
             }
         }
     }

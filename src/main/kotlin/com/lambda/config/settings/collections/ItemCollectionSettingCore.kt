@@ -20,42 +20,38 @@ package com.lambda.config.settings.collections
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
-import com.lambda.config.serializer.BlockCodec
+import com.lambda.config.Setting
+import com.lambda.config.serializer.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.StringUtils.levenshteinDistance
 import imgui.ImGuiListClipper
 import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
-import net.minecraft.block.Block
+import net.minecraft.item.Item
 
-class BlockCollectionSetting(
-	override var name: String,
-	private val immutableCollection: Collection<Block>,
-	defaultValue: MutableCollection<Block>,
-	description: String,
-	visibility: () -> Boolean,
-) : CollectionSetting<Block>(
-	name,
+class ItemCollectionSettingCore(
+	private val immutableCollection: Collection<Item>,
+	defaultValue: MutableCollection<Item>
+) : CollectionSettingCore<Item>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Block::class.java).type,
-	description,
-	visibility,
+	TypeToken.getParameterized(Collection::class.java, Item::class.java).type
 ) {
 	private var searchFilter = ""
 
+	context(setting: Setting<*, MutableCollection<Item>>)
 	override fun ImGuiBuilder.buildLayout() {
-		val text = if (value.size == 1) "block" else "blocks"
+		val text = if (value.size == 1) "item" else "items"
 
-		combo("##$name", "$name: ${value.size} $text") {
-			inputText("##$name-SearchBox", ::searchFilter)
+		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
+			inputText("##${setting.name}-SearchBox", ::searchFilter)
 
 			child(
-				strId = "##$name-ComboOptionsChild",
+				strId = "##${setting.name}-ComboOptionsChild",
 				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
 			) {
 				val list = immutableCollection
-					.filter { searchFilter == "" || searchFilter.levenshteinDistance(BlockCodec.stringify(it)) < 3 }
+					.filter { searchFilter == "" || searchFilter.levenshteinDistance(ItemCodec.stringify(it)) < 3 }
 
 				ImGuiListClipper.forEach { // not actually iterating
 					it.begin(list.size)
@@ -66,7 +62,7 @@ class BlockCollectionSetting(
 							val selected = value.contains(v)
 
 							selectable(
-								label = BlockCodec.stringify(v),
+								label = ItemCodec.stringify(v),
 								selected = selected,
 								flags = DontClosePopups
 							) {
@@ -80,10 +76,12 @@ class BlockCollectionSetting(
 		}
 	}
 
+	context(setting: Setting<*, MutableCollection<Item>>)
 	override fun toJson(): JsonElement = gson.toJsonTree(value, type)
 
+	context(setting: Setting<*, MutableCollection<Item>>)
 	override fun loadFromJson(serialized: JsonElement) {
-		value = gson.fromJson<Collection<Block>>(serialized, type)
+		value = gson.fromJson<Collection<Item>>(serialized, type)
 			.toMutableList()
 	}
 }

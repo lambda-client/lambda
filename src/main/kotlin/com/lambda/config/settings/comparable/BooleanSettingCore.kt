@@ -15,44 +15,37 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.complex
+package com.lambda.config.settings.comparable
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.double
+import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import net.minecraft.util.math.Vec3d
 
-class Vec3dSetting(
-    override var name: String,
-    defaultValue: Vec3d,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Vec3d>(
-    name,
-    defaultValue,
-    TypeToken.get(Vec3d::class.java).type,
-    description,
-    visibility
+/**
+ * @see [com.lambda.config.Configurable]
+ */
+class BooleanSettingCore(defaultValue: Boolean) : SettingCore<Boolean>(
+	defaultValue,
+	TypeToken.get(Boolean::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(name, ::value as Vec3d) // FixMe: what the fuck
-        lambdaTooltip(description)
+    context(setting: Setting<*, Boolean>)
+	override fun ImGuiBuilder.buildLayout() {
+        checkbox(setting.name, ::value)
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, Boolean>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(double("X", -30000000.0, 30000000.0)) { x ->
-            required(double("Y", -64.0, 255.0)) { y ->
-                required(double("Z", -30000000.0, 30000000.0)) { z ->
-                    execute {
-                        trySetValue(Vec3d(x().value(), y().value(), z().value()))
-                    }
-                }
+        required(boolean(setting.name)) { parameter ->
+            execute {
+                setting.trySetValue(parameter().value())
             }
         }
     }

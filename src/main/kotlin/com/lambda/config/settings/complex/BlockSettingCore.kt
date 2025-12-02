@@ -18,45 +18,32 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.blockState
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
-import net.minecraft.util.math.BlockPos
 
 /**
  * @see [com.lambda.config.Configurable]
  */
-class BlockPosSetting(
-    override var name: String,
-    defaultValue: BlockPos,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<BlockPos>(
-    name,
-    defaultValue,
-    TypeToken.get(BlockPos::class.java).type,
-    description,
-    visibility
+class BlockSettingCore(defaultValue: Block) : SettingCore<Block>(
+	defaultValue,
+	TypeToken.get(Block::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3i(name, value) { value = it.blockPos }
-        lambdaTooltip(description)
-    }
+	context(setting: Setting<*, Block>)
+    override fun ImGuiBuilder.buildLayout() {}
 
+	context(setting: Setting<*, Block>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("X", -30000000, 30000000)) { x ->
-            required(integer("Y", -64, 255)) { y ->
-                required(integer("Z", -30000000, 30000000)) { z ->
-                    execute {
-                        trySetValue(BlockPos(x().value(), y().value(), z().value()))
-                    }
-                }
+        required(blockState(setting.name, registry)) { argument ->
+            execute {
+                setting.trySetValue(argument().value().blockState.block)
             }
         }
     }

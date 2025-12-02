@@ -17,10 +17,10 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.AbstractSetting
 import com.lambda.config.AutomationConfig
 import com.lambda.config.Configurable
 import com.lambda.config.MutableAutomationConfig
+import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
@@ -33,7 +33,7 @@ object SettingsWidget {
     /**
      * Builds the settings context popup content for a given configurable.
      */
-    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable, hiddenSettings: Set<AbstractSetting<*>> = emptySet()) {
+    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
             if (config is Module) {
                 with(config.keybindSetting) { buildLayout() }
@@ -49,7 +49,7 @@ object SettingsWidget {
                 }
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
-                    buildConfigSettingsContext(config.automationConfig, config.defaultAutomationConfig.hiddenSettings)
+                    buildConfigSettingsContext(config.automationConfig)
                 }
                 if (config.automationConfig !== config.defaultAutomationConfig) {
                     sameLine()
@@ -64,7 +64,7 @@ object SettingsWidget {
                 is UserAutomationConfig -> setOf(config.linkedModules)
                 else -> emptySet()
             }
-        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings - hiddenSettings
+        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
         ungrouped.forEach {
             it.withDisabled { buildLayout() }
@@ -72,16 +72,16 @@ object SettingsWidget {
         renderGroup(grouped, emptyList(), config)
     }
 
-    private fun AbstractSetting<*>.withDisabled(block: AbstractSetting<*>.() -> Unit) {
+    private fun Setting<*, *>.withDisabled(block: Setting<*, *>.() -> Unit) {
         if (disabled()) ImGui.beginDisabled()
         block()
         if (disabled()) ImGui.endDisabled()
     }
 
     private fun ImGuiBuilder.renderGroup(
-        settings: List<AbstractSetting<*>>,
-        parentPath: List<NamedEnum>,
-        config: Configurable
+	    settings: List<Setting<*, *>>,
+	    parentPath: List<NamedEnum>,
+	    config: Configurable
     ) {
         settings.filter { it.groups.contains(parentPath) }.forEach {
             it.withDisabled { buildLayout() }
