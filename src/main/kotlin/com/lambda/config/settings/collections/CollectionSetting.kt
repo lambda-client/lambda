@@ -25,6 +25,7 @@ import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.threading.runSafe
 import com.lambda.util.StringUtils.levenshteinDistance
 import imgui.ImGuiListClipper
 import imgui.flag.ImGuiChildFlags
@@ -96,8 +97,13 @@ open class CollectionSetting<T : Any>(
                                 selected = selected,
                                 flags = DontClosePopups
                             ) {
-                                if (selected) value.remove(v)
-                                else value.add(v)
+                                if (selected) {
+                                    value.remove(v)
+                                    runSafe { deselectListeners.forEach { f -> f(v) } }
+                                } else {
+                                    value.add(v)
+                                    runSafe { selectListeners.forEach { f -> f(v) } }
+                                }
                             }
                         }
                     }

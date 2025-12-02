@@ -41,9 +41,11 @@ object BlockESP : Module(
     description = "Render block ESP",
     tag = ModuleTag.RENDER,
 ) {
-    // ToDo: Toggle searching, solve memory leak
     private val searchBlocks by setting("Search Blocks", true, "Search for blocks around the player")
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), description = "Render blocks") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), description = "Render blocks") { searchBlocks }
+        .onSelect { rebuildMesh(this, null, null) }
+        .onDeselect { rebuildMesh(this, null, null) }
+
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
     private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)
@@ -88,5 +90,5 @@ object BlockESP : Module(
         if (drawOutlines) outline(pos, state, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
-    private fun rebuildMesh(ctx: SafeContext, from: Any, to: Any): Unit = esp.rebuild()
+    private fun rebuildMesh(ctx: SafeContext, from: Any?, to: Any?): Unit = esp.rebuild()
 }
