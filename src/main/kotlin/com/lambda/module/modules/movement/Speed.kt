@@ -175,7 +175,7 @@ object Speed : Module(
             ncpSpeed = NCP_BASE_SPEED
         }
 
-        ncpSpeed = ncpSpeed.coerceIn(1.0..NCP_BASE_SPEED)
+        ncpSpeed = ncpSpeed.coerceIn(NCP_BASE_SPEED..1.0)
 
         val moveSpeed = if (isInputting) ncpSpeed else {
             ncpSpeed = NCP_BASE_SPEED
