@@ -21,6 +21,9 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Dependent
+import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
@@ -29,15 +32,16 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
-data class PlaceRequest(
+data class PlaceRequest private constructor(
     val contexts: Collection<PlaceContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated,
     override val nowOrNothing: Boolean = false,
-    val onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
     override val tickStageMask get() = placeConfig.tickStageMask
+
+	var onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 
     override val done: Boolean
         get() = runSafe {
@@ -54,7 +58,50 @@ data class PlaceRequest(
         }
     }
 
+	@DslMarker
+	annotation class PlaceRequestDsl
+
+	@PlaceRequestDsl
+	class PlaceRequestBuilder(
+		contexts: Collection<PlaceContext>,
+		pendingInteractions: MutableCollection<BuildContext>,
+		nowOrNothing: Boolean,
+		automated: Automated
+	) {
+		val request = PlaceRequest(contexts, pendingInteractions, automated, nowOrNothing)
+
+		@PlaceRequestDsl
+		fun onPlace(callback: SafeContext.(BlockPos) -> Unit) {
+			request.onPlace = callback
+		}
+	}
+
     companion object {
         var requestCount = 0
+
+	    @PlaceRequestDsl
+	    context(automated: Automated)
+	    fun Collection<BuildResult>.placeRequest(
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (PlaceRequestBuilder.() -> Unit)? = null
+		) = asSequence()
+		    .map { if (it is Dependent) it.lastDependency else it }
+		    .filterIsInstance<PlaceResult.Place>()
+		    .map { it.context }
+		    .toSet()
+		    .takeIf { it.isNotEmpty() }
+		    ?.let { automated.placeRequest(it, pendingInteractions, nowOrNothing, builder) }
+
+	    @PlaceRequestDsl
+	    fun Automated.placeRequest(
+		    contexts: Collection<PlaceContext>,
+		    pendingInteractions: MutableCollection<BuildContext>,
+		    nowOrNothing: Boolean = false,
+			builder: (PlaceRequestBuilder.() -> Unit)? = null
+		) = PlaceRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
+
+	    @PlaceRequestDsl
+	    fun PlaceRequestBuilder.build() = request
     }
 }

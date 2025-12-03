@@ -50,7 +50,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.interacting.InteractRequest
 import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.placing.PlaceRequest.Companion.placeRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
@@ -168,32 +168,19 @@ class BuildTask private constructor(
             is Contextual -> {
                 if (atMaxPendingInteractions) return
                 when (result) {
-                    is BreakResult.Break -> {
-                        val breakResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<BreakResult.Break>()
-                            .map { it.context }
-
-                        breakRequest(breakResults, pendingInteractions) {
+                    is BreakResult.Break ->
+                        allResults.breakRequest(pendingInteractions) {
                             onStop { breaks++ }
                             onItemDrop?.let { onItemDrop ->
                                 onItemDrop { onItemDrop(it) }
                             }
-                        }.submit(queueIfMismatchedStage = true)
-                        return
-                    }
-                    is PlaceResult.Place -> {
-                        val placeResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<PlaceResult.Place>()
-                            .map { it.context }
+                        }?.submit()
 
-                        PlaceRequest(
-                            placeResults,
-                            pendingInteractions,
-                            this@BuildTask
-                        ) { placements++ }.submit(queueIfMismatchedStage = true)
-                    }
+                    is PlaceResult.Place ->
+                        allResults.placeRequest(pendingInteractions, false) {
+							onPlace { placements++ }
+						}?.submit()
+
                     is InteractResult.Interact -> {
                         val interactResults = allResults
                             .map { if (it is Dependent) it.lastDependency else it }
@@ -258,7 +245,7 @@ class BuildTask private constructor(
         @Ta5kBuilder
         fun Automated.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
+            collectDrops: Boolean = buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
             blueprint: () -> Blueprint
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
@@ -267,7 +254,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
+            collectDrops: Boolean = automated.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -275,7 +262,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
+            collectDrops: Boolean = automated.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -284,17 +271,6 @@ class BuildTask private constructor(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             collectDrops: Boolean = true,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(
-            blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, lifeMaintenance, this
-        )
-
-        @Ta5kBuilder
-        fun Automated.breakBlock(
-            blockPos: BlockPos,
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

@@ -23,9 +23,6 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.results.BreakResult
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -77,17 +74,9 @@ object FastBreak : Module(
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
-
-	        val breakContexts =
-				runSafeAutomated {
-					buildMap { put(event.pos, TargetState.Empty) }
-						.simulate()
-						.filterIsInstance<BreakResult.Break>()
-						.map { it.context }
-						.takeIf { it.isNotEmpty() }
-				} ?: return@listen
-
-            breakRequest(breakContexts, pendingInteractions).submit()
+	        runSafeAutomated {
+				breakRequest(listOf(event.pos), pendingInteractions)?.submit()
+			}
         }
     }
 }

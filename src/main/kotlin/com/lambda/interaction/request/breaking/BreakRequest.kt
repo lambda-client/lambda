@@ -18,9 +18,15 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Dependent
+import com.lambda.interaction.construction.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
@@ -134,13 +140,40 @@ data class BreakRequest private constructor(
     companion object {
         var requestCount = 0
 
+	    @BreakRequestDsl
+	    fun AutomatedSafeContext.breakRequest(
+			positions: Collection<BlockPos>,
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (BreakRequestBuilder.() -> Unit)? = null
+		) = positions
+			.associateWith { TargetState.Empty }
+		    .simulate()
+		    .breakRequest(pendingInteractions, nowOrNothing, builder)
+
+	    @BreakRequestDsl
+	    context(automated: Automated)
+	    fun Collection<BuildResult>.breakRequest(
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (BreakRequestBuilder.() -> Unit)? = null
+		) = asSequence()
+		    .map { if (it is Dependent) it.lastDependency else it }
+		    .filterIsInstance<BreakResult.Break>()
+		    .map { it.context }
+		    .toSet()
+		    .takeIf { it.isNotEmpty() }
+		    ?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
+
         @BreakRequestDsl
         fun Automated.breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,
             nowOrNothing: Boolean = false,
             builder: (BreakRequestBuilder.() -> Unit)? = null
-        ) = BreakRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
+        ) = BreakRequestBuilder(
+	        contexts, pendingInteractions, nowOrNothing, this
+		).apply { builder?.invoke(this) }.build()
 
         @BreakRequestDsl
         private fun BreakRequestBuilder.build(): BreakRequest = request
