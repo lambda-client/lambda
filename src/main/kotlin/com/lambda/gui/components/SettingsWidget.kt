@@ -51,13 +51,12 @@ object SettingsWidget {
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
                     buildConfigSettingsContext(config.automationConfig)
                 }
-                if (config.automationConfig !== config.defaultAutomationConfig) {
+                if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
                     sameLine()
-                    text("(${config.automationConfig.name})")
+                    text("(${config.backingAutomationConfig.name})")
                 }
             }
         }
-        separator()
         val toIgnoreSettings =
             when (config) {
                 is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting)
@@ -65,8 +64,10 @@ object SettingsWidget {
                 else -> emptySet()
             }
         val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
+	    if (visibleSettings.isEmpty()) return
+	    else separator()
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
-        ungrouped.forEach {
+	    ungrouped.forEach {
             it.withDisabled { buildLayout() }
         }
         renderGroup(grouped, emptyList(), config)

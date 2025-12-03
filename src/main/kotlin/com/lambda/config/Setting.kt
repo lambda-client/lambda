@@ -147,6 +147,7 @@ class Setting<T : SettingCore<R>, R : Any>(
 	var core: T,
 	var visibility: () -> Boolean,
 ) : Nameable, Describable {
+	val originalCore = core
 	val listeners = mutableListOf<ValueListener<R>>()
 	var disabled = { false }
 	var groups: MutableList<List<NamedEnum>> = mutableListOf()
@@ -172,6 +173,10 @@ class Setting<T : SettingCore<R>, R : Any>(
 		}
 		if (!silent) ConfigCommand.info(resetMessage(value, core.defaultValue))
 		value = core.defaultValue
+	}
+
+	fun restoreOriginalCore() {
+		core = originalCore
 	}
 
 	fun ImGuiBuilder.buildLayout() = with(core) { buildLayout() }
@@ -275,8 +280,8 @@ class Setting<T : SettingCore<R>, R : Any>(
 		}
 	}
 
-	override fun toString() = core.toString()
+	override fun toString() = "Setting $name: $value of type ${core.type.typeName}"
 
-	override fun equals(other: Any?) = core == other
-	override fun hashCode() = core.hashCode()
+	override fun equals(other: Any?) = other is Setting<*, *> && name == other.name
+	override fun hashCode() = name.hashCode()
 }

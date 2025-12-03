@@ -75,7 +75,7 @@ object MenuBar {
             menu("HUD") { buildHudMenu() }
             menu("GUI") { buildGuiMenu() }
             menu("Modules") { buildModulesMenu() }
-            menu("Automation Configs") { buildConfigPresetsMenu() }
+            menu("Automation Configs") { buildAutomationConfigsMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
             menu("Help") { buildHelpMenu() }
             buildGitHubReference()
@@ -284,7 +284,7 @@ object MenuBar {
         }
     }
 
-    private fun ImGuiBuilder.buildConfigPresetsMenu() {
+    private fun ImGuiBuilder.buildAutomationConfigsMenu() {
         button("New Config") { ImGui.openPopup("##new-config") }
 
         popupContextWindow("##new-config") {
