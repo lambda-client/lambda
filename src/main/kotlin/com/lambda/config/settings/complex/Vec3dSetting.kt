@@ -29,7 +29,7 @@ import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
 
-class Vec3DSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
+class Vec3dSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
 	defaultValue,
 	TypeToken.get(Vec3d::class.java).type
 ) {
