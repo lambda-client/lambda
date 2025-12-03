@@ -18,7 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.serializer.BlockCodec
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask

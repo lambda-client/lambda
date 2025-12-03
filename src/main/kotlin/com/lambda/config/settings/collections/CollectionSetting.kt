@@ -118,11 +118,11 @@ open class CollectionSetting<R : Any>(
     }
 
 	companion object {
-		fun <T : Any> Setting<CollectionSetting<T>, MutableCollection<T>>.onSelect(block: SafeContext.(T) -> Unit) = apply {
+		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onSelect(block: SafeContext.(R) -> Unit) = apply {
 			core.selectListeners.add(block)
 		}
 
-		fun <T : Any> Setting<CollectionSetting<T>, MutableCollection<T>>.onDeselect(block: SafeContext.(T) -> Unit) = apply {
+		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onDeselect(block: SafeContext.(R) -> Unit) = apply {
 			core.deselectListeners.add(block)
 		}
 
