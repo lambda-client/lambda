@@ -37,7 +37,7 @@ import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeybindSettingCore
-import com.lambda.config.settings.complex.Vec3DSetting
+import com.lambda.config.settings.complex.Vec3dSetting
 import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.config.settings.numeric.FloatSetting
 import com.lambda.config.settings.numeric.IntegerSetting
@@ -261,7 +261,7 @@ abstract class Configurable(
         defaultValue: Vec3d,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, Vec3DSetting(defaultValue), this, visibility).register()
+    ) = Setting(name, description, Vec3dSetting(defaultValue), this, visibility).register()
 
     fun setting(
         name: String,
