@@ -26,8 +26,9 @@ import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.StringUtils.levenshteinDistance
+import com.lambda.threading.runSafe
 import imgui.ImGuiListClipper
+import imgui.callback.ImListClipperCallback
 import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
@@ -58,41 +59,50 @@ open class CollectionSetting<R : Any>(
     val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun ImGuiBuilder.buildLayout() {
-        val text = if (value.size == 1) "item" else "items"
+    override fun ImGuiBuilder.buildLayout() = buildComboBox("item")
 
-        combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
-            inputText("##${setting.name}-SearchBox", ::searchFilter)
+	context(setting: Setting<*, MutableCollection<R>>)
+	fun ImGuiBuilder.buildComboBox(itemName: String) {
+		val text = if (value.size == 1) itemName else "${itemName}s"
 
-            child(
-                strId = "##${setting.name}-ComboOptionsChild",
-                childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
-            ) {
-                val list = immutableCollection
-                    .filter { searchFilter == "" || searchFilter.levenshteinDistance(it.toString()) < 3 }
+		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
+			inputText("##${setting.name}-SearchBox", ::searchFilter)
 
-                ImGuiListClipper.forEach { // not actually iterating
-                    it.begin(list.size)
+			child(
+				strId = "##${setting.name}-ComboOptionsChild",
+				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
+			) {
+				val list = immutableCollection
+					.filter { item ->
+						val q = searchFilter.trim()
+						if (q.isEmpty()) true
+						else item.toString().startsWith(q, ignoreCase = true)
+					}
 
-                    while (it.step()) {
-                        for (i in it.displayStart..it.displayEnd) {
-                            val v = list.getOrNull(i) ?: continue
-                            val selected = value.contains(v)
+				val listClipperCallback = object : ImListClipperCallback() {
+					override fun accept(index: Int) {
+						val v = list.getOrNull(index) ?: return
+						val selected = value.contains(v)
 
-                            selectable(
-                                label = v.toString(),
-                                selected = selected,
-                                flags = DontClosePopups
-                            ) {
-                                if (selected) value.remove(v)
-                                else value.add(v)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+						selectable(
+							label = v.toString(),
+							selected = selected,
+							flags = DontClosePopups
+						) {
+							if (selected) {
+								value.remove(v)
+								runSafe { deselectListeners.forEach { listener -> listener(v) } }
+							} else {
+								value.add(v)
+								runSafe { selectListeners.forEach { listener -> listener(v) } }
+							}
+						}
+					}
+				}
+				ImGuiListClipper.forEach(list.size, listClipperCallback)
+			}
+		}
+	}
 
 	context(setting: Setting<*, MutableCollection<R>>)
     override fun toJson(): JsonElement =

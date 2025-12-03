@@ -21,60 +21,19 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.Setting
-import com.lambda.config.serializer.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.StringUtils.levenshteinDistance
-import imgui.ImGuiListClipper
-import imgui.flag.ImGuiChildFlags
-import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import net.minecraft.item.Item
 
 class ItemCollectionSetting(
-	private val immutableCollection: Collection<Item>,
+	immutableCollection: Collection<Item>,
 	defaultValue: MutableCollection<Item>
 ) : CollectionSetting<Item>(
 	defaultValue,
 	immutableCollection,
 	TypeToken.getParameterized(Collection::class.java, Item::class.java).type
 ) {
-	private var searchFilter = ""
-
 	context(setting: Setting<*, MutableCollection<Item>>)
-	override fun ImGuiBuilder.buildLayout() {
-		val text = if (value.size == 1) "item" else "items"
-
-		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
-			inputText("##${setting.name}-SearchBox", ::searchFilter)
-
-			child(
-				strId = "##${setting.name}-ComboOptionsChild",
-				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
-			) {
-				val list = immutableCollection
-					.filter { searchFilter == "" || searchFilter.levenshteinDistance(ItemCodec.stringify(it)) < 3 }
-
-				ImGuiListClipper.forEach { // not actually iterating
-					it.begin(list.size)
-
-					while (it.step()) {
-						for (i in it.displayStart..it.displayEnd) {
-							val v = list.getOrNull(i) ?: continue
-							val selected = value.contains(v)
-
-							selectable(
-								label = ItemCodec.stringify(v),
-								selected = selected,
-								flags = DontClosePopups
-							) {
-								if (selected) value.remove(v)
-								else value.add(v)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	override fun ImGuiBuilder.buildLayout() = buildComboBox("item")
 
 	context(setting: Setting<*, MutableCollection<Item>>)
 	override fun toJson(): JsonElement = gson.toJsonTree(value, type)

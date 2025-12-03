@@ -22,11 +22,7 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.Setting
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.StringUtils.levenshteinDistance
 import com.lambda.util.reflections.className
-import imgui.ImGuiListClipper
-import imgui.flag.ImGuiChildFlags
-import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 
 /**
  * @see [com.lambda.config.settings.collections.CollectionSetting]
@@ -40,44 +36,8 @@ class ClassCollectionSetting<T : Any>(
 	immutableCollection,
 	TypeToken.getParameterized(Collection::class.java, Any::class.java).type
 ) {
-	private var searchFilter = ""
-
 	context(setting: Setting<*, MutableCollection<T>>)
-	override fun ImGuiBuilder.buildLayout() {
-		val text = if (value.size == 1) "item" else "items"
-
-		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
-			inputText("##${setting.name}-SearchBox", ::searchFilter)
-
-			child(
-				strId = "##${setting.name}-ComboOptionsChild",
-				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
-			) {
-				val list = immutableCollection
-					.filter { searchFilter == "" || searchFilter.levenshteinDistance(it.className) < 3 }
-
-				ImGuiListClipper.forEach { // not actually iterating
-					it.begin(list.size)
-
-					while (it.step()) {
-						for (i in it.displayStart..it.displayEnd) {
-							val v = list.getOrNull(i) ?: continue
-							val selected = value.contains(v)
-
-							selectable(
-								label = v.className,
-								selected = selected,
-								flags = DontClosePopups
-							) {
-								if (selected) value.remove(v)
-								else value.add(v)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	override fun ImGuiBuilder.buildLayout() = buildComboBox("item")
 
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
 	// If we do serialize the classes we'll run into missing type adapters errors by Gson.
