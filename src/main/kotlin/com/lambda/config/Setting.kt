@@ -182,8 +182,8 @@ class Setting<T : SettingCore<R>, R : Any>(
 	fun ImGuiBuilder.buildLayout() = with(core) { buildLayout() }
 	fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) = with(core) { buildCommand(registry) }
 
-	fun toJson() = core.toJson()
-	fun loadFromJson(serialized: JsonElement) = core.loadFromJson(serialized)
+	fun toJson() = originalCore.toJson()
+	fun loadFromJson(serialized: JsonElement) = originalCore.loadFromJson(serialized)
 
 	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 
