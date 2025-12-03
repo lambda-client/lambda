@@ -26,7 +26,8 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
@@ -47,25 +48,17 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
-class KeybindSetting(
-    override var name: String,
-    defaultValue: Bind,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Bind>(
-    name,
-    defaultValue,
-    TypeToken.get(Bind::class.java).type,
-    description,
-    visibility
+class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
+	defaultValue,
+	TypeToken.get(Bind::class.java).type
 ) {
-    constructor(name: String, defaultValue: KeyCode, description: String, visibility: () -> Boolean)
-            : this(name, Bind(defaultValue.code, 0, -1), description, visibility)
+    constructor(defaultValue: KeyCode) : this(Bind(defaultValue.code, 0, -1))
 
     private var listening = false
 
+	context(setting: Setting<*, Bind>)
     override fun ImGuiBuilder.buildLayout() {
-        text(name)
+        text(setting.name)
         sameLine()
 
         val bind = value
@@ -86,7 +79,7 @@ class KeybindSetting(
         }
 
         lambdaTooltip {
-            if (!listening) description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
+            if (!listening) setting.description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
             else "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
         }
 
@@ -131,8 +124,9 @@ class KeybindSetting(
         }
     }
 
+	context(setting: Setting<*, Bind>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(name)) { name ->
+        required(word(setting.name)) { name ->
             suggests { _, builder ->
                 KeyCode.entries.forEach { builder.suggest(it.name.capitalize()) }
                 (1..10).forEach { builder.suggest(it) }
@@ -157,7 +151,7 @@ class KeybindSetting(
                         }
                     }
 
-                    trySetValue(bind)
+                    setting.trySetValue(bind)
                     return@executeWithResult success()
                 }
             }

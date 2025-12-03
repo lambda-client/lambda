@@ -99,6 +99,7 @@ object PacketMine : Module(
     init {
 		setDefaultAutomationConfig {
 			applyEdits {
+				hideAllGroupsExcept(breakConfig, rotationConfig, hotbarConfig)
 				breakConfig.apply {
 					editTyped(
 						::avoidLiquids,
@@ -111,7 +112,6 @@ object PacketMine : Module(
 				hotbarConfig.apply {
 					::keepTicks.edit { defaultValue(0) }
 				}
-				hideGroups(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
 			}
 		}
 

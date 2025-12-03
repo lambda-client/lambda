@@ -22,7 +22,8 @@ import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -34,32 +35,28 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class StringSetting(
-    override var name: String,
     defaultValue: String,
     var multiline: Boolean = false,
     var flags: Int = ImGuiInputTextFlags.None,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<String>(
-    name,
-    defaultValue,
-    TypeToken.get(String::class.java).type,
-    description,
-    visibility
+) : SettingCore<String>(
+	defaultValue,
+	TypeToken.get(String::class.java).type
 ) {
+	context(setting: Setting<*, String>)
     override fun ImGuiBuilder.buildLayout() {
         if (multiline) {
-            inputTextMultiline(name, ::value, flags = flags)
+            inputTextMultiline(setting.name, ::value, flags = flags)
         } else {
-            inputText(name, ::value, flags)
+            inputText(setting.name, ::value, flags)
         }
-        lambdaTooltip(description)
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, String>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(greedyString(name)) { parameter ->
+        required(greedyString(setting.name)) { parameter ->
             execute {
-                trySetValue(parameter().value())
+                setting.trySetValue(parameter().value())
             }
         }
     }

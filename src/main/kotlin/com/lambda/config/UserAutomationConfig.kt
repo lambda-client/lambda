@@ -18,6 +18,8 @@
 package com.lambda.config
 
 import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry.moduleNameMap
 
@@ -29,7 +31,6 @@ class UserAutomationConfig(override val name: String) : AutomationConfig(name, U
 		        it.automationConfig = this@UserAutomationConfig
 	        }
         }
-
 	    .onDeselect { name ->
 		    moduleNameMap[name]?.let { module ->
 			    module.automationConfig = module.defaultAutomationConfig
@@ -37,6 +38,6 @@ class UserAutomationConfig(override val name: String) : AutomationConfig(name, U
 	    }
 
 	private fun Module.removeLink() {
-		(automationConfig as UserAutomationConfig).linkedModules.value -= name
+		(automationConfig as? UserAutomationConfig)?.linkedModules?.value -= name
 	}
 }

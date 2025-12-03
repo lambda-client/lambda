@@ -17,7 +17,8 @@
 
 package com.lambda.config.settings.collections
 
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import java.lang.reflect.Type
 
@@ -25,17 +26,12 @@ import java.lang.reflect.Type
  * @see [com.lambda.config.Configurable]
  */
 class MapSetting<K, V>(
-    override var name: String,
-    defaultValue: MutableMap<K, V>,
-    type: Type,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<MutableMap<K, V>>(
-    name,
-    defaultValue,
-    type,
-    description,
-    visibility
+	defaultValue: MutableMap<K, V>,
+	type: Type
+) : SettingCore<MutableMap<K, V>>(
+	defaultValue,
+	type
 ) {
-    override fun ImGuiBuilder.buildLayout() {}
+    context(setting: Setting<*, MutableMap<K, V>>)
+	override fun ImGuiBuilder.buildLayout() {}
 }

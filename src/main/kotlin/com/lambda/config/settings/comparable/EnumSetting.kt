@@ -25,7 +25,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.Describable
 import com.lambda.util.StringUtils.capitalize
@@ -37,32 +38,26 @@ import kotlin.properties.Delegates
 /**
  * @see [com.lambda.config.Configurable]
  */
-class EnumSetting<T : Enum<T>>(
-    override var name: String,
-    defaultValue: T,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<T>(
-    name,
-    defaultValue,
-    TypeToken.get(defaultValue.declaringJavaClass).type,
-    description,
-    visibility,
+class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
+	defaultValue,
+	TypeToken.get(defaultValue.declaringJavaClass).type
 ) {
     var index by Delegates.observable(value.ordinal) { _, _, to ->
         value = value.enumValues[to % value.enumValues.size]
     }
 
+	context(setting: Setting<*, T>)
     override fun loadFromJson(serialized: JsonElement) {
         super.loadFromJson(serialized)
         index = value.ordinal // super bug fix for imgui
     }
 
+	context(setting: Setting<*, T>)
     override fun ImGuiBuilder.buildLayout() {
         val values = value.enumValues
         val currentDisplay = value.displayValue
 
-        combo("##$name", preview = "$name: $currentDisplay") {
+        combo("##${setting.name}", preview = "${setting.name}: $currentDisplay") {
             values.forEachIndexed { idx, v ->
                 val isSelected = idx == index
 
@@ -74,11 +69,12 @@ class EnumSetting<T : Enum<T>>(
             }
         }
 
-        lambdaTooltip(description)
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, T>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(name)) { parameter ->
+        required(word(setting.name)) { parameter ->
             suggests { _, builder ->
                 value.enumValues.forEach { builder.suggest(it.name.capitalize()) }
                 builder.buildFuture()
@@ -86,7 +82,7 @@ class EnumSetting<T : Enum<T>>(
             executeWithResult {
                 val newValue = value.enumValues.find { it.name.equals(parameter().value(), true) }
                     ?: return@executeWithResult failure("Invalid value")
-                trySetValue(newValue)
+                setting.trySetValue(newValue)
                 return@executeWithResult success()
             }
         }

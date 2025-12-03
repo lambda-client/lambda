@@ -18,7 +18,7 @@
 package com.lambda.mixin;
 
 import com.lambda.Lambda;
-import com.lambda.config.AbstractSetting;
+import com.lambda.config.Setting;
 import com.lambda.module.Module;
 import com.lambda.module.ModuleRegistry;
 import com.lambda.util.DynamicExceptionKt;
@@ -67,7 +67,7 @@ public class CrashReportMixin {
 
                         module.getSettings()
                                 .stream()
-                                .filter(AbstractSetting::isModified)
+                                .filter(Setting::isModified)
                                 .forEach(setting -> list.add(String.format("\t\t%s -> %s", setting.getName(), setting.getValue())));
                     });
         }

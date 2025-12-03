@@ -59,8 +59,6 @@ open class AutomationConfig(
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
     override val eatConfig = EatSettings(this, Group.Eat)
 
-    val hiddenSettings = mutableSetOf<AbstractSetting<*>>()
-
     companion object {
 		context(module: Module)
         fun MutableAutomationConfig.setDefaultAutomationConfig(

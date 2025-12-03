@@ -20,14 +20,15 @@ package com.lambda.config.settings.collections
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
-import com.lambda.util.StringUtils.levenshteinDistance
 import imgui.ImGuiListClipper
+import imgui.callback.ImListClipperCallback
 import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
@@ -42,79 +43,72 @@ import java.lang.reflect.Type
  *
  * @see [com.lambda.config.Configurable]
  */
-open class CollectionSetting<T : Any>(
-    override var name: String,
-    defaultValue: MutableCollection<T>,
-    private var immutableCollection: Collection<T>,
-    type: Type,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<MutableCollection<T>>(
-    name,
-    defaultValue,
-    type,
-    description,
-    visibility
+open class CollectionSetting<R : Any>(
+	defaultValue: MutableCollection<R>,
+	private var immutableCollection: Collection<R>,
+	type: Type
+) : SettingCore<MutableCollection<R>>(
+	defaultValue,
+	type
 ) {
     private var searchFilter = ""
     private val strListType =
         TypeToken.getParameterized(Collection::class.java, String::class.java).type
 
-    private val selectListeners = mutableListOf<SafeContext.(T) -> Unit>()
-    private val deselectListeners = mutableListOf<SafeContext.(T) -> Unit>()
+    val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+    val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
-    fun onSelect(block: SafeContext.(T) -> Unit) = apply {
-        selectListeners.add(block)
-    }
+	context(setting: Setting<*, MutableCollection<R>>)
+    override fun ImGuiBuilder.buildLayout() = buildComboBox("item")
 
-    fun onDeselect(block: SafeContext.(T) -> Unit) = apply {
-        deselectListeners.add(block)
-    }
+	context(setting: Setting<*, MutableCollection<R>>)
+	fun ImGuiBuilder.buildComboBox(itemName: String) {
+		val text = if (value.size == 1) itemName else "${itemName}s"
 
-    override fun ImGuiBuilder.buildLayout() {
-        val text = if (value.size == 1) "item" else "items"
+		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
+			inputText("##${setting.name}-SearchBox", ::searchFilter)
 
-        combo("##$name", "$name: ${value.size} $text") {
-            inputText("##$name-SearchBox", ::searchFilter)
+			child(
+				strId = "##${setting.name}-ComboOptionsChild",
+				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
+			) {
+				val list = immutableCollection
+					.filter { item ->
+						val q = searchFilter.trim()
+						if (q.isEmpty()) true
+						else item.toString().startsWith(q, ignoreCase = true)
+					}
 
-            child(
-                strId = "##$name-ComboOptionsChild",
-                childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
-            ) {
-                val list = immutableCollection
-                    .filter { searchFilter == "" || searchFilter.levenshteinDistance(it.toString()) < 3 }
+				val listClipperCallback = object : ImListClipperCallback() {
+					override fun accept(index: Int) {
+						val v = list.getOrNull(index) ?: return
+						val selected = value.contains(v)
 
-                ImGuiListClipper.forEach { // not actually iterating
-                    it.begin(list.size)
+						selectable(
+							label = v.toString(),
+							selected = selected,
+							flags = DontClosePopups
+						) {
+							if (selected) {
+								value.remove(v)
+								runSafe { deselectListeners.forEach { listener -> listener(v) } }
+							} else {
+								value.add(v)
+								runSafe { selectListeners.forEach { listener -> listener(v) } }
+							}
+						}
+					}
+				}
+				ImGuiListClipper.forEach(list.size, listClipperCallback)
+			}
+		}
+	}
 
-                    while (it.step()) {
-                        for (i in it.displayStart..it.displayEnd) {
-                            val v = list.getOrNull(i) ?: continue
-                            val selected = value.contains(v)
-
-                            selectable(
-                                label = v.toString(),
-                                selected = selected,
-                                flags = DontClosePopups
-                            ) {
-                                if (selected) {
-                                    value.remove(v)
-                                    runSafe { deselectListeners.forEach { f -> f(v) } }
-                                } else {
-                                    value.add(v)
-                                    runSafe { selectListeners.forEach { f -> f(v) } }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+	context(setting: Setting<*, MutableCollection<R>>)
     override fun toJson(): JsonElement =
         gson.toJsonTree(value.map { it.toString() })
 
+	context(setting: Setting<*, MutableCollection<R>>)
     override fun loadFromJson(serialized: JsonElement) {
         val strList = gson.fromJson<Collection<String>>(serialized, strListType)
             .mapNotNull { str -> immutableCollection.find { it.toString() == str } }
@@ -123,7 +117,15 @@ open class CollectionSetting<T : Any>(
         value = strList
     }
 
-    companion object {
+	companion object {
+		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onSelect(block: SafeContext.(R) -> Unit) = apply {
+			core.selectListeners.add(block)
+		}
+
+		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onDeselect(block: SafeContext.(R) -> Unit) = apply {
+			core.deselectListeners.add(block)
+		}
+
         @SettingEditorDsl
         @Suppress("unchecked_cast")
         fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {

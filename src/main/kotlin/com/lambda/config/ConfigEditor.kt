@@ -17,7 +17,6 @@
 
 package com.lambda.config
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.hiddenSettings
 import com.lambda.util.NamedEnum
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
@@ -39,66 +38,60 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 			throw IllegalStateException("Could not access delegate for property $name", e)
 		}
 
-	fun <T : Any> KProperty0<*>.settingDelegate() =
-		this.delegate as? AbstractSetting<T>
-			?: throw IllegalStateException("Setting (${(delegate as AbstractSetting<*>).name}) delegate did not match current value's type")
+	fun <T> KProperty0<T>.setting() =
+		this.delegate as? Setting<SettingCore<T>, T>
+			?: throw IllegalStateException("Setting delegate did not match current value's type")
+
+	fun <T> KProperty0<T>.settingCore() = setting().core
 
 	@SettingEditorDsl
-	inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(AbstractSetting<T>) -> Unit) {
-		val setting = settingDelegate<T>()
-		TypedEditBuilder(this@SettingGroupEditor, listOf(setting)).edits(setting)
+	inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
+		val delegate = setting()
+		TypedEditBuilder(this@SettingGroupEditor, listOf(delegate)).edits(delegate.core)
 	}
 
 	@SettingEditorDsl
 	inline fun <T : Any, R : Any> KProperty0<T>.editWith(
 		other: KProperty0<R>,
-		edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
-	) {
-		val setting = settingDelegate<T>()
-		TypedEditBuilder(this@SettingGroupEditor, listOf(setting)).edits(other.settingDelegate())
-	}
+		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
+	) = TypedEditBuilder(this@SettingGroupEditor, listOf(setting())).edits(other.settingCore())
 
 	@SettingEditorDsl
 	fun edit(
 		vararg settings: KProperty0<*>,
 		edits: BasicEditBuilder.() -> Unit
-	) { BasicEditBuilder(this, settings.map { it.delegate } as List<AbstractSetting<*>>).apply(edits) }
+	) = BasicEditBuilder(this, settings.map { it.setting() }).apply(edits)
 
 	@SettingEditorDsl
 	inline fun <T : Any> editWith(
 		vararg settings: KProperty0<*>,
 		other: KProperty0<T>,
-		edits: BasicEditBuilder.(AbstractSetting<T>) -> Unit
-	) = BasicEditBuilder(this, settings.map { it.delegate } as List<AbstractSetting<*>>).edits(other.settingDelegate())
+		edits: BasicEditBuilder.(SettingCore<T>) -> Unit
+	) = BasicEditBuilder(this, settings.map { it.setting() }).edits(other.settingCore())
 
 	@SettingEditorDsl
 	inline fun <T : Any> editTyped(
 		vararg settings: KProperty0<T>,
 		edits: TypedEditBuilder<T>.() -> Unit
-	) { TypedEditBuilder(this, settings.map { it.delegate } as List<AbstractSetting<T>>).apply(edits) }
+	) = TypedEditBuilder(this, settings.map { it.setting() }).apply(edits)
 
 	@SettingEditorDsl
 	inline fun <T : Any, R : Any> editTypedWith(
 		vararg settings: KProperty0<T>,
 		other: KProperty0<R>,
-		edits: TypedEditBuilder<T>.(AbstractSetting<R>) -> Unit
-	) = TypedEditBuilder(this, settings.map { it.delegate } as List<AbstractSetting<T>>).edits(other.delegate as AbstractSetting<R>)
+		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
+	) = TypedEditBuilder(this, settings.map { it.setting() }).edits(other.settingCore())
 
 	@SettingEditorDsl
-	fun hide(settings: Collection<AbstractSetting<*>>) {
+	fun hide(settings: Collection<Setting<*, *>>) {
 		c.settings.removeAll(settings)
-		hiddenSettings.addAll(settings)
 	}
 
 	@SettingEditorDsl
 	fun hide(vararg settings: KProperty0<*>) =
-		hide((settings.map { it.delegate } as List<AbstractSetting<*>>))
+		hide(settings.map { it.setting() })
 
-	open class BasicEditBuilder(val c: SettingGroupEditor<*>, open val settings: Collection<AbstractSetting<*>>) {
-		@SettingEditorDsl
-		fun visibility(vis: () -> Boolean) =
-			settings.forEach { it.visibility = vis }
-
+	open class BasicEditBuilder(val c: SettingGroupEditor<*>, open val settings: Collection<Setting<*, *>>) {
 		@SettingEditorDsl
 		fun hide() = c.hide(settings)
 
@@ -113,13 +106,13 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 
 	class TypedEditBuilder<T : Any>(
 		c: SettingGroupEditor<*>,
-		override val settings: Collection<AbstractSetting<T>>
+		override val settings: Collection<Setting<SettingCore<T>, T>>
 	) : BasicEditBuilder(c, settings) {
 		@SettingEditorDsl
 		fun defaultValue(value: T) =
 			settings.forEach {
-				it.defaultValue = value
-				it.value = value
+				it.core.defaultValue = value
+				it.core.value = value
 			}
 	}
 }
