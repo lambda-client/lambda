@@ -112,13 +112,12 @@ abstract class SettingCore<T : Any>(
 				} catch (_: Exception) {
 					return@executeWithResult failure("$valueString is not a valid JSON string.")
 				}
-				val config = Configuration.configurableBySetting(setting)
 					?: return@executeWithResult failure("No config found for $name.")
 				val previous = this@SettingCore.value
 				try {
 					loadFromJson(parsed)
 				} catch (_: Exception) {
-					return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${config.name}.")
+					return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${setting.configurable.name}.")
 				}
 				ConfigCommand.info(setting.setMessage(previous, this@SettingCore.value))
 				return@executeWithResult success()
@@ -145,7 +144,8 @@ class Setting<T : SettingCore<R>, R : Any>(
 	override val name: String,
 	override val description: String,
 	var core: T,
-	var visibility: () -> Boolean,
+	val configurable: Configurable,
+	val visibility: () -> Boolean,
 ) : Nameable, Describable {
 	val originalCore = core
 	val listeners = mutableListOf<ValueListener<R>>()
@@ -236,8 +236,7 @@ class Setting<T : SettingCore<R>, R : Any>(
 	fun setMessage(previousValue: R, newValue: R) = buildText {
 		literal("Set ")
 		changedMessage(previousValue, newValue)
-		val config = Configuration.configurableBySetting(this@Setting) ?: return@buildText
-		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${config.commandName} $commandName")) {
+		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${configurable.commandName} $commandName")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to reset to default value ")
 				highlighted(core.defaultValue.toString())
@@ -261,8 +260,7 @@ class Setting<T : SettingCore<R>, R : Any>(
 	}
 
 	private fun TextBuilder.changedMessage(previousValue: R, newValue: R) {
-		val config = Configuration.configurableBySetting(this@Setting) ?: return
-		highlighted(config.name)
+		highlighted(configurable.name)
 		literal(" > ")
 		highlighted(name)
 		literal(" from ")
@@ -270,7 +268,7 @@ class Setting<T : SettingCore<R>, R : Any>(
 		literal(" to ")
 		highlighted(newValue.toString())
 		literal(".")
-		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${config.commandName} $commandName $previousValue")) {
+		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${configurable.commandName} $commandName $previousValue")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to undo to previous value ")
 				highlighted(previousValue.toString())

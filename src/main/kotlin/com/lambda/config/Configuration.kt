@@ -72,6 +72,9 @@ abstract class Configuration : Jsonable, Loadable {
 
     // Avoid context-leaking warning
     private fun register() {
+		if (configurations.any { it.configName == configName })
+			throw IllegalStateException("Configuration with name $configName already exists")
+
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-config-${configName}",
@@ -159,12 +162,8 @@ abstract class Configuration : Jsonable, Loadable {
         val configurations = mutableSetOf<Configuration>()
         val configurables: Set<Configurable>
             get() = configurations.flatMapTo(mutableSetOf()) { it.configurables }
-        val settings: Set<Setting<out SettingCore<*>, *>>
-            get() = configurables.flatMapTo(mutableSetOf()) { it.settings }
-
-        //ToDo: Store owner in setting
-        fun configurableBySetting(setting: Setting<*, *>) =
-            configurables.find { it.settings.any { del -> del.name == setting.name } }
+        val settings: List<Setting<*, *>>
+            get() = configurables.flatMapTo(mutableListOf()) { it.settings }
 
         fun configurableByName(name: String) =
             configurables.find { it.name == name }
@@ -172,10 +171,7 @@ abstract class Configuration : Jsonable, Loadable {
         fun configurableByCommandName(name: String) =
             configurables.find { it.commandName == name }
 
-        fun settingDelegateByName(configurable: Configurable, name: String) =
-            configurable.settings.find { it.name == name }
-
-        fun settingDelegateByCommandName(configurable: Configurable, name: String) =
+        fun settingByCommandName(configurable: Configurable, name: String) =
             configurable.settings.find { it.commandName == name }
     }
 }

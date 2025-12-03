@@ -93,10 +93,6 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 
 	open class BasicEditBuilder(val c: SettingGroupEditor<*>, open val settings: Collection<Setting<*, *>>) {
 		@SettingEditorDsl
-		fun visibility(vis: () -> Boolean) =
-			settings.forEach { it.visibility = vis }
-
-		@SettingEditorDsl
 		fun hide() = c.hide(settings)
 
 		@SettingEditorDsl
