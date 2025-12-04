@@ -80,6 +80,7 @@ data class PlaceRequest private constructor(
         var requestCount = 0
 
 	    @PlaceRequestDsl
+	    @JvmName("placeRequest1")
 	    context(automated: Automated)
 	    fun Collection<BuildResult>.placeRequest(
 			pendingInteractions: MutableCollection<BuildContext>,
@@ -94,6 +95,7 @@ data class PlaceRequest private constructor(
 		    ?.let { automated.placeRequest(it, pendingInteractions, nowOrNothing, builder) }
 
 	    @PlaceRequestDsl
+	    @JvmName("placeRequest2")
 	    fun Automated.placeRequest(
 		    contexts: Collection<PlaceContext>,
 		    pendingInteractions: MutableCollection<BuildContext>,

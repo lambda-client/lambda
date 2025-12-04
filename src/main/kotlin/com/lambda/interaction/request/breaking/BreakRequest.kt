@@ -141,6 +141,7 @@ data class BreakRequest private constructor(
         var requestCount = 0
 
 	    @BreakRequestDsl
+	    @JvmName("breakRequest1")
 	    fun AutomatedSafeContext.breakRequest(
 			positions: Collection<BlockPos>,
 			pendingInteractions: MutableCollection<BuildContext>,
@@ -152,6 +153,7 @@ data class BreakRequest private constructor(
 		    .breakRequest(pendingInteractions, nowOrNothing, builder)
 
 	    @BreakRequestDsl
+	    @JvmName("breakRequest2")
 	    context(automated: Automated)
 	    fun Collection<BuildResult>.breakRequest(
 			pendingInteractions: MutableCollection<BuildContext>,
@@ -166,6 +168,7 @@ data class BreakRequest private constructor(
 		    ?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
 
         @BreakRequestDsl
+        @JvmName("breakRequest3")
         fun Automated.breakRequest(
             contexts: Collection<BreakContext>,
             pendingInteractions: MutableCollection<BuildContext>,

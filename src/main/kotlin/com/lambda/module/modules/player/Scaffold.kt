@@ -27,8 +27,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.Request.Companion.submit
-import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.placing.PlaceRequest.Companion.placeRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -78,11 +77,7 @@ object Scaffold : Module(
                     .filterIsInstance<PlaceResult.Place>()
                     .minByOrNull { it.pos distSq beneath }
                     ?.let { result ->
-                        submit(PlaceRequest(
-                            setOf(result.context),
-                            pendingActions,
-                            this@Scaffold
-                        ))
+                        placeRequest(setOf(result.context), pendingActions).submit()
                     }
             }
         }
