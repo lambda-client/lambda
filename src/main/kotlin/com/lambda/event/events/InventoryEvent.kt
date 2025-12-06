@@ -20,7 +20,7 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequest
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 

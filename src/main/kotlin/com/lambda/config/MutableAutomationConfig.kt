@@ -20,11 +20,11 @@ package com.lambda.config
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.EatConfig
 import com.lambda.context.Automated
-import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.interacting.InteractConfig
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.managers.breaking.BreakConfig
+import com.lambda.interaction.managers.hotbar.HotbarConfig
+import com.lambda.interaction.managers.interacting.InteractConfig
+import com.lambda.interaction.managers.inventory.InventoryConfig
+import com.lambda.interaction.managers.rotating.RotationConfig
 
 interface MutableAutomationConfig : Automated {
     var defaultAutomationConfig: AutomationConfig

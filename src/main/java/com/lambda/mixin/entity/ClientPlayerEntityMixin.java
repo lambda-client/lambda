@@ -22,8 +22,8 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
-import com.lambda.interaction.PlayerPacketManager;
-import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.PlayerPacketHandler;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -80,13 +80,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
     void sendLambdaMovement(CallbackInfo ci) {
         ci.cancel();
-        PlayerPacketManager.sendPlayerPackets();
+        PlayerPacketHandler.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSneakingPacket()V"))
     void sendSneakingPacket(ClientPlayerEntity entity) {
-        PlayerPacketManager.sendSneakPackets();
+        PlayerPacketHandler.sendSneakPackets();
     }
 
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))

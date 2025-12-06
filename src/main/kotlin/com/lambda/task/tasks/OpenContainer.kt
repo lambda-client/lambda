@@ -21,7 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
+import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.task.Task
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler

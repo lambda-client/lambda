@@ -20,8 +20,8 @@ package com.lambda.module.modules.debug
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.Request.Companion.submit
-import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.managers.Request.Companion.submit
+import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info

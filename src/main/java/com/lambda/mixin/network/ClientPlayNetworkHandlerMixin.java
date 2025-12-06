@@ -20,7 +20,7 @@ package com.lambda.mixin.network;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.WorldEvent;
-import com.lambda.interaction.request.inventory.InventoryManager;
+import com.lambda.interaction.managers.inventory.InventoryManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;

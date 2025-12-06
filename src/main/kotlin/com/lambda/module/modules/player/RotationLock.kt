@@ -20,9 +20,9 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.interaction.request.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum

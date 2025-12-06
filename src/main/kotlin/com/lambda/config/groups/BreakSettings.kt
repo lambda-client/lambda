@@ -21,11 +21,11 @@ import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakConfig.AnimationMode
-import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
-import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
-import com.lambda.interaction.request.breaking.BreakConfig.SwingMode
+import com.lambda.interaction.managers.breaking.BreakConfig
+import com.lambda.interaction.managers.breaking.BreakConfig.AnimationMode
+import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
 import java.awt.Color

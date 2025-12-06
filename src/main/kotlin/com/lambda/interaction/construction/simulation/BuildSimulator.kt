@@ -18,8 +18,8 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.results.PostSimResult
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.PostSimResult
 import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
 import com.lambda.interaction.construction.simulation.checks.InteractSim.Companion.simInteraction
@@ -39,7 +39,6 @@ object BuildSimulator : Sim<PostSimResult>() {
      * will likely not be returned in the same order they were simulated due to the parallel nature of the simulations.
      *
      * @see SimInfo.sim
-     * @see simPostProcessing
      * @see simInteraction
      * @see simBreak
      */

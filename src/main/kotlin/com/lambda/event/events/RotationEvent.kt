@@ -18,7 +18,7 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.RotationRequest
 import net.minecraft.client.input.Input
 
 sealed class RotationEvent {

@@ -22,8 +22,8 @@ import com.lambda.config.applyEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -48,7 +48,7 @@ object FastBreak : Module(
 						::checkSideVisibility,
 						::strictRayCast
 					) { defaultValue(false) }
-					::interactionsPerTick.edit { defaultValue(1) }
+					::actionsPerTick.edit { defaultValue(1) }
 					::interactReach.edit { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {

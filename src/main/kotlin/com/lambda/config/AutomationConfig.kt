@@ -27,7 +27,7 @@ import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.event.events.onStaticRender
-import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
 

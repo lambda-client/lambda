@@ -17,14 +17,13 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.interaction.construction.processing.PreProcessingData
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.results.GenericResult
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getClosestPoints
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
+import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getClosestPoints
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -58,7 +57,7 @@ annotation class SimDsl
  *
  * @param T The type of [BuildResult] this sim produces.
  *
- * @see com.lambda.interaction.construction.result.Dependent
+ * @see com.lambda.interaction.construction.simulation.result.Dependent
  * @see dependentUpon
  * @see withDependent
  */
@@ -67,7 +66,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
     /**
      * Can be overridden to return a typed Dependent result with the initial [buildResult] nested inside.
      *
-     * @see com.lambda.interaction.construction.result.Dependent
+     * @see com.lambda.interaction.construction.simulation.result.Dependent
      */
     @SimDsl
     open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
@@ -91,7 +90,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         voxelShape: VoxelShape,
         pos: BlockPos,
         sides: Set<Direction>,
-        preProcessing: PreProcessingData?
+        preProcessing: com.lambda.interaction.construction.simulation.processing.PreProcessingData?
     ): Set<CheckedHit>? {
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 

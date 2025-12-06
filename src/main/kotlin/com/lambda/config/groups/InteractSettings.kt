@@ -21,9 +21,9 @@ import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.request.interacting.InteractConfig
-import com.lambda.interaction.request.interacting.InteractConfig.AirPlaceMode
-import com.lambda.interaction.request.interacting.InteractConfig.PlaceConfirmationMode
+import com.lambda.interaction.managers.interacting.InteractConfig
+import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
+import com.lambda.interaction.managers.interacting.InteractConfig.PlaceConfirmationMode
 import com.lambda.util.NamedEnum
 
 class InteractSettings(

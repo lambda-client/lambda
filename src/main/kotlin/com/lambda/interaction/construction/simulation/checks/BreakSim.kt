@@ -18,15 +18,15 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.results.BreakResult
-import com.lambda.interaction.construction.result.results.GenericResult
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.BreakSimInfo
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
@@ -34,11 +34,11 @@ import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.hotbar.HotbarManager
-import com.lambda.interaction.request.rotating.RotationManager
-import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.interaction.request.rotating.visibilty.lookAt
-import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
+import com.lambda.interaction.managers.hotbar.HotbarManager
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable

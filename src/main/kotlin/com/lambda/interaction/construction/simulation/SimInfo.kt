@@ -19,9 +19,9 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.processing.PreProcessingData
-import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
-import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.simulation.processing.PreProcessingData
+import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.getProcessingInfo
+import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.checks.BasicChecker.hasBasicRequirements
 import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
 import com.lambda.interaction.construction.simulation.checks.InteractSim.Companion.simInteraction
@@ -139,7 +139,7 @@ interface SimInfo : Automated {
 }
 
 interface InteractSimInfo : SimInfo {
-	val preProcessing: PreProcessingData
+	val preProcessing: com.lambda.interaction.construction.simulation.processing.PreProcessingData
 	val expectedState: BlockState
 	val item: Item?
 	val placing: Boolean

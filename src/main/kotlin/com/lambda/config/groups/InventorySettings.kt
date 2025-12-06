@@ -20,7 +20,7 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.request.inventory.InventoryConfig
+import com.lambda.interaction.managers.inventory.InventoryConfig
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
 
