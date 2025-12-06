@@ -200,14 +200,14 @@ object InteractManager : RequestHandler<InteractRequest>(
             .filter { !isPosBlocked(it.blockPos) }
             .take(
                 min(
-                    interactConfig.maxPendingPlacements - pendingActions.size,
+                    interactConfig.maxPendingInteractions - pendingActions.size,
                     buildConfig.maxPendingInteractions - request.pendingInteractions.size
                 ).coerceAtLeast(0)
             )
             .toMutableList()
         logger.debug("${potentialPlacements.size} potential placements")
 
-        maxPlacementsThisTick = interactConfig.placementsPerTick
+        maxPlacementsThisTick = interactConfig.interactionsPerTick
     }
 
     /**
@@ -339,14 +339,14 @@ object InteractManager : RequestHandler<InteractRequest>(
             sendInteractPacket(hand, hitResult)
         }
 
-        if (interactConfig.placeConfirmationMode != InteractConfig.PlaceConfirmationMode.None) {
+        if (interactConfig.interactConfirmationMode != InteractConfig.PlaceConfirmationMode.None) {
             InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()
         }
 
         val itemStack = itemPlacementContext.stack
         itemStack.decrementUnlessCreative(1, player)
 
-        if (interactConfig.placeConfirmationMode == InteractConfig.PlaceConfirmationMode.AwaitThenPlace)
+        if (interactConfig.interactConfirmationMode == InteractConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.SUCCESS
 
         // TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
@@ -367,7 +367,7 @@ object InteractManager : RequestHandler<InteractRequest>(
 
         if (interactConfig.sounds) placeSound(state, blockPos)
 
-        if (interactConfig.placeConfirmationMode == InteractConfig.PlaceConfirmationMode.None) {
+        if (interactConfig.interactConfirmationMode == InteractConfig.PlaceConfirmationMode.None) {
             request.onPlace?.invoke(this, interactContext.blockPos)
         }
 
