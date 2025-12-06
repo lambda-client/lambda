@@ -58,9 +58,8 @@ object InventoryManager : Manager<InventoryRequest>(
     private var actions = mutableListOf<InventoryAction>()
 
     private var slots = listOf<ItemStack>()
-    private var alteredSlots = LimitedDecayQueue<InventoryChange>(
-        Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L
-    )
+    private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L)
+	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L)
 
     private var screenHandler: ScreenHandler? = null
         set(value) {
@@ -92,10 +91,8 @@ object InventoryManager : Manager<InventoryRequest>(
             actions = mutableListOf()
         }
 
-        listen<PacketEvent.Send.Pre> { event ->
-            if (event.packet is CloseHandledScreenC2SPacket &&
-                event.packet.syncId != player.currentScreenHandler.syncId
-                ) {
+        listen<PacketEvent.Send.Post> { event ->
+            if (event.packet is CloseHandledScreenC2SPacket) {
                 screenHandler = player.playerScreenHandler
             }
         }
@@ -133,6 +130,7 @@ object InventoryManager : Manager<InventoryRequest>(
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
         alteredSlots.setDecayTime(DEFAULT.desyncTimeout * 50L)
+	    alteredPlayerSlots.setDecayTime(DEFAULT.desyncTimeout * 50L)
     }
 
     /**
@@ -178,7 +176,8 @@ object InventoryManager : Manager<InventoryRequest>(
             ?.filter { !it.stack.equal(slots[it.id]) }
             ?.map { InventoryChange(it.id, slots[it.id], it.stack.copy()) }
             ?: emptyList()
-        alteredSlots.addAll(changes)
+	    if (player.currentScreenHandler.syncId == 0) alteredPlayerSlots.addAll(changes)
+        else alteredSlots.addAll(changes)
         slots = getStacks(player.currentScreenHandler.slots)
     }
 
@@ -203,6 +202,7 @@ object InventoryManager : Manager<InventoryRequest>(
                     else -> return@runSafe
                 }
             val alteredContents = mutableListOf<ItemStack>()
+	        val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
             packet.contents.forEachIndexed { index, incomingStack ->
                 val matches = alteredSlots.removeIf { cached ->
                     incomingStack.equal(cached.after)
@@ -235,6 +235,7 @@ object InventoryManager : Manager<InventoryRequest>(
                 !it.isInventoryTabSelected
             } ?: false
 
+	        val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
             val matches = alteredSlots.removeIf {
                 it.syncId == packet.slot && it.after.equal(itemStack)
             }
