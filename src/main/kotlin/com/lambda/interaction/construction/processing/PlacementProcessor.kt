@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.processing
 
+import com.lambda.context.SafeContext
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 
@@ -25,7 +26,19 @@ import net.minecraft.util.math.BlockPos
  * optimize how blocks are simulated. Some blocks might only be placeable on certain sides, so it is
  * unnecessary to scan all of them, for example.
  */
-abstract class PlacementProcessor {
-    abstract fun acceptsState(state: BlockState): Boolean
-    abstract fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator)
+
+interface StateProcessor {
+	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
+	context(safeContext: SafeContext)
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos)
+}
+
+interface PropertyPreProcessor {
+	fun acceptsState(targetState: BlockState): Boolean
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
+}
+
+interface PropertyPostProcessor {
+	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
 }

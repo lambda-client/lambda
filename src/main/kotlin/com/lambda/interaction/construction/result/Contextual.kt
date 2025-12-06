@@ -20,7 +20,7 @@ package com.lambda.interaction.construction.result
 import com.lambda.config.groups.ActionConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -34,13 +34,13 @@ interface Contextual : ComparableResult<Rank> {
     override fun compareResult(other: ComparableResult<Rank>) = runSafe {
         when (other) {
             is Contextual -> compareBy<BuildContext> {
-                if (it is PlaceContext) BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
+                if (it is InteractContext) BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
                 else BlockUtils.fluids.size
             }.thenByDescending {
-                if (it is PlaceContext && it.cachedState.fluidState.level != 0) it.blockPos.y
+                if (it is InteractContext && it.cachedState.fluidState.level != 0) it.blockPos.y
                 else Int.MIN_VALUE
             }.thenByDescending {
-                if (it is PlaceContext) it.cachedState.fluidState.level
+                if (it is InteractContext) it.cachedState.fluidState.level
                 else Int.MIN_VALUE
             }.thenByDescending {
                 context.sorter == ActionConfig.SortMode.Tool && it.hotbarIndex == HotbarManager.serverSlot
@@ -53,7 +53,7 @@ interface Contextual : ComparableResult<Rank> {
                     ActionConfig.SortMode.Random -> it.random
                 }
             }.thenByDescending {
-                it is PlaceContext && it.sneak == player.isSneaking
+                it is InteractContext && it.sneak == player.isSneaking
             }.thenByDescending {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.thenByDescending {

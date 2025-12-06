@@ -15,32 +15,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.preprocessors
+package com.lambda.interaction.construction.processing.preprocessors.property.placement.pre
 
-import com.lambda.interaction.construction.processing.PlacementProcessor
 import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
-import com.lambda.interaction.construction.verify.ScanMode
-import com.lambda.interaction.construction.verify.SurfaceScan
+import com.lambda.interaction.construction.processing.PropertyPreProcessor
 import net.minecraft.block.BlockState
-import net.minecraft.block.enums.BlockHalf
+import net.minecraft.block.enums.BlockFace
 import net.minecraft.state.property.Properties
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object BlockHalfPreProcessor : PlacementProcessor() {
-    override fun acceptsState(state: BlockState) =
-        state.getOrEmpty(Properties.BLOCK_HALF).isPresent
+object BlockFacePreProcessor : PropertyPreProcessor {
+    override fun acceptsState(targetState: BlockState) =
+        Properties.BLOCK_FACE in targetState
 
-    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
-        val slab = state.get(Properties.BLOCK_HALF) ?: return
-
-        val surfaceScan = when (slab) {
-            BlockHalf.BOTTOM -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
-            BlockHalf.TOP -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
-        }
-
-        accumulator.offerSurfaceScan(surfaceScan)
+    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState) {
+        val property = targetState.get(Properties.BLOCK_FACE) ?: return
+	    when (property) {
+			BlockFace.FLOOR -> retainSides(Direction.DOWN)
+		    BlockFace.CEILING -> retainSides(Direction.UP)
+		    BlockFace.WALL -> retainSides { it in Direction.Type.HORIZONTAL }
+		}
     }
 }

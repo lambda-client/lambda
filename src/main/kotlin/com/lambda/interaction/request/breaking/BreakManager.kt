@@ -75,8 +75,6 @@ import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
 import com.lambda.interaction.request.breaking.RebreakHandler.getRebreakPotential
 import com.lambda.interaction.request.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.interacting.InteractionManager
-import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.module.hud.ManagerDebugLoggers.breakManagerLogger
 import com.lambda.threading.runSafeAutomated
@@ -309,7 +307,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
-        if (PlaceManager.activeThisTick || InteractionManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
@@ -451,7 +448,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filter { it.updatedThisTick }
             .let { infos ->
                 rotationRequest = infos.lastOrNull { info ->
-                    info.breakConfig.rotateForBreak
+                    info.breakConfig.rotate
                 }?.let { info ->
                     val rotation = info.context.rotationRequest
                     logger.debug("Requesting rotation", rotation)

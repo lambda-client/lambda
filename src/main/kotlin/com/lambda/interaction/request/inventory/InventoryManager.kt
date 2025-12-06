@@ -31,7 +31,7 @@ import com.lambda.interaction.request.inventory.InventoryManager.actions
 import com.lambda.interaction.request.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.request.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.request.inventory.InventoryManager.processActiveRequest
-import com.lambda.interaction.request.placing.PlaceManager
+import com.lambda.interaction.request.interacting.InteractManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedDecayQueue
@@ -128,7 +128,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
     }
 
     private fun populateFrom(request: InventoryRequest) {
-        PlaceManager.logger.debug("Populating from request", request)
+        InteractManager.logger.debug("Populating from request", request)
         activeRequest = request
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
@@ -142,7 +142,7 @@ object InventoryManager : RequestHandler<InventoryRequest>(
      */
     private fun SafeContext.processActiveRequest() {
         activeRequest?.let { active ->
-            PlaceManager.logger.debug("Processing request", active)
+            InteractManager.logger.debug("Processing request", active)
             if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
             val iterator = actions.iterator()
             while (iterator.hasNext()) {

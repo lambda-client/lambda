@@ -24,10 +24,9 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.placing.PlaceRequest.Companion.placeRequest
+import com.lambda.interaction.request.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -35,7 +34,6 @@ import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.InputUtils.isKeyPressed
 import com.lambda.util.KeyCode
-import com.lambda.util.math.distSq
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -49,7 +47,7 @@ object Scaffold : Module(
     private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
-    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     init {
 		setDefaultAutomationConfig {
@@ -60,7 +58,7 @@ object Scaffold : Module(
 						hide()
 					}
 				}
-				hideAllGroupsExcept(placeConfig, rotationConfig, hotbarConfig)
+				hideAllGroupsExcept(interactConfig, rotationConfig, hotbarConfig)
 			}
 		}
 
@@ -74,18 +72,15 @@ object Scaffold : Module(
                 scaffoldPositions(beneath)
                     .associateWith { TargetState.Solid(emptySet()) }
                     .simulate()
-                    .filterIsInstance<PlaceResult.Place>()
-                    .minByOrNull { it.pos distSq beneath }
-                    ?.let { result ->
-                        placeRequest(setOf(result.context), pendingActions).submit()
-                    }
+                    .interactRequest(pendingInteractions)
+	                ?.submit()
             }
         }
     }
 
     private fun SafeContext.scaffoldPositions(beneath: BlockPos): List<BlockPos> {
         if (!blockState(beneath).isReplaceable) return emptyList()
-        if (placeConfig.airPlace.isEnabled) return listOf(beneath)
+        if (interactConfig.airPlace.isEnabled) return listOf(beneath)
 
         return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
             .asSequence()

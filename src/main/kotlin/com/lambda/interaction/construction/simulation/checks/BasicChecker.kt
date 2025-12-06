@@ -23,7 +23,6 @@ import com.lambda.interaction.construction.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.Results
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
@@ -48,7 +47,7 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block should be ignored
-        if (state.block in breakConfig.ignoredBlocks && targetState.type == TargetState.Type.Air) {
+        if (state.block in breakConfig.ignoredBlocks && targetState.isEmpty()) {
             result(GenericResult.Ignored(pos))
             return false
         }

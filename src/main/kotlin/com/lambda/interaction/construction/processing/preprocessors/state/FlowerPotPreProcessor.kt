@@ -15,30 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.preprocessors
+package com.lambda.interaction.construction.processing.preprocessors.state
 
-import com.lambda.interaction.construction.processing.PlacementProcessor
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
+import com.lambda.interaction.construction.processing.StateProcessor
 import net.minecraft.block.BlockState
-import net.minecraft.block.enums.Attachment
-import net.minecraft.state.property.Properties
+import net.minecraft.block.Blocks
+import net.minecraft.block.FlowerPotBlock
+import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object AttachmentPreProcessor : PlacementProcessor() {
-    override fun acceptsState(state: BlockState) =
-        state.properties.contains(Properties.ATTACHMENT)
+object FlowerPotPreProcessor : StateProcessor {
+	override fun acceptsState(state: BlockState, targetState: BlockState) =
+		(state.isReplaceable || state.block == Blocks.FLOWER_POT) &&
+				(targetState.block is FlowerPotBlock && targetState.block != Blocks.FLOWER_POT)
 
-    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
-        val attachment = state.get(Properties.ATTACHMENT) ?: return
-        with(accumulator) {
-            when (attachment) {
-                Attachment.FLOOR -> retainSides(Direction.DOWN)
-                Attachment.CEILING -> retainSides(Direction.UP)
-                else -> retainSides { it in Direction.Type.HORIZONTAL }
-            }
-        }
-    }
+	context(safeContext: SafeContext)
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+		if (state.block != Blocks.FLOWER_POT) {
+			setExpectedState(Blocks.FLOWER_POT.defaultState)
+			setItem(Items.FLOWER_POT)
+			return
+		}
+		setPlacing(false)
+	}
 }

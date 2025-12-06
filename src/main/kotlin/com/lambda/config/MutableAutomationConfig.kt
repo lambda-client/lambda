@@ -24,7 +24,6 @@ import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.interacting.InteractConfig
 import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 
 interface MutableAutomationConfig : Automated {
@@ -34,7 +33,6 @@ interface MutableAutomationConfig : Automated {
 
 	override val buildConfig: BuildConfig get() = automationConfig.buildConfig
 	override val breakConfig: BreakConfig get() = automationConfig.breakConfig
-	override val placeConfig: PlaceConfig get() = automationConfig.placeConfig
 	override val interactConfig: InteractConfig get() = automationConfig.interactConfig
 	override val rotationConfig: RotationConfig get() = automationConfig.rotationConfig
 	override val inventoryConfig: InventoryConfig get() = automationConfig.inventoryConfig

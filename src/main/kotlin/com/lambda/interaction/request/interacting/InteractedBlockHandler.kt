@@ -17,30 +17,28 @@
 
 package com.lambda.interaction.request.interacting
 
-import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.PostActionHandler
+import com.lambda.interaction.request.interacting.InteractManager.placeSound
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
-/**
- * Designed to handle interactions pending a response from the server.
- *
- * @see InteractionManager
- */
 object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
     override val pendingActions = LimitedDecayQueue<InteractInfo>(
         DEFAULT.buildConfig.maxPendingInteractions,
         DEFAULT.buildConfig.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenInteract) {
-            mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
+        if (it.interactConfig.placeConfirmationMode != InteractConfig.PlaceConfirmationMode.AwaitThenPlace) {
+            runSafe {
+                world.setBlockState(it.context.blockPos, it.context.cachedState)
+            }
         }
         it.pendingInteractionsList.remove(it.context)
     }
@@ -62,17 +60,15 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 
                         pending.stopPending()
 
-                        this@InteractedBlockHandler.warn("Interacted block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+                        this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
                         return@listen
                     }
 
                     pending.stopPending()
 
-                    //ToDo: reliable way to recreate the sounds played when interacting with any given block
-//                    if (pending.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
-//                        with (pending.context) {
-//                            cachedState.onUse(world, player, Hand.MAIN_HAND, result)
-//                        }
+                    if (pending.interactConfig.placeConfirmationMode == InteractConfig.PlaceConfirmationMode.AwaitThenPlace)
+                        with(pending.context) { placeSound(expectedState, blockPos) }
+                    pending.onPlace?.invoke(this, pending.context.blockPos)
                 }
         }
     }

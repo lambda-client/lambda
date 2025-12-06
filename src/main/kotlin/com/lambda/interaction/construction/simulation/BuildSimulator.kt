@@ -20,11 +20,9 @@ package com.lambda.interaction.construction.simulation
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.PostSimResult
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
-import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
-import com.lambda.interaction.construction.simulation.checks.PostProcessingSim.Companion.simPostProcessing
-import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.construction.simulation.checks.InteractSim.Companion.simInteraction
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.Structure
 import io.ktor.util.collections.*
@@ -40,9 +38,9 @@ object BuildSimulator : Sim<PostSimResult>() {
      * the provided concurrent set. This method uses coroutines to perform the simulations in parallel. The results
      * will likely not be returned in the same order they were simulated due to the parallel nature of the simulations.
      *
-     * @see ISimInfo.sim
+     * @see SimInfo.sim
      * @see simPostProcessing
-     * @see simPlacement
+     * @see simInteraction
      * @see simBreak
      */
     context(automatedSafeContext: AutomatedSafeContext)
@@ -55,14 +53,13 @@ object BuildSimulator : Sim<PostSimResult>() {
             with(automatedSafeContext) {
                 forEach { (pos, targetState) ->
                     launch {
-                        sim(pos, blockState(pos), targetState, pov, concurrentSet) {
-                            if (targetState is TargetState.State && matchesTarget(complete = false)) {
-                                simPostProcessing()
-                                return@sim
-                            }
-                            if (!targetState.isEmpty() && state.isReplaceable) simPlacement()
-                            else simBreak()
-                        }
+                        sim(
+	                        pos,
+	                        blockState(pos),
+	                        targetState,
+	                        pov,
+	                        concurrentSet
+						)
                     }
                 }
             }

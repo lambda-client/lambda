@@ -15,26 +15,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.preprocessors
+package com.lambda.interaction.construction.processing.preprocessors.property.placement.pre
 
-import com.lambda.interaction.construction.processing.PlacementProcessor
 import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
+import com.lambda.interaction.construction.processing.PropertyPreProcessor
 import net.minecraft.block.BlockState
+import net.minecraft.block.enums.Attachment
 import net.minecraft.state.property.Properties
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object HopperFacingPreProcessor : PlacementProcessor() {
-    override fun acceptsState(state: BlockState) =
-        state.properties.contains(Properties.HOPPER_FACING)
+object AttachmentPreProcessor : PropertyPreProcessor {
+    override fun acceptsState(targetState: BlockState) =
+        Properties.ATTACHMENT in targetState
 
-    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
-        val facing = state.get(Properties.HOPPER_FACING) ?: return
-        when {
-            facing.axis == Direction.Axis.Y -> accumulator.retainSides { it.axis == Direction.Axis.Y }
-            else -> accumulator.retainSides(facing)
-        }
+    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState) {
+        val attachment = targetState.get(Properties.ATTACHMENT) ?: return
+	    when (attachment) {
+			Attachment.FLOOR -> retainSides(Direction.DOWN)
+		    Attachment.CEILING -> retainSides(Direction.UP)
+		    else -> retainSides { it in Direction.Type.HORIZONTAL }
+		}
     }
 }

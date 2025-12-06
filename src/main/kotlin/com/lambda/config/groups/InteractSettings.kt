@@ -22,16 +22,23 @@ import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.request.interacting.InteractConfig
+import com.lambda.interaction.request.interacting.InteractConfig.AirPlaceMode
+import com.lambda.interaction.request.interacting.InteractConfig.PlaceConfirmationMode
 import com.lambda.util.NamedEnum
 
 class InteractSettings(
     c: Configurable,
     baseGroup: NamedEnum
 ) : SettingGroup(c), InteractConfig {
-    override val rotate by c.setting("Rotate For Interact", true, "Rotates the player to look at the block when interacting").group(baseGroup).index()
-    override val sorter by c.setting("Interact Sorter", ActionConfig.SortMode.Tool, "The order in which interactions are performed").group(baseGroup).index()
-    override val swingHand by c.setting("Swing On Interact", true, "Swings the players hand after interacting").group(baseGroup).index()
-    override val tickStageMask by c.setting("Interact Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), description = "The sub-tick timing at which interact actions are performed").group(baseGroup).index()
-    override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swingHand }.group(baseGroup).index()
-    override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractConfig.InteractConfirmationMode.InteractThenAwait, "The style of confirmation for interactions").group(baseGroup).index()
+    override val rotate by c.setting("Rotate For Place", true, "Rotate towards block while placing").group(baseGroup).index()
+    override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces").group(baseGroup).index()
+    override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }.group(baseGroup).index()
+    override val sorter by c.setting("Place Sorter", ActionConfig.SortMode.Tool, "The order in which placements are performed").group(baseGroup).index()
+    override val tickStageMask by c.setting("Place Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), description = "The sub-tick timing at which place actions are performed").group(baseGroup).index()
+    override val placeConfirmationMode by c.setting("Place Confirmation", PlaceConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation").group(baseGroup).index()
+    override val maxPendingPlacements by c.setting("Max Pending Placements", 5, 0..30, 1, "The maximum amount of pending placements").group(baseGroup).index()
+    override val placementsPerTick by c.setting("Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick").group(baseGroup).index()
+    override val swing by c.setting("Swing On Place", true, "Swings the players hand when placing").group(baseGroup).index()
+    override val swingType by c.setting("Place Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing }.group(baseGroup).index()
+    override val sounds by c.setting("Place Sounds", true, "Plays the placing sounds").group(baseGroup).index()
 }

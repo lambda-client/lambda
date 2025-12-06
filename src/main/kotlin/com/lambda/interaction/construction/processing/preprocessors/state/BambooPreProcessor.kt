@@ -15,30 +15,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.preprocessors
+package com.lambda.interaction.construction.processing.preprocessors.state
 
-import com.lambda.interaction.construction.processing.PlacementProcessor
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
+import com.lambda.interaction.construction.processing.StateProcessor
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.item
 import net.minecraft.block.BlockState
-import net.minecraft.block.enums.BlockFace
-import net.minecraft.state.property.Properties
+import net.minecraft.block.Blocks
+import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object BlockFacePreProcessor : PlacementProcessor() {
-    override fun acceptsState(state: BlockState) =
-        state.getOrEmpty(Properties.BLOCK_FACE).isPresent
+object BambooPreProcessor : StateProcessor {
+	override fun acceptsState(state: BlockState, targetState: BlockState) =
+		(state.isReplaceable || state.block == Blocks.BAMBOO_SAPLING) && targetState.block == Blocks.BAMBOO
 
-    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
-        val property = state.get(Properties.BLOCK_FACE) ?: return
-        with(accumulator) {
-            when (property) {
-                BlockFace.FLOOR -> retainSides(Direction.DOWN)
-                BlockFace.CEILING -> retainSides(Direction.UP)
-                BlockFace.WALL -> retainSides { it in Direction.Type.HORIZONTAL }
-            }
-        }
-    }
+	context(safeContext: SafeContext)
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+		if (state.block == Blocks.BAMBOO_SAPLING) {
+			omitPlacement()
+			return
+		}
+		noCaching()
+		if (safeContext.blockState(pos.down()).block.item != Items.BAMBOO) {
+			setExpectedState(Blocks.BAMBOO_SAPLING.defaultState)
+		}
+	}
 }

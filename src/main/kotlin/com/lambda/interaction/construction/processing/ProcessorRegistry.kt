@@ -17,26 +17,24 @@
 
 package com.lambda.interaction.construction.processing
 
+import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
-import com.lambda.interaction.construction.processing.ProcessorRegistry.IntermediaryInfo.Companion.intermediaryInfo
+import com.lambda.interaction.construction.processing.PreProcessingInfo.Companion.default
+import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.util.BlockUtils
-import com.lambda.util.BlockUtils.item
 import com.lambda.util.reflections.getInstances
-import net.minecraft.block.Block
 import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
-import net.minecraft.block.FlowerPotBlock
-import net.minecraft.item.Item
-import net.minecraft.item.Items
+import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import java.util.*
 
-object ProcessorRegistry : Loadable {
-    private val processors = getInstances<PlacementProcessor>()
-    private val processorCache = Collections.synchronizedMap<BlockState, PreProcessingInfo?>(mutableMapOf())
+object ProcessorRegistry : Loadable{
+	private val stateProcessors = getInstances<StateProcessor>()
+    private val propertyPreProcessors = getInstances<PropertyPreProcessor>()
+	private val propertyPostProcessors = getInstances<PropertyPostProcessor>()
+    private val processorCache = Collections.synchronizedMap<Pair<BlockState, BlockState>, PreProcessingInfo?>(mutableMapOf())
 
     /**
      * List of properties that can be processed after the block is placed. This is often used to ignore these properties
@@ -91,7 +89,6 @@ object ProcessorRegistry : Loadable {
         Properties.POWER,
         Properties.STAGE,
         Properties.CHARGES,
-        Properties.CHEST_TYPE,
         Properties.COMPARATOR_MODE,
         Properties.INSTRUMENT,
         Properties.STAIR_SHAPE,
@@ -117,23 +114,16 @@ object ProcessorRegistry : Loadable {
         Properties.DISTANCE_1_7
     )
 
-    /**
-     * Map of blocks that get placed as a different [Block] type, to then be updated afterward. Bamboo and potted flowers are
-     * two examples.
-     *
-     * @see IntermediaryInfo
-     */
-    val intermediaryBlockMap = buildMap<Block, IntermediaryInfo> {
-        this[Blocks.BAMBOO] = intermediaryInfo(IntermediaryProcess(Blocks.BAMBOO_SAPLING, item = Items.BAMBOO))
-        BlockUtils.pottedBlocks.forEach {
-            this[it] = intermediaryInfo(
-                IntermediaryProcess(Blocks.FLOWER_POT, item = Items.FLOWER_POT),
-                IntermediaryProcess(Blocks.FLOWER_POT, it, (it as FlowerPotBlock).content.item)
-            )
-        }
-    }
+	val standardInteractProperties = setOf(
+		Properties.INVERTED,
+		Properties.DELAY,
+		Properties.COMPARATOR_MODE,
+		Properties.OPEN,
+		Properties.NOTE,
 
-    override fun load() = "Loaded ${processors.size} pre processors"
+	)
+
+    override fun load() = "Loaded ${propertyPreProcessors.size} pre processors"
 
     /**
      * [PreProcessingInfo]'s are cached to avoid duplicate computations as block states are immutable.
@@ -142,58 +132,43 @@ object ProcessorRegistry : Loadable {
      * each pre-processor checking if the state can be accepted. If so, the state is passed through the pre-processor
      * which can call the functions within the [PreProcessingInfoAccumulator] DSL to modify the information.
      */
-    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingData? {
-        if (this !is TargetState.State) return PreProcessingData(PreProcessingInfo.DEFAULT, pos)
+    @SimDsl
+    fun AutomatedSafeContext.getProcessingInfo(state: BlockState, targetState: TargetState, pos: BlockPos): PreProcessingData? {
+        val targetBlockState = (targetState as? TargetState.State)?.blockState
+	        ?: return PreProcessingData(default(targetState, pos), pos)
 
-        val get: () -> PreProcessingInfo? = get@{
-            val infoAccumulator = PreProcessingInfoAccumulator()
-
-            processors.forEach { processor ->
-                if (!processor.acceptsState(blockState)) return@forEach
-                processor.preProcess(blockState, pos, infoAccumulator)
-            }
-
-            infoAccumulator.complete()
+	    val processorCacheKey = state to targetBlockState
+        val preProcessingInfo = processorCache.getOrElse(processorCacheKey) {
+			preProcess(pos, state, targetBlockState, targetState.getStack(pos)).also { info ->
+				if (info?.noCaching != true) processorCache[processorCacheKey] = info
+			}
         }
-        val preProcessingInfo = processorCache.getOrPut(blockState, get) ?: return null
-        return PreProcessingData(preProcessingInfo, pos)
+
+        return PreProcessingData(preProcessingInfo ?: return null, pos)
     }
 
-    /**
-     * Contains the starting initial block placement and any subsequent intermediary processes to transform the placement
-     * into the final block.
-     *
-     * @see IntermediaryProcess
-     */
-    data class IntermediaryInfo private constructor(
-        val startBlock: IntermediaryProcess,
-        val intermediaryProcesses: List<IntermediaryProcess> = emptyList(),
-    ) {
-        fun getIntermediaryProcess(state: BlockState) = intermediaryProcesses.firstOrNull { it.block === state.block }
-        fun isIntermediaryBlock(state: BlockState) = intermediaryProcesses.any {
-            it.block === state.block || it.targetBlock === state.block
-        } || startBlock.targetBlock === state.block
-
-        companion object {
-            fun intermediaryInfo(
-                startingBlock: IntermediaryProcess,
-                vararg intermediaryProcesses: IntermediaryProcess
-            ) = IntermediaryInfo(startingBlock, intermediaryProcesses.toList())
-        }
-    }
-
-    /**
-     * Holds the required information for placing a [Block] with more than one placement to achieve its target.
-     *
-     * The use of [Block] instead of [BlockState] here is intentional as we would only have to alter the [Properties]s
-     * if the placement was the correct [BlockState]. This is only used when one [Block] needs to transform into another.
-     */
-    data class IntermediaryProcess(
-        val block: Block,
-        val targetBlock: Block = block,
-        val item: Item,
-        val sides: Set<Direction> = Direction.entries.toSet()
-    )
+	context(safeContext: SafeContext)
+	private fun preProcess(pos: BlockPos, state: BlockState, targetState: BlockState, itemStack: ItemStack) =
+		PreProcessingInfoAccumulator(targetState, itemStack.item).run {
+			val stateProcessing = stateProcessors.any { processor ->
+				processor.acceptsState(state, targetState).also { accepted ->
+					if (accepted)
+						with(processor) { preProcess(state, targetState, pos) }
+				}
+			}
+			if (omitPlacement) return@run complete()
+			if (!stateProcessing) {
+				if (!state.isReplaceable && state.block != expectedState.block) return@run null
+				if (state.block != expectedState.block) propertyPreProcessors.forEach { processor ->
+					if (processor.acceptsState(targetState))
+						with(processor) { preProcess(state, expectedState) }
+				} else propertyPostProcessors.forEach { processor ->
+					if (processor.acceptsState(state, expectedState))
+						with(processor) { preProcess(state, expectedState) }
+				}
+			}
+			complete()
+		}
 }
 
 data class PreProcessingData(val info: PreProcessingInfo, val pos: BlockPos)

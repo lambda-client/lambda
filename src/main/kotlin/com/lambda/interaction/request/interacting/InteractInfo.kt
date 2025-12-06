@@ -17,21 +17,26 @@
 
 package com.lambda.interaction.request.interacting
 
-import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.request.ActionInfo
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
+import net.minecraft.util.math.BlockPos
 
 data class InteractInfo(
-    override val context: InteractContext,
-    override val pendingInteractionsList: MutableCollection<BuildContext>,
-    private val automated: Automated
-) : ActionInfo, Automated by automated, LogContext {
+	override val context: InteractContext,
+	override val pendingInteractionsList: MutableCollection<BuildContext>,
+	val onPlace: (SafeContext.(BlockPos) -> Unit)?,
+	val interactConfig: InteractConfig
+) : ActionInfo, LogContext {
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Interaction Info") {
+        group("Place Info") {
             text(context.getLogContextBuilder())
+            group("Callbacks") {
+                value("onPlace", onPlace != null)
+            }
         }
     }
 }

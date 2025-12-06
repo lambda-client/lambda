@@ -67,7 +67,7 @@ open class BreakSettings(
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }.group(baseGroup, Group.General).index()
 
     // Rotate
-    override val rotateForBreak by c.setting("Rotate For Break", false, "Rotate towards block while breaking").group(baseGroup, Group.General).index()
+    override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking").group(baseGroup, Group.General).index()
 
     // Pending / Post
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking").group(baseGroup, Group.General).index()

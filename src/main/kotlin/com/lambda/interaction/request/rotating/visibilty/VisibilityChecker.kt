@@ -276,7 +276,7 @@ object VisibilityChecker {
     fun Box.getClosestPoints(
         pov: Vec3d,
         sides: Set<Direction>,
-        preProcessing: PreProcessingData,
+        preProcessing: PreProcessingData?,
         allowInsideBox: Boolean,
         check: (Vec3d, Direction) -> Unit
     ) {

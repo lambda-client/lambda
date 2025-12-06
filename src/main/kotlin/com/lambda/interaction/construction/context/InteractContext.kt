@@ -32,18 +32,20 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import java.awt.Color
 
-class InteractContext(
+data class InteractContext(
     override val hitResult: BlockHitResult,
     override val rotationRequest: RotationRequest,
     override var hotbarIndex: Int,
+    override val blockPos: BlockPos,
     override var cachedState: BlockState,
     override val expectedState: BlockState,
-    val automated: Automated
+    val placing: Boolean,
+    val sneak: Boolean,
+    val currentDirIsValid: Boolean = false,
+    private val automated: Automated
 ) : BuildContext(), LogContext, Automated by automated {
-    private val baseColor = Color(35, 254, 79, 25)
-    private val sideColor = Color(35, 254, 79, 100)
-
-    override val blockPos: BlockPos = hitResult.blockPos
+    private val baseColor = Color(35, 188, 254, 50)
+    private val sideColor = Color(35, 188, 254, 100)
 
     override val sorter get() = interactConfig.sorter
 
@@ -58,19 +60,23 @@ class InteractContext(
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {
-        val hotbarRequest = submit(HotbarRequest(hotbarIndex, request), false)
-        val validRotation = if (request.interactConfig.rotate) submit(rotationRequest, false).done else true
+        val hotbarRequest = submit(HotbarRequest(hotbarIndex, this), false)
+        val validRotation = if (request.interactConfig.rotate) {
+            submit(rotationRequest, false).done && currentDirIsValid
+        } else true
         return hotbarRequest.done && validRotation
     }
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Interaction Context") {
+        group("Place Context") {
             text(blockPos.getLogContextBuilder())
             text(hitResult.getLogContextBuilder())
             text(rotationRequest.getLogContextBuilder())
             value("Hotbar Index", hotbarIndex)
             value("Cached State", cachedState)
             value("Expected State", expectedState)
+            value("Sneak", sneak)
+            value("Current Dir Is Valid", currentDirIsValid)
         }
     }
 }

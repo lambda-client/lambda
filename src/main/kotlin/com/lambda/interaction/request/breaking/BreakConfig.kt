@@ -44,7 +44,7 @@ interface BreakConfig : ActionConfig, ISettingGroup {
     val swing: SwingMode
     val swingType: BuildConfig.SwingType
 
-    val rotateForBreak: Boolean
+    val rotate: Boolean
 
     val breakConfirmation: BreakConfirmationMode
     val breaksPerTick: Int

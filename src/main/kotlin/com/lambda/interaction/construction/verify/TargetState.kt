@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.processing.ProcessorRegistry.intermediaryBlockMap
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.emptyState
@@ -35,13 +34,8 @@ import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-sealed class TargetState(val type: Type) : StateMatcher {
-
-    enum class Type {
-        Empty, Air, Solid, Support, State, Block, Stack
-    }
-
-    data object Empty : TargetState(Type.Empty) {
+sealed class TargetState() : StateMatcher {
+    data object Empty : TargetState() {
         override fun toString() = "Empty"
 
         context(safeContext: SafeContext)
@@ -60,7 +54,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = true
     }
 
-    data object Air : TargetState(Type.Air) {
+    data object Air : TargetState() {
         override fun toString() = "Air"
 
         context(safeContext: SafeContext)
@@ -79,7 +73,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = true
     }
 
-    data class Solid(val replace: Collection<net.minecraft.block.Block>) : TargetState(Type.Solid) {
+    data class Solid(val replace: Collection<net.minecraft.block.Block>) : TargetState() {
         override fun toString() = "Solid"
 
         context(safeContext: SafeContext)
@@ -103,7 +97,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = false
     }
 
-    data class Support(val direction: Direction) : TargetState(Type.Support) {
+    data class Support(val direction: Direction) : TargetState() {
         override fun toString() = "Support for ${direction.name}"
 
         context(safeContext: SafeContext)
@@ -130,7 +124,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = false
     }
 
-    data class State(val blockState: BlockState) : TargetState(Type.State) {
+    data class State(val blockState: BlockState) : TargetState() {
         override fun toString() = "State of $blockState"
 
         context(safeContext: SafeContext)
@@ -138,13 +132,11 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state: BlockState,
             pos: BlockPos,
             ignoredProperties: Collection<Property<*>>
-        ) =
-            state.matches(blockState, ignoredProperties)
+        ) = state.matches(blockState, ignoredProperties)
 
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack =
-            intermediaryBlockMap[blockState.block]?.startBlock?.item?.defaultStack
-                ?: blockState.block.getPickStack(automatedSafeContext.world, pos, blockState, true)
+			blockState.block.getPickStack(automatedSafeContext.world, pos, blockState, true)
 
         context(_: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = blockState
@@ -152,7 +144,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = blockState.isEmpty
     }
 
-    data class Block(val block: net.minecraft.block.Block) : TargetState(Type.Block) {
+    data class Block(val block: net.minecraft.block.Block) : TargetState() {
         override fun toString() = "Block of ${block.name.string.capitalize()}"
 
         context(safeContext: SafeContext)
@@ -172,7 +164,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun isEmpty() = block.defaultState.isEmpty
     }
 
-    data class Stack(val itemStack: ItemStack) : TargetState(Type.Stack) {
+    data class Stack(val itemStack: ItemStack) : TargetState() {
         private val startStack: ItemStack = itemStack.copy()
         override fun toString() = "Stack of ${startStack.item.name.string.capitalize()}"
 
@@ -186,8 +178,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         ) = state.block == block
 
         context(automatedSafeContext: AutomatedSafeContext)
-        override fun getStack(pos: BlockPos): ItemStack =
-            intermediaryBlockMap[getState(pos).block]?.startBlock?.item?.defaultStack ?: itemStack
+        override fun getStack(pos: BlockPos): ItemStack = itemStack
 
         context(_: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = block.defaultState

@@ -25,16 +25,34 @@ import com.lambda.util.NamedEnum
 
 interface InteractConfig : ActionConfig, ISettingGroup {
     val rotate: Boolean
-    val swingHand: Boolean
-    val interactSwingType: BuildConfig.SwingType
-    val interactConfirmationMode: InteractConfirmationMode
+    val airPlace: AirPlaceMode
+    val axisRotateSetting: Boolean
+    val axisRotate get() = rotate && airPlace.isEnabled && axisRotateSetting
+    val placeConfirmationMode: PlaceConfirmationMode
+    val maxPendingPlacements: Int
+    val placementsPerTick: Int
+    val swing: Boolean
+    val swingType: BuildConfig.SwingType
+    val sounds: Boolean
 
-    enum class InteractConfirmationMode(
+    enum class AirPlaceMode(
         override val displayName: String,
         override val description: String
-    ): NamedEnum, Describable {
-        None("No confirmation", "Send the interaction and don’t wait for the server. Lowest latency, but effects may briefly appear if the server rejects it."),
-        InteractThenAwait("Interact now, confirm later", "Show interaction effects immediately, then wait for the server to confirm. Feels instant while still verifying the result."),
-        AwaitThenInteract("Confirm first, then interact", "Wait for the server response before showing any effects. Most accurate and safe, but adds a short delay.")
+    ) : NamedEnum, Describable {
+        None("None", "Do not attempt air placements; only place against valid supports."),
+        Standard("Standard", "Try common air-place techniques for convenience; moderate compatibility."),
+        Grim("Grim", "Use grim specific air placing.")
+        ;
+
+        val isEnabled get() = this != None
+    }
+
+    enum class PlaceConfirmationMode(
+        override val displayName: String,
+        override val description: String
+    ) : NamedEnum, Describable {
+        None("No confirmation", "Place immediately without waiting for the server; lowest latency, possible brief desync."),
+        PlaceThenAwait("Place now, confirm later", "Show placement right away, then wait for server confirmation to verify."),
+        AwaitThenPlace("Confirm first, then place", "Wait for server response before showing placement; most accurate, adds a short delay.")
     }
 }

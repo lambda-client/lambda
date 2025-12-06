@@ -17,40 +17,93 @@
 
 package com.lambda.interaction.request.interacting
 
-import com.lambda.Lambda.mc
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Dependent
+import com.lambda.interaction.construction.result.results.InteractResult
 import com.lambda.interaction.request.LogContext
 import com.lambda.interaction.request.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.request.Request
+import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
-data class InteractRequest(
-    val contexts: Collection<InteractContext>,
-    val pendingInteractionsList: MutableCollection<BuildContext>,
-    private val automated: Automated,
-    override val nowOrNothing: Boolean = false,
-    val onInteract: ((BlockPos) -> Unit)?
+data class InteractRequest private constructor(
+	val contexts: Collection<InteractContext>,
+	val pendingInteractions: MutableCollection<BuildContext>,
+	private val automated: Automated,
+	override val nowOrNothing: Boolean = false,
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
     override val tickStageMask get() = interactConfig.tickStageMask
 
+	var onPlace: (SafeContext.(BlockPos) -> Unit)? = null
+
     override val done: Boolean
-        get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
+        get() = runSafe {
+            contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
+        } == true
 
     override fun submit(queueIfMismatchedStage: Boolean) =
-        InteractionManager.request(this, queueIfMismatchedStage)
+        InteractManager.request(this, queueIfMismatchedStage)
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Interact Request") {
+        group("PlaceRequest") {
             value("Request ID", requestId)
             value("Contexts", contexts.size)
         }
     }
 
+	@DslMarker
+	annotation class PlaceRequestDsl
+
+	@PlaceRequestDsl
+	class PlaceRequestBuilder(
+		contexts: Collection<InteractContext>,
+		pendingInteractions: MutableCollection<BuildContext>,
+		nowOrNothing: Boolean,
+		automated: Automated
+	) {
+		val request = InteractRequest(contexts, pendingInteractions, automated, nowOrNothing)
+
+		@PlaceRequestDsl
+		fun onPlace(callback: SafeContext.(BlockPos) -> Unit) {
+			request.onPlace = callback
+		}
+	}
+
     companion object {
         var requestCount = 0
+
+	    @PlaceRequestDsl
+	    @JvmName("interactRequest1")
+	    context(automated: Automated)
+	    fun Collection<BuildResult>.interactRequest(
+		    pendingInteractions: MutableCollection<BuildContext>,
+		    nowOrNothing: Boolean = false,
+		    builder: (PlaceRequestBuilder.() -> Unit)? = null
+	    ) = asSequence()
+		    .map { if (it is Dependent) it.lastDependency else it }
+		    .filterIsInstance<InteractResult.Interact>()
+		    .map { it.context }
+		    .toSet()
+		    .takeIf { it.isNotEmpty() }
+		    ?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
+
+	    @PlaceRequestDsl
+	    @JvmName("interactRequest2")
+	    fun Automated.interactRequest(
+		    contexts: Collection<InteractContext>,
+		    pendingInteractions: MutableCollection<BuildContext>,
+		    nowOrNothing: Boolean = false,
+		    builder: (PlaceRequestBuilder.() -> Unit)? = null
+		) = PlaceRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
+
+	    @PlaceRequestDsl
+	    fun PlaceRequestBuilder.build() = request
     }
 }

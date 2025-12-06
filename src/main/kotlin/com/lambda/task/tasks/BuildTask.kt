@@ -41,16 +41,14 @@ import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.result.results.GenericResult
 import com.lambda.interaction.construction.result.results.InteractResult
-import com.lambda.interaction.construction.result.results.PlaceResult
 import com.lambda.interaction.construction.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.request.interacting.InteractRequest
+import com.lambda.interaction.request.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.request.placing.PlaceRequest.Companion.placeRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
@@ -154,7 +152,7 @@ class BuildTask private constructor(
             }
 
             is GenericResult.NotVisible,
-            is PlaceResult.NoIntegrity -> {
+            is InteractResult.NoIntegrity -> {
                 if (!buildConfig.pathing) return
                 val sim = blueprint.simulation()
                 val goal = BuildGoal(sim, player.blockPos)
@@ -176,24 +174,10 @@ class BuildTask private constructor(
                             }
                         }?.submit()
 
-                    is PlaceResult.Place ->
-                        allResults.placeRequest(pendingInteractions, false) {
+                    is InteractResult.Interact ->
+                        allResults.interactRequest(pendingInteractions, false) {
 							onPlace { placements++ }
 						}?.submit()
-
-                    is InteractResult.Interact -> {
-                        val interactResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<InteractResult.Interact>()
-                            .map { it.context }
-
-                        InteractRequest(
-                            interactResults,
-                            pendingInteractions,
-                            this@BuildTask,
-                            onInteract = null
-                        ).submit(queueIfMismatchedStage = true)
-                    }
                 }
             }
 

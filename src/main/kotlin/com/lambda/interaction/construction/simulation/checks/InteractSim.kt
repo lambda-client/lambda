@@ -18,18 +18,17 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.context.InteractContext
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.results.GenericResult
-import com.lambda.interaction.construction.result.results.PlaceResult
-import com.lambda.interaction.construction.simulation.ISimInfo
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.result.results.InteractResult
+import com.lambda.interaction.construction.simulation.InteractSimInfo
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
-import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
+import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
@@ -61,6 +60,7 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.item.BlockItem
+import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties
@@ -70,31 +70,31 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.RotationPropertyHelper
 import net.minecraft.util.shape.VoxelShapes
 
-class PlaceSim private constructor(simInfo: ISimInfo)
-    : Sim<PlaceResult>(),
-    ISimInfo by simInfo
+class InteractSim private constructor(simInfo: InteractSimInfo)
+    : Sim<InteractResult>(),
+    InteractSimInfo by simInfo
 {
     override fun dependentUpon(buildResult: BuildResult) =
-        PlaceResult.Dependency(pos, buildResult)
+        InteractResult.Dependency(pos, buildResult)
 
     companion object {
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
         @SimDsl
-        suspend fun SimInfo.simPlacement() =
-            PlaceSim(this).run {
+        suspend fun InteractSimInfo.simInteraction() =
+            InteractSim(this).run {
                 withDependent(dependent) {
-                    automatedSafeContext.simPlacements()
+                    automatedSafeContext.simInteraction()
                 }
             }
     }
 
-    private suspend fun AutomatedSafeContext.simPlacements() =
+    private suspend fun AutomatedSafeContext.simInteraction() =
         supervisorScope {
             preProcessing.info.sides.forEach { side ->
                 val neighborPos = pos.offset(side)
                 val neighborSide = side.opposite
-                launch { testBlock(neighborPos, neighborSide, this@supervisorScope) }
-                launch { testBlock(pos, side, this@supervisorScope) }
+	            launch { testBlock(pos, side, this@supervisorScope) }
+	            if (placing) launch { testBlock(neighborPos, neighborSide, this@supervisorScope) }
             }
         }
 
@@ -103,16 +103,15 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         val testBlockState = blockState(pos)
         val shape = testBlockState.getOutlineShape(world, pos).let { outlineShape ->
-            if (!outlineShape.isEmpty || !placeConfig.airPlace.isEnabled) outlineShape
+            if (!outlineShape.isEmpty || !interactConfig.airPlace.isEnabled) outlineShape
             else VoxelShapes.fullCube()
         }
         if (shape.isEmpty) return
 
-        // ToDo: For each hand
         val fakePlayer = copyPlayer(player).apply {
             val newPos = pov - (this.eyePos - this.pos)
             setPos(newPos.x, newPos.y, newPos.z)
-            if (testBlockState.block::class in BlockUtils.interactionBlocks) {
+            if (testBlockState.block::class in BlockUtils.interactionBlocks && preProcessing.info.placing) {
                 input.sneaking = true
                 updatePose()
             }
@@ -121,93 +120,116 @@ class PlaceSim private constructor(simInfo: ISimInfo)
 
         val validHits = scanShape(pov, shape, pos, setOf(side), preProcessing) ?: return
 
-        selectHitPos(validHits, fakePlayer, targetState.getStack(this@PlaceSim.pos).blockItem, supervisorScope)
-    }
-
-    private fun AutomatedSafeContext.getSwapStack(): ItemStack? {
-        val optimalStack = targetState.getStack(pos)
-        val stackSelection = optimalStack.item.select()
-        val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
-        val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
-            result(GenericResult.WrongItemSelection(pos, optimalStack.item.select(), player.mainHandStack))
-            return null
-        }
-        return stackSelection.filterStacks(container.stacks).run {
-            firstOrNull { it.inventoryIndex == player.inventory.selectedSlot }
-                ?: firstOrNull()
-        }
+        selectHitPos(validHits, fakePlayer, supervisorScope)
     }
 
     private suspend fun AutomatedSafeContext.selectHitPos(
         validHits: Collection<CheckedHit>,
         fakePlayer: ClientPlayerEntity,
-        item: BlockItem,
         supervisorScope: CoroutineScope
     ) {
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val hitResult = checkedHit.hit.blockResult ?: return
 
-            val context = item.getPlacementContext(
+	        val swapStack = getSwapStack(item)
+
+	        if (!placing) {
+		        if (swapStack == null) return
+
+		        val interactContext = InteractContext(
+			        hitResult,
+			        RotationRequest(lookAt(checkedHit.rotation), this@InteractSim),
+			        swapStack.inventoryIndex,
+			        pos,
+			        state,
+			        expectedState,
+			        false,
+			        fakePlayer.isSneaking,
+			        true,
+			        this@InteractSim
+		        )
+		        result(InteractResult.Interact(pos, interactContext))
+		        return
+	        }
+
+	        val blockItem = item as BlockItem
+
+            val context = blockItem.getPlacementContext(
                 ItemPlacementContext(
                     world,
                     fakePlayer,
                     Hand.MAIN_HAND,
-                    item.defaultStack,
+                    blockItem.defaultStack,
                     hitResult,
                 )
             ) ?: run {
-                result(PlaceResult.ScaffoldExceeded(pos))
+                result(InteractResult.ScaffoldExceeded(pos))
                 return
             }
 
             if (context.blockPos != pos) {
-                result(PlaceResult.UnexpectedPosition(pos, context.blockPos))
+                result(InteractResult.UnexpectedPosition(pos, context.blockPos))
                 return
             }
 
             val cachePos = CachedBlockPosition(context.world, context.blockPos, false)
-            if (!player.abilities.allowModifyWorld && !item.defaultStack.canPlaceOn(cachePos)) {
-                result(PlaceResult.IllegalUsage(pos))
+            if (!player.abilities.allowModifyWorld && !blockItem.defaultStack.canPlaceOn(cachePos)) {
+                result(InteractResult.IllegalUsage(pos))
                 return
             }
 
             if (!context.canPlace()) {
-                result(PlaceResult.CantReplace(pos, context))
+                result(InteractResult.CantReplace(pos, context))
                 return
             }
 
-            val rotatePlaceTest = simRotatePlace(fakePlayer, checkedHit, context) ?: return
+            val rotatePlaceTest = simRotation(fakePlayer, checkedHit, context) ?: return
 
-            val rotationRequest = if (placeConfig.axisRotate && (targetState as? TargetState.State)?.blockState?.contains(Properties.ROTATION) != true)
+            val rotationRequest = if (interactConfig.axisRotate && !expectedState.contains(Properties.ROTATION))
                 lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
             else lookAt(rotatePlaceTest.rotation)
 
-            val swapStack = getSwapStack() ?: return
+	        if (swapStack == null) return
             if (!swapStack.item.isEnabled(world.enabledFeatures)) {
-                result(PlaceResult.BlockFeatureDisabled(pos, swapStack))
+                result(InteractResult.BlockFeatureDisabled(pos, swapStack))
                 supervisorScope.cancel()
                 return
             }
 
-            val placeContext = PlaceContext(
+            val interactContext = InteractContext(
                 hitResult,
-                RotationRequest(rotationRequest, this@PlaceSim),
+                RotationRequest(rotationRequest, this@InteractSim),
                 swapStack.inventoryIndex,
                 pos,
                 state,
                 rotatePlaceTest.resultState,
+	            true,
                 fakePlayer.isSneaking,
                 rotatePlaceTest.currentDirIsValid,
-                this@PlaceSim
+                this@InteractSim
             )
 
-            result(PlaceResult.Place(pos, placeContext))
+            result(InteractResult.Interact(pos, interactContext))
         }
 
         return
     }
 
-    private suspend fun AutomatedSafeContext.simRotatePlace(
+	private fun AutomatedSafeContext.getSwapStack(item: Item?): ItemStack? {
+		val stackSelection = item?.select()
+			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
+		val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
+		val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
+			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
+			return null
+		}
+		return stackSelection.filterStacks(container.stacks).run {
+			firstOrNull { it.inventoryIndex == player.inventory.selectedSlot }
+				?: firstOrNull()
+		}
+	}
+
+    private suspend fun AutomatedSafeContext.simRotation(
         fakePlayer: ClientPlayerEntity,
         checkedHit: CheckedHit,
         context: ItemPlacementContext
@@ -215,7 +237,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
         fakePlayer.rotation = RotationManager.serverRotation
         val currentDirIsValid = testPlaceState(context) != null
 
-        if (!placeConfig.axisRotate) {
+        if (!interactConfig.axisRotate) {
             fakePlayer.rotation = checkedHit.rotation
             return testPlaceState(context)?.let { RotatePlaceTest(it, currentDirIsValid, fakePlayer.rotation) }
         }
@@ -225,19 +247,18 @@ class PlaceSim private constructor(simInfo: ISimInfo)
             return RotatePlaceTest(playerRotTest, currentDirIsValid, fakePlayer.rotation)
         }
 
-        (targetState as? TargetState.State)?.blockState?.let { targetState ->
-            if (Properties.ROTATION !in targetState) return@let
-            val rotation = targetState.get(Properties.ROTATION)
-            fakePlayer.yaw = RotationPropertyHelper.toDegrees(rotation)
-            listOf(rotation, rotation + 8).forEach { yaw ->
-                listOf(90f, 0f, -90f).forEach { pitch ->
-                    fakePlayer.rotation = Rotation(RotationPropertyHelper.toDegrees(yaw), pitch)
-                    testPlaceState(context)?.let { axisRotateTest ->
-                        return RotatePlaceTest(axisRotateTest, currentDirIsValid, fakePlayer.rotation)
-                    }
-                }
-            }
-        }
+	    if (Properties.ROTATION in expectedState) {
+		    val rotation = expectedState.get(Properties.ROTATION)
+		    fakePlayer.yaw = RotationPropertyHelper.toDegrees(rotation)
+		    listOf(rotation, rotation + 8).forEach { yaw ->
+			    listOf(90f, 0f, -90f).forEach { pitch ->
+				    fakePlayer.rotation = Rotation(RotationPropertyHelper.toDegrees(yaw), pitch)
+				    testPlaceState(context)?.let { axisRotateTest ->
+					    return RotatePlaceTest(axisRotateTest, currentDirIsValid, fakePlayer.rotation)
+				    }
+			    }
+		    }
+	    }
 
         PlaceDirection.entries.asReversed().forEach direction@{ direction ->
             fakePlayer.rotation = direction.rotation
@@ -257,7 +278,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
             }
 
         return if (!matchesTarget(resultState, false)) {
-            result(PlaceResult.NoIntegrity(pos, resultState, context, (targetState as? TargetState.State)?.blockState))
+            result(InteractResult.NoIntegrity(pos, expectedState, context, resultState))
             null
         } else resultState
     }
@@ -281,7 +302,7 @@ class PlaceSim private constructor(simInfo: ISimInfo)
                 ?.run {
                     mapNotNull { entity ->
                         if (entity === player) {
-                            result(PlaceResult.BlockedBySelf(pos))
+                            result(InteractResult.BlockedBySelf(pos))
                             return@mapNotNull null
                         }
                         val hitbox = entity.boundingBox
@@ -292,10 +313,10 @@ class PlaceSim private constructor(simInfo: ISimInfo)
                     }
                         .flatten()
                         .forEach { support ->
-                            sim(support, blockState(support), TargetState.Empty) { simBreak() }
+                            sim(support, blockState(support), TargetState.Empty)
                         }
                 }
-            result(PlaceResult.BlockedByEntity(pos, collidingEntities, context.hitPos, context.side))
+            result(InteractResult.BlockedByEntity(pos, collidingEntities, context.hitPos, context.side))
         }
 
         return collidingEntities

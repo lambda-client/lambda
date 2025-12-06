@@ -59,7 +59,7 @@ object FastBreak : Module(
 						::suitableToolsOnly
 					) { defaultValue(false) }
 					editTyped(
-						::rotateForBreak,
+						::rotate,
 						::doubleBreak
 					) { defaultValue(false); hide() }
 					::breaksPerTick.edit { defaultValue(1); hide() }

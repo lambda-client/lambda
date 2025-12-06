@@ -135,7 +135,7 @@ object KillAura : Module(
 
         // Attack
         interaction.attackEntity(player, target)
-        if (interactConfig.swingHand) player.swingHand(Hand.MAIN_HAND)
+        if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
 
         lastAttackTime = System.currentTimeMillis()
         hitDelay = (hitDelay1..hitDelay2).random() * 50
