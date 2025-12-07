@@ -78,9 +78,7 @@ object Nuker : Module(
 
                 selection
             }.build(finishOnDone = false)
-            // ToDo: Add build setting delegates
-
-            task?.run()
+				.run()
         }
 
         onDisable {

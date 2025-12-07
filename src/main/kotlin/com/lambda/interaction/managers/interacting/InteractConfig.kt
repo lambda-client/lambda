@@ -28,7 +28,7 @@ interface InteractConfig : ActionConfig, ISettingGroup {
     val airPlace: AirPlaceMode
     val axisRotateSetting: Boolean
     val axisRotate get() = rotate && airPlace.isEnabled && axisRotateSetting
-    val interactConfirmationMode: PlaceConfirmationMode
+    val interactConfirmationMode: InteractConfirmationMode
     val maxPendingInteractions: Int
     val interactionsPerTick: Int
     val swing: Boolean
@@ -47,12 +47,12 @@ interface InteractConfig : ActionConfig, ISettingGroup {
         val isEnabled get() = this != None
     }
 
-    enum class PlaceConfirmationMode(
+    enum class InteractConfirmationMode(
         override val displayName: String,
         override val description: String
     ) : NamedEnum, Describable {
-        None("No confirmation", "Place immediately without waiting for the server; lowest latency, possible brief desync."),
-        PlaceThenAwait("Place now, confirm later", "Show placement right away, then wait for server confirmation to verify."),
-        AwaitThenPlace("Confirm first, then place", "Wait for server response before showing placement; most accurate, adds a short delay.")
+        None("No confirmation", "Interact immediately without waiting for the server; possible desync."),
+        PlaceThenAwait("Interact now, confirm later", "Interact immediately, then wait for server confirmation to verify."),
+        AwaitThenPlace("Confirm first, then Interact", "Wait for server response before interacting; safest, adds a short delay.")
     }
 }

@@ -31,6 +31,9 @@ import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStruc
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
+import com.lambda.interaction.construction.simulation.BuildGoal
+import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Contextual
@@ -42,9 +45,6 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
-import com.lambda.interaction.construction.simulation.BuildGoal
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
-import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
@@ -134,7 +134,7 @@ class BuildTask private constructor(
     }
 
     private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
-        if (result !is Contextual && pendingInteractions.isNotEmpty())
+        if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty())
             return
 
         when (result) {
@@ -174,17 +174,18 @@ class BuildTask private constructor(
                             }
                         }?.submit()
 
-                    is InteractResult.Interact ->
-                        allResults.interactRequest(pendingInteractions, false) {
-							onPlace { placements++ }
-						}?.submit()
+                    is InteractResult.Interact -> {
+	                    allResults.interactRequest(pendingInteractions, false) {
+		                    onPlace { placements++ }
+	                    }?.submit()
+                    }
                 }
             }
 
             is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
-                LOG.info("Resolving: ${result.name}")
+	            LOG.info("Resolving: ${result.name}")
                 result.resolve().execute(this@BuildTask)
             }
         }

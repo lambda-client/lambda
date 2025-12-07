@@ -28,11 +28,11 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.managers.Logger
+import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.ManagerUtils.newStage
 import com.lambda.interaction.managers.ManagerUtils.newTick
 import com.lambda.interaction.managers.PositionBlocking
-import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
 import com.lambda.interaction.managers.interacting.InteractManager.maxPlacementsThisTick
@@ -123,6 +123,7 @@ object InteractManager : Manager<InteractRequest>(
      */
     override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+	    if (BreakManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
@@ -164,15 +165,13 @@ object InteractManager : Manager<InteractRequest>(
 	        else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
             if (!actionResult.isAccepted) {
                 logger.warning("Placement interaction failed with $actionResult", ctx, request)
-            } else {
-	            if (interactConfig.swing) {
-		            swingHand(interactConfig.swingType, Hand.MAIN_HAND)
+            } else if (interactConfig.swing) {
+	            swingHand(interactConfig.swingType, Hand.MAIN_HAND)
 
-		            val stackInHand = player.getStackInHand(Hand.MAIN_HAND)
-		            val stackCountPre = stackInHand.count
-		            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
-			            mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
-		            }
+	            val stackInHand = player.getStackInHand(Hand.MAIN_HAND)
+	            val stackCountPre = stackInHand.count
+	            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
+		            mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
 	            }
             }
             placementsThisTick++
@@ -339,14 +338,14 @@ object InteractManager : Manager<InteractRequest>(
             sendInteractPacket(hand, hitResult)
         }
 
-        if (interactConfig.interactConfirmationMode != InteractConfig.PlaceConfirmationMode.None) {
+        if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
             InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()
         }
 
         val itemStack = itemPlacementContext.stack
         itemStack.decrementUnlessCreative(1, player)
 
-        if (interactConfig.interactConfirmationMode == InteractConfig.PlaceConfirmationMode.AwaitThenPlace)
+        if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
             return ActionResult.SUCCESS
 
         // TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
@@ -367,7 +366,7 @@ object InteractManager : Manager<InteractRequest>(
 
         if (interactConfig.sounds) placeSound(state, blockPos)
 
-        if (interactConfig.interactConfirmationMode == InteractConfig.PlaceConfirmationMode.None) {
+        if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.None) {
             request.onPlace?.invoke(this, interactContext.blockPos)
         }
 

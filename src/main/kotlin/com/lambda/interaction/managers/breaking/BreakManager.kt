@@ -31,18 +31,16 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.managers.Logger
+import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.ManagerUtils.newStage
 import com.lambda.interaction.managers.ManagerUtils.newTick
 import com.lambda.interaction.managers.PositionBlocking
-import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
@@ -75,7 +73,10 @@ import com.lambda.interaction.managers.breaking.BrokenBlockHandler.startPending
 import com.lambda.interaction.managers.breaking.RebreakHandler.getRebreakPotential
 import com.lambda.interaction.managers.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.hud.ManagerDebugLoggers.breakManagerLogger
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
@@ -307,6 +308,7 @@ object BreakManager : Manager<BreakRequest>(
      */
     override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
         if (activeRequest != null || request.contexts.isEmpty()) return
+	    if (InteractManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)
@@ -841,7 +843,7 @@ object BreakManager : Manager<BreakRequest>(
             logger.success("Instant breaking", info)
             info.vanillaInstantBreakable = progress >= 1
             onBlockBreak(info)
-            if (!info.vanillaInstantBreakable) breakCooldown = breakConfig.breakDelay
+            if (!info.vanillaInstantBreakable) breakCooldown = breakConfig.breakDelay + 1
         } else {
             logger.debug("Starting break", info)
             info.apply {

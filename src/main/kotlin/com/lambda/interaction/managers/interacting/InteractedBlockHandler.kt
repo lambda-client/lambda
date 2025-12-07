@@ -35,7 +35,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
         DEFAULT.buildConfig.actionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfig.interactConfirmationMode != InteractConfig.PlaceConfirmationMode.AwaitThenPlace) {
+        if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
             runSafe {
                 world.setBlockState(it.context.blockPos, it.context.cachedState)
             }
@@ -66,7 +66,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 
                     pending.stopPending()
 
-                    if (pending.interactConfig.interactConfirmationMode == InteractConfig.PlaceConfirmationMode.AwaitThenPlace)
+                    if (pending.interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
                         with(pending.context) { placeSound(expectedState, blockPos) }
                     pending.onPlace?.invoke(this, pending.context.blockPos)
                 }
