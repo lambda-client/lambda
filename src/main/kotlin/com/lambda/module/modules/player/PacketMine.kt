@@ -24,10 +24,10 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.breaking.BreakConfig
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
@@ -119,10 +119,7 @@ object PacketMine : Module(
             attackedThisTick = false
         }
 
-        listen<PlayerEvent.Attack.Block> {
-            it.cancel()
-        }
-
+        listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             val pos = event.pos

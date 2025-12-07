@@ -22,8 +22,8 @@ import com.lambda.config.groups.BreakSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.EatSettings
 import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.InteractSettings
+import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.event.events.onStaticRender
@@ -39,7 +39,6 @@ open class AutomationConfig(
     enum class Group(override val displayName: String) : NamedEnum {
         Build("Build"),
         Break("Break"),
-        Place("Place"),
         Interact("Interact"),
         Rotation("Rotation"),
         Inventory("Inventory"),
@@ -51,7 +50,7 @@ open class AutomationConfig(
 
     override val buildConfig = BuildSettings(this, Group.Build)
     override val breakConfig = BreakSettings(this, Group.Break)
-    override val interactConfig = InteractSettings(this, Group.Place)
+    override val interactConfig = InteractSettings(this, Group.Interact)
     override val rotationConfig = RotationSettings(this, Group.Rotation)
     override val inventoryConfig = InventorySettings(this, Group.Inventory)
     override val hotbarConfig = HotbarSettings(this, Group.Hotbar)

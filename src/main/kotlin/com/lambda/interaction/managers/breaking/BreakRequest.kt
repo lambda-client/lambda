@@ -20,12 +20,12 @@ package com.lambda.interaction.managers.breaking
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.simulation.result.BuildResult
-import com.lambda.interaction.construction.simulation.result.Dependent
-import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.Dependent
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.LogContext
 import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
@@ -162,7 +162,8 @@ data class BreakRequest private constructor(
 		) = asSequence()
 		    .map { if (it is Dependent) it.lastDependency else it }
 		    .filterIsInstance<BreakResult.Break>()
-		    .map { it.context }
+		    .sorted()
+			.map { it.context }
 		    .toSet()
 		    .takeIf { it.isNotEmpty() }
 		    ?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }

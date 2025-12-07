@@ -27,11 +27,11 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.managers.inventory.InventoryManager.processActiveRequest
-import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedDecayQueue
@@ -61,9 +61,9 @@ object InventoryManager : Manager<InventoryRequest>(
     private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L)
 	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L)
 
-    private var screenHandler: ScreenHandler? = null
+    var screenHandler: ScreenHandler? = null
         set(value) {
-            if (value != null && field?.syncId != value.syncId) {
+            if (value != null) {
                 alteredSlots.clear()
                 slots = getStacks(value.slots)
             }
@@ -248,9 +248,17 @@ object InventoryManager : Manager<InventoryRequest>(
                     }
                 }
 
-                if (!matches) player.playerScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
+                player.playerScreenHandler.setStackInSlot(
+	                packet.slot,
+	                packet.revision,
+	                if (!matches) itemStack else player.playerScreenHandler.getSlot(packet.slot).stack
+				)
             } else if (packet.syncId == player.currentScreenHandler.syncId && (packet.syncId != 0 || !bl))
-                if (!matches) player.currentScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
+	            player.currentScreenHandler.setStackInSlot(
+		            packet.slot,
+		            packet.revision,
+		            if (!matches) itemStack else player.playerScreenHandler.getSlot(packet.slot).stack
+	            )
 
             if (mc.currentScreen is CreativeInventoryScreen) {
                 player.playerScreenHandler.setReceivedStack(packet.slot, itemStack)

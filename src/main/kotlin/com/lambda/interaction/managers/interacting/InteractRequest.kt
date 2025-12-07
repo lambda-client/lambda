@@ -89,7 +89,8 @@ data class InteractRequest private constructor(
 	    ) = asSequence()
 		    .map { if (it is Dependent) it.lastDependency else it }
 		    .filterIsInstance<InteractResult.Interact>()
-		    .map { it.context }
+		    .sorted()
+			.map { it.context }
 		    .toSet()
 		    .takeIf { it.isNotEmpty() }
 		    ?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
