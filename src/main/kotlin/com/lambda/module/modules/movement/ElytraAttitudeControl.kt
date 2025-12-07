@@ -25,9 +25,11 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
+import com.lambda.util.Timer
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.EntityType
 import net.minecraft.util.math.Vec3d
+import kotlin.time.Duration.Companion.seconds
 
 object ElytraAttitudeControl : Module(
     name = "ElytraAttitudeControl",
@@ -51,15 +53,17 @@ object ElytraAttitudeControl : Module(
 	val speedControllerD by setting("Speed Control D", 4.5, 0.0..5.0, 0.05).group(Group.SpeedControl)
 	val speedControllerI by setting("Speed Control I", 0.3, 0.0..1.0, 0.05).group(Group.SpeedControl)
 
-	val useFirework by setting("Use Firework", false, "Automatically use fireworks to maintain speed or height")
-	val minHeight by setting("Min Height", 50, 0..256, 10, unit = " blocks", description = "Minimum height to use fireworks") { useFirework }
-	val minSpeed by setting("Min Speed", 15.0, 0.1..50.0, 0.1, unit = " m/s", description = "Minimum speed to use fireworks") { useFirework }
+	val useFireworkOnHeight by setting("Use Firework On Height", false, "Use fireworks when below a certain height")
+	val minHeight by setting("Min Height", 50, 0..256, 10, unit = " blocks", description = "Minimum height to use firework") { useFireworkOnHeight }
+
+	val useFireworkOnSpeed by setting("Use Firework On Speed", false, "Use fireworks based on speed")
+	val minSpeed by setting("Min Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Minimum speed to use fireworks") { useFireworkOnSpeed }
 
     var lastPos : Vec3d = Vec3d.ZERO
     val speedController: PIController = PIController({ speedControllerP }, { speedControllerD }, { speedControllerI }, { 0.0 })
 	val altitudeController: PIController = PIController({ altitudeControllerP }, { altitudeControllerD }, { altitudeControllerI }, { altitudeControllerConst })
 
-	var lastUsedFirework = 0L
+	val usageDelay = Timer()
 
     init {
         listen<TickEvent.Pre> {
@@ -86,18 +90,15 @@ object ElytraAttitudeControl : Module(
 
             lastPos = player.pos
 
-	        if (useFirework) {
-				val currentTime = System.currentTimeMillis()
-		        if (lastUsedFirework + 2000 > currentTime) {
-					return@listen
+	        if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
+		        if (useFireworkOnHeight && minHeight > player.y) {
+			        usageDelay.reset()
+			        runSafe {
+				        startFirework(true)
+			        }
 		        }
-
-		        if (player.hasFirework) {
-					return@listen
-		        }
-
-		        if (minHeight >= player.y || SpeedUnit.MetersPerSecond.convertFromMinecraft(player.velocity.length()) < minSpeed) {
-					lastUsedFirework = currentTime
+		        if (useFireworkOnSpeed && minSpeed > SpeedUnit.MetersPerSecond.convertFromMinecraft(player.velocity.length())) {
+					usageDelay.reset()
 			        runSafe {
 				        startFirework(true)
 			        }
