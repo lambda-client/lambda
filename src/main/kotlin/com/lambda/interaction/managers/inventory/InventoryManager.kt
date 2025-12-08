@@ -198,7 +198,7 @@ object InventoryManager : Manager<InventoryRequest>(
             val packetScreenHandler =
                 when (packet.syncId) {
                     0 -> player.playerScreenHandler
-                    screenHandler?.syncId -> player.currentScreenHandler
+                    player.currentScreenHandler.syncId -> player.currentScreenHandler
                     else -> return@runSafe
                 }
             val alteredContents = mutableListOf<ItemStack>()
@@ -248,17 +248,12 @@ object InventoryManager : Manager<InventoryRequest>(
                     }
                 }
 
-                player.playerScreenHandler.setStackInSlot(
-	                packet.slot,
-	                packet.revision,
-	                if (!matches) itemStack else player.playerScreenHandler.getSlot(packet.slot).stack
-				)
-            } else if (packet.syncId == player.currentScreenHandler.syncId && (packet.syncId != 0 || !bl))
-	            player.currentScreenHandler.setStackInSlot(
-		            packet.slot,
-		            packet.revision,
-		            if (!matches) itemStack else player.playerScreenHandler.getSlot(packet.slot).stack
-	            )
+	            if (matches) player.playerScreenHandler.revision = packet.revision
+	            else player.playerScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
+            } else if (packet.syncId == player.currentScreenHandler.syncId && (packet.syncId != 0 || !bl)) {
+	            if (matches) player.currentScreenHandler.revision = packet.revision
+	            else player.currentScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
+            }
 
             if (mc.currentScreen is CreativeInventoryScreen) {
                 player.playerScreenHandler.setReceivedStack(packet.slot, itemStack)
