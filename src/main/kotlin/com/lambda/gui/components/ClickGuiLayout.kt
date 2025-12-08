@@ -81,16 +81,18 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
         LongDelay("Long Delay", "Show tooltip after a longer delay (~0.40s), and only after the mouse has been still briefly on the item.", ImGuiHoveredFlags.DelayNormal)
     }
 
-    const val RELATION = 0.02604
-    const val BASE_SCALE = 130
-    val width = mc.window.monitor!!.currentVideoMode!!.width
+	const val BASE_SCALE = 100
+    const val BASE_SCALE_MULTI = 1.8
 
-    // don't worry, I'm a professional
-    // linear interpolation :3
-    val defaultScale = (RELATION * width + BASE_SCALE).toInt()
+    fun deviceScaleMultiplier() = try {
+        val monitorWidth = mc.window.monitor!!.currentVideoMode!!.width.toDouble()
+        (monitorWidth / 1920.0).coerceIn(0.5, 4.0)
+    } catch (_: Throwable) {
+        1.0
+    }
 
     // General
-    internal val scaleSetting by setting("Scale", defaultScale, 50..300, 1, unit = "%").group(Group.General)
+    internal val scaleSetting by setting("Scale", BASE_SCALE, 50..300, 1, unit = "%").group(Group.General)
     val alpha by setting("Alpha", 1.0f, 0.0f..1.0f, 0.01f).group(Group.General)
     val disabledAlpha by setting("Disabled Alpha", 0.6f, 0.0f..1.0f, 0.01f).group(Group.General)
     val tooltipType by setting("Tooltip Type", TooltipType.Stationary, description = "When to show the tooltip.").group(Group.General)

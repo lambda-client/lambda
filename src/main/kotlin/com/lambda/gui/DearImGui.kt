@@ -75,7 +75,11 @@ object DearImGui : Loadable {
     }
 
     fun render() {
-        val scale = (ClickGuiLayout.scaleSetting / 100.0).toFloat()
+        val userPercent = ClickGuiLayout.scaleSetting / 100.0
+        val dpi = ClickGuiLayout.deviceScaleMultiplier()
+        val base = ClickGuiLayout.BASE_SCALE_MULTI * dpi
+        val fontScaleSetting = ClickGuiLayout.fontScale
+        val scale = (base * userPercent * fontScaleSetting).toFloat()
 
         if (lastScale == 0f) {
             targetScale = scale
