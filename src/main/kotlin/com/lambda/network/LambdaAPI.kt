@@ -25,7 +25,7 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.network.NetworkManager.updateToken
 import com.lambda.network.api.v1.endpoints.login
 import com.lambda.util.StringUtils.hash
@@ -58,7 +58,7 @@ object LambdaAPI : Configurable(LambdaConfig) {
     private var hash: String? = null
 
     init {
-        listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
+        listenConcurrentlyUnsafe<ClientEvent.Startup> { authenticate() }
 
         listenUnsafe<EncryptionResponse> { event ->
             if (event.secretKey.isDestroyed) return@listenUnsafe
@@ -70,14 +70,14 @@ object LambdaAPI : Configurable(LambdaConfig) {
             hash = BigInteger(computed).toString(16)
         }
 
-        listenUnsafeConcurrently<ConnectionEvent.Connect.Post> {
+        listenConcurrentlyUnsafe<ConnectionEvent.Connect.Post> {
             // FixMe: If the player have the properties but are invalid this doesn't work
-            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenUnsafeConcurrently
+            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenConcurrentlyUnsafe
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
-            login(mc.session.username, hash ?: return@listenUnsafeConcurrently)
+            login(mc.session.username, hash ?: return@listenConcurrentlyUnsafe)
                 .onSuccess { updateToken(it) }
                 .onFailure { LOG.warn(it) }
         }

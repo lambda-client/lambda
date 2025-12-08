@@ -192,7 +192,7 @@ class UnsafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> Any.listenUnsafeConcurrently(
+        inline fun <reified T : Event> Any.listenConcurrentlyUnsafe(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             scheduler: CoroutineDispatcher = Dispatchers.Default,

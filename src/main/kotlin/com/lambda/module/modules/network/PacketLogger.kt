@@ -17,13 +17,12 @@
 
 package com.lambda.module.modules.network
 
-import com.google.gson.JsonPrimitive
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
@@ -188,20 +187,20 @@ object PacketLogger : Module(
             it.packet.logSent()
         }
 
-        listenUnsafeConcurrently<PacketEvent.Receive.Pre> {
+        listenConcurrentlyUnsafe<PacketEvent.Receive.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.Server)
-            ) return@listenUnsafeConcurrently
+            ) return@listenConcurrentlyUnsafe
 
             it.packet.logReceived()
         }
 
-        listenUnsafeConcurrently<PacketEvent.Send.Pre> {
+        listenConcurrentlyUnsafe<PacketEvent.Send.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.Client)
-            ) return@listenUnsafeConcurrently
+            ) return@listenConcurrentlyUnsafe
 
             it.packet.logSent()
         }
