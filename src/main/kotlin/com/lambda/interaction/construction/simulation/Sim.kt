@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.interaction.construction.simulation.processing.PreProcessingData
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
@@ -90,7 +91,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         voxelShape: VoxelShape,
         pos: BlockPos,
         sides: Set<Direction>,
-        preProcessing: com.lambda.interaction.construction.simulation.processing.PreProcessingData?
+        preProcessing: PreProcessingData?
     ): Set<CheckedHit>? {
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 

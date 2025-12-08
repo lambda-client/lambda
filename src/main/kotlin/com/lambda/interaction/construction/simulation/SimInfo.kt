@@ -139,7 +139,7 @@ interface SimInfo : Automated {
 }
 
 interface InteractSimInfo : SimInfo {
-	val preProcessing: com.lambda.interaction.construction.simulation.processing.PreProcessingData
+	val preProcessing: PreProcessingData
 	val expectedState: BlockState
 	val item: Item?
 	val placing: Boolean
