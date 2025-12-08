@@ -23,14 +23,12 @@ import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
 import com.lambda.util.Timer
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.projectile.FireworkRocketEntity
-import net.minecraft.text.Text
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
 
