@@ -34,11 +34,11 @@ import imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
- * This generic collection settings handles all [Comparable] values (i.e not classes) and serialize
+ * This generic collection settings handles all [Comparable] values (i.e., not classes) and serialize
  * their values by calling [Any.toString] and loads them by comparing what's in the [immutableCollection].
- * This behaviour is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSetting].
+ * This behavior is by design. If you wish to store collections of non-comparable values you must use [ClassCollectionSetting].
  *
- * If you wish to use a different codec or simply display values differently you must create your own
+ * If you wish to use a different codec or simply display values differently, you must create your own
  * collection setting.
  *
  * @see [com.lambda.config.Configurable]
@@ -59,10 +59,10 @@ open class CollectionSetting<R : Any>(
     val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun ImGuiBuilder.buildLayout() = buildComboBox("item")
+    override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.toString() }
 
 	context(setting: Setting<*, MutableCollection<R>>)
-	fun ImGuiBuilder.buildComboBox(itemName: String) {
+	fun ImGuiBuilder.buildComboBox(itemName: String, toString: (R) -> String) {
 		val text = if (value.size == 1) itemName else "${itemName}s"
 
 		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
@@ -85,7 +85,7 @@ open class CollectionSetting<R : Any>(
 						val selected = value.contains(v)
 
 						selectable(
-							label = v.toString(),
+							label = toString(v),
 							selected = selected,
 							flags = DontClosePopups
 						) {

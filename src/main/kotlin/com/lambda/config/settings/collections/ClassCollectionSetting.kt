@@ -37,7 +37,7 @@ class ClassCollectionSetting<T : Any>(
 	TypeToken.getParameterized(Collection::class.java, Any::class.java).type
 ) {
 	context(setting: Setting<*, MutableCollection<T>>)
-	override fun ImGuiBuilder.buildLayout() = buildComboBox("item")
+	override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.className }
 
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
 	// If we do serialize the classes we'll run into missing type adapters errors by Gson.

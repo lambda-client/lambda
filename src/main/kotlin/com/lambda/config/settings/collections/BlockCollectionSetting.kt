@@ -21,6 +21,7 @@ import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.Setting
+import com.lambda.config.serializer.BlockCodec
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
 
@@ -33,7 +34,7 @@ class BlockCollectionSetting(
 	TypeToken.getParameterized(Collection::class.java, Block::class.java).type
 ) {
 	context(setting: Setting<*, MutableCollection<Block>>)
-	override fun ImGuiBuilder.buildLayout() = buildComboBox("block")
+	override fun ImGuiBuilder.buildLayout() = buildComboBox("block") { BlockCodec.stringify(it) }
 
 	context(setting: Setting<*, MutableCollection<Block>>)
 	override fun toJson(): JsonElement = gson.toJsonTree(value, type)
