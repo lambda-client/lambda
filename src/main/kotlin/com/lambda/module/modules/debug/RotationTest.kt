@@ -21,7 +21,7 @@ import com.lambda.config.AutomationConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotating.visibilty.lookAtHit
+import com.lambda.interaction.managers.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.hit.HitResult

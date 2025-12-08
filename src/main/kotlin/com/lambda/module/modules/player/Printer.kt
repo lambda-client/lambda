@@ -21,7 +21,7 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.placing.PlaceConfig
+import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -52,7 +52,7 @@ object Printer : Module(
 			applyEdits {
 				editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
 				editTyped(breakConfig::efficientOnly, breakConfig::suitableToolsOnly) { defaultValue(false) }
-				placeConfig::airPlace.edit { defaultValue(PlaceConfig.AirPlaceMode.Grim) }
+				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
 			}
 		}
 

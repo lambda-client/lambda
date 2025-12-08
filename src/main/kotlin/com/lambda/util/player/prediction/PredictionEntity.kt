@@ -19,7 +19,7 @@ package com.lambda.util.player.prediction
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.module.modules.movement.SafeWalk.isNearLedge
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState

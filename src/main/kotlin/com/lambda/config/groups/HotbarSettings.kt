@@ -21,7 +21,7 @@ import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.managers.hotbar.HotbarConfig
 import com.lambda.util.NamedEnum
 
 class HotbarSettings(

@@ -18,7 +18,6 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -47,11 +46,7 @@ object Nuker : Module(
     private var task: Task<*>? = null
 
     init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideGroup(interactConfig)
-			}
-		}
+		setDefaultAutomationConfig()
 
         onEnable {
             task = tickingBlueprint {
@@ -83,9 +78,7 @@ object Nuker : Module(
 
                 selection
             }.build(finishOnDone = false)
-            // ToDo: Add build setting delegates
-
-            task?.run()
+				.run()
         }
 
         onDisable {
