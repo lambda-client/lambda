@@ -57,7 +57,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     override val name = "GUI"
     var open = false
     var developerMode = false
-    val keybind by setting("Keybind", KeyCode.Y) { false }
+    val keybind by setting("Keybind", KeyCode.Y)
 
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
@@ -210,7 +210,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                 val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
                 if (tags.isEmpty()) return@buildLayout
 
-                var nextX = mc.window.width/2.6f // FixMe: hardcoded to fit the combat tag at the most significant position
+                var nextX = mc.window.width / 2.6f // FixMe: hardcoded to fit the combat tag at the most significant position
                 val baseY = MenuBar.height + 10f
 
                 tags.forEach { tag ->
