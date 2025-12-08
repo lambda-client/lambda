@@ -23,11 +23,14 @@ import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
 import com.lambda.util.Timer
+import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.entity.EntityType
+import net.minecraft.entity.projectile.FireworkRocketEntity
+import net.minecraft.text.Text
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
 
@@ -75,7 +78,7 @@ object ElytraAttitudeControl : Module(
 	init {
 		listen<TickEvent.Pre> {
 			if (!player.isGliding) return@listen
-			if (player.hasFirework && disableOnFirework) return@listen
+			if (disableOnFirework && player.hasFirework) return@listen
 
 			val outputPitch = when (controlValue) {
 				Mode.Speed -> {
@@ -121,11 +124,7 @@ object ElytraAttitudeControl : Module(
 	}
 
 	val ClientPlayerEntity.hasFirework: Boolean
-		get() = clientWorld.getEntitiesByType(
-			EntityType.FIREWORK_ROCKET,
-			boundingBox.expand(4.0),
-			{ it.distanceTo(this) < 4.0 }
-		).isNotEmpty()
+		get() = runSafe { return fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == this.player }.any() } ?: false
 
 	class PIController(val valueP: () -> Double, val valueD: () -> Double, val valueI: () -> Double, val constant: () -> Double) {
 		var accumulator = 0.0 // Integral term accumulator
