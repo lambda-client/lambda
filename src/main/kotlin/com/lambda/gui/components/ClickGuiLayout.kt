@@ -42,6 +42,7 @@ import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import imgui.ImGui
 import imgui.extension.implot.ImPlot
 import imgui.flag.ImGuiCol
+import imgui.flag.ImGuiCond
 import imgui.flag.ImGuiHoveredFlags
 import imgui.flag.ImGuiWindowFlags
 import net.minecraft.SharedConstants
@@ -58,6 +59,8 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
     var open = false
     var developerMode = false
     val keybind by setting("Keybind", KeyCode.Y)
+    private var initialLayoutComplete = false
+    private var frameCount = 0
 
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
@@ -214,11 +217,9 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                 val baseY = MenuBar.height + 10f
 
                 tags.forEach { tag ->
-                    // FixMe:
-                    //  Ok so, ImGui has many different conditions and after having tried for multiple hours
-                    //  I could not get either ImGuiCond.Appearing or ImGuiCond.FirstEverUse to work correctly
-                    //  for this use case so for the time being we will leave the positions fixed. Too bad!
-                    ImGui.setNextWindowPos(nextX, baseY)
+                    if (frameCount >= 1) {
+                        ImGui.setNextWindowPos(nextX, baseY, ImGuiCond.FirstUseEver)
+                    }
 
                     // FixMe:
                     //  Due to the auto resize of windows, if a tag has no module names that is at least the
@@ -230,8 +231,12 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                             .filter { it.tag == tag }
                             .forEach { with(ModuleEntry(it)) { buildLayout() } }
 
-                        nextX += windowContentRegionMaxX + 20f // hard coded offset, need to find a get to get the outer position of the window
+                        nextX += ImGui.getWindowWidth() + 20f
                     }
+                }
+
+                if (frameCount++ == 1) {
+                    initialLayoutComplete = true
                 }
 
                 renderQuickSearch()
@@ -269,6 +274,8 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
                 LambdaSound.ModuleOn.play()
                 mc.setScreen(LambdaScreen)
                 open = true
+                frameCount = 0
+                initialLayoutComplete = false
             }
         }
     }
