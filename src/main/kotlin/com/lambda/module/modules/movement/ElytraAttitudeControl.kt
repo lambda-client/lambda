@@ -23,14 +23,17 @@ import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
 import com.lambda.util.Timer
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.projectile.FireworkRocketEntity
+import net.minecraft.text.Text.literal
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 object ElytraAttitudeControl : Module(
 	name = "ElytraAttitudeControl",
@@ -49,7 +52,7 @@ object ElytraAttitudeControl : Module(
 	val altitudeControllerI by setting("Altitude Control I", 0.04, 0.0..1.0, 0.05).group(Group.AltitudeControl)
 	val altitudeControllerConst by setting("Altitude Control Const", 0.0, 0.0..10.0, 0.1).group(Group.AltitudeControl)
 
-	val targetSpeed by setting("Target Speed", 28.0, 0.1..50.0, 0.1, unit = " m/s", description = "Adjusts pitch to control speed")
+	val targetSpeed by setting("Target Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Adjusts pitch to control speed")
 	{ controlValue == Mode.Speed }
 	val horizontalSpeed by setting("Horizontal Speed", false, description = "Uses horizontal speed instead of total speed for speed control")
 	{ controlValue == Mode.Speed }
@@ -71,53 +74,129 @@ object ElytraAttitudeControl : Module(
 		{ altitudeControllerP }, { altitudeControllerD }, { altitudeControllerI },
 		{ altitudeControllerConst })
 
+	val usePitch40OnHeight by setting("Use Pitch 40 On Height", false, "Use Pitch 40 to gain height and speed")
+	val logHeightGain by setting("Log Height Gain", false, "Logs the height gained each cycle to the chat")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val minHeightForPitch40 by setting("Min Height For Pitch 40", 120, 0..256, 10, unit = " blocks", description = "Minimum height to use Pitch 40")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val pitch40ExitHeight by setting("Exit height", 190, 0..256, 10, unit = " blocks", description = "Height to exit Pitch 40 mode")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val pitch40UpStartAngle by setting("Up Start Angle", -49f, -90f..0f, .5f, description = "Start angle when going back up. negative pitch = looking up")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val pitch40DownAngle by setting("Down Angle", 33f, 0f..90f, .5f, description = "Angle to dive down at to gain speed")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val pitch40AngleChangeRate by setting("Angle Change Rate", 0.5f, 0.1f..5f, 0.01f, description = "Rate at which to increase pitch while in the fly up curve")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val pitch40SpeedThreshold by setting("Speed Threshold", 41f, 10f..100f, .5f, description = "Speed at which to start pitching up")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+	val pitch40UseFireworkOnUpTrajectory by setting("Use Firework On Up Trajectory", false, "Use fireworks when converting speed to altitude in the Pitch 40 maneuver")
+	{ usePitch40OnHeight }.group(Group.Pitch40Control)
+
+	var controlState = ControlState.AttitudeControl
+	var state = Pitch40State.GainSpeed
+	var lastAngle = pitch40UpStartAngle
+	var lastCycleFinish = TimeSource.Monotonic.markNow()
+	var lastY = 0.0
+
 	val usageDelay = Timer()
 
 	init {
 		listen<TickEvent.Pre> {
 			if (!player.isGliding) return@listen
-			if (disableOnFirework && player.hasFirework) return@listen
+			run {
+				when (controlState) {
+					ControlState.AttitudeControl -> {
+						if (disableOnFirework && player.hasFirework) {
+							return@run
+						}
+						if (usePitch40OnHeight) {
+							if (player.y < minHeightForPitch40) {
+								controlState = ControlState.Pitch40Fly
+								lastY = player.pos.y
+								return@run
+							}
+						}
+						val outputPitch = when (controlValue) {
+							Mode.Speed -> {
+								speedController.getOutput(targetSpeed, player.flySpeed(horizontalSpeed).toDouble())
+							}
+							Mode.Altitude -> {
+								-1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
+							}
+						}.coerceIn(-maxPitchAngle, maxPitchAngle)
+						//	        lookAt(Rotation(player.yaw, newPitch.toFloat())).requestBy(this@ElytraAutopilot) // TODO: Use this when rotation system accepts pitch changes
+						player.pitch = outputPitch.toFloat()
 
-			val outputPitch = when (controlValue) {
-				Mode.Speed -> {
-					var speed = player.pos.subtract(lastPos)
-					if (horizontalSpeed) {
-						speed = Vec3d(speed.x, 0.0, speed.z)
+						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
+							if (useFireworkOnHeight && minHeight > player.y) {
+								usageDelay.reset()
+								runSafe {
+									startFirework(true)
+								}
+							}
+							if (useFireworkOnSpeed && minSpeed > player.flySpeed()) {
+								usageDelay.reset()
+								runSafe {
+									startFirework(true)
+								}
+							}
+						}
 					}
+					ControlState.Pitch40Fly -> {
+						when (state) {
+							Pitch40State.GainSpeed -> {
+								player.pitch = pitch40DownAngle
+								if (player.flySpeed() > pitch40SpeedThreshold) {
+									state = Pitch40State.PitchUp
+								}
+							}
+							Pitch40State.PitchUp -> {
+								lastAngle -= 5f
+								player.pitch = lastAngle
+								if (lastAngle <= pitch40UpStartAngle) {
+									state = Pitch40State.FlyUp
+									if (pitch40UseFireworkOnUpTrajectory) {
+										runSafe {
+											startFirework(true)
+										}
+									}
+								}
+							}
+							Pitch40State.FlyUp -> {
+								lastAngle += pitch40AngleChangeRate
+								player.pitch = lastAngle
+								if (lastAngle >= 0f) {
+									state = Pitch40State.GainSpeed
+									if (logHeightGain) {
+										var timeDelta = lastCycleFinish.elapsedNow().inWholeMilliseconds
+										var heightDelta = player.pos.y - lastY
+										var heightPerMinute = (heightDelta) / (timeDelta / 1000.0) * 60.0
+										info(literal("Height gained this cycle: %.2f in %.2f seconds (%.2f blocks/min)".format(heightDelta, timeDelta / 1000.0, heightPerMinute)))
+									}
 
-					speedController.getOutput(targetSpeed, SpeedUnit.MetersPerSecond.convertFromMinecraft(speed.length()))
-				}
-				Mode.Altitude -> {
-					val currentAltitude = player.y
-					-1 * altitudeController.getOutput(targetAltitude.toDouble(), currentAltitude) // Negative because in minecraft pitch > 0 is looking down not up
+									lastCycleFinish = TimeSource.Monotonic.markNow()
+									lastY = player.pos.y
+									if (pitch40ExitHeight < player.y) {
+										controlState = ControlState.AttitudeControl
+										speedController.reset()
+										altitudeController.reset()
+									}
+								}
+							}
+						}
+					}
 				}
 			}
-			val newPitch = outputPitch.coerceIn(-maxPitchAngle, maxPitchAngle)
-			//	        lookAt(Rotation(player.yaw, newPitch.toFloat())).requestBy(this@ElytraAutopilot) // TODO: Use this when rotation system accepts pitch changes
-			player.pitch = newPitch.toFloat()
-
 			lastPos = player.pos
-
-			if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
-				if (useFireworkOnHeight && minHeight > player.y) {
-					usageDelay.reset()
-					runSafe {
-						startFirework(true)
-					}
-				}
-				if (useFireworkOnSpeed && minSpeed > SpeedUnit.MetersPerSecond.convertFromMinecraft(player.velocity.length())) {
-					usageDelay.reset()
-					runSafe {
-						startFirework(true)
-					}
-				}
-			}
 		}
 
 		onEnable {
 			speedController.reset()
 			altitudeController.reset()
 			lastPos = player.pos
+			state = Pitch40State.GainSpeed
+			controlState = ControlState.AttitudeControl
+			lastAngle = pitch40UpStartAngle
 		}
 	}
 
@@ -143,13 +222,36 @@ object ElytraAttitudeControl : Module(
 		}
 	}
 
+	/**
+	 * Get the player's current speed in meters per second.
+	 */
+	fun ClientPlayerEntity.flySpeed(onlyHorizontal: Boolean = false): Float {
+		var delta = this.pos.subtract(lastPos)
+		if (onlyHorizontal) {
+			delta = Vec3d(delta.x, 0.0, delta.z)
+		}
+		return SpeedUnit.MetersPerSecond.convertFromMinecraft(delta.length()).toFloat()
+	}
+
 	enum class Mode {
 		Speed,
 		Altitude;
 	}
 
+	enum class ControlState {
+		AttitudeControl,
+		Pitch40Fly
+	}
+
 	enum class Group(override val displayName: String) : NamedEnum {
 		SpeedControl("Speed Control"),
-		AltitudeControl("Altitude Control");
+		AltitudeControl("Altitude Control"),
+		Pitch40Control("Pitch 40 Control"),
+	}
+
+	enum class Pitch40State {
+		GainSpeed,
+		PitchUp,
+		FlyUp,
 	}
 }
