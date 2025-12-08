@@ -113,7 +113,7 @@ class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
                         when (it.translated) {
                             KeyCode.Escape -> {}
                             KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
-                            else -> value = Bind(it.keyCode, it.modifiers, -1)
+                            else -> value = Bind(it.translated.code, it.modifiers, -1)
                         }
 
                         listening = false

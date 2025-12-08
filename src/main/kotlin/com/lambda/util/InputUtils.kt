@@ -73,7 +73,7 @@ object InputUtils : Loadable {
         val key = pressedKeys
             .firstNotNullOfOrNull { (key, state) -> key to state } ?: return null
 
-        val scancode = scancodes.getValue(key.first)
+        val scancode = scancodes.getOrElse(key.first) { 0 }
 
         return KeyboardEvent.Press(key.first, scancode, key.second, mods)
     }
@@ -93,7 +93,7 @@ object InputUtils : Loadable {
         return MouseEvent.Click(mouse, GLFW_PRESS, mods)
     }
 
-    private val keys = KeyCode.entries.map { it.code }
+    private val keys = KeyCode.entries.map { it.code }.filter { it > 0 }
     private val scancodes = keys.associateWith { GLFW.glfwGetKeyScancode(it) }
 
     private val mouses = GLFW_MOUSE_BUTTON_1..GLFW_MOUSE_BUTTON_8
