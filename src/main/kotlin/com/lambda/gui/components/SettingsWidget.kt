@@ -22,6 +22,7 @@ import com.lambda.config.Configurable
 import com.lambda.config.MutableAutomationConfig
 import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
+import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
@@ -31,7 +32,7 @@ import imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
     /**
-     * Builds the settings context popup content for a given configurable.
+     * Builds the settings context popup content for the given configurable.
      */
     fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
@@ -47,13 +48,28 @@ object SettingsWidget {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }
+	            if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
+		            sameLine()
+		            text("(${config.backingAutomationConfig.name})")
+	            }
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
+	                combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
+		                UserAutomationConfigs.configurables.forEach { userConfig ->
+							val selected = (userConfig as? UserAutomationConfig ?: return@forEach) === config.backingAutomationConfig
+
+			                selectable(userConfig.name, selected) {
+								if (selected) {
+									userConfig.linkedModules.value -= config.name
+									config.automationConfig = config.defaultAutomationConfig
+								} else {
+									userConfig.linkedModules.value += config.name
+									config.automationConfig = userConfig
+								}
+			                }
+		                }
+	                }
                     buildConfigSettingsContext(config.automationConfig)
-                }
-                if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
-                    sameLine()
-                    text("(${config.backingAutomationConfig.name})")
                 }
             }
         }
