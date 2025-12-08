@@ -76,7 +76,7 @@ open class CollectionSetting<R : Any>(
 					.filter { item ->
 						val q = searchFilter.trim()
 						if (q.isEmpty()) true
-						else item.toString().startsWith(q, ignoreCase = true)
+						else toString(item).contains(q, ignoreCase = true)
 					}
 
 				val listClipperCallback = object : ImListClipperCallback() {
