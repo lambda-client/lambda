@@ -35,8 +35,6 @@ import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.dsl.ImGuiBuilder.popupContextItem
-import com.lambda.gui.dsl.ImGuiBuilder.selectable
 import com.lambda.interaction.BaritoneManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
@@ -286,7 +284,6 @@ object MenuBar {
 
     private fun ImGuiBuilder.buildAutomationConfigsMenu() {
         button("New Config") { ImGui.openPopup("##new-config") }
-
         popupContextWindow("##new-config") {
             inputText("Name", ::newConfigName)
             button("Create") {
@@ -310,23 +307,23 @@ object MenuBar {
         buildAutomationConfigSelectable(AutomationConfig.Companion.DEFAULT)
     }
 
-    private fun buildAutomationConfigSelectable(config: AutomationConfig) {
-        selectable(config.name)
-        popupContextItem("##automation-config-popup-${config.name}") {
-            if (config is UserAutomationConfig) {
-                with(config.linkedModules) { buildLayout() }
-                button("Delete") {
-                    config.linkedModules.value.forEach {
-                        moduleNameMap[it]?.let { module ->
-                            module.automationConfig = module.defaultAutomationConfig
-                        }
-                    }
-                    UserAutomationConfigs.configurables.remove(config)
-                }
-                separator()
-            }
-            buildConfigSettingsContext(config)
-        }
+    private fun ImGuiBuilder.buildAutomationConfigSelectable(config: AutomationConfig) {
+	    ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+		menu(config.name) {
+			if (config is UserAutomationConfig) {
+				with(config.linkedModules) { buildLayout() }
+				button("Delete") {
+					config.linkedModules.value.forEach {
+						moduleNameMap[it]?.let { module ->
+							module.automationConfig = module.defaultAutomationConfig
+						}
+					}
+					UserAutomationConfigs.configurables.remove(config)
+				}
+				separator()
+			}
+			buildConfigSettingsContext(config)
+		}
     }
 
     private fun ImGuiBuilder.buildMinecraftMenu() {
