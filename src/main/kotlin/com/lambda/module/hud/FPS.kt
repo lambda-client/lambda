@@ -23,34 +23,34 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
-object Fps : HudModule(
-    name = "Fps",
-    description = "Displays your games frames per second",
-    tag = ModuleTag.HUD
+object FPS : HudModule(
+	name = "FPS",
+	description = "Displays your games frames per second",
+	tag = ModuleTag.HUD
 ) {
-    val updateDelay by setting("Update Delay", 50, 0..1000, 1,"Time between updating the fps value")
+	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")
 
-    var lastUpdated = System.currentTimeMillis()
-    var lastFrameTime = System.nanoTime()
-    var fps = 0
+	var lastUpdated = System.currentTimeMillis()
+	var lastFrameTime = System.nanoTime()
+	var fps = 0
 
-    init {
-        listen<RenderEvent.Render> {
-            val currentTimeNano = System.nanoTime()
+	init {
+		listen<RenderEvent.Render> {
+			val currentTimeNano = System.nanoTime()
 
-            val currentTypeMilli = System.currentTimeMillis()
-            if (currentTypeMilli - lastUpdated >= updateDelay) {
-                lastUpdated = currentTypeMilli
-                val elapsedNs = currentTimeNano - lastFrameTime
-                fps = if (elapsedNs > 0) (1000000000 / elapsedNs).toInt()
-                else 0
-            }
+			val currentTypeMilli = System.currentTimeMillis()
+			if (currentTypeMilli - lastUpdated >= updateDelay) {
+				lastUpdated = currentTypeMilli
+				val elapsedNs = currentTimeNano - lastFrameTime
+				fps = if (elapsedNs > 0) (1000000000 / elapsedNs).toInt()
+				else 0
+			}
 
-            lastFrameTime = currentTimeNano
-        }
-    }
+			lastFrameTime = currentTimeNano
+		}
+	}
 
-    override fun ImGuiBuilder.buildLayout() {
-        text("FPS: $fps")
-    }
+	override fun ImGuiBuilder.buildLayout() {
+		text("FPS: $fps")
+	}
 }
