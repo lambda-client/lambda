@@ -55,7 +55,7 @@ object Freecam : Module(
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-    private val rotateToTarget by setting("Rotate to target", true)
+    private val rotateToTarget by setting("Rotate to target", false)
 
     override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
