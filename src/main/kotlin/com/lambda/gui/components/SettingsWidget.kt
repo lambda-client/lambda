@@ -55,19 +55,19 @@ object SettingsWidget {
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
 	                combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
-		                UserAutomationConfigs.configurables.forEach { userConfig ->
-							val selected = (userConfig as? UserAutomationConfig ?: return@forEach) === config.backingAutomationConfig
+		                val addItem: (Configurable) -> Unit = { item ->
+			                val selected = item === config.backingAutomationConfig
 
-			                selectable(userConfig.name, selected) {
-								if (selected) {
-									userConfig.linkedModules.value -= config.name
-									config.automationConfig = config.defaultAutomationConfig
-								} else {
-									userConfig.linkedModules.value += config.name
-									config.automationConfig = userConfig
-								}
+			                selectable(item.name, selected) {
+				                if (!selected) {
+					                (config.automationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
+					                (item as? UserAutomationConfig)?.linkedModules?.value?.add(config.name)
+					                config.automationConfig = item as? AutomationConfig ?: return@selectable
+				                }
 			                }
 		                }
+		                addItem(config.defaultAutomationConfig)
+						UserAutomationConfigs.configurables.forEach { addItem(it) }
 	                }
                     buildConfigSettingsContext(config.automationConfig)
                 }
