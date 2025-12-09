@@ -26,6 +26,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.tooltip.TooltipData;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -37,22 +38,18 @@ import java.util.Optional;
 @Mixin(DrawContext.class)
 public class DrawContextMixin {
     @Inject(method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/util/Identifier;)V", at = @At("HEAD"), cancellable = true)
-    private void onDrawTooltip(TextRenderer textRenderer, List<Text> text, Optional<TooltipData> data, int x, int y, Identifier texture, CallbackInfo ci) {
+    private void onDrawTooltip(TextRenderer textRenderer, List<Text> text, Optional<TooltipData> data, int x, int y, @Nullable Identifier texture, CallbackInfo ci) {
         if (!ContainerPreview.INSTANCE.isEnabled()) return;
 
-        // Don't intercept if we're rendering a sub-tooltip (prevents infinite recursion)
         if (ContainerPreview.isRenderingSubTooltip()) return;
 
-        // If we're locked, always render our locked tooltip and cancel any other tooltip
         if (ContainerPreview.isLocked()) {
             ci.cancel();
             ContainerPreview.renderLockedTooltip((DrawContext)(Object)this, textRenderer);
             return;
         }
 
-        // Check if this is a container tooltip with ContainerPreview
         if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent component) {
-            // Cancel the default tooltip and render our custom one
             ci.cancel();
             ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, component, x, y);
         }

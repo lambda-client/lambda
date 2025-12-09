@@ -28,7 +28,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class HandledScreenMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
-        // Block clicks when container preview tooltip is locked and mouse is over it
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
             if (ContainerPreview.isMouseOverLockedTooltip((int) mouseX, (int) mouseY)) {
                 cir.setReturnValue(true);
@@ -38,7 +37,6 @@ public class HandledScreenMixin {
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
     private void onMouseReleased(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
-        // Block releases when container preview tooltip is locked and mouse is over it
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
             if (ContainerPreview.isMouseOverLockedTooltip((int) mouseX, (int) mouseY)) {
                 cir.setReturnValue(true);

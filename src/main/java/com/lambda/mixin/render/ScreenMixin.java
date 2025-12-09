@@ -51,7 +51,6 @@ public class ScreenMixin {
     private void wrapRender(Screen instance, DrawContext context, int mouseX, int mouseY, float deltaTicks, Operation<Void> original) {
         original.call(instance, context, mouseX, mouseY, deltaTicks);
 
-        // Render locked container preview tooltip after screen rendering
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
             ContainerPreview.renderLockedTooltip(context, MinecraftClient.getInstance().textRenderer);
         }
