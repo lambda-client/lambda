@@ -60,7 +60,7 @@ object PacketLogger : Module(
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
     private val scope by setting("Scope", Scope.Any, "Scope of packets to log")
 
-    val packetList = getInstances<Packet<*>> { println(it.moduleInfo.location); true }
+//    val packetList = getInstances<Packet<*>>()
     // ToDo: Add a packet list
     //private val whitelist by setting<String>("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Whitelist }
     //private val blacklist by setting<String>("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Blacklist }
