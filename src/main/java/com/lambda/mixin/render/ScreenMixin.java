@@ -18,7 +18,9 @@
 package com.lambda.mixin.render;
 
 import com.lambda.gui.components.QuickSearch;
+import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.NoRender;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import org.lwjgl.glfw.GLFW;
@@ -41,5 +43,13 @@ public class ScreenMixin {
     @Inject(method = "renderInGameBackground", at = @At("HEAD"), cancellable = true)
     private void injectRenderInGameBackground(DrawContext context, CallbackInfo ci) {
         if (NoRender.INSTANCE.isEnabled() && NoRender.getNoGuiShadow()) ci.cancel();
+    }
+
+    @Inject(method = "renderWithTooltip", at = @At("TAIL"))
+    private void onRenderWithTooltip(DrawContext context, int mouseX, int mouseY, float deltaTicks, CallbackInfo ci) {
+        // Render locked container preview tooltip at the end of screen rendering
+        if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
+            ContainerPreview.renderLockedTooltip(context, MinecraftClient.getInstance().textRenderer);
+        }
     }
 }
