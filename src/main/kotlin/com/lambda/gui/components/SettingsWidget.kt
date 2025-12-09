@@ -60,7 +60,7 @@ object SettingsWidget {
 
 			                selectable(item.name, selected) {
 				                if (!selected) {
-					                (config.automationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
+					                (config.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
 					                (item as? UserAutomationConfig)?.linkedModules?.value?.add(config.name)
 					                config.automationConfig = item as? AutomationConfig ?: return@selectable
 				                }
