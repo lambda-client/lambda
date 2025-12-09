@@ -72,6 +72,9 @@ object PacketLimiter : Module(
 		listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
 			if (it.packet::class.java.name in ignorePackets) return@listen
 
+			if (!globalQueue.add(it)) {
+				it.cancel()
+			}
 			//            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
 			val queue = packetQueueMap.getOrPut(it.packet::class.java.name) {
 				LimitedDecayQueue(limit, interval)
