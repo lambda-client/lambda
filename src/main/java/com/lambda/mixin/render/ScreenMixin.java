@@ -20,6 +20,8 @@ package com.lambda.mixin.render;
 import com.lambda.gui.components.QuickSearch;
 import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -45,9 +47,11 @@ public class ScreenMixin {
         if (NoRender.INSTANCE.isEnabled() && NoRender.getNoGuiShadow()) ci.cancel();
     }
 
-    @Inject(method = "renderWithTooltip", at = @At("TAIL"))
-    private void onRenderWithTooltip(DrawContext context, int mouseX, int mouseY, float deltaTicks, CallbackInfo ci) {
-        // Render locked container preview tooltip at the end of screen rendering
+    @WrapOperation(method = "renderWithTooltip", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;render(Lnet/minecraft/client/gui/DrawContext;IIF)V"))
+    private void wrapRender(Screen instance, DrawContext context, int mouseX, int mouseY, float deltaTicks, Operation<Void> original) {
+        original.call(instance, context, mouseX, mouseY, deltaTicks);
+
+        // Render locked container preview tooltip after screen rendering
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
             ContainerPreview.renderLockedTooltip(context, MinecraftClient.getInstance().textRenderer);
         }

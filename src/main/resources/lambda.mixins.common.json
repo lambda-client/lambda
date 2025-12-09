@@ -53,6 +53,7 @@
     "render.EntityRendererMixin",
     "render.FluidRendererMixin",
     "render.GameRendererMixin",
+    "render.HandledScreenMixin",
     "render.GlStateManagerMixin",
     "render.HeadFeatureRendererMixin",
     "render.HeldItemRendererMixin",

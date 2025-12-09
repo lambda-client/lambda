@@ -33,9 +33,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public interface TooltipComponentMixin {
     @Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
     private static void of(TooltipData tooltipData, CallbackInfoReturnable<TooltipComponent> cir) {
-        // Handle ContainerPreview shulker box tooltip
-        if (ContainerPreview.INSTANCE.isEnabled() && tooltipData instanceof ContainerPreview.ShulkerComponent shulkerComponent) {
-            cir.setReturnValue(shulkerComponent);
+        // Handle ContainerPreview container tooltip (shulker boxes and ender chests)
+        if (ContainerPreview.INSTANCE.isEnabled() && tooltipData instanceof ContainerPreview.ContainerComponent containerComponent) {
+            cir.setReturnValue(containerComponent);
             return;
         }
 

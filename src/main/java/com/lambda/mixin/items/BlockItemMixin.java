@@ -34,8 +34,8 @@ public class BlockItemMixin extends Item {
 
     @Override
     public Optional<TooltipData> getTooltipData(ItemStack stack) {
-        if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isShulkerBox(stack)) {
-            return Optional.of(new ContainerPreview.ShulkerComponent(stack));
+        if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isPreviewableContainer(stack)) {
+            return Optional.of(new ContainerPreview.ContainerComponent(stack));
         }
         return super.getTooltipData(stack);
     }

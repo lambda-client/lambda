@@ -50,8 +50,8 @@ public class DrawContextMixin {
             return;
         }
 
-        // Check if this is a shulker box tooltip with ContainerPreview
-        if (data.isPresent() && data.get() instanceof ContainerPreview.ShulkerComponent component) {
+        // Check if this is a container tooltip with ContainerPreview
+        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent component) {
             // Cancel the default tooltip and render our custom one
             ci.cancel();
             ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, component, x, y);

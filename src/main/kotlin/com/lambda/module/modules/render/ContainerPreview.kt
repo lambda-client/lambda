@@ -19,6 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.Bind
+import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
@@ -32,6 +33,7 @@ import net.minecraft.client.gui.tooltip.TooltipComponent
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemStack
+import net.minecraft.item.Items
 import net.minecraft.item.tooltip.TooltipData
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
@@ -81,6 +83,18 @@ object ContainerPreview : Module(
     private fun getTooltipHeight(): Int = TITLE_HEIGHT + ROWS * SLOT_SIZE + PADDING
 
     /**
+     * Check if mouse is over the locked tooltip area (for click blocking)
+     */
+    @JvmStatic
+    fun isMouseOverLockedTooltip(mouseX: Int, mouseY: Int): Boolean {
+        if (!isLocked) return false
+        val width = getTooltipWidth()
+        val height = getTooltipHeight()
+        return mouseX >= lockedX && mouseX < lockedX + width &&
+                mouseY >= lockedY && mouseY < lockedY + height
+    }
+
+    /**
      * Calculate text color based on background luminance.
      * Returns dark text for light backgrounds and white text for dark backgrounds.
      */
@@ -97,7 +111,7 @@ object ContainerPreview : Module(
     }
 
     @JvmStatic
-    fun renderShulkerTooltip(context: DrawContext, textRenderer: TextRenderer, component: ShulkerComponent, mouseX: Int, mouseY: Int) {
+    fun renderShulkerTooltip(context: DrawContext, textRenderer: TextRenderer, component: ContainerComponent, mouseX: Int, mouseY: Int) {
         // Calculate tooltip position
         val width = getTooltipWidth()
         val height = getTooltipHeight()
@@ -144,7 +158,7 @@ object ContainerPreview : Module(
     }
 
     private fun renderTooltipForStack(context: DrawContext, textRenderer: TextRenderer, stack: ItemStack, x: Int, y: Int, allowHover: Boolean) {
-        val contents = stack.shulkerBoxContents
+        val contents = getContainerContents(stack)
         val width = getTooltipWidth()
         val height = getTooltipHeight()
 
@@ -152,25 +166,20 @@ object ContainerPreview : Module(
         matrices.push()
         matrices.translate(0f, 0f, 400f)
 
-        // Get shulker box color
-        val color = getShulkerColor(stack)
-        val tintColor = if (colorTint && color != null) {
-            color.entityColor
-        } else {
-            0xFFFFFFFF.toInt()
-        }
+        // Get container color (shulker box color or purple for ender chest)
+        val tintColor = getContainerTintColor(stack)
 
         // Draw background with color tint
         drawBackground(context, x, y, width, height, tintColor)
 
-        // Draw title (shulker box name) with appropriate text color
+        // Draw title (container name) with appropriate text color
         val name = stack.name
         val textColor = getTextColor(tintColor)
         context.drawText(textRenderer, name, x + PADDING, y + 4, textColor, false)
 
-        // Draw items
-        val startX = x + PADDING + 1
-        val startY = y + TITLE_HEIGHT
+        // Slots start at padding offset, items are centered in 18px slots (1px padding on each side)
+        val slotsStartX = x + PADDING
+        val slotsStartY = y + TITLE_HEIGHT
 
         // Get actual mouse position for hover detection
         val actualMouseX = (mc.mouse.x * mc.window.scaledWidth / mc.window.width).toInt()
@@ -183,19 +192,25 @@ object ContainerPreview : Module(
         for ((index, item) in contents.withIndex()) {
             if (index >= COLS * ROWS) break
 
-            val slotX = index % COLS
-            val slotY = index / COLS
+            val slotCol = index % COLS
+            val slotRow = index / COLS
 
-            val itemX = startX + slotX * SLOT_SIZE
-            val itemY = startY + slotY * SLOT_SIZE
+            // Slot bounds (full 18x18 area for hover detection)
+            val slotX = slotsStartX + slotCol * SLOT_SIZE
+            val slotY = slotsStartY + slotRow * SLOT_SIZE
+
+            // Item position (centered in slot with 1px offset)
+            val itemX = slotX + 1
+            val itemY = slotY + 1
 
             // Check if this slot is hovered (only when locked/allowHover)
+            // Use full slot size (18x18) for hover detection to avoid dead zones
             if (allowHover) {
-                val isHovered = actualMouseX >= itemX && actualMouseX < itemX + 16 &&
-                        actualMouseY >= itemY && actualMouseY < itemY + 16
+                val isHovered = actualMouseX >= slotX && actualMouseX < slotX + SLOT_SIZE &&
+                        actualMouseY >= slotY && actualMouseY < slotY + SLOT_SIZE
 
                 if (isHovered && !item.isEmpty) {
-                    // Draw highlight
+                    // Draw highlight on the item area (16x16)
                     context.fill(itemX, itemY, itemX + 16, itemY + 16, 0x80FFFFFF.toInt())
                     hoveredStack = item
                     hoveredSlotX = actualMouseX
@@ -215,14 +230,49 @@ object ContainerPreview : Module(
         if (hoveredStack != null && allowHover) {
             matrices.push()
             matrices.translate(0f, 0f, 500f)  // Higher Z than the main tooltip
-            // Set flag to prevent recursive mixin interception
-            isRenderingSubTooltip = true
-            try {
-                context.drawItemTooltip(textRenderer, hoveredStack, hoveredSlotX, hoveredSlotY)
-            } finally {
-                isRenderingSubTooltip = false
+
+            // Check if hovered item is also a previewable container (shulker in echest)
+            if (isPreviewableContainer(hoveredStack)) {
+                // Render nested container preview recursively
+                val nestedWidth = getTooltipWidth()
+                val nestedHeight = getTooltipHeight()
+                val nestedX = calculateTooltipX(hoveredSlotX, nestedWidth)
+                val nestedY = calculateTooltipY(hoveredSlotY, nestedHeight)
+                renderTooltipForStack(context, textRenderer, hoveredStack, nestedX, nestedY, false)
+            } else {
+                // Regular item tooltip - use mixin bypass flag
+                isRenderingSubTooltip = true
+                try {
+                    context.drawItemTooltip(textRenderer, hoveredStack, hoveredSlotX, hoveredSlotY)
+                } finally {
+                    isRenderingSubTooltip = false
+                }
             }
             matrices.pop()
+        }
+    }
+
+    private fun getContainerContents(stack: ItemStack): List<ItemStack> {
+        return when {
+            isShulkerBox(stack) -> stack.shulkerBoxContents
+            isEnderChest(stack) -> EnderChestContainer.stacks
+            else -> emptyList()
+        }
+    }
+
+    private fun getContainerTintColor(stack: ItemStack): Int {
+        if (!colorTint) return 0xFFFFFFFF.toInt()
+
+        return when {
+            isShulkerBox(stack) -> {
+                val color = getShulkerColor(stack)
+                color?.entityColor ?: 0xFFFFFFFF.toInt()
+            }
+            isEnderChest(stack) -> {
+                // Ender chest purple/dark tint
+                0xFF1E1E2E.toInt()
+            }
+            else -> 0xFFFFFFFF.toInt()
         }
     }
 
@@ -309,13 +359,31 @@ object ContainerPreview : Module(
         return stack.item in shulkerBoxes
     }
 
-    class ShulkerComponent(val stack: ItemStack) : TooltipData, TooltipComponent {
+    @JvmStatic
+    fun isEnderChest(stack: ItemStack): Boolean {
+        return stack.item == Items.ENDER_CHEST && EnderChestContainer.stacks.isNotEmpty()
+    }
+
+    @JvmStatic
+    fun isPreviewableContainer(stack: ItemStack): Boolean {
+        return isShulkerBox(stack) || isEnderChest(stack)
+    }
+
+    open class ContainerComponent(val stack: ItemStack) : TooltipData, TooltipComponent {
         val contents: List<ItemStack>
-            get() = stack.shulkerBoxContents
+            get() = when {
+                isShulkerBox(stack) -> stack.shulkerBoxContents
+                isEnderChest(stack) -> EnderChestContainer.stacks
+                else -> emptyList()
+            }
 
         // These methods are not used since we render the tooltip ourselves
         override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, width: Int, height: Int, context: DrawContext) {}
         override fun getHeight(textRenderer: TextRenderer): Int = 0
         override fun getWidth(textRenderer: TextRenderer): Int = 0
     }
+
+    // Keep for backwards compatibility
+    @Deprecated("Use ContainerComponent instead", ReplaceWith("ContainerComponent"))
+    class ShulkerComponent(stack: ItemStack) : ContainerComponent(stack)
 }
