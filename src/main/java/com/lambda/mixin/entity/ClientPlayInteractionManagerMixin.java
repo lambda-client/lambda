@@ -21,6 +21,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.inventory.InventoryManager;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -42,7 +43,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -103,9 +103,9 @@ public class ClientPlayInteractionManagerMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getSelectedSlot()I"))
-    public int overrideSelectedSlotSync(PlayerInventory instance) {
-        return EventFlow.post(new InventoryEvent.HotbarSlot.Update(instance.getSelectedSlot())).getSlot();
+    @ModifyExpressionValue(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getSelectedSlot()I"))
+    public int overrideSelectedSlotSync(int original) {
+        return EventFlow.post(new InventoryEvent.HotbarSlot.Update(original)).getSlot();
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true)

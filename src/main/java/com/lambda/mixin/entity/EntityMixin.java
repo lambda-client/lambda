@@ -28,6 +28,8 @@ import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.data.TrackedData;
@@ -36,7 +38,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Entity.class)
@@ -51,12 +52,12 @@ public abstract class EntityMixin {
     /**
      * Modifies the player yaw when there is an active rotation to apply the player velocity correctly
      */
-    @Redirect(method = "updateVelocity", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
-    public float velocityYaw(Entity entity) {
-        if ((Object) this != Lambda.getMc().player) return getYaw();
+    @WrapOperation(method = "updateVelocity", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
+    public float velocityYaw(Entity entity, Operation<Float> original) {
+        if ((Object) this != Lambda.getMc().player) return original.call(entity);
 
         Float y = RotationManager.getMovementYaw();
-        if (y == null) return getYaw();
+        if (y == null) return original.call(entity);
 
         return y;
     }
@@ -69,10 +70,10 @@ public abstract class EntityMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw(F)F"))
-    float fixDirectionYaw(Entity entity, float tickDelta) {
+    @WrapOperation(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw(F)F"))
+    float fixDirectionYaw(Entity entity, float tickDelta, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(tickDelta);
-        if (entity != Lambda.getMc().player || rot == null) return entity.getYaw(tickDelta);
+        if (entity != Lambda.getMc().player || rot == null) return original.call(entity, tickDelta);
 
         return (float) rot.getX();
     }
@@ -85,10 +86,10 @@ public abstract class EntityMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch(F)F"))
-    float fixDirectionPitch(Entity entity, float tickDelta) {
+    @WrapOperation(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch(F)F"))
+    float fixDirectionPitch(Entity entity, float tickDelta, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(tickDelta);
-        if (entity != Lambda.getMc().player || rot == null) return entity.getPitch(tickDelta);
+        if (entity != Lambda.getMc().player || rot == null) return original.call(entity, tickDelta);
 
         return (float) rot.getY();
     }
@@ -101,10 +102,10 @@ public abstract class EntityMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
-    float fixDirectionYaw2(Entity entity) {
+    @WrapOperation(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
+    float fixDirectionYaw2(Entity entity, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(1.0);
-        if (entity != Lambda.getMc().player || rot == null) return entity.getYaw();
+        if (entity != Lambda.getMc().player || rot == null) return original.call(entity);
 
         return (float) rot.getX();
     }
@@ -117,10 +118,10 @@ public abstract class EntityMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch()F"))
-    float fixDirectionPitch2(Entity entity) {
+    @WrapOperation(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch()F"))
+    float fixDirectionPitch2(Entity entity, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(1.0);
-        if (entity != Lambda.getMc().player || rot == null) return entity.getPitch();
+        if (entity != Lambda.getMc().player || rot == null) return original.call(entity);
 
         return (float) rot.getY();
     }

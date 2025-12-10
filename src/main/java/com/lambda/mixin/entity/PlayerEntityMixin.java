@@ -21,11 +21,12 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PlayerEntity.class)
@@ -36,23 +37,23 @@ public class PlayerEntityMixin {
         cir.setReturnValue(EventFlow.post(event).getClip());
     }
 
-    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
-    private float injectHeadYaw(PlayerEntity instance) {
+    @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
+    private float wrapHeadYaw(PlayerEntity instance, Operation<Float> original) {
         if ((Object) this != Lambda.getMc().player) {
-            return instance.getYaw();
+            return original.call(instance);
         }
 
         Float yaw = RotationManager.getHeadYaw();
-        return (yaw != null) ? yaw : instance.getYaw();
+        return (yaw != null) ? yaw : original.call(instance);
     }
 
-    @Redirect(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
-    private float injectAttackFix(PlayerEntity instance) {
+    @WrapOperation(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
+    private float wrapAttackYaw(PlayerEntity instance, Operation<Float> original) {
         if ((Object) this != Lambda.getMc().player) {
-            return instance.getYaw();
+            return original.call(instance);
         }
 
         Float yaw = RotationManager.getMovementYaw();
-        return (yaw != null) ? yaw : instance.getYaw();
+        return (yaw != null) ? yaw : original.call(instance);
     }
 }
