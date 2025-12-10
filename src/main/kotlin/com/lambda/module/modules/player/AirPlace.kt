@@ -21,6 +21,7 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -66,14 +67,21 @@ object AirPlace : Module(
 	private var placementState: BlockState? = null
 	private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
+	private var placedThisTick = false
+
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				interactConfig.apply {
 					::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
+					::interactDelay.edit { defaultValue(3) }
 				}
 				hideAllGroupsExcept(interactConfig)
 			}
+		}
+
+		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+			placedThisTick = false
 		}
 
 		listen<TickEvent.Pre> {
@@ -108,9 +116,14 @@ object AirPlace : Module(
 							.interactRequest(pendingInteractions)
 							?.submit()
 					}
+					placedThisTick = true
 				}
 			}
 		}
+
+		listen<PlayerEvent.Interact.Block> { if (placedThisTick) it.cancel() }
+		listen<PlayerEvent.Interact.Item> { if (placedThisTick) it.cancel() }
+		listen<PlayerEvent.Interact.Entity> { if (placedThisTick) it.cancel() }
 
 		onStaticRender { event ->
 			placementPos?.let { pos ->

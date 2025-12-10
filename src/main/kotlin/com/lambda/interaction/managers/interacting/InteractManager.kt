@@ -22,10 +22,12 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
@@ -79,6 +81,7 @@ object InteractManager : Manager<InteractRequest>(
     private var activeRequest: InteractRequest? = null
     private var potentialPlacements = mutableListOf<InteractContext>()
 
+	private var interactCooldown = 0
     private var placementsThisTick = 0
     private var maxPlacementsThisTick = 0
 
@@ -103,6 +106,9 @@ object InteractManager : Manager<InteractRequest>(
             activeRequest = null
             placementsThisTick = 0
             potentialPlacements.clear()
+	        if (interactCooldown > 0) {
+				interactCooldown--
+			}
         }
 
         listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
@@ -111,6 +117,10 @@ object InteractManager : Manager<InteractRequest>(
                 it.input.sneaking = true
             }
         }
+
+	    listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
+		    interactCooldown = 0
+	    }
 
         return "Loaded Place Manager"
     }
@@ -150,6 +160,7 @@ object InteractManager : Manager<InteractRequest>(
 
         val iterator = potentialPlacements.iterator()
         while (iterator.hasNext()) {
+			if (interactCooldown > 0) break
             if (placementsThisTick + 1 > maxPlacementsThisTick) break
             val ctx = iterator.next()
 
@@ -174,6 +185,7 @@ object InteractManager : Manager<InteractRequest>(
 		            mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
 	            }
             }
+	        interactCooldown = ctx.interactConfig.interactDelay + 1
             placementsThisTick++
             iterator.remove()
         }
