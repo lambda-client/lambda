@@ -18,6 +18,7 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.KeyboardEvent
@@ -92,6 +93,15 @@ object InputUtils : Loadable {
 
         return MouseEvent.Click(mouse, GLFW_PRESS, mods)
     }
+
+	fun Bind.isSatisfied(): Boolean =
+		(key == -1 ||  glfwGetKey(mc.window.handle, key).pressedOrRepeated) &&
+				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
+				truemods.all {
+					glfwGetKey(mc.window.handle, it.code).pressedOrRepeated
+				}
+	private val Int.pressedOrRepeated
+		get() = this == 1 || this == 2
 
     private val keys = KeyCode.entries.map { it.code }.filter { it > 0 }
     private val scancodes = keys.associateWith { GLFW.glfwGetKeyScancode(it) }

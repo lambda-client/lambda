@@ -51,7 +51,7 @@ class BuildSettings(
 
     override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible").group(baseGroup, Group.Scan).index()
     override val strictRayCast by c.setting("Strict Raycast", false, "Whether to include the environment to the ray cast context").group(baseGroup, Group.Scan).index()
-    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "").group(baseGroup, Group.Scan).index()
+    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "") { strictRayCast }.group(baseGroup, Group.Scan).index()
     override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point").group(baseGroup, Group.Scan).index()
 
     companion object {

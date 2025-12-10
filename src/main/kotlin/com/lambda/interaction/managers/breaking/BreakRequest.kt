@@ -70,9 +70,6 @@ data class BreakRequest private constructor(
     override val done: Boolean
         get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
 
-    override fun submit(queueIfMismatchedStage: Boolean) =
-        BreakManager.request(this, queueIfMismatchedStage)
-
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("Break Request") {
             value("Request ID", requestId)
@@ -91,6 +88,10 @@ data class BreakRequest private constructor(
 
     @DslMarker
     annotation class BreakRequestDsl
+
+	@BreakRequestDsl
+	override fun submit(queueIfMismatchedStage: Boolean) =
+		BreakManager.request(this, queueIfMismatchedStage)
 
     @BreakRequestDsl
     class BreakRequestBuilder(

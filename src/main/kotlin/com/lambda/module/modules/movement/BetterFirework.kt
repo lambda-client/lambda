@@ -25,9 +25,9 @@ import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MouseEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -49,7 +49,7 @@ object BetterFirework : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
-    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0, KeyCode.Unbound.code), "Firework use key for mid flight activation")
+    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0), "Firework use key for mid flight activation")
     private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }

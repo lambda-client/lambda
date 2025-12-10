@@ -35,8 +35,8 @@ object Nuker : Module(
     description = "Breaks blocks around you",
     tag = ModuleTag.PLAYER,
 ) {
-    private val height by setting("Height", 4, 1..8, 1)
-    private val width by setting("Width", 4, 1..8, 1)
+    private val height by setting("Height", 6, 1..8, 1)
+    private val width by setting("Width", 6, 1..8, 1)
     private val flatten by setting("Flatten", true)
     private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
     private val fillFluids by setting("Fill Fluids", false, "Removes liquids by filling them in before breaking")

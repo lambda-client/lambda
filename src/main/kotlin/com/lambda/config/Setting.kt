@@ -98,7 +98,7 @@ abstract class SettingCore<T : Any>(
 	var defaultValue: T,
 	val type: Type
 ) {
-    var value = defaultValue
+    open var value = defaultValue
 	    set(value) {
 		    val oldValue = field
 		    field = value

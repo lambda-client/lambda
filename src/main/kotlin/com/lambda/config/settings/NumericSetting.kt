@@ -29,27 +29,28 @@ import imgui.ImGui.dummy
 import imgui.flag.ImGuiCol
 import java.text.NumberFormat
 import java.util.*
-import kotlin.reflect.KProperty
 
 /**
  * @see [com.lambda.config.Configurable]
  */
 abstract class NumericSetting<T>(
-    value: T,
-    open var range: ClosedRange<T>,
-    open var step: T,
-    var unit: String
+	defaultValue: T,
+	open var range: ClosedRange<T>,
+	open var step: T,
+	var unit: String
 ) : SettingCore<T>(
-	value,
-	TypeToken.get(value::class.java).type
+	defaultValue,
+	TypeToken.get(defaultValue::class.java).type
 ) where T : Number, T : Comparable<T> {
+	override var value: T
+		get() = super.value
+		set(newVal) {
+			super.value = newVal.coerceIn(range)
+		}
+
     private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
     override fun toString() = "${formatter.format(value)}$unit"
-
-    operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
-        value = valueIn.coerceIn(range)
-    }
 
     /**
      * Subclasses must implement this to provide their specific slider widget.

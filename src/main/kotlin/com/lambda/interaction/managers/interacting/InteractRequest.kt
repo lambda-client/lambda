@@ -48,9 +48,6 @@ data class InteractRequest private constructor(
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
         } == true
 
-    override fun submit(queueIfMismatchedStage: Boolean) =
-        InteractManager.request(this, queueIfMismatchedStage)
-
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
         group("PlaceRequest") {
             value("Request ID", requestId)
@@ -60,6 +57,10 @@ data class InteractRequest private constructor(
 
 	@DslMarker
 	annotation class PlaceRequestDsl
+
+	@PlaceRequestDsl
+	override fun submit(queueIfMismatchedStage: Boolean) =
+		InteractManager.request(this, queueIfMismatchedStage)
 
 	@PlaceRequestDsl
 	class PlaceRequestBuilder(
