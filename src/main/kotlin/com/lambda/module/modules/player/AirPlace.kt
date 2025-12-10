@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
+import com.lambda.context.SafeContext
 import com.lambda.event.events.MouseEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -67,21 +68,14 @@ object AirPlace : Module(
 	private var placementState: BlockState? = null
 	private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
-	private var placedThisTick = false
-
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				interactConfig.apply {
 					::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
-					::interactDelay.edit { defaultValue(3) }
 				}
 				hideAllGroupsExcept(interactConfig)
 			}
-		}
-
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			placedThisTick = false
 		}
 
 		listen<TickEvent.Pre> {
@@ -107,23 +101,10 @@ object AirPlace : Module(
 			)
 			placementPos = placementContext.blockPos
 			placementState = blockItem.getPlacementState(placementContext)
-			if (!mc.options.useKey.isPressed) return@listen
-			placementPos?.let { pos ->
-				placementState?.let { state ->
-					runSafeAutomated {
-						mapOf(pos to TargetState.State(state))
-							.simulate()
-							.interactRequest(pendingInteractions)
-							?.submit()
-					}
-					placedThisTick = true
-				}
-			}
 		}
 
-		listen<PlayerEvent.Interact.Block> { if (placedThisTick) it.cancel() }
-		listen<PlayerEvent.Interact.Item> { if (placedThisTick) it.cancel() }
-		listen<PlayerEvent.Interact.Entity> { if (placedThisTick) it.cancel() }
+		listen<PlayerEvent.Interact.Block> { if (airPlace()) it.cancel() }
+		listen<PlayerEvent.Interact.Item> { if (airPlace()) it.cancel() }
 
 		onStaticRender { event ->
 			placementPos?.let { pos ->
@@ -140,5 +121,21 @@ object AirPlace : Module(
 			event.cancel()
 			distance += event.delta.y
 		}
+	}
+
+	private fun SafeContext.airPlace(): Boolean {
+		if (player.inventory.selectedStack.item !is BlockItem) return false
+		placementPos?.let { pos ->
+			placementState?.let { state ->
+				runSafeAutomated {
+					mapOf(pos to TargetState.State(state))
+						.simulate()
+						.interactRequest(pendingInteractions)
+						?.submit()
+				}
+				return true
+			}
+		}
+		return false
 	}
 }
