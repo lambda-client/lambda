@@ -35,7 +35,7 @@ import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.partialTicks

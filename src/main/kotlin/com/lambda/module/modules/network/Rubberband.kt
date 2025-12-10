@@ -19,7 +19,7 @@ package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.PlayerPacketManager
+import com.lambda.interaction.PlayerPacketHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.warn
@@ -48,20 +48,20 @@ object Rubberband : Module(
             if (!showRubberbandInfo) return@listen
             if (event.packet !is PlayerPositionLookS2CPacket) return@listen
 
-            if (PlayerPacketManager.configurations.isEmpty()) {
+            if (PlayerPacketHandler.configurations.isEmpty()) {
                 this@Rubberband.warn("Position was reverted")
                 return@listen
             }
 
             val newPos = event.packet.change.position
-            val last = PlayerPacketManager.configurations.minBy {
+            val last = PlayerPacketHandler.configurations.minBy {
                 it.position distSq newPos
             }
 
             this@Rubberband.warn(buildText {
                 literal("Reverted position by ")
                 color(Color.YELLOW) {
-                    literal("${PlayerPacketManager.configurations.toList().asReversed().indexOf(last) + 1}")
+                    literal("${PlayerPacketHandler.configurations.toList().asReversed().indexOf(last) + 1}")
                 }
                 literal(" ticks (deviation: ")
                 color(Color.YELLOW) {

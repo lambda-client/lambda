@@ -20,12 +20,11 @@ package com.lambda.config
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.EatConfig
 import com.lambda.context.Automated
-import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.interacting.InteractConfig
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.placing.PlaceConfig
-import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.managers.breaking.BreakConfig
+import com.lambda.interaction.managers.hotbar.HotbarConfig
+import com.lambda.interaction.managers.interacting.InteractConfig
+import com.lambda.interaction.managers.inventory.InventoryConfig
+import com.lambda.interaction.managers.rotating.RotationConfig
 
 interface MutableAutomationConfig : Automated {
     var defaultAutomationConfig: AutomationConfig
@@ -34,7 +33,6 @@ interface MutableAutomationConfig : Automated {
 
 	override val buildConfig: BuildConfig get() = automationConfig.buildConfig
 	override val breakConfig: BreakConfig get() = automationConfig.breakConfig
-	override val placeConfig: PlaceConfig get() = automationConfig.placeConfig
 	override val interactConfig: InteractConfig get() = automationConfig.interactConfig
 	override val rotationConfig: RotationConfig get() = automationConfig.rotationConfig
 	override val inventoryConfig: InventoryConfig get() = automationConfig.inventoryConfig

@@ -34,10 +34,10 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.material.container.containers.OffHandContainer
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotating.RotationManager
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run

@@ -49,6 +49,7 @@ transitive-accessible method net/minecraft/client/network/ClientPlayerInteractio
 transitive-accessible method net/minecraft/util/math/Direction listClosest (Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;)[Lnet/minecraft/util/math/Direction;
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager gameMode Lnet/minecraft/world/GameMode;
 transitive-accessible method net/minecraft/entity/player/PlayerEntity updatePose ()V
+transitive-accessible field net/minecraft/screen/ScreenHandler revision I
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V

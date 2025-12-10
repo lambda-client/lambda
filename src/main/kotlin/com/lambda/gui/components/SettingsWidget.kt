@@ -22,6 +22,7 @@ import com.lambda.config.Configurable
 import com.lambda.config.MutableAutomationConfig
 import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
+import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
@@ -31,7 +32,7 @@ import imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
     /**
-     * Builds the settings context popup content for a given configurable.
+     * Builds the settings context popup content for the given configurable.
      */
     fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
@@ -47,13 +48,28 @@ object SettingsWidget {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }
+	            if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
+		            sameLine()
+		            text("(${config.backingAutomationConfig.name})")
+	            }
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
+	                combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
+		                val addItem: (Configurable) -> Unit = { item ->
+			                val selected = item === config.backingAutomationConfig
+
+			                selectable(item.name, selected) {
+				                if (!selected) {
+					                (config.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
+					                (item as? UserAutomationConfig)?.linkedModules?.value?.add(config.name)
+					                config.automationConfig = item as? AutomationConfig ?: return@selectable
+				                }
+			                }
+		                }
+		                addItem(config.defaultAutomationConfig)
+						UserAutomationConfigs.configurables.forEach { addItem(it) }
+	                }
                     buildConfigSettingsContext(config.automationConfig)
-                }
-                if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
-                    sameLine()
-                    text("(${config.backingAutomationConfig.name})")
                 }
             }
         }

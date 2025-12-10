@@ -38,6 +38,6 @@ class UserAutomationConfig(override val name: String) : AutomationConfig(name, U
 	    }
 
 	private fun Module.removeLink() {
-		(automationConfig as? UserAutomationConfig)?.linkedModules?.value -= name
+		(automationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(name)
 	}
 }

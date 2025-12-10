@@ -18,7 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
-import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.render.entity.LivingEntityRenderer;

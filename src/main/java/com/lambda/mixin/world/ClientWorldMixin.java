@@ -21,6 +21,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.WorldColors;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
@@ -30,7 +31,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
@@ -46,20 +46,20 @@ public class ClientWorldMixin {
         EventFlow.post(new EntityEvent.Removal(entity, removalReason));
     }
 
-    @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)
-    private void getCloudsColorInject(float tickDelta, CallbackInfoReturnable<Integer> cir) {
+    @ModifyReturnValue(method = "getCloudsColor", at = @At("RETURN"))
+    private int modifyGetCloudsColor(int original) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomClouds()) {
-            int rgb = WorldColors.getCloudColor().getRGB() & 0xFFFFFF;
-            cir.setReturnValue(rgb);
+            return WorldColors.getCloudColor().getRGB() & 0xFFFFFF;
         }
+        return original;
     }
 
-    @Inject(method = "getSkyColor", at = @At("HEAD"), cancellable = true)
-    private void getSkyColorInject(Vec3d cameraPos, float tickDelta, CallbackInfoReturnable<Integer> cir) {
+    @ModifyReturnValue(method = "getSkyColor", at = @At("RETURN"))
+    private int modifyGetSkyColor(int original) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomSky()) {
-            int rgb = WorldColors.getSkyColor().getRGB() & 0xFFFFFF;
-            cir.setReturnValue(rgb);
+            return WorldColors.getSkyColor().getRGB() & 0xFFFFFF;
         }
+        return original;
     }
 
 

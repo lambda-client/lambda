@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.visibilty.PlaceDirection
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

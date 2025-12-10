@@ -29,6 +29,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
+import com.lambda.config.Setting.ValueListener
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -97,7 +98,16 @@ abstract class SettingCore<T : Any>(
 	var defaultValue: T,
 	val type: Type
 ) {
-    var value = defaultValue
+    open var value = defaultValue
+	    set(value) {
+		    val oldValue = field
+		    field = value
+		    listeners.forEach {
+			    if (it.requiresValueChange && oldValue == value) return@forEach
+			    it.execute(oldValue, value)
+		    }
+		}
+	val listeners = mutableListOf<ValueListener<T>>()
 
 	context(setting: Setting<*, T>)
 	abstract fun ImGuiBuilder.buildLayout()
@@ -148,7 +158,6 @@ class Setting<T : SettingCore<R>, R : Any>(
 	val visibility: () -> Boolean,
 ) : Nameable, Describable {
 	val originalCore = core
-	val listeners = mutableListOf<ValueListener<R>>()
 	var disabled = { false }
 	var groups: MutableList<List<NamedEnum>> = mutableListOf()
 
@@ -158,12 +167,7 @@ class Setting<T : SettingCore<R>, R : Any>(
 
 	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
-		val oldValue = core.value
 		core.value = value
-		listeners.forEach {
-			if (it.requiresValueChange && oldValue == value) return@forEach
-			it.execute(oldValue, value)
-		}
 	}
 
 	fun reset(silent: Boolean = false) {
@@ -192,7 +196,7 @@ class Setting<T : SettingCore<R>, R : Any>(
 	 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
 	 */
 	fun onValueChange(block: SafeContext.(from: R, to: R) -> Unit) = apply {
-		listeners.add(ValueListener(true) { from, to ->
+		core.listeners.add(ValueListener(true) { from, to ->
 			runSafe {
 				block(from, to)
 			}
@@ -200,11 +204,11 @@ class Setting<T : SettingCore<R>, R : Any>(
 	}
 
 	fun onValueChangeUnsafe(block: (from: R, to: R) -> Unit) = apply {
-		listeners.add(ValueListener(true, block))
+		core.listeners.add(ValueListener(true, block))
 	}
 
 	fun onValueSet(block: (from: R, to: R) -> Unit) = apply {
-		listeners.add(ValueListener(false, block))
+		core.listeners.add(ValueListener(false, block))
 	}
 
 	fun disabled(predicate: () -> Boolean) = apply {

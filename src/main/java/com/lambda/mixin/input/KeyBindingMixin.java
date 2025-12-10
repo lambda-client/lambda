@@ -20,23 +20,23 @@ package com.lambda.mixin.input;
 import com.lambda.module.modules.movement.Speed;
 import com.lambda.module.modules.movement.Sprint;
 import com.lambda.module.modules.movement.TargetStrafe;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.option.KeyBinding;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Objects;
 
 @Mixin(KeyBinding.class)
 public class KeyBindingMixin {
-    @Inject(method = "isPressed", at = @At("HEAD"), cancellable = true)
-    void autoSprint(CallbackInfoReturnable<Boolean> cir) {
+    @ModifyReturnValue(method = "isPressed", at = @At("RETURN"))
+    boolean modifyIsPressed(boolean original) {
         KeyBinding instance = (KeyBinding) (Object) this;
-        if (!Objects.equals(instance.getTranslationKey(), "key.sprint")) return;
+        if (!Objects.equals(instance.getTranslationKey(), "key.sprint")) return original;
 
-        if (Sprint.INSTANCE.isEnabled()) cir.setReturnValue(true);
-        if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GrimStrafe) cir.setReturnValue(true);
-        if (TargetStrafe.INSTANCE.isEnabled() && TargetStrafe.isActive()) cir.setReturnValue(true);
+        if (Sprint.INSTANCE.isEnabled()) return true;
+        if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GrimStrafe) return true;
+        if (TargetStrafe.INSTANCE.isEnabled() && TargetStrafe.isActive()) return true;
+        return original;
     }
 }

@@ -23,10 +23,10 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationMode
-import com.lambda.interaction.request.rotating.visibilty.lookAtHit
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationConfig
+import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.managers.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.rotation
@@ -55,7 +55,7 @@ object Freecam : Module(
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-    private val rotateToTarget by setting("Rotate to target", true)
+    private val rotateToTarget by setting("Rotate to target", false)
 
     override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 

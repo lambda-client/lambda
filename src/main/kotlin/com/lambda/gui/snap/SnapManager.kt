@@ -1,28 +1,55 @@
 package com.lambda.gui.snap
 
-import com.lambda.gui.components.HudGuiLayout.gridSize
-import com.lambda.gui.components.HudGuiLayout.snapDistanceElement
-import com.lambda.gui.components.HudGuiLayout.snapDistanceGrid
-import com.lambda.gui.components.HudGuiLayout.snapDistanceScreen
-import com.lambda.gui.components.HudGuiLayout.snapEnabled
-import com.lambda.gui.components.HudGuiLayout.snapLineColor
-import com.lambda.gui.components.HudGuiLayout.snapToCenters
-import com.lambda.gui.components.HudGuiLayout.snapToEdges
-import com.lambda.gui.components.HudGuiLayout.snapToGrid
-import com.lambda.gui.components.HudGuiLayout.snapToScreenCenter
-import imgui.ImDrawList
+import com.lambda.core.Loadable
+import com.lambda.event.events.GuiEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.components.ClickGuiLayout.gridSize
+import com.lambda.gui.components.ClickGuiLayout.snapDistanceElement
+import com.lambda.gui.components.ClickGuiLayout.snapDistanceGrid
+import com.lambda.gui.components.ClickGuiLayout.snapDistanceScreen
+import com.lambda.gui.components.ClickGuiLayout.snapEnabled
+import com.lambda.gui.components.ClickGuiLayout.snapLineColor
+import com.lambda.gui.components.ClickGuiLayout.snapToCenters
+import com.lambda.gui.components.ClickGuiLayout.snapToEdges
+import com.lambda.gui.components.ClickGuiLayout.snapToGrid
+import com.lambda.gui.components.ClickGuiLayout.snapToScreenCenter
+import com.lambda.gui.dsl.ImGuiBuilder
+import imgui.ImColor
+import imgui.ImGui
+import kotlin.collections.set
 import kotlin.math.abs
 import kotlin.math.max
 
-object SnapManager {
+object SnapManager : Loadable {
     private data class SnapGuide(val guide: Guide, val sourceId: String?)
     private val frameGuides = ArrayList<SnapGuide>(512)
     private val elementRects = LinkedHashMap<String, RectF>()
     private var viewW = 0f
     private var viewH = 0f
     private var scale = 1f
+    private var lastInitFrame = -1
+
+	data class SnapVisual(
+		val snapX: Float?,
+		val snapY: Float?,
+		val kindX: Guide.Kind?,
+		val kindY: Guide.Kind?
+	)
+
+	init {
+		listen<GuiEvent.NewFrame> {
+			val vp = ImGui.getMainViewport()
+			val io = ImGui.getIO()
+			beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
+		}
+	}
 
     fun beginFrame(viewWidth: Float, viewHeight: Float, uiScale: Float) {
+        val frame = ImGui.getFrameCount()
+        if (frame == lastInitFrame) return
+        lastInitFrame = frame
+
         viewW = max(1f, viewWidth)
         viewH = max(1f, viewHeight)
         scale = max(0.5f, uiScale)
@@ -159,14 +186,70 @@ object SnapManager {
         )
     }
 
-    fun drawSnapLines(draw: ImDrawList, snapX: Float?, kindX: Guide.Kind?, snapY: Float?, kindY: Guide.Kind?) {
+    fun ImGuiBuilder.drawSnapLines(snapX: Float?, kindX: Guide.Kind?, snapY: Float?, kindY: Guide.Kind?) {
+		val draw = foregroundDrawList
         val showX = kindX == Guide.Kind.ElementEdge || kindX == Guide.Kind.ElementCenter
         val showY = kindY == Guide.Kind.ElementEdge || kindY == Guide.Kind.ElementCenter
         if (!showX && !showY) return
 
-        val col = snapLineColor.rgb
+        val col = ImColor.rgba(snapLineColor.red, snapLineColor.green, snapLineColor.blue, snapLineColor.alpha)
         val thick = 2f
         if (showX && snapX != null) draw.addLine(snapX, 0f, snapX, viewH, col, thick)
         if (showY && snapY != null) draw.addLine(0f, snapY, viewW, snapY, col, thick)
     }
+
+	fun ImGuiBuilder.drawDragGrid() {
+		if (!snapEnabled || !snapToGrid) return
+		val step = max(4f, gridSize * io.fontGlobalScale)
+		if (step <= 0f) return
+
+		val vp = ImGui.getMainViewport()
+		val x0 = vp.posX
+		val y0 = vp.posY
+		val x1 = vp.posX + vp.sizeX
+		val y1 = vp.posY + vp.sizeY
+		val col = ImColor.rgba(255, 255, 255, 28)
+		val thickness = 1f
+
+		var x = x0
+		while (x <= x1 + 0.5f) {
+			backgroundDrawList.addLine(x, y0, x, y1, col, thickness)
+			x += step
+		}
+		var y = y0
+		while (y <= y1 + 0.5f) {
+			backgroundDrawList.addLine(x0, y, x1, y, col, thickness)
+			y += step
+		}
+	}
+
+	fun ImGuiBuilder.updateDragAndSnapping(
+		id: String,
+		lastBound: RectF,
+		dragOffsetX: Float,
+		dragOffsetY: Float,
+		pendingPositions: MutableMap<String, Pair<Float, Float>>,
+		snapOverlays: MutableMap<String, SnapVisual>
+	) {
+		val mx = io.mousePos.x
+		val my = io.mousePos.y
+		val targetX = mx - dragOffsetX
+		val targetY = my - dragOffsetY
+		val proposed = RectF(targetX, targetY, lastBound.w, lastBound.h)
+		val snap = computeSnap(proposed, id)
+		var finalX = targetX + snap.dx
+		var finalY = targetY + snap.dy
+
+		val vp = ImGui.getMainViewport()
+		val minX = vp.posX
+		val minY = vp.posY
+		val maxX = vp.posX + vp.sizeX - lastBound.w
+		val maxY = vp.posY + vp.sizeY - lastBound.h
+
+		finalX = if (lastBound.w >= vp.sizeX) minX else finalX.coerceIn(minX, maxX)
+		finalY = if (lastBound.h >= vp.sizeY) minY else finalY.coerceIn(minY, maxY)
+
+		pendingPositions[id] = finalX to finalY
+		snapOverlays[id] = SnapVisual(snap.snapX, snap.snapY, snap.kindX, snap.kindY)
+	}
 }

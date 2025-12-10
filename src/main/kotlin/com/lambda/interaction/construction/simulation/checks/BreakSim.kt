@@ -18,16 +18,15 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.results.BreakResult
-import com.lambda.interaction.construction.result.results.GenericResult
-import com.lambda.interaction.construction.simulation.ISimInfo
-import com.lambda.interaction.construction.simulation.ISimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
+import com.lambda.interaction.construction.simulation.BreakSimInfo
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.checks.PlaceSim.Companion.simPlacement
+import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
+import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
@@ -35,11 +34,11 @@ import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.hotbar.HotbarManager
-import com.lambda.interaction.request.rotating.RotationManager
-import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.interaction.request.rotating.visibilty.lookAt
-import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
+import com.lambda.interaction.managers.hotbar.HotbarManager
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
@@ -65,9 +64,9 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import kotlin.jvm.optionals.getOrNull
 
-class BreakSim private constructor(simInfo: ISimInfo)
+class BreakSim private constructor(simInfo: SimInfo)
     : Sim<BreakResult>(),
-    ISimInfo by simInfo
+    SimInfo by simInfo
 {
     override fun dependentUpon(buildResult: BuildResult) =
         BreakResult.Dependency(pos, buildResult)
@@ -75,7 +74,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
     companion object {
         @SimDsl
         context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
-        suspend fun SimInfo.simBreak() =
+        suspend fun BreakSimInfo.simBreak() =
             BreakSim(this).run {
                 withDependent(dependent) {
                     automatedSafeContext.simBreaks()
@@ -90,9 +89,9 @@ class BreakSim private constructor(simInfo: ISimInfo)
             return
         }
 
-        if (targetState.getState(pos).isAir && !state.fluidState.isEmpty && state.isReplaceable) {
+        if (!state.fluidState.isEmpty && state.isReplaceable) {
             result(BreakResult.Submerge(pos, state))
-            sim(pos, state, TargetState.Solid(emptySet())) { simPlacement() }
+            sim(pos, state, TargetState.Solid(emptySet()))
             return
         }
 
@@ -126,7 +125,7 @@ class BreakSim private constructor(simInfo: ISimInfo)
             return
         }
 
-        val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), preProcessing) ?: return
+        val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), null) ?: return
 
         val bestHit = buildConfig.pointSelection.select(validHits) ?: return
         val target = lookAt(bestHit.rotation)

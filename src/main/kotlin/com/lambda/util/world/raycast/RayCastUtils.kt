@@ -19,7 +19,7 @@ package com.lambda.util.world.raycast
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.util.math.distSq
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity

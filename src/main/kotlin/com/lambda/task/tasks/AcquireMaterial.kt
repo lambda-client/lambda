@@ -22,7 +22,6 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
-import com.lambda.interaction.request.inventory.InventoryConfig
 import com.lambda.task.Task
 
 class AcquireMaterial @Ta5kBuilder constructor(

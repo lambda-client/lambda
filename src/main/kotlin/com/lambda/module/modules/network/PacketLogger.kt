@@ -17,13 +17,12 @@
 
 package com.lambda.module.modules.network
 
-import com.google.gson.JsonPrimitive
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
@@ -61,7 +60,7 @@ object PacketLogger : Module(
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
     private val scope by setting("Scope", Scope.Any, "Scope of packets to log")
 
-    val packetList = getInstances<Packet<*>> { println(it.moduleInfo.location); true }
+//    val packetList = getInstances<Packet<*>>()
     // ToDo: Add a packet list
     //private val whitelist by setting<String>("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Whitelist }
     //private val blacklist by setting<String>("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Blacklist }
@@ -188,20 +187,20 @@ object PacketLogger : Module(
             it.packet.logSent()
         }
 
-        listenUnsafeConcurrently<PacketEvent.Receive.Pre> {
+        listenConcurrentlyUnsafe<PacketEvent.Receive.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.Server)
-            ) return@listenUnsafeConcurrently
+            ) return@listenConcurrentlyUnsafe
 
             it.packet.logReceived()
         }
 
-        listenUnsafeConcurrently<PacketEvent.Send.Pre> {
+        listenConcurrentlyUnsafe<PacketEvent.Send.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.Client)
-            ) return@listenUnsafeConcurrently
+            ) return@listenConcurrentlyUnsafe
 
             it.packet.logSent()
         }

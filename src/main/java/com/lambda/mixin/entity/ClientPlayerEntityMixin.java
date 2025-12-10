@@ -22,12 +22,14 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
-import com.lambda.interaction.PlayerPacketManager;
-import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.PlayerPacketHandler;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -43,7 +45,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -59,16 +60,16 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         super(world, profile);
     }
 
-    @Redirect(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"))
-    private void emitMovementEvents(AbstractClientPlayerEntity instance, MovementType movementType, Vec3d movement) {
-        EventFlow.post(new MovementEvent.Player.Pre(movementType, movement));
-        super.move(movementType, movement);
-        EventFlow.post(new MovementEvent.Player.Post(movementType, movement));
+    @WrapOperation(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"))
+    private void emitMovementEvents(ClientPlayerEntity instance, MovementType movementType, Vec3d vec3d, Operation<Void> original) {
+        EventFlow.post(new MovementEvent.Player.Pre(movementType, vec3d));
+        original.call(instance, movementType, vec3d);
+        EventFlow.post(new MovementEvent.Player.Post(movementType, vec3d));
     }
 
-    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
-    void processMovement(Input input) {
-        input.tick();
+    @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
+    void processMovement(Input input, Operation<Void> original) {
+        original.call(input);
         RotationManager.processRotations();
         RotationManager.redirectStrafeInputs(input);
         EventFlow.post(new MovementEvent.InputUpdate(input));
@@ -80,18 +81,18 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
     void sendLambdaMovement(CallbackInfo ci) {
         ci.cancel();
-        PlayerPacketManager.sendPlayerPackets();
+        PlayerPacketHandler.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSneakingPacket()V"))
-    void sendSneakingPacket(ClientPlayerEntity entity) {
-        PlayerPacketManager.sendSneakPackets();
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSneakingPacket()V"))
+    void sendSneakingPacket(ClientPlayerEntity entity, Operation<Void> original) {
+        PlayerPacketHandler.sendSneakPackets();
     }
 
-    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
-    boolean isSprinting(ClientPlayerEntity entity) {
-        return EventFlow.post(new MovementEvent.Sprint(entity.isSprinting())).getSprint();
+    @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
+    boolean isSprinting(boolean original) {
+        return EventFlow.post(new MovementEvent.Sprint(original)).getSprint();
     }
 
     @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
@@ -110,14 +111,14 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         EventFlow.post(TickEvent.Player.Post.INSTANCE);
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
-    float fixHeldItemYaw(ClientPlayerEntity instance) {
-        return Objects.requireNonNullElse(RotationManager.getHandYaw(), instance.getYaw());
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
+    float fixHeldItemYaw(ClientPlayerEntity instance, Operation<Float> original) {
+        return Objects.requireNonNullElse(RotationManager.getHandYaw(), original.call(instance));
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
-    float fixHeldItemPitch(ClientPlayerEntity instance) {
-        return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
+    float fixHeldItemPitch(ClientPlayerEntity instance, Operation<Float> original) {
+        return Objects.requireNonNullElse(RotationManager.getHandPitch(), original.call(instance));
     }
 
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
@@ -125,12 +126,12 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
     }
 
-    @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
-    private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
+    @WrapOperation(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void adjustSwing(ClientPlayerEntity instance, Hand hand, Operation<Void> original) {
         ViewModel viewModel = ViewModel.INSTANCE;
 
         if (!viewModel.isEnabled()) {
-            instance.swingHand(hand, false);
+            original.call(instance, hand);
             return;
         }
 
@@ -157,9 +158,9 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
      * }
      * }</pre>
      */
-    @Redirect(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;"))
-    Screen keepScreensInPortal(MinecraftClient instance) {
+    @ModifyExpressionValue(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;"))
+    Screen keepScreensInPortal(Screen original) {
         if (PortalGui.INSTANCE.isEnabled()) return null;
-        else return client.currentScreen;
+        else return original;
     }
 }

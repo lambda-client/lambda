@@ -18,19 +18,19 @@
 package com.lambda.mixin.world;
 
 import com.lambda.module.modules.render.XRay;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.BlockView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractBlock.class)
 public class AbstractBlockMixin {
-    @Inject(method = "getAmbientOcclusionLightLevel", at = @At("HEAD"), cancellable = true)
-    private void injectGetAmbientOcclusionLightLevel(BlockState state, BlockView world, BlockPos pos, CallbackInfoReturnable<Float> cir) {
-        if (XRay.INSTANCE.isEnabled()) cir.setReturnValue(1f);
+    @ModifyReturnValue(method = "getAmbientOcclusionLightLevel", at = @At("RETURN"))
+    private float modifyGetAmbientOcclusionLightLevel(float original) {
+        if (XRay.INSTANCE.isEnabled()) return 1f;
+        return original;
     }
 }

@@ -28,6 +28,9 @@ import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.gui.snap.Guide
 import com.lambda.gui.snap.RectF
 import com.lambda.gui.snap.SnapManager
+import com.lambda.gui.snap.SnapManager.drawDragGrid
+import com.lambda.gui.snap.SnapManager.drawSnapLines
+import com.lambda.gui.snap.SnapManager.updateDragAndSnapping
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.NamedEnum
@@ -45,21 +48,8 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     override val name = "HUD"
 
     enum class Group(override val displayName: String) : NamedEnum {
-        Snapping("Snapping"),
         HudOutline("HUD Outline")
     }
-
-    // Snapping
-    val snapEnabled by setting("Enable Snapping", true, "Master toggle for HUD snapping").group(Group.Snapping)
-    val gridSize by setting("Grid Size", 25f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }.group(Group.Snapping)
-    val snapToEdges by setting("Snap To Element Edges", true) { snapEnabled }.group(Group.Snapping)
-    val snapToCenters by setting("Snap To Element Centers", true) { snapEnabled }.group(Group.Snapping)
-    val snapToScreenCenter by setting("Snap To Screen Center", true) { snapEnabled }.group(Group.Snapping)
-    val snapToGrid by setting("Snap To Grid", true) { snapEnabled }.group(Group.Snapping)
-    val snapDistanceElement by setting("Snap Distance (Elements)", 20f, 1f..48f, 1f, "Distance threshold in px") { snapEnabled }.group(Group.Snapping)
-    val snapDistanceScreen by setting("Snap Distance (Screen Center)", 14f, 1f..48f, 1f) { snapEnabled }.group(Group.Snapping)
-    val snapDistanceGrid by setting("Snap Distance (Grid)", 12f, 1f..48f, 1f) { snapEnabled }.group(Group.Snapping)
-    val snapLineColor by setting("Snap Line Color", Color(255, 160, 0, 220)) { snapEnabled }.group(Group.Snapping)
 
     // HUD Outline
     val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f).group(Group.HudOutline)
@@ -80,18 +70,11 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     private var dragOffsetY = 0f
     private val lastBounds = mutableMapOf<String, RectF>()
     private val pendingPositions = mutableMapOf<String, Pair<Float, Float>>()
-    private val snapOverlays = mutableMapOf<String, SnapVisual>()
+    private val snapOverlays = mutableMapOf<String, SnapManager.SnapVisual>()
     private var mousePressedThisFrameGlobal = false
 
     var isShownInGUI = true
     var isLocked = false
-
-    private data class SnapVisual(
-        val snapX: Float?,
-        val snapY: Float?,
-        val kindX: Guide.Kind?,
-        val kindY: Guide.Kind?
-    )
 
     private const val PI_F = PI.toFloat()
     private const val HALF_PI_F = (0.5f * PI).toFloat()
@@ -119,9 +102,6 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     return@buildLayout
                 }
 
-                val vp = ImGui.getMainViewport()
-                SnapManager.beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
-
                 val mouseDown = io.mouseDown[0]
                 val mousePressedThisFrame = mouseDown && !mouseWasDown
                 val mouseReleasedThisFrame = !mouseDown && mouseWasDown
@@ -140,10 +120,17 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     .partition { it.isEnabled }
                 notShown.forEach { SnapManager.unregisterElement(it.name) }
 
-                if (ClickGuiLayout.open) registerContextMenu(notShown)
-                if (ClickGuiLayout.open && !isLocked) {
-                     if (activeDragHudName != null && mouseDown) updateDragAndSnapping()
-                     if (activeDragHudName != null) drawDragGrid()
+                if (ClickGuiLayout.open) {
+					registerContextMenu(notShown)
+
+	                if (!isLocked) {
+		                activeDragHudName?.let { drag ->
+			                if (mouseDown) updateDragAndSnapping(
+				                drag, lastBounds[drag]!!, dragOffsetX, dragOffsetY, pendingPositions, snapOverlays
+			                )
+			                drawDragGrid()
+		                }
+	                }
                 }
 
                 huds.forEach { hud ->
@@ -188,13 +175,8 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     dragOffsetY = my - windowPos.y
                 }
 
-                val vis = snapOverlays[hud.name]
-                if (vis != null) {
-                    SnapManager.drawSnapLines(
-                        foregroundDrawList,
-                        vis.snapX, vis.kindX,
-                        vis.snapY, vis.kindY
-                    )
+                snapOverlays[hud.name]?.let { visual ->
+					drawSnapLines(visual.snapX, visual.kindX, visual.snapY, visual.kindY)
                 }
                 with(hud) { buildLayout() }
 
@@ -254,59 +236,6 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         }
     }
 
-    private fun ImGuiBuilder.updateDragAndSnapping() {
-        val id = activeDragHudName ?: return
-        val last = lastBounds[id] ?: return
-        val mx = io.mousePos.x
-        val my = io.mousePos.y
-        val targetX = mx - dragOffsetX
-        val targetY = my - dragOffsetY
-        val proposed = RectF(targetX, targetY, last.w, last.h)
-        val snap = SnapManager.computeSnap(proposed, id)
-        var finalX = targetX + snap.dx
-        var finalY = targetY + snap.dy
-
-        // Clamp to viewport so the HUD cannot go off-screen
-        val vp = ImGui.getMainViewport()
-        val minX = vp.posX
-        val minY = vp.posY
-        val maxX = vp.posX + vp.sizeX - last.w
-        val maxY = vp.posY + vp.sizeY - last.h
-
-        finalX = if (last.w >= vp.sizeX) minX else finalX.coerceIn(minX, maxX)
-        finalY = if (last.h >= vp.sizeY) minY else finalY.coerceIn(minY, maxY)
-
-        pendingPositions[id] = finalX to finalY
-        snapOverlays[id] = SnapVisual(snap.snapX, snap.snapY, snap.kindX, snap.kindY)
-    }
-
-    private fun ImGuiBuilder.drawDragGrid() {
-        if (!snapEnabled || !snapToGrid) return
-        val vp = ImGui.getMainViewport()
-        val step = max(4f, gridSize * io.fontGlobalScale)
-        if (step <= 0f) return
-
-        val x0 = vp.posX
-        val y0 = vp.posY
-        val x1 = vp.posX + vp.sizeX
-        val y1 = vp.posY + vp.sizeY
-
-        val draw = backgroundDrawList
-        val col = ImColor.rgba(255, 255, 255, 28)
-        val thickness = 1f
-
-        var x = x0
-        while (x <= x1 + 0.5f) {
-            draw.addLine(x, y0, x, y1, col, thickness)
-            x += step
-        }
-        var y = y0
-        while (y <= y1 + 0.5f) {
-            draw.addLine(x0, y, x1, y, col, thickness)
-            y += step
-        }
-    }
-
     private fun ImGuiBuilder.drawHudCornerArcs(draw: ImDrawList, x: Float, y: Float, w: Float, h: Float) {
         val baseRadius = hudOutlineCornerRadius
         val rounding = if (baseRadius > 0f) baseRadius else style.windowRounding
@@ -317,25 +246,25 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
         val haloRadius = (rounding + inflate + 0.5f * hudOutlineHaloThickness + 1.0f).coerceAtLeast(0f)
         val borderRadius = (rounding + 0.5f * hudOutlineBorderThickness + 0.75f).coerceAtLeast(0f)
 
-        // Soft halo corners
         drawCornerArcs(
             draw,
             x, y, w, h,
             haloRadius,
-            hudOutlineHaloColor.rgb,
+            awtToImColor(hudOutlineHaloColor),
             hudOutlineHaloThickness
         )
-        // Crisp inner corner arcs
         drawCornerArcs(
             draw,
             x, y, w, h,
             borderRadius,
-            hudOutlineBorderColor.rgb,
+            awtToImColor(hudOutlineBorderColor),
             hudOutlineBorderThickness
         )
 
         draw.popClipRect()
     }
+
+    private fun awtToImColor(c: Color) = ImColor.rgba(c.red, c.green, c.blue, c.alpha)
 
     private fun drawCornerArcs(
         draw: ImDrawList,

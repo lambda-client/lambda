@@ -17,15 +17,15 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.results.GenericResult
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
 
 @SimDsl
 interface Results<T : BuildResult> {
-    fun ISimInfo.result(result: GenericResult) = addResult(result)
-    fun ISimInfo.result(result: T) = addResult(result)
+    fun SimInfo.result(result: GenericResult) = addResult(result)
+    fun SimInfo.result(result: T) = addResult(result)
 
-    private fun ISimInfo.addResult(result: BuildResult) {
+    private fun SimInfo.addResult(result: BuildResult) {
         concurrentResults.add(
             dependencyStack
                 .asReversed()

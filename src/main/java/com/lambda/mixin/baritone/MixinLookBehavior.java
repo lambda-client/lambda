@@ -22,7 +22,7 @@ import baritone.api.event.events.RotationMoveEvent;
 import baritone.api.utils.Rotation;
 import baritone.behavior.LookBehavior;
 import com.lambda.interaction.BaritoneManager;
-import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

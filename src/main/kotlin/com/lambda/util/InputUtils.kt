@@ -18,6 +18,7 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
+import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.KeyboardEvent
@@ -73,7 +74,7 @@ object InputUtils : Loadable {
         val key = pressedKeys
             .firstNotNullOfOrNull { (key, state) -> key to state } ?: return null
 
-        val scancode = scancodes.getValue(key.first)
+        val scancode = scancodes.getOrElse(key.first) { 0 }
 
         return KeyboardEvent.Press(key.first, scancode, key.second, mods)
     }
@@ -93,7 +94,16 @@ object InputUtils : Loadable {
         return MouseEvent.Click(mouse, GLFW_PRESS, mods)
     }
 
-    private val keys = KeyCode.entries.map { it.code }
+	fun Bind.isSatisfied(): Boolean =
+		(key == -1 ||  glfwGetKey(mc.window.handle, key).pressedOrRepeated) &&
+				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
+				truemods.all {
+					glfwGetKey(mc.window.handle, it.code).pressedOrRepeated
+				}
+	private val Int.pressedOrRepeated
+		get() = this == 1 || this == 2
+
+    private val keys = KeyCode.entries.map { it.code }.filter { it > 0 }
     private val scancodes = keys.associateWith { GLFW.glfwGetKeyScancode(it) }
 
     private val mouses = GLFW_MOUSE_BUTTON_1..GLFW_MOUSE_BUTTON_8

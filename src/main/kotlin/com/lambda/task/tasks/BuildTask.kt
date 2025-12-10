@@ -31,26 +31,24 @@ import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStruc
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
-import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Contextual
-import com.lambda.interaction.construction.result.Dependent
-import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.construction.result.Navigable
-import com.lambda.interaction.construction.result.Resolvable
-import com.lambda.interaction.construction.result.results.BreakResult
-import com.lambda.interaction.construction.result.results.GenericResult
-import com.lambda.interaction.construction.result.results.InteractResult
-import com.lambda.interaction.construction.result.results.PlaceResult
-import com.lambda.interaction.construction.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
+import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.Contextual
+import com.lambda.interaction.construction.simulation.result.Dependent
+import com.lambda.interaction.construction.simulation.result.Drawable
+import com.lambda.interaction.construction.simulation.result.Navigable
+import com.lambda.interaction.construction.simulation.result.Resolvable
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
+import com.lambda.interaction.construction.simulation.result.results.InteractResult
+import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.request.interacting.InteractRequest
-import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.request.placing.PlaceRequest.Companion.placeRequest
+import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
@@ -74,7 +72,7 @@ class BuildTask private constructor(
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
     private val atMaxPendingInteractions
-        get() = pendingInteractions.size >= buildConfig.maxPendingInteractions
+        get() = pendingInteractions.size >= buildConfig.maxPendingActions
 
     private var placements = 0
     private var breaks = 0
@@ -136,7 +134,7 @@ class BuildTask private constructor(
     }
 
     private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
-        if (result !is Contextual && pendingInteractions.isNotEmpty())
+        if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty())
             return
 
         when (result) {
@@ -154,7 +152,7 @@ class BuildTask private constructor(
             }
 
             is GenericResult.NotVisible,
-            is PlaceResult.NoIntegrity -> {
+            is InteractResult.NoIntegrity -> {
                 if (!buildConfig.pathing) return
                 val sim = blueprint.simulation()
                 val goal = BuildGoal(sim, player.blockPos)
@@ -176,23 +174,10 @@ class BuildTask private constructor(
                             }
                         }?.submit()
 
-                    is PlaceResult.Place ->
-                        allResults.placeRequest(pendingInteractions, false) {
-							onPlace { placements++ }
-						}?.submit()
-
                     is InteractResult.Interact -> {
-                        val interactResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<InteractResult.Interact>()
-                            .map { it.context }
-
-                        InteractRequest(
-                            interactResults,
-                            pendingInteractions,
-                            this@BuildTask,
-                            onInteract = null
-                        ).submit(queueIfMismatchedStage = true)
+	                    allResults.interactRequest(pendingInteractions, false) {
+		                    onPlace { placements++ }
+	                    }?.submit()
                     }
                 }
             }
@@ -200,7 +185,7 @@ class BuildTask private constructor(
             is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
-                LOG.info("Resolving: ${result.name}")
+	            LOG.info("Resolving: ${result.name}")
                 result.resolve().execute(this@BuildTask)
             }
         }

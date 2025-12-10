@@ -22,13 +22,10 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ContainerManager.transfer
-import com.lambda.interaction.material.container.containers.OffHandContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
-import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
@@ -64,9 +61,13 @@ object AutoTotem : Module(
 
             if ((!ignoreWhenHolding || !player.isHolding(Items.TOTEM_OF_UNDYING)) && player.offHandStack.item != Items.TOTEM_OF_UNDYING) {
                 Items.TOTEM_OF_UNDYING.select()
-                    .transfer(OffHandContainer)
-                    ?.finally { if (log) info("Swapped the off-hand item with a totem") }
-                    ?.run()
+	                .filterSlots(player.currentScreenHandler.slots)
+	                .takeIf { it.isNotEmpty() }
+	                ?.let { totems ->
+						inventoryRequest {
+							swap(totems.first().id, 40)
+						}.submit()
+	                }
             }
         }
     }
