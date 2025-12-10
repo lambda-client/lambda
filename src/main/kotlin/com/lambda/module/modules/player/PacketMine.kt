@@ -17,19 +17,20 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.managers.breaking.BreakConfig
+import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -96,30 +97,29 @@ object PacketMine : Module(
     private var attackedThisTick = false
 
     init {
-        defaultAutomationConfig = automationConfig {
-            breakConfig.apply {
-                editTyped(
-                    ::avoidLiquids,
-                    ::avoidSupporting,
-                    ::efficientOnly,
-                    ::suitableToolsOnly
-                ) { defaultValue(false) }
-                ::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
-            }
-            hotbarConfig.apply {
-                ::keepTicks.edit { defaultValue(0) }
-            }
-            hideAll(buildConfig, placeConfig, interactConfig, inventoryConfig, eatConfig)
-        }
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(breakConfig, rotationConfig, hotbarConfig)
+				breakConfig.apply {
+					editTyped(
+						::avoidLiquids,
+						::avoidSupporting,
+						::efficientOnly,
+						::suitableToolsOnly
+					) { defaultValue(false) }
+					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
+				}
+				hotbarConfig.apply {
+					::keepTicks.edit { defaultValue(0) }
+				}
+			}
+		}
 
         listen<TickEvent.Post> {
             attackedThisTick = false
         }
 
-        listen<PlayerEvent.Attack.Block> {
-            it.cancel()
-        }
-
+        listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             val pos = event.pos

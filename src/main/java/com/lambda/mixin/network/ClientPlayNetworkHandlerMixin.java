@@ -20,9 +20,10 @@ package com.lambda.mixin.network;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.WorldEvent;
-import com.lambda.interaction.request.inventory.InventoryManager;
+import com.lambda.interaction.managers.inventory.InventoryManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
@@ -31,7 +32,6 @@ import net.minecraft.network.packet.s2c.play.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPlayNetworkHandler.class)
@@ -74,9 +74,9 @@ public class ClientPlayNetworkHandlerMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
-    public boolean onServerMetadata(ClientPlayNetworkHandler clientPlayNetworkHandler) {
-        return NoRender.getNoChatVerificationToast() && NoRender.INSTANCE.isEnabled();
+    @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
+    public boolean onServerMetadata(boolean original) {
+        return (NoRender.getNoChatVerificationToast() && NoRender.INSTANCE.isEnabled()) || original;
     }
 
     /**

@@ -392,10 +392,25 @@ object ImGuiBuilder {
         width: Float = 0f,
         height: Float = 0f,
         border: Boolean = false,
-        flags: Int = ImGuiChildFlags.None,
+        windowFlags: Int = ImGuiWindowFlags.None,
         block: ProcedureBlock
     ) {
-        if (beginChild(strId, width, height, border, flags))
+        if (beginChild(strId, width, height, border, windowFlags))
+            block()
+
+        endChild()
+    }
+
+    @ImGuiDsl
+    inline fun child(
+        strId: String,
+        width: Float = 0f,
+        height: Float = 0f,
+        childFlags: Int = ImGuiChildFlags.None,
+        windowFlags: Int = ImGuiWindowFlags.None,
+        block: ProcedureBlock
+    ) {
+        if (beginChild(strId, width, height, childFlags, windowFlags))
             block()
 
         endChild()
@@ -1583,15 +1598,19 @@ object ImGuiBuilder {
         lambdaTooltip(description())
     }
 
+    @ImGuiDsl
+    fun openPopup(strId: String, flags: Int = ImGuiPopupFlags.None) =
+        ImGui.openPopup(strId, flags)
+
     /**
-     * Creates a popup.
+     * Creates a popup. You must first call [openPopup] with the same [strId]
      *
      * @param strId Unique identifier
      * @param flags Popup flags
      * @param block Content of the popup
      */
     @ImGuiDsl
-    inline fun popup(strId: String, flags: Int = ImGuiPopupFlags.None, block: ProcedureBlock) {
+    inline fun popup(strId: String, flags: Int = ImGuiPopupFlags.AnyPopup, block: ProcedureBlock) {
         if (beginPopup(strId, flags)) {
             block()
             endPopup()

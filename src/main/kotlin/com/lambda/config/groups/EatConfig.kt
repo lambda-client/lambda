@@ -17,6 +17,7 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.ISettingGroup
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -28,22 +29,22 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
-interface EatConfig {
+interface EatConfig : ISettingGroup {
     val eatOnHunger: Boolean
     val minFoodLevel: Int
-    val nutritiousFood: List<Item>
+    val nutritiousFood: Collection<Item>
     val saturated: Saturation
 
     val eatOnFire: Boolean
-    val resistanceFood: List<Item>
+    val resistanceFood: Collection<Item>
 
     val eatOnDamage: Boolean
     val minDamage: Int
-    val regenerationFood: List<Item>
+    val regenerationFood: Collection<Item>
 
     val selectionPriority: SelectionPriority
     val ignoreBadFood: Boolean
-    val badFood: List<Item>
+    val badFood: Collection<Item>
 
     enum class Saturation(
         override val displayName: String,

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -35,8 +35,8 @@ object Nuker : Module(
     description = "Breaks blocks around you",
     tag = ModuleTag.PLAYER,
 ) {
-    private val height by setting("Height", 4, 1..8, 1)
-    private val width by setting("Width", 4, 1..8, 1)
+    private val height by setting("Height", 6, 1..8, 1)
+    private val width by setting("Width", 6, 1..8, 1)
     private val flatten by setting("Flatten", true)
     private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
     private val fillFluids by setting("Fill Fluids", false, "Removes liquids by filling them in before breaking")
@@ -46,9 +46,8 @@ object Nuker : Module(
     private var task: Task<*>? = null
 
     init {
-        defaultAutomationConfig = automationConfig {
-            hideAll(interactConfig)
-        }
+		setDefaultAutomationConfig()
+
         onEnable {
             task = tickingBlueprint {
                 if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
@@ -79,9 +78,7 @@ object Nuker : Module(
 
                 selection
             }.build(finishOnDone = false)
-            // ToDo: Add build setting delegates
-
-            task?.run()
+				.run()
         }
 
         onDisable {

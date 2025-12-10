@@ -159,4 +159,25 @@ sealed class TickEvent : Event {
          */
         data object Post : TickEvent()
     }
+
+    companion object {
+        val ALL_STAGES by lazy {
+            listOf(
+                Pre,
+                Post,
+                Network.Pre,
+                Network.Post,
+                Input.Pre,
+                Input.Post,
+                WorldRender.Pre,
+                WorldRender.Post,
+                Sound.Pre,
+                Sound.Post,
+                Render.Pre,
+                Render.Post,
+                Player.Pre,
+                Player.Post,
+            )
+        }
+    }
 }

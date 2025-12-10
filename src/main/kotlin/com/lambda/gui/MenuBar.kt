@@ -35,8 +35,6 @@ import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.gui.dsl.ImGuiBuilder.popupContextItem
-import com.lambda.gui.dsl.ImGuiBuilder.selectable
 import com.lambda.interaction.BaritoneManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
@@ -53,7 +51,6 @@ import imgui.ImGui.closeCurrentPopup
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
-import imgui.type.ImString
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
@@ -61,7 +58,7 @@ import java.util.*
 
 object MenuBar {
     private var aboutRequested = false
-    val newConfigName = ImString()
+    var newConfigName = ""
     val headerLogo = upload("textures/lambda_text_color.png")
     val lambdaLogo = upload("textures/lambda.png")
     val githubLogo = upload("textures/github_logo.png")
@@ -76,7 +73,7 @@ object MenuBar {
             menu("HUD") { buildHudMenu() }
             menu("GUI") { buildGuiMenu() }
             menu("Modules") { buildModulesMenu() }
-            menu("Automation Configs") { buildConfigPresetsMenu() }
+            menu("Automation Configs") { buildAutomationConfigsMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
             menu("Help") { buildHelpMenu() }
             buildGitHubReference()
@@ -285,21 +282,20 @@ object MenuBar {
         }
     }
 
-    private fun ImGuiBuilder.buildConfigPresetsMenu() {
+    private fun ImGuiBuilder.buildAutomationConfigsMenu() {
         button("New Config") { ImGui.openPopup("##new-config") }
-
         popupContextWindow("##new-config") {
-            inputText("Name", newConfigName)
+            inputText("Name", ::newConfigName)
             button("Create") {
-                if (newConfigName.isEmpty && configurables.none { it.name == newConfigName.get() }) return@button
-                UserAutomationConfig(newConfigName.get())
-                newConfigName.clear()
+                if (newConfigName.isEmpty() && configurables.none { it.name == newConfigName }) return@button
+                UserAutomationConfig(newConfigName)
+                newConfigName = ""
                 closeCurrentPopup()
                 return@button
             }
             sameLine()
             button("Cancel") {
-                newConfigName.clear()
+                newConfigName = ""
                 closeCurrentPopup()
             }
         }
@@ -311,23 +307,23 @@ object MenuBar {
         buildAutomationConfigSelectable(AutomationConfig.Companion.DEFAULT)
     }
 
-    private fun buildAutomationConfigSelectable(config: AutomationConfig) {
-        selectable(config.name)
-        popupContextItem("##automation-config-popup-${config.name}") {
-            if (config is UserAutomationConfig) {
-                with(config.linkedModules) { buildLayout() }
-                button("Delete") {
-                    config.linkedModules.value.forEach {
-                        moduleNameMap[it]?.let { module ->
-                            module.automationConfig = module.defaultAutomationConfig
-                        }
-                    }
-                    UserAutomationConfigs.configurables.remove(config)
-                }
-                separator()
-            }
-            buildConfigSettingsContext(config)
-        }
+    private fun ImGuiBuilder.buildAutomationConfigSelectable(config: AutomationConfig) {
+	    ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+		menu(config.name) {
+			if (config is UserAutomationConfig) {
+				with(config.linkedModules) { buildLayout() }
+				button("Delete") {
+					config.linkedModules.value.forEach {
+						moduleNameMap[it]?.let { module ->
+							module.automationConfig = module.defaultAutomationConfig
+						}
+					}
+					UserAutomationConfigs.configurables.remove(config)
+				}
+				separator()
+			}
+			buildConfigSettingsContext(config)
+		}
     }
 
     private fun ImGuiBuilder.buildMinecraftMenu() {

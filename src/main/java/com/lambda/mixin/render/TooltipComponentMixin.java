@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.MapPreview;
 import net.minecraft.client.gui.tooltip.BundleTooltipComponent;
 import net.minecraft.client.gui.tooltip.ProfilesTooltipComponent;
@@ -32,6 +33,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public interface TooltipComponentMixin {
     @Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
     private static void of(TooltipData tooltipData, CallbackInfoReturnable<TooltipComponent> cir) {
+        if (ContainerPreview.INSTANCE.isEnabled() && tooltipData instanceof ContainerPreview.ContainerComponent containerComponent) {
+            cir.setReturnValue(containerComponent);
+            return;
+        }
+
         if (MapPreview.INSTANCE.isEnabled()) cir.setReturnValue((switch (tooltipData) {
             case MapPreview.MapComponent mapComponent -> mapComponent;
             case BundleTooltipData bundleTooltipData -> new BundleTooltipComponent(bundleTooltipData.contents());

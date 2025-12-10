@@ -21,10 +21,10 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationMode
-import com.lambda.interaction.request.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationConfig
+import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.InputUtils.isKeyPressed

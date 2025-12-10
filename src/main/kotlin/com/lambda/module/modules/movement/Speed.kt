@@ -22,10 +22,10 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationMode
-import com.lambda.interaction.request.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationConfig
+import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -175,7 +175,7 @@ object Speed : Module(
             ncpSpeed = NCP_BASE_SPEED
         }
 
-        ncpSpeed = ncpSpeed.coerceIn(1.0..NCP_BASE_SPEED)
+        ncpSpeed = ncpSpeed.coerceIn(NCP_BASE_SPEED..1.0)
 
         val moveSpeed = if (isInputting) ncpSpeed else {
             ncpSpeed = NCP_BASE_SPEED

@@ -17,14 +17,14 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.interaction.construction.processing.PreProcessingInfo
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.results.GenericResult
-import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getClosestPoints
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.construction.simulation.processing.PreProcessingData
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
+import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getClosestPoints
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -53,12 +53,12 @@ annotation class SimDsl
  * Assuming the dependency stack has not reached max capacity, the original sim is then added to the dependency stack
  * kept within the [SimInfo] object. Each [BuildResult] added is then iterated over the dependency stack, calling
  * [dependentUpon] on each one. By the end, the result will be a nested group, with your initial [BuildResult] at
- * the very bottom, which is then added to the [ISimInfo.concurrentResults] set. After a sim is completed, the dependency
+ * the very bottom, which is then added to the [SimInfo.concurrentResults] set. After a sim is completed, the dependency
  * is then popped from the stack.
  *
  * @param T The type of [BuildResult] this sim produces.
  *
- * @see com.lambda.interaction.construction.result.Dependent
+ * @see com.lambda.interaction.construction.simulation.result.Dependent
  * @see dependentUpon
  * @see withDependent
  */
@@ -67,7 +67,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
     /**
      * Can be overridden to return a typed Dependent result with the initial [buildResult] nested inside.
      *
-     * @see com.lambda.interaction.construction.result.Dependent
+     * @see com.lambda.interaction.construction.simulation.result.Dependent
      */
     @SimDsl
     open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
@@ -75,7 +75,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
     /**
      * Pushes and pops the [dependent] onto and off of the dependency stack unless the [maxSimDependencies] is reached.
      */
-    protected suspend fun ISimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
+    protected suspend fun SimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
         // +1 because the build sim counts as a dependent
         if (dependencyStack.size >= buildConfig.maxBuildDependencies + 1) return
         dependencyStack.push(dependent)
@@ -86,12 +86,12 @@ abstract class Sim<T : BuildResult> : Results<T> {
     /**
      * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].
      */
-    suspend fun ISimInfo.scanShape(
+    suspend fun SimInfo.scanShape(
         pov: Vec3d,
         voxelShape: VoxelShape,
         pos: BlockPos,
         sides: Set<Direction>,
-        preProcessing: PreProcessingInfo
+        preProcessing: PreProcessingData?
     ): Set<CheckedHit>? {
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 
@@ -108,7 +108,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
                     else sides
 
                     if (!buildConfig.strictRayCast) {
-                        box.getClosestPoints(pov, sides, preProcessing.surfaceScan, placeConfig.airPlace.isEnabled) { vec, side ->
+                        box.getClosestPoints(pov, sides, preProcessing, interactConfig.airPlace.isEnabled) { vec, side ->
                             if (pov distSq vec > reachSq)
                                 misses.add(Pair(vec, side))
                             else {
@@ -120,7 +120,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
                                 )
                             }
                         }
-                    } else box.scanSurfaces(sides, buildConfig.resolution, preProcessing.surfaceScan, false) { side, vec ->
+                    } else box.scanSurfaces(sides, buildConfig.resolution, preProcessing, false) { side, vec ->
                         if (pov distSq vec > reachSq) {
                             misses.add(Pair(vec, side))
                             return@scanSurfaces

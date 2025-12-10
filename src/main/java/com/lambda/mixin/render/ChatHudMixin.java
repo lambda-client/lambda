@@ -18,13 +18,14 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.client.LambdaMoji;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.text.OrderedText;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
@@ -36,8 +37,8 @@ public class ChatHudMixin {
      * context.getMatrices().pop();
      * }</pre>
      */
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/OrderedText;III)I"))
-    int redirectRenderCall(DrawContext instance, TextRenderer textRenderer, OrderedText text, int x, int y, int color) {
-        return instance.drawTextWithShadow(textRenderer, LambdaMoji.INSTANCE.parse(text, x, y, color), 0, y, 16777215 + (color << 24));
+    @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/OrderedText;III)I"))
+    int wrapRenderCall(DrawContext instance, TextRenderer textRenderer, OrderedText text, int x, int y, int color, Operation<Integer> original) {
+        return original.call(instance, textRenderer, LambdaMoji.INSTANCE.parse(text, x, y, color), 0, y, 16777215 + (color << 24));
     }
 }

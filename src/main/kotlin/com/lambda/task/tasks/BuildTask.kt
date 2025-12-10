@@ -31,30 +31,28 @@ import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStruc
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
-import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Contextual
-import com.lambda.interaction.construction.result.Dependent
-import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.construction.result.Navigable
-import com.lambda.interaction.construction.result.Resolvable
-import com.lambda.interaction.construction.result.results.BreakResult
-import com.lambda.interaction.construction.result.results.GenericResult
-import com.lambda.interaction.construction.result.results.InteractResult
-import com.lambda.interaction.construction.result.results.PlaceResult
-import com.lambda.interaction.construction.result.results.PreSimResult
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
+import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.Contextual
+import com.lambda.interaction.construction.simulation.result.Dependent
+import com.lambda.interaction.construction.simulation.result.Drawable
+import com.lambda.interaction.construction.simulation.result.Navigable
+import com.lambda.interaction.construction.simulation.result.Resolvable
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
+import com.lambda.interaction.construction.simulation.result.results.InteractResult
+import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.request.interacting.InteractRequest
-import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.Formatting.string
+import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
@@ -70,11 +68,11 @@ class BuildTask private constructor(
     private val lifeMaintenance: Boolean,
     automated: Automated
 ) : Task<Structure>(), Automated by automated {
-    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
+    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
     private val atMaxPendingInteractions
-        get() = pendingInteractions.size >= buildConfig.maxPendingInteractions
+        get() = pendingInteractions.size >= buildConfig.maxPendingActions
 
     private var placements = 0
     private var breaks = 0
@@ -132,11 +130,11 @@ class BuildTask private constructor(
             .sorted()
 
         val bestResult = resultsNotBlocked.firstOrNull() ?: return
-//        handleResult(bestResult, resultsNotBlocked)
+        handleResult(bestResult, resultsNotBlocked)
     }
 
     private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
-        if (result !is Contextual && pendingInteractions.isNotEmpty())
+        if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty())
             return
 
         when (result) {
@@ -154,7 +152,7 @@ class BuildTask private constructor(
             }
 
             is GenericResult.NotVisible,
-            is PlaceResult.NoIntegrity -> {
+            is InteractResult.NoIntegrity -> {
                 if (!buildConfig.pathing) return
                 val sim = blueprint.simulation()
                 val goal = BuildGoal(sim, player.blockPos)
@@ -168,44 +166,18 @@ class BuildTask private constructor(
             is Contextual -> {
                 if (atMaxPendingInteractions) return
                 when (result) {
-                    is BreakResult.Break -> {
-                        val breakResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<BreakResult.Break>()
-                            .map { it.context }
-
-                        breakRequest(breakResults, pendingInteractions) {
+                    is BreakResult.Break ->
+                        allResults.breakRequest(pendingInteractions) {
                             onStop { breaks++ }
                             onItemDrop?.let { onItemDrop ->
                                 onItemDrop { onItemDrop(it) }
                             }
-                        }.submit()
-                        return
-                    }
-                    is PlaceResult.Place -> {
-                        val placeResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<PlaceResult.Place>()
-                            .map { it.context }
+                        }?.submit()
 
-                        PlaceRequest(
-                            placeResults,
-                            pendingInteractions,
-                            this@BuildTask
-                        ) { placements++ }.submit()
-                    }
                     is InteractResult.Interact -> {
-                        val interactResults = allResults
-                            .map { if (it is Dependent) it.lastDependency else it }
-                            .filterIsInstance<InteractResult.Interact>()
-                            .map { it.context }
-
-                        InteractRequest(
-                            interactResults,
-                            pendingInteractions,
-                            this@BuildTask,
-                            onInteract = null
-                        ).submit()
+	                    allResults.interactRequest(pendingInteractions, false) {
+		                    onPlace { placements++ }
+	                    }?.submit()
                     }
                 }
             }
@@ -213,7 +185,7 @@ class BuildTask private constructor(
             is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
-                LOG.info("Resolving: ${result.name}")
+	            LOG.info("Resolving: ${result.name}")
                 result.resolve().execute(this@BuildTask)
             }
         }
@@ -258,7 +230,7 @@ class BuildTask private constructor(
         @Ta5kBuilder
         fun Automated.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
+            collectDrops: Boolean = buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
             blueprint: () -> Blueprint
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
@@ -267,7 +239,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
+            collectDrops: Boolean = automated.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -275,7 +247,7 @@ class BuildTask private constructor(
         context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
+            collectDrops: Boolean = automated.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
 
@@ -284,17 +256,6 @@ class BuildTask private constructor(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             collectDrops: Boolean = true,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(
-            blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, lifeMaintenance, this
-        )
-
-        @Ta5kBuilder
-        fun Automated.breakBlock(
-            blockPos: BlockPos,
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = DEFAULT.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

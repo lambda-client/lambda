@@ -144,7 +144,7 @@ enum class KeyCode(val code: Int) {
     Last(GLFW.GLFW_KEY_LAST);
 
     companion object {
-        private const val printablePool = "`-=[]\\,;\'./"
+        private const val PRINTABLE_POOL = "`-=[]\\,;\'./"
         private val glfwPool = intArrayOf(
             GLFW.GLFW_KEY_GRAVE_ACCENT, GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_EQUAL,
             GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET, GLFW.GLFW_KEY_BACKSLASH,
@@ -168,6 +168,7 @@ enum class KeyCode(val code: Int) {
          * @see <a href="https://github.com/glfw/glfw/issues/1502#issuecomment-1005841055">ImGui impl
          */
         fun virtualMapUS(keyCode: Int, scanCode: Int): KeyCode {
+            if (keyCode <= 0) return fromKeyCode(keyCode)
             if (keyCode in GLFW.GLFW_KEY_KP_0..GLFW.GLFW_KEY_KP_EQUAL) return fromKeyCode(keyCode)
 
             val keyName = GLFW.glfwGetKeyName(keyCode, scanCode) ?: return fromKeyCode(keyCode)
@@ -179,8 +180,8 @@ enum class KeyCode(val code: Int) {
                 in 'A'..'Z' -> GLFW.GLFW_KEY_A + (char - 'A')
                 in 'a'..'z' -> GLFW.GLFW_KEY_A + (char - 'a')
                 else -> {
-                    val i = printablePool.indexOf(keyName)
-                    if (i > 0) glfwPool[i] else keyCode
+                    val i = PRINTABLE_POOL.indexOf(keyName)
+                    if (i >= 0) glfwPool[i] else keyCode
                 }
             })
         }

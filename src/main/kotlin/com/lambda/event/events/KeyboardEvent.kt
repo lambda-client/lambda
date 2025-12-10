@@ -41,7 +41,7 @@ sealed class KeyboardEvent {
         val modifiers: Int,
     ) : Event {
         val bind: Bind
-            get() = Bind(keyCode, modifiers, -1)
+            get() = Bind(translated.code, modifiers, -1)
 
         val translated: KeyCode
             get() = KeyCode.virtualMapUS(keyCode, scanCode)
@@ -49,7 +49,7 @@ sealed class KeyboardEvent {
         val isPressed = action >= GLFW_PRESS
         val isReleased = action == GLFW_RELEASE
 
-        fun satisfies(bind: Bind) = bind.key == keyCode && bind.modifiers and modifiers == bind.modifiers
+        fun satisfies(bind: Bind) = bind.key == translated.code && bind.modifiers and modifiers == bind.modifiers
     }
 
     /**

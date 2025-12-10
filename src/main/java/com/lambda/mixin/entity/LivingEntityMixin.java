@@ -20,11 +20,12 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
@@ -32,7 +33,11 @@ import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
@@ -95,10 +100,10 @@ public abstract class LivingEntityMixin extends EntityMixin {
     /**
      * Modifies the entity pitch with the current rotation when the entity is fall flying
      */
-    @Redirect(method = "calcGlidingVelocity(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
-    private float hookModifyFallFlyingPitch(LivingEntity entity) {
+    @WrapOperation(method = "calcGlidingVelocity(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
+    private float hookModifyFallFlyingPitch(LivingEntity entity, Operation<Float> original) {
         Float pitch = RotationManager.getMovementPitch();
-        if (entity != Lambda.getMc().player || pitch == null) return entity.getPitch();
+        if (entity != Lambda.getMc().player || pitch == null) return original.call(entity);
 
         return pitch;
     }
@@ -124,14 +129,14 @@ public abstract class LivingEntityMixin extends EntityMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"), slice = @Slice(to = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F", ordinal = 1)))
-    private float rotBody(LivingEntity entity) {
+    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"), slice = @Slice(to = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F", ordinal = 1)))
+    private float rotBody(LivingEntity entity, Operation<Float> original) {
         if (lambda$instance != Lambda.getMc().player) {
-            return entity.getYaw();
+            return original.call(entity);
         }
 
         Float yaw = RotationManager.getHeadYaw();
-        return (yaw == null) ? entity.getYaw() : yaw;
+        return (yaw == null) ? original.call(entity) : yaw;
     }
 
     /**
@@ -155,14 +160,14 @@ public abstract class LivingEntityMixin extends EntityMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "turnHead", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"))
-    private float rotHead(LivingEntity entity) {
+    @WrapOperation(method = "turnHead", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"))
+    private float rotHead(LivingEntity entity, Operation<Float> original) {
         if (lambda$instance != Lambda.getMc().player) {
-            return entity.getYaw();
+            return original.call(entity);
         }
 
         Float yaw = RotationManager.getHeadYaw();
-        return (yaw == null) ? entity.getYaw() : yaw;
+        return (yaw == null) ? original.call(entity) : yaw;
     }
 
     @ModifyConstant(method = "getHandSwingDuration", constant = @Constant(intValue = 6))

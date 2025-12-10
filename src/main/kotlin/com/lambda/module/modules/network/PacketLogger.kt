@@ -22,7 +22,7 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
@@ -32,6 +32,7 @@ import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.relativeMCPath
 import com.lambda.util.Formatting.getTime
+import com.lambda.util.reflections.getInstances
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -58,8 +59,11 @@ object PacketLogger : Module(
     private val networkSide by setting("Network Side", NetworkSide.Any, "Side of the network to log packets from")
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
     private val scope by setting("Scope", Scope.Any, "Scope of packets to log")
-    private val whitelist by setting("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist") { scope == Scope.Whitelist }
-    private val blacklist by setting("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist") { scope == Scope.Blacklist }
+
+//    val packetList = getInstances<Packet<*>>()
+    // ToDo: Add a packet list
+    //private val whitelist by setting<String>("Whitelist Packets", emptyList<String>(), emptyList<String>(), "Packets to whitelist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Whitelist }
+    //private val blacklist by setting<String>("Blacklist Packets", emptyList<String>(), emptyList<String>(), "Packets to blacklist", { JsonPrimitive(it) }, { it.asString }) { scope == Scope.Blacklist }
     private val maxRecursionDepth by setting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 
@@ -79,8 +83,8 @@ object PacketLogger : Module(
 
         fun shouldLog(packet: Packet<*>) = when (this) {
             Any -> true
-            Whitelist -> packet::class.simpleName in whitelist
-            Blacklist -> packet::class.simpleName !in blacklist
+            Whitelist -> false//packet::class.simpleName in whitelist
+            Blacklist -> false//packet::class.simpleName !in blacklist
         }
     }
 
@@ -183,20 +187,20 @@ object PacketLogger : Module(
             it.packet.logSent()
         }
 
-        listenUnsafeConcurrently<PacketEvent.Receive.Pre> {
+        listenConcurrentlyUnsafe<PacketEvent.Receive.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.Server)
-            ) return@listenUnsafeConcurrently
+            ) return@listenConcurrentlyUnsafe
 
             it.packet.logReceived()
         }
 
-        listenUnsafeConcurrently<PacketEvent.Send.Pre> {
+        listenConcurrentlyUnsafe<PacketEvent.Send.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.Client)
-            ) return@listenUnsafeConcurrently
+            ) return@listenConcurrentlyUnsafe
 
             it.packet.logSent()
         }

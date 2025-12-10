@@ -19,6 +19,7 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.WorldColors;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -29,7 +30,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
@@ -46,29 +46,21 @@ import java.util.stream.Stream;
  * blue = (float)vec3d3.getZ();
  * }</pre>
  */
-// FixMe: This crashes the game
 @Mixin(BackgroundRenderer.class)
 public class BackgroundRendererMixin {
     @Shadow @Final private static List<BackgroundRenderer.StatusEffectFogModifier> FOG_MODIFIERS;
 
-    @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getX()D"))
-    private static double redirectRed(Vec3d baseColor) {
-        return WorldColors.fogOfWarColor(baseColor).getX();
+    /**
+     * Modifies the fog color returned from CubicSampler.sampleColor
+     */
+    @ModifyExpressionValue(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/CubicSampler;sampleColor(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/CubicSampler$RgbFetcher;)Lnet/minecraft/util/math/Vec3d;"))
+    private static Vec3d modifyFogColor(Vec3d original) {
+        return WorldColors.fogOfWarColor(original);
     }
 
-    @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getY()D"))
-    private static double redirectGreen(Vec3d baseColor) {
-        return WorldColors.fogOfWarColor(baseColor).getY();
-    }
-
-    @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getZ()D"))
-    private static double redirectBlue(Vec3d baseColor) {
-        return WorldColors.fogOfWarColor(baseColor).getZ();
-    }
-
-    @Redirect(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/Biome;getWaterFogColor()I"))
-    private static int redirectWaterFogColor(Biome biome) {
-        return WorldColors.waterFogColor(biome.getWaterFogColor());
+    @ModifyExpressionValue(method = "getFogColor", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/biome/Biome;getWaterFogColor()I"))
+    private static int modifyWaterFogColor(int original) {
+        return WorldColors.waterFogColor(original);
     }
 
     @Inject(method = "getFogModifier(Lnet/minecraft/entity/Entity;F)Lnet/minecraft/client/render/BackgroundRenderer$StatusEffectFogModifier;", at = @At("HEAD"), cancellable = true)

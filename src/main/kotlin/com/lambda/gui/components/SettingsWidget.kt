@@ -17,11 +17,12 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.AbstractSetting
 import com.lambda.config.AutomationConfig
 import com.lambda.config.Configurable
 import com.lambda.config.MutableAutomationConfig
+import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
+import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
@@ -31,9 +32,9 @@ import imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
     /**
-     * Builds the settings context popup content for a given configurable.
+     * Builds the settings context popup content for the given configurable.
      */
-    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable, hiddenSettings: Set<AbstractSetting<*>> = emptySet()) {
+    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
             if (config is Module) {
                 with(config.keybindSetting) { buildLayout() }
@@ -47,41 +48,57 @@ object SettingsWidget {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }
+	            if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
+		            sameLine()
+		            text("(${config.backingAutomationConfig.name})")
+	            }
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
-                    buildConfigSettingsContext(config.automationConfig, config.defaultAutomationConfig.hiddenSettings)
-                }
-                if (config.automationConfig !== config.defaultAutomationConfig) {
-                    sameLine()
-                    text("(${config.automationConfig.name})")
+	                combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
+		                val addItem: (Configurable) -> Unit = { item ->
+			                val selected = item === config.backingAutomationConfig
+
+			                selectable(item.name, selected) {
+				                if (!selected) {
+					                (config.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
+					                (item as? UserAutomationConfig)?.linkedModules?.value?.add(config.name)
+					                config.automationConfig = item as? AutomationConfig ?: return@selectable
+				                }
+			                }
+		                }
+		                addItem(config.defaultAutomationConfig)
+						UserAutomationConfigs.configurables.forEach { addItem(it) }
+	                }
+                    buildConfigSettingsContext(config.automationConfig)
                 }
             }
         }
-        separator()
         val toIgnoreSettings =
             when (config) {
                 is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting)
                 is UserAutomationConfig -> setOf(config.linkedModules)
                 else -> emptySet()
             }
-        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings - hiddenSettings
+        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
+	    if (visibleSettings.isEmpty()) return
+	    else separator()
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
-        ungrouped.forEach {
+	    ungrouped.forEach {
             it.withDisabled { buildLayout() }
         }
         renderGroup(grouped, emptyList(), config)
     }
 
-    private fun AbstractSetting<*>.withDisabled(block: AbstractSetting<*>.() -> Unit) {
+    private fun Setting<*, *>.withDisabled(block: Setting<*, *>.() -> Unit) {
         if (disabled()) ImGui.beginDisabled()
         block()
         if (disabled()) ImGui.endDisabled()
     }
 
     private fun ImGuiBuilder.renderGroup(
-        settings: List<AbstractSetting<*>>,
-        parentPath: List<NamedEnum>,
-        config: Configurable
+	    settings: List<Setting<*, *>>,
+	    parentPath: List<NamedEnum>,
+	    config: Configurable
     ) {
         settings.filter { it.groups.contains(parentPath) }.forEach {
             it.withDisabled { buildLayout() }

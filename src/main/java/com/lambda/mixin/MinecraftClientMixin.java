@@ -24,10 +24,13 @@ import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.gui.DearImGui;
 import com.lambda.gui.components.ClickGuiLayout;
+import com.lambda.module.modules.movement.BetterFirework;
 import com.lambda.module.modules.player.Interact;
 import com.lambda.module.modules.player.InventoryMove;
 import com.lambda.module.modules.player.PacketMine;
 import com.lambda.util.WindowUtils;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -48,7 +51,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = MinecraftClient.class, priority = Integer.MAX_VALUE)
@@ -153,10 +155,10 @@ public class MinecraftClientMixin {
         }
     }
 
-    @Redirect(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
-    private void redirectUnPressAll() {
+    @WrapOperation(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;unpressAll()V"))
+    private void redirectUnPressAll(Operation<Void> original) {
         if (!InventoryMove.getShouldMove()) {
-            KeyBinding.unpressAll();
+            original.call();
             return;
         }
         KeyBinding.KEYS_BY_ID.values().forEach(bind -> {
@@ -166,20 +168,16 @@ public class MinecraftClientMixin {
         });
     }
 
-    @Redirect(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
-    private void redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
-        if (this.crosshairTarget == null) return;
-        if (this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled()) {
-            instance.swingHand(hand);
-        }
+    @WrapWithCondition(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private boolean redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
+        if (this.crosshairTarget == null) return false;
+        return this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled();
     }
 
-    @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
-    boolean redirectMultiActon(ClientPlayerInteractionManager instance) {
-        if (instance == null) return true;
-
+    @ModifyExpressionValue(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
+    boolean redirectMultiActon(boolean original) {
         if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction()) return false;
-        return instance.isBreakingBlock();
+        return original;
     }
 
     @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z"))
@@ -187,6 +185,18 @@ public class MinecraftClientMixin {
         if (!Interact.INSTANCE.isEnabled()) return;
 
         itemUseCooldown = Interact.getPlaceDelay();
+    }
+
+    @WrapMethod(method = "doItemUse")
+    void injectItemUse(Operation<Void> original) {
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract())
+            original.call();
+    }
+
+    @WrapMethod(method = "doItemPick")
+    void injectItemPick(Operation<Void> original) {
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick())
+            original.call();
     }
 
     @WrapMethod(method = "getTargetMillisPerTick")

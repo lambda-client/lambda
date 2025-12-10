@@ -20,9 +20,9 @@ package com.lambda.gui.components
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
-import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
+import com.lambda.config.Setting
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
@@ -100,7 +100,7 @@ object QuickSearch {
         }
     }
 
-    private class SettingResult(val setting: AbstractSetting<*>, val configurable: Configurable) : SearchResult {
+    private class SettingResult(val setting: Setting<*, *>, val configurable: Configurable) : SearchResult {
         override val breadcrumb: String by lazy { buildSettingBreadcrumb(configurable.name, setting) }
 
         override fun ImGuiBuilder.buildLayout() {
@@ -295,7 +295,7 @@ object QuickSearch {
         }
     }
 
-    private fun buildSettingBreadcrumb(configurableName: String, setting: AbstractSetting<*>): String {
+    private fun buildSettingBreadcrumb(configurableName: String, setting: Setting<*, *>): String {
         val group = setting.groups
             .minByOrNull { it.size }
             ?.joinToString(" » ") { it.displayName }

@@ -23,7 +23,6 @@ import com.lambda.graphics.texture.TextureUtils.setupTexture
 import com.lambda.util.LambdaResource
 import com.lambda.util.readImage
 import net.minecraft.client.texture.NativeImage
-import org.lwjgl.opengl.GL45C.GL_BGRA
 import org.lwjgl.opengl.GL45C.GL_BLUE
 import org.lwjgl.opengl.GL45C.GL_GREEN
 import org.lwjgl.opengl.GL45C.GL_LINEAR
@@ -243,7 +242,7 @@ open class Texture {
             TYPE_BYTE_GRAY to GL_RG,
             TYPE_INT_RGB to GL_RGB,
             TYPE_INT_ARGB to GL_RGBA,
-            TYPE_4BYTE_ABGR to GL_BGRA,
+            TYPE_4BYTE_ABGR to GL_RGBA,
         )
     }
 }

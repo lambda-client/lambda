@@ -25,8 +25,18 @@ import io.github.classgraph.Resource
 import io.github.classgraph.ResourceList
 import io.github.classgraph.ScanResult
 import java.lang.reflect.Modifier
+import kotlin.reflect.KClass
 
 val scanResult: ScanResult by lazy { ClassGraph().enableAllInfo().scan() }
+
+val Any.className: String get() = this::class.java.name
+    .substringAfter("${this::class.java.packageName}.")
+    .replace('$', '.')
+
+val KClass<*>.className: String get() = java.name
+    .substringAfter("${java.packageName}.")
+    .replace('$', '.')
+
 
 /**
  * This function returns a instance of subtype [T].
@@ -50,11 +60,28 @@ inline fun <reified T : Any> getInstances(crossinline block: (ClassInfo) -> Bool
         .mapNotNull { createInstance<T>(Class.forName(it.name)) }
 }
 
+@JvmName("getInstancesImplementingWithParameters1")
+inline fun <reified T, reified A1> getInstancesImplementingWithParameters() = getInstancesImplementingWithParameters<T>(A1::class)
+
+@JvmName("getInstancesImplementingWithParameters2")
+inline fun <reified T, reified A1, reified A2> getInstancesImplementingWithParameters() = getInstancesImplementingWithParameters<T>(A1::class, A2::class)
+
+@JvmName("getInstancesImplementingWithParameters3")
+inline fun <reified T, reified A1, reified A2, reified A3> getInstancesImplementingWithParameters() = getInstancesImplementingWithParameters<T>(A1::class, A2::class, A3::class)
+
+inline fun <reified T> getInstancesImplementingWithParameters(vararg arguments: KClass<*>) =
+    scanResult.getClassesImplementing(T::class.java)
+        .filter {
+            it.typeSignature.superinterfaceSignatures
+                .any { int -> int.typeArguments
+                    .any { arg -> arguments.any { it.qualifiedName == arg.typeSignature.toString() }} }
+        }
+
 inline fun getResources(pattern: String, crossinline block: (Resource) -> Boolean): ResourceList =
     scanResult.getResourcesMatchingWildcard(pattern)
         .filter { block(it) }
 
-inline fun <reified T : Any> createInstance(clazz: Class<*>): T? {
+inline fun <reified T> createInstance(clazz: Class<*>): T? {
     return when {
         clazz.isInterface || clazz.isEnum || clazz.isAnnotation || clazz.isObject -> {
             // Handle objects (singletons) or invalid types

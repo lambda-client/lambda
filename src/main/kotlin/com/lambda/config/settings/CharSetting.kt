@@ -24,7 +24,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -32,27 +33,19 @@ import net.minecraft.command.CommandRegistryAccess
 /**
  * @see [com.lambda.config.Configurable]
  */
-class CharSetting(
-    override var name: String,
-    defaultValue: Char,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Char>(
-    name,
-    defaultValue,
-    TypeToken.get(Char::class.java).type,
-    description,
-    visibility
+class CharSetting(defaultValue: Char) : SettingCore<Char>(
+	defaultValue,
+	TypeToken.get(Char::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {
+    context(setting: Setting<*, Char>)
+	override fun ImGuiBuilder.buildLayout() {}
 
-    }
-
+	context(setting: Setting<*, Char>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(name)) { parameter ->
+        required(word(setting.name)) { parameter ->
             executeWithResult {
                 val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
-                trySetValue(char)
+                setting.trySetValue(char)
                 return@executeWithResult success()
             }
         }

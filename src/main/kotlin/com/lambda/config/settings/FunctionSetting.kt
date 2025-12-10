@@ -20,26 +20,22 @@ package com.lambda.config.settings
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.google.gson.reflect.TypeToken
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 
-open class FunctionSetting<T>(
-    override var name: String,
-    defaultValue: () -> T,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<() -> T>(
-    name,
-    defaultValue,
-    TypeToken.get(defaultValue::class.java).type,
-    description,
-    visibility
+open class FunctionSetting<T>(defaultValue: () -> T) : SettingCore<() -> T>(
+	defaultValue,
+	TypeToken.get(defaultValue::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        button(name) { value() }
-        lambdaTooltip(description)
+    context(setting: Setting<*, () -> T>)
+	override fun ImGuiBuilder.buildLayout() {
+        button(setting.name) { value() }
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, () -> T>)
     override fun toJson(): JsonElement = JsonNull.INSTANCE
+	context(setting: Setting<*, () -> T>)
     override fun loadFromJson(serialized: JsonElement) { value = defaultValue }
 }

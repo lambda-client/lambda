@@ -17,7 +17,7 @@
 
 package com.lambda.util.player.prediction
 
-import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.managers.rotating.Rotation
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 

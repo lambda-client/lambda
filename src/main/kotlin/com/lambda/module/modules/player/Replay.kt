@@ -34,10 +34,10 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.interaction.request.rotating.Rotation
-import com.lambda.interaction.request.rotating.RotationConfig
-import com.lambda.interaction.request.rotating.RotationMode
-import com.lambda.interaction.request.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationConfig
+import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
@@ -47,7 +47,7 @@ import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import com.lambda.util.FileUtils.locationBoundDirectory
 import com.lambda.util.FolderRegister
-import com.lambda.util.Formatting.asString
+import com.lambda.util.Formatting.format
 import com.lambda.util.Formatting.getTime
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.sanitizeForFilename
@@ -162,7 +162,7 @@ object Replay : Module(
                             this@Replay.warn(
                                 "Position deviates from the recording by ${
                                     "%.3f".format(diff)
-                                } blocks. Desired position: ${pos.asString(3)}"
+                                } blocks. Desired position: ${pos.format()}"
                             )
                             if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.Inactive
@@ -210,7 +210,7 @@ object Replay : Module(
                                 literal(" of ")
                                 color(ClickGuiLayout.primaryColor) { literal(saving.duration.toString()) }
                                 literal(" at ")
-                                color(ClickGuiLayout.primaryColor) { literal(saving.endPos.asString(1)) }
+                                color(ClickGuiLayout.primaryColor) { literal(saving.endPos.format(precision = 1)) }
                                 playMessage(saving)
                                 saveMessage(saving)
                                 pruneMessage(saving)
@@ -398,7 +398,7 @@ object Replay : Module(
                     literal("Checkpoint #")
                     color(ClickGuiLayout.primaryColor) { literal("${recordings.indexOf(checkRec)}") }
                     literal(" created at ")
-                    color(ClickGuiLayout.primaryColor) { literal(checkRec.endPos.asString(0)) }
+                    color(ClickGuiLayout.primaryColor) { literal(checkRec.endPos.format(precision = 0)) }
                     literal(".")
                     playMessage(checkRec)
                     saveMessage(checkRec)
@@ -581,8 +581,8 @@ object Replay : Module(
         )
 
         override fun toString() = "Recording from ${
-            startPos.asString(1)
-        } to ${endPos.asString(1)} (in ${duration})"
+            startPos.format(precision = 0)
+        } to ${endPos.format(precision = 0)} (in ${duration})"
 
         override fun serialize(
             src: Recording?,

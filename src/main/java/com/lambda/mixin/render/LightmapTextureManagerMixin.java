@@ -20,6 +20,7 @@ package com.lambda.mixin.render;
 import com.lambda.module.modules.render.Fullbright;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.XRay;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -31,7 +32,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.OptionalInt;
 
@@ -46,8 +46,9 @@ public class LightmapTextureManagerMixin {
         }
     }
 
-    @Inject(method = "getDarkness", at = @At("HEAD"), cancellable = true)
-    private void getDarknessFactor(LivingEntity entity, float factor, float tickProgress, CallbackInfoReturnable<Float> cir) {
-        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) cir.setReturnValue(0.0f);
+    @ModifyReturnValue(method = "getDarkness", at = @At("RETURN"))
+    private float modifyGetDarkness(float original) {
+        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) return 0.0f;
+        return original;
     }
 }

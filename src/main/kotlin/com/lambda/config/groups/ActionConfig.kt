@@ -17,11 +17,13 @@
 
 package com.lambda.config.groups
 
+import com.lambda.event.events.TickEvent
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
 interface ActionConfig {
     val sorter: SortMode
+    val tickStageMask: Collection<TickEvent>
 
     enum class SortMode(
         override val displayName: String,

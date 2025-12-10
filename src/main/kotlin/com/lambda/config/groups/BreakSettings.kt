@@ -20,19 +20,20 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.request.breaking.BreakConfig
-import com.lambda.interaction.request.breaking.BreakConfig.AnimationMode
-import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
-import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
-import com.lambda.interaction.request.breaking.BreakConfig.SwingMode
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
+import com.lambda.interaction.managers.breaking.BreakConfig
+import com.lambda.interaction.managers.breaking.BreakConfig.AnimationMode
+import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
 open class BreakSettings(
     c: Configurable,
-    baseGroup: NamedEnum,
-) : SettingGroup(), BreakConfig {
+    baseGroup: NamedEnum
+) : SettingGroup(c), BreakConfig {
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
         Cosmetic("Cosmetic")
@@ -53,10 +54,10 @@ open class BreakSettings(
     override val serverSwapTicks by c.setting("Server Swap", 0, 0..5, 1, "The number of ticks to give the server time to recognize the player attributes on the swapped item", " tick(s)").group(baseGroup, Group.General).index()
 
     //    override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { vis() && page == Page.General }
-    override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)").group(baseGroup, Group.General).index()
+    override val breakDelay by c.setting("Break Delay", 0, 0..5, 1, "The delay between breaking blocks", " tick(s)").group(baseGroup, Group.General).index()
 
     // Timing
-    override val tickStageMask by c.setting("Break Stage Mask", setOf<TickEvent>(TickEvent.Input.Post), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
+    override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
 
     // Swap
     override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block").group(baseGroup, Group.General).index()
@@ -66,7 +67,7 @@ open class BreakSettings(
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }.group(baseGroup, Group.General).index()
 
     // Rotate
-    override val rotateForBreak by c.setting("Rotate For Break", false, "Rotate towards block while breaking").group(baseGroup, Group.General).index()
+    override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking").group(baseGroup, Group.General).index()
 
     // Pending / Post
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking").group(baseGroup, Group.General).index()

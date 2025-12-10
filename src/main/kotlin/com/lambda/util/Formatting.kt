@@ -17,8 +17,13 @@
 
 package com.lambda.util
 
-import net.minecraft.util.math.BlockPos
+import com.lambda.config.Setting
+import com.lambda.config.groups.FormatterConfig
+import com.lambda.util.math.Vec2d
+import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -26,27 +31,105 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 object Formatting {
-    val Vec3d.string: String
-        get() = asString()
+    fun Short.format(formatter: FormatterConfig) = format(formatter.locale)
+    fun Short.format(locale: Locale = Default.locale) = "%d".format(locale, this)
 
-    val Float.string: String
-        get() = "%.2f".format(Locale.US, this)
+    fun Int.format(formatter: FormatterConfig) = format(formatter.locale)
+    fun Int.format(locale: Locale = Default.locale) = "%d".format(locale, this)
 
-    val Double.string: String
-        get() = "%.2f".format(Locale.US, this)
+    fun Long.format(formatter: FormatterConfig) = format(formatter.locale)
+    fun Long.format(locale: Locale = Default.locale) = "%d".format(locale, this)
 
-    fun Vec3d.asString(decimals: Int = 2): String {
-        val format = "%.${decimals}f"
-        return "(${format.format(Locale.US, x)}, ${format.format(Locale.US, y)}, ${format.format(Locale.US, z)})"
-    }
+    fun Float.format(formatter: FormatterConfig) = format(formatter.locale, formatter.precision)
+    fun Float.format(locale: Locale = Default.locale, precision: Int = Default.precision) = "%,.${precision}f".format(locale, this)
 
-    fun BlockPos.asString() = "($x, $y, $z)"
+    fun Double.format(formatter: FormatterConfig) = format(formatter.locale, formatter.precision)
+    fun Double.format(locale: Locale = Default.locale, precision: Int = Default.precision) = "%,.${precision}f".format(locale, this)
 
-    fun getTime(formatter: DateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME): String {
+    fun Vec2f.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    fun Vec2f.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        "$prefix${x.format(locale, precision)}$separator${y.format(locale, precision)}$postfix"
+
+    fun Vec2d.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    fun Vec2d.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        "$prefix${x.format(locale, precision)}$separator${y.format(locale, precision)}$postfix"
+
+    fun Vec3i.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix)
+    fun Vec3i.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix) =
+        "$prefix${x.format(locale)}$separator${y.format(locale)}$separator${z.format(locale)}$postfix"
+
+    fun Vec3d.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    fun Vec3d.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        "$prefix${x.format(locale, precision)}$separator${y.format(locale, precision)}$separator${z.format(locale, precision)}$postfix"
+
+    fun ShortArray.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix)
+    fun ShortArray.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix) =
+        joinToString(separator, prefix, postfix) { it.format(locale) }
+
+    fun IntArray.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix)
+    fun IntArray.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix) =
+        joinToString(separator, prefix, postfix) { it.format(locale) }
+
+    fun LongArray.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix)
+    fun LongArray.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix) =
+        joinToString(separator, prefix, postfix) { it.format(locale) }
+
+    fun FloatArray.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    fun FloatArray.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        joinToString(separator, prefix, postfix) { it.format(locale, precision) }
+
+    fun DoubleArray.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    fun DoubleArray.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        joinToString(separator, prefix, postfix) { it.format(locale, precision) }
+
+    @JvmName("formatVec2fiList1")
+    fun Iterable<Vec2f>.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    @JvmName("formatVec2fList2")
+    fun Iterable<Vec2f>.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        joinToString(separator, prefix, postfix) { it.format(locale, separator, prefix, postfix, precision) }
+
+    @JvmName("formatVec2dList1")
+    fun Iterable<Vec2d>.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    @JvmName("formatVec2dList2")
+    fun Iterable<Vec2d>.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        joinToString(separator, prefix, postfix) { it.format(locale, separator, prefix, postfix, precision) }
+
+    @JvmName("formatVec3iList1")
+    fun Iterable<Vec3i>.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix)
+    @JvmName("formatVec3iList2")
+    fun Iterable<Vec3i>.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix) =
+        joinToString(separator, prefix, postfix) { it.format(locale, separator, prefix, postfix) }
+
+    @JvmName("formatVec3dList1")
+    fun Iterable<Vec3d>.format(formatter: FormatterConfig) = format(formatter.locale, formatter.separator, formatter.prefix, formatter.postfix, formatter.precision)
+    @JvmName("formatVec3dList2")
+    fun Iterable<Vec3d>.format(locale: Locale = Default.locale, separator: String = Default.separator, prefix: String = Default.prefix, postfix: String = Default.postfix, precision: Int = Default.precision) =
+        joinToString(separator, prefix, postfix) { it.format(locale, separator, prefix, postfix, precision) }
+
+    fun LocalDate.format(formatter: FormatterConfig): String = format(formatter.format)
+    fun LocalDate.format(format: DateTimeFormatter = Default.format): String = format(format)
+
+    fun LocalDateTime.format(formatter: FormatterConfig): String = format(formatter.format)
+    fun LocalDateTime.format(format: DateTimeFormatter = Default.format): String = format(format)
+
+    fun ZonedDateTime.format(formatter: FormatterConfig): String = format(formatter.format)
+    fun ZonedDateTime.format(format: DateTimeFormatter = Default.format): String = format(format)
+
+    fun getTime(formatter: DateTimeFormatter = Default.format): String {
         val localDateTime = LocalDateTime.now()
         val zoneId = ZoneId.systemDefault()
         val zonedDateTime = ZonedDateTime.of(localDateTime, zoneId)
 
         return zonedDateTime.format(formatter)
+    }
+
+    object Default : FormatterConfig {
+		override val settings = mutableListOf<Setting<*, *>>()
+        override val locale: Locale = Locale.US
+        override val separator: String = ","
+        override val prefix: String = "("
+        override val postfix: String = ")"
+        override val precision: Int = 3
+        override val format: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
     }
 }

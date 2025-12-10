@@ -24,7 +24,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -76,7 +76,7 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
                     if (hand == Hand.OFF_HAND) swapHands()
 
                     onComplete { success() }
-                }.submit(queueIfClosed = false)
+                }.submit(queueIfMismatchedStage = false)
             }
         }
     }

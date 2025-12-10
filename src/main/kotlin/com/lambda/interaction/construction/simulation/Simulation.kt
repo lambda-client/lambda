@@ -21,8 +21,8 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.blueprint.Blueprint
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState

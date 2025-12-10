@@ -22,7 +22,8 @@ import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
@@ -32,29 +33,23 @@ import net.minecraft.util.math.BlockPos
 /**
  * @see [com.lambda.config.Configurable]
  */
-class BlockPosSetting(
-    override var name: String,
-    defaultValue: BlockPos,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<BlockPos>(
-    name,
-    defaultValue,
-    TypeToken.get(BlockPos::class.java).type,
-    description,
-    visibility
+class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
+	defaultValue,
+	TypeToken.get(BlockPos::class.java).type
 ) {
+	context(setting: Setting<*, BlockPos>)
     override fun ImGuiBuilder.buildLayout() {
-        inputVec3i(name, value) { value = it.blockPos }
-        lambdaTooltip(description)
+        inputVec3i(setting.name, value) { value = it.blockPos }
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, BlockPos>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("X", -30000000, 30000000)) { x ->
             required(integer("Y", -64, 255)) { y ->
                 required(integer("Z", -30000000, 30000000)) { z ->
                     execute {
-                        trySetValue(BlockPos(x().value(), y().value(), z().value()))
+                        setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
                     }
                 }
             }

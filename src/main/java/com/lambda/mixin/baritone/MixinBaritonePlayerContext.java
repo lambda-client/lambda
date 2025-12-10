@@ -21,7 +21,7 @@ import baritone.Baritone;
 import baritone.api.utils.Rotation;
 import baritone.utils.player.BaritonePlayerContext;
 import com.lambda.interaction.BaritoneManager;
-import com.lambda.interaction.request.rotating.RotationManager;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;

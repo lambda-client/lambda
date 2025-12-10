@@ -17,19 +17,20 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.request.rotating.visibilty.PointSelection
+import com.lambda.config.ISettingGroup
+import com.lambda.interaction.managers.rotating.visibilty.PointSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface BuildConfig {
+interface BuildConfig : ISettingGroup {
     // General
     val pathing: Boolean
     val stayInRange: Boolean
     val collectDrops: Boolean
     val spleefEntities: Boolean
-    val interactionsPerTick: Int
-    val maxPendingInteractions: Int
-    val interactionTimeout: Int
+    val actionsPerTick: Int
+    val maxPendingActions: Int
+    val actionTimeout: Int
     val maxBuildDependencies: Int
 
     val useDefaultReach: Boolean

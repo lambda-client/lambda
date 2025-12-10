@@ -88,15 +88,15 @@ object NoRender : Module(
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-    private val playerEntities by setting("Player Entities", playerEntityMap.values.toSet(), emptySet(), "Player entities to omit from rendering").group(Group.Entity)
-    private val bossEntities by setting("Boss Entities", bossEntityMap.values.toSet(), emptySet(), "Boss entities to omit from rendering").group(Group.Entity)
-    private val decorationEntities by setting("Decoration Entities", decorationEntityMap.values.toSet(), emptySet(), "Decoration entities to omit from rendering").group(Group.Entity)
-    private val mobEntities by setting("Mob Entities", mobEntityMap.values.toSet(), emptySet(), "Mob entities to omit from rendering").group(Group.Entity)
-    private val passiveEntities by setting("Passive Entities", passiveEntityMap.values.toSet(), emptySet(), "Passive entities to omit from rendering").group(Group.Entity)
-    private val projectileEntities by setting("Projectile Entities", projectileEntityMap.values.toSet(), emptySet(), "Projectile entities to omit from rendering").group(Group.Entity)
-    private val vehicleEntities by setting("Vehicle Entities", vehicleEntityMap.values.toSet(), emptySet(), "Vehicle entities to omit from rendering").group(Group.Entity)
-    private val miscEntities by setting("Misc Entities", miscEntityMap.values.toSet(), emptySet(), "Miscellaneous entities to omit from rendering").group(Group.Entity)
-    private val blockEntities by setting("Block Entities", blockEntityMap.values.toSet(), emptySet(), "Block entities to omit from rendering").group(Group.Entity)
+    private val playerEntities by setting("Player Entities", emptySet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering").group(Group.Entity)
+    private val bossEntities by setting("Boss Entities", emptySet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering").group(Group.Entity)
+    private val decorationEntities by setting("Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering").group(Group.Entity)
+    private val mobEntities by setting("Mob Entities", emptySet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering").group(Group.Entity)
+    private val passiveEntities by setting("Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering").group(Group.Entity)
+    private val projectileEntities by setting("Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering").group(Group.Entity)
+    private val vehicleEntities by setting("Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering").group(Group.Entity)
+    private val miscEntities by setting("Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering").group(Group.Entity)
+    private val blockEntities by setting("Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering").group(Group.Entity)
 
     @JvmStatic val noTerrainFog by setting("No Terrain Fog", false).group(Group.World)
     @JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)
@@ -106,7 +106,7 @@ object NoRender : Module(
 //    @JvmStatic val noBlockBreakingOverlay by setting("No Block Breaking Overlay", false).group(Group.World)
     @JvmStatic val noBeaconBeams by setting("No Beacon Beams", false).group(Group.World)
     @JvmStatic val noSpawnerMob by setting("No Spawner Mob", false).group(Group.World)
-    private val particles by setting("Particles", particleMap.values.toSet(), emptySet(), "Particles to omit from rendering").group(Group.World)
+    private val particles by setting("Particles", emptySet(), particleMap.values.toSet(), "Particles to omit from rendering").group(Group.World)
 
     private fun createParticleNameMap() =
         scanResult

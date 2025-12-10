@@ -18,29 +18,19 @@
 package com.lambda.util
 
 import com.lambda.util.DynamicReflectionSerializer.simpleRemappedName
-import java.io.PrintStream
-import java.io.PrintWriter
+import kotlin.collections.toTypedArray
 
-class DynamicException(original: Throwable) : Throwable(original) {
-    private fun Array<StackTraceElement>.remapClassNames() =
-        map { element ->
+/**
+ * Remaps the stacktrace in production to have readable, class, method and field names
+ */
+fun dynamicException(original: Throwable) = Throwable(original.localizedMessage)
+    .apply {
+        stackTrace = stackTrace.map { element ->
             StackTraceElement(
                 element.className.simpleRemappedName,
                 element.methodName.simpleRemappedName,
-                element.fileName,
+                element.fileName, // This is intentional, you don't need to remap the file name so might as well keep a reference of the class file name
                 element.lineNumber
             )
         }.toTypedArray()
-
-    override fun printStackTrace(s: PrintStream) =
-        stackTrace.forEach { s.println("\tat $it") }
-
-    override fun printStackTrace(s: PrintWriter) =
-        stackTrace.forEach { s.println("\tat $it") }
-
-    override fun toString(): String = localizedMessage
-
-    init {
-        stackTrace = stackTrace.remapClassNames()
     }
-}

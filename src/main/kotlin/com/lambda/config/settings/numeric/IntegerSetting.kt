@@ -21,6 +21,7 @@ import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
+import com.lambda.config.Setting
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
@@ -30,30 +31,26 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class IntegerSetting(
-    override var name: String,
     defaultValue: Int,
     override var range: ClosedRange<Int>,
     override var step: Int = 1,
-    description: String,
-    unit: String,
-    visibility: () -> Boolean
+    unit: String
 ) : NumericSetting<Int>(
-    name,
     defaultValue,
     range,
     step,
-    description,
-    unit,
-    visibility
+    unit
 ) {
+	context(setting: Setting<*, Int>)
     override fun ImGuiBuilder.buildSlider() {
-        slider("##$name", ::value, range.start, range.endInclusive, "")
+        slider("##${setting.name}", ::value, range.start, range.endInclusive, "")
     }
 
+	context(setting: Setting<*, Int>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer(name, range.start, range.endInclusive)) { parameter ->
+        required(integer(setting.name, range.start, range.endInclusive)) { parameter ->
             execute {
-                trySetValue(parameter().value())
+                setting.trySetValue(parameter().value())
             }
         }
     }

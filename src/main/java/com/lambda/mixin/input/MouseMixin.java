@@ -21,15 +21,14 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.MouseEvent;
 import com.lambda.module.modules.render.Zoom;
 import com.lambda.util.math.Vec2d;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Mouse;
-import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.SimpleOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(Mouse.class)
 public class MouseMixin {
@@ -61,16 +60,15 @@ public class MouseMixin {
             original.call(window, x, y);
     }
 
-    @Redirect(method = "updateMouse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;smoothCameraEnabled:Z"))
-    private boolean redirectSmoothCameraEnabled(GameOptions instance) {
+    @ModifyExpressionValue(method = "updateMouse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;smoothCameraEnabled:Z"))
+    private boolean modifySmoothCameraEnabled(boolean original) {
         if (Zoom.INSTANCE.isEnabled() && Zoom.getSmoothMovement()) return true;
-        else return instance.smoothCameraEnabled;
+        else return original;
     }
 
-    @SuppressWarnings("rawtypes")
-    @Redirect(method = "updateMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/SimpleOption;getValue()Ljava/lang/Object;", ordinal = 0))
-    private Object redirectGetValue(SimpleOption instance) {
-        if (Zoom.INSTANCE.isEnabled()) return ((Double) instance.getValue()) / Zoom.getTargetZoom();
-        else return instance.getValue();
+    @ModifyExpressionValue(method = "updateMouse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/SimpleOption;getValue()Ljava/lang/Object;", ordinal = 0))
+    private Object modifyGetValue(Object original) {
+        if (Zoom.INSTANCE.isEnabled()) return ((Double) original) / Zoom.getTargetZoom();
+        else return original;
     }
 }

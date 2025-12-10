@@ -17,20 +17,16 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.automationConfig
-import com.lambda.config.groups.BuildConfig
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
-import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.results.PlaceResult
+import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.Request.Companion.submit
-import com.lambda.interaction.request.inventory.InventoryConfig
-import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -38,7 +34,6 @@ import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.InputUtils.isKeyPressed
 import com.lambda.util.KeyCode
-import com.lambda.util.math.distSq
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -52,36 +47,20 @@ object Scaffold : Module(
     private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
-    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
-
-    override val buildConfig = object : BuildConfig by super.buildConfig {
-        override val pathing = false
-        override val stayInRange = false
-        override val collectDrops = false
-    }
-    override val inventoryConfig = object : InventoryConfig by super.inventoryConfig {
-        override val accessShulkerBoxes = false
-        override val accessEnderChest = false
-        override val accessChests = false
-        override val accessStashes = false
-    }
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     init {
-        defaultAutomationConfig = automationConfig {
-            buildConfig.apply {
-                editTyped(::pathing, ::stayInRange, ::collectDrops) {
-                    defaultValue(false)
-                    hide()
-                }
-            }
-            inventoryConfig.apply {
-                editTyped(::accessShulkerBoxes, ::accessEnderChest, ::accessChests, ::accessStashes) {
-                    defaultValue(false)
-                    hide()
-                }
-            }
-            hideAll(buildConfig, breakConfig, interactConfig, inventoryConfig, eatConfig)
-        }
+		setDefaultAutomationConfig {
+			applyEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange, ::collectDrops) {
+						defaultValue(false)
+						hide()
+					}
+				}
+				hideAllGroupsExcept(interactConfig, rotationConfig, hotbarConfig)
+			}
+		}
 
         listen<TickEvent.Pre> {
             val playerSupport = player.blockPos.down()
@@ -93,27 +72,15 @@ object Scaffold : Module(
                 scaffoldPositions(beneath)
                     .associateWith { TargetState.Solid(emptySet()) }
                     .simulate()
-                    .filterIsInstance<PlaceResult.Place>()
-                    .minByOrNull { it.pos distSq beneath }
-                    ?.let { result ->
-                        submit(PlaceRequest(
-                            setOf(result.context),
-                            pendingActions,
-                            this@Scaffold
-                        ))
-                    }
+                    .interactRequest(pendingInteractions)
+	                ?.submit()
             }
-        }
-
-        listen<MovementEvent.Sneak> {
-            if (descend.key != mc.options.sneakKey.boundKey.code) return@listen
-            it.sneak = false
         }
     }
 
     private fun SafeContext.scaffoldPositions(beneath: BlockPos): List<BlockPos> {
         if (!blockState(beneath).isReplaceable) return emptyList()
-        if (placeConfig.airPlace.isEnabled) return listOf(beneath)
+        if (interactConfig.airPlace.isEnabled) return listOf(beneath)
 
         return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
             .asSequence()

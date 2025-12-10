@@ -80,13 +80,11 @@ object ItemStackUtils {
     val List<ItemStack>.copy: List<ItemStack> get() = map { it.copy() }
 
     context(safeContext: SafeContext)
-    val ItemStack.inventoryIndex get() = safeContext.player.inventory.getSlotWithStack(this)
-    context(safeContext: SafeContext)
-    val ItemStack.inventoryIndexOrSelected get() = with(safeContext) {
-        player.inventory.getSlotWithStack(this@inventoryIndexOrSelected).let {
-            if (it == -1) player.inventory.selectedSlot else it
-        }
-    }
+    val ItemStack.slotId get() = safeContext.player.currentScreenHandler.slots.find { it.stack.equal(this) }?.id ?: -1
+	context(safeContext: SafeContext)
+	val ItemStack.inventoryIndex get() = safeContext.player.inventory.getSlotWithStack(this)
+	context(safeContext: SafeContext)
+	val ItemStack.inventoryIndexOrSelected get() = inventoryIndex.let { if (it == -1) safeContext.player.inventory.selectedSlot else it }
 
     val List<ItemStack>.compressed: List<ItemStack>
         get() =

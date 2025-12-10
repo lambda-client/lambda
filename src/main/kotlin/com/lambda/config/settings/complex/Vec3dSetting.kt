@@ -22,35 +22,30 @@ import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.AbstractSetting
+import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
 
-class Vec3dSetting(
-    override var name: String,
-    defaultValue: Vec3d,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<Vec3d>(
-    name,
-    defaultValue,
-    TypeToken.get(Vec3d::class.java).type,
-    description,
-    visibility
+class Vec3dSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
+	defaultValue,
+	TypeToken.get(Vec3d::class.java).type
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(name, ::value as Vec3d) // what the fuck
-        lambdaTooltip(description)
+    context(setting: Setting<*, Vec3d>)
+	override fun ImGuiBuilder.buildLayout() {
+        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
+        lambdaTooltip(setting.description)
     }
 
+	context(setting: Setting<*, Vec3d>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->
             required(double("Y", -64.0, 255.0)) { y ->
                 required(double("Z", -30000000.0, 30000000.0)) { z ->
                     execute {
-                        trySetValue(Vec3d(x().value(), y().value(), z().value()))
+                        setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
                     }
                 }
             }
