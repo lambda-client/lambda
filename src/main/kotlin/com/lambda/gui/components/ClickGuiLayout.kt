@@ -301,13 +301,15 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 					//  For the time being I have removed the ability to collapse the windows so the titles
 					//  have more space lol.
 					window(tag.name, flags = ImGuiWindowFlags.AlwaysAutoResize or ImGuiWindowFlags.NoCollapse) {
-						// Start drag if the user just pressed while hovering this window
 						if (activeDragWindowName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
 							val mx = io.mousePos.x
 							val my = io.mousePos.y
-							activeDragWindowName = tag.name
-							dragOffsetX = mx - windowPos.x
-							dragOffsetY = my - windowPos.y
+							val titleBarHeight = ImGui.getFrameHeight()
+							if (my >= windowPos.y && my <= windowPos.y + titleBarHeight) {
+								activeDragWindowName = tag.name
+								dragOffsetX = mx - windowPos.x
+								dragOffsetY = my - windowPos.y
+							}
 						}
 
 						ModuleRegistry.modules

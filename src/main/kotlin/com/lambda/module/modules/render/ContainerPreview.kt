@@ -28,7 +28,6 @@ import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.tooltip.TooltipComponent
 import net.minecraft.client.render.RenderLayer
 import net.minecraft.item.BlockItem
@@ -45,7 +44,6 @@ object ContainerPreview : Module(
     tag = ModuleTag.RENDER,
 ) {
     private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
-    private val useShift by setting("Use Shift", true, "Use shift key to lock tooltip (overrides lock key)")
     private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color")
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")
@@ -71,7 +69,6 @@ object ContainerPreview : Module(
     @JvmStatic
     fun isLockKeyPressed(): Boolean {
         if (!isEnabled) return false
-        if (useShift) return Screen.hasShiftDown()
         val handle = mc.window.handle
         return GLFW.glfwGetKey(handle, lockKey.key) == GLFW.GLFW_PRESS
     }
