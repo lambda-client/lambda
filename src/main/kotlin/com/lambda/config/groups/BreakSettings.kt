@@ -26,8 +26,8 @@ import com.lambda.interaction.managers.breaking.BreakConfig.AnimationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
-import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.NamedEnum
+import net.minecraft.block.Block
 import java.awt.Color
 
 open class BreakSettings(
@@ -72,12 +72,11 @@ open class BreakSettings(
     // Pending / Post
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking").group(baseGroup, Group.General).index()
     override val breaksPerTick by c.setting("Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick").group(baseGroup, Group.General).index()
-    override val maxPendingBreaks by c.setting("Max Pending Breaks", 15, 1..30, 1, "The maximum amount of pending breaks").group(baseGroup, Group.General).index()
 
     // Block
+    override val ignoredBlocks by c.setting("Ignored Blocks", emptySet<Block>(), description = "Blocks that wont be broken").group(baseGroup, Group.General).index()
     override val avoidLiquids by c.setting("Avoid Liquids", true, "Avoids breaking blocks that would cause liquid to spill").group(baseGroup, Group.General).index()
     override val avoidSupporting by c.setting("Avoid Supporting", true, "Avoids breaking the block supporting the player").group(baseGroup, Group.General).index()
-    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, description = "Blocks that wont be broken").group(baseGroup, Group.General).index()
 
     // Tool
     override val efficientOnly by c.setting("Efficient Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }.group(baseGroup, Group.General).index()

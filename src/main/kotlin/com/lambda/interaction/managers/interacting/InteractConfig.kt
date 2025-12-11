@@ -30,7 +30,6 @@ interface InteractConfig : ActionConfig, ISettingGroup {
     val axisRotate get() = rotate && airPlace.isEnabled && axisRotateSetting
     val interactConfirmationMode: InteractConfirmationMode
     val interactDelay: Int
-	val maxPendingInteractions: Int
     val interactionsPerTick: Int
     val swing: Boolean
     val swingType: BuildConfig.SwingType
