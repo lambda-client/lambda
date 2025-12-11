@@ -180,6 +180,9 @@ dependencies {
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
 
+	// DevLogin
+	modImplementation("com.ptsmods:devlogin:3.5")
+
     // Test implementations
     testImplementation(kotlin("test"))
     testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
