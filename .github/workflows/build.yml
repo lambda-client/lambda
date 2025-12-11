@@ -42,6 +42,7 @@ jobs:
 
       - name: Publish snapshot to maven
         if: github.event_name == 'push'
+        id: upload
         run: ./gradlew publish -PmavenType=snapshots -PcommitHash=${{ env.COMMIT_HASH }}) -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
       - name: Generate Summary
