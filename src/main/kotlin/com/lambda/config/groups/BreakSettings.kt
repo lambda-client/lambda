@@ -60,7 +60,7 @@ open class BreakSettings(
     override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), description = "The sub-tick timing at which break actions can be performed").group(baseGroup, Group.General).index()
 
     // Swap
-    override val swapMode by c.setting("Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block").group(baseGroup, Group.General).index()
+    override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block").group(baseGroup, Group.General).index()
 
     // Swing
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand").group(baseGroup, Group.General).index()
