@@ -70,7 +70,7 @@ configurations.all {
 repositories {
     mavenLocal() // Allow the use of local repositories
     maven("https://maven.2b2t.vc/releases") // Baritone
-    maven("https://maven.firstdark.dev/releases")
+    maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
     mavenCentral()
 
@@ -155,7 +155,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
-    includeLib("dev.firstdark.discordrpc:discord-rpc:1.0.4")
+    includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
     includeLib("io.github.spair:imgui-java-binding:$spairVersion")
