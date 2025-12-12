@@ -54,9 +54,9 @@ jobs:
 
       - name: Rename jar
 #        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
-        run: mv /build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar /build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+        run: mv build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
 
-      - name: Failover Upload
+      - name: Upload
 #        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
