@@ -155,7 +155,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
-    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
     includeLib("io.github.spair:imgui-java-binding:$spairVersion")
