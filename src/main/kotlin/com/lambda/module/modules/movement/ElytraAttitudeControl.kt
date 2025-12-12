@@ -17,8 +17,11 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
@@ -77,6 +80,8 @@ object ElytraAttitudeControl : Module(
 	val pitch40SpeedThreshold by setting("Speed Threshold", 41f, 10f..100f, .5f, description = "Speed at which to start pitching up") { usePitch40OnHeight }.group(Group.Pitch40Control)
 	val pitch40UseFireworkOnUpTrajectory by setting("Use Firework On Up Trajectory", false, "Use fireworks when converting speed to altitude in the Pitch 40 maneuver") { usePitch40OnHeight }.group(Group.Pitch40Control)
 
+	override val rotationConfig = RotationSettings(this, Group.Rotation)
+
 	var controlState = ControlState.AttitudeControl
 	var state = Pitch40State.GainSpeed
 	var lastAngle = pitch40UpStartAngle
@@ -109,8 +114,7 @@ object ElytraAttitudeControl : Module(
 								-1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
 							}
 						}.coerceIn(-maxPitchAngle, maxPitchAngle)
-						//	        lookAt(Rotation(player.yaw, newPitch.toFloat())).requestBy(this@ElytraAutopilot) // TODO: Use this when rotation system accepts pitch changes
-						player.pitch = outputPitch.toFloat()
+						lookAt(Rotation(player.yaw, outputPitch.toFloat())).requestBy(this@ElytraAttitudeControl)
 
 						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
 							if (useFireworkOnHeight && minHeight > player.y) {
@@ -127,45 +131,43 @@ object ElytraAttitudeControl : Module(
 							}
 						}
 					}
-					ControlState.Pitch40Fly -> {
-						when (state) {
-							Pitch40State.GainSpeed -> {
-								player.pitch = pitch40DownAngle
-								if (player.flySpeed() > pitch40SpeedThreshold) {
-									state = Pitch40State.PitchUp
-								}
+					ControlState.Pitch40Fly -> when (state) {
+						Pitch40State.GainSpeed -> {
+							player.pitch = pitch40DownAngle
+							if (player.flySpeed() > pitch40SpeedThreshold) {
+								state = Pitch40State.PitchUp
 							}
-							Pitch40State.PitchUp -> {
-								lastAngle -= 5f
-								player.pitch = lastAngle
-								if (lastAngle <= pitch40UpStartAngle) {
-									state = Pitch40State.FlyUp
-									if (pitch40UseFireworkOnUpTrajectory) {
-										runSafe {
-											startFirework(true)
-										}
+						}
+						Pitch40State.PitchUp -> {
+							lastAngle -= 5f
+							player.pitch = lastAngle
+							if (lastAngle <= pitch40UpStartAngle) {
+								state = Pitch40State.FlyUp
+								if (pitch40UseFireworkOnUpTrajectory) {
+									runSafe {
+										startFirework(true)
 									}
 								}
 							}
-							Pitch40State.FlyUp -> {
-								lastAngle += pitch40AngleChangeRate
-								player.pitch = lastAngle
-								if (lastAngle >= 0f) {
-									state = Pitch40State.GainSpeed
-									if (logHeightGain) {
-										var timeDelta = lastCycleFinish.elapsedNow().inWholeMilliseconds
-										var heightDelta = player.pos.y - lastY
-										var heightPerMinute = (heightDelta) / (timeDelta / 1000.0) * 60.0
-										info(literal("Height gained this cycle: %.2f in %.2f seconds (%.2f blocks/min)".format(heightDelta, timeDelta / 1000.0, heightPerMinute)))
-									}
+						}
+						Pitch40State.FlyUp -> {
+							lastAngle += pitch40AngleChangeRate
+							player.pitch = lastAngle
+							if (lastAngle >= 0f) {
+								state = Pitch40State.GainSpeed
+								if (logHeightGain) {
+									var timeDelta = lastCycleFinish.elapsedNow().inWholeMilliseconds
+									var heightDelta = player.pos.y - lastY
+									var heightPerMinute = (heightDelta) / (timeDelta / 1000.0) * 60.0
+									info(literal("Height gained this cycle: %.2f in %.2f seconds (%.2f blocks/min)".format(heightDelta, timeDelta / 1000.0, heightPerMinute)))
+								}
 
-									lastCycleFinish = TimeSource.Monotonic.markNow()
-									lastY = player.pos.y
-									if (pitch40ExitHeight < player.y) {
-										controlState = ControlState.AttitudeControl
-										speedController.reset()
-										altitudeController.reset()
-									}
+								lastCycleFinish = TimeSource.Monotonic.markNow()
+								lastY = player.pos.y
+								if (pitch40ExitHeight < player.y) {
+									controlState = ControlState.AttitudeControl
+									speedController.reset()
+									altitudeController.reset()
 								}
 							}
 						}
@@ -232,6 +234,7 @@ object ElytraAttitudeControl : Module(
 		SpeedControl("Speed Control"),
 		AltitudeControl("Altitude Control"),
 		Pitch40Control("Pitch 40 Control"),
+		Rotation("Rotation")
 	}
 
 	enum class Pitch40State {
