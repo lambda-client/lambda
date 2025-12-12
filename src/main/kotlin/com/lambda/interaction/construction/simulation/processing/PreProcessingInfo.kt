@@ -27,38 +27,38 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 interface PreProcessingInfo {
-    val surfaceScan: SurfaceScan
-    val ignore: Set<Property<*>>
-    val sides: Set<Direction>
+	val surfaceScan: SurfaceScan
+	val ignore: Set<Property<*>>
+	val sides: Set<Direction>
 	val item: Item?
 	val expectedState: BlockState
 	val placing: Boolean
 	val noCaching: Boolean
 
-    companion object {
-	    context(_: AutomatedSafeContext)
-	    fun default(targetState: TargetState, pos: BlockPos) = object : PreProcessingInfo {
+	companion object {
+		context(_: AutomatedSafeContext)
+		fun default(targetState: TargetState, pos: BlockPos) = object : PreProcessingInfo {
 			override val surfaceScan = SurfaceScan.DEFAULT
-		    override val ignore = setOf<Property<*>>()
-		    override val sides = Direction.entries.toSet()
-		    override val item = targetState.getStack(pos).item
-		    override val expectedState = targetState.getState(pos)
-		    override val placing = true
-		    override val noCaching = true
+			override val ignore = setOf<Property<*>>()
+			override val sides = Direction.entries.toSet()
+			override val item = targetState.getStack(pos).item
+			override val expectedState = targetState.getState(pos)
+			override val placing = true
+			override val noCaching = true
 		}
-    }
+	}
 }
 
 class PreProcessingInfoAccumulator(
 	override var expectedState: BlockState,
 	override var item: Item?,
 	override var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-	override val ignore: MutableSet<Property<*>> = _root_ide_package_.com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.postProcessedProperties.toMutableSet(),
+	override val ignore: MutableSet<Property<*>> = ProcessorRegistry.postProcessedProperties.toMutableSet(),
 	override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
 	override var placing: Boolean = true,
 	override var noCaching: Boolean = false,
 	var omitPlacement: Boolean = false
-) : com.lambda.interaction.construction.simulation.processing.PreProcessingInfo {
+) : PreProcessingInfo {
 	@InfoAccumulator
 	fun offerSurfaceScan(scan: SurfaceScan) {
 		if (scan.mode.priority > surfaceScan.mode.priority) {
@@ -110,7 +110,7 @@ class PreProcessingInfoAccumulator(
 	}
 
 	@InfoAccumulator
-	fun complete(): com.lambda.interaction.construction.simulation.processing.PreProcessingInfo = this
+	fun complete(): PreProcessingInfo = this
 
 	companion object {
 		@DslMarker

@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.buildText
@@ -30,4 +31,7 @@ object InventoryContainer : MaterialContainer(Rank.Inventory) {
         set(_) {}
 
     override val description = buildText { literal("Inventory") }
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = true
 }

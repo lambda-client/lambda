@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -28,7 +29,6 @@ import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager.transfer
-import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
@@ -95,14 +95,8 @@ sealed class GenericResult : BuildResult() {
         override val rank = Rank.WrongItem
         private val color = Color(3, 252, 169, 25)
 
-        context(automated: Automated)
-        override fun resolve() =
-            neededSelection.transfer(MainHandContainer)
-                ?: MaterialContainer.AwaitItemTask(
-                    "Couldn't find $neededSelection anywhere.",
-                    neededSelection,
-                    automated
-                )
+        context(automated: Automated, safeContext: SafeContext)
+        override fun resolve() = neededSelection.transfer(MainHandContainer)
 
         override fun ShapeBuilder.buildRenderer() {
             val center = pos.toCenterPos()

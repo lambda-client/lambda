@@ -19,12 +19,13 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -83,4 +84,7 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
 
     context(automated: Automated)
     override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND, automated)
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = true
 }

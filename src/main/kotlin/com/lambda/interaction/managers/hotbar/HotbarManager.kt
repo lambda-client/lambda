@@ -25,9 +25,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Logger
+import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.newStage
 import com.lambda.interaction.managers.ManagerUtils.newTick
-import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.hotbar.HotbarConfig.SwapMode
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.managers.hotbar.HotbarManager.checkResetSwap
@@ -148,6 +149,8 @@ object HotbarManager : Manager<HotbarRequest>(
             } else activeRequest.swapPauseAge = swappedTicks
             if (activeRequest.slot == activeSlot) return true
             activeSlot = activeRequest.slot
+            if (activeRequest.hotbarConfig.swapMode == SwapMode.Permanent)
+                player.inventory.selectedSlot = activeRequest.slot
             interaction.syncSelectedSlot()
         }
         return true
@@ -162,14 +165,21 @@ object HotbarManager : Manager<HotbarRequest>(
      */
     private fun SafeContext.checkResetSwap() {
         activeRequest?.let { active ->
-            val canStopSwap = swapsThisTick < maxSwapsThisTick
-            if (active.keepTicks <= 0 && tickStage in active.hotbarConfig.tickStageMask && canStopSwap) {
-                logger.debug("Clearing request and syncing slot", activeRequest)
-                val prevSlot = activeSlot
-                activeRequest = null
-                activeSlot = -1
-                interaction.syncSelectedSlot()
-                if (serverSlot != prevSlot) swapsThisTick++
+            if (active.keepTicks <= 0) {
+                if (active.hotbarConfig.swapMode == SwapMode.Permanent) {
+                    activeRequest = null
+                    activeSlot = -1
+                    return
+                }
+                val canStopSwap = swapsThisTick < maxSwapsThisTick
+                if (tickStage in active.hotbarConfig.tickStageMask && canStopSwap) {
+                    logger.debug("Clearing request and syncing slot", activeRequest)
+                    val prevSlot = activeSlot
+                    activeRequest = null
+                    activeSlot = -1
+                    interaction.syncSelectedSlot()
+                    if (serverSlot != prevSlot) swapsThisTick++
+                }
             }
         }
     }

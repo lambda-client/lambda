@@ -32,7 +32,7 @@ object LambdaMoji : Module(
     name = "LambdaMoji",
     description = "",
     tag = ModuleTag.CLIENT,
-    enabledByDefault = true,
+    enabledByDefault = false,
 ) {
     val suggestions by setting("Chat Suggestions", true)
 

@@ -54,7 +54,7 @@ interface RotationConfig : ISettingGroup {
         override val rotationMode = mode
         override val keepTicks = 1
         override val decayTicks = 1
-        override val turnSpeed = 360.0
+        override val turnSpeed = 180.0
         override val tickStageMask = RotationManager.openStages.toSet()
     }
 }

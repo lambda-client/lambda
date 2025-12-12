@@ -99,7 +99,6 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Manager responsible for breaking blocks in the most efficient manner possible. It can be accessed
@@ -412,12 +411,7 @@ object BreakManager : Manager<BreakRequest>(
             }
 
         breaks = newBreaks
-            .take(
-                min(
-                    breakConfig.maxPendingBreaks - pendingBreakCount,
-                    buildConfig.maxPendingActions - request.pendingInteractions.size
-                ).coerceAtLeast(0)
-            )
+            .take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
             .toMutableList()
 
         logger.debug("${breaks.size} unprocessed breaks")

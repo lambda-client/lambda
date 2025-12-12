@@ -26,19 +26,19 @@ import net.minecraft.util.math.BlockPos
  * optimize how blocks are simulated. Some blocks might only be placeable on certain sides, so it is
  * unnecessary to scan all of them, for example.
  */
-
 interface StateProcessor {
 	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
+
 	context(safeContext: SafeContext)
-	fun com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos)
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos)
 }
 
 interface PropertyPreProcessor {
 	fun acceptsState(targetState: BlockState): Boolean
-	fun com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
 }
 
 interface PropertyPostProcessor {
 	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
-	fun com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
 }

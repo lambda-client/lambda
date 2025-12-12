@@ -19,6 +19,7 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.text.buildText
@@ -35,4 +36,7 @@ object OffHandContainer : MaterialContainer(Rank.OffHand) {
 
     context(automated: Automated)
     override fun deposit(selection: StackSelection) = MainHandContainer.HandDeposit(selection, Hand.OFF_HAND, automated)
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = true
 }

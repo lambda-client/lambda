@@ -28,12 +28,10 @@ interface BuildConfig : ISettingGroup {
     val stayInRange: Boolean
     val collectDrops: Boolean
     val spleefEntities: Boolean
-    val actionsPerTick: Int
     val maxPendingActions: Int
     val actionTimeout: Int
     val maxBuildDependencies: Int
 
-    val useDefaultReach: Boolean
     val attackReach: Double
     val interactReach: Double
     val scanReach: Double

@@ -99,7 +99,18 @@ object PacketMine : Module(
     init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(breakConfig, rotationConfig, hotbarConfig)
+				hideAllGroupsExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
+                buildConfig.apply {
+                    hide(
+                        ::pathing,
+                        ::stayInRange,
+                        ::spleefEntities,
+                        ::maxBuildDependencies,
+                        ::collectDrops,
+                        ::attackReach
+                    )
+                    ::maxBuildDependencies.edit { defaultValue(0) }
+                }
 				breakConfig.apply {
 					editTyped(
 						::avoidLiquids,
@@ -156,7 +167,7 @@ object PacketMine : Module(
         listen<TickEvent.Input.Post> {
             if (!attackedThisTick) {
                 requestBreakManager((breakPositions + queueSorted.flatten()).toList())
-                if (!breakConfig.rebreak || (rebreakMode != RebreakMode.Auto && rebreakMode != RebreakMode.AutoConstant)) return@listen
+                if (!breakConfig.rebreak || (rebreakMode != RebreakMode.Auto /*&& rebreakMode != RebreakMode.AutoConstant*/)) return@listen
                 val reBreak = rebreakPos ?: return@listen
                 requestBreakManager(listOf(reBreak), true)
             }
@@ -194,7 +205,19 @@ object PacketMine : Module(
 
     private fun SafeContext.requestBreakManager(requestPositions: Collection<BlockPos?>, reBreaking: Boolean = false) {
         if (requestPositions.count { it != null } <= 0) return
-        val breakContexts = breakContexts(requestPositions)
+        val breakContexts = runSafeAutomated {
+            requestPositions
+                .filterNotNull()
+                .associateWith { TargetState.Empty }
+                .simulate()
+                .filterIsInstance<BreakResult.Break>()
+                .let {
+                    if (queueOrder == QueueOrder.Efficient) it.sorted()
+                    else it.sortedBy { ctx -> requestPositions.indexOf(ctx.pos) }
+                }
+                .map { it.context }
+
+        }
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
@@ -214,21 +237,6 @@ object PacketMine : Module(
             addBreak(blockPos)
         }
     }
-
-    private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
-        runSafeAutomated {
-            positions
-                .filterNotNull()
-                .associateWith { TargetState.Empty }
-                .simulate()
-                .filterIsInstance<BreakResult.Break>()
-                .let {
-                    if (queueOrder == QueueOrder.Efficient) it.sorted()
-                    else it.sortedBy { ctx -> positions.indexOf(ctx.pos) }
-                }
-                .map { it.context }
-
-        }
 
     private fun addBreak(pos: BlockPos) {
         if (breakConfig.doubleBreak && breakPositions[0] != null) {
@@ -283,7 +291,7 @@ object PacketMine : Module(
         Manual("Manual", "Re-break only when you trigger it explicitly."),
         Auto("Auto", "Automatically re-break when it’s beneficial or required."),
         //ToDo: Implement auto constant rebreak
-        AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
+//        AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
     }
 
     enum class QueueOrder(

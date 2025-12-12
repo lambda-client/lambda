@@ -68,7 +68,6 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
-import kotlin.math.min
 
 object InteractManager : Manager<InteractRequest>(
     0,
@@ -209,12 +208,7 @@ object InteractManager : Manager<InteractRequest>(
         potentialPlacements = request.contexts
             .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
-            .take(
-                min(
-                    interactConfig.maxPendingInteractions - pendingActions.size,
-                    buildConfig.maxPendingActions - request.pendingInteractions.size
-                ).coerceAtLeast(0)
-            )
+            .take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
             .toMutableList()
         logger.debug("${potentialPlacements.size} potential placements")
 
