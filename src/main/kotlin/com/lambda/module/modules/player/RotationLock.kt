@@ -17,10 +17,12 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
@@ -38,39 +40,43 @@ object RotationLock : Module(
         Rotation("Rotation")
     }
 
-    @JvmStatic val yawMode by setting("Yaw Mode", RotationMode.Snap).group(Group.General)
-    private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 1.0) { yawMode == RotationMode.Snap }.group(Group.General)
-    private val customYaw by setting("Custom Yaw", 0.0, -179.0..180.0, 1.0) { yawMode == RotationMode.Custom }.group(Group.General)
-    @JvmStatic val pitchMode by setting("Pitch Mode", RotationMode.Custom).group(Group.General)
-    private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 1.0) { pitchMode == RotationMode.Snap }.group(Group.General)
-    private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 1.0) { pitchMode == RotationMode.Custom }.group(Group.General)
+    @JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap).group(Group.General)
+    private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 1.0) { yawMode == Mode.Snap }.group(Group.General)
+    private val customYaw by setting("Custom Yaw", 0.0, -179.0..180.0, 1.0) { yawMode == Mode.Custom }.group(Group.General)
+    @JvmStatic val pitchMode by setting("Pitch Mode", Mode.Custom).group(Group.General)
+    private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 1.0) { pitchMode == Mode.Snap }.group(Group.General)
+    private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 1.0) { pitchMode == Mode.Custom }.group(Group.General)
 
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
+    override val rotationConfig = RotationSettings(this, Group.Rotation).apply {
+        applyEdits {
+            ::rotationMode.edit { defaultValue(RotationMode.Lock) }
+        }
+    }
 
     init {
         listen<TickEvent.Pre> {
             val yaw = when (yawMode) {
-                RotationMode.Custom -> customYaw
-                RotationMode.Snap -> {
+                Mode.Custom -> customYaw
+                Mode.Snap -> {
                     val normalizedYaw = (player.yaw % 360.0 + 360.0) % 360.0
                     (normalizedYaw / yawStep).roundToInt() * yawStep
                 }
-                RotationMode.None -> player.yaw.toDouble()
+                Mode.None -> player.yaw.toDouble()
             }
             val pitch = when (pitchMode) {
-                RotationMode.Custom -> customPitch
-                RotationMode.Snap -> {
+                Mode.Custom -> customPitch
+                Mode.Snap -> {
                     val clampedPitch = player.pitch.coerceIn(-90f, 90f)
                     (clampedPitch / pitchStep).roundToInt() * pitchStep
                 }
-                RotationMode.None -> player.pitch.toDouble()
+                Mode.None -> player.pitch.toDouble()
             }
 
             RotationRequest(lookAt(Rotation(yaw, pitch)), this@RotationLock).submit()
         }
     }
 
-    enum class RotationMode {
+    enum class Mode {
         Snap,
         Custom,
         None

@@ -152,7 +152,7 @@ public abstract class EntityMixin {
         return (instance != Lambda.getMc().player ||
                 RotationLock.INSTANCE.isDisabled() ||
                 RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
-                RotationLock.getYawMode() == RotationLock.RotationMode.None);
+                RotationLock.getYawMode() == RotationLock.Mode.None);
     }
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
@@ -160,6 +160,6 @@ public abstract class EntityMixin {
         return (instance != Lambda.getMc().player ||
                 RotationLock.INSTANCE.isDisabled() ||
                 RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
-                RotationLock.getPitchMode() == RotationLock.RotationMode.None);
+                RotationLock.getPitchMode() == RotationLock.Mode.None);
     }
 }
