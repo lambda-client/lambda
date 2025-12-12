@@ -82,6 +82,10 @@ How do I...
     <img alt="" src="https://raw.githubusercontent.com/lambda-client/assets/main/footer.png">
 </p>
 
+### Stargazers
+
+[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
+
 ## Thanks to...
 
 [![GitHub contributors](https://contrib.rocks/image?repo=lambda-client/lambda)](https://github.com/lambda-client/lambda/graphs/contributors)
