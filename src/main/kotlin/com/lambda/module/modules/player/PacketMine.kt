@@ -120,9 +120,6 @@ object PacketMine : Module(
 					) { defaultValue(false) }
 					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 				}
-				hotbarConfig.apply {
-					::keepTicks.edit { defaultValue(0) }
-				}
 			}
 		}
 
