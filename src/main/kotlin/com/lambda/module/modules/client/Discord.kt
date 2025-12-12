@@ -51,7 +51,7 @@ object Discord : Module(
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
     private val line1Left by setting("Line 1 Left", LineInfo.World)
     private val line1Right by setting("Line 1 Right", LineInfo.Username)
-    private val line2Left by setting("Line 2 Left", LineInfo.Dimension)
+    private val line2Left by setting("Line 2 Left", LineInfo.Version)
     private val line2Right by setting("Line 2 Right", LineInfo.Fps)
 
     val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
