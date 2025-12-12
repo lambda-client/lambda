@@ -24,4 +24,5 @@ object Capes : Module(
     name = "Capes",
     description = "Display custom capes",
     tag = ModuleTag.CLIENT,
+    enabledByDefault = true,
 )

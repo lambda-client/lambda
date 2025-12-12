@@ -45,7 +45,7 @@ object Discord : Module(
     name = "Discord",
     description = "Discord Rich Presence configuration",
     tag = ModuleTag.CLIENT,
-    //enabledByDefault = true, // ToDo: Bring this back on beta release
+    enabledByDefault = true,
 ) {
     private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
