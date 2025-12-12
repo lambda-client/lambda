@@ -43,21 +43,21 @@ jobs:
       - name: Publish snapshot to maven
         if: github.event_name == 'push'
         id: upload
-        run: ./gradlew publish -PmavenType=snapshots -PcommitHash=${{ env.COMMIT_HASH }}) -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
+        run: ./gradlew publish -PmavenType=snapshots -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
-      - name: Generate Summary
-        if: steps.upload.conclusion == 'success' && github.event_name == 'push'
-        run: |
-          cat << EOF >> $GITHUB_STEP_SUMMARY
-          ### [Lambda ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://maven.lambda-client.org/snapshots/com/lambda/lambda/${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
-          EOF
+#      - name: Generate Summary
+#        if: steps.upload.conclusion == 'success' && github.event_name == 'push'
+#        run: |
+#          cat << EOF >> $GITHUB_STEP_SUMMARY
+#          ### [Lambda ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://maven.lambda-client.org/snapshots/com/lambda/lambda/${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+#          EOF
 
       - name: Rename jar
-        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
+#        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
         run: mv /build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar /build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
 
       - name: Failover Upload
-        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
+#        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: lambda-nightly

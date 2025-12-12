@@ -237,22 +237,14 @@ java {
 
 publishing {
     val publishType = project.findProperty("mavenType").toString()
-    val commitHash = project.findProperty("commitHash").toString()
     val mavenUrl = if (project.findProperty("mavenType") == "releases") "https://maven.lambda-client.org/releases" else "https://maven.lambda-client.org/snapshots"
-
     val isSnapshots = publishType == "snapshots"
-    val isValidCommit = commitHash.matches(Regex("[A-Fa-f0-9]+")) || commitHash == "SNAPSHOT"
-
-    if (!isSnapshots && isValidCommit)
-        println("WARNING: Commit hash for snapshot releases was supplied but the publish type is 'releases'. The commit will be omitted.")
-    else if (isSnapshots && !isValidCommit)
-        error("The maven publish type is set to 'snapshots' but no valid commit hash was supplied.")
 
     publications {
         create<MavenPublication>("maven") {
             groupId = mavenGroup
             artifactId = modId
-            version = if (isSnapshots) "$modVersion+$minecraftVersion-$commitHash"
+            version = if (isSnapshots) "$modVersion+$minecraftVersion-SNAPSHOT"
                         else "$modVersion+$minecraftVersion"
 
             from(components["java"])
