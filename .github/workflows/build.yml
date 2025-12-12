@@ -66,4 +66,4 @@ jobs:
         with:
           name: lambda-nightly
           path: |
-            /build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar

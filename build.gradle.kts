@@ -237,15 +237,17 @@ java {
 
 publishing {
     val publishType = project.findProperty("mavenType").toString()
-    val mavenUrl = if (project.findProperty("mavenType") == "releases") "https://maven.lambda-client.org/releases" else "https://maven.lambda-client.org/snapshots"
     val isSnapshots = publishType == "snapshots"
+    val mavenUrl = if (isSnapshots) "https://maven.lambda-client.org/snapshots" else "https://maven.lambda-client.org/releases"
+    val mavenVersion =
+        if (isSnapshots) "$modVersion+$minecraftVersion-SNAPSHOT"
+        else "$modVersion+$minecraftVersion"
 
-    publications {
+	publications {
         create<MavenPublication>("maven") {
             groupId = mavenGroup
             artifactId = modId
-            version = if (isSnapshots) "$modVersion+$minecraftVersion-SNAPSHOT"
-                        else "$modVersion+$minecraftVersion"
+            version = mavenVersion
 
             from(components["java"])
         }
