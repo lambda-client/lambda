@@ -84,7 +84,7 @@ How do I...
 
 ### Stargazers
 
-[![Stargazers](https://starchart.cc/lambda-client/lambda.svg)](https://starchart.cc/lambda-client/lambda)
+[![Stargazers over time](https://starchart.cc/lambda-client/lambda.svg?variant=adaptive)](https://starchart.cc/lambda-client/lambda)
 
 ## Thanks to...
 
