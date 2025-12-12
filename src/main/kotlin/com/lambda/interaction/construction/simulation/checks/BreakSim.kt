@@ -32,7 +32,7 @@ import com.lambda.interaction.material.ContainerSelection.Companion.selectContai
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
+import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.managers.hotbar.HotbarManager
 import com.lambda.interaction.managers.rotating.RotationManager
@@ -187,7 +187,7 @@ class BreakSim private constructor(simInfo: SimInfo)
         }
 
         val hotbarCandidates = stackSelection
-            .containerWithMaterial(silentSwapSelection)
+            .findContainersWithMaterial(silentSwapSelection)
             .map { it.matchingStacks(stackSelection) }
             .flatten()
         if (hotbarCandidates.isEmpty()) {

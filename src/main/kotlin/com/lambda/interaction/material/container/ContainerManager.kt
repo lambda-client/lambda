@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -39,9 +40,8 @@ import net.minecraft.screen.ScreenHandlerType
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
-    private val container: List<MaterialContainer>
-        // ToDo: Filter containers based on a filter setting TaskFlowModule.inventory.accessEnderChest etc
-        get() = compileContainers.filter { it !is EnderChestContainer } + runtimeContainers
+    private val containers: List<MaterialContainer>
+        get() = compileContainers + runtimeContainers
 
     private val compileContainers = getInstances<MaterialContainer>()
     private val runtimeContainers = mutableSetOf<MaterialContainer>()
@@ -74,7 +74,7 @@ object ContainerManager : Loadable {
                     val stacks = handler.containerStacks
 
                     this@ContainerManager.info("Updating ChestContainer")
-                    container
+                    containers
                         .filterIsInstance<ChestContainer>()
                         .find {
                             it.blockPos == block.pos
@@ -85,44 +85,46 @@ object ContainerManager : Loadable {
         }
     }
 
-    fun container() = container.flatMap { setOf(it) + it.shulkerContainer }.sorted()
+    fun containers() = containers.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
-    context(automated: Automated)
+    context(automated: Automated, _: SafeContext)
     fun StackSelection.transfer(destination: MaterialContainer) =
         findContainerWithMaterial()?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean,
-    ): MaterialContainer? = container().find(block)
+    ): MaterialContainer? = containers().find(block)
 
-    context(automated: Automated)
+    context(_: Automated, _: SafeContext)
     fun StackSelection.findContainerWithMaterial(): MaterialContainer? =
-        containerWithMaterial().firstOrNull()
+        findContainersWithMaterial().firstOrNull()
 
-    context(automated: Automated)
+    context(_: Automated, _: SafeContext)
     fun findContainerWithSpace(selection: StackSelection): MaterialContainer? =
-        containerWithSpace(selection).firstOrNull()
+        findContainersWithSpace(selection).firstOrNull()
 
-    context(automated: Automated)
-    fun StackSelection.containerWithMaterial(
+    context(automated: Automated, safeContext: SafeContext)
+    fun StackSelection.findContainersWithMaterial(
         containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection,
     ): List<MaterialContainer> =
-        container()
+        containers()
+            .filter { !automated.inventoryConfig.immediateAccessOnly || it.isImmediatelyAccessible() }
             .filter { it.materialAvailable(this) >= count }
             .filter { containerSelection.matches(it) }
             .sortedWith(automated.inventoryConfig.providerPriority.materialComparator(this))
 
-    context(automated: Automated)
-    fun containerWithSpace(
+    context(automated: Automated, safeContext: SafeContext)
+    fun findContainersWithSpace(
         selection: StackSelection,
     ): List<MaterialContainer> =
-        container()
+        containers()
+            .filter { !automated.inventoryConfig.immediateAccessOnly || it.isImmediatelyAccessible() }
             .filter { it.spaceAvailable(selection) >= selection.count }
             .filter { automated.inventoryConfig.containerSelection.matches(it) }
             .sortedWith(automated.inventoryConfig.providerPriority.spaceComparator(selection))
 
     context(automated: Automated)
-    fun findDisposable() = container().find { container ->
+    fun findDisposable() = containers().find { container ->
         automated.inventoryConfig.disposables.any { container.materialAvailable(it.asItem().select()) > 0 }
     }
 

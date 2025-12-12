@@ -93,4 +93,7 @@ data class ShulkerBoxContainer(
 
     context(automated: Automated)
     override fun deposit(selection: StackSelection) = ShulkerDeposit(selection, shulkerStack, automated)
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = false
 }

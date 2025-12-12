@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.interaction.construction.simulation.context.BreakContext
@@ -33,7 +34,6 @@ import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
-import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
@@ -95,18 +95,11 @@ sealed class BreakResult : BuildResult() {
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BreakItemCantMine
 
-        context(automated: Automated)
+        context(automated: Automated, safeContext: SafeContext)
         override fun resolve() =
             selectStack {
                 isItem(badItem).not()
-            }.let { selection ->
-                selection.transfer(MainHandContainer)
-                    ?: MaterialContainer.AwaitItemTask(
-                        "Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.",
-                        selection,
-                        automated
-                    )
-            }
+            }.transfer(MainHandContainer)
 
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {

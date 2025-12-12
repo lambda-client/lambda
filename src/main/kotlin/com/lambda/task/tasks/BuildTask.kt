@@ -186,7 +186,7 @@ class BuildTask private constructor(
 
             is Resolvable -> {
 	            LOG.info("Resolving: ${result.name}")
-                result.resolve().execute(this@BuildTask)
+                result.resolve()?.execute(this@BuildTask)
             }
         }
     }

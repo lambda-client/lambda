@@ -34,6 +34,7 @@ interface InventoryConfig : ISettingGroup {
     val providerPriority: Priority
     val storePriority: Priority
 
+    val immediateAccessOnly: Boolean
     val accessShulkerBoxes: Boolean
     val accessEnderChest: Boolean
     val accessChests: Boolean

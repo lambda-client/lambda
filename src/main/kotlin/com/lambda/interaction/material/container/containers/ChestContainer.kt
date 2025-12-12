@@ -18,6 +18,7 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
@@ -72,4 +73,7 @@ data class ChestContainer(
                 info("Depositing $selection to ${it.type}")
                 deposit(it, selection)
             }
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = false
 }

@@ -71,4 +71,7 @@ object EnderChestContainer : MaterialContainer(Rank.EnderChest) {
 
     context(automated: Automated)
     override fun deposit(selection: StackSelection) = EnderchestDeposit(selection)
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = false
 }
