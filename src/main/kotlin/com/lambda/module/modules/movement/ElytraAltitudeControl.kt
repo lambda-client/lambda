@@ -133,14 +133,14 @@ object ElytraAltitudeControl : Module(
 					}
 					ControlState.Pitch40Fly -> when (state) {
 						Pitch40State.GainSpeed -> {
-							player.pitch = pitch40DownAngle
+							lookAt(Rotation(player.yaw, pitch40DownAngle)).requestBy(this@ElytraAltitudeControl)
 							if (player.flySpeed() > pitch40SpeedThreshold) {
 								state = Pitch40State.PitchUp
 							}
 						}
 						Pitch40State.PitchUp -> {
 							lastAngle -= 5f
-							player.pitch = lastAngle
+							lookAt(Rotation(player.yaw, lastAngle)).requestBy(this@ElytraAltitudeControl)
 							if (lastAngle <= pitch40UpStartAngle) {
 								state = Pitch40State.FlyUp
 								if (pitch40UseFireworkOnUpTrajectory) {
@@ -152,7 +152,7 @@ object ElytraAltitudeControl : Module(
 						}
 						Pitch40State.FlyUp -> {
 							lastAngle += pitch40AngleChangeRate
-							player.pitch = lastAngle
+							lookAt(Rotation(player.yaw, lastAngle)).requestBy(this@ElytraAltitudeControl)
 							if (lastAngle >= 0f) {
 								state = Pitch40State.GainSpeed
 								if (logHeightGain) {
