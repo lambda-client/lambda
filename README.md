@@ -18,7 +18,7 @@ Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced a
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/MBAEzyFn"><img src="https://invidget.switchblade.xyz/MBAEzyFn" alt="Link to the lambda discord server https://discord.gg/MBAEzyFn"></a>
+  <a href="https://discord.gg/3y3ah5BtjB"><img src="https://invidget.switchblade.xyz/3y3ah5BtjB" alt="Link to the lambda discord server https://discord.gg/3y3ah5BtjB"></a>
 </p>
 
 Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element.io/#/room/#lambda-client:matrix.org).
