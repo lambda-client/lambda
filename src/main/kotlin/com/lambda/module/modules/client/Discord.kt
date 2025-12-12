@@ -69,7 +69,7 @@ object Discord : Module(
             return@listenOnce true
         }
 
-        onEnable { runConcurrent { start() } }
+        onEnable { runConcurrent { start(); handleLoop() } }
         runConcurrent { start() }
         onDisable { stop() }
     }
