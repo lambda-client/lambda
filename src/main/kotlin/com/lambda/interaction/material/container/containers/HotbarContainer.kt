@@ -52,4 +52,7 @@ object HotbarContainer : MaterialContainer(Rank.Hotbar) {
 
     context(automated: Automated)
     override fun deposit(selection: StackSelection) = HotbarDeposit(selection, automated)
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = true
 }

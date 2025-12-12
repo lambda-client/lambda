@@ -45,13 +45,13 @@ object Discord : Module(
     name = "Discord",
     description = "Discord Rich Presence configuration",
     tag = ModuleTag.CLIENT,
-    //enabledByDefault = true, // ToDo: Bring this back on beta release
+    enabledByDefault = true,
 ) {
     private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
     private val line1Left by setting("Line 1 Left", LineInfo.World)
     private val line1Right by setting("Line 1 Right", LineInfo.Username)
-    private val line2Left by setting("Line 2 Left", LineInfo.Dimension)
+    private val line2Left by setting("Line 2 Left", LineInfo.Version)
     private val line2Right by setting("Line 2 Right", LineInfo.Fps)
 
     val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)

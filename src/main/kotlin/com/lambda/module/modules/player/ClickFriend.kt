@@ -30,6 +30,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.client.network.OtherClientPlayerEntity
 import org.lwjgl.glfw.GLFW
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 
 object ClickFriend : Module(
     name = "ClickFriend",
@@ -37,7 +38,7 @@ object ClickFriend : Module(
     tag = ModuleTag.PLAYER,
 ) {
     private val friendBind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
-    private val unfriendBind by setting("Unfriend Bind", friendBind, "Bind to press to unfriend a player")
+    private val unfriendBind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
 
     init {
         listen<MouseEvent.Click> {

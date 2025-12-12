@@ -155,7 +155,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
-    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
     includeLib("io.github.spair:imgui-java-binding:$spairVersion")
@@ -179,6 +179,9 @@ dependencies {
     modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
+
+	// DevLogin
+	modRuntimeOnly("com.ptsmods:devlogin:3.5")
 
     // Test implementations
     testImplementation(kotlin("test"))
@@ -234,23 +237,17 @@ java {
 
 publishing {
     val publishType = project.findProperty("mavenType").toString()
-    val commitHash = project.findProperty("commitHash").toString()
-    val mavenUrl = if (project.findProperty("mavenType") == "releases") "https://maven.lambda-client.org/releases" else "https://maven.lambda-client.org/snapshots"
-
     val isSnapshots = publishType == "snapshots"
-    val isValidCommit = commitHash.matches(Regex("[A-Fa-f0-9]+")) || commitHash == "SNAPSHOT"
+    val mavenUrl = if (isSnapshots) "https://maven.lambda-client.org/snapshots" else "https://maven.lambda-client.org/releases"
+    val mavenVersion =
+        if (isSnapshots) "$modVersion+$minecraftVersion-SNAPSHOT"
+        else "$modVersion+$minecraftVersion"
 
-    if (!isSnapshots && isValidCommit)
-        println("WARNING: Commit hash for snapshot releases was supplied but the publish type is 'releases'. The commit will be omitted.")
-    else if (isSnapshots && !isValidCommit)
-        error("The maven publish type is set to 'snapshots' but no valid commit hash was supplied.")
-
-    publications {
+	publications {
         create<MavenPublication>("maven") {
             groupId = mavenGroup
             artifactId = modId
-            version = if (isSnapshots) "$modVersion+$minecraftVersion-$commitHash"
-                        else "$modVersion+$minecraftVersion"
+            version = mavenVersion
 
             from(components["java"])
         }

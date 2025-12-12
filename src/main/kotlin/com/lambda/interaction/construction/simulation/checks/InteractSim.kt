@@ -38,7 +38,7 @@ import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
+import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
@@ -219,7 +219,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		val stackSelection = item?.select()
 			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
 		val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
-		val container = stackSelection.containerWithMaterial(containerSelection).firstOrNull() ?: run {
+		val container = stackSelection.findContainersWithMaterial(containerSelection).firstOrNull() ?: run {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null
 		}

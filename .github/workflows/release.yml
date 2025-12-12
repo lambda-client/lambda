@@ -42,6 +42,10 @@ jobs:
       - name: Build Lambda
         run: ./gradlew build
 
+      - name: Publish release to maven
+        id: upload
+        run: ./gradlew publish -PmavenType=release -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v2.0.8
         with:

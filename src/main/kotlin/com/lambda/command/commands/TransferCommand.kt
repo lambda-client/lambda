@@ -30,10 +30,11 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager
-import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
-import com.lambda.interaction.material.container.ContainerManager.containerWithSpace
+import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
+import com.lambda.interaction.material.container.ContainerManager.findContainersWithSpace
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.RootTask.run
+import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
@@ -54,8 +55,10 @@ object TransferCommand : LambdaCommand(
                             isItem(stack(ctx).value().item)
                         }
                         with(AutomationConfig.Companion.DEFAULT) {
-                            selection.containerWithMaterial().forEachIndexed { i, container ->
-                                builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                            runSafe {
+                                selection.findContainersWithMaterial().forEachIndexed { i, container ->
+                                    builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                                }
                             }
                         }
                         builder.buildFuture()
@@ -66,8 +69,10 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack(ctx).value().item)
                             }
                             with(AutomationConfig.Companion.DEFAULT) {
-                                containerWithSpace(selection).forEachIndexed { i, container ->
-                                    builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                                runSafe {
+                                    findContainersWithSpace(selection).forEachIndexed { i, container ->
+                                        builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+                                    }
                                 }
                             }
                             builder.buildFuture()
@@ -76,11 +81,11 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount().value()) {
                                 isItem(stack().value().item)
                             }
-                            val fromContainer = ContainerManager.container().find {
+                            val fromContainer = ContainerManager.containers().find {
                                 it.name == from().value().split(".").last().trim()
                             } ?: return@executeWithResult failure("From container not found")
 
-                            val toContainer = ContainerManager.container().find {
+                            val toContainer = ContainerManager.containers().find {
                                 it.name == to().value().split(".").last().trim()
                             } ?: return@executeWithResult failure("To container not found")
 

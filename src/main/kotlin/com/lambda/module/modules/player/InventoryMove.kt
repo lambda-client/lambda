@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
-import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
 import com.lambda.interaction.managers.rotating.Rotation
@@ -34,6 +34,7 @@ import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AbstractCommandBlockScreen
 import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
+import net.minecraft.client.gui.screen.ingame.BookEditScreen
 import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
 import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2
 import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4
@@ -65,10 +66,11 @@ object InventoryMove : Module(
                 this is AnvilScreen ||
                 this is AbstractCommandBlockScreen ||
                 this is LambdaScreen ||
+                this is BookEditScreen ||
                 this == null
 
     init {
-        listen<UpdateManagerEvent.Rotation> {
+        listen<TickEvent.Pre> {
             if (!arrowKeys || mc.currentScreen.hasInputOrNull) return@listen
 
             val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -

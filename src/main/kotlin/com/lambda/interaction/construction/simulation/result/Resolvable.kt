@@ -18,12 +18,13 @@
 package com.lambda.interaction.construction.simulation.result
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.task.Task
 
 /**
  * Represents a [BuildResult] with a resolvable [Task]
  */
 interface Resolvable {
-    context(automated: Automated)
-    fun resolve(): Task<*>
+    context(automated: Automated, safeContext: SafeContext)
+    fun resolve(): Task<*>?
 }

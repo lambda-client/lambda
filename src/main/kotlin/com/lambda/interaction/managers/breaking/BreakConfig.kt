@@ -48,7 +48,6 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 
     val breakConfirmation: BreakConfirmationMode
     val breaksPerTick: Int
-    val maxPendingBreaks: Int
 
     val avoidLiquids: Boolean
     val avoidSupporting: Boolean

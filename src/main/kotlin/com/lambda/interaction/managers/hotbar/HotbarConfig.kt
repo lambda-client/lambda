@@ -26,6 +26,7 @@ import com.lambda.event.events.TickEvent
  * @param priority The priority of this configuration.
  */
 interface HotbarConfig : ISettingGroup {
+    val swapMode: SwapMode
     /**
      * The number of ticks to keep the current hotbar selection active.
      */
@@ -54,4 +55,9 @@ interface HotbarConfig : ISettingGroup {
      * The sub-tick timings at which hotbar actions can be performed
      */
     val tickStageMask: Collection<TickEvent>
+
+    enum class SwapMode {
+        Temporary,
+        Permanent
+    }
 }

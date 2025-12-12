@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container.containers
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.math.roundedBlockPos
@@ -43,4 +44,7 @@ data class StashContainer(
         chests.sumOf {
             it.materialAvailable(selection)
         }
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = false
 }

@@ -19,11 +19,12 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.player.gamemode
@@ -99,6 +100,9 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
     // Withdraws items from the creative menu to the player's main hand
     context(automated: Automated)
     override fun withdraw(selection: StackSelection) = CreativeWithdrawal(selection, automated)
+
+    context(safeContext: SafeContext)
+    override fun isImmediatelyAccessible() = safeContext.gamemode.isCreative
 
     class NotInCreativeModeException : IllegalStateException("Insufficient permission: not in creative mode")
 }

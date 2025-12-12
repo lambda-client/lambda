@@ -33,6 +33,9 @@ import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
+import kotlin.math.atan2
+import kotlin.math.hypot
 
 @DslMarker
 annotation class RotationDsl
@@ -49,6 +52,15 @@ fun lookAt(angle: Rotation, maxAngleDistance: Double = 0.001) =
     RotationTarget(null, {
         RotationManager.activeRotation dist angle < maxAngleDistance
     }) { angle }
+
+@RotationDsl
+fun lookAt(pos: Vec3d) =
+    RotationTarget(null) {
+        val direction = pos.subtract(player.eyePos).normalize()
+        val yaw = Math.toDegrees(atan2(direction.z, direction.x)) - 90.0
+        val pitch = -Math.toDegrees(atan2(direction.y, hypot(direction.x, direction.z)))
+        Rotation(yaw, pitch)
+    }
 
 @RotationDsl
 fun lookInDirection(direction: PlaceDirection) =

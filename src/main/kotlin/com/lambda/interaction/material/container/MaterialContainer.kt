@@ -138,6 +138,9 @@ abstract class MaterialContainer(
     open fun spaceAvailable(selection: StackSelection) =
         matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
 
+    context(safeContext: SafeContext)
+    abstract fun isImmediatelyAccessible(): Boolean
+
     context(automated: Automated)
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
         val amount = materialAvailable(selection)

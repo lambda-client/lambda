@@ -74,6 +74,7 @@ object PacketLimiter : Module(
 
 			if (!globalQueue.add(it)) {
 				it.cancel()
+				return@listen
 			}
 			//            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
 			val queue = packetQueueMap.getOrPut(it.packet::class.java.name) {

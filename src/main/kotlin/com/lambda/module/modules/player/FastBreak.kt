@@ -39,16 +39,22 @@ object FastBreak : Module(
     init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(breakConfig, rotationConfig, hotbarConfig)
+				hideAllGroupsExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
 				buildConfig.apply {
-					editTyped(
+					hide(
 						::pathing,
 						::stayInRange,
-						::useDefaultReach,
+						::spleefEntities,
+						::maxBuildDependencies,
+						::collectDrops,
+						::interactReach,
+						::attackReach
+					)
+					::maxBuildDependencies.edit { defaultValue(0) }
+					editTyped(
 						::checkSideVisibility,
 						::strictRayCast
-					) { defaultValue(false) }
-					::actionsPerTick.edit { defaultValue(1) }
+					) { defaultValue(false); hide() }
 					::interactReach.edit { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {
@@ -64,7 +70,6 @@ object FastBreak : Module(
 					) { defaultValue(false); hide() }
 					::breaksPerTick.edit { defaultValue(1); hide() }
 					::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
-					::maxPendingBreaks.edit { defaultValue(Int.MAX_VALUE); hide() }
 					hide(::sorter, ::unsafeCancels)
 				}
 				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
