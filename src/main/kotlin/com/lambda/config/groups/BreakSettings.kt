@@ -46,7 +46,7 @@ open class BreakSettings(
 
     // Double break
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once").group(baseGroup, Group.General).index()
-    override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes").group(baseGroup, Group.General).index()
+    override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { doubleBreak }.group(baseGroup, Group.General).index()
 
     // Fixes / Delays
     override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken").group(baseGroup, Group.General).index()
