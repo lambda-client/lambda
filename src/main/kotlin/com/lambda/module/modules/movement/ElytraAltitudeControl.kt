@@ -38,7 +38,7 @@ import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
-object ElytraAttitudeControl : Module(
+object ElytraAltitudeControl : Module(
 	name = "ElytraAttitudeControl",
 	description = "Automatically control attitude or speed while elytra flying",
 	tag = ModuleTag.MOVEMENT,
@@ -114,7 +114,7 @@ object ElytraAttitudeControl : Module(
 								-1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
 							}
 						}.coerceIn(-maxPitchAngle, maxPitchAngle)
-						lookAt(Rotation(player.yaw, outputPitch.toFloat())).requestBy(this@ElytraAttitudeControl)
+						lookAt(Rotation(player.yaw, outputPitch.toFloat())).requestBy(this@ElytraAltitudeControl)
 
 						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
 							if (useFireworkOnHeight && minHeight > player.y) {
