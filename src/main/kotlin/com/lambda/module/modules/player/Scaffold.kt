@@ -23,8 +23,8 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.module.Module
@@ -57,6 +57,11 @@ object Scaffold : Module(
 						defaultValue(false)
 						hide()
 					}
+				}
+				rotationConfig.apply {
+					::instant.edit { defaultValue(false) }
+					::mean.edit { defaultValue(120.0) }
+					::spread.edit { defaultValue(0.0) }
 				}
 				hideAllGroupsExcept(interactConfig, rotationConfig, hotbarConfig)
 			}

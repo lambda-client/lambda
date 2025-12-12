@@ -28,6 +28,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.Communication.logError
 import fi.dy.masa.litematica.data.DataManager
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
@@ -59,7 +60,7 @@ object Printer : Module(
 
         onEnable {
             if (!isLitematicaAvailable()) {
-                error("Litematica is not installed!")
+                logError("Litematica is not installed!")
                 disable()
                 return@onEnable
             }
