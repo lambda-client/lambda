@@ -18,27 +18,21 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda
-import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.event.EventFlow
+import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
+import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.network.NetworkManager.updateToken
-import com.lambda.network.api.v1.endpoints.linkDiscord
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.worldName
-import dev.cbyrne.kdiscordipc.KDiscordIPC
-import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
-import dev.cbyrne.kdiscordipc.data.activity.button
-import dev.cbyrne.kdiscordipc.data.activity.largeImage
-import dev.cbyrne.kdiscordipc.data.activity.smallImage
-import dev.cbyrne.kdiscordipc.data.activity.timestamps
+import dev.firstdark.rpc.DiscordRpc
+import dev.firstdark.rpc.handlers.RPCEventHandler
+import dev.firstdark.rpc.models.DiscordRichPresence
 import kotlinx.coroutines.delay
 
 object Discord : Module(
@@ -54,63 +48,55 @@ object Discord : Module(
     private val line2Left by setting("Line 2 Left", LineInfo.Version)
     private val line2Right by setting("Line 2 Right", LineInfo.Fps)
 
-    val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
-
+    val rpc = DiscordRpc()
     private var startup = System.currentTimeMillis()
 
-    var discordAuth: AuthenticatePacket.Data? = null; private set
+//    var discordAuth: AuthenticatePacket.Data? = null; private set
 
     init {
         listenOnce<WorldEvent.Join> {
-            if (rpc.connected) return@listenOnce false
-
             runConcurrent {
                 start()
-                handleLoop()
+                update()
             }
 
             return@listenOnce true
         }
 
-        onEnable { runConcurrent { start(); handleLoop() } }
+        onEnable { runConcurrent { start(); update() } }
         onDisable { stop() }
     }
 
-    private suspend fun start() {
-        if (rpc.connected) return
-
-        runConcurrent { rpc.connect() }
-        delay(1000)
-
-        val auth = rpc.applicationManager.authenticate()
-
-        linkDiscord(discordToken = auth.accessToken)
-            .onSuccess { updateToken(it); discordAuth = auth }
-            .onFailure { LOG.error(it); warn("Failed to link your discord account") }
+    private fun start() {
+        rpc.init(Lambda.APP_ID, RPCEventHandler(), true)
+//        val auth = rpc.applicationManager.authenticate()
+//
+//        linkDiscord(discordToken = auth.accessToken)
+//            .onSuccess { updateToken(it); discordAuth = auth }
+//            .onFailure { LOG.error(it); warn("Failed to link your discord account") }
     }
 
     private fun stop() {
-        if (rpc.connected) rpc.disconnect()
-    }
-
-    private suspend fun SafeContext.handleLoop() {
-        while (rpc.connected) {
-            update()
-            delay(delay)
-        }
+        rpc.shutdown()
     }
 
     private suspend fun SafeContext.update() {
-        rpc.activityManager.setActivity {
-            details = "${line1Left.value(this@update)} | ${line1Right.value(this@update)}".take(128)
-            state = "${line2Left.value(this@update)} | ${line2Right.value(this@update)}".take(128)
+        val presence = DiscordRichPresence
+            .builder()
+            .details("${line1Left.value(this)} | ${line1Right.value(this)}".take(128))
+            .state("${line2Left.value(this)} | ${line2Right.value(this)}".take(128))
+            .largeImageKey("lambda")
+            .largeImageText(Lambda.VERSION)
+            .smallUrl("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm")
+            .smallImageText(mc.gameProfile.name)
+            .button(DiscordRichPresence.RPCButton.of("Download", "https://github.com/lambda-client/lambda"))
 
-            largeImage("lambda", Lambda.VERSION)
-            smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
-            button("Download", "https://github.com/lambda-client/lambda")
+        if (showTime)
+            presence.startTimestamp(startup)
 
-            if (showTime) timestamps(startup)
-        }
+        rpc.updatePresence(presence.build())
+
+        delay(delay)
     }
 
     private enum class LineInfo(val value: SafeContext.() -> String) : Nameable {
