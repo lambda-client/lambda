@@ -22,7 +22,6 @@ import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -36,7 +35,6 @@ import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.worldName
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
-import dev.cbyrne.kdiscordipc.data.activity.button
 import dev.cbyrne.kdiscordipc.data.activity.largeImage
 import dev.cbyrne.kdiscordipc.data.activity.smallImage
 import dev.cbyrne.kdiscordipc.data.activity.timestamps
