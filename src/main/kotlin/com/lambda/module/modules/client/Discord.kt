@@ -21,6 +21,7 @@ import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.module.Module
@@ -61,26 +62,22 @@ object Discord : Module(
     var discordAuth: AuthenticatePacket.Data? = null; private set
 
     init {
-        listenOnce<WorldEvent.Join> {
-            if (rpc.connected) return@listenOnce false
-
-            runConcurrent {
-                start()
-                handleLoop()
-            }
+        // ts is fucked frfr
+        listenOnce<TickEvent.Pre> {
+            runConcurrent { handleLoop() }
 
             return@listenOnce true
         }
 
-        onEnable { runConcurrent { start(); handleLoop() } }
+        onEnable { runConcurrent { start() } }
+        runConcurrent { start() }
         onDisable { stop() }
     }
 
     private suspend fun start() {
         if (rpc.connected) return
 
-        runConcurrent { rpc.connect() }
-        delay(1000)
+        rpc.connect()
 
         val auth = rpc.applicationManager.authenticate()
 
@@ -107,7 +104,7 @@ object Discord : Module(
 
             largeImage("lambda", Lambda.VERSION)
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
-            button("Download", "https://github.com/lambda-client/lambda")
+            //button("Download", "https://github.com/lambda-client/lambda")
 
             if (showTime) timestamps(startup)
         }
