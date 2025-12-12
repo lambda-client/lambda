@@ -42,7 +42,7 @@ Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element
 ### Sophisticated User Experience
 * **Fine-Grained Control:** Access over **1000+ settings**, allowing you to tune every aspect of the client to your exact needs.
 * **Advanced GUI:** The **Dear ImGui** interface is designed for clarity and depth, featuring quick search, context menus, and easy keybind editing.
-* **Automation Profiles:** Use linkable presets to apply complex configurations across multiple modules instantly.
+* **Automation Profiles:** Use linkable configs to apply complex configurations across multiple modules instantly.
 
 ### Stability & Safety
 * **Anticheat Ready:** Built with **Grim** and other modern anticheats in mind.
