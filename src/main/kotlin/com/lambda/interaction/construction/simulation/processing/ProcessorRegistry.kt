@@ -21,7 +21,6 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.interaction.construction.simulation.SimDsl
-import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo.Companion.default
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
@@ -134,9 +133,7 @@ object ProcessorRegistry : Loadable {
 	 */
 	@SimDsl
 	fun AutomatedSafeContext.getProcessingInfo(state: BlockState, targetState: TargetState, pos: BlockPos): PreProcessingData? {
-		val targetBlockState = (targetState as? TargetState.State)?.blockState
-			?: return PreProcessingData(default(targetState, pos), pos)
-
+		val targetBlockState = targetState.getState(pos)
 		val processorCacheKey = state to targetBlockState
 		val preProcessingInfo = processorCache.getOrElse(processorCacheKey) {
 			preProcess(pos, state, targetBlockState, targetState.getStack(pos)).also { info ->

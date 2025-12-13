@@ -62,7 +62,7 @@ open class AutomationConfig(
 	        name: String = module.name,
 	        edits: (AutomationConfig.() -> Unit)? = null
 		) {
-			defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
+			this.defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
 		}
 
         fun MutableAutomationConfig.setDefaultAutomationConfig(
