@@ -11,7 +11,7 @@
 ![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)
 ![GitHub License](https://img.shields.io/github/license/lambda-client/lambda?logo=gplv3&link=https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fgpl-3.0.en.html)
 
-Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda).
+Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda-legacy).
 
 <p align="center">
     <a href="https://github.com/lambda-client/lambda/releases/download/0.0.1%2B1.21.5/lambda-0.0.1+1.21.5.jar"><img alt="lambda-0.0.1+1.21.5.jar" src="https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/download_button_0.0.1.png" width="70%" height="70%"></a>
