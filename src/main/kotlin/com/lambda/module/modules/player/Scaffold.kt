@@ -63,7 +63,21 @@ object Scaffold : Module(
 					::mean.edit { defaultValue(120.0) }
 					::spread.edit { defaultValue(0.0) }
 				}
-				hideAllGroupsExcept(interactConfig, rotationConfig, hotbarConfig)
+				inventoryConfig.apply {
+					hide(
+						::actionsPerSecond,
+						::tickStageMask,
+						::swapWithDisposables,
+						::providerPriority,
+						::storePriority,
+						::immediateAccessOnly,
+						::accessShulkerBoxes,
+						::accessEnderChest,
+						::accessChests,
+						::accessStashes
+					)
+				}
+				hideAllGroupsExcept(interactConfig, rotationConfig, hotbarConfig, inventoryConfig)
 			}
 		}
 
