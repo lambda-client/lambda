@@ -26,7 +26,6 @@ import com.lambda.interaction.managers.PostActionHandler
 import com.lambda.interaction.managers.interacting.InteractManager.placeSound
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.matches
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
@@ -35,7 +34,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
         DEFAULT.buildConfig.maxPendingActions,
         DEFAULT.buildConfig.actionTimeout * 50L
     ) {
-        info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
+        if (managerDebugLogs) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
         if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
             runSafe {
                 world.setBlockState(it.context.blockPos, it.context.cachedState)
