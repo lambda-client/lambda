@@ -23,6 +23,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -110,6 +111,7 @@ object Freecam : Module(
         }
 
         listen<UpdateManagerEvent.Rotation> {
+            if (BaritoneManager.isActive) return@listen
             when (rotateMode) {
                 FreecamRotationMode.None -> return@listen
                 FreecamRotationMode.KeepRotation -> lookAt(rotation).requestBy(this@Freecam)
