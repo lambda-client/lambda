@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
@@ -33,9 +34,9 @@ object Velocity : Module(
     @JvmStatic val explosion by setting("Explosion", true, "Prevents the player from taking knockback from explosions")
 
     init {
-        listen<PacketEvent.Receive.Pre> { event ->
+        listenUnsafe <PacketEvent.Receive.Pre> { event ->
             when (event.packet) {
-                is EntityVelocityUpdateS2CPacket if (knockback && event.packet.entityId != player.id) -> event.cancel()
+                is EntityVelocityUpdateS2CPacket if (knockback && event.packet.entityId == mc.player?.id) -> event.cancel()
             }
         }
     }
