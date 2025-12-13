@@ -31,6 +31,10 @@ val LambdaResource.stream: InputStream
     get() = Lambda::class.java.getResourceAsStream("/assets/lambda/$this")
         ?: throw FileNotFoundException("File \"/assets/lambda/$this\" not found")
 
+val LambdaResource.text: String
+    get() = Lambda::class.java.getResourceAsStream("/assets/lambda/$this")?.readAllBytes()?.decodeToString()
+        ?: throw FileNotFoundException("File \"/assets/lambda/$this\" not found")
+
 val LambdaResource.url: URL
     get() = Lambda::class.java.getResource("/assets/lambda/$this")
         ?: throw FileNotFoundException("File \"/assets/lambda/$this\" not found")

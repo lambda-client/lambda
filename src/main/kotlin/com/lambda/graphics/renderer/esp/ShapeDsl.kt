@@ -19,13 +19,11 @@ package com.lambda.graphics.renderer.esp
 
 import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
-import com.lambda.graphics.renderer.esp.Treed.Companion.cameraPos
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.max
 import com.lambda.util.extension.min
 import com.lambda.util.extension.outlineShape
-import com.lambda.util.math.minus
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
@@ -48,12 +46,11 @@ class ShapeBuilder(
         sides   : Int = DirectionMask.ALL,
     ) = faces.apply {
         val boxes = box.pair ?: return@apply
-        val camera = cameraPos
 
-        val pos11 = boxes.first.min - camera
-        val pos12 = boxes.first.max - camera
-        val pos21 = boxes.second.min - camera
-        val pos22 = boxes.second.max - camera
+        val pos11 = boxes.first.min
+        val pos12 = boxes.first.max
+        val pos21 = boxes.second.min
+        val pos22 = boxes.second.max
 
         val blb by lazy { vertex { vec3(pos11.x, pos11.y, pos11.z).vec3(pos21.x, pos21.y, pos21.z).color(color) } }
         val blf by lazy { vertex { vec3(pos11.x, pos11.y, pos12.z).vec3(pos21.x, pos21.y, pos22.z).color(color) } }
@@ -79,9 +76,8 @@ class ShapeBuilder(
         topColor    : Color = bottomColor,
         sides       : Int = DirectionMask.ALL
     ) = faces.apply {
-        val camera = cameraPos
-        val pos1 = box.min - camera
-        val pos2 = box.max - camera
+        val pos1 = box.min
+        val pos2 = box.max
 
         val blb by lazy { vertex { vec3(pos1.x, pos1.y, pos1.z).color(bottomColor) } }
         val blf by lazy { vertex { vec3(pos1.x, pos1.y, pos2.z).color(bottomColor) } }
@@ -156,12 +152,11 @@ class ShapeBuilder(
         mode    : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = edges.apply {
         val boxes = box.pair ?: return@apply
-        val camera = cameraPos
 
-        val pos11 = boxes.first.min - camera
-        val pos12 = boxes.first.max - camera
-        val pos21 = boxes.second.min - camera
-        val pos22 = boxes.second.max - camera
+        val pos11 = boxes.first.min
+        val pos12 = boxes.first.max
+        val pos21 = boxes.second.min
+        val pos22 = boxes.second.max
 
         val blb by lazy { vertex { vec3(pos11.x, pos11.y, pos11.z).vec3(pos21.x, pos21.y, pos21.z).color(color) } }
         val blf by lazy { vertex { vec3(pos11.x, pos11.y, pos12.z).vec3(pos21.x, pos21.y, pos22.z).color(color) } }
@@ -203,9 +198,8 @@ class ShapeBuilder(
         sides       : Int = DirectionMask.ALL,
         mode        : DirectionMask.OutlineMode = DirectionMask.OutlineMode.Or,
     ) = edges.apply {
-        val camera = cameraPos
-        val pos1 = box.min - camera
-        val pos2 = box.max - camera
+        val pos1 = box.min
+        val pos2 = box.max
 
         val blb by lazy { vertex { vec3(pos1.x, pos1.y, pos1.z).color(bottomColor) } }
         val blf by lazy { vertex { vec3(pos1.x, pos1.y, pos2.z).color(bottomColor) } }
