@@ -47,13 +47,13 @@ object Scaffold : Module(
     private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
     private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
-    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
     init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange, ::collectDrops) {
+					editTyped(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
 						defaultValue(false)
 						hide()
 					}
@@ -77,7 +77,7 @@ object Scaffold : Module(
 						::accessStashes
 					)
 				}
-				hideAllGroupsExcept(interactConfig, rotationConfig, hotbarConfig, inventoryConfig)
+				hideAllGroupsExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig, inventoryConfig)
 			}
 		}
 
@@ -91,7 +91,7 @@ object Scaffold : Module(
                 scaffoldPositions(beneath)
                     .associateWith { TargetState.Solid(emptySet()) }
                     .simulate()
-                    .interactRequest(pendingInteractions)
+                    .interactRequest(pendingActions)
 	                ?.submit()
             }
         }
