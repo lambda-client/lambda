@@ -174,10 +174,12 @@ object RotationManager : Manager<RotationRequest>(
     }
 
     @JvmStatic
-    fun handleBaritoneRotation(yaw: Float) {
+    fun handleBaritoneRotation(yaw: Double, pitch: Double) {
         runSafe {
-            activeRequest = lookAt(Rotation(yaw, player.pitch)).requestBy(BaritoneManager)
             usingBaritoneRotation = true
+            activeRequest = RotationRequest(lookAt(Rotation(yaw, pitch)), BaritoneManager)
+            updateActiveRotation()
+            changedThisTick = true
         }
     }
 
