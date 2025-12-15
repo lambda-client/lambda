@@ -29,6 +29,8 @@ object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
+	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
+
     override val isVisible: Boolean
         get() = false
 
@@ -41,7 +43,8 @@ object ModuleList : HudModule(
             text(it.name); sameLine()
             val color = if (it.keybind.key == 0 && it.keybind.mouse == -1) Color.RED else Color.GREEN
 
-            withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        if (showKeybind)
+				withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
         }
     }
 }
