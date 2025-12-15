@@ -57,6 +57,11 @@ object Pitch40 : Module(
 		}
 
 		listen<TickEvent.Pre> {
+			if (!player.isGliding) {
+				reset(player)
+				return@listen
+			}
+
 			when (state) {
 				Pitch40State.GainSpeed -> {
 					lookAt(Rotation(player.yaw, PITCH_DOWN_DEFAULT)).requestBy(this@Pitch40)
@@ -87,10 +92,14 @@ object Pitch40 : Module(
 		}
 
 		onEnable {
-			state = Pitch40State.GainSpeed
-			lastPos = player.pos
-			lastAngle = PITCH_UP_DEFAULT
+			reset(player)
 		}
+	}
+
+	fun reset(player: ClientPlayerEntity) {
+		state = Pitch40State.GainSpeed
+		lastPos = player.pos
+		lastAngle = PITCH_UP_DEFAULT
 	}
 
 	/**
