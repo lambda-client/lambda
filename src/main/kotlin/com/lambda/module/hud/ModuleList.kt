@@ -41,10 +41,11 @@ object ModuleList : HudModule(
 
         enabled.forEach {
             text(it.name); sameLine()
-            val color = if (it.keybind.key == 0 && it.keybind.mouse == -1) Color.RED else Color.GREEN
 
-	        if (showKeybind)
-				withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        if (showKeybind) {
+		        val color = if (it.keybind.key == 0 && it.keybind.mouse == -1) Color.RED else Color.GREEN
+		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        }
         }
     }
 }
