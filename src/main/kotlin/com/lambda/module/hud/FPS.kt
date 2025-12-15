@@ -30,9 +30,7 @@ object FPS : HudModule(
 	tag = ModuleTag.HUD
 ) {
 	val average by setting("Average", false)
-	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value") {
-		!average
-	}
+	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")
 
 	val frames = mutableListOf<Long>();
 	var lastUpdated = System.currentTimeMillis()
@@ -41,22 +39,22 @@ object FPS : HudModule(
 
 	init {
 		listen<RenderEvent.Render> {
+			var currentFps = 0
 			if (average) {
 				frames.add(System.nanoTime() + 1.seconds.inWholeNanoseconds)
 				frames.removeIf { System.nanoTime() > it }
-				fps = frames.size
+				currentFps = frames.size
 			} else {
 				val currentTimeNano = System.nanoTime()
-
-				val currentTypeMilli = System.currentTimeMillis()
-				if (currentTypeMilli - lastUpdated >= updateDelay) {
-					lastUpdated = currentTypeMilli
-					val elapsedNs = currentTimeNano - lastFrameTime
-					fps = if (elapsedNs > 0) (1000000000 / elapsedNs).toInt()
-					else 0
-				}
-
+				val elapsedNs = currentTimeNano - lastFrameTime
+				currentFps = if (elapsedNs > 0) (1000000000 / elapsedNs).toInt() else 0
 				lastFrameTime = currentTimeNano
+			}
+
+			val currentTypeMilli = System.currentTimeMillis()
+			if (currentTypeMilli - lastUpdated >= updateDelay) {
+				fps = currentFps
+				lastUpdated = currentTypeMilli
 			}
 		}
 	}
