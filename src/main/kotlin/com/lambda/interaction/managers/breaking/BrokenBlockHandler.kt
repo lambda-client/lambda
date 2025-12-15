@@ -18,6 +18,7 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.managerDebugLogs
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -60,11 +61,11 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             if (!info.broken) {
                 val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
                 BreakManager.logger.error(message)
-                warn(message)
+                if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
             } else if (!DEFAULT.ignoreItemDropWarnings) {
                 val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
-                BreakManager.logger.warn(message)
-                warn(message)
+                BreakManager.logger.warning(message)
+                if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
             }
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
@@ -97,7 +98,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                     } else {
                         val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
                         BreakManager.logger.error(message)
-                        this@BrokenBlockHandler.warn(message)
+                        if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
                         pending.stopPending()
                     }
                     return@listen
