@@ -39,6 +39,7 @@ import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.BlockItem
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import kotlin.jvm.optionals.getOrNull
 
 object PlayerTrap : Module(
@@ -88,8 +89,8 @@ object PlayerTrap : Module(
 	}
 
 	fun SafeContext.getTrapPositions(player: PlayerEntity): Set<BlockPos> {
-		val min = player.boundingBox.minPos.flooredBlockPos.add(-1, -1, -1)
-		val max = player.boundingBox.maxPos.flooredBlockPos.add(1, 1, 1)
+		val min = player.boundingBox.withEpsilon().minPos.flooredBlockPos.add(-1, -1, -1)
+		val max = player.boundingBox.withEpsilon().maxPos.flooredBlockPos.add(1, 1, 1)
 
 		return buildSet {
 			(min.x + 1..<max.x).forEach { x ->
@@ -115,5 +116,12 @@ object PlayerTrap : Module(
 				}
 			}
 		}
+	}
+
+	/**
+	 * @see net.minecraft.util.math.Box.EPSILON
+	 */
+	fun Box.withEpsilon(): Box {
+		return this.expand(-1e-7)
 	}
 }
