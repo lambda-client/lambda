@@ -30,6 +30,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
@@ -39,7 +40,6 @@ import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.BlockItem
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import kotlin.jvm.optionals.getOrNull
 
 object PlayerTrap : Module(
@@ -89,8 +89,8 @@ object PlayerTrap : Module(
 	}
 
 	fun SafeContext.getTrapPositions(player: PlayerEntity): Set<BlockPos> {
-		val min = player.boundingBox.withEpsilon().minPos.flooredBlockPos.add(-1, -1, -1)
-		val max = player.boundingBox.withEpsilon().maxPos.flooredBlockPos.add(1, 1, 1)
+		val min = player.boundingBox.shrinkByEpsilon().minPos.flooredBlockPos.add(-1, -1, -1)
+		val max = player.boundingBox.shrinkByEpsilon().maxPos.flooredBlockPos.add(1, 1, 1)
 
 		return buildSet {
 			(min.x + 1..<max.x).forEach { x ->
@@ -116,12 +116,5 @@ object PlayerTrap : Module(
 				}
 			}
 		}
-	}
-
-	/**
-	 * @see net.minecraft.util.math.Box.EPSILON
-	 */
-	fun Box.withEpsilon(): Box {
-		return this.expand(-1e-7)
 	}
 }
