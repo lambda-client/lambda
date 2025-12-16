@@ -425,10 +425,9 @@ object BreakManager : Manager<BreakRequest>(
     private fun SafeContext.canAccept(newCtx: BreakContext): Boolean {
         if (activeInfos.none { it.context.blockPos == newCtx.blockPos } && isPosBlocked(newCtx.blockPos)) return false
 
-        val blockState = blockState(newCtx.blockPos)
         val hardness = newCtx.cachedState.getHardness(world, newCtx.blockPos)
 
-        return blockState.isNotEmpty && hardness != 600f && hardness != -1f
+        return newCtx.cachedState.isNotEmpty && (hardness != -1f || player.isCreative)
     }
 
     /**
