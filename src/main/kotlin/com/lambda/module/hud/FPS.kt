@@ -30,10 +30,10 @@ object FPS : HudModule(
 	description = "Displays your games frames per second",
 	tag = ModuleTag.HUD
 ) {
-	val average by setting("Average", false)
+	val average by setting("Average", true)
 	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")
 
-	val frames = LimitedDecayQueue<Unit>(Int.MAX_VALUE, 1.seconds.inWholeMilliseconds);
+	val frames = LimitedDecayQueue<Unit>(Int.MAX_VALUE, 1.seconds.inWholeMilliseconds)
 	var lastUpdated = System.currentTimeMillis()
 	var lastFrameTime = System.nanoTime()
 	var fps = 0
