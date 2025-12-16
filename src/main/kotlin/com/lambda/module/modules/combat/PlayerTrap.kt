@@ -30,6 +30,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
@@ -88,8 +89,8 @@ object PlayerTrap : Module(
 	}
 
 	fun SafeContext.getTrapPositions(player: PlayerEntity): Set<BlockPos> {
-		val min = player.boundingBox.minPos.flooredBlockPos.add(-1, -1, -1)
-		val max = player.boundingBox.maxPos.flooredBlockPos.add(1, 1, 1)
+		val min = player.boundingBox.shrinkByEpsilon().minPos.flooredBlockPos.add(-1, -1, -1)
+		val max = player.boundingBox.shrinkByEpsilon().maxPos.flooredBlockPos.add(1, 1, 1)
 
 		return buildSet {
 			(min.x + 1..<max.x).forEach { x ->
