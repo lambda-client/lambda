@@ -22,6 +22,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.collections.LimitedDecayQueue
 import kotlin.time.Duration.Companion.seconds
 
 object FPS : HudModule(
@@ -32,7 +33,7 @@ object FPS : HudModule(
 	val average by setting("Average", false)
 	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")
 
-	val frames = mutableListOf<Long>();
+	val frames = LimitedDecayQueue<Unit>(Int.MAX_VALUE, 1.seconds.inWholeMilliseconds);
 	var lastUpdated = System.currentTimeMillis()
 	var lastFrameTime = System.nanoTime()
 	var fps = 0
@@ -41,8 +42,7 @@ object FPS : HudModule(
 		listen<RenderEvent.Render> {
 			var currentFps = 0
 			if (average) {
-				frames.add(System.nanoTime() + 1.seconds.inWholeNanoseconds)
-				frames.removeIf { System.nanoTime() > it }
+				frames.add(Unit)
 				currentFps = frames.size
 			} else {
 				val currentTimeNano = System.nanoTime()
