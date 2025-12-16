@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
+import com.lambda.interaction.construction.simulation.BreakSimInfo
 import com.lambda.interaction.construction.simulation.Results
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
@@ -47,7 +48,7 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block should be ignored
-        if (state.block in breakConfig.ignoredBlocks && targetState.isEmpty()) {
+        if (state.block in breakConfig.ignoredBlocks && this@hasBasicRequirements is BreakSimInfo) {
             result(GenericResult.Ignored(pos))
             return false
         }
@@ -70,7 +71,7 @@ object BasicChecker : Results<PreSimResult> {
             return false
         }
 
-        // block is unbreakable, so it cant be broken or replaced
+        // block is unbreakable, so it can't be broken or replaced
         if (state.getHardness(world, pos) < 0 && !gamemode.isCreative) {
             result(PreSimResult.Unbreakable(pos, state))
             return false
