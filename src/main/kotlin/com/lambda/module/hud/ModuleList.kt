@@ -28,7 +28,9 @@ object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
-    val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
+	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
+	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
+
     init {
         drawSetting.value = false
     }
@@ -39,10 +41,14 @@ object ModuleList : HudModule(
         enabled.forEach {
             val bound = it.keybind.key != 0 || it.keybind.mouse != -1
             if (onlyBound && !bound) return@forEach
-            text(it.name); sameLine()
-            val color = if (!bound) Color.RED else Color.GREEN
+            text(it.name);
 
-            withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        if (showKeybind) {
+		        val color = if (!bound) Color.RED else Color.GREEN
+
+		        sameLine()
+		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        }
         }
     }
 }
