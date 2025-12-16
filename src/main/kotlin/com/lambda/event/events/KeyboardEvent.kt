@@ -22,6 +22,7 @@ import com.lambda.event.Event
 import com.lambda.util.KeyCode
 import org.lwjgl.glfw.GLFW.GLFW_PRESS
 import org.lwjgl.glfw.GLFW.GLFW_RELEASE
+import org.lwjgl.glfw.GLFW.GLFW_REPEAT
 
 sealed class KeyboardEvent {
     /**
@@ -48,6 +49,7 @@ sealed class KeyboardEvent {
 
         val isPressed = action >= GLFW_PRESS
         val isReleased = action == GLFW_RELEASE
+        val isRepeated = action == GLFW_REPEAT
 
         fun satisfies(bind: Bind) = bind.key == translated.code && bind.modifiers and modifiers == bind.modifiers
     }

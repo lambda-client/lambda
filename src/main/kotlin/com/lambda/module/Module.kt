@@ -142,7 +142,7 @@ abstract class Module(
                 || Lambda.mc.currentScreen != null
                 || !event.satisfies(keybind)) return@listen
 
-            if (event.isPressed) toggle()
+            if (event.isPressed && !event.isRepeated) toggle()
             else if (event.isReleased && disableOnRelease) disable()
         }
 
