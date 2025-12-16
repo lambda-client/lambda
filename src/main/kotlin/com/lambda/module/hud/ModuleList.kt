@@ -21,7 +21,6 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
 import imgui.flag.ImGuiCol
 import java.awt.Color
 
@@ -29,13 +28,12 @@ object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
-    override val isVisible: Boolean
-        get() = false
+    init {
+        drawSetting.value = false
+    }
 
     override fun ImGuiBuilder.buildLayout() {
-        val enabled = ModuleRegistry.modules
-            .filter { it.isEnabled }
-            .filter { it.isVisible }
+        val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
 
         enabled.forEach {
             text(it.name); sameLine()

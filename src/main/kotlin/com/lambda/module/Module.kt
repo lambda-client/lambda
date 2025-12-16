@@ -124,14 +124,14 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }
-
-    open val isVisible: Boolean = true
+    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element")
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting
     val disableOnRelease by disableOnReleaseSetting
+    val draw by drawSetting
 
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
