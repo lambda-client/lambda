@@ -32,9 +32,9 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(InGameOverlayRenderer.class)
 public class InGameOverlayRendererMixin {
     @WrapMethod(method = "renderFireOverlay")
-    private static void wrapRenderFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Operation<Void> original) {
+    private static void wrapRenderFireOverlay(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Sprite sprite, Operation<Void> original) {
         if (!(NoRender.INSTANCE.isEnabled() && NoRender.getNoFireOverlay())) {
-            original.call(matrices, vertexConsumers);
+            original.call(matrices, vertexConsumers, sprite);
         }
     }
 

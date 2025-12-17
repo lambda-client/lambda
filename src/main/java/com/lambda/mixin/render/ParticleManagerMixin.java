@@ -41,15 +41,15 @@ public class ParticleManagerMixin {
 //        if (NoRender.shouldOmitParticle(particle)) ci.cancel();
 //    }
 
-    @WrapOperation(method = "renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleManager;renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;Lnet/minecraft/client/particle/ParticleTextureSheet;Ljava/util/Queue;)V"))
-    private void wrapRenderParticles(Camera camera, float tickProgress, VertexConsumerProvider.Immediate vertexConsumers, ParticleTextureSheet sheet, Queue<Particle> particles, Operation<Void> original) {
-        original.call(camera, tickProgress, vertexConsumers, sheet, filterParticles(particles));
-    }
-
-    @WrapOperation(method = "renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleManager;renderCustomParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;Ljava/util/Queue;)V"))
-    private void wrapRenderParticles(Camera camera, float tickProgress, VertexConsumerProvider.Immediate vertexConsumers, Queue<Particle> particles, Operation<Void> original) {
-        original.call(camera, tickProgress, vertexConsumers, filterParticles(particles));
-    }
+//    @WrapOperation(method = "renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleManager;renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;Lnet/minecraft/client/particle/ParticleTextureSheet;Ljava/util/Queue;)V"))
+//    private void wrapRenderParticles(Camera camera, float tickProgress, VertexConsumerProvider.Immediate vertexConsumers, ParticleTextureSheet sheet, Queue<Particle> particles, Operation<Void> original) {
+//        original.call(camera, tickProgress, vertexConsumers, sheet, filterParticles(particles));
+//    }
+//
+//    @WrapOperation(method = "renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleManager;renderCustomParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;Ljava/util/Queue;)V"))
+//    private void wrapRenderParticles(Camera camera, float tickProgress, VertexConsumerProvider.Immediate vertexConsumers, Queue<Particle> particles, Operation<Void> original) {
+//        original.call(camera, tickProgress, vertexConsumers, filterParticles(particles));
+//    }
 
     @Unique
     private Queue<Particle> filterParticles(Queue<Particle> particles) {

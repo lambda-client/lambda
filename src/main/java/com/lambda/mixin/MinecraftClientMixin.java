@@ -46,6 +46,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.thread.ThreadExecutor;
 import org.jetbrains.annotations.Nullable;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -106,18 +107,18 @@ public class MinecraftClientMixin {
         this.lambda$inputHandledThisTick = true;
     }
 
-    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
-    void onWorldRenderer(WorldRenderer instance, Operation<Void> original) {
-        if (!this.lambda$inputHandledThisTick) {
-            EventFlow.post(TickEvent.Input.Pre.INSTANCE);
-            EventFlow.post(TickEvent.Input.Post.INSTANCE);
-            this.lambda$inputHandledThisTick = true;
-        }
-
-        EventFlow.post(TickEvent.WorldRender.Pre.INSTANCE);
-        original.call(instance);
-        EventFlow.post(TickEvent.WorldRender.Post.INSTANCE);
-    }
+//    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
+//    void onWorldRenderer(WorldRenderer instance, Operation<Void> original) {
+//        if (!this.lambda$inputHandledThisTick) {
+//            EventFlow.post(TickEvent.Input.Pre.INSTANCE);
+//            EventFlow.post(TickEvent.Input.Post.INSTANCE);
+//            this.lambda$inputHandledThisTick = true;
+//        }
+//
+//        EventFlow.post(TickEvent.WorldRender.Pre.INSTANCE);
+//        original.call(instance);
+//        EventFlow.post(TickEvent.WorldRender.Post.INSTANCE);
+//    }
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/sound/SoundManager;tick(Z)V"))
     void onSound(SoundManager instance, boolean paused, Operation<Void> original) {
@@ -134,7 +135,7 @@ public class MinecraftClientMixin {
     /**
      * Inject after the thread field is set so that {@link ThreadExecutor#getThread} is available
      */
-    @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0), method = "run")
+    @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0, opcode = Opcodes.PUTFIELD), method = "run")
     private void onStartup(CallbackInfo ci) {
         EventFlow.post(new ClientEvent.Startup());
     }

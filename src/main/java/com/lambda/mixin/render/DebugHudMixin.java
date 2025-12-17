@@ -28,8 +28,8 @@ import java.util.List;
 
 @Mixin(DebugHud.class)
 public class DebugHudMixin {
-    @Inject(method = "getRightText", at = @At("TAIL"))
-    private void onGetRightText(CallbackInfoReturnable<List<String>> cir) {
-        DebugInfoHud.addDebugInfo(cir.getReturnValue());
-    }
+//    @Inject(method = "getRightText", at = @At("TAIL"))
+//    private void onGetRightText(CallbackInfoReturnable<List<String>> cir) {
+//        DebugInfoHud.addDebugInfo(cir.getReturnValue());
+//    }
 }

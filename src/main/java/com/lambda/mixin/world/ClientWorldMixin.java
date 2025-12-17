@@ -46,21 +46,21 @@ public class ClientWorldMixin {
         EventFlow.post(new EntityEvent.Removal(entity, removalReason));
     }
 
-    @ModifyReturnValue(method = "getCloudsColor", at = @At("RETURN"))
-    private int modifyGetCloudsColor(int original) {
-        if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomClouds()) {
-            return WorldColors.getCloudColor().getRGB() & 0xFFFFFF;
-        }
-        return original;
-    }
-
-    @ModifyReturnValue(method = "getSkyColor", at = @At("RETURN"))
-    private int modifyGetSkyColor(int original) {
-        if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomSky()) {
-            return WorldColors.getSkyColor().getRGB() & 0xFFFFFF;
-        }
-        return original;
-    }
+//    @ModifyReturnValue(method = "getCloudsColor", at = @At("RETURN"))
+//    private int modifyGetCloudsColor(int original) {
+//        if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomClouds()) {
+//            return WorldColors.getCloudColor().getRGB() & 0xFFFFFF;
+//        }
+//        return original;
+//    }
+//
+//    @ModifyReturnValue(method = "getSkyColor", at = @At("RETURN"))
+//    private int modifyGetSkyColor(int original) {
+//        if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomSky()) {
+//            return WorldColors.getSkyColor().getRGB() & 0xFFFFFF;
+//        }
+//        return original;
+//    }
 
 
     @Inject(method = "handleBlockUpdate", at = @At("HEAD"), cancellable = true)

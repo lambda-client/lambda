@@ -65,7 +65,7 @@ public abstract class ChatInputSuggestorMixin {
     @SuppressWarnings("unchecked")
     @WrapOperation(method = "refresh", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;getCommandDispatcher()Lcom/mojang/brigadier/CommandDispatcher;"))
     private CommandDispatcher<CommandSource> wrapRefresh(ClientPlayNetworkHandler instance, Operation<CommandDispatcher<CommandSource>> original) {
-        return (CommandDispatcher<CommandSource>) (Object) CommandManager.INSTANCE.currentDispatcher(textField.getText());
+        return (CommandDispatcher<CommandSource>) CommandManager.INSTANCE.currentDispatcher(textField.getText());
     }
 
     @Inject(method = "refresh", at = @At("TAIL"))

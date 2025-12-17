@@ -54,7 +54,7 @@ public class LightmapTextureManagerMixin {
 
     @ModifyReturnValue(method = "getDarkness", at = @At("RETURN"))
     private float modifyGetDarkness(float original, LivingEntity entity, float factor, float tickProgress) {
-        if (NoRender.INSTANCE.getNoDarkness() && NoRender.INSTANCE.isEnabled()) return 0.0f;
+        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) return 0.0f;
         return original;
     }
 }
