@@ -38,7 +38,7 @@ public class BackgroundRendererMixin {
 
     @Inject(method = "shouldApply", at = @At("HEAD"), cancellable = true)
     private void injectShouldApplyBlindness(CameraSubmersionType submersionType, Entity cameraEntity, CallbackInfoReturnable<Boolean> cir) {
-        if (NoRender.getNoBlindness() && NoRender.isEnabled()) {
+        if (NoRender.INSTANCE.getNoBlindness() && NoRender.INSTANCE.isEnabled()) {
             cir.setReturnValue(false);
         }
     }

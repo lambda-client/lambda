@@ -149,6 +149,8 @@ dependencies {
     // Fabric
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
+    // Explicit dependency on fabric-renderer-indigo for mixin access to internal classes
+    modCompileOnly("net.fabricmc.fabric-api:fabric-renderer-indigo:4.1.4+1af5c5a75f")
     modImplementation("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
 
     // Add dependencies on the required Kotlin modules.

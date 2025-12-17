@@ -21,7 +21,7 @@ import com.lambda.Lambda;
 import com.lambda.module.modules.client.Capes;
 import com.lambda.network.CapeManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.feature.CapeFeatureRenderer;
 import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.client.util.math.MatrixStack;
@@ -29,16 +29,25 @@ import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+/**
+ * Mixin to override cape textures with Lambda capes.
+ *
+ * Note: In 1.21.11, render method uses OrderedRenderCommandQueue instead of VertexConsumerProvider.
+ * Cape texture is now accessed via skinTextures.cape().texturePath() instead of capeTexture().
+ */
 @Mixin(CapeFeatureRenderer.class)
 public class CapeFeatureRendererMixin {
-    @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/state/PlayerEntityRenderState;FF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SkinTextures;capeTexture()Lnet/minecraft/util/Identifier;"))
-    Identifier renderCape(Identifier original, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, PlayerEntityRenderState player, float f, float g) {
-        var entry = Lambda.getMc().getNetworkHandler().getPlayerListEntry(player.name); // this will cause issues if we try to render while not in game
+    @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;ILnet/minecraft/client/render/entity/state/PlayerEntityRenderState;FF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/AssetInfo$TextureAsset;texturePath()Lnet/minecraft/util/Identifier;"))
+    Identifier renderCape(Identifier original, MatrixStack matrixStack, OrderedRenderCommandQueue commandQueue, int i, PlayerEntityRenderState player, float f, float g) {
+        var networkHandler = Lambda.getMc().getNetworkHandler();
+        if (networkHandler == null) return original;
+
+        var entry = player.playerName != null ? networkHandler.getPlayerListEntry(player.playerName.getString()) : null;
         if (entry == null) return original;
 
         var profile = entry.getProfile();
-        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.getCache().containsKey(profile.getId())) return original;
+        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.getCache().containsKey(profile.id())) return original;
 
-        return Identifier.of("lambda", CapeManager.INSTANCE.getCache().get(profile.getId()));
+        return Identifier.of("lambda", CapeManager.INSTANCE.getCache().get(profile.id()));
     }
 }

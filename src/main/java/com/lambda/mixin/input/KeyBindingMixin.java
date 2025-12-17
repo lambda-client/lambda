@@ -32,7 +32,7 @@ public class KeyBindingMixin {
     @ModifyReturnValue(method = "isPressed", at = @At("RETURN"))
     boolean modifyIsPressed(boolean original) {
         KeyBinding instance = (KeyBinding) (Object) this;
-        if (!Objects.equals(instance.getTranslationKey(), "key.sprint")) return original;
+        if (!Objects.equals(instance.getId(), "key.sprint")) return original;
 
         if (Sprint.INSTANCE.isEnabled()) return true;
         if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GrimStrafe) return true;

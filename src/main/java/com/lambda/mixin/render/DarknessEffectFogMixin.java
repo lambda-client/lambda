@@ -34,7 +34,7 @@ public class DarknessEffectFogMixin {
 
     @Inject(method = "shouldApply", at = @At("HEAD"), cancellable = true)
     private void injectShouldApplyDarkness(CameraSubmersionType submersionType, Entity cameraEntity, CallbackInfoReturnable<Boolean> cir) {
-        if (NoRender.getNoDarkness() && NoRender.isEnabled()) {
+        if (NoRender.INSTANCE.getNoDarkness() && NoRender.INSTANCE.isEnabled()) {
             cir.setReturnValue(false);
         }
     }

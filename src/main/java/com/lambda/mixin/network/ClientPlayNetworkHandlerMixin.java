@@ -45,8 +45,8 @@ public class ClientPlayNetworkHandlerMixin {
     void injectPlayerList(PlayerListS2CPacket.Action action, PlayerListS2CPacket.Entry receivedEntry, PlayerListEntry currentEntry, CallbackInfo ci) {
         if (action != PlayerListS2CPacket.Action.UPDATE_LISTED) return;
 
-        var name = currentEntry.getProfile().getName();
-        var uuid = currentEntry.getProfile().getId();
+        var name = currentEntry.getProfile().name();
+        var uuid = currentEntry.getProfile().id();
 
         if (receivedEntry.listed()) {
             EventFlow.post(new WorldEvent.Player.Join(name, uuid, currentEntry));
@@ -64,17 +64,19 @@ public class ClientPlayNetworkHandlerMixin {
     }
 
     /**
-     * Sets displayedUnsecureChatWarning to {@link NoRender#getNoChatVerificationToast()}
+     * Sets seenInsecureChatWarning to {@link NoRender#getNoChatVerificationToast()}
      * <pre>{@code
      * this.secureChatEnforced = packet.enforcesSecureChat();
-     * if (this.serverInfo != null && !this.displayedUnsecureChatWarning && !this.isSecureChatEnforced()) {
+     * if (this.serverInfo != null && !this.seenInsecureChatWarning && !this.isSecureChatEnforced()) {
      * SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
      * this.client.getToastManager().add(systemToast);
-     * this.displayedUnsecureChatWarning = true;
+     * this.seenInsecureChatWarning = true;
      * }
      * }</pre>
+     *
+     * Note: In 1.21.11, displayedUnsecureChatWarning was renamed to seenInsecureChatWarning.
      */
-    @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
+    @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;seenInsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(boolean original) {
         return (NoRender.getNoChatVerificationToast() && NoRender.INSTANCE.isEnabled()) || original;
     }
