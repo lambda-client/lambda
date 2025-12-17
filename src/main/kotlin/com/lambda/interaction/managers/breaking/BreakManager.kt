@@ -92,7 +92,6 @@ import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
-import net.minecraft.client.world.BlockParticleEffectsManager
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.sound.SoundCategory
@@ -747,8 +746,7 @@ object BreakManager : Manager<BreakRequest>(
         }
 
         if (breakConfig.particles) {
-            // ToDo: Set block breaking info on world.blockBreakingInfo
-//            mc.particleManager.addBlockBreakingParticles(ctx.blockPos, hitResult.side)
+            world.spawnBlockBreakingParticle(ctx.blockPos, hitResult.side)
         }
 
         if (breakConfig.breakingTexture) {
