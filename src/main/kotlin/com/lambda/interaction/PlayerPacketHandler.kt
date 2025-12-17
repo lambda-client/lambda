@@ -39,7 +39,6 @@ object PlayerPacketHandler {
     var lastPosition: Vec3d = Vec3d.ZERO
     var lastRotation = Rotation.ZERO
     var lastSprint = false
-    var lastSneak = false
     var lastOnGround = false
     var lastHorizontalCollision = false
 
@@ -57,21 +56,6 @@ object PlayerPacketHandler {
             ).post {
                 updatePlayerPackets(this)
             }
-        }
-    }
-
-    @JvmStatic
-    fun sendSneakPackets() {
-        runSafe {
-            val sneaking = player.isSneaking
-            if (sneaking == lastSneak) return@runSafe
-            val mode = if (sneaking) {
-                ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY
-            } else {
-                ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY
-            }
-            connection.sendPacket(ClientCommandC2SPacket(player, mode))
-            lastSneak = sneaking
         }
     }
 

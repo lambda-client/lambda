@@ -29,9 +29,12 @@ import com.lambda.threading.onShutdown
 import com.lambda.util.Timer
 import com.lambda.util.player.spawnFakePlayer
 import com.mojang.authlib.GameProfile
+import com.mojang.datafixers.util.Either
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import java.util.*
+import kotlin.jvm.optionals.getOrElse
+import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.seconds
 
 object FakePlayer : Module(
@@ -76,7 +79,8 @@ object FakePlayer : Module(
         val requestedProfile = getProfile(user).getOrElse { return nilProfile }
 
         // Fetch the skin properties from mojang
-        val properties = mc.sessionService.fetchProfile(requestedProfile.id, true)?.profile?.properties
+        val properties = mc.apiServices.profileResolver
+            .getProfile(Either.right(requestedProfile.id)).getOrNull()?.properties
 
         // We use the nil profile to avoid the nil username if something wrong happens
         // Check the GameProfile deserializer you'll understand

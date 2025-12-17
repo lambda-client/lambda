@@ -33,7 +33,7 @@ val SafeContext.gamemode: GameMode
     get() = interaction.currentGameMode
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
-    ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.isSneaking, entity.isSprinting).apply {
+    ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.lastPlayerInput, entity.isSprinting).apply {
         setPos(entity.x, entity.y, entity.z)
         setExperience(entity.experienceProgress, entity.totalExperience, entity.experienceLevel)
         health = entity.health

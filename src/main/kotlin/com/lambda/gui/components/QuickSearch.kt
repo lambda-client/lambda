@@ -91,7 +91,7 @@ object QuickSearch {
         override fun ImGuiBuilder.buildLayout() {
             text(command.name.capitalize())
             sameLine()
-            smallButton("Insert") { mc.setScreen(ChatScreen("${CommandRegistry.prefix}${command.name} ")) }
+            smallButton("Insert") { mc.setScreen(ChatScreen("${CommandRegistry.prefix}${command.name} ", true)) }
             if (command.description.isNotBlank()) {
                 sameLine()
                 textDisabled(command.description)

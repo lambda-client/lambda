@@ -51,7 +51,8 @@ class Shader private constructor(name: String) {
 
     fun use() {
         glUseProgram(id)
-        set("u_ProjModel", RenderMain.projModel)
+        // ToDo: GUI Rewrite
+//        set("u_ProjModel", RenderMain.projModel)
     }
 
     private fun loc(name: String) =

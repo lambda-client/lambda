@@ -115,7 +115,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 		if (to) {
 			setLambdaWindowIcon()
 		} else {
-			val icon = if (SharedConstants.getGameVersion().isStable) Icons.RELEASE else Icons.SNAPSHOT
+			val icon = if (SharedConstants.getGameVersion().stable()) Icons.RELEASE else Icons.SNAPSHOT
 			mc.window.setIcon(mc.defaultResourcePack, icon)
 		}
 	}

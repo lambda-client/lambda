@@ -25,10 +25,8 @@ import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
-import net.minecraft.client.render.BackgroundRenderer.StatusEffectFogModifier
 import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup
-import net.minecraft.entity.effect.StatusEffects
 
 //ToDo: Implement unimplemented settings. (Keep in mind compatibility with other mods like sodium)
 object NoRender : Module(
@@ -175,14 +173,6 @@ object NoRender : Module(
     @JvmStatic
     fun shouldOmitBlockEntity(blockEntity: BlockEntity) =
         isEnabled && blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities
-
-    @JvmStatic
-    fun shouldAcceptFog(modifier: StatusEffectFogModifier) =
-        when (modifier.statusEffect) {
-            StatusEffects.BLINDNESS if (noBlindness && isEnabled) -> false
-            StatusEffects.DARKNESS if (noDarkness && isEnabled) -> false
-            else -> true
-        }
 
     private data class MappingInfo(
         val raw: String,

@@ -27,6 +27,7 @@ import com.lambda.config.serializer.ItemCodec
 import com.lambda.config.serializer.ItemStackCodec
 import com.lambda.config.serializer.KeyCodeCodec
 import com.lambda.config.serializer.OptionalCodec
+import com.lambda.config.serializer.TextCodec
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -79,7 +80,7 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(GameProfile::class.java, GameProfileCodec)
         .registerTypeAdapter(Optional::class.java, OptionalCodec)
         .registerTypeAdapter(ItemStack::class.java, ItemStackCodec)
-        .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
+        .registerTypeAdapter(Text::class.java, TextCodec) // ToDo: Find out if needed
         .registerTypeAdapter(Item::class.java, ItemCodec)
         .registerTypeAdapter(BlockItem::class.java, ItemCodec)
         .registerTypeAdapter(ArrowItem::class.java, ItemCodec)

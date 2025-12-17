@@ -6,7 +6,7 @@ transitive-accessible field net/minecraft/client/MinecraftClient paused Z
 transitive-accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 transitive-accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 transitive-accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
-transitive-accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
+# REMOVED in 1.21.11: renderTaskQueue - use mc.execute {} instead (inherited from ReentrantThreadExecutor)
 transitive-accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 transitive-accessible method net/minecraft/client/MinecraftClient getWindowTitle ()Ljava/lang/String;
 transitive-accessible field net/minecraft/client/option/KeyBinding KEYS_BY_ID Ljava/util/Map;
@@ -26,13 +26,15 @@ transitive-accessible method net/minecraft/item/BlockItem placeFromNbt (Lnet/min
 transitive-accessible method net/minecraft/item/BlockItem postPlacement (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Z
 transitive-accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/minecraft/block/BlockState;)Lnet/minecraft/sound/SoundEvent;
 transitive-accessible field net/minecraft/state/State owner Ljava/lang/Object;
-transitive-accessible class net/minecraft/client/render/BackgroundRenderer$StatusEffectFogModifier
+# MOVED in 1.21.11: BackgroundRenderer$StatusEffectFogModifier -> net/minecraft/client/render/fog/StatusEffectFogModifier
+transitive-accessible class net/minecraft/client/render/fog/StatusEffectFogModifier
 
 # Entity
 transitive-accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
 transitive-accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
 transitive-accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag (IZ)V
-transitive-accessible field net/minecraft/entity/LivingEntity lastAttackedTicks I
+# RENAMED in 1.21.11: lastAttackedTicks -> lastAttackedTime
+transitive-accessible field net/minecraft/entity/LivingEntity lastAttackedTime I
 transitive-accessible method net/minecraft/entity/Entity setFlag (IZ)V
 transitive-accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
 transitive-accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
@@ -50,10 +52,12 @@ transitive-accessible method net/minecraft/util/math/Direction listClosest (Lnet
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager gameMode Lnet/minecraft/world/GameMode;
 transitive-accessible method net/minecraft/entity/player/PlayerEntity updatePose ()V
 transitive-accessible field net/minecraft/screen/ScreenHandler revision I
+accessible field net/minecraft/entity/Entity world Lnet/minecraft/world/World;
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V
 transitive-accessible method net/minecraft/client/render/Camera setRotation (FF)V
+accessible field net/minecraft/client/render/Camera pos Lnet/minecraft/util/math/Vec3d;
 
 # Renderer
 transitive-accessible field net/minecraft/client/texture/NativeImage pointer J
@@ -71,8 +75,10 @@ transitive-accessible field net/minecraft/text/Style obfuscated Ljava/lang/Boole
 transitive-accessible field net/minecraft/text/Style clickEvent Lnet/minecraft/text/ClickEvent;
 transitive-accessible field net/minecraft/text/Style hoverEvent Lnet/minecraft/text/HoverEvent;
 transitive-accessible field net/minecraft/text/Style insertion Ljava/lang/String;
-transitive-accessible field net/minecraft/text/Style font Lnet/minecraft/util/Identifier;
-transitive-accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Integer;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/util/Identifier;)V
+# CHANGED in 1.21.11: font type changed from Identifier to StyleSpriteSource
+transitive-accessible field net/minecraft/text/Style font Lnet/minecraft/text/StyleSpriteSource;
+# CHANGED in 1.21.11: constructor added shadowColor parameter, font type changed to StyleSpriteSource
+transitive-accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Integer;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/text/StyleSpriteSource;)V
 
 # Network
 transitive-accessible field net/minecraft/client/network/ClientPlayNetworkHandler playerListEntries Ljava/util/Map;
@@ -98,12 +104,11 @@ transitive-accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraf
 transitive-accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
 
 # Debug
-transitive-accessible field net/minecraft/client/gui/hud/DebugHud showDebugHud Z
+# REMOVED in 1.21.11: showDebugHud - use DebugHud.shouldShowDebugHud() method instead
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud renderingChartVisible Z
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud renderingAndTickChartsVisible Z
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud packetSizeAndPingChartsVisible Z
-transitive-accessible field net/minecraft/client/render/debug/DebugRenderer showChunkBorder Z
-transitive-accessible field net/minecraft/client/render/debug/DebugRenderer showOctree Z
+# REMOVED in 1.21.11: showChunkBorder/showOctree - now controlled via debugHudEntryList.isEntryVisible(DebugHudEntries.CHUNK_BORDERS/CHUNK_SECTION_OCTREE)
 
 # Other
 transitive-accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;

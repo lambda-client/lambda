@@ -23,8 +23,8 @@ import net.minecraft.text.HoverEvent
 import net.minecraft.text.MutableText
 import net.minecraft.text.NbtDataSource
 import net.minecraft.text.Style
+import net.minecraft.text.StyleSpriteSource
 import net.minecraft.text.Text
-import net.minecraft.util.Identifier
 import java.awt.Color
 import java.util.*
 
@@ -296,7 +296,7 @@ inline fun TextBuilder.insertion(insertion: String?, action: TextBuilder.() -> U
  * Applies the [TextBuilder] [action] with [font] set to the provided value.
  */
 @TextDsl
-inline fun TextBuilder.font(font: Identifier?, action: TextBuilder.() -> Unit) {
+inline fun TextBuilder.font(font: StyleSpriteSource?, action: TextBuilder.() -> Unit) {
     withProp(font, { this.font }, { this.font = it }, action)
 }
 
@@ -314,7 +314,7 @@ fun TextBuilder.styled(
     clickEvent: ClickEvent? = style.clickEvent,
     hoverEvent: HoverEvent? = style.hoverEvent,
     insertion: String? = style.insertion,
-    font: Identifier? = style.font,
+    font: StyleSpriteSource? = style.font,
     action: TextBuilder.() -> Unit,
 ) {
     color(color) {

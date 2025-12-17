@@ -29,7 +29,7 @@ import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.tooltip.TooltipComponent
-import net.minecraft.client.render.RenderLayer
+import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -152,8 +152,7 @@ object ContainerPreview : Module(
         val height = getTooltipHeight()
 
         val matrices = context.matrices
-        matrices.push()
-        matrices.translate(0f, 0f, 400f)
+        matrices.pushMatrix()
 
         val tintColor = getContainerTintColor(stack)
 
@@ -201,11 +200,10 @@ object ContainerPreview : Module(
             }
         }
 
-        matrices.pop()
+        matrices.popMatrix()
 
 	    hoveredStack?.let { stack ->
-            matrices.push()
-            matrices.translate(0f, 0f, 500f)
+            matrices.pushMatrix()
 
             if (isPreviewableContainer(stack)) {
                 val nestedWidth = getTooltipWidth()
@@ -221,7 +219,7 @@ object ContainerPreview : Module(
                     isRenderingSubTooltip = false
                 }
             }
-            matrices.pop()
+            matrices.popMatrix()
         }
     }
 
@@ -274,10 +272,11 @@ object ContainerPreview : Module(
         // Bottom: y=160 onwards
 
         context.drawTexture(
-            RenderLayer::getGuiTextured,
+            RenderPipelines.GUI_TEXTURED,
             background,
             x, y,
             0f, 0f,
+            width, TITLE_HEIGHT,
             width, TITLE_HEIGHT,
             256, 256,
             tintColor
@@ -286,10 +285,11 @@ object ContainerPreview : Module(
         // Middle rows
 	    (0 until ROWS).forEach { row ->
 		    context.drawTexture(
-			    RenderLayer::getGuiTextured,
+			    RenderPipelines.GUI_TEXTURED,
 			    background,
 			    x, y + TITLE_HEIGHT + row * SLOT_SIZE,
 			    0f, 17f,
+			    width, SLOT_SIZE,
 			    width, SLOT_SIZE,
 			    256, 256,
 			    tintColor
@@ -298,10 +298,11 @@ object ContainerPreview : Module(
 
         // Bottom
         context.drawTexture(
-            RenderLayer::getGuiTextured,
+            RenderPipelines.GUI_TEXTURED,
             background,
             x, y + TITLE_HEIGHT + ROWS * SLOT_SIZE,
             0f, 160f,
+            width, PADDING,
             width, PADDING,
             256, 256,
             tintColor

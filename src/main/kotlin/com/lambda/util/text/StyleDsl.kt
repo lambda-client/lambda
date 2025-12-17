@@ -23,8 +23,8 @@ import net.minecraft.text.ClickEvent
 import net.minecraft.text.HoverEvent
 import net.minecraft.text.MutableText
 import net.minecraft.text.Style
+import net.minecraft.text.StyleSpriteSource
 import net.minecraft.text.TextColor
-import net.minecraft.util.Identifier
 import java.awt.Color
 
 /**
@@ -149,9 +149,9 @@ class StyleBuilder {
         }
 
     /**
-     * An [Identifier] for the Minecraft font that would like to be used.
+     * A [StyleSpriteSource] for the Minecraft font that would like to be used.
      */
-    var font: Identifier? = null
+    var font: StyleSpriteSource? = null
         set(value) {
             if (field != value) {
                 cachedStyle = null

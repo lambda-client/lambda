@@ -61,7 +61,8 @@ open class AbstractGUIRenderer(
             shader["u_ShadeColor1"] = ClickGuiLayout.primaryColor
             shader["u_ShadeColor2"] = ClickGuiLayout.secondaryColor
 
-            shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(ClickGuiLayout.colorWidth, ClickGuiLayout.colorHeight)
+            // ToDo: GUI Rewrite
+//            shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(ClickGuiLayout.colorWidth, ClickGuiLayout.colorHeight)
         }
 
         pipeline.apply {

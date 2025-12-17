@@ -17,20 +17,25 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.debug.DebugRendererModule;
-import net.minecraft.client.render.Frustum;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.debug.*;
-import net.minecraft.client.util.math.MatrixStack;
+import com.lambda.module.modules.render.NoRender;
+import net.minecraft.client.render.fog.DarknessEffectFogModifier;
+import net.minecraft.block.enums.CameraSubmersionType;
+import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(DebugRenderer.class)
-public class DebugRendererMixin {
-//    @Inject(method = "render", at = @At("TAIL"))
-//    private void onRender(MatrixStack matrices, Frustum frustum, VertexConsumerProvider.Immediate vertexConsumers, double cameraX, double cameraY, double cameraZ, CallbackInfo ci) {
-//        DebugRendererModule.render(matrices, vertexConsumers, cameraX, cameraY, cameraZ);
-//    }
+/**
+ * Mixin to disable darkness fog effect when NoRender is enabled.
+ */
+@Mixin(DarknessEffectFogModifier.class)
+public class DarknessEffectFogMixin {
+
+    @Inject(method = "shouldApply", at = @At("HEAD"), cancellable = true)
+    private void injectShouldApplyDarkness(CameraSubmersionType submersionType, Entity cameraEntity, CallbackInfoReturnable<Boolean> cir) {
+        if (NoRender.getNoDarkness() && NoRender.isEnabled()) {
+            cir.setReturnValue(false);
+        }
+    }
 }

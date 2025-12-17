@@ -92,6 +92,7 @@ import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
+import net.minecraft.client.world.BlockParticleEffectsManager
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.sound.SoundCategory
@@ -631,7 +632,7 @@ object BreakManager : Manager<BreakRequest>(
                 && tickStage in breakConfig.tickStageMask
                 && (rotated || type != Primary)
 
-        if (updatedPreProcessingThisTick) return
+        if (updatedPreProcessingThisTick) return@runSafeAutomated
         updatedPreProcessingThisTick = true
 
         swapStack = player.inventory.getStack(context.hotbarIndex)
@@ -746,7 +747,8 @@ object BreakManager : Manager<BreakRequest>(
         }
 
         if (breakConfig.particles) {
-            mc.particleManager.addBlockBreakingParticles(ctx.blockPos, hitResult.side)
+            // ToDo: Set block breaking info on world.blockBreakingInfo
+//            mc.particleManager.addBlockBreakingParticles(ctx.blockPos, hitResult.side)
         }
 
         if (breakConfig.breakingTexture) {

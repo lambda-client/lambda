@@ -106,7 +106,7 @@ inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) 
  * to OpenGL.
  */
 inline fun recordRenderCall(crossinline block: () -> Unit) {
-    mc.renderTaskQueue.add { block() }
+    mc.execute { block() }
 }
 
 /**

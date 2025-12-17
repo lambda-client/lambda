@@ -85,11 +85,6 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
 
-    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSneakingPacket()V"))
-    void sendSneakingPacket(ClientPlayerEntity entity, Operation<Void> original) {
-        PlayerPacketHandler.sendSneakPackets();
-    }
-
     @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
     boolean isSprinting(boolean original) {
         return EventFlow.post(new MovementEvent.Sprint(original)).getSprint();

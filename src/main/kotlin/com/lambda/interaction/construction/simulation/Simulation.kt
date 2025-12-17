@@ -41,7 +41,7 @@ data class Simulation(
     private val automated: Automated
 ) : Automated by automated {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
-    private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
+    private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.EYE_HEIGHT.toDouble(), 0.5)
 
     fun simulate(pos: FastVector) =
         cache.getOrPut(pos) {

@@ -24,7 +24,7 @@ import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.tooltip.TooltipComponent
 import net.minecraft.client.render.MapRenderState
-import net.minecraft.client.render.RenderLayer
+import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.MapIdComponent
 import net.minecraft.item.FilledMapItem
@@ -56,19 +56,19 @@ object MapPreview : Module(
             val matrices = context.matrices
 
             // Render the map background
-            matrices.push()
-            context.drawTexture(RenderLayer::getGuiTextured, background, x, y, 0f, 0f, 64, 64, 64, 64)
-            matrices.pop()
+            matrices.pushMatrix()
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, background, x, y, 0f, 0f, 64, 64, 64, 64, 64, 64)
+            matrices.popMatrix()
 
             // Render the map texture
-            matrices.push()
-            matrices.translate(x + 3.2, y + 3.2, 401.0)
-            matrices.scale(0.45f, 0.45f, 1f)
+            matrices.pushMatrix()
+            matrices.translate(x + 3.2f, y + 3.2f)
+            matrices.scale(0.45f, 0.45f)
 
             val renderState = MapRenderState()
             mc.mapRenderer.update(id, state, renderState)
-            context.draw { mc.mapRenderer.draw(renderState, matrices, it, true, 0xF000F0) }
-            matrices.pop()
+            context.drawMap(renderState)
+            matrices.popMatrix()
         }
 
         override fun getHeight(textRenderer: TextRenderer) =

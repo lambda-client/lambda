@@ -33,6 +33,7 @@
     "render.AbstractTerrainRenderContextMixin",
     "render.ArmorFeatureRendererMixin",
     "render.BackgroundRendererMixin",
+    "render.DarknessEffectFogMixin",
     "render.BeaconBlockEntityRendererMixin",
     "render.BlockEntityRenderDispatcherMixin",
     "render.BlockMixin",

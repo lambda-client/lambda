@@ -30,8 +30,6 @@ val discordIPCVersion: String by project
 val classGraphVersion: String by project
 val kotlinVersion: String by project
 val ktorVersion: String by project
-val mockitoKotlin: String by project
-val mockitoInline: String by project
 val mockkVersion: String by project
 val spairVersion: String by project
 val lwjglVersion: String by project
@@ -46,10 +44,10 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
 }.map { (k, v) -> k.toString() to v.toString() }.toMap()
 
 plugins {
-    kotlin("jvm") version "2.2.0"
-    id("org.jetbrains.dokka") version "2.0.0"
-    id("fabric-loom") version "1.10-SNAPSHOT"
-    id("com.gradleup.shadow") version "9.0.0-rc1"
+    kotlin("jvm") version "2.3.0"
+    id("org.jetbrains.dokka") version "2.1.0"
+    id("fabric-loom") version "1.14-SNAPSHOT"
+    id("com.gradleup.shadow") version "9.3.0"
     id("maven-publish")
 }
 
@@ -175,7 +173,8 @@ dependencies {
     includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 
     // Add mods
-    modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+    /*modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion") */
+    modImplementation("com.github.rfresh2:baritone-fabric:1.21.10-SNAPSHOT") // ToDo: Move to 1.21.11
     modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
@@ -185,8 +184,6 @@ dependencies {
 
     // Test implementations
     testImplementation(kotlin("test"))
-    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
-    testImplementation("org.mockito:mockito-inline:$mockitoInline")
     testImplementation("io.mockk:mockk:${mockkVersion}")
 
     // Finish the configuration

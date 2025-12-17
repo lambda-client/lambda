@@ -22,6 +22,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3i
+import kotlin.math.sin
 
 enum class PlaceDirection(
     val rotation: Rotation,
@@ -58,8 +59,8 @@ enum class PlaceDirection(
          * @see Direction.getEntityFacingOrder
          */
         fun fromRotation(rotation: Rotation): PlaceDirection {
-            val pitchRad = rotation.pitchF * (Math.PI.toFloat() / 180f)
-            val yawRad = -rotation.yawF * (Math.PI.toFloat() / 180f)
+            val pitchRad = rotation.pitchF * (Math.PI.toFloat() / 180f).toDouble()
+            val yawRad = -rotation.yawF * (Math.PI.toFloat() / 180f).toDouble()
 
             val sinPitch = MathHelper.sin(pitchRad)
             val cosPitch = MathHelper.cos(pitchRad)

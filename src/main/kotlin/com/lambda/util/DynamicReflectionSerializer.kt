@@ -80,8 +80,8 @@ object DynamicReflectionSerializer : Loadable {
     private const val INDENT = 2
 
     private val qualifiedMappings = runBlocking {
-        cache.resolveFile(LambdaAPI.GAME_VERSION)
-            .downloadIfNotPresent("${LambdaAPI.mappings}/${LambdaAPI.GAME_VERSION}")
+        cache.resolveFile(LambdaAPI.gameVersion)
+            .downloadIfNotPresent("${LambdaAPI.mappings}/${LambdaAPI.gameVersion}")
             .map(::buildMappingsMap)
             .getOrElse {
                 LOG.error("Unable to download simplified deobfuscated qualifiers", it)

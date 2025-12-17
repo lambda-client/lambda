@@ -38,11 +38,11 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 			throw IllegalStateException("Could not access delegate for property $name", e)
 		}
 
-	fun <T> KProperty0<T>.setting() =
+	fun <T : Any> KProperty0<T>.setting() =
 		this.delegate as? Setting<SettingCore<T>, T>
 			?: throw IllegalStateException("Setting delegate did not match current value's type")
 
-	fun <T> KProperty0<T>.settingCore() = setting().core
+	fun <T : Any> KProperty0<T>.settingCore() = setting().core
 
 	@SettingEditorDsl
 	inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
@@ -60,14 +60,14 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 	fun edit(
 		vararg settings: KProperty0<*>,
 		edits: BasicEditBuilder.() -> Unit
-	) = BasicEditBuilder(this, settings.map { it.setting() }).apply(edits)
+	) = BasicEditBuilder(this, settings.map { (it as KProperty0<Any>).setting() }).apply(edits)
 
 	@SettingEditorDsl
 	inline fun <T : Any> editWith(
 		vararg settings: KProperty0<*>,
 		other: KProperty0<T>,
 		edits: BasicEditBuilder.(SettingCore<T>) -> Unit
-	) = BasicEditBuilder(this, settings.map { it.setting() }).edits(other.settingCore())
+	) = BasicEditBuilder(this, settings.map { (it as KProperty0<Any>).setting() }).edits(other.settingCore())
 
 	@SettingEditorDsl
 	inline fun <T : Any> editTyped(
@@ -89,7 +89,7 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 
 	@SettingEditorDsl
 	fun hide(vararg settings: KProperty0<*>) =
-		hide(settings.map { it.setting() })
+		hide(settings.map { (it as KProperty0<Any>).setting() })
 
 	open class BasicEditBuilder(val c: SettingGroupEditor<*>, open val settings: Collection<Setting<*, *>>) {
 		@SettingEditorDsl
@@ -123,8 +123,10 @@ class ConfigurableEditor<T : Configurable>(override val c: T) : SettingGroupEdit
 	fun hideGroup(settingGroup: ISettingGroup) = hide(settingGroup.settings)
 
 	@SettingEditorDsl
-	fun hideGroupExcept(settingGroup: ISettingGroup, vararg except: KProperty0<*>) =
-		hide(*((settingGroup.settings as List<KProperty0<*>>) - except.toSet()).toTypedArray())
+	fun hideGroupExcept(settingGroup: ISettingGroup, vararg except: KProperty0<*>) {
+		val exceptSettings = except.map { (it as KProperty0<Any>).setting() }.toSet()
+		hide(settingGroup.settings.filter { it !in exceptSettings })
+	}
 
 	@SettingEditorDsl
 	fun hideGroups(vararg settingGroups: ISettingGroup) =

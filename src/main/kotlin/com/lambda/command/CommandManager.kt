@@ -73,7 +73,7 @@ object CommandManager {
             canRead() && peek() == prefix
         }
 
-    fun currentDispatcher(message: String): CommandDispatcher<CommandSource> {
+    fun currentDispatcher(message: String): CommandDispatcher<out CommandSource> {
         return if (message.isLambdaCommand()) {
             dispatcher
         } else {

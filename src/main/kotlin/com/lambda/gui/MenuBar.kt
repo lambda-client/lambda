@@ -52,6 +52,11 @@ import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.client.gui.hud.debug.DebugHudEntries
+import net.minecraft.client.gui.screen.DebugOptionsScreen
+import net.minecraft.command.permission.Permission
+import net.minecraft.network.packet.c2s.play.ChangeGameModeC2SPacket
+import net.minecraft.server.command.GameModeCommand
 import net.minecraft.util.Util
 import net.minecraft.world.GameMode
 import java.util.*
@@ -346,34 +351,24 @@ object MenuBar {
         }
         separator()
         runSafe {
-            menu("Gamemode", enabled = player.hasPermissionLevel(2)) {
+            menu("Gamemode", enabled = GameModeCommand.PERMISSION_CHECK.allows(player.permissions)) {
                 menuItem("Survival", selected = interaction.gameMode == GameMode.SURVIVAL) {
-                    connection.sendCommand("gamemode survival")
+                    connection.sendPacket(ChangeGameModeC2SPacket(GameMode.SURVIVAL))
                 }
                 menuItem("Creative", selected = interaction.gameMode == GameMode.CREATIVE) {
-                    connection.sendCommand("gamemode creative")
+                    connection.sendPacket(ChangeGameModeC2SPacket(GameMode.CREATIVE))
                 }
                 menuItem("Adventure", selected = interaction.gameMode == GameMode.ADVENTURE) {
-                    connection.sendCommand("gamemode adventure")
+                    connection.sendPacket(ChangeGameModeC2SPacket(GameMode.ADVENTURE))
                 }
                 menuItem("Spectator", selected = interaction.gameMode == GameMode.SPECTATOR) {
-                    connection.sendCommand("gamemode spectator")
+                    connection.sendPacket(ChangeGameModeC2SPacket(GameMode.SPECTATOR))
                 }
             }
             menu("Debug Menu") {
                 menuItem("Show Advanced Tooltips", "F3+H", mc.options.advancedItemTooltips) {
                     mc.options.advancedItemTooltips = !mc.options.advancedItemTooltips
                     mc.options.write()
-                }
-                menuItem("Show Chunk Borders", "F3+G", mc.debugRenderer.showChunkBorder) {
-                    mc.debugRenderer.toggleShowChunkBorder()
-                }
-                menuItem("Show Octree", selected = mc.debugRenderer.showOctree) {
-                    mc.debugRenderer.toggleShowOctree()
-                }
-                menuItem("Show Hitboxes", "F3+B", mc.entityRenderDispatcher.shouldRenderHitboxes()) {
-                    val now = !mc.entityRenderDispatcher.shouldRenderHitboxes()
-                    mc.entityRenderDispatcher.setRenderHitboxes(now)
                 }
                 menuItem("Copy Location (as command)", "F3+C") {
                     val cmd = String.format(
@@ -387,6 +382,9 @@ object MenuBar {
                 }
                 menuItem("Clear Chat", "F3+D") {
                     mc.inGameHud?.chatHud?.clear(false)
+                }
+                menuItem("Open Debug Entry Menu", "(new)") { // ToDo: Put actual keybind in
+                    mc.setScreen(DebugOptionsScreen())
                 }
 
                 separator()
@@ -414,8 +412,8 @@ object MenuBar {
 
                 separator()
 
-                menuItem("Show Debug Menu", "F3", mc.debugHud.showDebugHud) {
-                    mc.debugHud.toggleDebugHud()
+                menuItem("Show Debug Menu", "F3", mc.debugHudEntryList.isF3Enabled) {
+                    mc.debugHudEntryList.toggleF3Enabled()
                 }
                 menuItem("Rendering Chart", "F3+1", mc.debugHud.renderingChartVisible) {
                     mc.debugHud.toggleRenderingChart()

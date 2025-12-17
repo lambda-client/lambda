@@ -35,6 +35,7 @@ import net.minecraft.command.argument.EntityArgumentType
 import net.minecraft.command.argument.GameProfileArgumentType
 import net.minecraft.command.argument.TeamArgumentType
 import net.minecraft.scoreboard.Team
+import net.minecraft.server.PlayerConfigEntry
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.server.network.ServerPlayerEntity
 
@@ -69,7 +70,7 @@ fun ArgumentReader<
         DefaultArgumentDescriptor<
                 GameProfileArgumentType
                 >
-        >.value(): Collection<GameProfile> {
+        >.value(): Collection<PlayerConfigEntry> {
     return GameProfileArgumentType.getProfileArgument(context, name)
 }
 

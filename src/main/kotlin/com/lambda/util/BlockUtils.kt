@@ -57,7 +57,6 @@ import net.minecraft.block.EnchantingTableBlock
 import net.minecraft.block.EnderChestBlock
 import net.minecraft.block.FenceBlock
 import net.minecraft.block.FenceGateBlock
-import net.minecraft.block.FletchingTableBlock
 import net.minecraft.block.FlowerPotBlock
 import net.minecraft.block.GrindstoneBlock
 import net.minecraft.block.HopperBlock
@@ -233,7 +232,6 @@ object BlockUtils {
         EnderChestBlock::class,
         FenceBlock::class,
         FenceGateBlock::class,
-        FletchingTableBlock::class,
         FlowerPotBlock::class,
         GrindstoneBlock::class,
         HopperBlock::class,

@@ -116,7 +116,7 @@ object KillAura : Module(
     private fun SafeContext.runAttack(target: LivingEntity) {
         // Cooldown check
         when (attackMode) {
-            AttackMode.Cooldown -> if (player.lastAttackedTicks < 1 / player.attackSpeed() * 20 + cooldownOffset) return
+            AttackMode.Cooldown -> if (player.lastAttackedTime < 1 / player.attackSpeed() * 20 + cooldownOffset) return
             AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return
         }
 

@@ -36,6 +36,7 @@ import net.minecraft.client.network.ClientLoginNetworkHandler
 import net.minecraft.client.network.ServerAddress
 import net.minecraft.network.ClientConnection
 import net.minecraft.network.NetworkSide.CLIENTBOUND
+import net.minecraft.network.NetworkingBackend
 import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket
 import net.minecraft.text.Text
 import java.math.BigInteger
@@ -51,9 +52,7 @@ object LambdaAPI : Configurable(LambdaConfig) {
 
     val mappings get() = "$assets/mappings" // Folder containing mappings for our dynamic serializer
     val capes get() = "$assets/capes" // Folder containing all the capes, add .txt to get the list of available capes
-
-    @Suppress("Deprecation")
-    const val GAME_VERSION = SharedConstants.VERSION_NAME
+    val gameVersion: String = SharedConstants.getGameVersion().name()
 
     private var hash: String? = null
 
@@ -89,10 +88,11 @@ object LambdaAPI : Configurable(LambdaConfig) {
         val resolved = AllowedAddressResolver.DEFAULT.resolve(address)
             .map { it.inetSocketAddress }.getOrElse { return }
 
-        ClientConnection.connect(resolved, mc.options.shouldUseNativeTransport(), connection)
+        val backend = NetworkingBackend.remote(mc.options.shouldUseNativeTransport())
+        ClientConnection.connect(resolved, backend, connection)
             .syncUninterruptibly()
 
-        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null, { Text.empty() }, null)
+        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null, { Text.empty() }, null, null)
 
         connection.connect(resolved.hostName, resolved.port, handler)
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))
