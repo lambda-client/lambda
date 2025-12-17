@@ -17,18 +17,19 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.groups.BuildSettings
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -49,7 +50,6 @@ object KillAura : Module(
     tag = ModuleTag.COMBAT,
 ) {
     // Interact
-    override val buildConfig = BuildSettings(this, Group.Build)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.Build)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Build)
     private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.Build)
@@ -89,6 +89,15 @@ object KillAura : Module(
     }
 
     init {
+        setDefaultAutomationConfig {
+            applyEdits {
+                hideAllGroupsExcept(buildConfig)
+                buildConfig.apply {
+                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies)
+                }
+            }
+        }
+
         listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY
             lastY = event.position.y

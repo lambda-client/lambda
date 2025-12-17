@@ -29,7 +29,6 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
-import com.lambda.util.Communication.info
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.entity.BlockEntity
@@ -64,7 +63,6 @@ object ContainerManager : Loadable {
                 is EnderChestBlockEntity -> {
                     if (handler.type != ScreenHandlerType.GENERIC_9X3) return@listen
 
-                    this@ContainerManager.info("Updating EnderChestContainer")
                     EnderChestContainer.update(handler.containerStacks)
                 }
 
@@ -73,7 +71,6 @@ object ContainerManager : Loadable {
                     if (handler.type != ScreenHandlerType.GENERIC_9X6) return@listen
                     val stacks = handler.containerStacks
 
-                    this@ContainerManager.info("Updating ChestContainer")
                     containers
                         .filterIsInstance<ChestContainer>()
                         .find {
