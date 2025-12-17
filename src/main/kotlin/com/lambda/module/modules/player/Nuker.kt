@@ -64,13 +64,13 @@ object Nuker : Module(
                     .filter { !flatten || it.y >= player.blockPos.y }
                     .filter { pos ->
                         if (!baritoneSelection) true
-                        else BaritoneManager.primary.selectionManager.selections.any {
+                        else BaritoneManager.primary?.selectionManager?.selections?.any {
                             val min = it.min()
                             val max = it.max()
                             pos.x >= min.x && pos.x <= max.x
                                     && pos.y >= min.y && pos.y <= max.y
                                     && pos.z >= min.z && pos.z <= max.z
-                        }
+                        } ?: false
                     }
                     .associateWith { if (fillFluids) TargetState.Air else TargetState.Empty }
 

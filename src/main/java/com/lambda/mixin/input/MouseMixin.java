@@ -25,6 +25,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Mouse;
+import net.minecraft.client.input.MouseInput;
 import net.minecraft.client.option.SimpleOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,10 +37,10 @@ public class MouseMixin {
 
     @Shadow private double y;
 
-    @WrapMethod(method = "onMouseButton(JIII)V")
-    private void onMouseButton(long window, int button, int action, int mods, Operation<Void> original) {
-        if (!EventFlow.post(new MouseEvent.Click(button, action, mods)).isCanceled())
-            original.call(window, button, action, mods);
+    @WrapMethod(method = "onMouseButton")
+    private void onMouseButton(long window, MouseInput input, int action, Operation<Void> original) {
+        if (!EventFlow.post(new MouseEvent.Click(input.button(), action, input.modifiers())).isCanceled())
+            original.call(window, input, action);
     }
 
     @WrapMethod(method = "onMouseScroll(JDD)V")

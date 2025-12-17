@@ -26,6 +26,7 @@ import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.BlockView;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -42,14 +43,7 @@ public abstract class CameraMixin {
     public abstract void setRotation(float yaw, float pitch);
 
     @Inject(method = "update", at = @At("TAIL"))
-    private void onUpdate(
-            BlockView area,
-            Entity focusedEntity,
-            boolean thirdPerson,
-            boolean inverseView,
-            float tickDelta,
-            CallbackInfo ci
-    ) {
+    private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
         if (!Freecam.INSTANCE.isEnabled()) return;
 
         Freecam.updateCam();
@@ -66,7 +60,7 @@ public abstract class CameraMixin {
      * }</pre>
      */
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
-    private void injectQuickPerspectiveSwap(BlockView area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
+    private void injectQuickPerspectiveSwap(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
         var rot = RotationManager.getLockRotation();
         if (rot == null) return;
         setRotation(rot.getYawF(), rot.getPitchF());

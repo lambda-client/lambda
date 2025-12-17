@@ -170,9 +170,9 @@ public abstract class LivingEntityMixin extends EntityMixin {
         return (yaw == null) ? original.call(entity) : yaw;
     }
 
-    @ModifyConstant(method = "getHandSwingDuration", constant = @Constant(intValue = 6))
-    private int getHandSwingDuration(int constant) {
-        if (lambda$instance != Lambda.getMc().player || ViewModel.INSTANCE.isDisabled()) return constant;
+    @WrapMethod(method = "getHandSwingDuration")
+    private int getHandSwingDuration(Operation<Integer> original) {
+        if (lambda$instance != Lambda.getMc().player || ViewModel.INSTANCE.isDisabled()) return original.call();
 
         return ViewModel.INSTANCE.getSwingDuration();
     }

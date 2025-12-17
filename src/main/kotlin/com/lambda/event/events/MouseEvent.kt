@@ -21,6 +21,7 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.util.math.Vec2d
+import net.minecraft.client.input.MouseInput
 
 sealed class MouseEvent {
     /**

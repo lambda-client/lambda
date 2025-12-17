@@ -6,8 +6,6 @@
   "client": [
     "CrashReportMixin",
     "MinecraftClientMixin",
-    "baritone.MixinBaritonePlayerContext",
-    "baritone.MixinLookBehavior",
     "client.sound.SoundSystemMixin",
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
@@ -83,9 +81,14 @@
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
     "world.StructureTemplateMixin",
-    "world.WorldMixin"
+    "world.WorldMixin",
+    "baritone.MixinBaritonePlayerContext",
+    "baritone.MixinLookBehavior"
   ],
   "injectors": {
-    "defaultRequire": 1
+    "defaultRequire": 0
+  },
+  "overwrites": {
+    "conformVisibility": true
   }
 }

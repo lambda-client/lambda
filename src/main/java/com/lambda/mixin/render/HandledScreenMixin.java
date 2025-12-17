@@ -18,6 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.ContainerPreview;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,18 +28,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(HandledScreen.class)
 public class HandledScreenMixin {
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseClicked(Click click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
-            if (ContainerPreview.isMouseOverLockedTooltip((int) mouseX, (int) mouseY)) {
+            if (ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y())) {
                 cir.setReturnValue(true);
             }
         }
     }
 
     @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
-    private void onMouseReleased(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseReleased(Click click, CallbackInfoReturnable<Boolean> cir) {
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
-            if (ContainerPreview.isMouseOverLockedTooltip((int) mouseX, (int) mouseY)) {
+            if (ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y())) {
                 cir.setReturnValue(true);
             }
         }

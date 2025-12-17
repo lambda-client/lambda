@@ -121,9 +121,9 @@ public class ClientPlayInteractionManagerMixin {
         if (EventFlow.post(new PlayerEvent.Breaking.Cancel(currentBreakingProgress)).isCanceled()) ci.cancel();
     }
 
-    @WrapMethod(method = "createPlayer(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/stat/StatHandler;Lnet/minecraft/client/recipebook/ClientRecipeBook;ZZ)Lnet/minecraft/client/network/ClientPlayerEntity;")
-    private ClientPlayerEntity injectCreatePlayer(ClientWorld world, StatHandler statHandler, ClientRecipeBook recipeBook, boolean lastSneaking, boolean lastSprinting, Operation<ClientPlayerEntity> original) {
-        var player = original.call(world, statHandler, recipeBook, lastSneaking, lastSprinting);
+    @WrapMethod(method = "createPlayer(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/stat/StatHandler;Lnet/minecraft/client/recipebook/ClientRecipeBook;)Lnet/minecraft/client/network/ClientPlayerEntity;")
+    private ClientPlayerEntity wrapCreatePlayer(ClientWorld world, StatHandler statHandler, ClientRecipeBook recipeBook, Operation<ClientPlayerEntity> original) {
+        var player = original.call(world, statHandler, recipeBook);
         InventoryManager.INSTANCE.setScreenHandler(player.playerScreenHandler);
         return player;
     }

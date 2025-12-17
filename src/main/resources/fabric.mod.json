@@ -29,7 +29,9 @@
     "minecraft": "~$minecraftVersion",
     "fabric-api": ">=$fabricApiVersion+$minecraftVersion",
     "fabric-language-kotlin": ">=$kotlinFabricVersion",
-    "java": ">=$javaVersion",
+    "java": ">=$javaVersion"
+  },
+  "recommends": {
     "baritone": "*"
   }
 }

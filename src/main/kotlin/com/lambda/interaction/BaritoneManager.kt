@@ -28,15 +28,18 @@ import com.lambda.context.Automated
 import com.lambda.config.AutomationConfig
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
+import net.fabricmc.loader.api.FabricLoader
 
 object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
     override val name = "baritone"
 
-    private val baritone = BaritoneAPI.getProvider()
-    val baritoneSettings: Settings = BaritoneAPI.getSettings()
+    val isBaritoneLoaded = FabricLoader.getInstance().isModLoaded("baritone")
+
+    private val baritone = if (isBaritoneLoaded) BaritoneAPI.getProvider() else null
+    val baritoneSettings: Settings? = if (isBaritoneLoaded) BaritoneAPI.getSettings() else null
 
     @JvmStatic
-    val primary: IBaritone = baritone.primaryBaritone
+    val primary: IBaritone? = baritone?.primaryBaritone
 
     private enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
@@ -72,7 +75,8 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
 
     init {
         // ToDo: Dont actually save the settings as its duplicate data
-        with(baritoneSettings) {
+        if (isBaritoneLoaded) {
+            with(baritoneSettings!!) {
 
             // GENERAL
             setting("Log As Toast", logAsToast.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> logAsToast.value = it }
@@ -334,6 +338,7 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
             setting("Allow Land On Nether Fortress", elytraAllowLandOnNetherFortress.value).group(Group.Elytra).onValueChange { _, it -> elytraAllowLandOnNetherFortress.value = it }
             setting("Terms Accepted", elytraTermsAccepted.value).group(Group.Elytra).onValueChange { _, it -> elytraTermsAccepted.value = it }
             setting("Chat Spam", elytraChatSpam.value).group(Group.Elytra).onValueChange { _, it -> elytraChatSpam.value = it }
+            }
         }
     }
 
@@ -341,22 +346,28 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
      * Whether Baritone is currently pathing
      */
     val isPathing: Boolean
-        get() = primary.pathingBehavior.isPathing
+        get() = isBaritoneLoaded && primary?.pathingBehavior?.isPathing == true
 
     /**
      * Whether Baritone is active (pathing, calculating goal, etc.)
      */
     val isActive: Boolean
-        get() = primary.customGoalProcess.isActive || primary.pathingBehavior.isPathing || primary.pathingControlManager.mostRecentInControl()
-            .orElse(null)?.isActive == true
+        get() = isBaritoneLoaded && (primary?.customGoalProcess?.isActive == true || primary?.pathingBehavior?.isPathing == true || primary?.pathingControlManager?.mostRecentInControl()
+            ?.orElse(null)?.isActive == true)
 
     /**
      * Sets the current Baritone goal and starts pathing
      */
-    fun setGoalAndPath(goal: Goal) = primary.customGoalProcess.setGoalAndPath(goal)
+    fun setGoalAndPath(goal: Goal) {
+        if (!isBaritoneLoaded) return
+        primary?.customGoalProcess?.setGoalAndPath(goal)
+    }
 
     /**
      * Force cancel Baritone
      */
-    fun cancel() = primary.pathingBehavior.cancelEverything()
+    fun cancel() {
+        if (!isBaritoneLoaded) return
+        primary?.pathingBehavior?.cancelEverything()
+    }
 }
