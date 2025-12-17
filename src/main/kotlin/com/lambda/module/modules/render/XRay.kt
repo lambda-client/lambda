@@ -41,12 +41,14 @@ object XRay : Module(
     )
 
     @JvmStatic
-    val opacity by setting("Opacity", 40, 0..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)")
+    val opacity by setting("Opacity", 40, 1..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)")
         .onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
-
     private val selection by setting("Block Selection", defaultBlocks, description = "Block selection that will be shown (whitelist) or hidden (blacklist)")
         .onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
+
+    // ToDo: Blacklist causes huge performance issues due to many single faces being rendered
     private val mode by setting("Selection Mode", Selection.Whitelist, "The mode of the block selection")
+        .onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
 
     @JvmStatic
     fun isSelected(blockState: BlockState) = mode.select(blockState)
