@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.InventorySettings
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -28,7 +29,6 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer
-import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
@@ -39,20 +39,20 @@ object InventoryTweaks : Module(
     name = "InventoryTweaks",
     tag = ModuleTag.PLAYER,
 ) {
-    private enum class Group(override val displayName: String): NamedEnum {
-        General("General"),
-        Inventory("Inventory")
-    }
-
-    private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.").group(Group.General)
-    private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.").group(Group.General)
-    override val inventoryConfig  = InventorySettings(this, Group.Inventory)
+    private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
+    private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
     private var placedPos: BlockPos? = null
     private var placeAndOpen: Task<*>? = null
     private var lastBreak: Task<*>? = null
     private var lastOpenScreen: ScreenHandler? = null
 
     init {
+        setDefaultAutomationConfig {
+            applyEdits {
+                hideAllGroupsExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
+            }
+        }
+
         listen<PlayerEvent.SlotClick> {
             if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
             val stack = it.screenHandler.getSlot(it.slot).stack
