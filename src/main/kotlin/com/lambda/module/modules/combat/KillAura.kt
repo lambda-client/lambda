@@ -19,7 +19,6 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
@@ -59,9 +58,6 @@ object KillAura : Module(
     // Targeting
     private val targeting = Targeting.Combat(this, Group.Targeting)
 
-    // Aiming
-    override val rotationConfig = RotationSettings(this, Group.Aiming)
-
     val target: LivingEntity?
         get() = targeting.target()
 
@@ -77,10 +73,8 @@ object KillAura : Module(
     private var onGroundTicks = 0
 
     enum class Group(override val displayName: String) : NamedEnum {
-        Interaction("Interaction"),
         Build("Build"),
         Targeting("Targeting"),
-        Aiming("Aiming")
     }
 
     enum class AttackMode {
@@ -93,7 +87,7 @@ object KillAura : Module(
             applyEdits {
                 hideAllGroupsExcept(buildConfig)
                 buildConfig.apply {
-                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies)
+                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::interactReach)
                 }
             }
         }
