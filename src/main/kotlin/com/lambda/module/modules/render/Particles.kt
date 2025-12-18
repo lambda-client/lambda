@@ -33,7 +33,7 @@ import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.pipeline.VertexPipeline
-import com.lambda.graphics.shader.Shader.Companion.shader
+import com.lambda.graphics.shader.Shader
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.module.Module
@@ -53,6 +53,7 @@ import com.mojang.blaze3d.opengl.GlConst.GL_ONE
 import com.mojang.blaze3d.opengl.GlConst.GL_SRC_ALPHA
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
+import org.joml.Matrix4f
 import kotlin.math.sin
 
 // FixMe: Do not call render stuff in the initialization block
@@ -82,7 +83,7 @@ object Particles : Module(
 
     private var particles = mutableListOf<Particle>()
     private val pipeline = VertexPipeline(VertexMode.Triangles, VertexAttrib.Group.PARTICLE)
-    private val shader = shader("renderer/particle")
+    private val shader = Shader("shaders/vertex/particles.glsl", "shaders/fragment/particles.glsl")
 
     init {
         listen<TickEvent.Pre> {
@@ -97,8 +98,6 @@ object Particles : Module(
 
             withBlendFunc(GL_SRC_ALPHA, GL_ONE) {
                 shader.use()
-                shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
-
                 pipeline.upload(builder)
                 withDepth(false, pipeline::render)
                 pipeline.clear()

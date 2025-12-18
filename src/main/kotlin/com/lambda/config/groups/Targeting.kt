@@ -33,6 +33,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
+import net.minecraft.entity.mob.HostileEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
 import java.util.*
@@ -115,9 +116,10 @@ abstract class Targeting(
      * @return `true` if the entity is valid for targeting, `false` otherwise.
      */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
-        !players || (entity is OtherClientPlayerEntity && entity.isFriend) -> false
+        !players && entity is OtherClientPlayerEntity -> false
+        players && entity is OtherClientPlayerEntity && entity.isFriend -> false
         !animals && entity is PassiveEntity -> false
-        !hostiles && entity is MobEntity -> false
+        !hostiles && entity is HostileEntity -> false
         entity is ArmorStandEntity -> false
 
         !invisible && entity.isInvisibleTo(player) -> false
