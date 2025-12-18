@@ -72,7 +72,7 @@ object PacketMine : Module(
     private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
     private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
 
-    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
     private var breaks = 0
     private var itemDrops = 0
@@ -120,6 +120,7 @@ object PacketMine : Module(
 					) { defaultValue(false) }
 					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
 				}
+                hotbarConfig::keepTicks.edit { defaultValue(0) }
 			}
 		}
 
@@ -218,7 +219,7 @@ object PacketMine : Module(
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
-        breakRequest(breakContexts, pendingInteractions) {
+        breakRequest(breakContexts, pendingActions) {
             onStart { onProgress(it) }
             onUpdate { onProgress(it) }
             onStop { removeBreak(it); breaks++ }

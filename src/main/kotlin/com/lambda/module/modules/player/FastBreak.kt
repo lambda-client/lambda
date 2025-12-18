@@ -34,7 +34,7 @@ object FastBreak : Module(
     description = "Break blocks faster.",
     tag = ModuleTag.PLAYER,
 ) {
-    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
     init {
 		setDefaultAutomationConfig {
@@ -80,7 +80,7 @@ object FastBreak : Module(
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
 	        runSafeAutomated {
-				breakRequest(listOf(event.pos), pendingInteractions)?.submit()
+				breakRequest(listOf(event.pos), pendingActions)?.submit()
 			}
         }
     }

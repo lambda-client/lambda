@@ -49,6 +49,8 @@ object InventoryMove : Module(
     description = "Allows you to move with GUIs opened",
     tag = ModuleTag.PLAYER,
 ) {
+    private val clickGui by setting("ClickGui", false)
+    private val disableSneak by setting("Disable Crouch", false)
     private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
     private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
     override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
@@ -65,7 +67,7 @@ object InventoryMove : Module(
                 this is AbstractSignEditScreen ||
                 this is AnvilScreen ||
                 this is AbstractCommandBlockScreen ||
-                this is LambdaScreen ||
+                (this is LambdaScreen && !clickGui) ||
                 this is BookEditScreen ||
                 this == null
 
@@ -93,8 +95,8 @@ object InventoryMove : Module(
             options.leftKey.boundKey.code,
             options.rightKey.boundKey.code,
             options.jumpKey.boundKey.code,
-            options.sprintKey.boundKey.code,
-            options.sneakKey.boundKey.code -> true
+            options.sprintKey.boundKey.code -> true
+            options.sneakKey.boundKey.code if (!disableSneak) -> true
             else -> false
         }
     }

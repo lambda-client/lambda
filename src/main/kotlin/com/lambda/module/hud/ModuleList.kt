@@ -21,7 +21,6 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
 import imgui.flag.ImGuiCol
 import java.awt.Color
 
@@ -29,19 +28,27 @@ object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
-    override val isVisible: Boolean
-        get() = false
+	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
+	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
+
+    init {
+        drawSetting.value = false
+    }
 
     override fun ImGuiBuilder.buildLayout() {
-        val enabled = ModuleRegistry.modules
-            .filter { it.isEnabled }
-            .filter { it.isVisible }
+        val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
 
         enabled.forEach {
-            text(it.name); sameLine()
-            val color = if (it.keybind.key == 0 && it.keybind.mouse == -1) Color.RED else Color.GREEN
+            val bound = it.keybind.key != 0 || it.keybind.mouse != -1
+            if (onlyBound && !bound) return@forEach
+            text(it.name);
 
-            withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        if (showKeybind) {
+		        val color = if (!bound) Color.RED else Color.GREEN
+
+		        sameLine()
+		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
+	        }
         }
     }
 }

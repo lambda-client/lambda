@@ -39,6 +39,7 @@ object SettingsWidget {
             if (config is Module) {
                 with(config.keybindSetting) { buildLayout() }
                 with(config.disableOnReleaseSetting) { buildLayout() }
+	            with(config.drawSetting) { buildLayout() }
             }
             smallButton("Reset") {
                 config.settings.forEach { it.reset(silent = true) }
@@ -75,7 +76,7 @@ object SettingsWidget {
         }
         val toIgnoreSettings =
             when (config) {
-                is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting)
+                is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting, config.drawSetting)
                 is UserAutomationConfig -> setOf(config.linkedModules)
                 else -> emptySet()
             }
