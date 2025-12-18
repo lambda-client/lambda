@@ -26,5 +26,14 @@ object LambdaScreen : Screen(Text.of("Lambda")) {
     override fun shouldPause() = false
     override fun removed() = ClickGuiLayout.close()
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
-    override fun renderBackground(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
+
+    override fun applyBlur(context: DrawContext?) {
+        if (!ClickGuiLayout.backgroundBlur) return
+        super.applyBlur(context)
+    }
+
+    override fun renderDarkening(context: DrawContext?) {
+        if (!ClickGuiLayout.backgroundDarkening) return
+        super.renderDarkening(context)
+    }
 }

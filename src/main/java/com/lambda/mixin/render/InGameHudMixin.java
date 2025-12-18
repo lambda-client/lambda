@@ -35,13 +35,6 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
-    /**
-     * Begins our 2d render after the game has rendered all 2d elements
-     */
-    @Inject(method = "render", at = @At("TAIL"))
-    private void onRender(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        DearImGui.INSTANCE.render();
-    }
 
     @Inject(method = "renderNauseaOverlay", at = @At("HEAD"), cancellable = true)
     private void injectRenderNauseaOverlay(DrawContext context, float nauseaStrength, CallbackInfo ci) {

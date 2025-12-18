@@ -122,6 +122,8 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	@JvmStatic
 	val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }.group(Group.General)
 	val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }.group(Group.General)
+	val backgroundBlur by setting("Background Blur", true).group(Group.General)
+	val backgroundDarkening by setting("Background Darkening", true).group(Group.General)
 
 	// Snapping
 	val snapEnabled by setting("Enable Snapping", true, "Master toggle for GUI/HUD snapping").group(Group.Snapping)

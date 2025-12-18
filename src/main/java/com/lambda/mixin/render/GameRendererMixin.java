@@ -20,6 +20,7 @@ package com.lambda.mixin.render;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
+import com.lambda.gui.DearImGui;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.Zoom;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -79,5 +80,10 @@ public class GameRendererMixin {
     @ModifyReturnValue(method = "getFov", at = @At("RETURN"))
     private float modifyGetFov(float original) {
         return original / Zoom.getLerpedZoom();
+    }
+
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
+    private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
+        DearImGui.INSTANCE.render();
     }
 }
