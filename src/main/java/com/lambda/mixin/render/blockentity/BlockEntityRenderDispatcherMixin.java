@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.mixin.render.blockEntity;
+package com.lambda.mixin.render.blockentity;
 
 import com.lambda.module.modules.render.NoRender;
 import net.minecraft.block.entity.BlockEntity;

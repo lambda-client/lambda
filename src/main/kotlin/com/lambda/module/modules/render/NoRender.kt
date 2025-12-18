@@ -148,6 +148,10 @@ object NoRender : Module(
         isEnabled && particleMap[particle.javaClass.simpleName] in particles
 
     @JvmStatic
+    fun shouldOmitParticle(particle: Class<out Particle>) =
+        isEnabled && particleMap[particle.simpleName] in particles
+
+    @JvmStatic
     fun shouldOmitEntity(entity: Entity): Boolean {
         val simpleName = entity.javaClass.simpleName
         return isEnabled && when (entity.type.spawnGroup) {

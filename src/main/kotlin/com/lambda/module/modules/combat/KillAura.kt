@@ -41,7 +41,6 @@ import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
-import net.minecraft.util.math.Vec3d
 
 object KillAura : Module(
     name = "KillAura",
@@ -61,16 +60,12 @@ object KillAura : Module(
     val target: LivingEntity?
         get() = targeting.target()
 
-    private var shakeRandom = Vec3d.ZERO
-    private var speedMultiplier = 1.0
-
     private var lastAttackTime = 0L
     private var hitDelay = 100.0
 
     private var prevY = 0.0
     private var lastY = 0.0
     private var lastOnGround = true
-    private var onGroundTicks = 0
 
     enum class Group(override val displayName: String) : NamedEnum {
         Build("Build"),
@@ -145,13 +140,9 @@ object KillAura : Module(
     }
 
     private fun reset() {
-        speedMultiplier = 1.0
-        shakeRandom = Vec3d.ZERO
-
         lastY = 0.0
         prevY = 0.0
         lastOnGround = true
-        onGroundTicks = 0
 
         lastAttackTime = 0L
         hitDelay = 100.0

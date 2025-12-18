@@ -28,6 +28,7 @@ transitive-accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/mi
 transitive-accessible field net/minecraft/state/State owner Ljava/lang/Object;
 # MOVED in 1.21.11: BackgroundRenderer$StatusEffectFogModifier -> net/minecraft/client/render/fog/StatusEffectFogModifier
 transitive-accessible class net/minecraft/client/render/fog/StatusEffectFogModifier
+transitive-accessible field net/minecraft/client/particle/NoRenderParticleRenderer EMPTY Lnet/minecraft/client/render/Submittable;
 
 # Entity
 transitive-accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;

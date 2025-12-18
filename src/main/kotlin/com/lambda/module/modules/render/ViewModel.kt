@@ -36,6 +36,7 @@ import org.joml.Vector3f
 import org.joml.Vector3i
 import kotlin.math.tan
 
+@Suppress("unused")
 object ViewModel : Module(
     name = "ViewModel",
     description = "Adjusts hand and held item rendering",
@@ -115,17 +116,13 @@ object ViewModel : Module(
 
         listen<KeyboardEvent.Press> { event ->
             if (event.keyCode == mc.options.attackKey.boundKey.code) {
-                if (event.isPressed) {
-                    attackKeyTicksPressed = 0
-                } else if (event.isReleased) {
-                    attackKeyTicksPressed = -1
-                }
+                if (event.isPressed) attackKeyTicksPressed = 0
+                else if (event.isReleased) attackKeyTicksPressed = -1
             }
         }
 
         listen<TickEvent.Pre> {
-            if (attackKeyTicksPressed != -1)
-                attackKeyTicksPressed++
+            if (attackKeyTicksPressed != -1) attackKeyTicksPressed++
         }
     }
 
@@ -158,20 +155,16 @@ object ViewModel : Module(
 
         val matrix = matrices.peek().positionMatrix
 
-        val distance = if (emptyHand) {
-            handFovAnchorDistance
-        } else {
-            when (side) {
-                Side.Left -> leftFovAnchorDistance
-                Side.Right -> rightFovAnchorDistance
-            }
+        val distance = if (emptyHand) handFovAnchorDistance
+        else when (side) {
+            Side.Left -> leftFovAnchorDistance
+            Side.Right -> rightFovAnchorDistance
         }
 
-        val warpMatrix = Matrix4f().apply {
-            translate(0f, 0f, -distance)
-            scale(1f, 1f, fovRatio)
-            translate(0f, 0f, distance)
-        }
+        val warpMatrix = Matrix4f()
+            .translate(0f, 0f, -distance)
+            .scale(1f, 1f, fovRatio)
+            .translate(0f, 0f, distance)
 
         matrix.mul(warpMatrix)
     }
@@ -212,14 +205,12 @@ object ViewModel : Module(
 
     private fun getRotationVec(side: Side, emptyHand: Boolean) =
         when (side) {
-            Side.Left -> {
+            Side.Left ->
                 if (emptyHand) Vector3i(handXRotation, -handYRotation, -handZRotation)
                 else Vector3i(leftXRotation, -leftYRotation, -leftZRotation)
-            }
-            Side.Right -> {
+            Side.Right ->
                 if (emptyHand) Vector3i(handXRotation, handYRotation, handZRotation)
                 else Vector3i(rightXRotation, rightYRotation, rightZRotation)
-            }
         }
 
     fun adjustSwing(hand: Hand, player: AbstractClientPlayerEntity) =
