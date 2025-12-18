@@ -14,7 +14,7 @@
 Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda-legacy).
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/0.0.1%2B1.21.5/lambda-0.0.1+1.21.5.jar"><img alt="lambda-0.0.1+1.21.5.jar" src="https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/download_button_0.0.1.png" width="70%" height="70%"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/0.0.2%2B1.21.5/lambda-0.0.2+1.21.5.jar"><img alt="lambda-0.0.1+1.21.5.jar" src="https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/download_button_0.0.2.png" width="70%" height="70%"></a>
 </p>
 
 <p align="center">
@@ -57,7 +57,7 @@ Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element
 <a href="https://fabricmc.net/wiki/install"><img src="https://cdn.jonasjones.dev/mod-badges/support-fabric.png" width="150px" alt="Fabric Supported"></a>
 1. Install Minecraft 1.21.5 [(download)](https://www.minecraft.net/)
 2. Install Fabric [(download)](https://fabricmc.net/use/installer/)
-3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/0.0.1%2B1.21.5/lambda-0.0.1+1.21.5.jar)
+3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/0.0.2%2B1.21.5/lambda-0.0.2+1.21.5.jar)
 4. Put the file in your `.minecraft/mods` folder
 
 ## Getting Started
