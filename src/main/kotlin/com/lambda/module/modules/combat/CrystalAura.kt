@@ -17,19 +17,12 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.Lambda
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.gl.Matrices
-import com.lambda.graphics.gl.Matrices.buildWorldProjection
-import com.lambda.graphics.gl.Matrices.withVertexTransform
-import com.lambda.graphics.renderer.gui.FontRenderer
-import com.lambda.graphics.renderer.gui.FontRenderer.drawString
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
@@ -190,19 +183,6 @@ object CrystalAura : Module(
 
         listen<TickEvent.Render.Post> {
             updatesThisFrame = 0
-        }
-
-        listen<RenderEvent.Upload> {
-            if (!debug) return@listen
-
-            Matrices.push {
-                val c = Lambda.mc.gameRenderer.camera.pos.negate()
-                translate(c.x, c.y, c.z)
-                // Build the buffer
-                blueprint.values.forEach {
-                    it.buildDebug()
-                }
-            }
         }
 
         // Update last received entity spawn
@@ -521,27 +501,6 @@ object CrystalAura : Module(
                 crystal?.let { crystal ->
                     explodeInternal(crystal.id)
                     explodeTimer.reset()
-                }
-            }
-        }
-
-        fun buildDebug() {
-            withVertexTransform(buildWorldProjection(blockPos.crystalPosition, 0.4, Matrices.ProjRotationMode.ToCamera)) {
-                val lines = arrayOf(
-                    "Decision: ${actionType.name} ${priority.roundToStep(0.01)}",
-                    "",
-                    "Blocked: $blocked",
-                    "Crystal: $hasCrystal",
-                    "",
-                    "Target Damage: ${target.roundToStep(0.01)}",
-                    "Self Damage: ${self.roundToStep(0.01)}"
-                )
-
-                var height = -0.5 * lines.size * (FontRenderer.getHeight() + 2)
-
-                lines.forEach {
-                    drawString(it, Vec2d(-FontRenderer.getWidth(it) * 0.5, height))
-                    height += FontRenderer.getHeight() + 2
                 }
             }
         }

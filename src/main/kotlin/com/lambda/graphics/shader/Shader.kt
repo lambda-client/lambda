@@ -17,11 +17,15 @@
 
 package com.lambda.graphics.shader
 
+import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.shader.ShaderUtils.createShaderProgram
 import com.lambda.graphics.shader.ShaderUtils.loadShader
 import com.lambda.graphics.shader.ShaderUtils.uniformMatrix
+import com.lambda.util.LambdaResource
 import com.lambda.util.math.Vec2d
+import com.lambda.util.stream
+import com.lambda.util.text
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import net.minecraft.util.math.Vec3d
@@ -35,23 +39,26 @@ import org.lwjgl.opengl.GL20C.glUniform4f
 import org.lwjgl.opengl.GL20C.glUseProgram
 import java.awt.Color
 
-class Shader private constructor(name: String) {
+class Shader(vertex: LambdaResource, fragment: LambdaResource) {
     private val uniformCache: Object2IntMap<String> = Object2IntOpenHashMap()
 
-    private val id: Int
+    private val id: Int = createShaderProgram(
+        loadShader(ShaderType.VertexShader, vertex.text),
+        loadShader(ShaderType.FragmentShader, fragment.text)
+    )
 
-    init {
-        val texts = buildShaderSource(name)
-
-        id = createShaderProgram(
-            loadShader(ShaderType.VertexShader, texts.first),
-            loadShader(ShaderType.FragmentShader, texts.second)
-        )
-    }
-
-    fun use() {
+	fun use() {
         glUseProgram(id)
         set("u_ProjModel", RenderMain.projModel)
+
+        val x = mc.gameRenderer.camera.pos.x.toFloat()
+        val y = mc.gameRenderer.camera.pos.y.toFloat()
+        val z = mc.gameRenderer.camera.pos.z.toFloat()
+
+        val view = Matrix4f()
+            .translation(-x, -y, -z)
+
+        set("u_View", view)
     }
 
     private fun loc(name: String) =
@@ -89,13 +96,4 @@ class Shader private constructor(name: String) {
 
     operator fun set(name: String, mat: Matrix4f) =
         uniformMatrix(loc(name), mat)
-
-    companion object {
-        private val shaderCache = hashMapOf<String, Shader>()
-
-        fun shader(path: String) =
-            shaderCache.getOrPut(path) {
-                Shader(path)
-            }
-    }
 }

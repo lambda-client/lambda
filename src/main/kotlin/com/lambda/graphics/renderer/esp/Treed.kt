@@ -23,16 +23,14 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils
 import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.pipeline.VertexPipeline
-import com.lambda.graphics.shader.Shader.Companion.shader
+import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.extension.partialTicks
-import com.lambda.util.math.minus
-import net.minecraft.util.math.Vec3d
 
 /**
  * Open class for 3d rendering. It contains two pipelines, one for edges and the other for faces.
  */
-open class Treed(static: Boolean) {
+open class Treed(private val static: Boolean) {
     val shader = if (static) staticMode.first else dynamicMode.first
 
     val faces = VertexPipeline(VertexMode.Triangles, if (static) staticMode.second else dynamicMode.second)
@@ -48,8 +46,9 @@ open class Treed(static: Boolean) {
 
     fun render() {
         shader.use()
-        shader["u_TickDelta"] = mc.partialTicks
-        shader["u_CameraLerp"] = cachedCameraPos - mc.gameRenderer.camera.pos
+
+        if (!static)
+            shader["u_TickDelta"] = mc.partialTicks
 
         GlStateUtils.withFaceCulling(faces::render)
         GlStateUtils.withLineWidth(StyleEditor.outlineWidth, edges::render)
@@ -76,14 +75,7 @@ open class Treed(static: Boolean) {
     object Dynamic : Treed(false)
 
     companion object {
-        private val staticMode = shader("renderer/box_static") to VertexAttrib.Group.STATIC_RENDERER
-        private val dynamicMode = shader("renderer/box_dynamic") to VertexAttrib.Group.DYNAMIC_RENDERER
-
-        var cachedCameraPos: Vec3d = Vec3d.ZERO
-        val cameraPos: Vec3d
-            get() {
-                cachedCameraPos = mc.gameRenderer.camera.pos
-                return cachedCameraPos
-            }
+        private val staticMode = Shader("shaders/vertex/box_static.glsl", "shaders/fragment/pos_color.glsl") to VertexAttrib.Group.STATIC_RENDERER
+        private val dynamicMode = Shader("shaders/vertex/box_dynamic.glsl", "shaders/fragment/pos_color.glsl") to VertexAttrib.Group.DYNAMIC_RENDERER
     }
 }

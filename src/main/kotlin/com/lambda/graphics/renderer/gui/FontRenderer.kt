@@ -22,7 +22,6 @@ import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
-import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.modules.client.LambdaMoji
@@ -39,7 +38,7 @@ import java.awt.Color
  * Renders text and emoji glyphs using a shader-based font rendering system.
  * This class handles text and emoji rendering, shadow effects, and text scaling.
  */
-object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("renderer/font")) {
+/*object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("renderer/font")) {
     private val chars get() = StyleEditor.textFont
     private val emojis get() = StyleEditor.emojiFont
 
@@ -278,4 +277,4 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         (color.blue * StyleEditor.shadowBrightness).toInt(),
         color.alpha
     )
-}
+}*/
