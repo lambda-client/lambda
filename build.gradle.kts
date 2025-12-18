@@ -175,8 +175,7 @@ dependencies {
     includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 
     // Add mods
-    /*modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion") */
-    modCompileOnly("com.github.rfresh2:baritone-fabric:1.21.10-SNAPSHOT") // ToDo: Move to 1.21.11
+    modCompileOnly("com.github.rfresh2:baritone-fabric:$minecraftVersion-SNAPSHOT")
     modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
