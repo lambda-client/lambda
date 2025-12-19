@@ -1,0 +1,142 @@
+/*
+ * Copyright 2025 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.graphics.mc
+
+import com.lambda.Lambda.mc
+import com.mojang.blaze3d.buffers.GpuBuffer
+import com.mojang.blaze3d.systems.RenderPass
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.vertex.VertexFormat
+import java.util.*
+
+/**
+ * Region-based renderer for ESP rendering using MC 1.21.11's new render pipeline.
+ *
+ * This renderer manages the lifecycle of dedicated GPU buffers for a specific region and provides
+ * methods to render them within a RenderPass.
+ *
+ * @param region The render region this renderer is associated with
+ */
+class RegionRenderer(val region: RenderRegion) {
+
+    // Dedicated GPU buffers for faces and edges
+    private var faceVertexBuffer: GpuBuffer? = null
+    private var edgeVertexBuffer: GpuBuffer? = null
+
+    // Index counts for draw calls
+    private var faceIndexCount = 0
+    private var edgeIndexCount = 0
+
+    // State tracking
+    private var hasData = false
+
+    /**
+     * Upload collected vertices from an external collector. This must be called on the main/render
+     * thread.
+     *
+     * @param collector The collector containing the geometry to upload
+     */
+    fun upload(collector: RegionVertexCollector) {
+        val result = collector.upload()
+
+        // Cleanup old buffers
+        faceVertexBuffer?.close()
+        edgeVertexBuffer?.close()
+
+        // Assign new buffers and counts
+        faceVertexBuffer = result.faces?.buffer
+        faceIndexCount = result.faces?.indexCount ?: 0
+
+        edgeVertexBuffer = result.edges?.buffer
+        edgeIndexCount = result.edges?.indexCount ?: 0
+
+        hasData = faceVertexBuffer != null || edgeVertexBuffer != null
+    }
+
+    /**
+     * Render faces using the given render pass.
+     *
+     * @param renderPass The active RenderPass to record commands into
+     */
+    fun renderFaces(renderPass: RenderPass) {
+        val vb = faceVertexBuffer ?: return
+        if (faceIndexCount == 0) return
+
+        renderPass.setVertexBuffer(0, vb)
+        // Use vanilla's sequential index buffer for quads
+        val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+        val indexBuffer = shapeIndexBuffer.getIndexBuffer(faceIndexCount)
+
+        renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+        renderPass.drawIndexed(0, 0, faceIndexCount, 1)
+    }
+
+    /**
+     * Render edges using the given render pass.
+     *
+     * @param renderPass The active RenderPass to record commands into
+     */
+    fun renderEdges(renderPass: RenderPass) {
+        val vb = edgeVertexBuffer ?: return
+        if (edgeIndexCount == 0) return
+
+        renderPass.setVertexBuffer(0, vb)
+        // Use vanilla's sequential index buffer for lines
+        val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.LINES)
+        val indexBuffer = shapeIndexBuffer.getIndexBuffer(edgeIndexCount)
+
+        renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+        renderPass.drawIndexed(0, 0, edgeIndexCount, 1)
+    }
+
+    /** Clear all geometry data and release GPU resources. */
+    fun clearData() {
+        faceVertexBuffer?.close()
+        edgeVertexBuffer?.close()
+        faceVertexBuffer = null
+        edgeVertexBuffer = null
+        faceIndexCount = 0
+        edgeIndexCount = 0
+        hasData = false
+    }
+
+    /** Check if this renderer has any data to render. */
+    fun hasData(): Boolean = hasData
+
+    /** Clean up all resources. */
+    fun close() {
+        clearData()
+    }
+
+    companion object {
+        /** Helper to create a render pass targeting the main framebuffer. */
+        fun createRenderPass(label: String): RenderPass? {
+            val framebuffer = mc.framebuffer ?: return null
+
+            return RenderSystem.getDevice()
+                    .createCommandEncoder()
+                    .createRenderPass(
+                            { label },
+                            framebuffer.colorAttachmentView,
+                            OptionalInt.empty(),
+                            framebuffer.depthAttachmentView,
+                            OptionalDouble.empty()
+                    )
+        }
+    }
+}

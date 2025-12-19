@@ -30,6 +30,7 @@ import org.lwjgl.opengl.GL30C.glDisable
 import org.lwjgl.opengl.GL30C.glEnable
 import org.lwjgl.opengl.GL30C.glLineWidth
 
+// ToDo: Migrate particle system so we can remove this
 object GlStateUtils {
     private var depthTestState = true
     private var blendState = false

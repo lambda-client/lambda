@@ -21,10 +21,10 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
+import com.lambda.graphics.mc.ChunkedRegionESP.Companion.newChunkedRegionESP
+import com.lambda.graphics.mc.RegionShapeBuilder
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.ShapeBuilder
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -67,24 +67,29 @@ object BlockESP : Module(
     @JvmStatic
     val model: BlockStateModel get() = mc.bakedModelManager.missingModel
 
-    private val esp = newChunkedESP { world, position ->
+    private val esp = newChunkedRegionESP({ true }) { world, position ->
         val state = world.getBlockState(position)
-        if (state.block !in blocks) return@newChunkedESP
+        if (state.block !in blocks) return@newChunkedRegionESP
 
-        val sides = if (mesh) {
-            buildSideMesh(position) {
-                world.getBlockState(it).block in blocks
-            }
-        } else DirectionMask.ALL
+        val sides =
+            if (mesh) {
+                buildSideMesh(position) { world.getBlockState(it).block in blocks }
+            } else DirectionMask.ALL
 
-        build(state, position.toBlockPos(), sides)
+        runSafe { build(this@newChunkedRegionESP, state, position.toBlockPos(), sides) }
     }
 
-    private fun ShapeBuilder.build(
+    init {
+        onEnable { esp.rebuildAll() }
+        onDisable { esp.clear() }
+    }
+
+    private fun SafeContext.build(
+        builder: RegionShapeBuilder,
         state: BlockState,
         pos: BlockPos,
         sides: Int,
-    ) = runSafe {
+    ) = with(builder) {
         val blockColor = blockColor(state, pos)
 
         if (drawFaces) filled(pos, state, if (useBlockColor) blockColor else faceColor, sides)

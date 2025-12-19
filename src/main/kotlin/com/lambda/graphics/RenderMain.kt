@@ -17,60 +17,47 @@
 
 package com.lambda.graphics
 
-import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
-import com.lambda.graphics.renderer.esp.Treed
-import com.lambda.util.math.Vec2d
-import com.mojang.blaze3d.opengl.GlStateManager
-import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.gl.GlBackend
-import net.minecraft.client.texture.GlTexture
+import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.TransientRegionESP
 import org.joml.Matrix4f
-import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
 
 object RenderMain {
-    val projectionMatrix = Matrix4f()
-    val modelViewMatrix get() = Matrices.peek()
-    val projModel: Matrix4f get() = Matrix4f(projectionMatrix).mul(modelViewMatrix)
+    val StaticESP = TransientRegionESP("Static")
+    val DynamicESP = TransientRegionESP("Dynamic")
 
-    var screenSize = Vec2d.ZERO
+    val projectionMatrix = Matrix4f()
+    val modelViewMatrix
+        get() = Matrices.peek()
+    val projModel: Matrix4f
+        get() = Matrix4f(projectionMatrix).mul(modelViewMatrix)
 
     @JvmStatic
     fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
         resetMatrices(positionMatrix)
         projectionMatrix.set(projMatrix)
 
-        setupGL {
-            val framebuffer = mc.framebuffer
-            val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer(
-                (RenderSystem.getDevice() as GlBackend).bufferManager,
-                null
-            )
+        // Render transient ESPs using the new pipeline
+        StaticESP.render(false) // Depth tested
+        DynamicESP.render(true) // Through walls
 
-            GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
-
-            Treed.Static.render()
-            Treed.Dynamic.render()
-
-            RenderEvent.Render.post()
-        }
+        RenderEvent.Render.post()
     }
 
     init {
         listen<TickEvent.Post> {
-            Treed.Static.clear()
-            Treed.Dynamic.clear()
+            StaticESP.clear()
+            DynamicESP.clear()
 
             RenderEvent.Upload.post()
 
-            Treed.Static.upload()
-            Treed.Dynamic.upload()
+            StaticESP.upload()
+            DynamicESP.upload()
         }
     }
 }
