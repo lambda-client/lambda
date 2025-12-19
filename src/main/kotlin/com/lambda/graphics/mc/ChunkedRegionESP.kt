@@ -17,28 +17,20 @@
 
 package com.lambda.graphics.mc
 
-import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.graphics.esp.RegionESP
+import com.lambda.graphics.esp.ShapeScope
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
-import com.mojang.blaze3d.buffers.GpuBuffer
-import com.mojang.blaze3d.systems.RenderPass
-import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.world.World
 import net.minecraft.world.chunk.WorldChunk
-import org.joml.Matrix4f
-import org.joml.Quaternionf
-import org.joml.Vector3f
-import org.joml.Vector4f
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -47,23 +39,25 @@ import java.util.concurrent.ConcurrentLinkedDeque
  *
  * This system:
  * - Uses region-relative coordinates for precision-safe rendering
- * - Uses MC's RenderPass and BufferBuilder system
  * - Maintains per-chunk geometry for efficient updates
- * - Supports both depth-tested and through-wall rendering
  *
  * @param owner The module that owns this ESP system
- * @param throughWalls Whether to render through walls
+ * @param name The name of the ESP system
+ * @param depthTest Whether to use depth testing
  * @param update The update function called for each block position
  */
-class ChunkedRegionESP private constructor(
+class ChunkedRegionESP(
 	owner: Module,
-	private val throughWalls: () -> Boolean,
-	private val update: RegionShapeBuilder.(World, FastVector) -> Unit
-) {
+	name: String,
+	depthTest: Boolean = false,
+	private val update: ShapeScope.(World, FastVector) -> Unit
+) : RegionESP(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, RegionChunk>()
 
 	private val WorldChunk.regionChunk
-		get() = chunkMap.getOrPut(pos.toLong()) { RegionChunk(this, this@ChunkedRegionESP) }
+		get() = chunkMap.getOrPut(getRegionKey(pos.x shl 4, bottomY, pos.z shl 4)) {
+			RegionChunk(this)
+		}
 
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 	private val rebuildQueue = ConcurrentLinkedDeque<RegionChunk>()
@@ -87,8 +81,7 @@ class ChunkedRegionESP private constructor(
 		}
 	}
 
-	/** Clear all chunk data. */
-	fun clear() {
+	override fun clear() {
 		chunkMap.values.forEach { it.close() }
 		chunkMap.clear()
 		rebuildQueue.clear()
@@ -112,201 +105,59 @@ class ChunkedRegionESP private constructor(
 		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.regionChunk.markDirty() }
 
 		owner.listen<WorldEvent.ChunkEvent.Unload> {
-			val pos = it.chunk.pos.toLong()
+			val pos = getRegionKey(it.chunk.pos.x shl 4, it.chunk.bottomY, it.chunk.pos.z shl 4)
 			chunkMap.remove(pos)?.close()
 		}
 
 		owner.listenConcurrently<TickEvent.Pre> {
 			val queueSize = rebuildQueue.size
 			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
-			repeat(polls) {
-				rebuildQueue.poll()?.rebuild()
-			}
+			repeat(polls) { rebuildQueue.poll()?.rebuild() }
 		}
 
 		owner.listen<TickEvent.Pre> {
 			val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
-			repeat(polls) {
-				uploadQueue.poll()?.invoke()
-			}
+			repeat(polls) { uploadQueue.poll()?.invoke() }
 		}
 
 		owner.listen<RenderEvent.Render> { render() }
 	}
 
-	/** Render all chunks with geometry. */
-	private fun render() {
-		val camera = mc.gameRenderer?.camera ?: return
-		val cameraPos = camera.pos
-		val framebuffer = mc.framebuffer ?: return
-
-		val chunksWithData = chunkMap.values.filter { it.hasData }
-		if (chunksWithData.isEmpty()) return
-
-		val chunkTransforms =
-			chunksWithData.map { chunk ->
-				val offset = chunk.region.computeCameraRelativeOffset(cameraPos)
-				val rotation = camera.rotation.conjugate(Quaternionf())
-				val modelView = Matrix4f().rotation(rotation).translate(offset)
-				val transforms = RenderSystem.getDynamicUniforms().write(
-					modelView,
-					Vector4f(1.0f, 1.0f, 1.0f, 1.0f), // color modulator
-					Vector3f(
-						0f,
-						0f,
-						0f
-					), // model offset - ignored by vanilla shaders!
-					Matrix4f() // texture matrix
-				)
-				chunk to transforms
-			}
-
-		RenderSystem.getDevice()
-			.createCommandEncoder()
-			.createRenderPass(
-				{ "Lambda ESP Faces" },
-				framebuffer.colorAttachmentView,
-				OptionalInt.empty(),
-				framebuffer.depthAttachmentView,
-				OptionalDouble.empty()
-			)
-			.use { renderPass ->
-				val pipeline =
-					if (throughWalls()) LambdaRenderPipelines.ESP_QUADS_THROUGH
-					else LambdaRenderPipelines.ESP_QUADS
-				renderPass.setPipeline(pipeline)
-				RenderSystem.bindDefaultUniforms(renderPass)
-
-				chunkTransforms.forEach { (chunk, transforms) ->
-					renderPass.setUniform("DynamicTransforms", transforms)
-					chunk.renderFaces(renderPass)
-				}
-			}
-
-		RenderSystem.getDevice()
-			.createCommandEncoder()
-			.createRenderPass(
-				{ "Lambda ESP Edges" },
-				framebuffer.colorAttachmentView,
-				OptionalInt.empty(),
-				framebuffer.depthAttachmentView,
-				OptionalDouble.empty()
-			)
-			.use { renderPass ->
-				val pipeline =
-					if (throughWalls()) LambdaRenderPipelines.ESP_LINES_THROUGH
-					else LambdaRenderPipelines.ESP_LINES
-				renderPass.setPipeline(pipeline)
-				RenderSystem.bindDefaultUniforms(renderPass)
-
-				chunkTransforms.forEach { (chunk, transforms) ->
-					renderPass.setUniform("DynamicTransforms", transforms)
-					chunk.renderEdges(renderPass)
-				}
-			}
-	}
-
-	companion object {
-		/**
-		 * Create a new chunked region ESP for a module.
-		 *
-		 * @param throughWalls Whether to render through walls
-		 * @param update The update function called for each block position
-		 */
-		fun Module.newChunkedRegionESP(
-			throughWalls: () -> Boolean = { false },
-			update: RegionShapeBuilder.(World, FastVector) -> Unit
-		) = ChunkedRegionESP(this@newChunkedRegionESP, throughWalls, update)
-	}
-
 	/** Per-chunk rendering data. */
-	private inner class RegionChunk(val chunk: WorldChunk, val owner: ChunkedRegionESP) {
+	private inner class RegionChunk(val chunk: WorldChunk) {
 		val region = RenderRegion.forChunk(chunk.pos.x, chunk.pos.z, chunk.bottomY)
-
-		private var faceBuffer: GpuBuffer? = null
-		private var edgeBuffer: GpuBuffer? = null
-		private var faceIndexCount = 0
-		private var edgeIndexCount = 0
-
-		var hasData = false
-			private set
+		private val key = getRegionKey(chunk.pos.x shl 4, chunk.bottomY, chunk.pos.z shl 4)
 
 		private var isDirty = false
 
 		fun markDirty() {
 			isDirty = true
-			if (!owner.rebuildQueue.contains(this)) {
-				owner.rebuildQueue.add(this)
+			if (!rebuildQueue.contains(this)) {
+				rebuildQueue.add(this)
 			}
 		}
 
-		/**
-		 * Rebuild this chunk's geometry. Runs on a background thread - collects vertices into
-		 * thread-safe collections.
-		 */
 		fun rebuild() {
 			if (!isDirty) return
-			val builder = RegionShapeBuilder(region)
+			val scope = ShapeScope(region)
 
-			var blockCount = 0
 			for (x in chunk.pos.startX..chunk.pos.endX) {
 				for (z in chunk.pos.startZ..chunk.pos.endZ) {
 					for (y in chunk.bottomY..chunk.height) {
-						owner.update(builder, chunk.world, fastVectorOf(x, y, z))
-						blockCount++
+						update(scope, chunk.world, fastVectorOf(x, y, z))
 					}
 				}
 			}
 
-			owner.uploadQueue.add { upload(builder.collector) }
-		}
-
-		/** Upload collected vertices to GPU. Must run on the main/render thread. */
-		private fun upload(collector: RegionVertexCollector) {
-			faceBuffer?.close()
-			edgeBuffer?.close()
-			val result = collector.upload()
-
-			faceBuffer = result.faces?.buffer
-			faceIndexCount = result.faces?.indexCount ?: 0
-
-			edgeBuffer = result.edges?.buffer
-			edgeIndexCount = result.edges?.indexCount ?: 0
-
-			hasData = faceBuffer != null || edgeBuffer != null
-			isDirty = false
-		}
-
-		fun renderFaces(renderPass: RenderPass) {
-			val buffer = faceBuffer ?: return
-			if (faceIndexCount == 0) return
-
-			renderPass.setVertexBuffer(0, buffer)
-			val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-			val indexBuffer = shapeIndexBuffer.getIndexBuffer(faceIndexCount)
-
-			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
-			renderPass.drawIndexed(0, 0, faceIndexCount, 1)
-		}
-
-		fun renderEdges(renderPass: RenderPass) {
-			val buffer = edgeBuffer ?: return
-			if (edgeIndexCount == 0) return
-
-			renderPass.setVertexBuffer(0, buffer)
-			val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.LINES)
-			val indexBuffer = shapeIndexBuffer.getIndexBuffer(edgeIndexCount)
-
-			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
-			renderPass.drawIndexed(0, 0, edgeIndexCount, 1)
+			uploadQueue.add {
+				val renderer = renderers.getOrPut(key) { RegionRenderer(region) }
+				renderer.upload(scope.builder.collector)
+				isDirty = false
+			}
 		}
 
 		fun close() {
-			faceBuffer?.close()
-			edgeBuffer?.close()
-			faceBuffer = null
-			edgeBuffer = null
-			hasData = false
+			renderers.remove(key)?.close()
 		}
 	}
 }

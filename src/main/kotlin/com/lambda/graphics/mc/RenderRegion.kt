@@ -29,32 +29,32 @@ import org.joml.Vector3f
  * @param originZ The Z coordinate of the region's origin
  */
 class RenderRegion(val originX: Int, val originY: Int, val originZ: Int) {
-    /**
-     * Compute the camera-relative offset for this region. This is done in double precision to
-     * maintain accuracy at large coordinates.
-     *
-     * @param cameraPos The camera's world position (double precision)
-     * @return The offset from camera to region origin (small float, high precision)
-     */
-    fun computeCameraRelativeOffset(cameraPos: Vec3d): Vector3f {
-        val offsetX = originX.toDouble() - cameraPos.x
-        val offsetY = originY.toDouble() - cameraPos.y
-        val offsetZ = originZ.toDouble() - cameraPos.z
-        return Vector3f(offsetX.toFloat(), offsetY.toFloat(), offsetZ.toFloat())
-    }
+	/**
+	 * Compute the camera-relative offset for this region. This is done in double precision to
+	 * maintain accuracy at large coordinates.
+	 *
+	 * @param cameraPos The camera's world position (double precision)
+	 * @return The offset from camera to region origin (small float, high precision)
+	 */
+	fun computeCameraRelativeOffset(cameraPos: Vec3d): Vector3f {
+		val offsetX = originX.toDouble() - cameraPos.x
+		val offsetY = originY.toDouble() - cameraPos.y
+		val offsetZ = originZ.toDouble() - cameraPos.z
+		return Vector3f(offsetX.toFloat(), offsetY.toFloat(), offsetZ.toFloat())
+	}
 
-    companion object {
-        /** Standard size of a render region (matches Minecraft chunk size). */
-        const val REGION_SIZE = 16
+	companion object {
+		/** Standard size of a render region (matches Minecraft chunk size). */
+		const val REGION_SIZE = 16
 
-        /**
-         * Create a region for a chunk position.
-         *
-         * @param chunkX Chunk X coordinate
-         * @param chunkZ Chunk Z coordinate
-         * @param bottomY World bottom Y coordinate (typically -64)
-         */
-        fun forChunk(chunkX: Int, chunkZ: Int, bottomY: Int) =
-            RenderRegion(chunkX * 16, bottomY, chunkZ * 16)
-    }
+		/**
+		 * Create a region for a chunk position.
+		 *
+		 * @param chunkX Chunk X coordinate
+		 * @param chunkZ Chunk Z coordinate
+		 * @param bottomY World bottom Y coordinate (typically -64)
+		 */
+		fun forChunk(chunkX: Int, chunkZ: Int, bottomY: Int) =
+			RenderRegion(chunkX * 16, bottomY, chunkZ * 16)
+	}
 }

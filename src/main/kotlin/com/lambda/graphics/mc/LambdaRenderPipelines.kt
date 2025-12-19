@@ -56,7 +56,7 @@ object LambdaRenderPipelines : Loadable {
 				.withCull(false)
 				.withVertexFormat(
 					VertexFormats.POSITION_COLOR,
-					VertexFormat.DrawMode.TRIANGLES // ToDo: Should we use Triangles or Quads?
+					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
@@ -77,7 +77,7 @@ object LambdaRenderPipelines : Loadable {
 				.withCull(false)
 				.withVertexFormat(
 					VertexFormats.POSITION_COLOR,
-					VertexFormat.DrawMode.TRIANGLES
+					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)

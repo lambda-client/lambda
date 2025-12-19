@@ -40,17 +40,14 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		bottomColor: Color,
 		topColor: Color = bottomColor,
 		sides: Int = DirectionMask.ALL
-	) = esp.getBuilder(box.minX, box.minY, box.minZ).filled(box, bottomColor, topColor, sides)
+	) = Unit
 
 	@ShapeDsl
-	fun filled(pos: BlockPos, state: BlockState, color: Color, sides: Int = DirectionMask.ALL) =
-		esp.getBuilder(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-			.filled(pos, state, color, sides)
+	fun filled(pos: BlockPos, state: BlockState, color: Color, sides: Int = DirectionMask.ALL) = Unit
 
 	@ShapeDsl
 	fun filled(pos: BlockPos, color: Color, sides: Int = DirectionMask.ALL) =
-		esp.getBuilder(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-			.filled(pos, color, sides)
+		Unit
 
 	@ShapeDsl
 	fun filled(
@@ -58,22 +55,13 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		entity: BlockEntity,
 		color: Color,
 		sides: Int = DirectionMask.ALL
-	) =
-		esp.getBuilder(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-			.filled(pos, entity, color, sides)
+	) = Unit
 
 	@ShapeDsl
-	fun filled(shape: VoxelShape, color: Color, sides: Int = DirectionMask.ALL) =
-		esp.getBuilder(
-			shape.boundingBoxes[0].minX,
-			shape.boundingBoxes[0].minY,
-			shape.boundingBoxes[0].minZ
-		)
-			.filled(shape, color, sides)
+	fun filled(shape: VoxelShape, color: Color, sides: Int = DirectionMask.ALL) = Unit
 
 	@ShapeDsl
-	fun filled(box: Box, color: Color, sides: Int = DirectionMask.ALL) =
-		filled(box, color, color, sides)
+	fun filled(box: Box, color: Color, sides: Int = DirectionMask.ALL) = Unit
 
 	@ShapeDsl
 	fun outline(
@@ -82,9 +70,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		topColor: Color = bottomColor,
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
-	) =
-		esp.getBuilder(box.minX, box.minY, box.minZ)
-			.outline(box, bottomColor, topColor, sides, mode)
+	) = Unit
 
 	@ShapeDsl
 	fun outline(
@@ -93,9 +79,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		color: Color,
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
-	) =
-		esp.getBuilder(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-			.outline(pos, state, color, sides, mode)
+	) = Unit
 
 	@ShapeDsl
 	fun outline(
@@ -103,9 +87,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		color: Color,
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
-	) =
-		esp.getBuilder(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-			.outline(pos, color, sides, mode)
+	) = Unit
 
 	@ShapeDsl
 	fun outline(
@@ -114,9 +96,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		color: Color,
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
-	) =
-		esp.getBuilder(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
-			.outline(pos, entity, color, sides, mode)
+	) = Unit
 
 	@ShapeDsl
 	fun outline(
@@ -124,13 +104,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		color: Color,
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
-	) =
-		esp.getBuilder(
-			shape.boundingBoxes[0].minX,
-			shape.boundingBoxes[0].minY,
-			shape.boundingBoxes[0].minZ
-		)
-			.outline(shape, color, sides, mode)
+	) = Unit
 
 	@ShapeDsl
 	fun outline(
@@ -201,9 +175,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 
 	@ShapeDsl
 	fun filled(box: DynamicAABB, color: Color, sides: Int = DirectionMask.ALL) {
-		box.pair?.second?.let {
-			esp.getBuilder(it.minX, it.minY, it.minZ).filled(box, color, sides)
-		}
+		Unit
 	}
 
 	@ShapeDsl
@@ -213,9 +185,7 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
 	) {
-		box.pair?.second?.let {
-			esp.getBuilder(it.minX, it.minY, it.minZ).outline(box, color, sides, mode)
-		}
+		Unit
 	}
 
 	@ShapeDsl
@@ -226,9 +196,6 @@ class ShapeBuilder(val esp: TransientRegionESP) {
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
 	) {
-		box.pair?.second?.let {
-			esp.getBuilder(it.minX, it.minY, it.minZ)
-				.box(box, filledColor, outlineColor, sides, mode)
-		}
+		Unit
 	}
 }

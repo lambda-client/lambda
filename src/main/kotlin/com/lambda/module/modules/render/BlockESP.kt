@@ -21,8 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
-import com.lambda.graphics.mc.ChunkedRegionESP.Companion.newChunkedRegionESP
-import com.lambda.graphics.mc.RegionShapeBuilder
+import com.lambda.graphics.esp.chunkedEsp
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.module.Module
@@ -31,10 +30,9 @@ import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.world.toBlockPos
-import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BlockStateModel
-import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import java.awt.Color
 
 object BlockESP : Module(
@@ -67,33 +65,33 @@ object BlockESP : Module(
     @JvmStatic
     val model: BlockStateModel get() = mc.bakedModelManager.missingModel
 
-    private val esp = newChunkedRegionESP({ true }) { world, position ->
+    private val esp = chunkedEsp("BlockESP") { world, position ->
         val state = world.getBlockState(position)
-        if (state.block !in blocks) return@newChunkedRegionESP
+        if (state.block !in blocks) return@chunkedEsp
 
-        val sides =
-            if (mesh) {
-                buildSideMesh(position) { world.getBlockState(it).block in blocks }
-            } else DirectionMask.ALL
+        val sides = if (mesh) {
+            buildSideMesh(position) {
+                world.getBlockState(it).block in blocks
+            }
+        } else DirectionMask.ALL
 
-        runSafe { build(this@newChunkedRegionESP, state, position.toBlockPos(), sides) }
+        runSafe {
+            val extractedColor = blockColor(state, position.toBlockPos())
+            val pos = position.toBlockPos()
+            val shape = state.getOutlineShape(world, pos)
+            val worldBox = if (shape.isEmpty) Box(pos) else shape.boundingBox.offset(pos)
+            box(worldBox) {
+                if (drawFaces)
+                    filled(if (useBlockColor) extractedColor else faceColor, sides)
+                if (drawOutlines)
+                    outline(if (useBlockColor) extractedColor else BlockESP.outlineColor, sides, BlockESP.outlineMode)
+            }
+        }
     }
 
     init {
         onEnable { esp.rebuildAll() }
-        onDisable { esp.clear() }
-    }
-
-    private fun SafeContext.build(
-        builder: RegionShapeBuilder,
-        state: BlockState,
-        pos: BlockPos,
-        sides: Int,
-    ) = with(builder) {
-        val blockColor = blockColor(state, pos)
-
-        if (drawFaces) filled(pos, state, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) outline(pos, state, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        onDisable { esp.close() }
     }
 
     private fun rebuildMesh(ctx: SafeContext, from: Any?, to: Any?): Unit = esp.rebuild()

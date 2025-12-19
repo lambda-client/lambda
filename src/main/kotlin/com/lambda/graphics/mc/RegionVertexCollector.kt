@@ -89,22 +89,19 @@ class RegionVertexCollector {
 	 * @return Pair of (faceBuffer, edgeBuffer) and their index counts, or null if no data
 	 */
 	fun upload(): UploadResult {
-		val faceResult =
-			if (faceVertices.isNotEmpty()) {
-				uploadFaces()
-			} else null
-
-		val edgeResult =
-			if (edgeVertices.isNotEmpty()) {
-				uploadEdges()
-			} else null
-
-		return UploadResult(faceResult, edgeResult)
+		val faces = uploadFaces()
+		val edges = uploadEdges()
+		return UploadResult(faces, edges)
 	}
 
 	private fun uploadFaces(): BufferResult {
-		// 16 bytes per vertex (3 floats + 4 bytes color)
-		BufferAllocator(faceVertices.size * 16).use { allocator ->
+		if (faceVertices.isEmpty()) return BufferResult(null, 0)
+
+		val vertices = faceVertices.toList()
+		faceVertices.clear()
+
+		var result: BufferResult? = null
+		BufferAllocator(vertices.size * 16).use { allocator ->
 			val builder =
 				BufferBuilder(
 					allocator,
@@ -112,28 +109,31 @@ class RegionVertexCollector {
 					VertexFormats.POSITION_COLOR
 				)
 
-			faceVertices.forEach { v ->
-				builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a)
-			}
+			vertices.forEach { v -> builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a) }
 
 			builder.endNullable()?.let { built ->
 				val gpuDevice = RenderSystem.getDevice()
-				val buffer = gpuDevice.createBuffer(
-					{ "Lambda ESP Face Buffer" },
-					GpuBuffer.USAGE_VERTEX,
-					built.buffer
-				)
-				val indexCount = built.drawParameters.indexCount()
+				val buffer =
+					gpuDevice.createBuffer(
+						{ "Lambda ESP Face Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+				result = BufferResult(buffer, built.drawParameters.indexCount())
 				built.close()
-				return BufferResult(buffer, indexCount)
 			}
 		}
-		return BufferResult(null, 0)
+		return result ?: BufferResult(null, 0)
 	}
 
 	private fun uploadEdges(): BufferResult {
-		// 32 bytes per vertex
-		BufferAllocator(edgeVertices.size * 32).use { allocator ->
+		if (edgeVertices.isEmpty()) return BufferResult(null, 0)
+
+		val vertices = edgeVertices.toList()
+		edgeVertices.clear()
+
+		var result: BufferResult? = null
+		BufferAllocator(vertices.size * 32).use { allocator ->
 			val builder =
 				BufferBuilder(
 					allocator,
@@ -141,7 +141,7 @@ class RegionVertexCollector {
 					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH
 				)
 
-			edgeVertices.forEach { v ->
+			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, v.z)
 					.color(v.r, v.g, v.b, v.a)
 					.normal(v.nx, v.ny, v.nz)
@@ -150,17 +150,17 @@ class RegionVertexCollector {
 
 			builder.endNullable()?.let { built ->
 				val gpuDevice = RenderSystem.getDevice()
-				val buffer = gpuDevice.createBuffer(
-					{ "Lambda ESP Edge Buffer" },
-					GpuBuffer.USAGE_VERTEX,
-					built.buffer
-				)
-				val indexCount = built.drawParameters.indexCount()
+				val buffer =
+					gpuDevice.createBuffer(
+						{ "Lambda ESP Edge Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+				result = BufferResult(buffer, built.drawParameters.indexCount())
 				built.close()
-				return BufferResult(buffer, indexCount)
 			}
 		}
-		return BufferResult(null, 0)
+		return result ?: BufferResult(null, 0)
 	}
 
 	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
