@@ -36,6 +36,7 @@ import imgui.glfw.ImGuiImplGlfw
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
+import org.lwjgl.opengl.GL32C
 import kotlin.math.abs
 
 object DearImGui : Loadable {
@@ -120,6 +121,8 @@ object DearImGui : Loadable {
         GuiEvent.EndFrame.post()
 
         implGl3.renderDrawData(ImGui.getDrawData())
+
+        GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, 0)
     }
 
     fun destroy() {
