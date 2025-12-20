@@ -96,8 +96,8 @@ class RegionRenderer(val region: RenderRegion) {
 		if (edgeIndexCount == 0) return
 
 		renderPass.setVertexBuffer(0, vb)
-		// Use vanilla's sequential index buffer for lines
-		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.LINES)
+		// Use vanilla's sequential index buffer for quads
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
 		val indexBuffer = shapeIndexBuffer.getIndexBuffer(edgeIndexCount)
 
 		renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)

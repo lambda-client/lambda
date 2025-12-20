@@ -92,15 +92,15 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/esp_lines"))
-				.withVertexShader(Identifier.ofVanilla("core/rendertype_lines"))
-				.withFragmentShader(Identifier.ofVanilla("core/rendertype_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
 					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH,
-					VertexFormat.DrawMode.LINES
+					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
@@ -110,15 +110,15 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/esp_lines_through"))
-				.withVertexShader(Identifier.ofVanilla("core/rendertype_lines"))
-				.withFragmentShader(Identifier.ofVanilla("core/rendertype_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
 					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH,
-					VertexFormat.DrawMode.LINES
+					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)

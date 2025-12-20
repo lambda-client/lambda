@@ -85,6 +85,7 @@ object EntityESP : Module(
 	private val drawOutline by setting("Outline", true, "Draw box outlines") { drawBoxes }.group(Group.Render)
 	private val filledAlpha by setting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { drawBoxes && drawFilled }.group(Group.Render)
 	private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { drawBoxes && drawOutline }.group(Group.Render)
+	private val outlineWidth by setting("Outline Width", 1.0f, 0.5f..5.0f, 0.5f) { drawBoxes && drawOutline }.group(Group.Render)
 
 	private val tracers by setting("Tracers", true, "Draw lines to entities").group(Group.Tracers)
 	private val tracerOrigin by setting("Tracer Origin", TracerOrigin.Eyes, "Where tracers start from") { tracers }.group(Group.Tracers)
@@ -123,7 +124,8 @@ object EntityESP : Module(
 								filled(color.setAlpha(filledAlpha))
 							if (drawOutline)
 								outline(
-									color.setAlpha(outlineAlpha)
+									color.setAlpha(outlineAlpha),
+									thickness = outlineWidth
 								)
 						}
 					}
