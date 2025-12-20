@@ -32,12 +32,12 @@ interface BuildConfig : ISettingGroup {
     val actionTimeout: Int
     val maxBuildDependencies: Int
 
-    val attackReach: Double
-    val interactReach: Double
+    val entityReach: Double
+    val blockReach: Double
     val scanReach: Double
 
-    val strictRayCast: Boolean
     val checkSideVisibility: Boolean
+    val strictRayCast: Boolean
     val resolution: Int
     val pointSelection: PointSelection
 

@@ -23,14 +23,14 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.material.container.containers.OffHandContainer
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -46,7 +46,6 @@ import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
-import com.lambda.util.math.Vec2d
 import com.lambda.util.math.distSq
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.getHitVec
@@ -76,6 +75,7 @@ object CrystalAura : Module(
     tag = ModuleTag.COMBAT,
 ) {
     /* General */
+    private val rotate by setting("Rotate", true).group(Group.General)
     private val updateMode by setting("Update Mode", UpdateMode.Async).group(Group.General)
     private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }.group(Group.General)
     private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }.group(Group.General)
@@ -463,7 +463,7 @@ object CrystalAura : Module(
          * Places the crystal on [blockPos]
          */
         fun place() = runSafe {
-            if (rotationConfig.rotate && !lookAt(placeRotation).requestBy(this@CrystalAura).done)
+            if (rotate && !RotationRequest(placeRotation, this@CrystalAura).submit().done)
                 return@runSafe
 
             val selection = selectStack { isItem(Items.END_CRYSTAL) }
@@ -495,7 +495,7 @@ object CrystalAura : Module(
          * @return Whether the delay passed, null if the interaction failed or no crystal found
          */
         fun explode() {
-            if (rotationConfig.rotate && !lookAt(placeRotation).requestBy(this@CrystalAura).done) return
+            if (rotate && !RotationRequest(placeRotation, this@CrystalAura).submit().done) return
 
             explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
                 crystal?.let { crystal ->

@@ -33,7 +33,6 @@ import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
@@ -138,7 +137,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 
 		        val interactContext = InteractContext(
 			        hitResult,
-			        RotationRequest(lookAt(checkedHit.rotation), this@InteractSim),
+			        RotationRequest(checkedHit.rotation, this@InteractSim),
 			        swapStack.inventoryIndex,
 			        pos,
 			        state,
@@ -187,7 +186,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 
             val rotationRequest = if (interactConfig.axisRotate && !expectedState.contains(Properties.ROTATION))
                 lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
-            else lookAt(rotatePlaceTest.rotation)
+            else rotatePlaceTest.rotation
 
 	        if (swapStack == null) return
             if (!swapStack.item.isEnabled(world.enabledFeatures)) {

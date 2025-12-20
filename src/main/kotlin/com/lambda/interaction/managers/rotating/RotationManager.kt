@@ -20,14 +20,12 @@ package com.lambda.interaction.managers.rotating
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.BaritoneManager
@@ -38,7 +36,6 @@ import com.lambda.interaction.managers.rotating.RotationManager.activeRequest
 import com.lambda.interaction.managers.rotating.RotationManager.activeRotation
 import com.lambda.interaction.managers.rotating.RotationManager.serverRotation
 import com.lambda.interaction.managers.rotating.RotationManager.updateActiveRotation
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
@@ -150,7 +147,7 @@ object RotationManager : Manager<RotationRequest>(
      */
     override fun AutomatedSafeContext.handleRequest(request: RotationRequest) {
         activeRequest?.let { if (it.age <= 0) return }
-        if (request.target.targetRotation.value != null) {
+        if (request.rotation.value != null) {
             logger.debug("Accepting request", request)
             activeRequest = request
             updateActiveRotation()
@@ -168,7 +165,7 @@ object RotationManager : Manager<RotationRequest>(
         if (activeRequest != null) activeThisTick = true
 
         if (!changedThisTick) { // rebuild the rotation if the same context gets used again
-            activeRequest?.target?.targetRotation?.update()
+            activeRequest?.rotation?.update()
             updateActiveRotation()
         }
     }
@@ -177,7 +174,7 @@ object RotationManager : Manager<RotationRequest>(
     fun handleBaritoneRotation(yaw: Double, pitch: Double) {
         runSafe {
             usingBaritoneRotation = true
-            activeRequest = RotationRequest(lookAt(Rotation(yaw, pitch)), BaritoneManager)
+            activeRequest = RotationRequest(Rotation(yaw, pitch), BaritoneManager)
             updateActiveRotation()
             changedThisTick = true
         }
@@ -287,7 +284,7 @@ object RotationManager : Manager<RotationRequest>(
     private fun SafeContext.updateActiveRotation() {
         activeRotation = activeRequest?.let { active ->
             val rotationTo = if (active.keepTicks >= 0)
-                active.target.targetRotation.value ?: activeRotation // the same context gets used again && the rotation is null this tick
+                active.rotation.value ?: activeRotation // the same context gets used again && the rotation is null this tick
             else player.rotation
 
             if (active.keepTicks-- <= 0) {
@@ -352,6 +349,4 @@ object RotationManager : Manager<RotationRequest>(
         val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
     }
-
-    override fun preEvent() = UpdateManagerEvent.Rotation.post()
 }

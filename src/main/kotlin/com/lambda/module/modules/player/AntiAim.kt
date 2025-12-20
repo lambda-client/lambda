@@ -20,14 +20,12 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
 import com.lambda.interaction.managers.rotating.RotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -162,9 +160,9 @@ object AntiAim : Module(
             }.coerceIn(-90f..90f)
         }
 
-        listen<UpdateManagerEvent.Rotation>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             if (currentYaw == wrap(player.yaw) && currentPitch == player.pitch) return@listen
-            submit(RotationRequest(lookAt(Rotation(currentYaw, currentPitch)), this@AntiAim), false)
+            submit(RotationRequest(Rotation(currentYaw, currentPitch), this@AntiAim), false)
         }
     }
 

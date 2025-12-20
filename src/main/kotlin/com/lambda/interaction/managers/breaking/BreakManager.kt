@@ -24,7 +24,6 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -918,6 +917,4 @@ object BreakManager : Manager<BreakRequest>(
             else -> box
         }
     }
-
-    override fun preEvent(): Event = UpdateManagerEvent.Break.post()
 }

@@ -87,7 +87,6 @@ abstract class Manager<R : Request>(
             }
             acceptingRequests = true
             onOpen?.invoke(this)
-            preEvent()
         }
 
         listen(instance, priority = (Int.MIN_VALUE + 1) + stagePriority) {
@@ -126,6 +125,4 @@ abstract class Manager<R : Request>(
      * Handles a request
      */
     abstract fun AutomatedSafeContext.handleRequest(request: R)
-
-    protected abstract fun preEvent(): Event
 }

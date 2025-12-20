@@ -79,7 +79,7 @@ object PlayerTrap : Module(
 				}?.item?.block ?: return@tickingBlueprint emptyMap()
 				val targetPlayer = if (self) player
 				else entitySearch<OtherClientPlayerEntity>(
-					buildConfig.interactReach,
+					buildConfig.blockReach,
 					player.eyePos.flooredBlockPos
 				).firstOrNull { friends || !isFriend(it.gameProfile) } ?: return@tickingBlueprint emptyMap()
 				getTrapPositions(targetPlayer).associateWith { TargetState.Block(block) }

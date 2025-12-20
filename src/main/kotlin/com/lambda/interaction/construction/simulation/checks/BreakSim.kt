@@ -18,27 +18,26 @@
 package com.lambda.interaction.construction.simulation.checks
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.simulation.result.BuildResult
-import com.lambda.interaction.construction.simulation.result.results.BreakResult
-import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.BreakSimInfo
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.managers.hotbar.HotbarManager
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.managers.hotbar.HotbarManager
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
-import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
@@ -107,9 +106,9 @@ class BreakSim private constructor(simInfo: SimInfo)
         val shape = state.getOutlineShape(world, pos)
 
         if (shape.boundingBoxes.map { it.offset(pos) }.any { it.contains(pov) }) {
-            val currentCast = RotationManager.activeRotation.rayCast(buildConfig.interactReach, pov)
+            val currentCast = RotationManager.activeRotation.rayCast(buildConfig.blockReach, pov)
             currentCast?.blockResult?.let { blockHit ->
-                val rotationRequest = RotationRequest(lookAtBlock(pos), this)
+                val rotationRequest = RotationRequest(lookAtBlock(pos)?.rotation ?: return, this)
                 val breakContext = BreakContext(
                     blockHit,
                     rotationRequest,
@@ -128,8 +127,7 @@ class BreakSim private constructor(simInfo: SimInfo)
         val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), null) ?: return
 
         val bestHit = buildConfig.pointSelection.select(validHits) ?: return
-        val target = lookAt(bestHit.rotation)
-        val rotationRequest = RotationRequest(target, this)
+        val rotationRequest = RotationRequest(bestHit.rotation, this)
 
         val breakContext = BreakContext(
             bestHit.hit.blockResult ?: return,

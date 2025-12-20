@@ -21,8 +21,10 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.task.Task
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.Hand
@@ -79,11 +81,10 @@ class OpenContainer @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (containerState != State.Scoping) return@listen
 
-            val target = lookAtBlock(blockPos, sides)
-            if (interactConfig.rotate && !target.requestBy(this@OpenContainer).done) return@listen
+            val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) } ?: return@listen
+            if (interactConfig.rotate && !RotationRequest(checkedHit.rotation, this@OpenContainer).submit().done) return@listen
 
-            val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen
-            interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
+            interaction.interactBlock(player, Hand.MAIN_HAND, checkedHit.hit.blockResult ?: return@listen)
 
             containerState = State.Opening
         }

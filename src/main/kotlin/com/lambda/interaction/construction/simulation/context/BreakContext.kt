@@ -54,7 +54,7 @@ data class BreakContext(
         val vec = hitResult.pos
         val d = vec.x - pov.x
         val e = (vec.y - pov.y).let {
-            if (cachedState.block is FallingBlock) it - (buildConfig.attackReach / 2)
+            if (cachedState.block is FallingBlock) it - (buildConfig.entityReach / 2)
             else it
         }
         val f = vec.z - pov.z

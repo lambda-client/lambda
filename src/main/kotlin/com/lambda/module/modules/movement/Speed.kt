@@ -20,12 +20,13 @@ package com.lambda.module.modules.movement
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -109,7 +110,7 @@ object Speed : Module(
             if (mode == Mode.NcpStrafe && shouldWork()) it.cancel()
         }
 
-        listen<UpdateManagerEvent.Rotation> {
+        listen<TickEvent.Pre> {
             if (mode != Mode.GrimStrafe || !shouldWork()) return@listen
 
             val input = newMovementInput()
@@ -120,9 +121,7 @@ object Speed : Module(
                 intendedMoveYaw - 45.0f
             } else intendedMoveYaw
 
-            lookAt(
-                Rotation(targetYaw, player.pitch.toDouble())
-            ).requestBy(this@Speed)
+            submit(RotationRequest(Rotation(targetYaw, player.pitch.toDouble()), this@Speed))
         }
 
         onEnable {
