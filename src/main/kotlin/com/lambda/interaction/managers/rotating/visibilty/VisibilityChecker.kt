@@ -18,6 +18,7 @@
 package com.lambda.interaction.managers.rotating.visibilty
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingData
 import com.lambda.interaction.construction.verify.ScanMode
@@ -25,11 +26,16 @@ import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
-import com.lambda.util.world.raycast.InteractionMask
-import net.minecraft.entity.LivingEntity
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import com.lambda.util.world.raycast.RayCastUtils.entityResult
+import net.minecraft.entity.Entity
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -42,117 +48,91 @@ import kotlin.math.pow
  * Object for handling visibility checks, rotation calculations, and hit detection.
  */
 object VisibilityChecker {
+    val ALL_SIDES = Direction.entries.toSet()
 
     /**
      * Finds a rotation that intersects with one of the specified bounding boxes, allowing the player to look at entities or blocks.
      * To increase the stability, it will pause the rotation if eye position is within any of the bounding boxes
      *
-     * @param boxes List of bounding boxes for potential targets.
      * @param reach The maximum reach distance for the interaction.
-     * @param eye The player's eye position.
+     * @param pov The player's eye position.
      * @param sides Set of block sides to consider for targeting.
-     * @param interaction Specifies interaction settings, such as side visibility and resolution.
      * @param verify A lambda to verify if a [CheckedHit] meets the desired criteria.
      *
      * @return A [CheckedHit] if a valid rotation was found; otherwise, null.
      */
-    fun AutomatedSafeContext.findRotation(
-        boxes: List<Box>,
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun Entity.findRotation(
         reach: Double,
-        eye: Vec3d,
-        sides: Set<Direction>,
-        preProcessing: PreProcessingData?,
-        allowInsideBox: Boolean,
-        targetType: InteractionMask,
-        verify: CheckedHit.() -> Boolean
-    ): CheckedHit? {
-        val currentRotation = RotationManager.activeRotation
-
-        if (boxes.any { it.contains(eye) }) {
-            currentRotation.rayCast(reach, eye)?.let { hit ->
+        pov: Vec3d,
+        sides: Set<Direction> = ALL_SIDES,
+        preProcessing: PreProcessingData? = null,
+        allowInsideBox: Boolean = false,
+        verify: (CheckedHit.() -> Boolean)? = null
+    ): CheckedHit? = with (automatedSafeContext) {
+        if (boundingBox.contains(pov)) {
+            val currentRotation = RotationManager.activeRotation
+            currentRotation.rayCast(reach, pov)?.let { hit ->
                 return CheckedHit(hit, currentRotation)
             }
         }
 
-        return buildConfig.pointSelection.select(
-            collectHitsFor(boxes, reach, eye, sides, preProcessing, allowInsideBox, targetType, verify)
-        )
+        val reachSq = reach.pow(2)
+
+        val validHits = mutableSetOf<CheckedHit>()
+        boundingBox.scanClosestPoints(pov, sides, preProcessing, allowInsideBox) { pos, _ ->
+            if (pov distSq pos > reachSq) return@scanClosestPoints
+
+            val newRotation = pov.rotationTo(pos)
+            val hit = if (buildConfig.strictRayCast) newRotation.rayCast(reach, pov) ?: return@scanClosestPoints
+            else EntityHitResult(this@findRotation, pos)
+
+            if (hit.entityResult?.entity != this@findRotation) return@scanClosestPoints
+
+            val checkedHit = CheckedHit(hit, newRotation)
+            if (verify?.invoke(checkedHit) != false) validHits.add(checkedHit)
+        }
+        return buildConfig.pointSelection.select(validHits)
     }
 
-    /**
-     * Finds a collection of [CheckedHit] that intersect with one of the specified bounding boxes, allowing the player to look at entities or blocks.
-     *
-     * @param boxes List of bounding boxes for potential targets.
-     * @param reach The maximum reach distance for the interaction.
-     * @param eye The player's eye position.
-     * @param sides Set of block sides to consider for targeting.
-     * @param preProcessing Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
-     * @param interaction Specifies interaction settings, such as side visibility and resolution.
-     * @param verify A lambda to verify if a [CheckedHit] meets the desired criteria.
-     *
-     * @return A collection of [CheckedHit] with valid angles found
-     */
-    fun AutomatedSafeContext.collectHitsFor(
-        boxes: List<Box>,
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun BlockPos.findRotation(
         reach: Double,
-        eye: Vec3d = player.eyePos,
+        pov: Vec3d,
         sides: Set<Direction> = ALL_SIDES,
-        preProcessing: PreProcessingData?,
-        allowInsideBox: Boolean,
-        targetType: InteractionMask,
-        verify: CheckedHit.() -> Boolean,
-    ) = mutableListOf<CheckedHit>().apply {
-        val reachSq = buildConfig.scanReach.pow(2)
+        preProcessing: PreProcessingData? = null,
+        allowInsideBox: Boolean = false,
+        verify: (CheckedHit.() -> Boolean)? = null
+    ): CheckedHit? = with (automatedSafeContext) {
+        val shape = blockState(this@findRotation)
+            .getOutlineShape(world, this@findRotation)
+            .offset(this@findRotation)
 
-        boxes.forEach { box ->
-            val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
-
-            box.scanSurfaces(visible.intersect(sides), buildConfig.resolution, preProcessing, allowInsideBox) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanSurfaces
-
-                val newRotation = eye.rotationTo(vec)
-
-                val mask = if (buildConfig.strictRayCast) InteractionMask.Both else targetType
-                val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
-
-                val checked = CheckedHit(hit, newRotation)
-                if (!checked.verify()) return@scanSurfaces
-
-                add(checked)
+        if (shape.boundingBoxes.any { it.contains(pov) }) {
+            val currentRotation = RotationManager.activeRotation
+            currentRotation.rayCast(reach, pov)?.let { hit ->
+                return CheckedHit(hit, currentRotation)
             }
         }
-    }
 
-    private fun AutomatedSafeContext.collectHitsInternal(
-        boxes: List<Box>,
-        reach: Double,
-        eye: Vec3d,
-        sides: Set<Direction>,
-        preProcessing: PreProcessingData?,
-        allowInsideBox: Boolean,
-        targetType: InteractionMask,
-        entity: LivingEntity?,
-        verify: CheckedHit.() -> Boolean,
-    ) = mutableListOf<CheckedHit>().apply {
-        val reachSq = buildConfig.scanReach.pow(2)
+        val reachSq = reach.pow(2)
 
-        boxes.forEach { box ->
-            val visible = visibleSides(box, eye, buildConfig.checkSideVisibility)
+        val validHits = mutableSetOf<CheckedHit>()
+        shape.boundingBoxes.forEach { box ->
+            box.scanClosestPoints(pov, sides, preProcessing, allowInsideBox) { pos, side ->
+                if (pov distSq pos > reachSq) return@scanClosestPoints
 
-            box.scanSurfaces(visible.intersect(sides), buildConfig.resolution, preProcessing, allowInsideBox) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanSurfaces
+                val newRotation = pov.rotationTo(pos)
+                val hit = if (buildConfig.strictRayCast) newRotation.rayCast(reach, pov) ?: return@scanClosestPoints
+                else BlockHitResult(pos, side, this@findRotation, interactConfig.airPlace.isEnabled)
 
-                val newRotation = eye.rotationTo(vec)
+                if (hit.blockResult?.blockPos != this@findRotation) return@scanClosestPoints
 
-                val mask = if (buildConfig.strictRayCast || entity == null) InteractionMask.Both else targetType
-                val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
-
-                val checked = CheckedHit(hit, newRotation)
-                if (!checked.verify()) return@scanSurfaces
-
-                add(checked)
+                val checkedHit = CheckedHit(hit, newRotation)
+                if (verify?.invoke(checkedHit) != false) validHits.add(checkedHit)
             }
         }
+        return buildConfig.pointSelection.select(validHits)
     }
 
     /**
@@ -164,15 +144,18 @@ object VisibilityChecker {
      * @param preProcessing Configuration specifying the axis and mode of the scan.
      * @param check A callback function that performs an action for each surface point, receiving the direction of the surface and the current 3D vector.
      */
+    context(_: Automated)
     fun Box.scanSurfaces(
-        sides: Set<Direction>,
+        pov: Vec3d,
+        sides: Collection<Direction>,
         resolution: Int = 5,
-        preProcessing: PreProcessingData?,
-        allowInsideBox: Boolean,
-        check: (Direction, Vec3d) -> Unit
+        preProcessing: PreProcessingData? = null,
+        allowInsideBox: Boolean = false,
+        check: (Vec3d, Direction) -> Unit
     ) {
+        val visibleSides = sides.visibleSides(this, pov)
         val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
-        (sides - invalidSides).forEach { side ->
+        (visibleSides - invalidSides).forEach { side ->
             val (minX, minY, minZ, maxX, maxY, maxZ) = scanBox
                 .offset(side.doubleVector.multiply(DEFAULT.shrinkFactor))
                 .bounds(side)
@@ -186,11 +169,72 @@ object VisibilityChecker {
                 (0..resolution).forEach inner@{ j ->
                     val y = if (stepY != 0.0) minY + (stepY * j) else minY
                     val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
-                    check(side, Vec3d(x, y, z))
+                    check(Vec3d(x, y, z), side)
                 }
             }
         }
     }
+
+    context(_: Automated)
+    fun Box.scanClosestPoints(
+        pov: Vec3d,
+        sides: Set<Direction>,
+        preProcessing: PreProcessingData? = null,
+        allowInsideBox: Boolean = false,
+        check: (Vec3d, Direction) -> Unit
+    ) {
+        val visibleSides = sides.visibleSides(this, pov)
+        val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
+        with(scanBox) {
+            (visibleSides - invalidSides).forEach { side ->
+                val pos = when (side) {
+                    Direction.DOWN -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        minY + DEFAULT.shrinkFactor,
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                    Direction.UP -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        maxY + DEFAULT.shrinkFactor,
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                    Direction.NORTH -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        pov.y.coerceIn(minY, maxY),
+                        minZ + DEFAULT.shrinkFactor
+                    )
+                    Direction.SOUTH -> Vec3d(
+                        pov.x.coerceIn(minX, maxX),
+                        pov.y.coerceIn(minY, maxY),
+                        maxZ + DEFAULT.shrinkFactor
+                    )
+                    Direction.WEST -> Vec3d(
+                        minX + DEFAULT.shrinkFactor,
+                        pov.y.coerceIn(minY, maxY),
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                    Direction.EAST -> Vec3d(
+                        maxX + DEFAULT.shrinkFactor,
+                        pov.y.coerceIn(minY, maxY),
+                        pov.z.coerceIn(minZ, maxZ)
+                    )
+                }
+                check(pos, side)
+            }
+        }
+    }
+
+    /**
+     * Determines which surfaces of the box are visible from a specific position, typically the player's eyes.
+     *
+     * @param eyes The position to determine visibility from.
+     * @return A set of directions corresponding to visible sides.
+     */
+    fun Box.getVisibleSurfaces(eyes: Vec3d) =
+        EnumSet.noneOf(Direction::class.java)
+            .checkAxis(eyes.x - center.x, lengthX / 2, Direction.WEST, Direction.EAST)
+            .checkAxis(eyes.y - center.y, lengthY / 2, Direction.DOWN, Direction.UP)
+            .checkAxis(eyes.z - center.z, lengthZ / 2, Direction.NORTH, Direction.SOUTH)
 
     private fun Box.getScanBox(
         preProcessing: PreProcessingData?,
@@ -242,20 +286,19 @@ object VisibilityChecker {
     }
 
     /**
-     * Determines the sides of a box that are visible from a given position, based on interaction settings.
-     *
-     * @param box The box whose visible sides are to be determined.
-     * @param eye The position (e.g., the player's eyes) to determine visibility from.
-     * @param visibilityCheck Whether to check the visibility of the side.
-     * @return A set of directions corresponding to the visible sides of the box.
+     * Helper function to add visible sides to an EnumSet based on positional differences.
      */
-    private fun visibleSides(
-        box: Box,
-        eye: Vec3d,
-        visibilityCheck: Boolean
-    ) = if (visibilityCheck) {
-        box.getVisibleSurfaces(eye)
-    } else Direction.entries.toSet()
+    private fun EnumSet<Direction>.checkAxis(
+        diff: Double,
+        limit: Double,
+        negativeSide: Direction,
+        positiveSide: Direction,
+    ) = apply {
+        when {
+            diff < -limit -> add(negativeSide)
+            diff > limit -> add(positiveSide)
+        }
+    }
 
     /**
      * Gets the bounding coordinates of a box's side, specifying min and max values for each axis.
@@ -273,81 +316,20 @@ object VisibilityChecker {
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
 
-    fun Box.getClosestPoints(
-        pov: Vec3d,
-        sides: Set<Direction>,
-        preProcessing: PreProcessingData?,
-        allowInsideBox: Boolean,
-        check: (Vec3d, Direction) -> Unit
-    ) {
-        val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
-        with(scanBox) {
-            (sides - invalidSides).forEach { side ->
-                val pos = when (side) {
-                    Direction.DOWN -> Vec3d(
-                        pov.x.coerceIn(minX, maxX),
-                        minY + DEFAULT.shrinkFactor,
-                        pov.z.coerceIn(minZ, maxZ)
-                    )
-                    Direction.UP -> Vec3d(
-                        pov.x.coerceIn(minX, maxX),
-                        maxY + DEFAULT.shrinkFactor,
-                        pov.z.coerceIn(minZ, maxZ)
-                    )
-                    Direction.NORTH -> Vec3d(
-                        pov.x.coerceIn(minX, maxX),
-                        pov.y.coerceIn(minY, maxY),
-                        minZ + DEFAULT.shrinkFactor
-                    )
-                    Direction.SOUTH -> Vec3d(
-                        pov.x.coerceIn(minX, maxX),
-                        pov.y.coerceIn(minY, maxY),
-                        maxZ + DEFAULT.shrinkFactor
-                    )
-                    Direction.WEST -> Vec3d(
-                        minX + DEFAULT.shrinkFactor,
-                        pov.y.coerceIn(minY, maxY),
-                        pov.z.coerceIn(minZ, maxZ)
-                    )
-                    Direction.EAST -> Vec3d(
-                        maxX + DEFAULT.shrinkFactor,
-                        pov.y.coerceIn(minY, maxY),
-                        pov.z.coerceIn(minZ, maxZ)
-                    )
-                }
-                check(pos, side)
-            }
-        }
-    }
-
     /**
-     * Determines which surfaces of the box are visible from a specific position, typically the player's eyes.
+     * Determines the sides of a box that are visible from a given position, based on interaction settings.
      *
-     * @param eyes The position to determine visibility from.
-     * @return A set of directions corresponding to visible sides.
+     * @param box The box whose visible sides are to be determined.
+     * @param eye The position (e.g., the player's eyes) to determine visibility from.
+     * @return A set of directions corresponding to the visible sides of the box.
      */
-    fun Box.getVisibleSurfaces(eyes: Vec3d) =
-        EnumSet.noneOf(Direction::class.java)
-            .checkAxis(eyes.x - center.x, lengthX / 2, Direction.WEST, Direction.EAST)
-            .checkAxis(eyes.y - center.y, lengthY / 2, Direction.DOWN, Direction.UP)
-            .checkAxis(eyes.z - center.z, lengthZ / 2, Direction.NORTH, Direction.SOUTH)
-
-    /**
-     * Helper function to add visible sides to an EnumSet based on positional differences.
-     */
-    private fun EnumSet<Direction>.checkAxis(
-        diff: Double,
-        limit: Double,
-        negativeSide: Direction,
-        positiveSide: Direction,
-    ) = apply {
-        when {
-            diff < -limit -> add(negativeSide)
-            diff > limit -> add(positiveSide)
-        }
-    }
-
-    val ALL_SIDES = Direction.entries.toSet()
+    context(automated: Automated)
+    private fun Collection<Direction>.visibleSides(
+        box: Box,
+        eye: Vec3d
+    ) = if (automated.buildConfig.checkSideVisibility || automated.buildConfig.strictRayCast) {
+        intersect(box.getVisibleSurfaces(eye))
+    } else this
 
     class CheckedHit(
         val hit: HitResult,

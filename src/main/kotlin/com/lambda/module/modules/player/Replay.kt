@@ -31,13 +31,14 @@ import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
+import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
@@ -177,7 +178,7 @@ object Replay : Module(
             }
         }
 
-        listen<UpdateManagerEvent.Rotation> {
+        listen<TickEvent.Pre> {
             when (state) {
                 State.Recording -> {
                     buffer?.rotation?.add(player.rotation)
@@ -185,7 +186,7 @@ object Replay : Module(
 
                 State.Playing -> {
                     buffer?.rotation?.removeFirstOrNull()?.let { rot ->
-                        lookAt(rot).requestBy(this@Replay)
+                        submit(RotationRequest(rot, this@Replay))
                     }
                 }
 

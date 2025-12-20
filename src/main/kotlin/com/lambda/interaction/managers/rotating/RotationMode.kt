@@ -24,7 +24,6 @@ import com.lambda.util.NamedEnum
  * @property Silent Spoofing server-side rotation.
  * @property Sync Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
  * @property Lock Locks the camera client-side.
- * @property None No rotation.
  */
 enum class RotationMode(
     override val displayName: String,
@@ -32,6 +31,5 @@ enum class RotationMode(
 ) : NamedEnum, Describable {
     Silent("Silent", "Rotate for interactions without moving your camera (server-only rotation spoof)."),
     Sync("Sync", "Rotate both server and client view so your camera turns to face the target."),
-    Lock("Lock", "Keep rotation fixed on the target until the action finishes; ignores other rotation changes."),
-    None("None", "Do not auto-rotate; use your current view direction.")
+    Lock("Lock", "Keep rotation fixed on the target until the action finishes; ignores other rotation changes.")
 }

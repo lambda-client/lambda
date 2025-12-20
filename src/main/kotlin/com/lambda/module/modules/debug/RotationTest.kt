@@ -21,7 +21,8 @@ import com.lambda.config.AutomationConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.visibilty.lookAtHit
+import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.hit.HitResult
@@ -39,7 +40,7 @@ object RotationTest : Module(
         }
 
         listen<TickEvent.Pre> {
-            hitPos?.let { lookAtHit(it)?.requestBy(this@RotationTest) }
+            hitPos?.let { RotationRequest(lookAt(it.pos), this@RotationTest).submit() }
         }
     }
 }

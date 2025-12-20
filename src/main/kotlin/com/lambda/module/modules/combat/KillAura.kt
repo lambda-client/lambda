@@ -20,11 +20,10 @@ package com.lambda.module.modules.combat
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.Targeting
-import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
@@ -32,13 +31,12 @@ import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
-import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
 
@@ -48,11 +46,12 @@ object KillAura : Module(
     tag = ModuleTag.COMBAT,
 ) {
     // Interact
-    private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.Build)
-    private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.Build)
-    private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.Build)
-    private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.Build)
-    private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.Build)
+    private val rotate by setting("Rotate", true).group(Group.General)
+    private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+    private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
+    private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
+    private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
+    private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
 
     // Targeting
     private val targeting = Targeting.Combat(this, Group.Targeting)
@@ -68,7 +67,7 @@ object KillAura : Module(
     private var lastOnGround = true
 
     enum class Group(override val displayName: String) : NamedEnum {
-        Build("Build"),
+        General("General"),
         Targeting("Targeting"),
     }
 
@@ -82,7 +81,7 @@ object KillAura : Module(
             applyEdits {
                 hideAllGroupsExcept(buildConfig)
                 buildConfig.apply {
-                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::interactReach)
+                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::blockReach)
                 }
             }
         }
@@ -103,40 +102,28 @@ object KillAura : Module(
                 }
 
                 // Wait until the rotation has a hit result on the entity
-                if (lookAtEntity(entity).requestBy(this@KillAura).done) runAttack(entity)
+                if (rotate) runSafeAutomated {
+                    val rotationRequest = RotationRequest(lookAtEntity(entity)?.rotation ?: return@listen, this@KillAura).submit()
+                    if (!rotationRequest.done) return@listen
+                }
+
+                // Cooldown check
+                when (attackMode) {
+                    AttackMode.Cooldown -> if (player.getAttackCooldownProgress(0.5f) + (cooldownShrink / 20f) < 1.0f) return@listen
+                    AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return@listen
+                }
+
+                // Attack
+                interaction.attackEntity(player, target)
+                if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
+
+                lastAttackTime = System.currentTimeMillis()
+                hitDelay = (hitDelay1..hitDelay2).random() * 50
             }
         }
 
         onEnable { reset() }
         onDisable { reset() }
-    }
-
-    private fun SafeContext.runAttack(target: LivingEntity) {
-        // Cooldown check
-        when (attackMode) {
-            AttackMode.Cooldown -> if (player.lastAttackedTime < 1 / player.attackSpeed() * 20 + cooldownOffset) return
-            AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return
-        }
-
-        // Rotation check
-        if (rotationConfig.rotate) {
-            val angle = RotationManager.activeRotation
-
-            if (buildConfig.strictRayCast) {
-                val cast = angle.rayCast(buildConfig.attackReach)
-                if (cast?.entityResult?.entity != target) return
-            }
-
-            // Perform a raycast without checking the environment
-            angle.castBox(target.boundingBox, buildConfig.attackReach) ?: return
-        }
-
-        // Attack
-        interaction.attackEntity(player, target)
-        if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
-
-        lastAttackTime = System.currentTimeMillis()
-        hitDelay = (hitDelay1..hitDelay2).random() * 50
     }
 
     private fun reset() {

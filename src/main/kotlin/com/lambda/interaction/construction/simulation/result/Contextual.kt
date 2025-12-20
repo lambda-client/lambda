@@ -22,6 +22,8 @@ import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.managers.hotbar.HotbarManager
+import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 
@@ -49,7 +51,7 @@ interface Contextual : ComparableResult<Rank> {
                     ActionConfig.SortMode.Tool,
                     ActionConfig.SortMode.Closest -> it.sortDistance
                     ActionConfig.SortMode.Farthest -> -it.sortDistance
-                    ActionConfig.SortMode.Rotation -> it.rotationRequest.target.angleDistance
+                    ActionConfig.SortMode.Rotation -> it.rotationRequest.rotation.value?.dist(RotationManager.activeRotation)
                     ActionConfig.SortMode.Random -> it.random
                 }
             }.thenByDescending {

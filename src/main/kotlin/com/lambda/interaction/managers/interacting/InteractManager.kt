@@ -20,12 +20,9 @@ package com.lambda.interaction.managers.interacting
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
-import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
@@ -403,6 +400,4 @@ object InteractManager : Manager<InteractRequest>(
             blockSoundGroup.getPitch() * 0.8f
         )
     }
-
-    override fun preEvent(): Event = UpdateManagerEvent.Place.post()
 }

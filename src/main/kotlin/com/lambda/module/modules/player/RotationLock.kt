@@ -24,7 +24,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.interaction.managers.rotating.RotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -72,7 +71,7 @@ object RotationLock : Module(
                 Mode.None -> player.pitch.toDouble()
             }
 
-            RotationRequest(lookAt(Rotation(yaw, pitch)), this@RotationLock).submit()
+            RotationRequest(Rotation(yaw, pitch), this@RotationLock).submit()
         }
     }
 

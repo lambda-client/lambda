@@ -20,10 +20,8 @@ package com.lambda.interaction.managers.inventory
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.EventFlow.post
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
@@ -274,6 +272,4 @@ object InventoryManager : Manager<InventoryRequest>(
         val before: ItemStack,
         val after: ItemStack
     )
-
-    override fun preEvent() = UpdateManagerEvent.Inventory.post()
 }

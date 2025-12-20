@@ -21,15 +21,17 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
-import com.lambda.interaction.managers.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.rotation
@@ -109,18 +111,16 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        listen<UpdateManagerEvent.Rotation> {
+        listen<TickEvent.Pre> {
             when (rotateMode) {
                 FreecamRotationMode.None -> return@listen
-                FreecamRotationMode.KeepRotation -> lookAt(rotation).requestBy(this@Freecam)
+                FreecamRotationMode.KeepRotation -> submit(RotationRequest(rotation, this@Freecam))
                 FreecamRotationMode.LookAtTarget ->
                     mc.crosshairTarget?.let {
-                        when (it) {
-                            is BlockHitResult -> lookAt(it.pos).requestBy(this@Freecam)
-                            else -> lookAtHit(it)?.requestBy(this@Freecam)
-
+                        runSafeAutomated {
+                            submit(RotationRequest(lookAt(it.pos), this@Freecam))
+                        }
                     }
-                }
             }
         }
 

@@ -34,7 +34,6 @@ import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.HostileEntity
-import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
 import java.util.*
 
@@ -178,7 +177,8 @@ abstract class Targeting(
         }
 
         private val illegalTargets = setOf(
-            UUID(5706954458220675710, -6736729783554821869)
+            UUID(5706954458220675710, -6736729783554821869),
+            UUID(-2945922493004570036, -7599209072395336449)
         )
     }
 

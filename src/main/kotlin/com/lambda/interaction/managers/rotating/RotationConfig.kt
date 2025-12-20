@@ -26,7 +26,6 @@ interface RotationConfig : ISettingGroup {
      * - [RotationMode.Silent] Spoofing server-side rotation.
      * - [RotationMode.Sync] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
      * - [RotationMode.Lock] Locks the camera client-side.
-     * - [RotationMode.None] No rotation.
      */
     val rotationMode: RotationMode
 
@@ -46,8 +45,6 @@ interface RotationConfig : ISettingGroup {
     val decayTicks: Int
 
     val tickStageMask: Set<TickEvent>
-
-    val rotate: Boolean get() = rotationMode != RotationMode.None
 
     open class Instant(mode: RotationMode) : RotationConfig {
 	    override val settings = mutableListOf<Setting<*, *>>()

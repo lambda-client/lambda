@@ -47,15 +47,15 @@ object FastBreak : Module(
 						::spleefEntities,
 						::maxBuildDependencies,
 						::collectDrops,
-						::interactReach,
-						::attackReach
+						::blockReach,
+						::entityReach
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 					editTyped(
 						::checkSideVisibility,
 						::strictRayCast
 					) { defaultValue(false); hide() }
-					::interactReach.edit { defaultValue(Double.MAX_VALUE) }
+					::blockReach.edit { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {
 					editTyped(

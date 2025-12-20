@@ -22,7 +22,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
@@ -183,6 +182,4 @@ object HotbarManager : Manager<HotbarRequest>(
             }
         }
     }
-
-    override fun preEvent(): Event = UpdateManagerEvent.Hotbar.post()
 }

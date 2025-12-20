@@ -22,8 +22,7 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getClosestPoints
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.scanClosestPoints
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
@@ -95,7 +94,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
     ): Set<CheckedHit>? {
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 
-        val reachSq = buildConfig.interactReach.pow(2)
+        val reachSq = buildConfig.blockReach.pow(2)
 
         val validHits = ConcurrentSet<CheckedHit>()
         val misses = ConcurrentSet<Pair<Vec3d, Direction>>()
@@ -103,12 +102,8 @@ abstract class Sim<T : BuildResult> : Results<T> {
         supervisorScope {
             boxes.forEach { box ->
                 launch {
-                    val sides = if (buildConfig.checkSideVisibility || buildConfig.strictRayCast)
-                        sides.intersect(box.getVisibleSurfaces(pov))
-                    else sides
-
                     if (!buildConfig.strictRayCast) {
-                        box.getClosestPoints(pov, sides, preProcessing, interactConfig.airPlace.isEnabled) { vec, side ->
+                        box.scanClosestPoints(pov, sides, preProcessing, interactConfig.airPlace.isEnabled) { vec, side ->
                             if (pov distSq vec > reachSq)
                                 misses.add(Pair(vec, side))
                             else {
@@ -120,14 +115,14 @@ abstract class Sim<T : BuildResult> : Results<T> {
                                 )
                             }
                         }
-                    } else box.scanSurfaces(sides, buildConfig.resolution, preProcessing, false) { side, vec ->
+                    } else box.scanSurfaces(pov, sides, buildConfig.resolution, preProcessing, false) { vec, side ->
                         if (pov distSq vec > reachSq) {
                             misses.add(Pair(vec, side))
                             return@scanSurfaces
                         }
 
                         val newRotation = pov.rotationTo(vec)
-                        val hit = newRotation.rayCast(buildConfig.interactReach, pov)?.blockResult ?: return@scanSurfaces
+                        val hit = newRotation.rayCast(buildConfig.blockReach, pov)?.blockResult ?: return@scanSurfaces
 
                         if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
                         val checked = CheckedHit(hit, newRotation)

@@ -18,26 +18,40 @@
 package com.lambda.interaction.managers.rotating
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.LogContext
 import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.Request
-import com.lambda.interaction.managers.rotating.visibilty.RotationTarget
+import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.threading.runSafe
+import com.lambda.util.collections.updatableLazy
 
 data class RotationRequest(
-    val target: RotationTarget,
+    val buildRotation: SafeContext.() -> Rotation?,
     private val automated: Automated,
     var keepTicks: Int = automated.rotationConfig.keepTicks,
-    var decayTicks: Int = automated.rotationConfig.decayTicks,
+    var decayTicks: Int = automated.rotationConfig.decayTicks
 ) : Request(), LogContext, Automated by automated {
+    constructor(
+        rotation: Rotation,
+        automated: Automated,
+        keepTicks: Int = automated.rotationConfig.keepTicks,
+        decayTicks: Int = automated.rotationConfig.decayTicks
+    ) : this({ rotation }, automated, keepTicks, decayTicks)
+
     override val requestId = ++requestCount
     override val tickStageMask get() = rotationConfig.tickStageMask
+
+    val rotation = updatableLazy {
+        runSafe { buildRotation() }
+    }
 
     var age = 0
     override val nowOrNothing = false
 
-    override val done: Boolean get() =
-        rotationConfig.rotationMode == RotationMode.None || runSafe { target.verify() } == true
+    override val done: Boolean get() {
+        return RotationManager.activeRotation.dist(rotation.value ?: return false) <= 0.001
+    }
 
     override fun submit(queueIfMismatchedStage: Boolean): RotationRequest =
         RotationManager.request(this, queueIfMismatchedStage)
