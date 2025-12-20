@@ -33,13 +33,15 @@ import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 
-object PrefixCommand : LambdaCommand("prefix",
+object PrefixCommand : LambdaCommand(
+	"prefix",
 	usage = "prefix <prefix>",
 	description = "Sets the prefix for Lambda commands. If the prefix does not seem to work, try putting it in double quotes."
 ) {
 	// i have no idea why someone would want to use some of these as a prefix
 	// but ig the people who run 20 clients at once could benefit from this
 	val ptrn = Regex("^[!\"#$%&'()*+,\\-./:;<=>?@\\[\\\\\\]^_`{|}~]$")
+
 	override fun CommandBuilder.create() {
 		required(string("prefix")) { prefixStr ->
 			executeWithResult {
@@ -48,15 +50,16 @@ object PrefixCommand : LambdaCommand("prefix",
 					return@executeWithResult failure("Prefix must be a single non-alphanumeric ASCII character, excluding spaces.")
 				}
 				val prefixChar = prefix.first()
-				val configurable = Configuration.configurableByName("command")?: return@executeWithResult failure("No command configurable found.")
-				val setting = (configurable.settings.find { it.name == "prefix" }?: return@executeWithResult failure("No prefix setting found.")) as Setting<*, Char>
+				val configurable = Configuration.configurableByName("command") ?: return@executeWithResult failure("No command configurable found.")
+				val setting = configurable.settings.find { it.name == "prefix" } as? Setting<*, Char>
+					?: return@executeWithResult failure("Prefix setting is not a Char or can not be found.")
 				setting.trySetValue(prefixChar)
 				return@executeWithResult success()
 			}
 		}
 
 		execute {
-			this@PrefixCommand.info(
+			info(
 				buildText {
 					literal("The prefix is currently: ${CommandRegistry.prefix}")
 				}
