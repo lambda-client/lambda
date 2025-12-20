@@ -162,7 +162,7 @@ object AntiAim : Module(
 
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             if (currentYaw == wrap(player.yaw) && currentPitch == player.pitch) return@listen
-            submit(RotationRequest(Rotation(currentYaw, currentPitch), this@AntiAim), false)
+            submit(RotationRequest(Rotation(currentYaw, currentPitch), this@AntiAim))
         }
     }
 
