@@ -47,12 +47,14 @@ object BlockTest : Module(
     private val outlineColor = Color(100, 150, 255, 51)
 
     init {
-        onStaticRender {
+        onStaticRender { esp ->
             blockSearch(range, step = step) { _, state ->
                 state.isOf(Blocks.DIAMOND_BLOCK)
             }.forEach { (pos, state) ->
-                state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
-                    it.box(box.offset(pos), filledColor, outlineColor)
+                esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                    state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
+                        box(box.offset(pos), filledColor, outlineColor)
+                    }
                 }
             }
         }

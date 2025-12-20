@@ -106,12 +106,14 @@ object AirPlace : Module(
 		listen<PlayerEvent.Interact.Block> { if (airPlace()) it.cancel() }
 		listen<PlayerEvent.Interact.Item> { if (airPlace()) it.cancel() }
 
-		onStaticRender { event ->
+		onStaticRender { esp ->
 			placementPos?.let { pos ->
 				val boxes = placementState?.getOutlineShape(world, pos)?.boundingBoxes
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
-				boxes.forEach { box ->
-					event.outline(box.offset(pos), outlineColor)
+				esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+					boxes.forEach { box ->
+						outline(box.offset(pos), outlineColor)
+					}
 				}
 			}
 		}

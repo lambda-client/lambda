@@ -20,7 +20,8 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.graphics.esp.ShapeScope
+import com.lambda.graphics.mc.TransientRegionESP
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
@@ -53,14 +54,16 @@ sealed class GenericResult : BuildResult() {
         override val rank = Rank.NotVisible
         private val color = Color(46, 0, 0, 80)
 
-        override fun ShapeBuilder.buildRenderer() {
-            val box = with(pos) {
-                Box(
-                    x - 0.05, y - 0.05, z - 0.05,
-                    x + 0.05, y + 0.05, z + 0.05,
-                ).offset(pos)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                val box = with(pos) {
+                    Box(
+                        x - 0.05, y - 0.05, z - 0.05,
+                        x + 0.05, y + 0.05, z + 0.05,
+                    ).offset(pos)
+                }
+                box(box, color, color)
             }
-            box(box, color, color)
         }
 
         override fun compareResult(other: ComparableResult<Rank>): Int {
@@ -98,13 +101,15 @@ sealed class GenericResult : BuildResult() {
         context(automated: Automated, safeContext: SafeContext)
         override fun resolve() = neededSelection.transfer(MainHandContainer)
 
-        override fun ShapeBuilder.buildRenderer() {
-            val center = pos.toCenterPos()
-            val box = Box(
-                center.x - 0.1, center.y - 0.1, center.z - 0.1,
-                center.x + 0.1, center.y + 0.1, center.z + 0.1
-            )
-            box(box, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                val center = pos.toCenterPos()
+                val box = Box(
+                    center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                    center.x + 0.1, center.y + 0.1, center.z + 0.1
+                )
+                box(box, color, color)
+            }
         }
     }
 
@@ -129,13 +134,15 @@ sealed class GenericResult : BuildResult() {
 
         override val goal = GoalNear(pos, 3)
 
-        override fun ShapeBuilder.buildRenderer() {
-            val center = pos.toCenterPos()
-            val box = Box(
-                center.x - 0.1, center.y - 0.1, center.z - 0.1,
-                center.x + 0.1, center.y + 0.1, center.z + 0.1
-            )
-            box(box, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                val center = pos.toCenterPos()
+                val box = Box(
+                    center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                    center.x + 0.1, center.y + 0.1, center.z + 0.1
+                )
+                box(box, color, color)
+            }
         }
 
         override fun compareResult(other: ComparableResult<Rank>): Int {

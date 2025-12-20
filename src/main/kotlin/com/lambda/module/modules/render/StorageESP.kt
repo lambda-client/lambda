@@ -21,8 +21,11 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
+import com.lambda.event.events.onStaticRender
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.world.blockEntitySearch
+import com.lambda.util.world.entitySearch
 import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
@@ -107,23 +110,29 @@ object StorageESP : Module(
 	)
 
 	init {
-		//		onStaticRender { render ->
-		//			blockEntitySearch<BlockEntity>(distance)
-		//				.filter { it::class in entities }
-		//				.forEach { render.shapes(it.pos) { build(it, excludedSides(it)) } }
-		//
-		//			val mineCarts =
-		//				entitySearch<AbstractMinecartEntity>(distance).filter {
-		//					it::class in entities
-		//				}
-		//			val itemFrames =
-		//				entitySearch<ItemFrameEntity>(distance).filter {
-		//					it::class in entities
-		//				}
-		//			(mineCarts + itemFrames).forEach {
-		//				render.shapes(it.blockPos) { build(it, DirectionMask.ALL) }
-		//			}
-		//		}
+		onStaticRender { esp ->
+			blockEntitySearch<BlockEntity>(distance)
+				.filter { it::class in entities }
+				.forEach { be ->
+					esp.shapes(be.pos.x.toDouble(), be.pos.y.toDouble(), be.pos.z.toDouble()) {
+						build(be, excludedSides(be))
+					}
+				}
+
+			val mineCarts =
+				entitySearch<AbstractMinecartEntity>(distance).filter {
+					it::class in entities
+				}
+			val itemFrames =
+				entitySearch<ItemFrameEntity>(distance).filter {
+					it::class in entities
+				}
+			(mineCarts + itemFrames).forEach { entity ->
+				esp.shapes(entity.getX(), entity.getY(), entity.getZ()) {
+					build(entity, DirectionMask.ALL)
+				}
+			}
+		}
 	}
 
 	private fun SafeContext.excludedSides(blockEntity: BlockEntity): Int {

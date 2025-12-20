@@ -18,7 +18,8 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.graphics.esp.ShapeScope
+import com.lambda.graphics.mc.TransientRegionESP
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.managers.LogContext
 import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
@@ -63,14 +64,10 @@ data class BreakContext(
 
     override val sorter get() = breakConfig.sorter
 
-    override fun ShapeBuilder.buildRenderer() {
-        val box = with(hitResult.pos) {
-            Box(
-                x - 0.05, y - 0.05, z - 0.05,
-                x + 0.05, y + 0.05, z + 0.05,
-            ).offset(hitResult.side.doubleVector.multiply(0.05))
+    override fun render(esp: TransientRegionESP) {
+        esp.shapes(blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble()) {
+            box(blockPos, baseColor, sideColor)
         }
-        box(box, baseColor, sideColor)
     }
 
     override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {

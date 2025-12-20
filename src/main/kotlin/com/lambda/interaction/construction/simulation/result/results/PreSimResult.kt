@@ -18,7 +18,8 @@
 package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.graphics.esp.ShapeScope
+import com.lambda.graphics.mc.TransientRegionESP
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
@@ -55,8 +56,10 @@ sealed class PreSimResult : BuildResult() {
 
         override val goal = GoalBlock(pos)
 
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                box(pos, color, color)
+            }
         }
 
         override fun compareResult(other: ComparableResult<Rank>) =
@@ -77,8 +80,10 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.BreakRestricted
         private val color = Color(255, 0, 0, 100)
 
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                box(pos, color, color)
+            }
         }
     }
 
@@ -95,8 +100,10 @@ sealed class PreSimResult : BuildResult() {
         override val rank get() = Rank.BreakNoPermission
         private val color = Color(255, 0, 0, 100)
 
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                box(pos, color, color)
+            }
         }
     }
 
@@ -111,8 +118,10 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.OutOfWorld
         private val color = Color(3, 148, 252, 100)
 
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                box(pos, color, color)
+            }
         }
     }
 
@@ -129,8 +138,10 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.Unbreakable
         private val color = Color(11, 11, 11, 100)
 
-        override fun ShapeBuilder.buildRenderer() {
-            box(pos, color, color)
+        override fun render(esp: TransientRegionESP) {
+            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                box(pos, color, color)
+            }
         }
     }
 }

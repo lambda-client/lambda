@@ -45,15 +45,19 @@ object RenderTest : Module(
     private val filledColor = outlineColor.setAlpha(0.2)
 
     init {
-        onDynamicRender {
+        onDynamicRender { esp ->
             entitySearch<LivingEntity>(8.0)
                 .forEach { entity ->
-                    it.box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
+                    esp.shapes(entity.x, entity.y, entity.z) {
+                        box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
+                    }
                 }
         }
 
-        onStaticRender {
-            it.box(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
+        onStaticRender { esp ->
+            esp.shapes(player.x, player.y, player.z) {
+                box(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
+            }
         }
     }
 }

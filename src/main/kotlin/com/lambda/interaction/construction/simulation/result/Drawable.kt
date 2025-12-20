@@ -17,11 +17,11 @@
 
 package com.lambda.interaction.construction.simulation.result
 
-import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.graphics.mc.TransientRegionESP
 
 /**
  * Represents a [BuildResult] that can be rendered in-game.
  */
 interface Drawable {
-    fun ShapeBuilder.buildRenderer()
+    fun render(esp: TransientRegionESP)
 }

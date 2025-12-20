@@ -26,7 +26,7 @@ import kotlin.math.floor
  * Modern replacement for the legacy Treed system. Handles geometry that is cleared and rebuilt
  * every tick. Uses region-based rendering for precision.
  */
-class TransientRegionESP(name: String, depthTest: Boolean) : RegionESP(name, depthTest) {
+class TransientRegionESP(name: String, depthTest: Boolean = false) : RegionESP(name, depthTest) {
 	private val builders = ConcurrentHashMap<Long, ShapeScope>()
 
 	/** Get or create a builder for a specific region. */

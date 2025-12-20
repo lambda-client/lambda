@@ -22,6 +22,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -67,9 +68,12 @@ object Blink : Module(
             poolPackets()
         }
 
-        onDynamicRender {
+        onDynamicRender { esp ->
             val color = ClickGuiLayout.primaryColor
-            it.box(box.update(lastBox), color.setAlpha(0.3), color)
+            val pos = player.pos
+            esp.shapes(pos.x, pos.y, pos.z) {
+                box(box.update(lastBox), color.setAlpha(0.3), color)
+            }
         }
 
         listen<PacketEvent.Send.Pre> { event ->

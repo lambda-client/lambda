@@ -65,7 +65,11 @@ object WorldEater : Module(
             BaritoneManager.cancel()
         }
 
-        onStaticRender { it.outline(Box.enclosing(pos1, pos2), Color.BLUE) }
+        onStaticRender { esp ->
+            esp.shapes(pos1.x.toDouble(), pos1.y.toDouble(), pos1.z.toDouble()) {
+                outline(Box.enclosing(pos1, pos2), Color.BLUE)
+            }
+        }
     }
 
     private fun buildLayer() {

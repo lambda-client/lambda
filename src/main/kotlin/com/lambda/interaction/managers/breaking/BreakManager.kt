@@ -27,6 +27,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onDynamicRender
+import com.lambda.graphics.esp.ShapeScope
+
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.DynamicAABB
@@ -231,7 +233,7 @@ object BreakManager : Manager<BreakRequest>(
                 ?.internalOnItemDrop(it.entity)
         }
 
-        onDynamicRender { render ->
+        onDynamicRender { esp ->
             val activeStack = breakInfos
                 .filterNotNull()
                 .firstOrNull()?.swapStack ?: return@onDynamicRender
@@ -276,15 +278,18 @@ object BreakManager : Manager<BreakRequest>(
                     )
                     else config.staticOutlineColor
 
-                    info.context.cachedState.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
-                        it.offset(info.context.blockPos)
-                    }.forEach boxes@ { box ->
-                        val animationMode = info.breakConfig.animation
-                        val currentProgress = interpolateBox(box, currentProgress, animationMode)
-                        val nextProgress = interpolateBox(box, nextTicksProgress, animationMode)
-                        val dynamicAABB = DynamicAABB().update(currentProgress).update(nextProgress)
-                        if (config.fill) render.filled(dynamicAABB, fillColor)
-                        if (config.outline) render.outline(dynamicAABB, outlineColor)
+                    val pos = info.context.blockPos
+                    esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                        info.context.cachedState.getOutlineShape(world, pos).boundingBoxes.map {
+                            it.offset(pos)
+                        }.forEach boxes@{ box ->
+                            val animationMode = info.breakConfig.animation
+                            val currentProgressBox = interpolateBox(box, currentProgress, animationMode)
+                            val nextProgressBox = interpolateBox(box, nextTicksProgress, animationMode)
+                            val dynamicAABB = DynamicAABB().update(currentProgressBox).update(nextProgressBox)
+                            if (config.fill) filled(dynamicAABB, fillColor)
+                            if (config.outline) outline(dynamicAABB, outlineColor)
+                        }
                     }
                 }
         }

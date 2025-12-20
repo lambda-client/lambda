@@ -23,6 +23,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -110,7 +111,7 @@ object BackTrack : Module(
             poolPackets()
         }
 
-        onDynamicRender {
+        onDynamicRender { esp ->
             val target = target ?: return@onDynamicRender
 
             val c1 = ClickGuiLayout.primaryColor
@@ -118,7 +119,9 @@ object BackTrack : Module(
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)
 
-            it.box(box, c.multAlpha(0.3), c.multAlpha(0.8))
+            esp.shapes(target.pos.x, target.pos.y, target.pos.z) {
+                box(box, c.multAlpha(0.3), c.multAlpha(0.8))
+            }
         }
 
         listen<PacketEvent.Send.Pre> { event ->

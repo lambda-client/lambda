@@ -41,7 +41,7 @@ import kotlin.math.sqrt
  * Shape builder for region-based rendering. All coordinates are automatically converted to
  * region-relative positions.
  *
- * This class provides the same DSL as ShapeDsl but collects vertex data in thread-safe collections
+ * This class provides drawing primitives for region-based rendering and collects vertex data in thread-safe collections
  * for later upload to MC's BufferBuilder.
  *
  * @param region The render region (provides origin for coordinate conversion)
@@ -160,7 +160,7 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		if (shape.isEmpty) {
 			filled(Box(pos), color, sides)
 		} else {
-			filled(shape, color, sides)
+			filled(shape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()), color, sides)
 		}
 	}
 
@@ -233,21 +233,9 @@ class RegionShapeBuilder(val region: RenderRegion) {
 			lerp(tickDelta, prev.minX, curr.minX),
 			lerp(tickDelta, prev.minY, curr.minY),
 			lerp(tickDelta, prev.minZ, curr.minZ),
-			lerp(
-				tickDelta,
-				prev.maxX,
-				curr.maxX
-			),
-			lerp(
-				mc.partialTicks.toDouble(),
-				prev.maxY,
-				curr.maxY
-			),
-			lerp(
-				mc.partialTicks.toDouble(),
-				prev.maxZ,
-				curr.maxZ
-			)
+			lerp(tickDelta, prev.maxX, curr.maxX),
+			lerp(tickDelta, prev.maxY, curr.maxY),
+			lerp(tickDelta, prev.maxZ, curr.maxZ)
 		)
 		outline(interpolated, color, sides, mode)
 	}
@@ -263,7 +251,7 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		if (shape.isEmpty) {
 			outline(Box(pos), color, sides, mode)
 		} else {
-			outline(shape, color, sides, mode)
+			outline(shape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()), color, sides, mode)
 		}
 	}
 

@@ -85,9 +85,8 @@ open class AutomationConfig(
             var drawables = listOf<Drawable>()
 
             init {
-                onStaticRender {
-                    if (renders)
-                        with(it) { drawables.forEach { with(it) { buildRenderer() } } }
+                onStaticRender { esp ->
+	                drawables.forEach { it.render(esp) }
                 }
             }
         }

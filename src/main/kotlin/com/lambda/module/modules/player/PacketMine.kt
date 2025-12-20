@@ -171,9 +171,13 @@ object PacketMine : Module(
             }
         }
 
-        onStaticRender { event ->
+        onStaticRender { esp ->
             if (renderRebreak) {
-                rebreakPos?.let { event.outline(it, rebreakColor) }
+                rebreakPos?.let { pos ->
+                    esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                        outline(pos, rebreakColor)
+                    }
+                }
             }
             if (!renderQueue) return@onStaticRender
             queueSorted.forEachIndexed { index, positions ->
@@ -185,8 +189,10 @@ object PacketMine : Module(
                         RenderMode.Box -> listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
                     }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
-                    boxes.forEach { box ->
-                        event.box(box, color, color.setAlpha(1.0))
+                    esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                        boxes.forEach { box ->
+                            box(box, color, color.setAlpha(1.0))
+                        }
                     }
                 }
             }

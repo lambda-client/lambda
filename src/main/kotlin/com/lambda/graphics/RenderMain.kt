@@ -32,10 +32,10 @@ import org.joml.Vector4f
 
 object RenderMain {
     @JvmStatic
-    val StaticESP = TransientRegionESP("Static", true)
+    val StaticESP = TransientRegionESP("Static")
 
     @JvmStatic
-    val DynamicESP = TransientRegionESP("Dynamic", false)
+    val DynamicESP = TransientRegionESP("Dynamic")
 
     val projectionMatrix = Matrix4f()
     val modelViewMatrix

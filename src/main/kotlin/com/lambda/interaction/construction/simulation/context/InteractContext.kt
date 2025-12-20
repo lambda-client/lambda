@@ -18,7 +18,8 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.renderer.esp.ShapeBuilder
+import com.lambda.graphics.esp.ShapeScope
+import com.lambda.graphics.mc.TransientRegionESP
 import com.lambda.interaction.managers.LogContext
 import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.LogContext.Companion.getLogContextBuilder
@@ -49,14 +50,16 @@ data class InteractContext(
 
     override val sorter get() = interactConfig.sorter
 
-    override fun ShapeBuilder.buildRenderer() {
-        val box = with(hitResult.pos) {
-            Box(
-                x - 0.05, y - 0.05, z - 0.05,
-                x + 0.05, y + 0.05, z + 0.05,
-            ).offset(hitResult.side.doubleVector.multiply(0.05))
+    override fun render(esp: TransientRegionESP) {
+        esp.shapes(hitResult.pos.x, hitResult.pos.y, hitResult.pos.z) {
+            val box = with(hitResult.pos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(hitResult.side.doubleVector.multiply(0.05))
+            }
+            box(box, baseColor, sideColor)
         }
-        box(box, baseColor, sideColor)
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {
