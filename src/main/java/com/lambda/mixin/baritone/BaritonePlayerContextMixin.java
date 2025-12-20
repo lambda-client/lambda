@@ -30,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = BaritonePlayerContext.class, remap = false) // fix compileJava warning
-public class MixinBaritonePlayerContext {
+public class BaritonePlayerContextMixin {
     @Shadow
     @Final
     private Baritone baritone;
