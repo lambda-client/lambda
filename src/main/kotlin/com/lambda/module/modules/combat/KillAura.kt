@@ -34,6 +34,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
+import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
@@ -48,6 +49,7 @@ object KillAura : Module(
     // Interact
     private val rotate by setting("Rotate", true).group(Group.General)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+    private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
     private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
     private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
@@ -76,6 +78,12 @@ object KillAura : Module(
         Delay
     }
 
+    @Suppress("unused")
+    enum class DamageMode(override val displayName: String) : NamedEnum {
+        DPS("Damage Per Second"),
+        Total("Hit Damage")
+    }
+
     init {
         setDefaultAutomationConfig {
             applyEdits {
@@ -95,7 +103,10 @@ object KillAura : Module(
         listen<TickEvent.Pre> {
             target?.let { entity ->
                 if (swap) {
-                    val selection = selectStack().sortByDescending { player.attackDamage(stack = it) }
+                    val selection = selectStack().sortByDescending {
+                        if (damageMode == DamageMode.DPS) player.attackDamage(stack = it) * player.attackSpeed(stack = it)
+	                    else player.attackDamage(stack = it)
+                    }
 
                     if (!selection.bestItemMatch(player.hotbarAndStorage).equal(player.mainHandStack))
                         selection.transfer(MainHandContainer)?.run()
