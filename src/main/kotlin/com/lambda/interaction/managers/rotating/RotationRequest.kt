@@ -49,9 +49,7 @@ data class RotationRequest(
     var age = 0
     override val nowOrNothing = false
 
-    override val done: Boolean get() {
-        return RotationManager.activeRotation.dist(rotation.value ?: return false) <= 0.001
-    }
+    override val done: Boolean get() = RotationManager.activeRotation.dist(rotation.value ?: return false) <= 0.001
 
     override fun submit(queueIfMismatchedStage: Boolean): RotationRequest =
         RotationManager.request(this, queueIfMismatchedStage)

@@ -64,7 +64,7 @@ public class HeldItemRendererMixin {
             mainHand = currentStack;
         }
 
-        float progress = config.getOldAnimations() ? 1 : (float) Math.pow(client.player.getAttackCooldownProgress(1), 3);
+        float progress = config.getOldAnimations() ? 1 : (float) Math.pow(client.player.getHandEquippingProgress(1), 3);
 
         return (ItemStack.areEqual(mainHand, currentStack) ? progress : 0) - equipProgressMainHand;
     }
