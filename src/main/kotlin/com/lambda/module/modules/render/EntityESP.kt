@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
@@ -33,6 +32,7 @@ import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
 import imgui.ImGui
+import net.minecraft.client.network.ClientPlayerLikeState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.LivingEntity
@@ -48,6 +48,10 @@ import net.minecraft.entity.vehicle.AbstractMinecartEntity
 import net.minecraft.entity.vehicle.BoatEntity
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
 object EntityESP : Module(
 	name = "EntityESP",
@@ -142,9 +146,9 @@ object EntityESP : Module(
 
 			if (tracers || nameTags) {
 				val tracerEsp = TransientRegionESP(
-						"EntityESP-Tracers",
-						depthTest = !throughWalls
-					)
+					"EntityESP-Tracers",
+					depthTest = !throughWalls
+				)
 				entitySearch<Entity>(range) { shouldRender(it) }.forEach { entity ->
 					val color = getEntityColor(entity)
 					val entityPos = getInterpolatedPos(entity, tickDelta)
@@ -308,7 +312,7 @@ object EntityESP : Module(
 				playerPos.add(0.0, player.standingEyeHeight.toDouble(), 0.0)
 			TracerOrigin.Crosshair -> {
 				val camera = mc.gameRenderer?.camera ?: return playerPos
-				camera.pos.add(Vec3d(camera.horizontalPlane).multiply(0.1))
+				camera.pos.add(Vec3d(camera.horizontalPlane).multiply(5.0))
 			}
 		}
 	}
