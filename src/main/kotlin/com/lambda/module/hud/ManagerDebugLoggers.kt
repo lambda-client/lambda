@@ -27,8 +27,7 @@ import com.lambda.util.NamedEnum
 object ManagerDebugLoggers : HudModule(
     "ManagerDebugLoggers",
     "debug loggers for all action managers in lambda",
-    ModuleTag.HUD,
-    customWindow = true
+    ModuleTag.HUD
 ) {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),

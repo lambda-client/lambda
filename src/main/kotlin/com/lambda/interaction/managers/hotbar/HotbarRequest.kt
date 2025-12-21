@@ -26,7 +26,7 @@ class HotbarRequest(
     val slot: Int,
     automated: Automated,
     var keepTicks: Int = automated.hotbarConfig.keepTicks,
-    var swapPause: Int = automated.hotbarConfig.swapPause,
+    val swapPause: Int = automated.hotbarConfig.swapPause,
     override val nowOrNothing: Boolean = true
 ) : Request(), LogContext, Automated by automated {
     override val requestId = ++requestCount
