@@ -20,6 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.Targeting
+import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -31,13 +32,16 @@ import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
+import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
+import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.LivingEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
 
 object KillAura : Module(
@@ -48,6 +52,7 @@ object KillAura : Module(
     // Interact
     private val rotate by setting("Rotate", true).group(Group.General)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+    private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
     private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
     private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
@@ -76,6 +81,12 @@ object KillAura : Module(
         Delay
     }
 
+    @Suppress("unused")
+    enum class DamageMode(override val displayName: String, val block: SafeContext.(ItemStack) -> Double) : NamedEnum {
+        DPS("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
+        Total("Hit Damage", { player.attackDamage(stack = it) })
+    }
+
     init {
         setDefaultAutomationConfig {
             applyEdits {
@@ -95,7 +106,9 @@ object KillAura : Module(
         listen<TickEvent.Pre> {
             target?.let { entity ->
                 if (swap) {
-                    val selection = selectStack().sortByDescending { player.attackDamage(stack = it) }
+                    val selection = selectStack().sortByDescending {
+                        damageMode.block(this, it)
+                    }
 
                     if (!selection.bestItemMatch(player.hotbarAndStorage).equal(player.mainHandStack))
                         selection.transfer(MainHandContainer)?.run()
