@@ -19,6 +19,7 @@ package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -43,7 +44,7 @@ object PrefixCommand : LambdaCommand(
 	val ptrn = Regex("^[!\"#$%&'()*+,\\-./:;<=>?@\\[\\\\\\]^_`{|}~]$")
 
 	override fun CommandBuilder.create() {
-		required(string("prefix")) { prefixStr ->
+		required(greedyString("prefix")) { prefixStr ->
 			executeWithResult {
 				val prefix = prefixStr().value()
 				if (!ptrn.matches(prefix)) {
