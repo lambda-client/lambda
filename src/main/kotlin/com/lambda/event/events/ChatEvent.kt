@@ -24,7 +24,9 @@ import net.minecraft.network.message.MessageSignatureData
 import net.minecraft.text.Text
 
 sealed class ChatEvent {
-	class Message(
+	class Send(var message: String) : Event, Cancellable()
+
+	class Receive(
 		var message: Text,
 		var signature: MessageSignatureData?,
 		var indicator: MessageIndicator?,

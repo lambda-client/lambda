@@ -35,7 +35,7 @@ import com.lambda.util.ChatUtils.slurs
 import com.lambda.util.ChatUtils.swears
 import com.lambda.util.ChatUtils.toAscii
 import com.lambda.util.NamedEnum
-import com.lambda.util.text.MessageDirection
+import com.lambda.util.text.DirectMessage
 import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
@@ -75,13 +75,13 @@ object AntiSpam : Module(
 	}
 
 	init {
-		listen<ChatEvent.Message> { event ->
+		listen<ChatEvent.Receive> { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
 
 			if (
-				ignoreSystem && !MessageType.Both.matches(raw) && !MessageDirection.Both.matches(raw) ||
-				ignoreDms && MessageDirection.Receive.matches(raw) ||
+				ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
+				ignoreDms && DirectMessage.Receive.matches(raw) ||
 				ignoreFriends && author?.let { FriendManager.isFriend(it) } == true ||
 				ignoreSelf && MessageType.Self.matches(raw)
 			) return@listen

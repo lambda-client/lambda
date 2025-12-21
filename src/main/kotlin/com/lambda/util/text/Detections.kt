@@ -17,12 +17,7 @@
 
 package com.lambda.util.text
 
-import baritone.api.BaritoneAPI
 import com.lambda.Lambda.mc
-import com.lambda.command.CommandRegistry
-import com.lambda.command.commands.PrefixCommand
-import kotlin.math.max
-import kotlin.text.substring
 
 val playerRegex =  "^<(.+)>".toRegex()
 
@@ -72,28 +67,28 @@ enum class MessageType : Detector, PlayerDetector, RemovableDetector {
 		override fun matches(input: CharSequence) = playerName(input) != null
 
 		override fun playerName(input: CharSequence) =
-			playerRegex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() && it != name }?.drop(1)?.dropLast(1)
+			playerRegex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() && it != name }
 	},
 	Both {
 		override fun matches(input: CharSequence) = input.contains(playerRegex)
 
 		override fun playerName(input: CharSequence) =
-			playerRegex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }?.drop(1)?.dropLast(1)
+			playerRegex.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }
 	};
 
 	override fun removedOrNull(input: CharSequence) =
 		playerName(input)?.let { input.removePrefix("<$it>") }
 }
 
-enum class MessageDirection(override vararg val regexes: Regex) : RegexDetector, PlayerDetector {
-	Sent("^To (.+?): ".toRegex(RegexOption.IGNORE_CASE)),
+enum class DirectMessage(override vararg val regexes: Regex) : RegexDetector, PlayerDetector {
+	Send("^To (.+?): ".toRegex(RegexOption.IGNORE_CASE)),
 	Receive(
 		"^(.+?) whispers( to you)?: ".toRegex(),
 		"^\\[?(.+?)( )?->( )?.+?]?( )?:? ".toRegex(),
 		"^From (.+?): ".toRegex(RegexOption.IGNORE_CASE),
 		"^. (.+?) » .w+? » ".toRegex()
 	),
-	Both(*Sent.regexes, *Receive.regexes);
+	Both(*Send.regexes, *Receive.regexes);
 
 	override fun playerName(input: CharSequence) =
 		result(input)?.find(input)?.groupValues?.getOrNull(1)?.takeIf { it.isNotBlank() }

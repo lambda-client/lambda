@@ -44,7 +44,7 @@ public class ChatHudMixin {
 
     @WrapMethod(method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;Lnet/minecraft/client/gui/hud/MessageIndicator;)V")
     void wrapAddMessage(Text message, MessageSignatureData signatureData, MessageIndicator indicator, Operation<Void> original) {
-        var event = new ChatEvent.Message(message, signatureData, indicator);
+        var event = new ChatEvent.Receive(message, signatureData, indicator);
 
         if (!EventFlow.post(event).isCanceled())
             original.call(event.getMessage(), event.getSignature(), event.getIndicator());

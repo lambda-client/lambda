@@ -27,6 +27,27 @@ object ChatUtils {
 	val colors = sequenceOf(">", "`").map { Regex(it) }
 
 	val fancyToAscii = mapOf('ᴀ' to 'a', 'ʙ' to 'b', 'c' to 'c', 'ᴅ' to 'd', 'ᴇ' to 'e', 'ꜰ' to 'f', 'ɢ' to 'g', 'ʜ' to 'h', 'ɪ' to 'i', 'ᴊ' to 'j', 'ᴋ' to 'k', 'ʟ' to 'l', 'ᴍ' to 'm', 'ɴ' to 'n', 'ᴏ' to 'o', 'ᴩ' to 'p', 'q' to 'q', 'ʀ' to 'r', 'ꜱ' to 's', 'ᴛ' to 't', 'ᴜ' to 'u', 'ᴠ' to 'v', 'ᴡ' to 'w', 'x' to 'x', 'y' to 'y', 'ᴢ' to 'z',)
+	val asciiToFancy = fancyToAscii.entries.associate { (key, value) -> value to key }
+	val asciiToLeet = mapOf('a' to '4', 'e' to '3', 'g' to '6', 'l' to '1', 'i' to '1', 'o' to '0', 's' to '$', 't' to '7')
 
+	val String.toFancy get() = buildString { this@toFancy.forEach { append(asciiToFancy.getOrDefault(it, it)) } }
 	val String.toAscii get() = buildString { this@toAscii.forEach { append(fancyToAscii.getOrDefault(it, it)) } }
+ 	val String.toLeet get() = buildString { this@toLeet.forEach { append(asciiToLeet.getOrDefault(it, it)) } }
+	val String.toGreen get() = ">$this"
+	val String.toBlue get() = "`$this"
+
+	val String.toUwu get() =
+		replace("my", "mai")
+			.replace("friend", "fwend")
+			.replace("small", "smol")
+			.replace("cute", "cyute")
+			.replace("very", "vewy")
+			.replace("ove", "uv")
+			.replace("no", "nu")
+			.replace("you", "yew")
+			.replace("the", "da")
+			.replace("is", "ish")
+			.replace('r', 'w')
+			.replace("ve", "v")
+			.replace('l', 'w')
 }
