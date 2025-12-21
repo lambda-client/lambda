@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.collections
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
@@ -106,7 +107,7 @@ open class CollectionSetting<R : Any>(
 
 	context(setting: Setting<*, MutableCollection<R>>)
     override fun toJson(): JsonElement =
-        gson.toJsonTree(value.map { it.toString() })
+		gson.toJsonTree(value)
 
 	context(setting: Setting<*, MutableCollection<R>>)
     override fun loadFromJson(serialized: JsonElement) {
