@@ -35,6 +35,6 @@ interface ReplaceConfig {
 	enum class ReplaceStrategy(val block: (String) -> String) {
 		CensorAll({ it.replaceRange(0..<it.length, "*".repeat(it.length))}),
 		CensorHalf({ it.foldIndexed("") { i, acc, char -> if (i % 2 == 0) acc + char else "$acc*" } }),
-		KeepFirst({ it.replaceRange(1..<it.length, "*".repeat(it.length-1))}),
+		KeepFirst({ if (it.length <= 1) it else it.replaceRange(1, it.length, "*".repeat(it.length - 1)) }),
 	}
 }
