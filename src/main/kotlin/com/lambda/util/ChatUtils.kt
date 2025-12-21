@@ -25,4 +25,7 @@ object ChatUtils {
 	val addresses = sequenceOf("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}(:\\d{1,5}$)?", "^(\\[?)(\\:\\:)?[0-9a-fA-F]{1,4}(\\:\\:?[0-9a-fA-F]{1,4}){0,7}(\\:\\:)?(\\])?(:\\d{1,5}$)?$").map { Regex(it) }
 	val colors = sequenceOf(">", "`").map { Regex(it) }
 
+	val fancyToAscii = mapOf('ᴀ' to 'a', 'ʙ' to 'b', 'c' to 'c', 'ᴅ' to 'd', 'ᴇ' to 'e', 'ꜰ' to 'f', 'ɢ' to 'g', 'ʜ' to 'h', 'ɪ' to 'i', 'ᴊ' to 'j', 'ᴋ' to 'k', 'ʟ' to 'l', 'ᴍ' to 'm', 'ɴ' to 'n', 'ᴏ' to 'o', 'ᴩ' to 'p', 'q' to 'q', 'ʀ' to 'r', 'ꜱ' to 's', 'ᴛ' to 't', 'ᴜ' to 'u', 'ᴠ' to 'v', 'ᴡ' to 'w', 'x' to 'x', 'y' to 'y', 'ᴢ' to 'z',)
+
+	val String.toAscii get() = map { fancyToAscii.getOrDefault(it, it) }
 }
