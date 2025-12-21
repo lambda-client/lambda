@@ -29,6 +29,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import com.lambda.util.text.text
+import net.minecraft.util.Formatting
 import java.awt.Color
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -40,18 +41,23 @@ object ChatTimestamp : Module(
 	description = "Displays the time a message was sent next to it",
 	tag = ModuleTag.CHAT,
 ) {
+	var color: Formatting by setting("Color", Formatting.GRAY)
+		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
+
+	val javaColor: Color get() = Color(color.colorValue!! and 16777215)
+
 	val formatter = FormatterSettings(this).apply { applyEdits { hide(::localeEnum, ::sep, ::customSep, ::group, ::floatingPrecision); editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) } } }
 
 	private val currentTime get() =
 		ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())
-			.truncatedTo(ChronoUnit.MINUTES)
+			.truncatedTo(ChronoUnit.SECONDS)
 
 	init {
 		listen<ChatEvent.Receive> {
 			it.message = buildText {
 				text(it.message)
 				literal(" ")
-				styled(Color.GRAY, italic = true) { literal(currentTime.format(formatter)) }
+				styled(javaColor, italic = true) { literal(currentTime.format(formatter)) }
 			}
 		}
 	}
