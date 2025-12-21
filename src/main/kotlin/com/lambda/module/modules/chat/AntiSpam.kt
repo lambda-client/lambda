@@ -29,11 +29,15 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ChatUtils.addresses
 import com.lambda.util.ChatUtils.colors
 import com.lambda.util.ChatUtils.discord
+import com.lambda.util.ChatUtils.hex
 import com.lambda.util.ChatUtils.sexual
 import com.lambda.util.ChatUtils.slurs
 import com.lambda.util.ChatUtils.swears
 import com.lambda.util.ChatUtils.toAscii
 import com.lambda.util.NamedEnum
+import com.lambda.util.text.MessageDirection
+import com.lambda.util.text.MessageParser
+import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
 
 object AntiSpam : Module(
@@ -44,6 +48,8 @@ object AntiSpam : Module(
 	private val ignoreSelf by setting("Ignore Self", true)
 	private val ignoreFriends by setting("Ignore Friends", true)
 	private val fancyChats by setting("Replace Fancy Chat", false)
+	private val ignoreSystem by setting("Ignore System", false)
+	private val ignoreDms by setting("Ignore DMs", false)
 
 	private val detectSlurs = ReplaceSettings("Slurs", this, Group.Slurs)
 	private val detectSwears = ReplaceSettings("Swears", this, Group.Swears)
@@ -51,6 +57,8 @@ object AntiSpam : Module(
 	private val detectDiscord = ReplaceSettings("Discord", this, Group.Discord)
 		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
 	private val detectAddresses = ReplaceSettings("Addresses", this, Group.Addresses)
+		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
+	private val detectHexBypass = ReplaceSettings("Hex", this, Group.Hex)
 		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
 	private val detectColors = ReplaceSettings("Colors", this, Group.Colors)
 		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.None) } } }
@@ -62,34 +70,29 @@ object AntiSpam : Module(
 		Sexual("Sexual"),
 		Discord("Discord Invites"),
 		Addresses("IPs and Addresses"),
+		Hex("Hex Bypass"),
 		Colors("Color Prefixes")
 	}
 
 	init {
 		listen<ChatEvent.Message> { event ->
-			val author = event.message.string.substringAfter('<').substringBefore('>')
-			var content = event.message.string.substringAfter(' ')
+			var raw = event.message.string
+			val author = MessageParser.playerName(raw)
 
-			if (!ignoreFriends && FriendManager.isFriend(author) ||
-				!ignoreSelf && player.gameProfile.name == author) return@listen
+			if (
+				ignoreSystem && !MessageType.Both.matches(raw) && !MessageDirection.Both.matches(raw) ||
+				ignoreDms && MessageDirection.Receive.matches(raw) ||
+				ignoreFriends && author?.let { FriendManager.isFriend(it) } == true ||
+				ignoreSelf && MessageType.Self.matches(raw)
+			) return@listen
 
-			val slurMatches = slurs.takeIf { detectSlurs.enabled }.orEmpty()
-				.flatMap { it.findAll(content).toList().reversed() }
-
-			val swearMatches = swears.takeIf { detectSwears.enabled }.orEmpty()
-				.flatMap { it.findAll(content).toList().reversed() }
-
-			val sexualMatches = sexual.takeIf { detectSexual.enabled }.orEmpty()
-				.flatMap { it.findAll(content).toList().reversed() }
-
-			val discordMatches = discord.takeIf { detectDiscord.enabled }.orEmpty()
-				.flatMap { it.findAll(content).toList().reversed() }
-
-			val addressMatches = addresses.takeIf { detectAddresses.enabled }.orEmpty()
-				.flatMap { it.findAll(content).toList().reversed() }
-
-			val colorMatches = colors.takeIf { detectColors.enabled }.orEmpty()
-				.flatMap { it.findAll(content).toList().reversed() }
+			val slurMatches = slurs.takeIf { detectSlurs.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
+			val swearMatches = swears.takeIf { detectSwears.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
+			val sexualMatches = sexual.takeIf { detectSexual.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
+			val discordMatches = discord.takeIf { detectDiscord.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
+			val addressMatches = addresses.takeIf { detectAddresses.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
+			val hexMatches = hex.takeIf { detectHexBypass.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
+			val colorMatches = colors.takeIf { detectColors.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
 
 			var cancelled = false
 			var hasMatches = false
@@ -100,9 +103,9 @@ object AntiSpam : Module(
 				when (replace.action) {
 					ReplaceConfig.ActionStrategy.Hide -> matches.firstOrNull()?.let { event.cancel(); cancelled = true } // If there's one detection, nuke the whole damn thang
 					ReplaceConfig.ActionStrategy.Delete -> matches
-						.forEach { content = content.replaceRange(it.range, ""); hasMatches = true }
+						.forEach { raw = raw.replaceRange(it.range, ""); hasMatches = true }
 					ReplaceConfig.ActionStrategy.Replace -> matches
-						.forEach { content = content.replaceRange(it.range, replace.replace.block(it.value)); hasMatches = true }
+						.forEach { raw = raw.replaceRange(it.range, replace.replace.block(it.value)); hasMatches = true }
 					ReplaceConfig.ActionStrategy.None -> {}
 				}
 			}
@@ -112,12 +115,13 @@ object AntiSpam : Module(
 			doMatch(detectSexual, sexualMatches)
 			doMatch(detectDiscord, discordMatches)
 			doMatch(detectAddresses, addressMatches)
+			doMatch(detectHexBypass, hexMatches)
 			doMatch(detectColors, colorMatches)
 
+			if (cancelled) return@listen event.cancel()
 			if (!hasMatches) return@listen
 
-			val postprocessed = if (fancyChats) content.toAscii else content
-			event.message = Text.of("<$author> $postprocessed")
+			event.message = Text.of(if (fancyChats) raw.toAscii else raw)
 		}
 	}
 
