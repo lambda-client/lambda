@@ -23,7 +23,6 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -114,11 +113,11 @@ object Freecam : Module(
         listen<TickEvent.Pre> {
             when (rotateMode) {
                 FreecamRotationMode.None -> return@listen
-                FreecamRotationMode.KeepRotation -> submit(RotationRequest(rotation, this@Freecam))
+                FreecamRotationMode.KeepRotation -> RotationRequest(rotation, this@Freecam).submit()
                 FreecamRotationMode.LookAtTarget ->
                     mc.crosshairTarget?.let {
                         runSafeAutomated {
-                            submit(RotationRequest(lookAt(it.pos), this@Freecam))
+                            RotationRequest(lookAt(it.pos), this@Freecam).submit()
                         }
                     }
             }

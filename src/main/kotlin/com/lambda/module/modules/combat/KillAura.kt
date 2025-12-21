@@ -24,7 +24,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
@@ -103,7 +102,7 @@ object KillAura : Module(
             lastOnGround = event.onGround
         }
 
-        listen<TickEvent.Pre> {
+        listen<TickEvent.Input.Post> {
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 if (rotate) runSafeAutomated {
@@ -115,13 +114,13 @@ object KillAura : Module(
                 }
 
                 if (swap) {
-	                val selection = selectStack().sortByDescending {
-		                damageMode.block(this, it)
-	                }
+                    val selection = selectStack().sortByDescending {
+                        damageMode.block(this, it)
+                    }
 
                     selection.bestItemMatch(player.hotbar)?.let { bestStack ->
                         val slotId = player.hotbar.indexOf(bestStack)
-                        if (!submit(HotbarRequest(slotId, this@KillAura, nowOrNothing = false)).done) return@listen
+                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
                     }
                 }
 

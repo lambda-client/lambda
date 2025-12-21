@@ -21,7 +21,6 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
-import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -81,7 +80,7 @@ object InventoryMove : Module(
             val yaw = (isKeyPressed(GLFW_KEY_RIGHT, GLFW_KEY_KP_6).toFloatSign() -
                     isKeyPressed(GLFW_KEY_LEFT, GLFW_KEY_KP_4).toFloatSign()) * speed
 
-            submit(RotationRequest(Rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f)), this@InventoryMove))
+            RotationRequest(Rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f)), this@InventoryMove).submit()
         }
     }
 
