@@ -38,7 +38,9 @@ import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbar
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.world.GameMode
 
 object KillAura : Module(
     name = "KillAura",
@@ -107,10 +109,10 @@ object KillAura : Module(
                 // Wait until the rotation has a hit result on the entity
                 if (rotate) runSafeAutomated {
                     val rotationRequest = RotationRequest(lookAtEntity(entity)?.rotation ?: return@listen, this@KillAura).submit()
-                    val canContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
+                    val cantContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
                     prevEntity = entity
                     validServerRot = rotationRequest.done
-                    if (canContinue) return@listen
+                    if (cantContinue) return@listen
                 }
 
                 if (swap) {
@@ -131,7 +133,11 @@ object KillAura : Module(
                 }
 
                 // Attack
-                interaction.attackEntity(player, target)
+                connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
+                if (interaction.gameMode != GameMode.SPECTATOR) {
+                    player.attack(target)
+                    player.resetTicksSince()
+                }
                 if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
 
                 lastAttackTime = System.currentTimeMillis()
