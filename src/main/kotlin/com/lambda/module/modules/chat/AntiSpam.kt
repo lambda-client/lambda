@@ -75,7 +75,7 @@ object AntiSpam : Module(
 	}
 
 	init {
-		listen<ChatEvent.Message> { event ->
+		listen<ChatEvent.Message>(42069) { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
 
