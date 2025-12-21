@@ -20,6 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.Targeting
+import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -31,6 +32,7 @@ import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
+import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
@@ -39,6 +41,7 @@ import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.LivingEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
 
 object KillAura : Module(
@@ -79,9 +82,9 @@ object KillAura : Module(
     }
 
     @Suppress("unused")
-    enum class DamageMode(override val displayName: String) : NamedEnum {
-        DPS("Damage Per Second"),
-        Total("Hit Damage")
+    enum class DamageMode(override val displayName: String, val block: SafeContext.(ItemStack) -> Double) : NamedEnum {
+        DPS("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
+        Total("Hit Damage", { player.attackDamage(stack = it) })
     }
 
     init {
@@ -104,8 +107,7 @@ object KillAura : Module(
             target?.let { entity ->
                 if (swap) {
                     val selection = selectStack().sortByDescending {
-                        if (damageMode == DamageMode.DPS) player.attackDamage(stack = it) * player.attackSpeed(stack = it)
-	                    else player.attackDamage(stack = it)
+                        damageMode.block(this, it)
                     }
 
                     if (!selection.bestItemMatch(player.hotbarAndStorage).equal(player.mainHandStack))
