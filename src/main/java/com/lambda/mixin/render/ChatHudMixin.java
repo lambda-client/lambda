@@ -17,7 +17,6 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.client.LambdaMoji;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.font.TextRenderer;
