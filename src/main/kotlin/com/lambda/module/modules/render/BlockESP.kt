@@ -29,6 +29,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
+import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BlockStateModel
@@ -77,12 +78,13 @@ object BlockESP : Module(
 
         runSafe {
             val extractedColor = blockColor(state, position.toBlockPos())
+            val finalColor = Color(extractedColor.red, extractedColor.green, extractedColor.blue, faceColor.alpha)
             val pos = position.toBlockPos()
             val shape = state.getOutlineShape(world, pos)
             val worldBox = if (shape.isEmpty) Box(pos) else shape.boundingBox.offset(pos)
             box(worldBox) {
                 if (drawFaces)
-                    filled(if (useBlockColor) extractedColor else faceColor, sides)
+                    filled(if (useBlockColor) finalColor else faceColor, sides)
                 if (drawOutlines)
                     outline(if (useBlockColor) extractedColor else BlockESP.outlineColor, sides, BlockESP.outlineMode)
             }
