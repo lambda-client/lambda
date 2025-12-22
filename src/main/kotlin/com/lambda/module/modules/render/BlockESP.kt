@@ -29,7 +29,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
-import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BlockStateModel
@@ -51,6 +50,8 @@ object BlockESP : Module(
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)
 
     private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val blockColorAlpha by setting("Block Color Alpha", 0.3, 0.1..1.0, 0.05) { searchBlocks && useBlockColor }.onValueChange { _, _ -> ::rebuildMesh }
+
     private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
     private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
 
@@ -78,7 +79,7 @@ object BlockESP : Module(
 
         runSafe {
             val extractedColor = blockColor(state, position.toBlockPos())
-            val finalColor = Color(extractedColor.red, extractedColor.green, extractedColor.blue, faceColor.alpha)
+            val finalColor = Color(extractedColor.red, extractedColor.green, extractedColor.blue, (blockColorAlpha * 255).toInt())
             val pos = position.toBlockPos()
             val shape = state.getOutlineShape(world, pos)
             val worldBox = if (shape.isEmpty) Box(pos) else shape.boundingBox.offset(pos)
