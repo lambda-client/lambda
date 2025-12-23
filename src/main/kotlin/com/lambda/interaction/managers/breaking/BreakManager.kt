@@ -19,15 +19,11 @@ package com.lambda.interaction.managers.breaking
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
-import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onDynamicRender
-import com.lambda.graphics.esp.ShapeScope
-
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.DynamicAABB
@@ -147,7 +143,6 @@ object BreakManager : Manager<BreakRequest>(
             }?.context?.itemSelection
             ?: StackSelection.EVERYTHING.select()
 
-    private val pendingBreakCount get() = activeInfos.count() + pendingActions.size
     override val blockedPositions
         get() = activeInfos.map { it.context.blockPos } + pendingActions.map { it.context.blockPos }
 
@@ -450,7 +445,6 @@ object BreakManager : Manager<BreakRequest>(
                     info.breakConfig.rotate
                 }?.let { info ->
                     val rotation = info.context.rotationRequest
-                    logger.debug("Requesting rotation", rotation)
                     rotation.submit(false)
                 }
 

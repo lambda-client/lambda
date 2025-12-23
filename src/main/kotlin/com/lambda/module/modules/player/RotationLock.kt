@@ -21,9 +21,8 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -60,7 +59,7 @@ object RotationLock : Module(
                     val normalizedYaw = (player.yaw % 360.0 + 360.0) % 360.0
                     (normalizedYaw / yawStep).roundToInt() * yawStep
                 }
-                Mode.None -> player.yaw.toDouble()
+                Mode.None -> null
             }
             val pitch = when (pitchMode) {
                 Mode.Custom -> customPitch
@@ -68,10 +67,15 @@ object RotationLock : Module(
                     val clampedPitch = player.pitch.coerceIn(-90f, 90f)
                     (clampedPitch / pitchStep).roundToInt() * pitchStep
                 }
-                Mode.None -> player.pitch.toDouble()
+                Mode.None -> null
             }
 
-            RotationRequest(Rotation(yaw, pitch), this@RotationLock).submit()
+            if (yaw == null && pitch == null) return@listen
+
+            rotationRequest {
+                yaw?.let { yaw(it) }
+                pitch?.let { pitch(it) }
+            }.submit()
         }
     }
 

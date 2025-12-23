@@ -25,7 +25,7 @@ import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
@@ -108,7 +108,7 @@ object KillAura : Module(
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 if (rotate) runSafeAutomated {
-                    val rotationRequest = RotationRequest(lookAtEntity(entity)?.rotation ?: return@listen, this@KillAura).submit()
+                    val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
                     val cantContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
                     prevEntity = entity
                     validServerRot = rotationRequest.done

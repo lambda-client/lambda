@@ -55,7 +55,7 @@ object HotbarManager : Manager<HotbarRequest>(
              },
     onClose = { checkResetSwap() }
 ), Logger {
-    var activeRequest: HotbarRequest? = null
+    private var activeRequest: HotbarRequest? = null
     @JvmStatic var activeSlot: Int = -1
 
     val serverSlot get() = runSafe {

@@ -72,7 +72,6 @@ data class InteractContext(
         group("Place Context") {
             text(blockPos.getLogContextBuilder())
             text(hitResult.getLogContextBuilder())
-            text(rotationRequest.getLogContextBuilder())
             value("Hotbar Index", hotbarIndex)
             value("Cached State", cachedState)
             value("Expected State", expectedState)

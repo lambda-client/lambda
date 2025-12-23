@@ -22,8 +22,6 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.interaction.managers.rotating.RotationMode;
-import com.lambda.module.modules.player.RotationLock;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -149,17 +147,11 @@ public abstract class EntityMixin {
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setYaw(F)V"))
     private boolean wrapSetYaw(Entity instance, float yaw) {
-        return (instance != Lambda.getMc().player ||
-                RotationLock.INSTANCE.isDisabled() ||
-                RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
-                RotationLock.getYawMode() == RotationLock.Mode.None);
+        return RotationManager.getLockYaw() == null;
     }
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
     private boolean wrapSetPitch(Entity instance, float yaw) {
-        return (instance != Lambda.getMc().player ||
-                RotationLock.INSTANCE.isDisabled() ||
-                RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
-                RotationLock.getPitchMode() == RotationLock.Mode.None);
+        return RotationManager.getLockPitch() == null;
     }
 }
