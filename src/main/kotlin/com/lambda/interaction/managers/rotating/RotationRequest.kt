@@ -53,26 +53,6 @@ interface IRotationRequest : Automated {
 
     fun updateRotation()
 
-    class Pitch(
-        automated: Automated,
-        val buildPitch: SafeContext.() -> Double
-    ) : RotationRequest(automated), PitchRot {
-        override val pitch = updatableLazy { runSafe { buildPitch() } }
-        override var keepTicks = rotationConfig.keepTicks
-        override var decayTicks = rotationConfig.decayTicks
-        override var age = 0
-
-        override val done get(): Boolean {
-            return abs(RotationManager.activeRotation.pitch - (pitch.value ?: return false)) <= 0.001
-        }
-
-        override fun dist(rotation: Rotation): Double {
-            return wrap((pitch.value ?: return Double.MAX_VALUE) - rotation.pitch)
-        }
-
-        override fun updateRotation() = pitch.update()
-    }
-
     class Yaw(
         automated: Automated,
         val buildYaw: SafeContext.() -> Double
@@ -94,6 +74,26 @@ interface IRotationRequest : Automated {
         }
 
         override fun updateRotation() = yaw.update()
+    }
+
+    class Pitch(
+        automated: Automated,
+        val buildPitch: SafeContext.() -> Double
+    ) : RotationRequest(automated), PitchRot {
+        override val pitch = updatableLazy { runSafe { buildPitch() } }
+        override var keepTicks = rotationConfig.keepTicks
+        override var decayTicks = rotationConfig.decayTicks
+        override var age = 0
+
+        override val done get(): Boolean {
+            return abs(RotationManager.activeRotation.pitch - (pitch.value ?: return false)) <= 0.001
+        }
+
+        override fun dist(rotation: Rotation): Double {
+            return wrap((pitch.value ?: return Double.MAX_VALUE) - rotation.pitch)
+        }
+
+        override fun updateRotation() = pitch.update()
     }
 
     class Full(
@@ -122,28 +122,14 @@ interface IRotationRequest : Automated {
         override fun updateRotation() = rotation.update()
     }
 
-    interface PitchRot : IRotationRequest { val pitch: UpdatableLazy<Double?> }
     interface YawRot : IRotationRequest { val yaw: UpdatableLazy<Double?> }
+    interface PitchRot : IRotationRequest { val pitch: UpdatableLazy<Double?> }
     interface FullRot : YawRot, PitchRot { val rotation: UpdatableLazy<Rotation?> }
 
     class RotationRequestBuilder {
         var pitchBuilder: (SafeContext.() -> Double)? = null
         var yawBuilder: (SafeContext.() -> Double)? = null
         var rotationBuilder: (SafeContext.() -> Rotation)? = null
-
-        @JvmName("pitchBuilder1")
-        @RotationRequestDsl
-        fun pitch(builder: SafeContext.() -> Double) { pitchBuilder = builder }
-
-        @JvmName("pitchBuilder2")
-        @RotationRequestDsl
-        fun pitch(builder: SafeContext.() -> Float) { pitchBuilder = { builder().toDouble() } }
-
-        @RotationRequestDsl
-        fun pitch(pitch: Double) { pitchBuilder = { pitch } }
-
-        @RotationRequestDsl
-        fun pitch(pitch: Float) { pitchBuilder = { pitch.toDouble() } }
 
         @JvmName("yawBuilder1")
         @RotationRequestDsl
@@ -158,6 +144,20 @@ interface IRotationRequest : Automated {
 
         @RotationRequestDsl
         fun yaw(yaw: Float) { yawBuilder = { yaw.toDouble() } }
+
+        @JvmName("pitchBuilder1")
+        @RotationRequestDsl
+        fun pitch(builder: SafeContext.() -> Double) { pitchBuilder = builder }
+
+        @JvmName("pitchBuilder2")
+        @RotationRequestDsl
+        fun pitch(builder: SafeContext.() -> Float) { pitchBuilder = { builder().toDouble() } }
+
+        @RotationRequestDsl
+        fun pitch(pitch: Double) { pitchBuilder = { pitch } }
+
+        @RotationRequestDsl
+        fun pitch(pitch: Float) { pitchBuilder = { pitch.toDouble() } }
 
         @RotationRequestDsl
         fun rotation(builder: SafeContext.() -> Rotation) { rotationBuilder = builder }
@@ -182,14 +182,14 @@ interface IRotationRequest : Automated {
         @RotationRequestDsl
         context(automated: Automated)
         private fun RotationRequestBuilder.build(): RotationRequest {
-            val pitchBuilder = pitchBuilder
             val yawBuilder = yawBuilder
+            val pitchBuilder = pitchBuilder
             val rotationBuilder = rotationBuilder
             return when {
                 rotationBuilder != null -> Full(automated, rotationBuilder)
-                pitchBuilder != null && yawBuilder != null -> Full(automated) { Rotation(pitchBuilder(), yawBuilder()) }
-                pitchBuilder != null -> Pitch(automated, pitchBuilder)
+                yawBuilder != null && pitchBuilder != null -> Full(automated) { Rotation(yawBuilder(), pitchBuilder()) }
                 yawBuilder != null -> Yaw(automated, yawBuilder)
+                pitchBuilder != null -> Pitch(automated, pitchBuilder)
                 else -> throw IllegalArgumentException("Must specify at least one rotation value to build a rotation request")
             }
         }
