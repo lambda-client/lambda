@@ -113,7 +113,7 @@ object ElytraAltitudeControl : Module(
 								-1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
 							}
 						}.coerceIn(-maxPitchAngle, maxPitchAngle)
-						rotationRequest { rotation(player.yaw, outputPitch.toFloat()) }.submit()
+						rotationRequest { pitch(outputPitch) }.submit()
 
 						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
 							if (useFireworkOnHeight && minHeight > player.y) {
@@ -132,14 +132,14 @@ object ElytraAltitudeControl : Module(
 					}
 					ControlState.Pitch40Fly -> when (state) {
 						Pitch40State.GainSpeed -> {
-							rotationRequest { rotation(player.yaw, pitch40DownAngle) }.submit()
+							rotationRequest { pitch(pitch40DownAngle) }.submit()
 							if (player.flySpeed() > pitch40SpeedThreshold) {
 								state = Pitch40State.PitchUp
 							}
 						}
 						Pitch40State.PitchUp -> {
 							lastAngle -= 5f
-							rotationRequest { rotation(player.yaw, lastAngle) }.submit()
+							rotationRequest { pitch(lastAngle) }.submit()
 							if (lastAngle <= pitch40UpStartAngle) {
 								state = Pitch40State.FlyUp
 								if (pitch40UseFireworkOnUpTrajectory) {
@@ -151,7 +151,7 @@ object ElytraAltitudeControl : Module(
 						}
 						Pitch40State.FlyUp -> {
 							lastAngle += pitch40AngleChangeRate
-							rotationRequest { rotation(player.yaw, lastAngle) }.submit()
+							rotationRequest { pitch(lastAngle) }.submit()
 							if (lastAngle >= 0f) {
 								state = Pitch40State.GainSpeed
 								if (logHeightGain) {
