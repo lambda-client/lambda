@@ -78,6 +78,7 @@ object BlockESP : Module(
         } else DirectionMask.ALL
 
         runSafe {
+            // TODO: Add custom color option when map options are implemented
             val extractedColor = blockColor(state, position.toBlockPos())
             val finalColor = Color(extractedColor.red, extractedColor.green, extractedColor.blue, (blockColorAlpha * 255).toInt())
             val pos = position.toBlockPos()
