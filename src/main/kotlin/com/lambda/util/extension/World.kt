@@ -53,8 +53,15 @@ fun SafeContext.collisionShape(state: BlockState, pos: BlockPos): VoxelShape =
 fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
     state.getOutlineShape(world, pos).offset(pos)
 
-fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =
-    Color(state.getMapColor(world, pos).color)
+fun SafeContext.blockColor(state: BlockState, pos: BlockPos): Color {
+    return when (state.block) {
+        Blocks.ENDER_CHEST -> Color(0xFF00FF)
+        Blocks.NETHER_PORTAL -> Color(0xaa00aa)
+        Blocks.END_PORTAL -> Color(0xFF00FF)
+        else ->
+        Color(state.getMapColor(world, pos).color, false)
+    }
+}
 
 fun World.getBlockState(x: Int, y: Int, z: Int): BlockState {
     if (isOutOfHeightLimit(y)) return Blocks.VOID_AIR.defaultState
