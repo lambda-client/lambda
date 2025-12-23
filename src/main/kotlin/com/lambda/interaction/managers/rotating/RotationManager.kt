@@ -29,14 +29,12 @@ import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.BaritoneManager
-import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
 import com.lambda.interaction.managers.rotating.RotationManager.activeRotation
 import com.lambda.interaction.managers.rotating.RotationManager.serverRotation
 import com.lambda.interaction.managers.rotating.RotationManager.updateActiveRotation
-import com.lambda.module.hud.ManagerDebugLoggers.rotationManagerLogger
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.rotation
@@ -60,7 +58,7 @@ import kotlin.math.sin
 object RotationManager : Manager<RotationRequest>(
     1,
 	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),
-), Logger {
+) {
     var pitchRequest
         get() = requests[0] as? IRotationRequest.PitchRot
         set(value) { requests[0] = value }
@@ -75,8 +73,6 @@ object RotationManager : Manager<RotationRequest>(
     @JvmStatic var prevServerRotation = Rotation.ZERO
 
     private var changedThisTick = false
-
-    override val logger = rotationManagerLogger
 
     override fun load(): String {
         super.load()
@@ -300,13 +296,13 @@ object RotationManager : Manager<RotationRequest>(
      * Otherwise, the [serverRotation] is interpolated towards the [RotationRequest.target] rotation.
      */
     private fun SafeContext.updateActiveRotation() {
-        val newActivePitch = pitchRequest?.let { pitchRequest ->
+        val newPitch = pitchRequest?.let { pitchRequest ->
             val toPitch = if (pitchRequest.keepTicks >= 0)
                 pitchRequest.pitch.value ?: activeRotation.pitch
             else player.rotation.pitch
             serverRotation.slerpPitch(toPitch, pitchRequest.rotationConfig.turnSpeed)
         } ?: player.rotation.pitch
-        val newActiveYaw = yawRequest?.let { yawRequest ->
+        val newYaw = yawRequest?.let { yawRequest ->
             val toYaw = if (yawRequest.keepTicks >= 0)
                 yawRequest.yaw.value ?: activeRotation.yaw
             else player.rotation.yaw
@@ -318,11 +314,10 @@ object RotationManager : Manager<RotationRequest>(
                 request.decayTicks--
             }
         }
-        activeRotation = Rotation(newActiveYaw, newActivePitch)
+        activeRotation = Rotation(newYaw, newPitch)
     }
 
     private fun reset(rotation: Rotation) {
-        logger.debug("Resetting values with rotation $rotation")
         prevServerRotation = rotation
         serverRotation = rotation
         activeRotation = rotation

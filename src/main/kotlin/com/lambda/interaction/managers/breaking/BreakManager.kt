@@ -32,11 +32,8 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
-import com.lambda.interaction.managers.ManagerUtils.newStage
-import com.lambda.interaction.managers.ManagerUtils.newTick
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
@@ -74,7 +71,6 @@ import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.module.hud.ManagerDebugLoggers.breakManagerLogger
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -108,13 +104,11 @@ import kotlin.math.max
 object BreakManager : Manager<BreakRequest>(
     0,
     onOpen = {
-        if (activeInfos.isNotEmpty() || breaks.isNotEmpty())
-            BreakManager.logger.newStage(BreakManager.tickStage)
         processRequest(activeRequest)
         simulateAbandoned()
              },
     onClose = { checkForCancels() }
-), PositionBlocking, Logger {
+), PositionBlocking {
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
 
     private val activeInfos
@@ -166,14 +160,11 @@ object BreakManager : Manager<BreakRequest>(
             field = value
         }
 
-    override val logger = breakManagerLogger
-
     override fun load(): String {
         super.load()
 
         listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             if (activeInfos.isEmpty() && breaks.isEmpty()) return@listen
-            logger.newTick()
         }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
@@ -327,7 +318,6 @@ object BreakManager : Manager<BreakRequest>(
      */
     private fun SafeContext.processRequest(request: BreakRequest?) {
         request?.let { request ->
-            logger.debug("Processing request", request)
             if (request.fresh) populateFrom(request)
         }
 
@@ -357,10 +347,7 @@ object BreakManager : Manager<BreakRequest>(
             if (noNew && noProgression) break
         }
 
-        if (breaks.isEmpty()) {
-            if (activeRequest != null) logger.debug("Clearing active request", activeRequest)
-            activeRequest = null
-        }
+        if (breaks.isEmpty()) activeRequest = null
         if (breaksThisTick > 0 || activeInfos.isNotEmpty()) {
             activeThisTick = true
         }
@@ -376,8 +363,6 @@ object BreakManager : Manager<BreakRequest>(
      * @see BreakInfo.updateInfo
      */
     private fun SafeContext.populateFrom(request: BreakRequest) = request.runSafeAutomated {
-        logger.debug("Populating from request", request)
-
         // Sanitize the new breaks
         val newBreaks = request.contexts
             .distinctBy { it.blockPos }
@@ -396,7 +381,6 @@ object BreakManager : Manager<BreakRequest>(
 
                 if (info.updatedThisTick && info.type != RedundantSecondary && !info.abandoned) return@forEach
 
-                logger.debug("Updating info", info, ctx)
                 when {
                     info.type == RedundantSecondary -> info.request.onStart?.invoke(this, info.context.blockPos)
                     info.abandoned -> {
@@ -412,8 +396,6 @@ object BreakManager : Manager<BreakRequest>(
         breaks = newBreaks
             .take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
             .toMutableList()
-
-        logger.debug("${breaks.size} unprocessed breaks")
 
         maxBreaksThisTick = breakConfig.breaksPerTick
     }
@@ -465,7 +447,6 @@ object BreakManager : Manager<BreakRequest>(
                     ).submit(false)
                 }
 
-                logger.debug("Submitted hotbar request", hotbarRequest)
                 return
             }
 
@@ -525,7 +506,6 @@ object BreakManager : Manager<BreakRequest>(
 
             if (!primaryInfo.breaking) return null
 
-            logger.debug("Transforming primary to secondary", primaryInfo)
             secondaryBreak = primaryInfo.apply { type = Secondary }
             secondaryBreak?.stopBreakPacket()
             return@let
@@ -533,7 +513,6 @@ object BreakManager : Manager<BreakRequest>(
 
         primaryBreak = breakInfo
         setPendingConfigs()
-        logger.success("Initialized break info", breakInfo)
         return primaryBreak
     }
 
@@ -623,8 +602,6 @@ object BreakManager : Manager<BreakRequest>(
 
     context(_: SafeContext)
     private fun BreakInfo.updatePreProcessing() = request.runSafeAutomated {
-        logger.debug("Updating pre-processing", this@updatePreProcessing)
-
         shouldProgress = !progressedThisTick
                 && tickStage in breakConfig.tickStageMask
                 && (rotated || type != Primary)
@@ -652,7 +629,6 @@ object BreakManager : Manager<BreakRequest>(
         if (type == RedundantSecondary || abandoned) return@with
         when (type) {
             Primary -> {
-                logger.warning("Cancelling break", this@cancelBreak)
                 nullify()
                 setBreakingTextureStage(player, world, -1)
                 abortBreakPacket()
@@ -660,14 +636,10 @@ object BreakManager : Manager<BreakRequest>(
             }
             Secondary -> {
                 if (breakConfig.unsafeCancels) {
-                    logger.warning("Making break redundant", this@cancelBreak)
                     type = RedundantSecondary
                     setBreakingTextureStage(player, world, -1)
                     request.onCancel?.invoke(this, context.blockPos)
-                } else {
-                    logger.warning("Abandoning break", this@cancelBreak)
-                    abandoned = true
-                }
+                } else abandoned = true
             }
             else -> {}
         }
@@ -715,7 +687,6 @@ object BreakManager : Manager<BreakRequest>(
         if (blockState.isEmpty) {
             info.nullify()
             info.request.onCancel?.invoke(this, ctx.blockPos)
-            logger.warning("Block state was unexpectedly empty", info)
             return
         }
 
@@ -724,7 +695,6 @@ object BreakManager : Manager<BreakRequest>(
         info.breakingTicks++
         val breakDelta = blockState.calcBreakDelta(ctx.blockPos)
         val progress = breakDelta * (info.breakingTicks - breakConfig.fudgeFactor)
-        logger.debug("${info.type} progress: $progress, breaking ticks: ${info.breakingTicks}", info)
 
         if (breakConfig.sounds) {
             if (info.soundsCooldown % 4.0f == 0.0f) {
@@ -755,7 +725,6 @@ object BreakManager : Manager<BreakRequest>(
         if (progress >= info.getBreakThreshold()) {
             if (info.swapInfo.swap && !swapped) return
 
-            logger.success("Breaking", info)
             onBlockBreak(info)
             if (info.type == Primary) info.stopBreakPacket()
             if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start)
@@ -778,10 +747,8 @@ object BreakManager : Manager<BreakRequest>(
         val ctx = info.context
 
         if (info.rebreakPotential.isPossible()) {
-            logger.debug("Handling potential rebreak")
             when (val rebreakResult = RebreakHandler.handleUpdate(info.context, info.request)) {
                 is RebreakResult.StillBreaking -> {
-                    logger.debug("Rebreak not complete", info)
                     primaryBreak = rebreakResult.breakInfo.apply {
                         type = Primary
                         RebreakHandler.clearRebreak()
@@ -795,7 +762,6 @@ object BreakManager : Manager<BreakRequest>(
                     return true
                 }
                 is RebreakResult.Rebroke -> {
-                    logger.debug("Rebroke", info)
                     info.type = Rebreak
                     info.nullify()
                     info.request.onReBreak?.invoke(this, ctx.blockPos)
@@ -831,12 +797,10 @@ object BreakManager : Manager<BreakRequest>(
 
         val instantBreakable = progress >= info.getBreakThreshold()
         if (instantBreakable) {
-            logger.success("Instant breaking", info)
             info.vanillaInstantBreakable = progress >= 1
             onBlockBreak(info)
             if (!info.vanillaInstantBreakable) breakCooldown = breakConfig.breakDelay + 1
         } else {
-            logger.debug("Starting break", info)
             info.apply {
                 breaking = true
                 breakingTicks = 1

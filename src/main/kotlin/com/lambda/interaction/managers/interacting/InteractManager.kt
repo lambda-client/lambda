@@ -26,11 +26,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
-import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
-import com.lambda.interaction.managers.ManagerUtils.newStage
-import com.lambda.interaction.managers.ManagerUtils.newTick
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
@@ -42,7 +39,6 @@ import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendin
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.setPendingConfigs
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.startPending
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.module.hud.ManagerDebugLoggers.placeManagerLogger
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.blockItem
@@ -68,12 +64,8 @@ import net.minecraft.world.GameMode
 
 object InteractManager : Manager<InteractRequest>(
     0,
-    onOpen = {
-        if (potentialPlacements.isNotEmpty())
-            InteractManager.logger.newStage(InteractManager.tickStage)
-        activeRequest?.let { it.runSafeAutomated { processRequest(it) } }
-    }
-), PositionBlocking, Logger {
+    onOpen = { activeRequest?.let { it.runSafeAutomated { processRequest(it) } } }
+), PositionBlocking {
     private var activeRequest: InteractRequest? = null
     private var potentialPlacements = mutableListOf<InteractContext>()
 
@@ -88,15 +80,8 @@ object InteractManager : Manager<InteractRequest>(
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
 
-    override val logger = placeManagerLogger
-
     override fun load(): String {
         super.load()
-
-        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
-            if (potentialPlacements.isNotEmpty())
-                logger.newTick()
-        }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest = null
@@ -150,8 +135,6 @@ object InteractManager : Manager<InteractRequest>(
      * @see interactBlock
      */
     fun AutomatedSafeContext.processRequest(request: InteractRequest)  {
-        logger.debug("Processing request", request)
-
         if (request.fresh) populateFrom(request)
 
         val iterator = potentialPlacements.iterator()
@@ -161,35 +144,27 @@ object InteractManager : Manager<InteractRequest>(
             val ctx = iterator.next()
 
             if (ctx.sneak) shouldSneak = true
-            if (!ctx.requestDependencies(request)) {
-                logger.warning("Dependencies failed for context", ctx, request)
-                return
-            }
+            if (!ctx.requestDependencies(request)) return
             if (!validSneak(player)) return
             if (tickStage !in interactConfig.tickStageMask) return
 
             val actionResult = if (ctx.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
 	        else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
-            if (!actionResult.isAccepted) {
-                logger.warning("Placement interaction failed with $actionResult", ctx, request)
-            } else if (interactConfig.swing) {
-	            swingHand(interactConfig.swingType, Hand.MAIN_HAND)
+            if (actionResult.isAccepted && interactConfig.swing) {
+                swingHand(interactConfig.swingType, Hand.MAIN_HAND)
 
-	            val stackInHand = player.getStackInHand(Hand.MAIN_HAND)
-	            val stackCountPre = stackInHand.count
-	            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
-		            mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
-	            }
+                val stackInHand = player.getStackInHand(Hand.MAIN_HAND)
+                val stackCountPre = stackInHand.count
+                if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
+                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
+                }
             }
 	        interactCooldown = ctx.interactConfig.interactDelay + 1
             placementsThisTick++
             iterator.remove()
         }
         if (potentialPlacements.isEmpty()) {
-            if (activeRequest != null) {
-                logger.debug("Clearing active request", activeRequest)
-                activeRequest = null
-            }
+            if (activeRequest != null) activeRequest = null
         }
     }
 
@@ -200,14 +175,12 @@ object InteractManager : Manager<InteractRequest>(
      * @see isPosBlocked
      */
     private fun Automated.populateFrom(request: InteractRequest) {
-        logger.debug("Populating from request", request)
         setPendingConfigs()
         potentialPlacements = request.contexts
             .distinctBy { it.blockPos }
             .filter { !isPosBlocked(it.blockPos) }
             .take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
             .toMutableList()
-        logger.debug("${potentialPlacements.size} potential placements")
 
         maxPlacementsThisTick = interactConfig.interactionsPerTick
     }
@@ -221,14 +194,8 @@ object InteractManager : Manager<InteractRequest>(
     private fun AutomatedSafeContext.placeBlock(interactContext: InteractContext, request: InteractRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
         val hitResult = interactContext.hitResult
-        if (!world.worldBorder.contains(hitResult.blockPos)) {
-            logger.error("Placement position outside the world border", interactContext, request)
-            return ActionResult.FAIL
-        }
-        if (gamemode == GameMode.SPECTATOR) {
-            logger.error("Player is in spectator mode", interactContext, request)
-            return ActionResult.PASS
-        }
+        if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
+        if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
         return interactBlockInternal(interactContext, request, hand, hitResult)
     }
 
@@ -247,10 +214,7 @@ object InteractManager : Manager<InteractRequest>(
         val cantInteract = player.shouldCancelInteraction() && handNotEmpty
         if (!cantInteract) {
             val blockState = blockState(hitResult.blockPos)
-            if (!connection.hasFeature(blockState.block.requiredFeatures)) {
-                logger.error("Required features not met for $blockState", interactContext, request)
-                return ActionResult.FAIL
-            }
+            if (!connection.hasFeature(blockState.block.requiredFeatures)) return ActionResult.FAIL
 
 	        val actionResult = blockState.onUseWithItem(player.getStackInHand(hand), world, player, hand, hitResult)
 	        if (actionResult.isAccepted) return actionResult
@@ -311,23 +275,11 @@ object InteractManager : Manager<InteractRequest>(
 	    item: BlockItem,
 	    context: ItemPlacementContext
     ): ActionResult {
-        if (!item.block.isEnabled(world.enabledFeatures)) {
-            logger.error("Block ${item.block.name} is not enabled", interactContext, request)
-            return ActionResult.FAIL
-        }
-        if (!context.canPlace()) {
-            logger.error("Cannot place at ${interactContext.blockPos} with current state ${interactContext.cachedState}", interactContext, request)
-            return ActionResult.FAIL
-        }
+        if (!item.block.isEnabled(world.enabledFeatures)) return ActionResult.FAIL
+        if (!context.canPlace()) return ActionResult.FAIL
 
-        val itemPlacementContext = item.getPlacementContext(context) ?: run {
-            logger.error("Could not retrieve item placement context", interactContext, request)
-            return ActionResult.FAIL
-        }
-        val blockState = item.getPlacementState(itemPlacementContext) ?: run {
-            logger.error("Could not retrieve placement state", interactContext, request)
-            return ActionResult.FAIL
-        }
+        val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
+        val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
 
         if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) {
             val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
@@ -354,10 +306,7 @@ object InteractManager : Manager<InteractRequest>(
         // TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
         //  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
         //  rules are not called.
-        if (!item.place(itemPlacementContext, blockState)) {
-            logger.error("Could not place block client side at ${interactContext.blockPos} with placement state ${interactContext.expectedState}", interactContext, request)
-            return ActionResult.FAIL
-        }
+        if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
 
         val blockPos = itemPlacementContext.blockPos
         var state = world.getBlockState(blockPos)
@@ -372,8 +321,6 @@ object InteractManager : Manager<InteractRequest>(
         if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.None) {
             request.onPlace?.invoke(this, interactContext.blockPos)
         }
-
-        logger.success("Placed ${interactContext.expectedState} at ${interactContext.blockPos}", interactContext, request)
 
         return ActionResult.SUCCESS
     }

@@ -19,21 +19,15 @@ package com.lambda.interaction.managers.hotbar
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
-import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.ManagerUtils.newStage
-import com.lambda.interaction.managers.ManagerUtils.newTick
 import com.lambda.interaction.managers.hotbar.HotbarConfig.SwapMode
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.managers.hotbar.HotbarManager.checkResetSwap
 import com.lambda.interaction.managers.hotbar.HotbarManager.setActiveRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.setActiveSlot
-import com.lambda.module.hud.ManagerDebugLoggers.hotbarManagerLogger
 import com.lambda.threading.runSafe
 import net.minecraft.item.ItemStack
 
@@ -50,11 +44,10 @@ object HotbarManager : Manager<HotbarRequest>(
     onOpen = {
         if (activeRequest != null) {
             setActiveSlot()
-            HotbarManager.logger.newStage(HotbarManager.tickStage)
         }
              },
     onClose = { checkResetSwap() }
-), Logger {
+) {
     private var activeRequest: HotbarRequest? = null
     @JvmStatic var activeSlot: Int = -1
 
@@ -69,15 +62,8 @@ object HotbarManager : Manager<HotbarRequest>(
     private var maxSwapsThisTick = 0
     private var swapDelay = 0
 
-    override val logger = hotbarManagerLogger
-
     override fun load(): String {
         super.load()
-
-        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
-            if (activeRequest != null)
-                logger.newTick()
-        }
 
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             swapsThisTick = 0
@@ -107,7 +93,6 @@ object HotbarManager : Manager<HotbarRequest>(
      * @see setActiveSlot
      */
     override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
-        logger.debug("Handling request:", request)
 
         if (request.nowOrNothing && tickStage !in hotbarConfig.tickStageMask) return
 
@@ -128,7 +113,6 @@ object HotbarManager : Manager<HotbarRequest>(
     private fun AutomatedSafeContext.setActiveRequest(request: HotbarRequest) {
         maxSwapsThisTick = hotbarConfig.swapsPerTick
         activeRequest = request
-        logger.success("Set active request", request)
     }
 
     /**
@@ -172,7 +156,6 @@ object HotbarManager : Manager<HotbarRequest>(
                 }
                 val canStopSwap = swapsThisTick < maxSwapsThisTick
                 if (tickStage in active.hotbarConfig.tickStageMask && canStopSwap) {
-                    logger.debug("Clearing request and syncing slot", activeRequest)
                     val prevSlot = activeSlot
                     activeRequest = null
                     activeSlot = -1

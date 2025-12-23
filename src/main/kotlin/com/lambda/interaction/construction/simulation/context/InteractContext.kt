@@ -19,9 +19,6 @@ package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.TransientRegionESP
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
-import com.lambda.interaction.managers.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractRequest
 import com.lambda.interaction.managers.rotating.RotationRequest
@@ -42,7 +39,7 @@ data class InteractContext(
     val sneak: Boolean,
     val currentDirIsValid: Boolean = false,
     private val automated: Automated
-) : BuildContext(), LogContext, Automated by automated {
+) : BuildContext(), Automated by automated {
     private val baseColor = Color(35, 188, 254, 50)
     private val sideColor = Color(35, 188, 254, 100)
 
@@ -66,17 +63,5 @@ data class InteractContext(
             rotationRequest.submit(queueIfMismatchedStage = false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
-    }
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Place Context") {
-            text(blockPos.getLogContextBuilder())
-            text(hitResult.getLogContextBuilder())
-            value("Hotbar Index", hotbarIndex)
-            value("Cached State", cachedState)
-            value("Expected State", expectedState)
-            value("Sneak", sneak)
-            value("Current Dir Is Valid", currentDirIsValid)
-        }
     }
 }

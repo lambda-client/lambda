@@ -21,8 +21,6 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.managers.ActionInfo
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import net.minecraft.util.math.BlockPos
 
 data class InteractInfo(
@@ -30,13 +28,4 @@ data class InteractInfo(
 	override val pendingInteractionsList: MutableCollection<BuildContext>,
 	val onPlace: (SafeContext.(BlockPos) -> Unit)?,
 	val interactConfig: InteractConfig
-) : ActionInfo, LogContext {
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Place Info") {
-            text(context.getLogContextBuilder())
-            group("Callbacks") {
-                value("onPlace", onPlace != null)
-            }
-        }
-    }
-}
+) : ActionInfo

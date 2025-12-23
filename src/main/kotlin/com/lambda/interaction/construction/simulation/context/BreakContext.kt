@@ -19,9 +19,6 @@ package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.TransientRegionESP
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
-import com.lambda.interaction.managers.LogContext.Companion.getLogContextBuilder
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.threading.runSafe
@@ -42,7 +39,7 @@ data class BreakContext(
     val insideBlock: Boolean,
     override var cachedState: BlockState,
     private val automated: Automated
-) : BuildContext(), LogContext, Automated by automated {
+) : BuildContext(), Automated by automated {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
@@ -65,17 +62,6 @@ data class BreakContext(
     override fun render(esp: TransientRegionESP) {
         esp.shapes(blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble()) {
             box(blockPos, baseColor, sideColor)
-        }
-    }
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Break Context") {
-            text(blockPos.getLogContextBuilder())
-            text(hitResult.getLogContextBuilder())
-            value("Hotbar Index", hotbarIndex)
-            value("Instant Break", instantBreak)
-            value("Cached State", cachedState)
-            value("Expected State", expectedState)
         }
     }
 }
