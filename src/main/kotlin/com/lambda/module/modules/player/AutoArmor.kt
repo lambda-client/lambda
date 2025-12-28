@@ -100,7 +100,7 @@ object AutoArmor : Module(
 			val swappable = player.hotbarAndInventorySlots
 				.filter { it.stack.isEquipable && (!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0) }
 				.sortedWith(sorter)
-				.distinctBy { it.stack.item }
+				.distinctBy { it.stack.armorSlot }
 
 			val swaps = mutableListOf<Pair<Slot, Slot>>()
 			armorSlots.forEach { equipped ->
@@ -129,6 +129,10 @@ object AutoArmor : Module(
 	context(safeContext: SafeContext)
 	private val ItemStack.isEquipable get() =
 		safeContext.player.armorSlots.any { it.canInsert(this) }
+
+	context(safeContext: SafeContext)
+	private val ItemStack.armorSlot get() =
+		safeContext.player.armorSlots.firstOrNull { it.canInsert(this) }
 
 	private enum class Protection(val enchant: RegistryKey<Enchantment>) {
 		Protection(Enchantments.PROTECTION),
