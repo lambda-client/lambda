@@ -50,7 +50,6 @@ object ItemStackUtils {
                 }
             }
 
-
     /**
      * Returns the attack damage for the given [stack], the value is affected by potion effects and enchantments
      */

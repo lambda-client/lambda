@@ -35,7 +35,7 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
-import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -120,8 +120,8 @@ object KillAura : Module(
                         damageMode.block(this, it)
                     }
 
-                    selection.bestItemMatch(player.hotbar)?.let { bestStack ->
-                        val slotId = player.hotbar.indexOf(bestStack)
+                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
+                        val slotId = player.hotbarStacks.indexOf(bestStack)
                         if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
                     }
                 }

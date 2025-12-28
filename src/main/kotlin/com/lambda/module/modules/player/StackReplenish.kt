@@ -26,8 +26,8 @@ import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inve
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.item.ItemStackUtils.slotId
-import com.lambda.util.player.SlotUtils.hotbar
-import com.lambda.util.player.SlotUtils.storage
+import com.lambda.util.player.SlotUtils.hotbarStacks
+import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
@@ -52,7 +52,7 @@ object StackReplenish : Module(
 
 		listen<TickEvent.Pre> {
 			if (player.currentScreenHandler.cursorStack.item !== Items.AIR) return@listen
-			player.hotbar.forEach { stack -> checkReplenish(stack) }
+			player.hotbarStacks.forEach { stack -> checkReplenish(stack) }
 			if (offhand) checkReplenish(player.offHandStack)
 		}
 	}
@@ -61,7 +61,7 @@ object StackReplenish : Module(
 		if (stack.count.toFloat() / stack.maxCount >= (minStackPercent.toFloat() / 100)) return
 		if (!stack.isStackable) return
 
-		player.storage.forEach { invStack ->
+		player.inventoryStacks.forEach { invStack ->
 			if (invStack.item !== stack.item) return@forEach
 			val invId = invStack.slotId
 			val completing = stack.count + invStack.count >= stack.maxCount

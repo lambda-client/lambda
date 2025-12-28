@@ -34,7 +34,6 @@ transitive-accessible field net/minecraft/client/particle/NoRenderParticleRender
 transitive-accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
 transitive-accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
 transitive-accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag (IZ)V
-# RENAMED in 1.21.11: lastAttackedTicks -> lastAttackedTime
 transitive-accessible field net/minecraft/entity/LivingEntity lastAttackedTime I
 transitive-accessible method net/minecraft/entity/Entity setFlag (IZ)V
 transitive-accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
@@ -53,12 +52,14 @@ transitive-accessible method net/minecraft/util/math/Direction listClosest (Lnet
 transitive-accessible field net/minecraft/client/network/ClientPlayerInteractionManager gameMode Lnet/minecraft/world/GameMode;
 transitive-accessible method net/minecraft/entity/player/PlayerEntity updatePose ()V
 transitive-accessible field net/minecraft/screen/ScreenHandler revision I
-accessible field net/minecraft/entity/Entity world Lnet/minecraft/world/World;
+transitive-accessible field net/minecraft/entity/Entity world Lnet/minecraft/world/World;
+transitive-accessible class net/minecraft/screen/slot/ArmorSlot
+transitive-accessible field net/minecraft/screen/slot/ArmorSlot equipmentSlot Lnet/minecraft/entity/EquipmentSlot;
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V
 transitive-accessible method net/minecraft/client/render/Camera setRotation (FF)V
-accessible field net/minecraft/client/render/Camera pos Lnet/minecraft/util/math/Vec3d;
+transitive-accessible field net/minecraft/client/render/Camera pos Lnet/minecraft/util/math/Vec3d;
 
 # Renderer
 transitive-accessible field net/minecraft/client/texture/NativeImage pointer J

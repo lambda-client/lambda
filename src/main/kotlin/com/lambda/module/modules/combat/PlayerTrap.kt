@@ -33,7 +33,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.flooredBlockPos
-import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.world.entitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -74,7 +74,7 @@ object PlayerTrap : Module(
 
 		onEnable {
 			task = tickingBlueprint {
-				val block = player.hotbarAndStorage.firstOrNull {
+				val block = player.hotbarAndInventoryStacks.firstOrNull {
 					it.item is BlockItem && blocks.contains(it.item.block)
 				}?.item?.block ?: return@tickingBlueprint emptyMap()
 				val targetPlayer = if (self) player
