@@ -49,6 +49,7 @@ object AutoArmor : Module(
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
 	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
+	private val minDurabilityPercentage by setting("Min Durability Percentage", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)
 	private val chestProtection by setting("Preferred Chest Protection", Protection.Protection)
 	private val legProtection by setting("Preferred Leg Protection", Protection.BlastProtection)
@@ -66,10 +67,13 @@ object AutoArmor : Module(
 			val armorSlots = player.armorSlots
 
 			val sorter = compareByDescending<Slot> {
-				if (elytraPriority) {
+				if (it.stack.damage.toFloat() / it.stack.maxDamage < 1 - (minDurabilityPercentage.toFloat() / 100)) Double.MIN_VALUE
+				else if (elytraPriority) {
 					if (it.stack.item == Items.ELYTRA) 1.0
 					else 0.0
-				} else it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+				} else 0.0
+			}.thenByDescending {
+				it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
 					?.modifiers
 					?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
 					?.modifier?.value
