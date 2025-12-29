@@ -24,6 +24,8 @@ import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.module.modules.movement.ElytraFly;
+import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -74,6 +76,11 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         RotationManager.processRotations();
         RotationManager.redirectStrafeInputs(input);
         EventFlow.post(new MovementEvent.InputUpdate(input));
+    }
+
+    @Inject(method = "tickMovement", at = @At("RETURN"))
+    private void injectTickMovement(CallbackInfo ci) {
+        if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
     }
 
     @Inject(method = "sendMovementPackets", at = @At("HEAD"))

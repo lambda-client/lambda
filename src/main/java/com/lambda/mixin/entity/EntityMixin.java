@@ -22,6 +22,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -37,6 +38,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
@@ -153,5 +155,12 @@ public abstract class EntityMixin {
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
     private boolean wrapSetPitch(Entity instance, float yaw) {
         return RotationManager.getLockPitch() == null;
+    }
+
+    @Inject(method = "isSprinting()Z", at = @At("HEAD"), cancellable = true)
+    private void injectIsSprinting(CallbackInfoReturnable<Boolean> cir) {
+        var player = Lambda.getMc().player;
+        if ((Object) this != Lambda.getMc().player) return;
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getSprint() && player.isGliding()) cir.setReturnValue(true);
     }
 }
