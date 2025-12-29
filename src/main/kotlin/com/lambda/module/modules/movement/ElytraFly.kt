@@ -25,6 +25,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.module.Module
+import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
+import com.lambda.module.modules.movement.BetterFirework.canTakeoff
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.isElytraFlying
@@ -40,7 +42,7 @@ object ElytraFly : Module(
     @JvmStatic val mode by setting("Mode", FlyMode.Bounce)
 
     //ToDo: Implement these commented out settings
-//    private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
+    private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
     private val pitch by setting("Pitch", 70, 0..90, 1) { autoPitch && mode == FlyMode.Bounce }
     private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
@@ -51,6 +53,8 @@ object ElytraFly : Module(
     private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0 ..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }
 
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
+
+    var jumpThisTick = false
 
     init {
         setDefaultAutomationConfig {
@@ -67,13 +71,22 @@ object ElytraFly : Module(
                 }.submit()
             }
 
-            if (mode == FlyMode.Bounce && player.isGliding)
+            if (!player.isGliding) {
+                if (takeoff && player.canTakeoff) {
+                    if (player.canOpenElytra) player.startGliding();
+                    else jumpThisTick = true
+                }
+                return@listen
+            }
+
+            if (mode == FlyMode.Bounce)
                 connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
         }
 
         listen<MovementEvent.InputUpdate> { event ->
-            if (player.isGliding && mode == FlyMode.Bounce && jump) {
+            if (mode == FlyMode.Bounce && ((player.isGliding && jump) || jumpThisTick)) {
                 event.input.jump()
+                jumpThisTick = false
             }
         }
 
