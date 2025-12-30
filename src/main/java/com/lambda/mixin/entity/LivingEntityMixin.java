@@ -31,7 +31,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -186,20 +185,9 @@ public abstract class LivingEntityMixin extends EntityMixin {
         original.call(entity);
     }
 
-    @Nullable
-    @Unique
-    Boolean previouslyFlying = null;
-
     @Inject(method = "isGliding", at = @At("HEAD"), cancellable = true)
     private void injectIsGliding(CallbackInfoReturnable<Boolean> cir) {
         if (lambda$instance != Lambda.getMc().player) return;
-        var original = lambda$instance.getFlag(Entity.GLIDING_FLAG_INDEX);
-        if (previouslyFlying == null) {
-            previouslyFlying = original;
-            return;
-        }
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && previouslyFlying) {
-            cir.setReturnValue(true);
-        } else previouslyFlying = original;
+        cir.setReturnValue(ElytraFly.isGliding());
     }
 }

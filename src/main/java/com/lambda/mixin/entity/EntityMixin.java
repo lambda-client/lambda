@@ -29,7 +29,9 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.util.math.Vec3d;
@@ -161,6 +163,13 @@ public abstract class EntityMixin {
     private void injectIsSprinting(CallbackInfoReturnable<Boolean> cir) {
         var player = Lambda.getMc().player;
         if ((Object) this != Lambda.getMc().player) return;
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getSprint() && player.isGliding()) cir.setReturnValue(true);
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(true);
+    }
+
+    @Inject(method = "getPose", at = @At("HEAD"), cancellable = true)
+    private void injectGetPose(CallbackInfoReturnable<EntityPose> cir) {
+        var entity = (Entity) (Object) this;
+        if (!(entity instanceof ClientPlayerEntity player)) return;
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(EntityPose.GLIDING);
     }
 }
