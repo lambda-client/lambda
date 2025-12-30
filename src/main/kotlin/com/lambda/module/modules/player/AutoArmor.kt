@@ -67,8 +67,11 @@ object AutoArmor : Module(
 			val armorSlots = player.armorSlots
 
 			val sorter = compareByDescending<Slot> {
-				if (it.stack.damage.toFloat() / it.stack.maxDamage < 1 - (minDurabilityPercentage.toFloat() / 100)) Double.MIN_VALUE
-				else if (elytraPriority) {
+				if (it.stack.isDamageable && 1 - (it.stack.damage.toFloat() / it.stack.maxDamage) < minDurabilityPercentage.toFloat() / 100)
+					-Double.MAX_VALUE
+				else 0.0
+			}.thenByDescending {
+				if (elytraPriority) {
 					if (it.stack.item == Items.ELYTRA) 1.0
 					else 0.0
 				} else 0.0
