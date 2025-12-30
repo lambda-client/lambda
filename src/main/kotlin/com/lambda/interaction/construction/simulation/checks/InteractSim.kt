@@ -27,10 +27,10 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
@@ -137,7 +137,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 
 		        val interactContext = InteractContext(
 			        hitResult,
-			        RotationRequest(checkedHit.rotation, this@InteractSim),
+			        rotationRequest { rotation(checkedHit.rotation) },
 			        swapStack.inventoryIndex,
 			        pos,
 			        state,
@@ -197,7 +197,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 
             val interactContext = InteractContext(
                 hitResult,
-                RotationRequest(rotationRequest, this@InteractSim),
+                rotationRequest { rotation(rotationRequest) },
                 swapStack.inventoryIndex,
                 pos,
                 state,

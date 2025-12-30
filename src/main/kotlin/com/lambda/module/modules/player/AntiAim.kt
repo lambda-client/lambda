@@ -21,11 +21,8 @@ import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Request.Companion.submit
-import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -86,7 +83,7 @@ object AntiAim : Module(
             currentPitch = player.pitch
         }
 
-        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+        listen<TickEvent.Pre> {
             currentYaw = wrapDegrees(when (yaw) {
                 YawMode.Spin -> when (spinMode) {
                     LeftRight.Left -> currentYaw - yawSpeed
@@ -158,11 +155,11 @@ object AntiAim : Module(
                 }
                 PitchMode.None -> player.pitch
             }.coerceIn(-90f..90f)
-        }
 
-        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
-            if (currentYaw == wrap(player.yaw) && currentPitch == player.pitch) return@listen
-            submit(RotationRequest(Rotation(currentYaw, currentPitch), this@AntiAim), false)
+            rotationRequest {
+                if (yaw != YawMode.None) yaw(currentYaw)
+                if (pitch != PitchMode.None) pitch(currentPitch)
+            }.submit()
         }
     }
 

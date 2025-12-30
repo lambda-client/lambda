@@ -17,8 +17,6 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.graphics.renderer.gui.font.core.LambdaEmoji
-import com.lambda.graphics.renderer.gui.font.core.LambdaFont
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -39,8 +37,6 @@ object StyleEditor : Module(
     val useMemoryMapping by setting("Use Memory Mapping", true).group(Group.General)
 
     // Font
-    val textFont by setting("Text Font", LambdaFont.FiraSansRegular).group(Group.Font)
-    val emojiFont by setting("Emoji Font", LambdaEmoji.Twemoji).group(Group.Font)
     val shadow by setting("Shadow", true).group(Group.Font)
     val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01) { shadow }.group(Group.Font)
     val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { shadow }.group(Group.Font)

@@ -137,7 +137,7 @@ class RegionVertexCollector {
 			val builder =
 				BufferBuilder(
 					allocator,
-					VertexFormat.DrawMode.LINES,
+					VertexFormat.DrawMode.QUADS,
 					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH
 				)
 

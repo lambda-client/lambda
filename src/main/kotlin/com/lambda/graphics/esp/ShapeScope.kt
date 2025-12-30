@@ -47,7 +47,8 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 					scope.filledColor,
 					scope.outlineColor,
 					scope.sides,
-					scope.outlineMode
+					scope.outlineMode,
+					scope.thickness
 				)
 			)
 		}
@@ -98,10 +99,10 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 	}
 
 	/** Draw a simple outlined box. */
-	fun outline(box: Box, color: Color, sides: Int = DirectionMask.ALL) {
-		builder.outline(box, color, sides)
+	fun outline(box: Box, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
+		builder.outline(box, color, sides, thickness = thickness)
 		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(box.hashCode(), box, null, color, sides))
+			shapes?.add(EspShape.BoxShape(box.hashCode(), box, null, color, sides, thickness = thickness))
 		}
 	}
 
@@ -114,11 +115,11 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		}
 	}
 
-	fun outline(box: DynamicAABB, color: Color, sides: Int = DirectionMask.ALL) {
-		builder.outline(box, color, sides)
+	fun outline(box: DynamicAABB, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
+		builder.outline(box, color, sides, thickness = thickness)
 		if (collectShapes) {
 			box.pair?.second?.let {
-				shapes?.add(EspShape.BoxShape(it.hashCode(), it, null, color, sides))
+				shapes?.add(EspShape.BoxShape(it.hashCode(), it, null, color, sides, thickness = thickness))
 			}
 		}
 	}
@@ -130,10 +131,10 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		}
 	}
 
-	fun outline(pos: BlockPos, color: Color, sides: Int = DirectionMask.ALL) {
-		builder.outline(pos, color, sides)
+	fun outline(pos: BlockPos, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
+		builder.outline(pos, color, sides, thickness = thickness)
 		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), null, color, sides))
+			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), null, color, sides, thickness = thickness))
 		}
 	}
 
@@ -144,10 +145,10 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		}
 	}
 
-	fun outline(pos: BlockPos, state: BlockState, color: Color, sides: Int = DirectionMask.ALL) {
-		builder.outline(pos, state, color, sides)
+	fun outline(pos: BlockPos, state: BlockState, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
+		builder.outline(pos, state, color, sides, thickness = thickness)
 		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), null, color, sides))
+			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), null, color, sides, thickness = thickness))
 		}
 	}
 
@@ -160,11 +161,11 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		}
 	}
 
-	fun outline(shape: VoxelShape, color: Color, sides: Int = DirectionMask.ALL) {
-		builder.outline(shape, color, sides)
+	fun outline(shape: VoxelShape, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
+		builder.outline(shape, color, sides, thickness = thickness)
 		if (collectShapes) {
 			shape.boundingBoxes.forEach {
-				shapes?.add(EspShape.BoxShape(it.hashCode(), it, null, color, sides))
+				shapes?.add(EspShape.BoxShape(it.hashCode(), it, null, color, sides, thickness = thickness))
 			}
 		}
 	}
@@ -175,11 +176,12 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		filled: Color,
 		outline: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = builder.lineWidth
 	) {
-		builder.box(pos, state, filled, outline, sides, mode)
+		builder.box(pos, state, filled, outline, sides, mode, thickness = thickness)
 		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), filled, outline, sides, mode))
+			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), filled, outline, sides, mode, thickness = thickness))
 		}
 	}
 
@@ -188,11 +190,12 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		filled: Color,
 		outline: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = builder.lineWidth
 	) {
-		builder.box(pos, filled, outline, sides, mode)
+		builder.box(pos, filled, outline, sides, mode, thickness = thickness)
 		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), filled, outline, sides, mode))
+			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), filled, outline, sides, mode, thickness = thickness))
 		}
 	}
 
@@ -201,11 +204,12 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		filledColor: Color,
 		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = builder.lineWidth
 	) {
-		builder.box(box, filledColor, outlineColor, sides, mode)
+		builder.box(box, filledColor, outlineColor, sides, mode, thickness = thickness)
 		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(box.hashCode(), box, filledColor, outlineColor, sides, mode))
+			shapes?.add(EspShape.BoxShape(box.hashCode(), box, filledColor, outlineColor, sides, mode, thickness = thickness))
 		}
 	}
 
@@ -214,13 +218,14 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		filledColor: Color,
 		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = builder.lineWidth
 	) {
-		builder.box(box, filledColor, outlineColor, sides, mode)
+		builder.box(box, filledColor, outlineColor, sides, mode, thickness = thickness)
 		if (collectShapes) {
 			box.pair?.second?.let {
 				shapes?.add(
-					EspShape.BoxShape(it.hashCode(), it, filledColor, outlineColor, sides, mode)
+					EspShape.BoxShape(it.hashCode(), it, filledColor, outlineColor, sides, mode, thickness = thickness)
 				)
 			}
 		}
@@ -231,9 +236,10 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		filled: Color,
 		outline: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = builder.lineWidth
 	) {
-		builder.box(entity, filled, outline, sides, mode)
+		builder.box(entity, filled, outline, sides, mode, thickness = thickness)
 		if (collectShapes) {
 			shapes?.add(
 				EspShape.BoxShape(
@@ -242,7 +248,8 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 					filled,
 					outline,
 					sides,
-					mode
+					mode,
+					thickness = thickness
 				)
 			)
 		}
@@ -253,9 +260,10 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		filled: Color,
 		outline: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = builder.lineWidth
 	) {
-		builder.box(entity, filled, outline, sides, mode)
+		builder.box(entity, filled, outline, sides, mode, thickness = thickness)
 		if (collectShapes) {
 			shapes?.add(
 				EspShape.BoxShape(
@@ -264,7 +272,8 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 					filled,
 					outline,
 					sides,
-					mode
+					mode,
+					thickness = thickness
 				)
 			)
 		}
@@ -277,6 +286,7 @@ class BoxScope(val box: Box, val parent: ShapeScope) {
 	internal var outlineColor: Color? = null
 	internal var sides: Int = DirectionMask.ALL
 	internal var outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+	internal var thickness: Float = parent.builder.lineWidth
 
 	fun filled(color: Color, sides: Int = DirectionMask.ALL) {
 		this.filledColor = color
@@ -287,12 +297,14 @@ class BoxScope(val box: Box, val parent: ShapeScope) {
 	fun outline(
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = parent.builder.lineWidth
 	) {
 		this.outlineColor = color
 		this.sides = sides
 		this.outlineMode = mode
-		parent.builder.outline(box, color, sides, mode)
+		this.thickness = thickness
+		parent.builder.outline(box, color, sides, mode, thickness = thickness)
 	}
 }
 
@@ -342,7 +354,8 @@ sealed class EspShape(val id: Int) {
 		val filledColor: Color?,
 		val outlineColor: Color?,
 		val sides: Int = DirectionMask.ALL,
-		val outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		val outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		val thickness: Float = 1.0f
 	) : EspShape(id) {
 		override fun renderInterpolated(
 			prev: EspShape,
@@ -364,7 +377,7 @@ sealed class EspShape(val id: Int) {
 
 			val shapeBuilder = RegionShapeBuilder(region)
 			filledColor?.let { shapeBuilder.filled(interpBox, it, sides) }
-			outlineColor?.let { shapeBuilder.outline(interpBox, it, sides, outlineMode) }
+			outlineColor?.let { shapeBuilder.outline(interpBox, it, sides, outlineMode, thickness = thickness) }
 
 			collector.faceVertices.addAll(shapeBuilder.collector.faceVertices)
 			collector.edgeVertices.addAll(shapeBuilder.collector.edgeVertices)

@@ -34,11 +34,10 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.interaction.managers.Request.Companion.submit
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
@@ -186,7 +185,7 @@ object Replay : Module(
 
                 State.Playing -> {
                     buffer?.rotation?.removeFirstOrNull()?.let { rot ->
-                        submit(RotationRequest(rot, this@Replay))
+                        rotationRequest { rotation(rot) }.submit()
                     }
                 }
 

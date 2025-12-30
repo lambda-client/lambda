@@ -23,9 +23,9 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
@@ -463,7 +463,7 @@ object CrystalAura : Module(
          * Places the crystal on [blockPos]
          */
         fun place() = runSafe {
-            if (rotate && !RotationRequest(placeRotation, this@CrystalAura).submit().done)
+            if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done)
                 return@runSafe
 
             val selection = selectStack { isItem(Items.END_CRYSTAL) }
@@ -495,7 +495,7 @@ object CrystalAura : Module(
          * @return Whether the delay passed, null if the interaction failed or no crystal found
          */
         fun explode() {
-            if (rotate && !RotationRequest(placeRotation, this@CrystalAura).submit().done) return
+            if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done) return
 
             explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
                 crystal?.let { crystal ->

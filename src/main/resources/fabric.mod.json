@@ -21,7 +21,7 @@
     ]
   },
   "mixins": [
-    "${modId}.mixins.common.json"
+    "${modId}.mixins.json"
   ],
   "accessWidener": "${modId}.accesswidener",
   "depends": {

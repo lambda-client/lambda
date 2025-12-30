@@ -29,6 +29,8 @@ import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.world.GameMode
 
+const val FakePlayerId = -2024-4-20
+
 val SafeContext.gamemode: GameMode
     get() = interaction.currentGameMode
 
@@ -59,7 +61,7 @@ fun SafeContext.spawnFakePlayer(
         copyFrom(reference)
 
         playerListEntry = PlayerListEntry(profile, false)
-        id = -2024 - 4 - 20
+        id = FakePlayerId
     }
 
     if (addToWorld) world.addEntity(entity)

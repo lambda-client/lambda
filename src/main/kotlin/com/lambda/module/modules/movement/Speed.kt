@@ -22,7 +22,7 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Request.Companion.submit
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -121,7 +121,7 @@ object Speed : Module(
                 intendedMoveYaw - 45.0f
             } else intendedMoveYaw
 
-            submit(RotationRequest(Rotation(targetYaw, player.pitch.toDouble()), this@Speed))
+            rotationRequest { rotation(targetYaw, player.pitch.toDouble()) }.submit()
         }
 
         onEnable {

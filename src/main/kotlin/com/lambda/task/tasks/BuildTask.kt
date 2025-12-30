@@ -56,7 +56,7 @@ import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -203,7 +203,7 @@ class BuildTask private constructor(
                     return@let true
                 }
 
-                if (player.hotbarAndStorage.none { it.isEmpty }) {
+                if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
                     val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
                         it.stack.item.block in inventoryConfig.disposables
                     } ?: run {

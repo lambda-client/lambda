@@ -38,51 +38,6 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipeline.builder(RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET).buildSnippet()
 
 	/**
-	 * Pipeline for static ESP faces (filled quads).
-	 * - Translucent blending for see-through effect
-	 * - No depth write to allow overlapping
-	 * - No culling to see all faces
-	 * - Uses TRIANGLES mode for maximum flexibility
-	 */
-	val ESP_FACES: RenderPipeline =
-		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
-				.withLocation(Identifier.of("lambda", "pipeline/esp_faces"))
-				.withVertexShader(Identifier.ofVanilla("core/position_color"))
-				.withFragmentShader(Identifier.ofVanilla("core/position_color"))
-				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
-				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-				.withCull(false)
-				.withVertexFormat(
-					VertexFormats.POSITION_COLOR,
-					VertexFormat.DrawMode.QUADS
-				)
-				.build()
-		)
-
-	/**
-	 * Pipeline for static ESP faces that render through walls.
-	 * - Same as ESP_FACES but with no depth test
-	 */
-	val ESP_FACES_THROUGH: RenderPipeline =
-		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
-				.withLocation(Identifier.of("lambda", "pipeline/esp_faces_through"))
-				.withVertexShader(Identifier.ofVanilla("core/position_color"))
-				.withFragmentShader(Identifier.ofVanilla("core/position_color"))
-				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
-				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-				.withCull(false)
-				.withVertexFormat(
-					VertexFormats.POSITION_COLOR,
-					VertexFormat.DrawMode.QUADS
-				)
-				.build()
-		)
-
-	/**
 	 * Pipeline for ESP lines/outlines.
 	 * - Uses MC's line rendering with per-vertex line width
 	 * - No depth write for overlapping
@@ -92,15 +47,15 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/esp_lines"))
-				.withVertexShader(Identifier.ofVanilla("core/rendertype_lines"))
-				.withFragmentShader(Identifier.ofVanilla("core/rendertype_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
 					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH,
-					VertexFormat.DrawMode.LINES
+					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
@@ -110,15 +65,15 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/esp_lines_through"))
-				.withVertexShader(Identifier.ofVanilla("core/rendertype_lines"))
-				.withFragmentShader(Identifier.ofVanilla("core/rendertype_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
 					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH,
-					VertexFormat.DrawMode.LINES
+					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)

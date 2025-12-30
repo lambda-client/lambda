@@ -115,6 +115,16 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             return Rotation(yaw, pitch)
         }
 
+        fun Rotation.slerpYaw(targetYaw: Double, speed: Double): Double {
+            val yawDiff = wrap(targetYaw - yaw)
+            return yaw + yawDiff.coerceIn(-speed, speed)
+        }
+
+        fun Rotation.slerpPitch(targetPitch: Double, speed: Double): Double {
+            val pitchDiff = targetPitch - pitch
+            return (pitch + pitchDiff.coerceIn(-speed, speed)).coerceIn(-90.0, 90.0)
+        }
+
         fun Rotation.slerp(other: Rotation, speed: Double): Rotation {
             val yawDiff = wrap(other.yaw - yaw)
             val pitchDiff = other.pitch - pitch

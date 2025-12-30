@@ -20,25 +20,27 @@ package com.lambda.module.modules.combat
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.Targeting
+import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.transfer
-import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
-import com.lambda.util.item.ItemStackUtils.equal
+import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
-import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.LivingEntity
+import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.world.GameMode
 
 object KillAura : Module(
     name = "KillAura",
@@ -48,6 +50,7 @@ object KillAura : Module(
     // Interact
     private val rotate by setting("Rotate", true).group(Group.General)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+    private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
     private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
     private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
@@ -58,6 +61,9 @@ object KillAura : Module(
 
     val target: LivingEntity?
         get() = targeting.target()
+
+    private var prevEntity = target
+    private var validServerRot = false
 
     private var lastAttackTime = 0L
     private var hitDelay = 100.0
@@ -76,10 +82,16 @@ object KillAura : Module(
         Delay
     }
 
+    @Suppress("unused")
+    enum class DamageMode(override val displayName: String, val block: SafeContext.(ItemStack) -> Double) : NamedEnum {
+        DPS("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
+        Total("Hit Damage", { player.attackDamage(stack = it) })
+    }
+
     init {
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllGroupsExcept(buildConfig)
+                hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
                 buildConfig.apply {
                     hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::blockReach)
                 }
@@ -92,19 +104,26 @@ object KillAura : Module(
             lastOnGround = event.onGround
         }
 
-        listen<TickEvent.Pre> {
+        listen<TickEvent.Input.Post> {
             target?.let { entity ->
-                if (swap) {
-                    val selection = selectStack().sortByDescending { player.attackDamage(stack = it) }
-
-                    if (!selection.bestItemMatch(player.hotbarAndStorage).equal(player.mainHandStack))
-                        selection.transfer(MainHandContainer)?.run()
-                }
-
                 // Wait until the rotation has a hit result on the entity
                 if (rotate) runSafeAutomated {
-                    val rotationRequest = RotationRequest(lookAtEntity(entity)?.rotation ?: return@listen, this@KillAura).submit()
-                    if (!rotationRequest.done) return@listen
+                    val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
+                    val cantContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
+                    prevEntity = entity
+                    validServerRot = rotationRequest.done
+                    if (cantContinue) return@listen
+                }
+
+                if (swap) {
+                    val selection = selectStack().sortByDescending {
+                        damageMode.block(this, it)
+                    }
+
+                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
+                        val slotId = player.hotbarStacks.indexOf(bestStack)
+                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
+                    }
                 }
 
                 // Cooldown check
@@ -114,7 +133,11 @@ object KillAura : Module(
                 }
 
                 // Attack
-                interaction.attackEntity(player, target)
+                connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
+                if (interaction.gameMode != GameMode.SPECTATOR) {
+                    player.attack(target)
+                    player.resetTicksSince()
+                }
                 if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
 
                 lastAttackTime = System.currentTimeMillis()

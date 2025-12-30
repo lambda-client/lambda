@@ -15,13 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.mixin.baritone;
+package com.lambda.mixin.render;
 
-import baritone.Baritone;
-import baritone.api.utils.Rotation;
-import baritone.utils.player.BaritonePlayerContext;
-import com.lambda.interaction.BaritoneManager;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.module.modules.render.NoRender;
+import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import net.minecraft.client.render.fog.FogRenderer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,20 +28,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(value = BaritonePlayerContext.class, remap = false) // fix compileJava warning
-public class MixinBaritonePlayerContext {
-    @Shadow
+import static net.minecraft.client.render.fog.FogRenderer.FOG_UBO_SIZE;
+
+@Mixin(FogRenderer.class)
+public class FogRendererMixin {
     @Final
-    private Baritone baritone;
+    @Shadow
+    private GpuBuffer emptyBuffer;
 
-    // Let baritone know the actual rotation
-    @Inject(method = "playerRotations", at = @At("HEAD"), cancellable = true, remap = false)
-    void syncRotationWithBaritone(CallbackInfoReturnable<Rotation> cir) {
-        if (baritone != BaritoneManager.getPrimary()) return;
-
-        RotationManager rm = RotationManager.INSTANCE;
-        cir.setReturnValue(new Rotation(
-                (float) rm.getActiveRotation().getYaw(), (float) rm.getActiveRotation().getPitch())
-        );
+    @Inject(method = "getFogBuffer", at = @At("HEAD"), cancellable = true)
+    private void modify(FogRenderer.FogType fogType, CallbackInfoReturnable<GpuBufferSlice> cir) {
+        if (fogType == FogRenderer.FogType.WORLD && NoRender.INSTANCE.isEnabled() && NoRender.getNoTerrainFog())
+            cir.setReturnValue(emptyBuffer.slice(0L, FOG_UBO_SIZE));
     }
 }

@@ -94,7 +94,7 @@ import kotlin.reflect.KProperty
  * @property type The type reflection of the setting.
  * @property visibility A function that determines whether the setting is visible.
  */
-abstract class SettingCore<T : Any>(
+abstract class SettingCore<T>(
 	var defaultValue: T,
 	val type: Type
 ) {
@@ -150,7 +150,7 @@ abstract class SettingCore<T : Any>(
 	}
 }
 
-class Setting<T : SettingCore<R>, R : Any>(
+class Setting<T : SettingCore<R>, R>(
 	override val name: String,
 	override val description: String,
 	var core: T,

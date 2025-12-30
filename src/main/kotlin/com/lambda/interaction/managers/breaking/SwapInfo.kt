@@ -17,11 +17,9 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.context.Automated
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
@@ -35,14 +33,7 @@ data class SwapInfo(
     private val automated: Automated = DEFAULT,
     val swap: Boolean = false,
     val longSwap: Boolean = false
-) : LogContext, Automated by automated {
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Swap Info") {
-            value("Type", type)
-            value("Swap", swap)
-        }
-    }
-
+) : Automated by automated {
     companion object {
         val EMPTY = SwapInfo(Primary)
 

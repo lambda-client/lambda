@@ -49,7 +49,7 @@ import kotlin.math.sqrt
 class RegionShapeBuilder(val region: RenderRegion) {
 	val collector = RegionVertexCollector()
 
-	private val lineWidth: Float
+	val lineWidth: Float
 		get() = StyleEditor.outlineWidth.toFloat()
 
 	fun box(
@@ -181,7 +181,8 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		bottomColor: Color,
 		topColor: Color = bottomColor,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) {
 		val (x1, y1, z1) = toRelative(box.minX, box.minY, box.minZ)
 		val (x2, y2, z2) = toRelative(box.maxX, box.maxY, box.maxZ)
@@ -194,36 +195,38 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		val hasNorth = sides.hasDirection(DirectionMask.NORTH)
 
 		// Top edges
-		if (mode.check(hasUp, hasNorth)) line(x1, y2, z1, x2, y2, z1, topColor)
-		if (mode.check(hasUp, hasSouth)) line(x1, y2, z2, x2, y2, z2, topColor)
-		if (mode.check(hasUp, hasWest)) line(x1, y2, z1, x1, y2, z2, topColor)
-		if (mode.check(hasUp, hasEast)) line(x2, y2, z2, x2, y2, z1, topColor)
+		if (mode.check(hasUp, hasNorth)) line(x1, y2, z1, x2, y2, z1, topColor, topColor, thickness)
+		if (mode.check(hasUp, hasSouth)) line(x1, y2, z2, x2, y2, z2, topColor, topColor, thickness)
+		if (mode.check(hasUp, hasWest)) line(x1, y2, z1, x1, y2, z2, topColor, topColor, thickness)
+		if (mode.check(hasUp, hasEast)) line(x2, y2, z2, x2, y2, z1, topColor, topColor, thickness)
 
 		// Bottom edges
-		if (mode.check(hasDown, hasNorth)) line(x1, y1, z1, x2, y1, z1, bottomColor)
-		if (mode.check(hasDown, hasSouth)) line(x1, y1, z2, x2, y1, z2, bottomColor)
-		if (mode.check(hasDown, hasWest)) line(x1, y1, z1, x1, y1, z2, bottomColor)
-		if (mode.check(hasDown, hasEast)) line(x2, y1, z1, x2, y1, z2, bottomColor)
+		if (mode.check(hasDown, hasNorth)) line(x1, y1, z1, x2, y1, z1, bottomColor, bottomColor, thickness)
+		if (mode.check(hasDown, hasSouth)) line(x1, y1, z2, x2, y1, z2, bottomColor, bottomColor, thickness)
+		if (mode.check(hasDown, hasWest)) line(x1, y1, z1, x1, y1, z2, bottomColor, bottomColor, thickness)
+		if (mode.check(hasDown, hasEast)) line(x2, y1, z1, x2, y1, z2, bottomColor, bottomColor, thickness)
 
 		// Vertical edges
-		if (mode.check(hasWest, hasNorth)) line(x1, y2, z1, x1, y1, z1, topColor, bottomColor)
-		if (mode.check(hasNorth, hasEast)) line(x2, y2, z1, x2, y1, z1, topColor, bottomColor)
-		if (mode.check(hasEast, hasSouth)) line(x2, y2, z2, x2, y1, z2, topColor, bottomColor)
-		if (mode.check(hasSouth, hasWest)) line(x1, y2, z2, x1, y1, z2, topColor, bottomColor)
+		if (mode.check(hasWest, hasNorth)) line(x1, y2, z1, x1, y1, z1, topColor, bottomColor, thickness)
+		if (mode.check(hasNorth, hasEast)) line(x2, y2, z1, x2, y1, z1, topColor, bottomColor, thickness)
+		if (mode.check(hasEast, hasSouth)) line(x2, y2, z2, x2, y1, z2, topColor, bottomColor, thickness)
+		if (mode.check(hasSouth, hasWest)) line(x1, y2, z2, x1, y1, z2, topColor, bottomColor, thickness)
 	}
 
 	fun outline(
 		box: Box,
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
-	) = outline(box, color, color, sides, mode)
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
+	) = outline(box, color, color, sides, mode, thickness)
 
 	fun outline(
 		box: DynamicAABB,
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) {
 		val pair = box.pair ?: return
 		val prev = pair.first
@@ -237,7 +240,7 @@ class RegionShapeBuilder(val region: RenderRegion) {
 			lerp(tickDelta, prev.maxY, curr.maxY),
 			lerp(tickDelta, prev.maxZ, curr.maxZ)
 		)
-		outline(interpolated, color, sides, mode)
+		outline(interpolated, color, sides, mode, thickness)
 	}
 
 	fun outline(
@@ -245,13 +248,14 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		state: BlockState,
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) = runSafe {
 		val shape = state.getOutlineShape(world, pos)
 		if (shape.isEmpty) {
-			outline(Box(pos), color, sides, mode)
+			outline(Box(pos), color, sides, mode, thickness)
 		} else {
-			outline(shape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()), color, sides, mode)
+			outline(shape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()), color, sides, mode, thickness)
 		}
 	}
 
@@ -259,24 +263,27 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		pos: BlockPos,
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
-	) = runSafe { outline(pos, blockState(pos), color, sides, mode) }
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
+	) = runSafe { outline(pos, blockState(pos), color, sides, mode, thickness) }
 
 	fun outline(
 		pos: BlockPos,
 		entity: BlockEntity,
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
-	) = runSafe { outline(pos, entity.cachedState, color, sides, mode) }
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
+	) = runSafe { outline(pos, entity.cachedState, color, sides, mode, thickness) }
 
 	fun outline(
 		shape: VoxelShape,
 		color: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) {
-		shape.boundingBoxes.forEach { outline(it, color, sides, mode) }
+		shape.boundingBoxes.forEach { outline(it, color, sides, mode, thickness) }
 	}
 
 	/** Add both filled and outline for a box. */
@@ -286,10 +293,11 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		filledColor: Color,
 		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) = runSafe {
 		filled(pos, state, filledColor, sides)
-		outline(pos, state, outlineColor, sides, mode)
+		outline(pos, state, outlineColor, sides, mode, thickness)
 	}
 
 	fun box(
@@ -297,10 +305,11 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		filledColor: Color,
 		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) = runSafe {
 		filled(pos, filledColor, sides)
-		outline(pos, outlineColor, sides, mode)
+		outline(pos, outlineColor, sides, mode, thickness)
 	}
 
 	fun box(
@@ -308,10 +317,11 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		filledColor: Color,
 		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) {
 		filled(box, filledColor, sides)
-		outline(box, outlineColor, sides, mode)
+		outline(box, outlineColor, sides, mode, thickness)
 	}
 
 	fun box(
@@ -319,30 +329,35 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		filledColor: Color,
 		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) {
 		filled(box, filledColor, sides)
-		outline(box, outlineColor, sides, mode)
+		outline(box, outlineColor, sides, mode, thickness)
 	}
 
 	fun box(
 		entity: BlockEntity,
-		color: Color,
+		filled: Color,
+		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) = runSafe {
-		filled(entity.pos, entity, color, sides)
-		outline(entity.pos, entity, color, sides, mode)
+		filled(entity.pos, entity, filled, sides)
+		outline(entity.pos, entity, outlineColor, sides, mode, thickness)
 	}
 
 	fun box(
 		entity: Entity,
-		color: Color,
+		filled: Color,
+		outlineColor: Color,
 		sides: Int = DirectionMask.ALL,
-		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
+		thickness: Float = lineWidth
 	) = runSafe {
-		filled(entity.boundingBox, color, sides)
-		outline(entity.boundingBox, color, sides, mode)
+		filled(entity.boundingBox, filled, sides)
+		outline(entity.boundingBox, outlineColor, sides, mode, thickness)
 	}
 
 	private fun faceVertex(x: Float, y: Float, z: Float, color: Color) {
@@ -356,9 +371,10 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		x2: Float,
 		y2: Float,
 		z2: Float,
-		color: Color
+		color: Color,
+		width: Float = lineWidth
 	) {
-		line(x1, y1, z1, x2, y2, z2, color, color)
+		line(x1, y1, z1, x2, y2, z2, color, color, width)
 	}
 
 	private fun line(
@@ -369,19 +385,20 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		y2: Float,
 		z2: Float,
 		color1: Color,
-		color2: Color
+		color2: Color,
+		width: Float = lineWidth
 	) {
-		// Calculate normal (direction of line)
+		// Calculate segment vector (dx, dy, dz)
 		val dx = x2 - x1
 		val dy = y2 - y1
 		val dz = z2 - z1
-		val len = sqrt(dx * dx + dy * dy + dz * dz)
-		val nx = if (len > 0) dx / len else 0f
-		val ny = if (len > 0) dy / len else 1f
-		val nz = if (len > 0) dz / len else 0f
 
-		collector.addEdgeVertex(x1, y1, z1, color1, nx, ny, nz, lineWidth)
-		collector.addEdgeVertex(x2, y2, z2, color2, nx, ny, nz, lineWidth)
+		// Quad-based lines need 4 vertices per segment
+		// We pass the full vector as 'Normal' so the shader knows where the other end is
+		collector.addEdgeVertex(x1, y1, z1, color1, dx, dy, dz, width)
+		collector.addEdgeVertex(x1, y1, z1, color1, dx, dy, dz, width)
+		collector.addEdgeVertex(x2, y2, z2, color2, dx, dy, dz, width)
+		collector.addEdgeVertex(x2, y2, z2, color2, dx, dy, dz, width)
 	}
 
 	/**
@@ -733,12 +750,9 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		val dx = x2 - x1
 		val dy = y2 - y1
 		val dz = z2 - z1
-		val len = sqrt(dx * dx + dy * dy + dz * dz)
-		val nx = if (len > 0) dx / len else 0f
-		val ny = if (len > 0) dy / len else 1f
-		val nz = if (len > 0) dz / len else 0f
-
-		collector.addEdgeVertex(x1, y1, z1, color, nx, ny, nz, width)
-		collector.addEdgeVertex(x2, y2, z2, color, nx, ny, nz, width)
+		collector.addEdgeVertex(x1, y1, z1, color, dx, dy, dz, width)
+		collector.addEdgeVertex(x1, y1, z1, color, dx, dy, dz, width)
+		collector.addEdgeVertex(x2, y2, z2, color, dx, dy, dz, width)
+		collector.addEdgeVertex(x2, y2, z2, color, dx, dy, dz, width)
 	}
 }

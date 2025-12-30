@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.groups.InventorySettings
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -53,9 +54,13 @@ object AutoTotem : Module(
     private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players to swap") { !always && players }.group(Group.General)
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }.group(Group.General)
 
-    override val inventoryConfig = InventorySettings(this, Group.Inventory)
-
     init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(inventoryConfig)
+			}
+		}
+
         listen<TickEvent.Pre> {
             if (!always && Reason.entries.none { it.check(this) }) return@listen
 

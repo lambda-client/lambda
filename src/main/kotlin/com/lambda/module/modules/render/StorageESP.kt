@@ -61,6 +61,7 @@ object StorageESP : Module(
 	private val useBlockColor by setting("Use Block Color", true, "Use the color of the block instead").group(Group.Color)
 	private val facesAlpha by setting("Faces Alpha", 0.3, 0.1..1.0, 0.05).group(Group.Color)
 	private val edgesAlpha by setting("Edges Alpha", 0.3, 0.1..1.0, 0.05).group(Group.Color)
+	private val outlineWidth by setting("Outline Width", 1.0f, 0.5f..5.0f, 0.5f) { drawEdges }.group(Group.Render)
 
 	// TODO:
 	//  val blockColors by setting("Block Colors", mapOf<String, Color>()) { page == Page.Color
@@ -155,12 +156,12 @@ object StorageESP : Module(
 		val color =
 			if (useBlockColor) blockColor(block.cachedState, block.pos)
 			else block.color ?: return@runSafe
-		box(block, color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha), sides, mode)
+		box(block, color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha), sides, mode, thickness = outlineWidth)
 	}
 
 	private fun ShapeScope.build(entity: Entity, sides: Int) = runSafe {
 		val color = entity.color ?: return@runSafe
-		box(entity, color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha), sides, mode)
+		box(entity, color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha), sides, mode, thickness = outlineWidth)
 	}
 
 	private val BlockEntity?.color

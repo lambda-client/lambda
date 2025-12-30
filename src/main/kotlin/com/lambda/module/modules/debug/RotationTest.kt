@@ -21,7 +21,7 @@ import com.lambda.config.AutomationConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -40,7 +40,7 @@ object RotationTest : Module(
         }
 
         listen<TickEvent.Pre> {
-            hitPos?.let { RotationRequest(lookAt(it.pos), this@RotationTest).submit() }
+            hitPos?.let { rotationRequest { rotation(lookAt(it.pos)) }.submit() }
         }
     }
 }
