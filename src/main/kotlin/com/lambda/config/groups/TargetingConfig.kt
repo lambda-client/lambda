@@ -23,6 +23,8 @@ interface TargetingConfig {
     val players: Boolean
     val friends: Boolean
     val hostiles: Boolean
+    val hostilesOnlyAngry: Boolean
+    val passives: Boolean
     val animals: Boolean
 
     val invisible: Boolean
