@@ -35,12 +35,14 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import net.minecraft.client.network.AbstractClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
 
 object BetterFirework : Module(
@@ -180,7 +182,8 @@ object BetterFirework : Module(
             when {
                 (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
                         (!activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code) ||
-                        takeoffState != TakeoffState.None -> false // Prevent using multiple times
+                        takeoffState != TakeoffState.None ||
+		                (mc.crosshairTarget is EntityHitResult && (mc.crosshairTarget as EntityHitResult).entity is AbstractClientPlayerEntity) -> false // Prevent using multiple times
                 else -> {
                     if (player.canOpenElytra || player.isGliding) {
                         // If already gliding use another firework
