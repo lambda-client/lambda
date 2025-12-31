@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -79,8 +80,6 @@ object ElytraAltitudeControl : Module(
 	val pitch40SpeedThreshold by setting("Speed Threshold", 41f, 10f..100f, .5f, description = "Speed at which to start pitching up") { usePitch40OnHeight }.group(Group.Pitch40Control)
 	val pitch40UseFireworkOnUpTrajectory by setting("Use Firework On Up Trajectory", false, "Use fireworks when converting speed to altitude in the Pitch 40 maneuver") { usePitch40OnHeight }.group(Group.Pitch40Control)
 
-	override val rotationConfig = RotationSettings(this, Group.Rotation)
-
 	var controlState = ControlState.AttitudeControl
 	var state = Pitch40State.GainSpeed
 	var lastAngle = pitch40UpStartAngle
@@ -90,6 +89,12 @@ object ElytraAltitudeControl : Module(
 	val usageDelay = Timer()
 
 	init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(rotationConfig)
+			}
+		}
+
 		listen<TickEvent.Pre> {
 			if (!player.isGliding) return@listen
 			run {
