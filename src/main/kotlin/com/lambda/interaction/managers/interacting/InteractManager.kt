@@ -113,7 +113,7 @@ object InteractManager : Manager<InteractRequest>(
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
-        if (activeRequest != null || request.contexts.isEmpty()) return
+        if (!request.buildConfig.interactBlocks || activeRequest != null || request.contexts.isEmpty()) return
 	    if (BreakManager.activeThisTick) return
 
         activeRequest = request

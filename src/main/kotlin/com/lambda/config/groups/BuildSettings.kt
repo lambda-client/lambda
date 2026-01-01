@@ -33,7 +33,9 @@ class BuildSettings(
         Scan("Scan")
     }
 
-    // General
+    override val breakBlocks by c.setting("Break", true, "Break blocks")
+    override val interactBlocks by c.setting("Place / Interact", true, "Interact blocks")
+
     override val pathing by c.setting("Pathing", true, "Path to blocks").group(baseGroup, Group.General).index()
     override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks").group(baseGroup, Group.General).index()
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks").group(baseGroup, Group.General).index()

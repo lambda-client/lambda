@@ -19,12 +19,12 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.simulation.processing.PreProcessingData
-import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.getProcessingInfo
-import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.checks.BasicChecker.hasBasicRequirements
 import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
 import com.lambda.interaction.construction.simulation.checks.InteractSim.Companion.simInteraction
+import com.lambda.interaction.construction.simulation.processing.PreProcessingData
+import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.getProcessingInfo
+import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.block.BlockState
@@ -68,7 +68,7 @@ interface SimInfo : Automated {
 	        pov,
 	        Stack(),
 	        concurrentResults
-		).takeIf { it.hasBasicRequirements() }?.sim()
+		)?.takeIf { it.hasBasicRequirements() }?.sim()
 
         /**
          * Creates a new [SimInfo] using the current [SimInfo]'s [dependencyStack] and [concurrentResults],
@@ -89,7 +89,7 @@ interface SimInfo : Automated {
 	        pov,
 	        Stack<Sim<*>>().apply { addAll(dependencyStack) },
 	        concurrentResults
-		).takeIf { it.hasBasicRequirements() }?.sim()
+		)?.takeIf { it.hasBasicRequirements() }?.sim()
 
 	    @SimDsl
 	    private fun AutomatedSafeContext.getTypedInfo(
@@ -99,31 +99,29 @@ interface SimInfo : Automated {
 		    pov: Vec3d,
 		    dependencyStack: Stack<Sim<*>>,
 		    concurrentResults: MutableSet<BuildResult>
-		): SimInfo {
-			if (!targetState.isEmpty()) {
-				getProcessingInfo(state, targetState, pos)?.let { preProcessing ->
-					return object : InteractSimInfo, Automated by this {
-						override val pos = pos
-						override val state = state
-						override val targetState = targetState
-						override val pov = pov
-						override val dependencyStack = dependencyStack
-						override val concurrentResults = concurrentResults
-						override val preProcessing = preProcessing
-						override val expectedState = preProcessing.info.expectedState
-						override val item = preProcessing.info.item
-						override val placing = preProcessing.info.placing
+	    ): SimInfo? =
+		    if (!targetState.isEmpty()) {
+			    getProcessingInfo(state, targetState, pos)?.let { preProcessing ->
+				    object : InteractSimInfo, Automated by this {
+					    override val pos = pos
+					    override val state = state
+					    override val targetState = targetState
+					    override val pov = pov
+					    override val dependencyStack = dependencyStack
+					    override val concurrentResults = concurrentResults
+					    override val preProcessing = preProcessing
+					    override val expectedState = preProcessing.info.expectedState
+					    override val item = preProcessing.info.item
+					    override val placing = preProcessing.info.placing
 
-						context(_: AutomatedSafeContext, _: Sim<*>)
-						override suspend fun sim() = simInteraction()
+					    context(_: AutomatedSafeContext, _: Sim<*>)
+					    override suspend fun sim() = simInteraction()
 
-						override fun AutomatedSafeContext.matchesTarget(state: BlockState, completely: Boolean) =
-							expectedState.matches(state, if (!completely) preProcessing.info.ignore else emptySet())
-					}
-				}
-			}
-
-		    return object : BreakSimInfo, Automated by this {
+					    override fun AutomatedSafeContext.matchesTarget(state: BlockState, completely: Boolean) =
+						    expectedState.matches(state, if (!completely) preProcessing.info.ignore else emptySet())
+				    }
+			    }
+		    } else object : BreakSimInfo, Automated by this {
 			    override val pos = pos
 			    override val state = state
 			    override val targetState = targetState
@@ -134,7 +132,6 @@ interface SimInfo : Automated {
 			    context(_: AutomatedSafeContext, _: Sim<*>)
 			    override suspend fun sim() = simBreak()
 		    }
-		}
     }
 }
 

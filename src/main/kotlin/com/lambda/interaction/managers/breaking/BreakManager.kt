@@ -296,7 +296,7 @@ object BreakManager : Manager<BreakRequest>(
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
-        if (activeRequest != null || request.contexts.isEmpty()) return
+        if (!request.buildConfig.breakBlocks || activeRequest != null || request.contexts.isEmpty()) return
 	    if (InteractManager.activeThisTick) return
 
         activeRequest = request
