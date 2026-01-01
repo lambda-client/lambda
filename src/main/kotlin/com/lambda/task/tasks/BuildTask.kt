@@ -128,11 +128,12 @@ class BuildTask private constructor(
         val viableResults = results
             .filter { result ->
                 val finalResult = (result as? Dependent)?.lastDependency ?: result
-                pendingInteractions.none { it.blockPos == result.pos } &&
+                pendingInteractions.none { it.blockPos == finalResult.pos } &&
+                        (finalResult !is Contextual ||
                         when (finalResult) {
                             is BreakResult -> buildConfig.breakBlocks
                             else -> buildConfig.interactBlocks
-                        }
+                        })
             }
             .sorted()
 
