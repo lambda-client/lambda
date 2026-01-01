@@ -18,9 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.player.Freecam;
-import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.NoRender;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.entity.Entity;
@@ -43,13 +41,6 @@ public class WorldRendererMixin {
 //    private boolean renderSetupTerrainModifyArg(boolean hasForcedFrustum) {
 //        return Freecam.INSTANCE.isEnabled() || CameraTweaks.INSTANCE.isEnabled() || hasForcedFrustum;
 //    }
-//
-//    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/BackgroundRenderer;applyFog(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/BackgroundRenderer$FogType;Lorg/joml/Vector4f;FZF)Lnet/minecraft/client/render/Fog;", ordinal = 0), index = 3)
-//    private float modifyApplyFogRenderDistance(float viewDistance) {
-//        return NoRender.INSTANCE.isEnabled() && NoRender.getNoTerrainFog()
-//                ? Float.MAX_VALUE
-//                : viewDistance;
-//    }
 
     @Inject(method = "hasBlindnessOrDarkness(Lnet/minecraft/client/render/Camera;)Z", at = @At(value = "HEAD"), cancellable = true)
     private void modifyEffectCheck(Camera camera, CallbackInfoReturnable<Boolean> cir) {
@@ -59,5 +50,10 @@ public class WorldRendererMixin {
             boolean dark = livingEntity.hasStatusEffect(StatusEffects.DARKNESS) && !NoRender.getNoDarkness();
             cir.setReturnValue(blind || dark);
         }
+    }
+
+    @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;updateCamera(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/Frustum;Z)V"), index = 2)
+    private boolean renderSetupTerrainModifyArg(boolean spectator) {
+        return Freecam.INSTANCE.isEnabled() || spectator;
     }
 }
