@@ -57,7 +57,7 @@ class PreProcessingInfoAccumulator(
 	override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
 	override var placing: Boolean = true,
 	override var noCaching: Boolean = false,
-	var omitPlacement: Boolean = false
+	var omitInteraction: Boolean = false
 ) : PreProcessingInfo {
 	@InfoAccumulator
 	fun offerSurfaceScan(scan: SurfaceScan) {
@@ -106,7 +106,7 @@ class PreProcessingInfoAccumulator(
 
 	@InfoAccumulator
 	fun omitPlacement() {
-		omitPlacement = true
+		omitInteraction = true
 	}
 
 	@InfoAccumulator

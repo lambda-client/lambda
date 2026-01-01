@@ -153,15 +153,21 @@ object ProcessorRegistry : Loadable {
 						with(processor) { preProcess(state, targetState, pos) }
 				}
 			}
-			if (omitPlacement) return@run complete()
+			if (omitInteraction) return@run complete()
 			if (!stateProcessing) {
-				if (!state.isReplaceable && state.block != expectedState.block) return@run null
-				if (state.block != expectedState.block) propertyPreProcessors.forEach { processor ->
-					if (processor.acceptsState(targetState))
-						with(processor) { preProcess(state, expectedState) }
-				} else propertyPostProcessors.forEach { processor ->
-					if (processor.acceptsState(state, expectedState))
-						with(processor) { preProcess(state, expectedState) }
+				if (state.block != expectedState.block) {
+					if (!state.isReplaceable) return@run null
+					propertyPreProcessors.forEach { processor ->
+						if (processor.acceptsState(targetState))
+							with(processor) { preProcess(state, expectedState) }
+					}
+				} else {
+					val postProcessable = propertyPostProcessors.any { processor ->
+						processor.acceptsState(state, expectedState).also {
+							with(processor) { preProcess(state, expectedState) }
+						}
+					}
+					if (!postProcessable) return@run null
 				}
 			}
 			complete()
