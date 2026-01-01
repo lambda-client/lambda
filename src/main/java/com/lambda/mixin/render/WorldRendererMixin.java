@@ -18,7 +18,9 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.player.Freecam;
+import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.entity.Entity;
@@ -32,16 +34,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
-//    @ModifyExpressionValue(method = "getEntitiesToRender(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/Frustum;Ljava/util/List;)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;isThirdPerson()Z"))
-//    private boolean renderIsThirdPerson(boolean original) {
-//        return Freecam.INSTANCE.isEnabled() || original;
-//    }
-//
-//    @ModifyArg(method = "render(Lnet/minecraft/client/util/ObjectAllocator;Lnet/minecraft/client/render/RenderTickCounter;ZLnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/GameRenderer;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;setupTerrain(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/Frustum;ZZ)V"), index = 3)
-//    private boolean renderSetupTerrainModifyArg(boolean hasForcedFrustum) {
-//        return Freecam.INSTANCE.isEnabled() || CameraTweaks.INSTANCE.isEnabled() || hasForcedFrustum;
-//    }
-
     @Inject(method = "hasBlindnessOrDarkness(Lnet/minecraft/client/render/Camera;)Z", at = @At(value = "HEAD"), cancellable = true)
     private void modifyEffectCheck(Camera camera, CallbackInfoReturnable<Boolean> cir) {
         Entity entity = camera.getFocusedEntity();
@@ -54,6 +46,11 @@ public class WorldRendererMixin {
 
     @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;updateCamera(Lnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/Frustum;Z)V"), index = 2)
     private boolean renderSetupTerrainModifyArg(boolean spectator) {
-        return Freecam.INSTANCE.isEnabled() || spectator;
+        return Freecam.INSTANCE.isEnabled() || CameraTweaks.INSTANCE.isEnabled() || spectator;
+    }
+
+    @ModifyExpressionValue(method = "fillEntityRenderStates", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;isThirdPerson()Z"))
+    private boolean modifyIsThirdPerson(boolean original) {
+        return Freecam.INSTANCE.isEnabled() || original;
     }
 }
