@@ -22,6 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
@@ -162,12 +163,12 @@ object ProcessorRegistry : Loadable {
 							with(processor) { preProcess(state, expectedState) }
 					}
 				} else {
-					val postProcessable = propertyPostProcessors.any { processor ->
-						processor.acceptsState(state, expectedState).also {
+					propertyPostProcessors.forEach { processor ->
+						if (processor.acceptsState(state, expectedState)) {
 							with(processor) { preProcess(state, expectedState) }
 						}
 					}
-					if (!postProcessable) return@run null
+					if (!state.matches(targetState, ignore)) return@run null
 				}
 			}
 			complete()

@@ -148,7 +148,7 @@ object InteractManager : Manager<InteractRequest>(
             if (!validSneak(player)) return
             if (tickStage !in interactConfig.tickStageMask) return
 
-            val actionResult = if (ctx.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
+            val actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
 	        else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
             if (actionResult.isAccepted && interactConfig.swing) {
                 swingHand(interactConfig.swingType, Hand.MAIN_HAND)

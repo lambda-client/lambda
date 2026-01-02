@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractRequest
 import com.lambda.interaction.managers.rotating.RotationRequest
@@ -35,7 +36,7 @@ data class InteractContext(
     override val blockPos: BlockPos,
     override var cachedState: BlockState,
     override val expectedState: BlockState,
-    val placing: Boolean,
+    val preProcessingInfo: PreProcessingInfo,
     val sneak: Boolean,
     val currentDirIsValid: Boolean = false,
     private val automated: Automated
