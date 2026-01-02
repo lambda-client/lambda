@@ -48,7 +48,7 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
-class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
+class KeybindSetting(defaultValue: Bind) : SettingCore<Bind>(
 	defaultValue,
 	TypeToken.get(Bind::class.java).type
 ) {
@@ -66,7 +66,7 @@ class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
             if (listening) "Press any key…"
             else bind.name
 
-        withId("##Bind-${this@KeybindSettingCore.hashCode()}") {
+        withId("##Bind-${this@KeybindSetting.hashCode()}") {
             if (listening) {
                 withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
                     withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
@@ -90,9 +90,11 @@ class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
         }
 
         sameLine()
-        withId("##Unbind-${this@KeybindSettingCore.hashCode()}") {
-            value = Bind.EMPTY
-            listening = false
+        withId("##Unbind-${this@KeybindSetting.hashCode()}") {
+            smallButton("Unbind") {
+                value = Bind.EMPTY
+                listening = false
+            }
         }
         onItemHover(ImGuiHoveredFlags.Stationary) {
             lambdaTooltip("Clear binding")

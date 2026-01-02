@@ -35,7 +35,7 @@ import com.lambda.util.ChatUtils.slurs
 import com.lambda.util.ChatUtils.swears
 import com.lambda.util.ChatUtils.toAscii
 import com.lambda.util.NamedEnum
-import com.lambda.util.text.DirectMessage
+import com.lambda.util.text.MessageDirection
 import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
@@ -45,9 +45,13 @@ object AntiSpam : Module(
 	description = "Keeps your chat clean",
 	tag = ModuleTag.CHAT,
 ) {
-	private val ignoreSelf by setting("Ignore Self", true)
-	private val ignoreFriends by setting("Ignore Friends", true)
 	private val fancyChats by setting("Replace Fancy Chat", false)
+
+	private val filterSelf by setting("Ignore Self", true)
+	private val filterFriends by setting("Ignore Friends", true)
+	private val filterSystem by setting("Filter System Messages", false)
+	private val filterDms by setting("Filter DMs", true)
+
 	private val ignoreSystem by setting("Ignore System", false)
 	private val ignoreDms by setting("Ignore DMs", false)
 
@@ -75,15 +79,13 @@ object AntiSpam : Module(
 	}
 
 	init {
-		listen<ChatEvent.Receive> { event ->
+		listen<ChatEvent.Message> { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
 
 			if (
-				ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
-				ignoreDms && DirectMessage.Receive.matches(raw) ||
-				ignoreFriends && author?.let { FriendManager.isFriend(it) } == true ||
-				ignoreSelf && MessageType.Self.matches(raw)
+				ignoreSystem && !MessageType.Both.matches(raw) && !MessageDirection.Both.matches(raw) ||
+				ignoreDms && MessageDirection.Receive.matches(raw)
 			) return@listen
 
 			val slurMatches = slurs.takeIf { detectSlurs.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
@@ -98,7 +100,13 @@ object AntiSpam : Module(
 			var hasMatches = false
 
 			fun doMatch(replace: ReplaceConfig, matches: Sequence<MatchResult>) {
-				if (cancelled) return
+				if (
+					cancelled ||
+					filterSystem && !MessageType.Both.matches(raw) && !MessageDirection.Both.matches(raw) ||
+					filterDms && MessageDirection.Receive.matches(raw) ||
+					filterFriends && author?.let { FriendManager.isFriend(it) } == true ||
+					filterSelf && MessageType.Self.matches(raw)
+				) return
 
 				when (replace.action) {
 					ReplaceConfig.ActionStrategy.Hide -> matches.firstOrNull()?.let { event.cancel(); cancelled = true } // If there's one detection, nuke the whole damn thang
