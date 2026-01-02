@@ -21,7 +21,6 @@ import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.AutomationConfig.Companion.DEFAULT.managerDebugLogs
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
 import com.lambda.interaction.managers.PostActionHandler
 import com.lambda.interaction.managers.interacting.InteractManager.placeSound
 import com.lambda.threading.runSafe
@@ -49,11 +48,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { pending ->
                     if (!pending.context.expectedState.matches(event.newState)) {
-                        if (pending.context.cachedState.matches(
-                                event.newState,
-                                ProcessorRegistry.postProcessedProperties
-                            )
-                        ) {
+                        if (pending.context.cachedState.matches(event.newState, pending.context.preProcessingInfo.ignore)) {
                             pending.context.cachedState = event.newState
                             return@listen
                         }

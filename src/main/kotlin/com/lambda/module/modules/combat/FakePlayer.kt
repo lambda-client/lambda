@@ -19,6 +19,7 @@ package com.lambda.module.modules.combat
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
@@ -27,6 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.onShutdown
 import com.lambda.util.Timer
+import com.lambda.util.player.FakePlayerId
 import com.lambda.util.player.spawnFakePlayer
 import com.mojang.authlib.GameProfile
 import com.mojang.datafixers.util.Either
@@ -68,6 +70,10 @@ object FakePlayer : Module(
             if (!fetchTimer.timePassed(2.seconds)) return@listenConcurrently
 
             cachedProfiles.getOrPut(playerName) { fetchProfile(playerName) }
+        }
+
+        listen<PlayerEvent.Attack.Entity> {
+            if (it.entity.id == FakePlayerId) it.cancel()
         }
 
         listen<ConnectionEvent.Connect.Pre> { disable() }

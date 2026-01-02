@@ -15,8 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.managers
+package com.lambda.module.modules.movement
 
-interface Logger {
-    val logger: DebugLogger
-}
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+
+object NoJumpCooldown : Module(
+	name = "NoJumpCooldown",
+	description = "Removes delay between jumps",
+	tag = ModuleTag.MOVEMENT
+)

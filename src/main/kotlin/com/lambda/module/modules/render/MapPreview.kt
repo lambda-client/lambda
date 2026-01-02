@@ -21,10 +21,10 @@ import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.client.font.TextRenderer
+import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.tooltip.TooltipComponent
 import net.minecraft.client.render.MapRenderState
-import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.MapIdComponent
 import net.minecraft.item.FilledMapItem
@@ -38,6 +38,8 @@ object MapPreview : Module(
     description = "Preview maps in your inventory",
     tag = ModuleTag.RENDER,
 ) {
+    @JvmStatic val showInSlot by setting("Show In Slot", true, "Shows the map in the slot rather than the basic map icon")
+
     private val background = Identifier.ofVanilla("textures/map/map_background.png")
 
     class MapComponent(val stack: ItemStack) : TooltipData, TooltipComponent {

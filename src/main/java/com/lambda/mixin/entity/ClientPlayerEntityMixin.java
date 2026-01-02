@@ -24,9 +24,12 @@ import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.module.modules.movement.ElytraFly;
+import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -75,15 +78,22 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         EventFlow.post(new MovementEvent.InputUpdate(input));
     }
 
-    /**
-     * Overwrites the movement packet update function to use our code
-     */
-    @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
-    void sendLambdaMovement(CallbackInfo ci) {
-        ci.cancel();
+    @Inject(method = "tickMovement", at = @At("RETURN"))
+    private void injectTickMovement(CallbackInfo ci) {
+        if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
+    }
+
+    @Inject(method = "sendMovementPackets", at = @At("HEAD"))
+    private void injectSendMovementPackets(CallbackInfo ci) {
         PlayerPacketHandler.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
+    
+    @WrapWithCondition(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSprintingPacket()V"))
+    private boolean wrapSendSprintingPackets(ClientPlayerEntity instance) { return false; }
+
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isCamera()Z"))
+    private boolean wrapIsCamera(boolean original) { return false; }
 
     @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
     boolean isSprinting(boolean original) {

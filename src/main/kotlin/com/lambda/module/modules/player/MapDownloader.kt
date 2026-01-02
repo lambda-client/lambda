@@ -24,7 +24,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.FileUtils.locationBoundDirectory
 import com.lambda.util.FolderRegister
 import com.lambda.util.StringUtils.hashString
-import com.lambda.util.player.SlotUtils.combined
+import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.world.entitySearch
 import net.minecraft.block.MapColor
 import net.minecraft.entity.decoration.ItemFrameEntity
@@ -42,7 +42,7 @@ object MapDownloader : Module(
         listen<TickEvent.Pre> {
             val mapStates = entitySearch<ItemFrameEntity>(128.0)
                 .mapNotNull { FilledMapItem.getMapState(it.heldItemStack, world) } +
-                    player.combined.mapNotNull { FilledMapItem.getMapState(it, world) }
+                    player.allStacks.mapNotNull { FilledMapItem.getMapState(it, world) }
 
             mapStates.forEach { map ->
                 val name = map.hash

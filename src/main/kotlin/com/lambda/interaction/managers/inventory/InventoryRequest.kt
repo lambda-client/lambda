@@ -19,8 +19,6 @@ package com.lambda.interaction.managers.inventory
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.Request
 import com.lambda.util.player.SlotUtils.clickSlot
 import net.minecraft.item.ItemStack
@@ -44,20 +42,13 @@ class InventoryRequest private constructor(
     automated: Automated,
     override val nowOrNothing: Boolean = false,
     val onComplete: (SafeContext.() -> Unit)?
-) : Request(), LogContext, Automated by automated {
+) : Request(), Automated by automated {
     override val requestId = ++requestCount
     override val tickStageMask get() = inventoryConfig.tickStageMask
     override var done = false
 
     override fun submit(queueIfMismatchedStage: Boolean) =
         InventoryManager.request(this, queueIfMismatchedStage)
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Inventory Request") {
-            value("Request ID", requestId)
-            value("Action Count", actions.size)
-        }
-    }
 
     @DslMarker
     private annotation class InvRequestDsl

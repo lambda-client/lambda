@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.MaterialContainer
 
 /**
@@ -61,6 +62,11 @@ class ContainerSelection {
     @ContainerSelectionDsl
     fun noneOfType(vararg types: MaterialContainer.Rank): (MaterialContainer) -> Boolean =
         { container -> !types.contains(container.rank) }
+
+    @ContainerSelectionDsl
+    context(_: SafeContext)
+    fun immediateOnly(): (MaterialContainer) -> Boolean =
+        { container -> !container.isImmediatelyAccessible() }
 
     /**
      * Returns a function that combines two container predicates using logical AND.

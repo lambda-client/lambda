@@ -27,10 +27,10 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
@@ -130,19 +130,15 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
         buildConfig.pointSelection.select(validHits)?.let { checkedHit ->
             val hitResult = checkedHit.hit.blockResult ?: return
 
-	        val swapStack = getSwapStack(item)
-
 	        if (!placing) {
-		        if (swapStack == null) return
-
 		        val interactContext = InteractContext(
 			        hitResult,
-			        RotationRequest(checkedHit.rotation, this@InteractSim),
-			        swapStack.inventoryIndex,
+			        rotationRequest { rotation(checkedHit.rotation) },
+			        getSwapStack(item, supervisorScope)?.inventoryIndex ?: return,
 			        pos,
 			        state,
 			        expectedState,
-			        false,
+			        preProcessing.info,
 			        fakePlayer.isSneaking,
 			        true,
 			        this@InteractSim
@@ -188,21 +184,14 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
                 lookInDirection(PlaceDirection.fromRotation(rotatePlaceTest.rotation))
             else rotatePlaceTest.rotation
 
-	        if (swapStack == null) return
-            if (!swapStack.item.isEnabled(world.enabledFeatures)) {
-                result(InteractResult.BlockFeatureDisabled(pos, swapStack))
-                supervisorScope.cancel()
-                return
-            }
-
             val interactContext = InteractContext(
                 hitResult,
-                RotationRequest(rotationRequest, this@InteractSim),
-                swapStack.inventoryIndex,
+                rotationRequest { rotation(rotationRequest) },
+	            getSwapStack(item, supervisorScope)?.inventoryIndex ?: return,
                 pos,
                 state,
                 rotatePlaceTest.resultState,
-	            true,
+	            preProcessing.info,
                 fakePlayer.isSneaking,
                 rotatePlaceTest.currentDirIsValid,
                 this@InteractSim
@@ -214,7 +203,12 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
         return
     }
 
-	private fun AutomatedSafeContext.getSwapStack(item: Item?): ItemStack? {
+	private fun AutomatedSafeContext.getSwapStack(item: Item?, supervisorScope: CoroutineScope): ItemStack? {
+		if (item?.isEnabled(world.enabledFeatures) == false) {
+			result(InteractResult.BlockFeatureDisabled(pos, item))
+			supervisorScope.cancel()
+			return null
+		}
 		val stackSelection = item?.select()
 			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
 		val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
@@ -309,9 +303,8 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
                             (pos.y - (hitbox.maxY - hitbox.minY)).floorToInt(),
                             pos.y
                         )
-                    }
-                        .flatten()
-                        .forEach { support ->
+                    }.flatten()
+						.forEach { support ->
                             sim(support, blockState(support), TargetState.Empty)
                         }
                 }

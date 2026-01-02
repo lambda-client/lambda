@@ -37,9 +37,4 @@ abstract class Request : Automated {
     abstract val done: Boolean
 
     abstract fun submit(queueIfMismatchedStage: Boolean = true): Request
-
-    companion object {
-        fun submit(request: Request, queueIfClosed: Boolean = true) =
-            request.submit(queueIfClosed)
-    }
 }

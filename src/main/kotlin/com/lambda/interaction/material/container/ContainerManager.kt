@@ -92,9 +92,10 @@ object ContainerManager : Loadable {
         block: (MaterialContainer) -> Boolean,
     ): MaterialContainer? = containers().find(block)
 
-    context(_: Automated, _: SafeContext)
-    fun StackSelection.findContainerWithMaterial(): MaterialContainer? =
-        findContainersWithMaterial().firstOrNull()
+    context(automated: Automated, _: SafeContext)
+    fun StackSelection.findContainerWithMaterial(
+        containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
+    ): MaterialContainer? = findContainersWithMaterial(containerSelection).firstOrNull()
 
     context(_: Automated, _: SafeContext)
     fun findContainerWithSpace(selection: StackSelection): MaterialContainer? =

@@ -42,12 +42,12 @@ interface InventoryConfig : ISettingGroup {
 
     val containerSelection: ContainerSelection
         get() = ContainerSelection.selectContainer {
-            val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
+            val allowedContainers = buildSet {
                 addAll(MaterialContainer.Rank.entries)
-                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.ShulkerBox)
-                if (!accessEnderChest) remove(MaterialContainer.Rank.EnderChest)
-                if (!accessChests) remove(MaterialContainer.Rank.Chest)
-                if (!accessStashes) remove(MaterialContainer.Rank.Stash)
+                if (!accessShulkerBoxes || immediateAccessOnly) remove(MaterialContainer.Rank.ShulkerBox)
+                if (!accessEnderChest || immediateAccessOnly) remove(MaterialContainer.Rank.EnderChest)
+                if (!accessChests || immediateAccessOnly) remove(MaterialContainer.Rank.Chest)
+                if (!accessStashes || immediateAccessOnly) remove(MaterialContainer.Rank.Stash)
             }
             ofAnyType(*allowedContainers.toTypedArray())
         }

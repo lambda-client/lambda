@@ -56,7 +56,7 @@ import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -125,17 +125,24 @@ class BuildTask private constructor(
             .filterIsInstance<Drawable>()
             .plus(pendingInteractions.toList())
 
-        val resultsNotBlocked = results
-            .filter { result -> pendingInteractions.none { it.blockPos == result.pos } }
+        val viableResults = results
+            .filter { result ->
+                val finalResult = (result as? Dependent)?.lastDependency ?: result
+                pendingInteractions.none { it.blockPos == finalResult.pos } &&
+                        (finalResult !is Contextual ||
+                        when (finalResult) {
+                            is BreakResult -> buildConfig.breakBlocks
+                            else -> buildConfig.interactBlocks
+                        })
+            }
             .sorted()
 
-        val bestResult = resultsNotBlocked.firstOrNull() ?: return
-        handleResult(bestResult, resultsNotBlocked)
+        val bestResult = viableResults.firstOrNull() ?: return
+        handleResult(bestResult, viableResults)
     }
 
     private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
-        if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty())
-            return
+        if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty()) return
 
         when (result) {
             is PreSimResult.Done,
@@ -203,7 +210,7 @@ class BuildTask private constructor(
                     return@let true
                 }
 
-                if (player.hotbarAndStorage.none { it.isEmpty }) {
+                if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
                     val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
                         it.stack.item.block in inventoryConfig.disposables
                     } ?: run {

@@ -49,6 +49,7 @@
     "render.ElytraFeatureRendererMixin",
     "render.EntityRendererMixin",
     "render.FluidRendererMixin",
+    "render.FogRendererMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
     "render.HandledScreenMixin",
@@ -66,6 +67,7 @@
     "render.SodiumBlockRendererMixin",
     "render.SodiumFluidRendererImplMixin",
     "render.SodiumLightDataAccessMixin",
+    "render.SodiumWorldRendererMixin",
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
     "render.TooltipComponentMixin",
@@ -92,5 +94,6 @@
   },
   "overwrites": {
     "conformVisibility": true
-  }
+  },
+  "mixinextras": {"minVersion": "0.5.0"}
 }

@@ -20,14 +20,14 @@ package com.lambda.interaction.material.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.player.SlotUtils.combined
+import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 object InventoryContainer : MaterialContainer(Rank.Inventory) {
     override var stacks: List<ItemStack>
-        get() = mc.player?.combined ?: emptyList()
+        get() = mc.player?.allStacks ?: emptyList()
         set(_) {}
 
     override val description = buildText { literal("Inventory") }

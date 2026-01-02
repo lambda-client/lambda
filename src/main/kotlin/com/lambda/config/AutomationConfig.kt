@@ -86,7 +86,8 @@ open class AutomationConfig(
 
             init {
                 onStaticRender { esp ->
-	                drawables.forEach { it.render(esp) }
+					if (renders)
+						drawables.forEach { it.render(esp) }
                 }
             }
         }

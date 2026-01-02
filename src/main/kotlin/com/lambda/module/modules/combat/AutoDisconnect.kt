@@ -32,7 +32,7 @@ import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.tickDelta
-import com.lambda.util.player.SlotUtils.combined
+import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.highlighted
@@ -41,12 +41,10 @@ import com.lambda.util.text.text
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
-import net.minecraft.entity.effect.StatusEffect
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
-import net.minecraft.registry.Registries
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
 import net.minecraft.world.GameMode
@@ -208,7 +206,7 @@ object AutoDisconnect : Module(
             } else null
         }),
         Totem({ totem }, {
-            val totemCount = player.combined.count { it.item == Items.TOTEM_OF_UNDYING }
+            val totemCount = player.allStacks.count { it.item == Items.TOTEM_OF_UNDYING }
             if (totemCount < minTotems) {
                 buildText {
                     literal("Only ")

@@ -29,8 +29,8 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarManager
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
@@ -108,7 +108,7 @@ class BreakSim private constructor(simInfo: SimInfo)
         if (shape.boundingBoxes.map { it.offset(pos) }.any { it.contains(pov) }) {
             val currentCast = RotationManager.activeRotation.rayCast(buildConfig.blockReach, pov)
             currentCast?.blockResult?.let { blockHit ->
-                val rotationRequest = RotationRequest(lookAtBlock(pos)?.rotation ?: return, this)
+                val rotationRequest = lookAtBlock(pos)?.rotation?.let { rotationRequest { rotation(it) } } ?: return
                 val breakContext = BreakContext(
                     blockHit,
                     rotationRequest,
@@ -127,7 +127,7 @@ class BreakSim private constructor(simInfo: SimInfo)
         val validHits = scanShape(pov, shape, pos, Direction.entries.toSet(), null) ?: return
 
         val bestHit = buildConfig.pointSelection.select(validHits) ?: return
-        val rotationRequest = RotationRequest(bestHit.rotation, this)
+        val rotationRequest = rotationRequest { rotation(bestHit.rotation) }
 
         val breakContext = BreakContext(
             bestHit.hit.blockResult ?: return,

@@ -22,15 +22,16 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.interaction.managers.rotating.RotationMode;
-import com.lambda.module.modules.player.RotationLock;
+import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.util.math.Vec3d;
@@ -39,6 +40,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
@@ -149,17 +151,25 @@ public abstract class EntityMixin {
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setYaw(F)V"))
     private boolean wrapSetYaw(Entity instance, float yaw) {
-        return (instance != Lambda.getMc().player ||
-                RotationLock.INSTANCE.isDisabled() ||
-                RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
-                RotationLock.getYawMode() == RotationLock.Mode.None);
+        return RotationManager.getLockYaw() == null;
     }
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
     private boolean wrapSetPitch(Entity instance, float yaw) {
-        return (instance != Lambda.getMc().player ||
-                RotationLock.INSTANCE.isDisabled() ||
-                RotationLock.INSTANCE.getRotationConfig().getRotationMode() != RotationMode.Lock ||
-                RotationLock.getPitchMode() == RotationLock.Mode.None);
+        return RotationManager.getLockPitch() == null;
+    }
+
+    @Inject(method = "isSprinting()Z", at = @At("HEAD"), cancellable = true)
+    private void injectIsSprinting(CallbackInfoReturnable<Boolean> cir) {
+        var player = Lambda.getMc().player;
+        if ((Object) this != Lambda.getMc().player) return;
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(true);
+    }
+
+    @Inject(method = "getPose", at = @At("HEAD"), cancellable = true)
+    private void injectGetPose(CallbackInfoReturnable<EntityPose> cir) {
+        var entity = (Entity) (Object) this;
+        if (!(entity instanceof ClientPlayerEntity player)) return;
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(EntityPose.GLIDING);
     }
 }

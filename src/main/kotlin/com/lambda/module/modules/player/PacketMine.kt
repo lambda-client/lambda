@@ -107,7 +107,9 @@ object PacketMine : Module(
                         ::spleefEntities,
                         ::maxBuildDependencies,
                         ::collectDrops,
-                        ::entityReach
+                        ::entityReach,
+                        ::breakBlocks,
+                        ::interactBlocks
                     )
                     ::maxBuildDependencies.edit { defaultValue(0) }
                 }

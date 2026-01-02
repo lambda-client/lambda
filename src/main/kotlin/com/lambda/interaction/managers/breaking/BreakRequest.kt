@@ -27,8 +27,6 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.Request
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.threading.runSafe
@@ -55,7 +53,7 @@ data class BreakRequest private constructor(
     val pendingInteractions: MutableCollection<BuildContext>,
     private val automated: Automated,
     override val nowOrNothing: Boolean = false
-) : Request(), LogContext, Automated by automated {
+) : Request(), Automated by automated {
     override val requestId = ++requestCount
     override val tickStageMask get() = breakConfig.tickStageMask
 
@@ -69,22 +67,6 @@ data class BreakRequest private constructor(
 
     override val done: Boolean
         get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Break Request") {
-            value("Request ID", requestId)
-            value("Contexts", contexts.size)
-            group("Callbacks") {
-                value("onStart", onStart != null)
-                value("onUpdate", onUpdate != null)
-                value("onStop", onStop != null)
-                value("onCancel", onCancel != null)
-                value("onItemDrop", onItemDrop != null)
-                value("onReBreakStart", onReBreakStart != null)
-                value("onReBreak", onReBreak != null)
-            }
-        }
-    }
 
     @DslMarker
     annotation class BreakRequestDsl
