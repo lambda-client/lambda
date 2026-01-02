@@ -66,16 +66,18 @@ class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
             if (listening) "Press any key…"
             else bind.name
 
-        if (listening) {
-            withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
-                withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
-                    withStyleColor(ImGuiCol.ButtonActive, 0.20f, 0.50f, 0.95f, 1.00f) {
-                        button(preview)
+        withId("##Bind-${this@KeybindSettingCore.hashCode()}") {
+            if (listening) {
+                withStyleColor(ImGuiCol.Button, 0.20f, 0.50f, 1.00f, 1.00f) {
+                    withStyleColor(ImGuiCol.ButtonHovered, 0.25f, 0.60f, 1.00f, 1.00f) {
+                        withStyleColor(ImGuiCol.ButtonActive, 0.20f, 0.50f, 0.95f, 1.00f) {
+                            button(preview)
+                        }
                     }
                 }
+            } else {
+                button(preview) { listening = true }
             }
-        } else {
-            button(preview) { listening = true }
         }
 
         lambdaTooltip {
@@ -88,7 +90,7 @@ class KeybindSettingCore(defaultValue: Bind) : SettingCore<Bind>(
         }
 
         sameLine()
-        smallButton("Unbind") {
+        withId("##Unbind-${this@KeybindSettingCore.hashCode()}") {
             value = Bind.EMPTY
             listening = false
         }
