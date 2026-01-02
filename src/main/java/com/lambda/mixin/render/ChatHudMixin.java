@@ -17,14 +17,15 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.event.EventFlow;
+import com.lambda.event.events.ChatEvent;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.text.OrderedText;
+import net.minecraft.client.gui.hud.MessageIndicator;
+import net.minecraft.network.message.MessageSignatureData;
+import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
@@ -40,4 +41,12 @@ public class ChatHudMixin {
 //    int wrapRenderCall(DrawContext instance, TextRenderer textRenderer, OrderedText text, int x, int y, int color, Operation<Integer> original) {
 //        return original.call(instance, textRenderer, LambdaMoji.INSTANCE.parse(text, x, y, color), 0, y, 16777215 + (color << 24));
 //    }
+
+    @WrapMethod(method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;Lnet/minecraft/client/gui/hud/MessageIndicator;)V")
+    void wrapAddMessage(Text message, MessageSignatureData signatureData, MessageIndicator indicator, Operation<Void> original) {
+        var event = new ChatEvent.Message(message, signatureData, indicator);
+
+        if (!EventFlow.post(event).isCanceled())
+            original.call(event.getMessage(), event.getSignature(), event.getIndicator());
+    }
 }
