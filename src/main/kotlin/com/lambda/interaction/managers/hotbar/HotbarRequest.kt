@@ -18,8 +18,6 @@
 package com.lambda.interaction.managers.hotbar
 
 import com.lambda.context.Automated
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.Request
 
 class HotbarRequest(
@@ -28,7 +26,7 @@ class HotbarRequest(
     var keepTicks: Int = automated.hotbarConfig.keepTicks,
     val swapPause: Int = automated.hotbarConfig.swapPause,
     override val nowOrNothing: Boolean = true
-) : Request(), LogContext, Automated by automated {
+) : Request(), Automated by automated {
     override val requestId = ++requestCount
     override val tickStageMask get() = hotbarConfig.tickStageMask
 
@@ -40,17 +38,6 @@ class HotbarRequest(
 
     override fun submit(queueIfMismatchedStage: Boolean) =
         HotbarManager.request(this, queueIfMismatchedStage)
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Hotbar Request") {
-            value("Request ID", requestId)
-            value("Slot", slot)
-            value("Keep Ticks", keepTicks)
-            value("Swap Pause", swapPause)
-            value("Swap Pause Age", swapPauseAge)
-            value("Active Request Age", activeRequestAge)
-        }
-    }
 
     companion object {
         var requestCount = 0

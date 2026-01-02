@@ -50,6 +50,8 @@ object BlockESP : Module(
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)
 
     private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val blockColorAlpha by setting("Block Color Alpha", 0.3, 0.1..1.0, 0.05) { searchBlocks && useBlockColor }.onValueChange { _, _ -> ::rebuildMesh }
+
     private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
     private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
     private val outlineWidth by setting("Outline Width", 1.0f, 0.5f..5.0f, 0.5f) { searchBlocks && drawOutlines }.onValueChange(::rebuildMesh)
@@ -77,13 +79,15 @@ object BlockESP : Module(
         } else DirectionMask.ALL
 
         runSafe {
+            // TODO: Add custom color option when map options are implemented
             val extractedColor = blockColor(state, position.toBlockPos())
+            val finalColor = Color(extractedColor.red, extractedColor.green, extractedColor.blue, (blockColorAlpha * 255).toInt())
             val pos = position.toBlockPos()
             val shape = state.getOutlineShape(world, pos)
             val worldBox = if (shape.isEmpty) Box(pos) else shape.boundingBox.offset(pos)
             box(worldBox) {
                 if (drawFaces)
-                    filled(if (useBlockColor) extractedColor else faceColor, sides)
+                    filled(if (useBlockColor) finalColor else faceColor, sides)
                 if (drawOutlines)
                     outline(if (useBlockColor) extractedColor else BlockESP.outlineColor, sides, BlockESP.outlineMode, thickness = outlineWidth)
             }

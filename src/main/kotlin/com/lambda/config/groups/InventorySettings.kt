@@ -35,7 +35,7 @@ class InventorySettings(
     }
 
     override val actionsPerSecond by c.setting("Actions Per Second", 100, 0..100, 1, "How many inventory actions can be performed per tick").group(baseGroup, Group.General).index()
-    override val tickStageMask by c.setting("Inventory Stage Mask", ALL_STAGES.toSet(), description = "The sub-tick timing at which inventory actions are performed").group(baseGroup, Group.General).index()
+    override val tickStageMask by c.setting("Inventory Stage Mask", ALL_STAGES.toSet(), description = "The sub-tick timing at which inventory actions are performed", displayClassName = true).group(baseGroup, Group.General).index()
     override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, description = "Items that will be ignored when checking for a free slot").group(baseGroup, Group.Container).index()
     override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones").group(baseGroup, Group.Container).index()
     override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from").group(baseGroup, Group.Container).index()

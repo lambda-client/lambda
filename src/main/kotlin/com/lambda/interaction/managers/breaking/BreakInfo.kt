@@ -20,8 +20,6 @@ package com.lambda.interaction.managers.breaking
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.managers.ActionInfo
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -44,7 +42,7 @@ data class BreakInfo(
     override var context: BreakContext,
     var type: BreakType,
     var request: BreakRequest
-) : ActionInfo, LogContext {
+) : ActionInfo {
     // Delegates
     val breakConfig get() = request.breakConfig
     override val pendingInteractionsList get() = request.pendingInteractions
@@ -163,28 +161,6 @@ data class BreakInfo(
                 )
             }
         }
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("Break Info") {
-            value("Type", type)
-            text(context.getLogContextBuilder())
-            group("Details") {
-                value("Should Progress", shouldProgress)
-                value("Rebreak Potential", rebreakPotential)
-                text(swapInfo.getLogContextBuilder())
-                value("Swap Stack", swapStack)
-                value("Updated This Tick", updatedThisTick)
-                value("Updated Pre-Processing This Tick", updatedPreProcessingThisTick)
-                value("Progressed This Tick", progressedThisTick)
-                value("Breaking", breaking)
-                value("Abandoned", abandoned)
-                value("Breaking Ticks", breakingTicks)
-                value("Sounds Cooldown", soundsCooldown)
-                value("Vanilla Instant Breakable", vanillaInstantBreakable)
-                value("Rebreakable", rebreakable)
-            }
-        }
-    }
 
     override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }

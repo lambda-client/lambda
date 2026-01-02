@@ -24,9 +24,8 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Request.Companion.submit
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
@@ -36,10 +35,12 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
-import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.world.GameMode
 
 object KillAura : Module(
     name = "KillAura",
@@ -103,25 +104,25 @@ object KillAura : Module(
             lastOnGround = event.onGround
         }
 
-        listen<TickEvent.Pre> {
+        listen<TickEvent.Input.Post> {
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 if (rotate) runSafeAutomated {
-                    val rotationRequest = RotationRequest(lookAtEntity(entity)?.rotation ?: return@listen, this@KillAura).submit()
-                    val canContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
+                    val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
+                    val cantContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
                     prevEntity = entity
                     validServerRot = rotationRequest.done
-                    if (canContinue) return@listen
+                    if (cantContinue) return@listen
                 }
 
                 if (swap) {
-	                val selection = selectStack().sortByDescending {
-		                damageMode.block(this, it)
-	                }
+                    val selection = selectStack().sortByDescending {
+                        damageMode.block(this, it)
+                    }
 
-                    selection.bestItemMatch(player.hotbar)?.let { bestStack ->
-                        val slotId = player.hotbar.indexOf(bestStack)
-                        if (!submit(HotbarRequest(slotId, this@KillAura, nowOrNothing = false)).done) return@listen
+                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
+                        val slotId = player.hotbarStacks.indexOf(bestStack)
+                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
                     }
                 }
 
@@ -132,7 +133,11 @@ object KillAura : Module(
                 }
 
                 // Attack
-                interaction.attackEntity(player, target)
+                connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
+                if (interaction.gameMode != GameMode.SPECTATOR) {
+                    player.attack(target)
+                    player.resetTicksSince()
+                }
                 if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
 
                 lastAttackTime = System.currentTimeMillis()

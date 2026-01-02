@@ -23,14 +23,11 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Logger
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.managers.inventory.InventoryManager.processActiveRequest
-import com.lambda.module.hud.ManagerDebugLoggers.inventoryManagerLogger
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemStackUtils.equal
@@ -51,7 +48,7 @@ import net.minecraft.screen.slot.Slot
 object InventoryManager : Manager<InventoryRequest>(
     1,
     onOpen = { processActiveRequest() }
-), Logger {
+) {
     private var activeRequest: InventoryRequest? = null
     private var actions = mutableListOf<InventoryAction>()
 
@@ -72,8 +69,6 @@ object InventoryManager : Manager<InventoryRequest>(
     private var actionsThisSecond = 0
     private var secondCounter = 0
     private var actionsThisTick = 0
-
-    override val logger = inventoryManagerLogger
 
     override fun load(): String {
         super.load()
@@ -123,7 +118,6 @@ object InventoryManager : Manager<InventoryRequest>(
     }
 
     private fun populateFrom(request: InventoryRequest) {
-        InteractManager.logger.debug("Populating from request", request)
         activeRequest = request
         actions = request.actions.toMutableList()
         maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
@@ -138,7 +132,6 @@ object InventoryManager : Manager<InventoryRequest>(
      */
     private fun SafeContext.processActiveRequest() {
         activeRequest?.let { active ->
-            InteractManager.logger.debug("Processing request", active)
             if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
             val iterator = actions.iterator()
             while (iterator.hasNext()) {

@@ -151,32 +151,21 @@ abstract class Configurable(
     ) = Setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
 
 	@JvmName("collectionSetting3")
-    inline fun <reified T : Comparable<T>> setting(
+    inline fun <reified T : Any> setting(
         name: String,
         defaultValue: Collection<T>,
         immutableList: Collection<T> = defaultValue,
         description: String = "",
+        displayClassName: Boolean = false,
         noinline visibility: () -> Boolean = { true },
     ) = Setting(
 	    name,
 	    description,
-	    CollectionSetting(
-		    defaultValue.toMutableList(),
-		    immutableList,
-		    TypeToken.getParameterized(Collection::class.java, T::class.java).type
-		),
+        if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
+                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type),
 		this,
 	    visibility
 	).register()
-
-	@JvmName("collectionSetting4")
-    inline fun <reified T : Any> setting(
-	    name: String,
-	    defaultValue: Collection<T>,
-	    immutableList: Collection<T> = defaultValue,
-	    description: String = "",
-	    noinline visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ClassCollectionSetting(immutableList, defaultValue.toMutableList()), this, visibility).register()
 
     // ToDo: Actually implement maps
     inline fun <reified K : Any, reified V : Any> setting(

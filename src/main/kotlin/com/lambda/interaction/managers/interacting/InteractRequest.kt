@@ -24,8 +24,6 @@ import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
-import com.lambda.interaction.managers.LogContext
-import com.lambda.interaction.managers.LogContext.Companion.LogContextBuilder
 import com.lambda.interaction.managers.Request
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
@@ -37,7 +35,7 @@ data class InteractRequest private constructor(
 	val pendingInteractions: MutableCollection<BuildContext>,
 	private val automated: Automated,
 	override val nowOrNothing: Boolean = false,
-) : Request(), LogContext, Automated by automated {
+) : Request(), Automated by automated {
     override val requestId = ++requestCount
     override val tickStageMask get() = interactConfig.tickStageMask
 
@@ -47,13 +45,6 @@ data class InteractRequest private constructor(
         get() = runSafe {
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
         } == true
-
-    override fun getLogContextBuilder(): LogContextBuilder.() -> Unit = {
-        group("PlaceRequest") {
-            value("Request ID", requestId)
-            value("Contexts", contexts.size)
-        }
-    }
 
 	@DslMarker
 	annotation class PlaceRequestDsl

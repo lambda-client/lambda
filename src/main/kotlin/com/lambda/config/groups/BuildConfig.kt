@@ -23,7 +23,9 @@ import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
 interface BuildConfig : ISettingGroup {
-    // General
+    val breakBlocks: Boolean
+    val interactBlocks: Boolean
+
     val pathing: Boolean
     val stayInRange: Boolean
     val collectDrops: Boolean

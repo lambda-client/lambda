@@ -33,8 +33,8 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
-import com.lambda.util.player.SlotUtils.hotbar
-import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
@@ -209,9 +209,9 @@ object BetterFirework : Module(
     fun SafeContext.startFirework(silent: Boolean) {
         val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
 
-        stack.bestItemMatch(player.hotbar)
+        stack.bestItemMatch(player.hotbarStacks)
             ?.let {
-                val request = HotbarRequest(player.hotbar.indexOf(it), this@BetterFirework, keepTicks = 0)
+                val request = HotbarRequest(player.hotbarStacks.indexOf(it), this@BetterFirework, keepTicks = 0)
                     .submit(queueIfMismatchedStage = false)
                 if (request.done) {
                     interaction.interactItem(player, Hand.MAIN_HAND)
@@ -222,10 +222,10 @@ object BetterFirework : Module(
 
         if (!silent) return
 
-        stack.bestItemMatch(player.hotbarAndStorage)
+        stack.bestItemMatch(player.hotbarAndInventoryStacks)
             ?.let {
-                val swapSlotId = player.hotbarAndStorage.indexOf(it)
-                val hotbarSlotToSwapWith = player.hotbar.find { slot -> slot.isEmpty }?.let { slot -> player.hotbar.indexOf(slot) } ?: 8
+                val swapSlotId = player.hotbarAndInventoryStacks.indexOf(it)
+                val hotbarSlotToSwapWith = player.hotbarStacks.find { slot -> slot.isEmpty }?.let { slot -> player.hotbarStacks.indexOf(slot) } ?: 8
 
                 inventoryRequest {
                     swap(swapSlotId, hotbarSlotToSwapWith)

@@ -17,11 +17,11 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
@@ -80,8 +80,6 @@ object ElytraAltitudeControl : Module(
 	val pitch40SpeedThreshold by setting("Speed Threshold", 41f, 10f..100f, .5f, description = "Speed at which to start pitching up") { usePitch40OnHeight }.group(Group.Pitch40Control)
 	val pitch40UseFireworkOnUpTrajectory by setting("Use Firework On Up Trajectory", false, "Use fireworks when converting speed to altitude in the Pitch 40 maneuver") { usePitch40OnHeight }.group(Group.Pitch40Control)
 
-	override val rotationConfig = RotationSettings(this, Group.Rotation)
-
 	var controlState = ControlState.AttitudeControl
 	var state = Pitch40State.GainSpeed
 	var lastAngle = pitch40UpStartAngle
@@ -91,6 +89,12 @@ object ElytraAltitudeControl : Module(
 	val usageDelay = Timer()
 
 	init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(rotationConfig)
+			}
+		}
+
 		listen<TickEvent.Pre> {
 			if (!player.isGliding) return@listen
 			run {
@@ -114,7 +118,7 @@ object ElytraAltitudeControl : Module(
 								-1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
 							}
 						}.coerceIn(-maxPitchAngle, maxPitchAngle)
-						RotationRequest(Rotation(player.yaw, outputPitch.toFloat()), this@ElytraAltitudeControl).submit()
+						rotationRequest { pitch(outputPitch) }.submit()
 
 						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
 							if (useFireworkOnHeight && minHeight > player.y) {
@@ -133,14 +137,14 @@ object ElytraAltitudeControl : Module(
 					}
 					ControlState.Pitch40Fly -> when (state) {
 						Pitch40State.GainSpeed -> {
-							RotationRequest(Rotation(player.yaw, pitch40DownAngle), this@ElytraAltitudeControl).submit()
+							rotationRequest { pitch(pitch40DownAngle) }.submit()
 							if (player.flySpeed() > pitch40SpeedThreshold) {
 								state = Pitch40State.PitchUp
 							}
 						}
 						Pitch40State.PitchUp -> {
 							lastAngle -= 5f
-							RotationRequest(Rotation(player.yaw, lastAngle), this@ElytraAltitudeControl).submit()
+							rotationRequest { pitch(lastAngle) }.submit()
 							if (lastAngle <= pitch40UpStartAngle) {
 								state = Pitch40State.FlyUp
 								if (pitch40UseFireworkOnUpTrajectory) {
@@ -152,7 +156,7 @@ object ElytraAltitudeControl : Module(
 						}
 						Pitch40State.FlyUp -> {
 							lastAngle += pitch40AngleChangeRate
-							RotationRequest(Rotation(player.yaw, lastAngle), this@ElytraAltitudeControl).submit()
+							rotationRequest { pitch(lastAngle) }.submit()
 							if (lastAngle >= 0f) {
 								state = Pitch40State.GainSpeed
 								if (logHeightGain) {

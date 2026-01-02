@@ -24,14 +24,14 @@ import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
-import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 object HotbarContainer : MaterialContainer(Rank.Hotbar) {
     override var stacks: List<ItemStack>
-        get() = mc.player?.hotbar ?: emptyList()
+        get() = mc.player?.hotbarStacks ?: emptyList()
         set(_) {}
 
     override val description = buildText { literal("Hotbar") }

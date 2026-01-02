@@ -26,8 +26,8 @@ import com.lambda.threading.runSafe
 import com.lambda.util.SpeedUnit
 import net.minecraft.util.math.Vec3d
 
-object Speed : HudModule(
-    name = "Speed",
+object Speedometer : HudModule(
+    name = "Speedometer",
     description = "Displays player speed",
     tag = ModuleTag.HUD
 ) {
