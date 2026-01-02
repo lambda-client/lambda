@@ -75,11 +75,13 @@ jobs:
           TIMESTAMP=$(echo "$LATEST_MAVEN_METADATA" | grep -oP '(?<=<timestamp>).*?(?=</timestamp>)')
           BUILD_NUMBER=$(echo "$LATEST_MAVEN_METADATA" | grep -oP '(?<=<buildNumber>).*?(?=</buildNumber>)')
           LATEST_SNAPSHOT="lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${TIMESTAMP}-${BUILD_NUMBER}"
+          
+          echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}" >> $GITHUB_ENV
           echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
           echo "LATEST_SNAPSHOT=lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${TIMESTAMP}-${BUILD_NUMBER}" >> $GITHUB_ENV
 
       - name: Send Discord build message
         if: steps.upload-maven.conclusion == 'success' || steps.upload-git.conclusion == 'success'
         run: |
-          curl "${{ secrets.WEBHOOK }}" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build ${{ github.run_number }}\",\"description\":\"**Branch:** ${{ github.ref_name }}\\n**Changes:**\\n${{ env.COMMIT_MESSAGE }}\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [${{ env.LATEST_SNAPSHOT }}.jar](https://maven.lambda-client.org/#/snapshots/com/lambda/lambda/${{ env.LATEST_VERSION }}/${{ env.LATEST_SNAPSHOT }}\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda%20logo%20banner%20transparent.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda.png\"}"
+          curl "${{ secrets.WEBHOOK }}" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build ${{ github.run_number }}\",\"description\":\"**Branch:** ${{ github.ref_name }}\\n**Changes:**\\n${{ env.COMMIT_MESSAGE }}\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [${{ env.LATEST_SNAPSHOT }}.jar](https://maven.lambda-client.org/#/snapshots/com/lambda/lambda/${{ env.LATEST_VERSION }}/${{ env.LATEST_SNAPSHOT }})\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda%20logo%20banner%20transparent.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda.png\"}"
         
