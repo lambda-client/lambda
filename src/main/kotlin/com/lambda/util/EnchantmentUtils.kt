@@ -40,6 +40,9 @@ object EnchantmentUtils {
     fun ItemStack.getEnchantment(key: RegistryKey<Enchantment>) =
         enchantments.enchantmentEntries.find { it.key?.matchesKey(key) == true }?.intValue ?: 0
 
+    fun ItemStack.getEnchantment(entry: RegistryEntry<Enchantment>) =
+        enchantments.enchantmentEntries.find { it == entry }?.intValue ?: 0
+
     fun <T> ItemStack.forEachEnchantment(block: (RegistryEntry<Enchantment>, Int) -> T) =
         enchantments.enchantmentEntries.map { block(it.key, it.intValue) }
 

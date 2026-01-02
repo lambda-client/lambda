@@ -49,7 +49,7 @@ object AutoArmor : Module(
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
 	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
-	private val minDurabilityPercentage by setting("Min Durability Percentage", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece")
+	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)
 	private val chestProtection by setting("Preferred Chest Protection", Protection.Protection)
 	private val legProtection by setting("Preferred Leg Protection", Protection.BlastProtection)
@@ -123,7 +123,7 @@ object AutoArmor : Module(
 				swaps.forEach {
 					pickup(it.first.id)
 					pickup(it.second.id)
-					if (it.second.stack !== ItemStack.EMPTY)
+					if (!it.second.stack.isEmpty)
 						pickup(it.first.id)
 				}
 			}.submit()
