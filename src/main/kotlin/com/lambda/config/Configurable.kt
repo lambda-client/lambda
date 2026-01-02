@@ -36,7 +36,7 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.complex.ColorSetting
-import com.lambda.config.settings.complex.KeybindSettingCore
+import com.lambda.config.settings.complex.KeybindSetting
 import com.lambda.config.settings.complex.Vec3dSetting
 import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.config.settings.numeric.FloatSetting
@@ -229,14 +229,14 @@ abstract class Configurable(
         defaultValue: Bind,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSettingCore(defaultValue), this, visibility).register()
+    ) = Setting(name, description, KeybindSetting(defaultValue), this, visibility).register()
 
     fun setting(
         name: String,
         defaultValue: KeyCode,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSettingCore(defaultValue), this, visibility).register()
+    ) = Setting(name, description, KeybindSetting(defaultValue), this, visibility).register()
 
     fun setting(
         name: String,
