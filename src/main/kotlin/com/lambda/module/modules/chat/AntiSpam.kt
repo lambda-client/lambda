@@ -35,7 +35,7 @@ import com.lambda.util.ChatUtils.slurs
 import com.lambda.util.ChatUtils.swears
 import com.lambda.util.ChatUtils.toAscii
 import com.lambda.util.NamedEnum
-import com.lambda.util.text.MessageDirection
+import com.lambda.util.text.DirectMessage
 import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
@@ -79,13 +79,13 @@ object AntiSpam : Module(
 	}
 
 	init {
-		listen<ChatEvent.Message> { event ->
+		listen<ChatEvent.Receive> { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
 
 			if (
-				ignoreSystem && !MessageType.Both.matches(raw) && !MessageDirection.Both.matches(raw) ||
-				ignoreDms && MessageDirection.Receive.matches(raw)
+				ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
+				ignoreDms && DirectMessage.Receive.matches(raw)
 			) return@listen
 
 			val slurMatches = slurs.takeIf { detectSlurs.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
@@ -102,8 +102,8 @@ object AntiSpam : Module(
 			fun doMatch(replace: ReplaceConfig, matches: Sequence<MatchResult>) {
 				if (
 					cancelled ||
-					filterSystem && !MessageType.Both.matches(raw) && !MessageDirection.Both.matches(raw) ||
-					filterDms && MessageDirection.Receive.matches(raw) ||
+					filterSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
+					filterDms && DirectMessage.Receive.matches(raw) ||
 					filterFriends && author?.let { FriendManager.isFriend(it) } == true ||
 					filterSelf && MessageType.Self.matches(raw)
 				) return
@@ -127,9 +127,9 @@ object AntiSpam : Module(
 			doMatch(detectColors, colorMatches)
 
 			if (cancelled) return@listen event.cancel()
-			if (!hasMatches) return@listen
 
-			event.message = Text.of(if (fancyChats) raw.toAscii else raw)
+			if (hasMatches)
+				event.message = Text.of(if (fancyChats) raw.toAscii else raw)
 		}
 	}
 
