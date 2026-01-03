@@ -100,7 +100,7 @@ object ElytraAltitudeControl : Module(
 			run {
 				when (controlState) {
 					ControlState.AttitudeControl -> {
-						if (disableOnFirework && player.hasFirework) {
+						if (disableOnFirework && hasFirework) {
 							return@run
 						}
 						if (usePitch40OnHeight) {
@@ -120,7 +120,7 @@ object ElytraAltitudeControl : Module(
 						}.coerceIn(-maxPitchAngle, maxPitchAngle)
 						rotationRequest { pitch(outputPitch) }.submit()
 
-						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
+						if (usageDelay.timePassed(2.seconds) && !hasFirework) {
 							if (useFireworkOnHeight && minHeight > player.y) {
 								usageDelay.reset()
 								runSafe {
@@ -191,8 +191,8 @@ object ElytraAltitudeControl : Module(
 		}
 	}
 
-	val ClientPlayerEntity.hasFirework: Boolean
-		get() = runSafe { return fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == this.player }.any() } ?: false
+	val hasFirework: Boolean
+		get() = runSafe { return fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == player }.any() } ?: false
 
 	class PIController(val valueP: () -> Double, val valueD: () -> Double, val valueI: () -> Double, val constant: () -> Double) {
 		var accumulator = 0.0 // Integral term accumulator
