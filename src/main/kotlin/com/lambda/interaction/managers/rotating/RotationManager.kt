@@ -173,6 +173,12 @@ object RotationManager : Manager<RotationRequest>(
         if (lockPitch == null) safeContext.player.pitch = pitch.toFloat()
     }
 
+    context(safeContext: SafeContext)
+    fun setPlayerRotation(rotation: Rotation) {
+        setPlayerYaw(rotation.yaw)
+        setPlayerPitch(rotation.pitch)
+    }
+
     /**
      * If the rotation has not been changed this tick, the [activeRequest]'s target rotation is updated, and
      * likewise the [activeRotation]. The [activeRequest] is then updated, ticking the [RotationRequest.keepTicks]

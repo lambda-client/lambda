@@ -95,10 +95,8 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         var Entity.rotation
             get() = Rotation(yaw, pitch)
             set(value) {
-                runSafe {
-                    RotationManager.setPlayerYaw(value.yaw)
-                    RotationManager.setPlayerPitch(value.pitch)
-                }
+                yaw = value.yawF
+                pitch = value.pitchF
             }
 
         fun wrap(deg: Double) = wrapDegrees(deg)

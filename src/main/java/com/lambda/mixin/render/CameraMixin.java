@@ -47,6 +47,12 @@ public abstract class CameraMixin {
     @Shadow
     public abstract float getYaw();
 
+    @Shadow
+    public float yaw;
+
+    @Shadow
+    public float pitch;
+
     @Inject(method = "update", at = @At("TAIL"))
     private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
         if (!Freecam.INSTANCE.isEnabled()) return;
@@ -64,18 +70,21 @@ public abstract class CameraMixin {
      *     );
      * }</pre>
      */
-    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", shift = At.Shift.AFTER))
+    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
     private void injectQuickPerspectiveSwap(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
         var rot = RotationManager.getLockRotation();
         if (rot == null) return;
         if (FreeLook.INSTANCE.isEnabled()) {
-            if (FreeLook.getEnableYaw()) setRotation(rot.getYawF(), getPitch());
-            if (FreeLook.getEnablePitch()) setRotation(getYaw(), rot.getPitchF());
+            var newYaw = yaw;
+            var newPitch = pitch;
+            if (FreeLook.getEnableYaw()) newYaw = rot.getYawF();
+            if (FreeLook.getEnablePitch()) newPitch = rot.getPitchF();
+            setRotation(newYaw, newPitch);
         } else setRotation(rot.getYawF(), rot.getPitchF());
     }
 
     /**
-     * Allows camera to clip through blocks in third person
+     * Allows the camera to clip through blocks in third person
      */
     @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
     private void onClipToSpace(float distance, CallbackInfoReturnable<Float> cir) {
