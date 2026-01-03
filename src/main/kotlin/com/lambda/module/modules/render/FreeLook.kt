@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.rotation
@@ -32,8 +33,8 @@ object FreeLook : Module(
     description = "Allows you to look around freely while moving",
     tag = ModuleTag.PLAYER,
 ) {
-    val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
-    val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
+    @JvmStatic val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
+    @JvmStatic val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
     val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
     var camera: Rotation = Rotation.ZERO
@@ -73,8 +74,8 @@ object FreeLook : Module(
                 it.deltaPitch * SENSITIVITY_FACTOR
             )
 
-            if (enablePitch) player.pitch = camera.pitchF
-            if (enableYaw) player.yaw = camera.yawF
+            if (enableYaw) RotationManager.setPlayerYaw(camera.yaw)
+            if (enablePitch) RotationManager.setPlayerPitch(camera.pitch)
 
             it.cancel()
         }

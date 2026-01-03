@@ -25,7 +25,6 @@ import com.lambda.module.modules.render.NoRender;
 import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
-import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -41,6 +40,12 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 public abstract class CameraMixin {
     @Shadow
     public abstract void setRotation(float yaw, float pitch);
+
+    @Shadow
+    public abstract float getPitch();
+
+    @Shadow
+    public abstract float getYaw();
 
     @Inject(method = "update", at = @At("TAIL"))
     private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
@@ -59,22 +64,23 @@ public abstract class CameraMixin {
      *     );
      * }</pre>
      */
-    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
+    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", shift = At.Shift.AFTER))
     private void injectQuickPerspectiveSwap(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
         var rot = RotationManager.getLockRotation();
         if (rot == null) return;
-        setRotation(rot.getYawF(), rot.getPitchF());
+        if (FreeLook.INSTANCE.isEnabled()) {
+            if (FreeLook.getEnableYaw()) setRotation(rot.getYawF(), getPitch());
+            if (FreeLook.getEnablePitch()) setRotation(getYaw(), rot.getPitchF());
+        } else setRotation(rot.getYawF(), rot.getPitchF());
     }
 
     /**
      * Allows camera to clip through blocks in third person
      */
     @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
-    private void onClipToSpace(float desiredCameraDistance, CallbackInfoReturnable<Float> info) {
+    private void onClipToSpace(float distance, CallbackInfoReturnable<Float> cir) {
         if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
-            info.setReturnValue(desiredCameraDistance);
-        } else if (FreeLook.INSTANCE.isEnabled()) {
-            info.setReturnValue(desiredCameraDistance);
+            cir.setReturnValue(distance);
         }
     }
 
@@ -91,14 +97,12 @@ public abstract class CameraMixin {
      * }</pre>
      */
     @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;clipToSpace(F)F"))
-    private float onDistanceUpdate(float desiredCameraDistance) {
+    private float onDistanceUpdate(float distance) {
         if (CameraTweaks.INSTANCE.isEnabled()) {
             return CameraTweaks.getCamDistance();
-        } else if (FreeLook.INSTANCE.isEnabled()) {
-            return 4.0F;
         }
 
-        return desiredCameraDistance;
+        return distance;
     }
 
     /**
