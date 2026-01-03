@@ -105,7 +105,9 @@ object FriendCommand : LambdaCommand(
                     }
                 }
             }
+        }
 
+        required(literal("add-uuid")) {
             required(uuid("player uuid")) { player ->
                 suggests { _, builder ->
                     mc.networkHandler
