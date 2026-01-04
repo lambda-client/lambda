@@ -119,9 +119,8 @@ object ProcessorRegistry : Loadable {
 		Properties.DELAY,
 		Properties.COMPARATOR_MODE,
 		Properties.OPEN,
-		Properties.NOTE,
-
-		)
+		Properties.NOTE
+	)
 
 	override fun load() = "Loaded ${propertyPreProcessors.size} pre processors"
 
@@ -154,13 +153,12 @@ object ProcessorRegistry : Loadable {
 						with(processor) { preProcess(state, targetState, pos) }
 				}
 			}
-			if (omitInteraction) return@run complete()
 			if (!stateProcessing) {
 				if (state.block != expectedState.block) {
 					if (!state.isReplaceable) return@run null
 					propertyPreProcessors.forEach { processor ->
 						if (processor.acceptsState(targetState))
-							with(processor) { preProcess(state, expectedState) }
+							with(processor) { preProcess(state, expectedState, pos) }
 					}
 				} else {
 					propertyPostProcessors.forEach { processor ->
@@ -171,6 +169,7 @@ object ProcessorRegistry : Loadable {
 					if (!state.matches(targetState, ignore)) return@run null
 				}
 			}
+			if (omitInteraction) return@run null
 			complete()
 		}
 }

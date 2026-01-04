@@ -74,8 +74,7 @@ object InteractManager : Manager<InteractRequest>(
     private var maxPlacementsThisTick = 0
 
     private var shouldSneak = false
-    private val validSneak: (player: ClientPlayerEntity) -> Boolean =
-        { player -> !shouldSneak || player.isSneaking }
+    private val ClientPlayerEntity.validSneak get() = isSneaking == shouldSneak
 
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
@@ -143,9 +142,9 @@ object InteractManager : Manager<InteractRequest>(
             if (placementsThisTick + 1 > maxPlacementsThisTick) break
             val ctx = iterator.next()
 
-            if (ctx.sneak) shouldSneak = true
+            shouldSneak = ctx.sneak
             if (!ctx.requestDependencies(request)) return
-            if (!validSneak(player)) return
+            if (!player.validSneak) return
             if (tickStage !in interactConfig.tickStageMask) return
 
             val actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, Hand.MAIN_HAND)

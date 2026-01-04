@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation.processing.preprocessors.property.placement.pre
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator
 import com.lambda.interaction.construction.simulation.processing.PropertyPreProcessor
 import com.lambda.interaction.construction.verify.ScanMode
@@ -25,6 +26,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.SlabBlock
 import net.minecraft.block.enums.SlabType
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
@@ -32,7 +34,8 @@ import net.minecraft.util.math.Direction
 object SlabPreProcessor : PropertyPreProcessor {
     override fun acceptsState(targetState: BlockState) = targetState.block is SlabBlock
 
-    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState) {
+    context(safeContext: SafeContext)
+    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
         val slab = targetState.get(Properties.SLAB_TYPE) ?: return
 
         val surfaceScan = when (slab) {

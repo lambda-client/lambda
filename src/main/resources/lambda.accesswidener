@@ -31,6 +31,8 @@ transitive-accessible class net/minecraft/client/render/fog/StatusEffectFogModif
 transitive-accessible field net/minecraft/client/particle/NoRenderParticleRenderer EMPTY Lnet/minecraft/client/render/Submittable;
 transitive-accessible field net/minecraft/entity/Entity GLIDING_FLAG_INDEX I
 transitive-accessible method net/minecraft/entity/Entity getFlag (I)Z
+transitive-accessible method net/minecraft/block/ChestBlock getChestType (Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)Lnet/minecraft/block/enums/ChestType;
+transitive-accessible method net/minecraft/block/ChestBlock getNeighborChestDirection (Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)Lnet/minecraft/util/math/Direction;
 
 # Entity
 transitive-accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;

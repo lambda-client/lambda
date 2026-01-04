@@ -33,6 +33,7 @@ interface PreProcessingInfo {
 	val item: Item?
 	val expectedState: BlockState
 	val placing: Boolean
+	val sneak: Boolean?
 	val noCaching: Boolean
 
 	companion object {
@@ -44,6 +45,7 @@ interface PreProcessingInfo {
 			override val item = targetState.getStack(pos).item
 			override val expectedState = targetState.getState(pos)
 			override val placing = true
+			override val sneak = null
 			override val noCaching = true
 		}
 	}
@@ -56,6 +58,7 @@ class PreProcessingInfoAccumulator(
 	override val ignore: MutableSet<Property<*>> = ProcessorRegistry.postProcessedProperties.toMutableSet(),
 	override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
 	override var placing: Boolean = true,
+	override var sneak: Boolean? = null,
 	override var noCaching: Boolean = false,
 	var omitInteraction: Boolean = false
 ) : PreProcessingInfo {
@@ -100,12 +103,18 @@ class PreProcessingInfoAccumulator(
 	}
 
 	@InfoAccumulator
+	@JvmName("setSneak1")
+	fun setSneak(sneak: Boolean) {
+		this.sneak = sneak
+	}
+
+	@InfoAccumulator
 	fun noCaching() {
 		noCaching = true
 	}
 
 	@InfoAccumulator
-	fun omitPlacement() {
+	fun omitInteraction() {
 		omitInteraction = true
 	}
 

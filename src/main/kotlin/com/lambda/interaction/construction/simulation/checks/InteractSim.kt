@@ -110,9 +110,16 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
         val fakePlayer = copyPlayer(player).apply {
             val newPos = pov - (this.eyePos - this.pos)
             setPos(newPos.x, newPos.y, newPos.z)
-            if (testBlockState.block::class in BlockUtils.interactionBlocks && preProcessing.info.placing) {
-                input.sneaking = true
-                updatePose()
+	        if (preProcessing.info.sneak == false) {
+				if (testBlockState.block::class in BlockUtils.interactionBlocks) return
+				input.sneaking = false
+		        updatePose()
+	        } else {
+				val shouldNotInteract = testBlockState.block::class in BlockUtils.interactionBlocks && preProcessing.info.placing
+		        if (shouldNotInteract || preProcessing.info.sneak == true) {
+			        input.sneaking = true
+			        updatePose()
+		        }
             }
         }
         val pov = fakePlayer.eyePos
