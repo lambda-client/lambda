@@ -26,8 +26,11 @@ import kotlin.Unit;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.PlayerListHud;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.scoreboard.Team;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
+import net.minecraft.util.Nullables;
+import net.minecraft.world.GameMode;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -45,6 +48,12 @@ import java.util.List;
 @Mixin(PlayerListHud.class)
 public class PlayerListHudMixin {
     @Shadow @Final private static Comparator<PlayerListEntry> ENTRY_ORDERING;
+    @Unique @Final private static Comparator<PlayerListEntry> FRIENDS_FIRST_ENTRY_ORDERING = Comparator
+            .comparingInt((PlayerListEntry entry) -> FriendManager.INSTANCE.isFriend(entry.getProfile().name()) ? 0 : 1)
+            .thenComparingInt(entry -> -entry.getListOrder())
+            .thenComparingInt((entry) -> entry.getGameMode() == GameMode.SPECTATOR ? 1 : 0)
+            .thenComparing((entry) -> Nullables.mapOrElse(entry.getScoreboardTeam(), Team::getName, ""))
+            .thenComparing((entry) -> entry.getProfile().name(), String::compareToIgnoreCase);
 
     @Shadow @Final private MinecraftClient client;
 
@@ -57,7 +66,7 @@ public class PlayerListHudMixin {
                         .getListedPlayerListEntries()
                         .stream()
                         .filter(entry -> !ExtraTab.getFriendsOnly() || FriendManager.INSTANCE.isFriend(entry.getProfile()))
-                        .sorted(ENTRY_ORDERING)
+                        .sorted(ExtraTab.getSortFriendsFirst() ? FRIENDS_FIRST_ENTRY_ORDERING : ENTRY_ORDERING)
                         .limit(ExtraTab.getTabEntries())
                         .toList()
         );
