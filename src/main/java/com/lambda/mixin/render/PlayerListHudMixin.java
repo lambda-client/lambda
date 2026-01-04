@@ -48,7 +48,7 @@ import java.util.List;
 @Mixin(PlayerListHud.class)
 public class PlayerListHudMixin {
     @Shadow @Final private static Comparator<PlayerListEntry> ENTRY_ORDERING;
-    @Unique @Final private static Comparator<PlayerListEntry> FRIENDS_FIRST_ENTRY_ORDERING = Comparator
+    @Unique private static final Comparator<PlayerListEntry> FRIENDS_FIRST_ENTRY_ORDERING = Comparator
             .comparingInt((PlayerListEntry entry) -> FriendManager.INSTANCE.isFriend(entry.getProfile().name()) ? 0 : 1)
             .thenComparingInt(entry -> -entry.getListOrder())
             .thenComparingInt((entry) -> entry.getGameMode() == GameMode.SPECTATOR ? 1 : 0)
