@@ -19,6 +19,7 @@ package com.lambda.sound
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
+import com.lambda.module.modules.client.Client
 import com.lambda.util.math.random
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.registry.Registries
@@ -34,6 +35,7 @@ object SoundManager : Loadable {
     }
 
     fun playSoundRandomly(event: SoundEvent, pitch: Double = 1.0, pitchRange: Double = 0.05) {
+        if (!Client.toggleSounds) return
         val actualPitch = (pitch - pitchRange..pitch + pitchRange).random()
 
         mc.soundManager.play(
