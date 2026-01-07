@@ -35,6 +35,7 @@ interface PreProcessingInfo {
 	val placing: Boolean
 	val sneak: Boolean?
 	val noCaching: Boolean
+	val omitInteraction: Boolean
 
 	companion object {
 		context(_: AutomatedSafeContext)
@@ -47,6 +48,7 @@ interface PreProcessingInfo {
 			override val placing = true
 			override val sneak = null
 			override val noCaching = true
+			override val omitInteraction = false
 		}
 	}
 }
@@ -60,7 +62,7 @@ class PreProcessingInfoAccumulator(
 	override var placing: Boolean = true,
 	override var sneak: Boolean? = null,
 	override var noCaching: Boolean = false,
-	var omitInteraction: Boolean = false
+	override var omitInteraction: Boolean = false
 ) : PreProcessingInfo {
 	@InfoAccumulator
 	fun offerSurfaceScan(scan: SurfaceScan) {

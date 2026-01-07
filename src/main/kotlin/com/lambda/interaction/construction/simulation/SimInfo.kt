@@ -68,7 +68,7 @@ interface SimInfo : Automated {
 	        pov,
 	        Stack(),
 	        concurrentResults
-		).takeIf { it.hasBasicRequirements() }?.sim()
+		).takeIf { it?.hasBasicRequirements() == true }?.sim()
 
         /**
          * Creates a new [SimInfo] using the current [SimInfo]'s [dependencyStack] and [concurrentResults],
@@ -89,7 +89,7 @@ interface SimInfo : Automated {
 	        pov,
 	        Stack<Sim<*>>().apply { addAll(dependencyStack) },
 	        concurrentResults
-		).takeIf { it.hasBasicRequirements() }?.sim()
+		).takeIf { it?.hasBasicRequirements() == true }?.sim()
 
 	    @SimDsl
 	    private fun AutomatedSafeContext.getTypedInfo(
@@ -99,10 +99,11 @@ interface SimInfo : Automated {
 		    pov: Vec3d,
 		    dependencyStack: Stack<Sim<*>>,
 		    concurrentResults: MutableSet<BuildResult>
-	    ): SimInfo {
+	    ): SimInfo? {
 		    if (!targetState.isEmpty()) {
 			    getProcessingInfo(state, targetState, pos)?.let { preProcessing ->
-				    return object : InteractSimInfo, Automated by this {
+				    return if (preProcessing.info.omitInteraction) null
+				    else object : InteractSimInfo, Automated by this {
 					    override val pos = pos
 					    override val state = state
 					    override val targetState = targetState

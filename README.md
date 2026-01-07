@@ -2,11 +2,12 @@
     <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%" alt="logo">
 </p>
 
-![Minecraft](https://img.shields.io/badge/minecraft-1.21.5-green?link=https%3A%2F%2Fwww.minecraft.net%2F)
+![Minecraft](https://img.shields.io/badge/minecraft-1.21.11-green?link=https%3A%2F%2Fwww.minecraft.net%2F)
+![Minecraft](https://img.shields.io/badge/minecraft-1.21.5-red?link=https%3A%2F%2Fwww.minecraft.net%2F)
 ![GitHub Downloads](https://img.shields.io/github/downloads/lambda-client/lambda/total)
 ![Discord](https://img.shields.io/discord/834570721070022687?logo=Discord&logoColor=white&link=https%3A%2F%2Fdiscord.gg%2FMBAEzyFn)
 ![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/lambda-client/lambda?color=royalblue)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/build.yml?branch=1.21.5&logo=gradle)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?logo=gradle)
 ![GitHub Contributors](https://img.shields.io/github/contributors/lambda-client/lambda)
 ![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)
 ![GitHub License](https://img.shields.io/github/license/lambda-client/lambda?logo=gplv3&link=https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fgpl-3.0.en.html)
@@ -55,10 +56,13 @@ Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element
 
 ## Installation
 <a href="https://fabricmc.net/wiki/install"><img src="https://cdn.jonasjones.dev/mod-badges/support-fabric.png" width="150px" alt="Fabric Supported"></a>
-1. Install Minecraft 1.21.5 [(download)](https://www.minecraft.net/)
+1. Install the Minecraft version corresponding to the mod release(download)](https://www.minecraft.net/)
 2. Install Fabric [(download)](https://fabricmc.net/use/installer/)
 3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/0.0.2%2B1.21.5/lambda-0.0.2+1.21.5.jar)
-4. Put the file in your `.minecraft/mods` folder
+4. Get the corresponding [Baritone](https://github.com/cabaletta/baritone/releases) api fabric build
+5. Get [Kotlin For Fabric](https://modrinth.com/mod/fabric-language-kotlin)
+6. Get the latest [Fabric API](https://modrinth.com/mod/fabric-api/) release
+7. Put the files in your `.minecraft/mods` folder
 
 ## Getting Started
 
