@@ -139,9 +139,9 @@ object ProcessorRegistry : Loadable {
 			preProcess(pos, state, targetBlockState, targetState.getStack(pos)).also { info ->
 				if (info?.noCaching != true) processorCache[processorCacheKey] = info
 			}
-		}
+		} ?: return null
 
-		return PreProcessingData(preProcessingInfo ?: return null, pos)
+		return PreProcessingData(preProcessingInfo, pos)
 	}
 
 	context(safeContext: SafeContext)
@@ -153,7 +153,7 @@ object ProcessorRegistry : Loadable {
 						with(processor) { preProcess(state, targetState, pos) }
 				}
 			}
-			if (!stateProcessing) {
+			if (!stateProcessing && !omitInteraction) {
 				if (state.block != expectedState.block) {
 					if (!state.isReplaceable) return@run null
 					propertyPreProcessors.forEach { processor ->
@@ -169,7 +169,6 @@ object ProcessorRegistry : Loadable {
 					if (!state.matches(targetState, ignore)) return@run null
 				}
 			}
-			if (omitInteraction) return@run null
 			complete()
 		}
 }
