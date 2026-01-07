@@ -40,7 +40,7 @@ object MainHandContainer : MaterialContainer(Rank.MainHand) {
     override val description = buildText { literal("MainHand") }
 
     context(safeContext: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(from: Slot, toHere: Slot) {
-        swap(from.id, safeContext.player.inventory.selectedSlot)
+    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        swap(toSlot.id, safeContext.player.inventory.selectedSlot)
     }
 }

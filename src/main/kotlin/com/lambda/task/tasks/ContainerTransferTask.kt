@@ -59,10 +59,12 @@ class ContainerTransferTask(
 					return@listen
 				}
 
-				stackSelection.filterSlots(slots).firstOrNull()?.let { fromSlot ->
+				fromContainer.getSlot(stackSelection)?.let { fromSlot ->
 					destination.getReplaceSlot()?.let { toSlot ->
 						inventoryRequest {
-							with(fromContainer) { transfer(fromSlot, toSlot) }
+							if (fromContainer.swapMethodPriority > destination.swapMethodPriority)
+								with(fromContainer) { transfer(fromSlot, toSlot) }
+							else with(destination) { transfer(toSlot, toSlot) }
 							onComplete { success() }
 						}.submit()
 						return@listen

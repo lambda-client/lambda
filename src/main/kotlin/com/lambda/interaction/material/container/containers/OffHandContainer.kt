@@ -40,7 +40,7 @@ object OffHandContainer : MaterialContainer(Rank.OffHand) {
     override val description = buildText { literal("OffHand") }
 
     context(_: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(from: Slot, toHere: Slot) {
-        swap(from.id, 40)
+    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        swap(toSlot.id, 40)
     }
 }

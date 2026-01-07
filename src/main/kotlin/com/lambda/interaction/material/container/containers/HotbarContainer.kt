@@ -40,7 +40,7 @@ object HotbarContainer : MaterialContainer(Rank.Hotbar) {
     override val description = buildText { literal("Hotbar") }
 
     context(safeContext: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(from: Slot, toHere: Slot) {
-        swap(from.id, safeContext.player.hotbarSlots.indexOf(toHere))
+    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        swap(toSlot.id, safeContext.player.hotbarSlots.indexOf(toSlot))
     }
 }

@@ -39,6 +39,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 import net.minecraft.text.Text
@@ -58,6 +59,12 @@ abstract class MaterialContainer(
         it.stack.isEmpty
     }.thenByDescending {
         it.stack.item in automated.inventoryConfig.disposables
+    }.thenByDescending {
+        it.stack.item.components.contains(DataComponentTypes.TOOL)
+    }.thenByDescending {
+        it.stack.item.components.contains(DataComponentTypes.FOOD)
+    }.thenByDescending {
+        it.stack.isStackable
     }
 
     @TextDsl
@@ -122,10 +129,11 @@ abstract class MaterialContainer(
     context(automatedSafeContext: AutomatedSafeContext)
     fun transfer(stackSelection: StackSelection, destination: MaterialContainer): Boolean =
         with(automatedSafeContext) {
-            val fromSlot = stackSelection.filterSlots(slots).firstOrNull() ?: return false
+            val fromSlot = getSlot(stackSelection) ?: return false
             val toSlot = destination.getReplaceSlot() ?: return false
             return inventoryRequest {
-                transfer(fromSlot, toSlot)
+                if (swapMethodPriority > destination.swapMethodPriority) transfer(fromSlot, toSlot)
+                else with(destination) { transfer(toSlot, fromSlot) }
             }.submit().done
         }
 
@@ -156,6 +164,10 @@ abstract class MaterialContainer(
 
     context(_: AutomatedSafeContext)
     open fun getReplaceSlot() = slots.sortedWith(replaceSorter).firstOrNull()
+
+    context(_: SafeContext)
+    open fun getSlot(stackSelection: StackSelection): Slot? =
+        stackSelection.filterSlots(slots).firstOrNull()
 
     enum class Rank {
         MainHand,

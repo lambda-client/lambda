@@ -98,9 +98,7 @@ object ContainerManager : Loadable {
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.transferByTask(destination: MaterialContainer) =
         with(automatedSafeContext) {
-            findContainerWithMaterial(
-                inventoryConfig.containerSelection
-            )?.transferByTask(this@transferByTask, destination)
+            findContainerWithMaterial()?.transferByTask(this@transferByTask, destination)
         }
 
     context(_: SafeContext)
@@ -122,8 +120,8 @@ object ContainerManager : Loadable {
         containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection,
     ): List<MaterialContainer> =
         containers()
-            .filter { it.materialAvailable(this) >= count }
             .filter { containerSelection.matches(it) }
+            .filter { it.materialAvailable(this) >= count }
             .sortedWith(automated.inventoryConfig.providerPriority.materialComparator(this))
 
     context(automatedSafeContext: AutomatedSafeContext)

@@ -24,6 +24,8 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.inventory.SingleStackInventory
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
@@ -37,14 +39,29 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
 
     override val description = buildText { literal("Creative") }
 
-    context(_: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(from: Slot, toHere: Slot) {
-        clickCreativeStack(toHere.stack, from.id)
+    context(safeContext : SafeContext)
+    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        clickCreativeStack(fromHere.stack, toSlot.id)
+        safeContext.player.currentScreenHandler.slots[toSlot.id].stack = fromHere.stack
     }
 
-    context(_: SafeContext)
+    context(safeContext: SafeContext)
+    override fun getSlot(stackSelection: StackSelection) =
+        stackSelection.optimalStack?.let { stack ->
+            Slot(
+                object : SingleStackInventory {
+                    override fun getStack() = stack
+                    override fun setStack(stack: ItemStack?) {}
+                    override fun markDirty() {}
+                    override fun canPlayerUse(player: PlayerEntity?) = false
+                },
+                0, 0, 0
+            )
+        }
+
+    context(safeContext: SafeContext)
     override fun materialAvailable(selection: StackSelection): Int =
-        if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
+        if (safeContext.player.isCreative && selection.optimalStack != null) Int.MAX_VALUE else 0
 
     context(_: SafeContext)
     override fun spaceAvailable(selection: StackSelection): Int =
