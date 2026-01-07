@@ -36,6 +36,7 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
@@ -155,11 +156,12 @@ abstract class Module(
             else if (event.isReleased && disableOnRelease) disable()
         }
 
-        onEnable { LambdaSound.ModuleOn.play() }
-        onDisable { LambdaSound.ModuleOff.play() }
+        onEnable { if (Client.toggleSounds) LambdaSound.ModuleOn.play() }
+        onDisable { if (Client.toggleSounds) LambdaSound.ModuleOff.play() }
 
-        onEnableUnsafe { LambdaSound.ModuleOn.play() }
-        onDisableUnsafe { LambdaSound.ModuleOff.play() }
+        //not sure if these should also be effected, remove if not.
+        onEnableUnsafe { if (Client.toggleSounds) LambdaSound.ModuleOn.play() }
+        onDisableUnsafe { if (Client.toggleSounds) LambdaSound.ModuleOff.play() }
 
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }

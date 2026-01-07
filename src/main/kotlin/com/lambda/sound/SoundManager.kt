@@ -35,7 +35,6 @@ object SoundManager : Loadable {
     }
 
     fun playSoundRandomly(event: SoundEvent, pitch: Double = 1.0, pitchRange: Double = 0.05) {
-        if (!Client.toggleSounds) return
         val actualPitch = (pitch - pitchRange..pitch + pitchRange).random()
 
         mc.soundManager.play(
