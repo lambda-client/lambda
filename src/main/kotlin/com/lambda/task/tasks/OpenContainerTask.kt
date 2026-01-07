@@ -31,7 +31,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class OpenContainer @Ta5kBuilder constructor(
+class OpenContainerTask @Ta5kBuilder constructor(
     private val blockPos: BlockPos,
     private val automated: Automated,
     private val waitForSlotLoad: Boolean = true,

@@ -185,10 +185,9 @@ class BreakSim private constructor(simInfo: SimInfo)
         }
 
         val hotbarCandidates = stackSelection
-            .findContainersWithMaterial(silentSwapSelection)
-            .map { it.matchingStacks(stackSelection) }
-            .flatten()
-        if (hotbarCandidates.isEmpty()) {
+	        .findContainersWithMaterial(silentSwapSelection)
+            .flatMap { it.matchingStacks(stackSelection) }
+	    if (hotbarCandidates.isEmpty()) {
             result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
             return null
         }

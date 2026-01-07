@@ -87,7 +87,7 @@ sealed class TargetState() : StateMatcher {
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
-                    it.item.block in inventoryConfig.disposables && it.item.block !in replace
+                    it.item in inventoryConfig.disposables && it.item.block !in replace
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
@@ -114,7 +114,7 @@ sealed class TargetState() : StateMatcher {
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
-                    it.item.block in inventoryConfig.disposables
+                    it.item in inventoryConfig.disposables
                 } ?: ItemStack(Items.NETHERRACK)
             }
 

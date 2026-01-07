@@ -28,7 +28,6 @@ import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.inventorySlots
-import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
@@ -67,7 +66,8 @@ object ToolSaver : Module(
 					}.thenByDescending {
 						it.stack.isEmpty
 					}.thenByDescending {
-						(it.stack.item as? BlockItem)?.block in inventoryConfig.disposables
+						it.stack.item in inventoryConfig.disposables
+					}.thenByDescending {
 						it.stack.isStackable
 					}
 					val swapWith = inventorySlots
@@ -77,6 +77,8 @@ object ToolSaver : Module(
 						?: return@mapNotNull null
 					endangered to swapWith
 				}
+
+			if (swaps.isEmpty()) return@listen
 
 			inventoryRequest {
 				swaps.forEach {

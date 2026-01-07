@@ -19,59 +19,37 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.Task
-import com.lambda.util.Communication.info
+import com.lambda.task.tasks.AcquireMaterialTask.Companion.acquire
+import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.util.math.BlockPos
+import net.minecraft.item.Items
 
-object EnderChestContainer : MaterialContainer(Rank.EnderChest) {
+object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContainer {
+    context(safeContext: SafeContext)
+    override val slots
+        get() =
+            if (ContainerManager.lastInteractedBlockEntity is EnderChestBlockEntity)
+                safeContext.player.currentScreenHandler.containerSlots
+            else emptyList()
     override var stacks = emptyList<ItemStack>()
-    private var placePos: BlockPos? = null
 
     override val description = buildText { literal("Ender Chest") }
 
-//    override fun prepare(): Task<*> {
-//        TODO("Not yet implemented")
-//    }
-//        findBlock(Blocks.ENDER_CHEST).onSuccess { pos ->
-//            moveIntoEntityRange(pos)
-//            placePos = pos
-//        }.onFailure {
-//            acquireStack(Items.ENDER_CHEST.select()).onSuccess { _, stack ->
-//                placeContainer(stack).onSuccess { _, pos ->
-//                    placePos = pos
-//                }
-//            }
-//        }
-
-    class EnderchestWithdrawal @Ta5kBuilder constructor(selection: StackSelection) : Task<Unit>() {
-        override val name = "Withdrawing $selection from ender chest"
-
-        override fun SafeContext.onStart() {
-            info("Not yet implemented")
-            success()
-        }
-    }
-
     context(automated: Automated)
-    override fun withdraw(selection: StackSelection) = EnderchestWithdrawal(selection)
-
-    class EnderchestDeposit @Ta5kBuilder constructor(selection: StackSelection) : Task<Unit>() {
-        override val name = "Depositing $selection into ender chest"
-
-        override fun SafeContext.onStart() {
-            info("Not yet implemented")
-            success()
+    override fun access() =
+        automated.acquire { Items.ENDER_CHEST.select() }.thenOrNull { selection ->
+            val slot = selection.filterSlots(HotbarContainer.slots).firstOrNull() ?: return@thenOrNull FailureTask("Ender Chest not found in hotbar after transfer.")
+            PlaceContainerTask(slot, automated).finally { pos ->
+                OpenContainerTask(pos, automated)
+            }
         }
-    }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) = EnderchestDeposit(selection)
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = false
 }

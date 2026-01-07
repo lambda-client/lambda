@@ -22,9 +22,11 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
+import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
+import com.lambda.threading.runSafeAutomated
 
-class AcquireMaterial @Ta5kBuilder constructor(
+class AcquireMaterialTask @Ta5kBuilder constructor(
     val selection: StackSelection,
     automated: Automated
 ) : Task<StackSelection>(), Automated by automated {
@@ -32,17 +34,19 @@ class AcquireMaterial @Ta5kBuilder constructor(
         get() = "Acquiring $selection"
 
     override fun SafeContext.onStart() {
-        selection.findContainerWithMaterial()
-            ?.withdraw(selection)
-            ?.finally {
-                success(selection)
-            }?.execute(this@AcquireMaterial)
-            ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
+        runSafeAutomated {
+            selection.findContainerWithMaterial()
+                ?.transferByTask(selection, HotbarContainer)
+                ?.finally {
+                    success(selection)
+                }?.execute(this@AcquireMaterialTask)
+                ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
+        }
     }
 
     companion object {
         @Ta5kBuilder
         fun Automated.acquire(selection: () -> StackSelection) =
-            AcquireMaterial(selection(), this)
+            AcquireMaterialTask(selection(), this)
     }
 }

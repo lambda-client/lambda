@@ -70,7 +70,6 @@ object Scaffold : Module(
 						::swapWithDisposables,
 						::providerPriority,
 						::storePriority,
-						::immediateAccessOnly,
 						::accessShulkerBoxes,
 						::accessEnderChest,
 						::accessChests,

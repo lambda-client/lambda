@@ -36,14 +36,15 @@ import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class PlaceContainer @Ta5kBuilder constructor(
-    val stack: ItemStack,
+class PlaceContainerTask @Ta5kBuilder constructor(
+    val slot: Slot,
     automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
-    private val startStack: ItemStack = stack.copy()
+    private val startStack: ItemStack = slot.stack.copy()
     override val name: String get() = "Placing container ${startStack.name.string}"
 
     override fun SafeContext.onStart() {
@@ -75,7 +76,7 @@ class PlaceContainer @Ta5kBuilder constructor(
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
             .finally { success(containerPosition) }
-            .execute(this@PlaceContainer)
+            .execute(this@PlaceContainerTask)
     }
 
     private fun SafeContext.canBeOpened(

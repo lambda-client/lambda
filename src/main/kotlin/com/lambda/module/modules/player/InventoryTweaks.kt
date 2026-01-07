@@ -27,8 +27,8 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.OpenContainer
-import com.lambda.task.tasks.PlaceContainer
+import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.PlaceContainerTask
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
@@ -55,13 +55,13 @@ object InventoryTweaks : Module(
 
         listen<PlayerEvent.SlotClick> {
             if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
-            val stack = it.screenHandler.getSlot(it.slot).stack
-            if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listen
+            val slot = it.screenHandler.getSlot(it.slot)
+            if (!(instantShulker && slot.stack.item in shulkerBoxes) && !(instantEChest && slot.stack.item == Items.ENDER_CHEST)) return@listen
             it.cancel()
             lastOpenScreen = null
-            placeAndOpen = PlaceContainer(stack, this@InventoryTweaks).then { placePos ->
+            placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
                 placedPos = placePos
-                OpenContainer(placePos, this@InventoryTweaks).finally { screenHandler ->
+                OpenContainerTask(placePos, this@InventoryTweaks).finally { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
             }.run()

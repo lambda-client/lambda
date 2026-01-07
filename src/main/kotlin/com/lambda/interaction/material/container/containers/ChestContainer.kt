@@ -19,23 +19,31 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
-import com.lambda.interaction.material.transfer.SlotTransfer.Companion.withdraw
-import com.lambda.task.tasks.OpenContainer
-import com.lambda.util.Communication.info
+import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
+import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 data class ChestContainer(
     override var stacks: List<ItemStack>,
     val blockPos: BlockPos,
     val containedInStash: StashContainer? = null
-) : MaterialContainer(Rank.Chest) {
+) : MaterialContainer(Rank.Chest), ExternalContainer {
+    context(safeContext: SafeContext)
+    override val slots
+        get(): List<Slot> =
+            if (ContainerManager.lastInteractedBlockEntity is ChestBlockEntity)
+                safeContext.player.currentScreenHandler.containerSlots
+            else emptyList()
+
     override val description =
         buildText {
             literal("Chest at ")
@@ -47,33 +55,6 @@ data class ChestContainer(
             }
         }
 
-//    override fun prepare() =
-//        moveIntoEntityRange(blockPos).onSuccess { _, _ ->
-////            when {
-////                ChestBlock.hasBlockOnTop(world, blockPos) -> breakBlock(blockPos.up())
-////                ChestBlock.hasCatOnTop(world, blockPos) -> kill(cat)
-////            }
-//            if (ChestBlock.isChestBlocked(world, blockPos)) {
-//                throw ChestBlockedException()
-//            }
-//        }
-
     context(automated: Automated)
-    override fun withdraw(selection: StackSelection) =
-        OpenContainer(blockPos, automated)
-            .then {
-                info("Withdrawing $selection from ${it.type}")
-                withdraw(it, selection)
-            }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) =
-        OpenContainer(blockPos, automated)
-            .then {
-                info("Depositing $selection to ${it.type}")
-                deposit(it, selection)
-            }
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = false
+    override fun access() = OpenContainerTask(blockPos, automated)
 }

@@ -23,18 +23,19 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.transfer
-import com.lambda.interaction.material.container.containers.MainHandContainer
+import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.interaction.material.container.containers.OffHandContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
@@ -51,6 +52,7 @@ import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
@@ -470,8 +472,14 @@ object CrystalAura : Module(
             if (swap &&
                 (swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
                 (swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
-            ) selection.transfer(when (swapHand) { Hand.MAIN_HAND -> MainHandContainer; Hand.OFF_HAND -> OffHandContainer })
-                ?.run()
+            ) runSafeAutomated {
+                val crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
+                if (crystalSlot != -1) {
+                    if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
+                }
+                val swapTo = when (swapHand) { Hand.MAIN_HAND -> HotbarContainer; Hand.OFF_HAND -> OffHandContainer }
+                if (!selection.transfer(swapTo)) return@runSafe
+            }
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
                 placeInternal(this@Opportunity, swapHand)

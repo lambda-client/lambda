@@ -29,21 +29,20 @@ import net.minecraft.screen.slot.SlotActionType
 object SlotUtils {
     val ClientPlayerEntity.allSlots get() = currentScreenHandler.slots.filter { it.inventory is PlayerInventory }
     val ClientPlayerEntity.armorSlots get() = allSlots.filterIsInstance<ArmorSlot>()
-    val ClientPlayerEntity.inventorySlots: List<Slot> get() {
-        return if (currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler) emptyList()
+    val ClientPlayerEntity.inventorySlots: List<Slot> get() =
+        if (currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler) emptyList()
         else if (currentScreenHandler === playerScreenHandler) allSlots.subList(4, 31)
         else allSlots.subList(0, 27)
-    }
-    val ClientPlayerEntity.hotbarSlots: List<Slot> get() {
-        return if (currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler) allSlots
-        else if (currentScreenHandler === playerScreenHandler) allSlots.subList(30, 39)
-        else allSlots.subList(26, 35)
-    }
-    val ClientPlayerEntity.hotbarAndInventorySlots: List<Slot> get() {
-        return if (currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler) allSlots
-        else if (currentScreenHandler === playerScreenHandler) allSlots.subList(4, 39)
-        else allSlots.subList(0, 35)
-    }
+    val ClientPlayerEntity.hotbarSlots: List<Slot> get() =
+        if (currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler) allSlots
+        else if (currentScreenHandler === playerScreenHandler) allSlots.subList(31, 40)
+        else allSlots.subList(27, 36)
+    val ClientPlayerEntity.hotbarAndInventorySlots: List<Slot> get() =
+        if (currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler) allSlots
+        else if (currentScreenHandler === playerScreenHandler) allSlots.subList(4, 40)
+        else allSlots.subList(0, 36)
+    val ClientPlayerEntity.mainHandSlots: List<Slot> get() = listOf(hotbarSlots[inventory.selectedSlot])
+    val ClientPlayerEntity.offHandSlots: List<Slot> get() = if (currentScreenHandler === playerScreenHandler) listOf(allSlots.last()) else emptyList()
 
     val ClientPlayerEntity.allStacks: List<ItemStack> get() = hotbarAndInventoryStacks + equipmentStacks
     val ClientPlayerEntity.equipmentStacks: List<ItemStack> get() = inventory.equipment.map.map { it.value }

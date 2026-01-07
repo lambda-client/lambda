@@ -28,6 +28,7 @@ import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.item.ItemStack
 import net.minecraft.registry.entry.RegistryEntry
+import net.minecraft.screen.slot.Slot
 
 object ItemStackUtils {
     // FixMe: Change this fucking retarded stuff when mojang wake up from their coma and realize they fucked this shit up
@@ -74,8 +75,11 @@ object ItemStackUtils {
     val ItemStack.spaceLeft get() = maxCount - count
     val ItemStack.hasSpace get() = spaceLeft > 0
     val List<ItemStack>.spaceLeft get() = sumOf { it.spaceLeft }
+    val List<Slot>.spaceLeft @JvmName("slotSpaceLeft") get() = sumOf { it.stack.spaceLeft }
     val List<ItemStack>.empty: Int get() = count { it.isEmpty }
+    val List<Slot>.empty: Int @JvmName("slotEmpty") get() = count { it.stack.isEmpty }
     val List<ItemStack>.count: Int get() = if (isEmpty()) -1 else sumOf { it.count }
+    val List<Slot>.count: Int @JvmName("slotCount") get() = if (isEmpty()) -1 else sumOf { it.stack.count }
     val List<ItemStack>.copy: List<ItemStack> get() = map { it.copy() }
 
     context(safeContext: SafeContext)

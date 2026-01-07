@@ -18,91 +18,35 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.Task
-import com.lambda.util.item.ItemStackUtils.equal
-import com.lambda.util.player.gamemode
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 
 data object CreativeContainer : MaterialContainer(Rank.Creative) {
-    override var stacks = emptyList<ItemStack>()
+    context(_: SafeContext)
+    override val slots: List<Slot>
+	    get() = emptyList()
+	override var stacks = emptyList<ItemStack>()
+
+    override val swapMethodPriority = 11
 
     override val description = buildText { literal("Creative") }
 
+    context(_: SafeContext)
+    override fun InventoryRequest.InvRequestBuilder.transfer(from: Slot, toHere: Slot) {
+        clickCreativeStack(toHere.stack, from.id)
+    }
+
+    context(_: SafeContext)
     override fun materialAvailable(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
 
+    context(_: SafeContext)
     override fun spaceAvailable(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
-
-    class CreativeDeposit @Ta5kBuilder constructor(val selection: StackSelection, automated: Automated) : Task<Unit>(), Automated by automated {
-        override val name: String get() = "Removing $selection from creative inventory"
-
-        init {
-            listen<TickEvent.Pre> {
-                if (!gamemode.isCreative) {
-                    // ToDo: Maybe switch gamemode?
-                    failure(NotInCreativeModeException())
-                }
-
-                inventoryRequest {
-                    player.currentScreenHandler?.slots?.let { slots ->
-                        selection.filterSlots(slots).forEach {
-                            clickCreativeStack(ItemStack.EMPTY, it.id)
-                        }
-                    }
-                    onComplete { success() }
-                }.submit(queueIfMismatchedStage = false)
-            }
-        }
-    }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) = CreativeDeposit(selection, automated)
-
-    class CreativeWithdrawal @Ta5kBuilder constructor(val selection: StackSelection, automated: Automated) : Task<Unit>(), Automated by automated {
-        override val name: String get() = "Withdrawing $selection from creative inventory"
-
-        init {
-            listen<TickEvent.Pre> {
-                selection.optimalStack?.let { optimalStack ->
-                    if (player.mainHandStack.equal(optimalStack)) {
-                        success()
-                        return@listen
-                    }
-
-                    if (!gamemode.isCreative) {
-                        // ToDo: Maybe switch gamemode?
-                        failure(NotInCreativeModeException())
-                    }
-
-                    inventoryRequest {
-                        clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
-                        action { player.inventory.selectedStack = optimalStack }
-                        onComplete { success() }
-                    }.submit(queueIfMismatchedStage = false)
-                    return@listen
-                }
-
-                failure(IllegalStateException("Cannot move item: no optimal stack"))
-            }
-        }
-    }
-
-    // Withdraws items from the creative menu to the player's main hand
-    context(automated: Automated)
-    override fun withdraw(selection: StackSelection) = CreativeWithdrawal(selection, automated)
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = safeContext.gamemode.isCreative
-
-    class NotInCreativeModeException : IllegalStateException("Insufficient permission: not in creative mode")
 }

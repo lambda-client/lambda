@@ -47,11 +47,7 @@ object Nuker : Module(
     private var task: Task<*>? = null
 
     init {
-		setDefaultAutomationConfig {
-            applyEdits {
-                inventoryConfig::immediateAccessOnly.edit { defaultValue(true) }
-            }
-        }
+		setDefaultAutomationConfig()
 
         onEnable {
             task = tickingBlueprint {
