@@ -41,6 +41,6 @@ object HotbarContainer : MaterialContainer(Rank.Hotbar) {
 
     context(safeContext: SafeContext)
     override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
-        swap(toSlot.id, safeContext.player.hotbarSlots.indexOf(toSlot))
+        swap(toSlot.id, safeContext.player.hotbarSlots.indexOf(fromHere))
     }
 }

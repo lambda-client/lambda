@@ -273,7 +273,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
     }
 
     private suspend fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): BlockState? {
-        val resultState = context.stack.blockItem.getPlacementState(context)
+        val resultState = (context.stack.blockItem ?: return null).getPlacementState(context)
             ?: run {
                 handleEntityBlockage(context)
                 return null
@@ -287,7 +287,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 
     private suspend fun AutomatedSafeContext.handleEntityBlockage(context: ItemPlacementContext): List<Entity> {
         val pos = context.blockPos
-        val theoreticalState = context.stack.blockItem.block.getPlacementState(context)
+        val theoreticalState = (context.stack.blockItem ?: return emptyList()).block.getPlacementState(context)
             ?: return emptyList()
 
         val collisionShape = theoreticalState.getCollisionShape(

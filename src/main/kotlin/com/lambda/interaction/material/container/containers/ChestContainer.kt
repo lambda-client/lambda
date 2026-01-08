@@ -17,11 +17,13 @@
 
 package com.lambda.interaction.material.container.containers
 
-import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.task.Task
+import com.lambda.task.TaskGenerator
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
@@ -55,6 +57,11 @@ data class ChestContainer(
             }
         }
 
-    context(automated: Automated)
-    override fun access() = OpenContainerTask(blockPos, automated)
+    context(automatedSafeContext: AutomatedSafeContext)
+    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>): Task<*> =
+        OpenContainerTask(blockPos, automatedSafeContext).then {
+            taskGenerator.invoke(automatedSafeContext, Unit).finally {
+                if (exitAfter) automatedSafeContext.player.closeScreen()
+            }
+        }
 }

@@ -37,6 +37,7 @@ import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandlerType
+import net.minecraft.screen.slot.Slot
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
@@ -111,9 +112,11 @@ object ContainerManager : Loadable {
         containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
     ): MaterialContainer? = findContainersWithMaterial(containerSelection).firstOrNull()
 
-    context(_: AutomatedSafeContext)
-    fun findContainerWithSpace(selection: StackSelection): MaterialContainer? =
-        findContainersWithSpace(selection).firstOrNull()
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun StackSelection.findContainerWithSpace(
+        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
+    ): MaterialContainer? =
+        findContainersWithSpace(containerSelection).firstOrNull()
 
     context(automated: Automated, safeContext: SafeContext)
     fun StackSelection.findContainersWithMaterial(
@@ -125,13 +128,21 @@ object ContainerManager : Loadable {
             .sortedWith(automated.inventoryConfig.providerPriority.materialComparator(this))
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun findContainersWithSpace(
-        selection: StackSelection,
+    fun StackSelection.findContainersWithSpace(
+        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
     ): List<MaterialContainer> =
         containers()
-            .filter { it.spaceAvailable(selection) >= selection.count }
-            .filter { automatedSafeContext.inventoryConfig.containerSelection.matches(it) }
-            .sortedWith(automatedSafeContext.inventoryConfig.providerPriority.spaceComparator(selection))
+            .filter { containerSelection.matches(it) }
+            .filter { it.spaceAvailable(this) >= count }
+            .sortedWith(automatedSafeContext.inventoryConfig.providerPriority.spaceComparator(this))
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun StackSelection.findSlotsWithMaterial(
+        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
+    ): List<Slot> =
+        findContainersWithMaterial(containerSelection)
+            .flatMap { filterSlots(it.slots) }
+
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun findDisposable() = containers().find { container ->

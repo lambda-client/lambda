@@ -67,7 +67,7 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack(ctx).value().item)
                             }
                             AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-                                findContainersWithSpace(selection).forEachIndexed { i, container ->
+                                selection.findContainersWithSpace().forEachIndexed { i, container ->
                                     builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
                                 }
                             }

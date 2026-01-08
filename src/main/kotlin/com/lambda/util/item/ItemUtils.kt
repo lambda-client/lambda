@@ -122,7 +122,7 @@ object ItemUtils {
     )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
-    val ItemStack.blockItem: BlockItem get() = (item as? BlockItem ?: Items.AIR) as BlockItem
+    val ItemStack.blockItem get() = item as? BlockItem
 
     val Item.nutrition: Int get() = components.get(DataComponentTypes.FOOD)?.nutrition ?: 0
 

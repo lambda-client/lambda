@@ -262,11 +262,10 @@ class BuildTask private constructor(
         fun Automated.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = true,
             lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, lifeMaintenance, this
+            finishOnDone, true, lifeMaintenance, this
         )
     }
 }

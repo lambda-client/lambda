@@ -17,16 +17,17 @@
 
 package com.lambda.interaction.material.container.containers
 
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.inventory.SingleStackInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.Slot
 
 data object CreativeContainer : MaterialContainer(Rank.Creative) {
@@ -61,9 +62,13 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
 
     context(safeContext: SafeContext)
     override fun materialAvailable(selection: StackSelection): Int =
-        if (safeContext.player.isCreative && selection.optimalStack != null) Int.MAX_VALUE else 0
+        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else 0
 
-    context(_: SafeContext)
+    context(safeContext: SafeContext)
     override fun spaceAvailable(selection: StackSelection): Int =
-        if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
+        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else 0
+
+    context(safeContext: SafeContext)
+    private val correctScreenHandler
+        get() = safeContext.player.currentScreenHandler is PlayerScreenHandler || safeContext.player.currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler
 }

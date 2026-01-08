@@ -60,9 +60,9 @@ abstract class MaterialContainer(
     }.thenByDescending {
         it.stack.item in automated.inventoryConfig.disposables
     }.thenByDescending {
-        it.stack.item.components.contains(DataComponentTypes.TOOL)
+        !it.stack.item.components.contains(DataComponentTypes.TOOL)
     }.thenByDescending {
-        it.stack.item.components.contains(DataComponentTypes.FOOD)
+        !it.stack.item.components.contains(DataComponentTypes.FOOD)
     }.thenByDescending {
         it.stack.isStackable
     }
@@ -130,7 +130,7 @@ abstract class MaterialContainer(
     fun transfer(stackSelection: StackSelection, destination: MaterialContainer): Boolean =
         with(automatedSafeContext) {
             val fromSlot = getSlot(stackSelection) ?: return false
-            val toSlot = destination.getReplaceSlot() ?: return false
+            val toSlot = destination.getReplaceableSlot() ?: return false
             return inventoryRequest {
                 if (swapMethodPriority > destination.swapMethodPriority) transfer(fromSlot, toSlot)
                 else with(destination) { transfer(toSlot, fromSlot) }
@@ -163,7 +163,7 @@ abstract class MaterialContainer(
         matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
 
     context(_: AutomatedSafeContext)
-    open fun getReplaceSlot() = slots.sortedWith(replaceSorter).firstOrNull()
+    open fun getReplaceableSlot() = slots.sortedWith(replaceSorter).firstOrNull()
 
     context(_: SafeContext)
     open fun getSlot(stackSelection: StackSelection): Slot? =

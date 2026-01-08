@@ -17,13 +17,15 @@
 
 package com.lambda.interaction.material.container.containers
 
-import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ContainerManager.findSlotsWithMaterial
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.tasks.AcquireMaterialTask.Companion.acquire
+import com.lambda.task.TaskGenerator
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
 import com.lambda.util.extension.containerSlots
@@ -32,6 +34,7 @@ import com.lambda.util.text.literal
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContainer {
     context(safeContext: SafeContext)
@@ -44,12 +47,22 @@ object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContain
 
     override val description = buildText { literal("Ender Chest") }
 
-    context(automated: Automated)
-    override fun access() =
-        automated.acquire { Items.ENDER_CHEST.select() }.thenOrNull { selection ->
-            val slot = selection.filterSlots(HotbarContainer.slots).firstOrNull() ?: return@thenOrNull FailureTask("Ender Chest not found in hotbar after transfer.")
-            PlaceContainerTask(slot, automated).finally { pos ->
-                OpenContainerTask(pos, automated)
+    private var placePos = BlockPos.ORIGIN
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
+        Items.ENDER_CHEST
+            .select()
+            .findSlotsWithMaterial()
+            .firstOrNull()?.let { slot ->
+                PlaceContainerTask(slot, automatedSafeContext).then { pos ->
+                    placePos = pos
+                    OpenContainerTask(pos, automatedSafeContext).then {
+                        taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
+                            if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos, lifeMaintenance = false)
+                            else null
+                        }
+                    }
+                }
             }
-        }
 }
