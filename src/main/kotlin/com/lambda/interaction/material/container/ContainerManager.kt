@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.material.container
 
-import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
@@ -113,19 +112,18 @@ object ContainerManager : Loadable {
     ): MaterialContainer? = findContainersWithMaterial(containerSelection).firstOrNull()
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun StackSelection.findContainerWithSpace(
-        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
-    ): MaterialContainer? =
-        findContainersWithSpace(containerSelection).firstOrNull()
-
-    context(automated: Automated, safeContext: SafeContext)
     fun StackSelection.findContainersWithMaterial(
-        containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection,
+        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection,
     ): List<MaterialContainer> =
         containers()
             .filter { containerSelection.matches(it) }
             .filter { it.materialAvailable(this) >= count }
-            .sortedWith(automated.inventoryConfig.providerPriority.materialComparator(this))
+            .sortedWith(automatedSafeContext.inventoryConfig.providerPriority.materialComparator(this))
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun StackSelection.findContainerWithSpace(
+        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
+    ): MaterialContainer? = findContainersWithSpace(containerSelection).firstOrNull()
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findContainersWithSpace(
@@ -135,6 +133,11 @@ object ContainerManager : Loadable {
             .filter { containerSelection.matches(it) }
             .filter { it.spaceAvailable(this) >= count }
             .sortedWith(automatedSafeContext.inventoryConfig.providerPriority.spaceComparator(this))
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun StackSelection.findSlotWithMaterial(
+        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
+    ) = findSlotsWithMaterial(containerSelection).firstOrNull()
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findSlotsWithMaterial(

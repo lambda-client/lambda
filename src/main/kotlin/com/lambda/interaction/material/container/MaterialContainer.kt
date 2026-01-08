@@ -64,6 +64,8 @@ abstract class MaterialContainer(
     }.thenByDescending {
         !it.stack.item.components.contains(DataComponentTypes.FOOD)
     }.thenByDescending {
+        !it.stack.item.components.contains(DataComponentTypes.CONSUMABLE)
+    }.thenByDescending {
         it.stack.isStackable
     }
 
