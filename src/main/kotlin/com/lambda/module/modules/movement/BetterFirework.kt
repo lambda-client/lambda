@@ -54,7 +54,7 @@ object BetterFirework : Module(
             if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
             else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
         }
-    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0), "Firework use key for mid flight activation")
+    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
         .onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
     private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
@@ -133,17 +133,9 @@ object BetterFirework : Module(
         runSafe {
             when {
                 (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
-                        (!activateButton.isMouseBind || activateButton.mouse != mc.options.pickItemKey.boundKey.code) ||
+                        activateButton.mouse != mc.options.pickItemKey.boundKey.code ||
                         takeoffState != TakeoffState.None -> false // Prevent using multiple times
-                else -> {
-                    if (player.canOpenElytra || player.isGliding) {
-                        // If already gliding use another firework
-                        takeoffState = TakeoffState.StartFlying
-                    } else if (player.canTakeoff) {
-                        takeoffState = TakeoffState.Jumping
-                    }
-                    middleClickCancel
-                }
+                else -> middleClickCancel
             }
         } ?: false
 
