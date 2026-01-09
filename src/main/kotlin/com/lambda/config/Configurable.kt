@@ -229,19 +229,19 @@ abstract class Configurable(
         name: String,
         defaultValue: Bind,
         description: String = "",
-        alwaysListen: Boolean = false,
+        alwaysListening: Boolean = false,
         screenCheck: Boolean = true,
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListen, screenCheck), this, visibility).register()
+    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
 
     fun setting(
         name: String,
         defaultValue: KeyCode,
         description: String = "",
-        alwaysListen: Boolean = false,
+        alwaysListening: Boolean = false,
         screenCheck: Boolean = true,
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListen, screenCheck), this, visibility).register()
+    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
 
     fun setting(
         name: String,

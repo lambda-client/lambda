@@ -121,7 +121,7 @@ abstract class Module(
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig by MutableAutomationConfigImpl() {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    val keybindSetting = setting("Keybind", defaultKeybind, alwaysListen = true) { false }
+    val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
         .onPress { toggle() }
         .onRelease { if (disableOnRelease) disable() }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }
