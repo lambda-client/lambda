@@ -18,8 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -109,12 +108,12 @@ object ViewModel : Module(
     private var attackKeyTicksPressed = -1
 
     init {
-        listen<MouseEvent.Click> { event ->
+        listen<ButtonEvent.Mouse.Click> { event ->
             if (event.button == mc.options.attackKey.boundKey.code)
                 attackKeyTicksPressed = if (event.action == 0) -1 else 0
         }
 
-        listen<KeyboardEvent.Press> { event ->
+        listen<ButtonEvent.Keyboard.Press> { event ->
             if (event.keyCode == mc.options.attackKey.boundKey.code) {
                 if (event.isPressed) attackKeyTicksPressed = 0
                 else if (event.isReleased) attackKeyTicksPressed = -1

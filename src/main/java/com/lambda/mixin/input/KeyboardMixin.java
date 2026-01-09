@@ -18,7 +18,7 @@
 package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.KeyboardEvent;
+import com.lambda.event.events.ButtonEvent;
 import com.lambda.module.modules.player.InventoryMove;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -43,7 +43,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class KeyboardMixin {
     @WrapMethod(method = "onKey")
     private void onKey(long window, int action, KeyInput input, Operation<Void> original) {
-        EventFlow.post(new KeyboardEvent.Press(input.key(), input.scancode(), action, input.modifiers()));
+        EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers()));
         original.call(window, action, input);
     }
 
@@ -60,7 +60,7 @@ public class KeyboardMixin {
         char[] chars = Character.toChars(input.codepoint());
 
         for (char c : chars)
-            EventFlow.post(new KeyboardEvent.Char(c));
+            EventFlow.post(new ButtonEvent.Keyboard.Char(c));
 
         original.call(window, input);
     }

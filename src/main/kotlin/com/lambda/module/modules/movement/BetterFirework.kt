@@ -20,9 +20,8 @@ package com.lambda.module.modules.movement
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -49,7 +48,14 @@ object BetterFirework : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
+        .onPress {
+            if (takeoffState != TakeoffState.None) return@onPress // Prevent using multiple times
+            // If already gliding use another firework
+            if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
+            else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
+        }
     private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind(0, 0), "Firework use key for mid flight activation")
+        .onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
     private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
     private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
     private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
@@ -90,58 +96,6 @@ object BetterFirework : Module(
                     }
                     startFirework(invUse)
                     takeoffState = TakeoffState.None
-                }
-            }
-        }
-        listen<MouseEvent.Click> {
-            if (!it.isPressed) {
-                return@listen
-            }
-            if (it.satisfies(activateButton)) {
-                if (activateButton.mouse == mc.options.pickItemKey.boundKey.code) {
-                    return@listen
-                }
-                runSafe {
-                    if (takeoffState != TakeoffState.None) {
-                        return@listen // Prevent using multiple times
-                    }
-                    if (player.canOpenElytra || player.isGliding) {
-                        // If already gliding use another firework
-                        takeoffState = TakeoffState.StartFlying
-                    } else if (player.canTakeoff) {
-                        takeoffState = TakeoffState.Jumping
-                    }
-                }
-            }
-            if (it.satisfies(midFlightActivationKey)) {
-                runSafe {
-                    if (player.isGliding)
-                        takeoffState = TakeoffState.StartFlying
-                }
-            }
-        }
-        listen<KeyboardEvent.Press> {
-            if (!it.isPressed) {
-                return@listen
-            }
-            if (it.satisfies(activateButton)) {
-                if (activateButton.key != mc.options.pickItemKey.boundKey.code) {
-                    runSafe {
-                        if (takeoffState == TakeoffState.None) {
-                            if (player.canOpenElytra || player.isGliding) {
-                                // If already gliding use another firework
-                                takeoffState = TakeoffState.StartFlying
-                            } else if (player.canTakeoff) {
-                                takeoffState = TakeoffState.Jumping
-                            }
-                        }
-                    }
-                }
-            }
-            if (it.satisfies(midFlightActivationKey)) {
-                runSafe {
-                    if (player.isGliding)
-                        takeoffState = TakeoffState.StartFlying
                 }
             }
         }

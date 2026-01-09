@@ -26,10 +26,10 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
-import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -88,9 +88,13 @@ object Replay : Module(
     autoDisable = true
 ) {
     private val record by setting("Record", KeyCode.R)
+        .onPress { handleRecord() }
     private val play by setting("Play / Stop", KeyCode.C)
+        .onPress { handlePlay() }
     private val cycle by setting("Cycle Play Mode", KeyCode.B, description = "REPLAY: Replay the recording once. CONTINUE: Replay the recording and continue recording. LOOP: Loop the recording.")
+        .onPress { handlePlayModeCycle() }
     private val check by setting("Set Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
+        .onPress { handleCheckpoint() }
 
     private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = " repeats")
     private val velocityCheck by setting("Velocity check", true, description = "Check if the player is moving before starting a recording.")
@@ -130,19 +134,6 @@ object Replay : Module(
         .create()
 
     init {
-        listen<KeyboardEvent.Press> {
-            if (!it.isPressed) return@listen
-            if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listen
-
-            when (it.bind) {
-                record -> handleRecord()
-                play -> handlePlay()
-                cycle -> handlePlayModeCycle()
-                check -> handleCheckpoint()
-                else -> {}
-            }
-        }
-
         listen<MovementEvent.InputUpdate> { event ->
             when (state) {
                 State.Recording -> {

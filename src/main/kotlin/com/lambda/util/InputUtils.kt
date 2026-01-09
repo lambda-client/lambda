@@ -21,8 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.ButtonEvent
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_ALT
@@ -53,7 +52,7 @@ object InputUtils : Loadable {
      * Note: This function is extremely expensive to execute, it is recommended to not use
      * it unless you absolutely need to. Additionally, you might screw with the key cache.
      */
-    fun newKeyboardEvent(): KeyboardEvent.Press? {
+    fun newKeyboardEvent(): ButtonEvent.Keyboard.Press? {
         val pressedKeys = keys
             .associateWith { glfwGetKey(mc.window.handle, it) }
             .filter { (key, state) -> state >= GLFW_PRESS || lastPressedKeys[key] >= GLFW_PRESS }
@@ -76,13 +75,13 @@ object InputUtils : Loadable {
 
         val scancode = scancodes.getOrElse(key.first) { 0 }
 
-        return KeyboardEvent.Press(key.first, scancode, key.second, mods)
+        return ButtonEvent.Keyboard.Press(key.first, scancode, key.second, mods)
     }
 
     /**
      * Creates a new mouse event from the current glfw states.
      */
-    fun newMouseEvent(): MouseEvent.Click? {
+    fun newMouseEvent(): ButtonEvent.Mouse.Click? {
         val mods = (GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER)
             .filter { glfwGetKey(mc.window.handle, it) >= GLFW_PRESS }
             .foldRight(0) { v, acc -> acc or modMap.getValue(v) }
@@ -91,15 +90,13 @@ object InputUtils : Loadable {
             .firstOrNull { glfwGetMouseButton(mc.window.handle, it) == GLFW_PRESS }
             ?: return null
 
-        return MouseEvent.Click(mouse, GLFW_PRESS, mods)
+        return ButtonEvent.Mouse.Click(mouse, GLFW_PRESS, mods)
     }
 
 	fun Bind.isSatisfied(): Boolean =
 		(key == -1 ||  glfwGetKey(mc.window.handle, key).pressedOrRepeated) &&
 				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
-				truemods.all {
-					glfwGetKey(mc.window.handle, it.code).pressedOrRepeated
-				}
+				truemods.all { glfwGetKey(mc.window.handle, it.code).pressedOrRepeated }
 	private val Int.pressedOrRepeated
 		get() = this == 1 || this == 2
 
