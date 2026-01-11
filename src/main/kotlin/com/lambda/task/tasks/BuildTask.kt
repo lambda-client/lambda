@@ -22,6 +22,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -54,8 +55,7 @@ import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
-import com.lambda.util.extension.inventorySlots
-import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.extension.playerSlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
@@ -107,7 +107,7 @@ class BuildTask private constructor(
 
             if (collectDrops()) return@listen
 
-            simulateAndProcess()
+            runSafeAutomated { simulateAndProcess() }
         }
 
         listen<TickEvent.Post> {
@@ -118,7 +118,7 @@ class BuildTask private constructor(
         }
     }
 
-    private fun SafeContext.simulateAndProcess() {
+    private fun AutomatedSafeContext.simulateAndProcess() {
         val results = runSafeAutomated { blueprint.structure.simulate() }
 
         DEFAULT.drawables = results
@@ -141,7 +141,7 @@ class BuildTask private constructor(
         handleResult(bestResult, viableResults)
     }
 
-    private fun SafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
+    private fun AutomatedSafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
         if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty()) return
 
         when (result) {
@@ -193,7 +193,7 @@ class BuildTask private constructor(
 
             is Resolvable -> {
 	            LOG.info("Resolving: ${result.name}")
-                result.resolve()?.execute(this@BuildTask)
+                result.resolve()
             }
         }
     }
@@ -211,8 +211,8 @@ class BuildTask private constructor(
                 }
 
                 if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
-                    val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in inventoryConfig.disposables
+                    val stackToThrow = player.currentScreenHandler.playerSlots.firstOrNull {
+                        it.stack.item in inventoryConfig.disposables
                     } ?: run {
                         failure("No item in inventory to throw but inventory is full and cant pick up item drop")
                         return@let true
@@ -262,11 +262,10 @@ class BuildTask private constructor(
         fun Automated.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = true,
             lifeMaintenance: Boolean = false
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, lifeMaintenance, this
+            finishOnDone, true, lifeMaintenance, this
         )
     }
 }

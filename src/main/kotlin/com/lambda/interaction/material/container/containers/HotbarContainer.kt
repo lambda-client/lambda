@@ -18,41 +18,29 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.ContainerTask
-import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
+import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
-import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 
 object HotbarContainer : MaterialContainer(Rank.Hotbar) {
-    override var stacks: List<ItemStack>
+    context(safeContext: SafeContext)
+    override val slots: List<Slot>
+        get() = safeContext.player.hotbarSlots
+    override var stacks
         get() = mc.player?.hotbarStacks ?: emptyList()
         set(_) {}
 
+    override val swapMethodPriority = 9
+
     override val description = buildText { literal("Hotbar") }
 
-    class HotbarDeposit @Ta5kBuilder constructor(
-        val selection: StackSelection,
-        automated: Automated
-    ) : ContainerTask(), Automated by automated {
-        override val name: String get() = "Depositing $selection into hotbar"
-
-        override fun SafeContext.onStart() {
-            val handler = player.currentScreenHandler
-            deposit(handler, selection).finally {
-                delayedFinish()
-            }.execute(this@HotbarDeposit)
-        }
-    }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) = HotbarDeposit(selection, automated)
-
     context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = true
+    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        swap(toSlot.id, safeContext.player.hotbarSlots.indexOf(fromHere))
+    }
 }

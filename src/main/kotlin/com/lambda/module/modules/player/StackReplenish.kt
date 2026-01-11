@@ -44,7 +44,6 @@ object StackReplenish : Module(
 			applyEdits {
 				hideAllGroupsExcept(inventoryConfig)
 				inventoryConfig.apply {
-					::immediateAccessOnly.edit { defaultValue(true) }
 					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
 				}
 			}

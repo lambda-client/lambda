@@ -17,10 +17,12 @@
 
 package com.lambda.task.tasks
 
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.task.Task
@@ -31,7 +33,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class OpenContainer @Ta5kBuilder constructor(
+class OpenContainerTask @Ta5kBuilder constructor(
     private val blockPos: BlockPos,
     private val automated: Automated,
     private val waitForSlotLoad: Boolean = true,
@@ -44,9 +46,10 @@ class OpenContainer @Ta5kBuilder constructor(
     private var inScope = 0
 
     enum class State {
-        Scoping, Opening, SlotLoading;
+        Pathing, Scoping, Opening, SlotLoading;
 
         fun description(inScope: Int) = when (this) {
+            Pathing -> "Pathing closer"
             Scoping -> "Waiting for scope ($inScope)"
             Opening -> "Opening container"
             SlotLoading -> "Waiting for slots to load"
@@ -79,9 +82,14 @@ class OpenContainer @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Pre> {
-            if (containerState != State.Scoping) return@listen
+            if (containerState != State.Scoping && containerState != State.Pathing) return@listen
 
-            val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) } ?: return@listen
+            val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) }
+                ?: run {
+                    containerState = State.Pathing
+                    if (!BaritoneManager.isActive) BaritoneManager.setGoalAndPath(GoalNear(blockPos, 3))
+                    return@listen
+                }
             if (interactConfig.rotate && !rotationRequest { rotation(checkedHit.rotation) }.submit().done) return@listen
 
             interaction.interactBlock(player, Hand.MAIN_HAND, checkedHit.hit.blockResult ?: return@listen)
