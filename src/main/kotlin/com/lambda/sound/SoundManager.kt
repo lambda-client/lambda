@@ -19,6 +19,7 @@ package com.lambda.sound
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
+import com.lambda.module.modules.client.Client
 import com.lambda.util.math.random
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.registry.Registries

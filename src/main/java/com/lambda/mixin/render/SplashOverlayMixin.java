@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.module.modules.client.Client;
 import com.lambda.util.LambdaResourceKt;
 import net.minecraft.client.gui.screen.SplashOverlay;
 import net.minecraft.client.texture.ReloadableTexture;
@@ -25,10 +26,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -43,13 +41,21 @@ public class SplashOverlayMixin {
     @Final
     public static Identifier LOGO;
 
+    @Unique
+    private static Identifier VANILLA_LOGO;
+
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
-        LOGO = Identifier.of("lambda", "textures/lambda_banner.png");
+        if (VANILLA_LOGO == null) VANILLA_LOGO = LOGO;
+
+        LOGO = (Client.INSTANCE.getLoadScreen())
+                ? Identifier.of("lambda", "textures/lambda_banner.png")
+                : VANILLA_LOGO;
     }
 
     @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/function/IntSupplier;getAsInt()I"))
     private int wrapBrandArgb(IntSupplier originalSupplier, Operation<Integer> original) {
+        if (!Client.INSTANCE.getLoadScreen()) return original.call(originalSupplier);
         return ColorHelper.getArgb(255, 35, 35, 35);
     }
 
@@ -61,7 +67,12 @@ public class SplashOverlayMixin {
 
         @WrapOperation(method = "loadContents", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/ResourceFactory;open(Lnet/minecraft/util/Identifier;)Ljava/io/InputStream;"))
         InputStream wrapLoadTextureData(ResourceFactory instance, Identifier id, Operation<InputStream> original) {
-            return LambdaResourceKt.getStream("textures/lambda_banner.png");
+            if ("lambda".equals(id.getNamespace())
+                    && "textures/lambda_banner.png".equals(id.getPath())) {
+                return LambdaResourceKt.getStream("textures/lambda_banner.png");
+            }
+
+            return original.call(instance, id);
         }
     }
 }
