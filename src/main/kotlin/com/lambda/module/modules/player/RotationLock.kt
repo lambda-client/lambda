@@ -52,6 +52,7 @@ object RotationLock : Module(
     }
 
     init {
+        setModulePriority(100)
         listen<TickEvent.Pre> {
             val yaw = when (yawMode) {
                 Mode.Custom -> customYaw

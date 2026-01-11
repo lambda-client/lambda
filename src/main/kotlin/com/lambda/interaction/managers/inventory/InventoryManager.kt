@@ -73,7 +73,7 @@ object InventoryManager : Manager<InventoryRequest>(
     override fun load(): String {
         super.load()
 
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
             if (DEFAULT.avoidDesync) indexInventoryChanges()
             if (++secondCounter >= 20) {
                 secondCounter = 0

@@ -89,6 +89,7 @@ object KillAura : Module(
     }
 
     init {
+        setModulePriority(90)
         setDefaultAutomationConfig {
             applyEdits {
                 hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
@@ -98,7 +99,7 @@ object KillAura : Module(
             }
         }
 
-        listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
+        listen<PlayerPacketEvent.Pre>({ Int.MIN_VALUE }) { event ->
             prevY = lastY
             lastY = event.position.y
             lastOnGround = event.onGround

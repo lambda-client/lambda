@@ -27,6 +27,7 @@ import com.lambda.config.SettingCore
 import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.updateListenerSorting
 import com.lambda.event.Muteable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
@@ -122,9 +123,11 @@ abstract class Module(
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig by MutableAutomationConfigImpl() {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
+    open val prioritySetting = setting("Module Priority", 0, -100..100, 1, "Priority over other modules") { false }
+        .onValueChangeUnsafe { _, _ -> updateListenerSorting() }
     val keybindSetting = setting("Keybind", defaultKeybind) { false }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }
-    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element")
+    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
@@ -212,5 +215,10 @@ abstract class Module(
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
+    }
+
+    protected fun setModulePriority(priority: Int) {
+        prioritySetting.value = priority
+        prioritySetting.core.defaultValue = priority
     }
 }

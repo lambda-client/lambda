@@ -76,7 +76,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
     }
 
     init {
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
+        listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
             run {
                 pendingActions.firstOrNull { it.context.blockPos == event.pos }
                     ?: if (rebreak?.context?.blockPos == event.pos) rebreak
@@ -117,7 +117,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             }
         }
 
-        listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
+        listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
             if (it.entity !is ItemEntity) return@listen
             val pending =
                 pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }

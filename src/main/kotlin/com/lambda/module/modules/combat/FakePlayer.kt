@@ -35,7 +35,6 @@ import com.mojang.datafixers.util.Either
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import java.util.*
-import kotlin.jvm.optionals.getOrElse
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.seconds
 
@@ -66,7 +65,7 @@ object FakePlayer : Module(
                         ?: spawnFakePlayer(nilProfile, fakePlayer ?: player, addToWorld = false)
         }
 
-        listenConcurrently<TickEvent.Pre>(priority = 1000) {
+        listenConcurrently<TickEvent.Pre>({ 1000 }) {
             if (!fetchTimer.timePassed(2.seconds)) return@listenConcurrently
 
             cachedProfiles.getOrPut(playerName) { fetchProfile(playerName) }

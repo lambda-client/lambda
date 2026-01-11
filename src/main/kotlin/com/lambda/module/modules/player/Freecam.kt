@@ -162,7 +162,7 @@ object Freecam : Module(
             }
         }
 
-        listen<RenderEvent.UpdateTarget>(priority = 1) { event -> // Higher priority then RotationManager to run before RotationManager modifies mc.crosshairTarget
+        listen<RenderEvent.UpdateTarget>({ 1 }) { event -> // Higher priority then RotationManager to run before RotationManager modifies mc.crosshairTarget
             mc.crosshairTarget = rotation
                 .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")

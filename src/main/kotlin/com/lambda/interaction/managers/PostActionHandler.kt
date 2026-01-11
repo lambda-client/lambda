@@ -32,11 +32,11 @@ abstract class PostActionHandler<T : ActionInfo> {
     abstract val pendingActions: LimitedDecayQueue<T>
 
     init {
-        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+        listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
             pendingActions.cleanUp()
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
+        listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
             pendingActions.clear()
         }
     }

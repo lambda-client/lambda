@@ -59,7 +59,7 @@ object PacketDelay : Module(
             flushPools(System.currentTimeMillis())
         }
 
-        listen<PacketEvent.Send.Pre>(Int.MIN_VALUE) { event ->
+        listen<PacketEvent.Send.Pre>({ Int.MIN_VALUE }) { event ->
             if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
@@ -80,7 +80,7 @@ object PacketDelay : Module(
             }
         }
 
-        listen<PacketEvent.Receive.Pre>(Int.MIN_VALUE) { event ->
+        listen<PacketEvent.Receive.Pre>({ Int.MIN_VALUE }) { event ->
             if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {

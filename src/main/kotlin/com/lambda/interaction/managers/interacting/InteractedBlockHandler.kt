@@ -43,7 +43,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
     }
 
     init {
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
+        listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
             pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { pending ->

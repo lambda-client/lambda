@@ -41,6 +41,7 @@ object ClickFriend : Module(
     private val unfriendBind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
 
     init {
+        setModulePriority(100)
         listen<MouseEvent.Click> {
             if (mc.currentScreen != null) return@listen
 

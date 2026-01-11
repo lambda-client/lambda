@@ -21,15 +21,13 @@ package com.lambda.util.collections
  * A lazy-initialized value holder that allows the stored value to be reset and re-initialized on demand.
  */
 class UpdatableLazy<T>(private val initializer: () -> T) {
-    private var _value: T? = null
+    private var backingField: T? = null
 
-    val value: T?
-        get() {
-            if (_value == null) _value = initializer()
-            return _value
-        }
+    val value: T
+        get() = backingField ?: initializer().also { backingField = it }
+
     fun update() {
-        _value = initializer()
+        backingField = initializer()
     }
 }
 

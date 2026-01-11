@@ -38,7 +38,7 @@ object RebreakHandler {
     var rebreak: BreakInfo? = null
 
     init {
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE + 1) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE + 1 }) {
             rebreak?.run {
                 if (!progressedThisTick) {
                     breakingTicks++
@@ -47,7 +47,7 @@ object RebreakHandler {
             }
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
+        listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
             rebreak = null
         }
     }

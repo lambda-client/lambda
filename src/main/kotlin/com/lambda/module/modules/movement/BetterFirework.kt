@@ -66,6 +66,7 @@ object BetterFirework : Module(
         get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
     init {
+        setModulePriority(1)
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(hotbarConfig, inventoryConfig)

@@ -65,7 +65,7 @@ abstract class Manager<R : Request>(
     override fun load(): String {
         openStages.forEach { openRequestsFor(it::class, it) }
 
-        listen<TickEvent.Post>(Int.MIN_VALUE) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
             activeThisTick = false
             queuedRequest = null
         }
@@ -77,7 +77,7 @@ abstract class Manager<R : Request>(
      * opens the handler for requests for the duration of the given event
      */
     private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
-        listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
+        listen(instance, { (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority) }) {
             tickStage = stage
             queuedRequest?.let { request ->
                 if (tickStage !in request.tickStageMask) return@let
@@ -89,7 +89,7 @@ abstract class Manager<R : Request>(
             onOpen?.invoke(this)
         }
 
-        listen(instance, priority = (Int.MIN_VALUE + 1) + stagePriority) {
+        listen(instance, { (Int.MIN_VALUE + 1) + stagePriority }) {
             onClose?.invoke(this)
             acceptingRequests = false
         }

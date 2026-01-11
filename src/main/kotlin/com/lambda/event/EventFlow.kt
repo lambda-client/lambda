@@ -97,6 +97,17 @@ object EventFlow {
         concurrentListeners.unsubscribe(this)
     }
 
+    fun Any.updateListenerSorting() {
+        syncListeners.values.forEach { listeners ->
+            val matching = listeners.filter { it.owner === this }
+            matching.forEach { !listeners.remove(it); it.priority.update(); listeners.add(it) }
+        }
+        concurrentListeners.values.forEach { listeners ->
+            val matching = listeners.filter { it.owner === this }
+            matching.forEach { listeners.remove(it); it.priority.update(); listeners.add(it) }
+        }
+    }
+
     init {
         // parallel event execution on dedicated threads
         runConcurrent {

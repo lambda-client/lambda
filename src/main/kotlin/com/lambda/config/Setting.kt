@@ -90,9 +90,7 @@ import kotlin.reflect.KProperty
  * ```
  *
  * @property defaultValue The default value of the setting.
- * @property description A description of the setting.
  * @property type The type reflection of the setting.
- * @property visibility A function that determines whether the setting is visible.
  */
 abstract class SettingCore<T>(
 	var defaultValue: T,

@@ -65,7 +65,7 @@ object HotbarManager : Manager<HotbarRequest>(
     override fun load(): String {
         super.load()
 
-        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
             swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
 

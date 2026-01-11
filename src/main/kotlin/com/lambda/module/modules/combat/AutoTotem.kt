@@ -55,6 +55,7 @@ object AutoTotem : Module(
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }.group(Group.General)
 
     init {
+		setModulePriority(100)
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(inventoryConfig)

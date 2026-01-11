@@ -37,12 +37,19 @@ object SettingsWidget {
     fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
             if (config is Module) {
-                with(config.keybindSetting) { buildLayout() }
-                with(config.disableOnReleaseSetting) { buildLayout() }
-	            with(config.drawSetting) { buildLayout() }
-            }
-            smallButton("Reset") {
-                config.settings.forEach { it.reset(silent = true) }
+				button("Module Settings") {
+					ImGui.openPopup("##module-settings-popup-${config.name}")
+				}
+	            ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+	            popupContextItem("##module-settings-popup-${config.name}", ImGuiPopupFlags.None) {
+		            with(config.keybindSetting) { buildLayout() }
+		            with(config.prioritySetting) { buildLayout() }
+		            with(config.disableOnReleaseSetting) { buildLayout() }
+		            with(config.drawSetting) { buildLayout() }
+		            smallButton("Reset") {
+			            config.settings.forEach { it.reset(silent = true) }
+		            }
+	            }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
             if (config is MutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
@@ -74,13 +81,8 @@ object SettingsWidget {
                 }
             }
         }
-        val toIgnoreSettings =
-            when (config) {
-                is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting, config.drawSetting)
-                is UserAutomationConfig -> setOf(config.linkedModules)
-                else -> emptySet()
-            }
-        val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
+
+        val visibleSettings = config.settings.filter { it.visibility() }
 	    if (visibleSettings.isEmpty()) return
 	    else separator()
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
