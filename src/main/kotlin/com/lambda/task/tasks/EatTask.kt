@@ -69,8 +69,9 @@ class EatTask @Ta5kBuilder constructor(
                     mc.options.useKey.isPressed = false
                     holdingUse = false
                 }
-                foodFinder.transfer(MainHandContainer)
-                    ?.execute(this@EatTask) ?: failure("No food found")
+                runSafeAutomated {
+                    foodFinder.transfer(MainHandContainer)
+                }
                 return@listen
             }
             eatStack = player.mainHandStack

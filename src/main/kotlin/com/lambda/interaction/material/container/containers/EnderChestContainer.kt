@@ -17,61 +17,52 @@
 
 package com.lambda.interaction.material.container.containers
 
-import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ContainerManager.findSlotsWithMaterial
+import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.Task
-import com.lambda.util.Communication.info
+import com.lambda.task.TaskGenerator
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
+import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
 
-object EnderChestContainer : MaterialContainer(Rank.EnderChest) {
+object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContainer {
+    context(safeContext: SafeContext)
+    override val slots
+        get() =
+            if (ContainerManager.lastInteractedBlockEntity is EnderChestBlockEntity)
+                safeContext.player.currentScreenHandler.containerSlots
+            else emptyList()
     override var stacks = emptyList<ItemStack>()
-    private var placePos: BlockPos? = null
 
     override val description = buildText { literal("Ender Chest") }
 
-//    override fun prepare(): Task<*> {
-//        TODO("Not yet implemented")
-//    }
-//        findBlock(Blocks.ENDER_CHEST).onSuccess { pos ->
-//            moveIntoEntityRange(pos)
-//            placePos = pos
-//        }.onFailure {
-//            acquireStack(Items.ENDER_CHEST.select()).onSuccess { _, stack ->
-//                placeContainer(stack).onSuccess { _, pos ->
-//                    placePos = pos
-//                }
-//            }
-//        }
+    private var placePos = BlockPos.ORIGIN
 
-    class EnderchestWithdrawal @Ta5kBuilder constructor(selection: StackSelection) : Task<Unit>() {
-        override val name = "Withdrawing $selection from ender chest"
-
-        override fun SafeContext.onStart() {
-            info("Not yet implemented")
-            success()
-        }
-    }
-
-    context(automated: Automated)
-    override fun withdraw(selection: StackSelection) = EnderchestWithdrawal(selection)
-
-    class EnderchestDeposit @Ta5kBuilder constructor(selection: StackSelection) : Task<Unit>() {
-        override val name = "Depositing $selection into ender chest"
-
-        override fun SafeContext.onStart() {
-            info("Not yet implemented")
-            success()
-        }
-    }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) = EnderchestDeposit(selection)
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = false
+    context(automatedSafeContext: AutomatedSafeContext)
+    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
+        Items.ENDER_CHEST
+            .select()
+            .findSlotsWithMaterial()
+            .firstOrNull()?.let { slot ->
+                PlaceContainerTask(slot, automatedSafeContext).then { pos ->
+                    placePos = pos
+                    OpenContainerTask(pos, automatedSafeContext).then {
+                        taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
+                            if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos, lifeMaintenance = false)
+                            else null
+                        }
+                    }
+                }
+            }
 }

@@ -25,12 +25,16 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.Box
 
 data class StashContainer(
     val chests: Set<ChestContainer>,
     val pos: Box,
 ) : MaterialContainer(Rank.Stash) {
+    context(_: SafeContext)
+    override val slots: List<Slot>
+        get() = chests.flatMap { it.slots }
     override var stacks: List<ItemStack>
         get() = chests.flatMap { it.stacks }
         set(_) {}
@@ -40,11 +44,9 @@ data class StashContainer(
         highlighted(pos.center.roundedBlockPos.toShortString())
     }
 
+    context(_: SafeContext)
     override fun materialAvailable(selection: StackSelection): Int =
         chests.sumOf {
             it.materialAvailable(selection)
         }
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = false
 }

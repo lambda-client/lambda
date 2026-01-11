@@ -18,73 +18,29 @@
 package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.ContainerTask
-import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.item.ItemStackUtils.equal
+import com.lambda.util.player.SlotUtils.mainHandSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
-import net.minecraft.util.Hand
+import net.minecraft.screen.slot.Slot
 
 object MainHandContainer : MaterialContainer(Rank.MainHand) {
+    context(safeContext: SafeContext)
+    override val slots: List<Slot>
+        get() = safeContext.player.mainHandSlots
     override var stacks: List<ItemStack>
         get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
 
+    override val swapMethodPriority = 10
+
     override val description = buildText { literal("MainHand") }
 
-    class HandDeposit @Ta5kBuilder constructor(
-        val selection: StackSelection,
-        val hand: Hand,
-        automated: Automated
-    ) : ContainerTask(), Automated by automated {
-        override val name: String get() = "Depositing [$selection] to ${hand.name.lowercase().replace("_", " ")}"
-
-        init {
-            listen<TickEvent.Pre> {
-                val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
-                    failure("No matching stacks found in inventory")
-                    return@listen
-                }
-
-                val handStack = player.getStackInHand(hand)
-                if (moveStack.equal(handStack)) {
-                    success()
-                    return@listen
-                }
-
-                inventoryRequest {
-                    val stackInOffHand = moveStack.equal(player.offHandStack)
-                    val stackInMainHand = moveStack.equal(player.mainHandStack)
-                    if ((hand == Hand.MAIN_HAND && stackInOffHand) || (hand == Hand.OFF_HAND && stackInMainHand)) {
-                        swapHands()
-                        return@inventoryRequest
-                    }
-
-                    val slot = player.currentScreenHandler.slots.firstOrNull { it.stack == moveStack }
-                        ?: run {
-                            failure(IllegalStateException("Cannot find stack in inventory"))
-                            return@inventoryRequest
-                        }
-                    swap(slot.id, player.inventory.selectedSlot)
-
-                    if (hand == Hand.OFF_HAND) swapHands()
-
-                    onComplete { success() }
-                }.submit(queueIfMismatchedStage = false)
-            }
-        }
-    }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND, automated)
-
     context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = true
+    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        swap(toSlot.id, safeContext.player.inventory.selectedSlot)
+    }
 }

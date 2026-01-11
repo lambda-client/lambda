@@ -21,11 +21,11 @@ import baritone.api.BaritoneAPI
 import baritone.api.IBaritone
 import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
+import com.lambda.config.AutomationConfig
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
-import com.lambda.config.AutomationConfig
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 import net.fabricmc.loader.api.FabricLoader
@@ -352,8 +352,10 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
      * Whether Baritone is active (pathing, calculating goal, etc.)
      */
     val isActive: Boolean
-        get() = isBaritoneLoaded && (primary?.customGoalProcess?.isActive == true || primary?.pathingBehavior?.isPathing == true || primary?.pathingControlManager?.mostRecentInControl()
-            ?.orElse(null)?.isActive == true)
+        get() = isBaritoneLoaded &&
+                (primary?.customGoalProcess?.isActive == true ||
+                        primary?.pathingBehavior?.isPathing == true ||
+                        primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true)
 
     /**
      * Sets the current Baritone goal and starts pathing

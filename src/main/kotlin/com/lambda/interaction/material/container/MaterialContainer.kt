@@ -18,15 +18,14 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.inventory.InventoryRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
-import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.Task
-import com.lambda.util.Communication.logError
+import com.lambda.task.tasks.ContainerTransferTask
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -40,17 +39,38 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 import net.minecraft.text.Text
 
 // ToDo: Make jsonable to persistently store them
 abstract class MaterialContainer(
     val rank: Rank
 ) : Nameable, Comparable<MaterialContainer> {
+    context(_: SafeContext)
+    abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
+    open val swapMethodPriority = 0
     abstract val description: Text
 
+    context(automated: Automated)
+    open val replaceSorter get() = compareByDescending<Slot> {
+        it.stack.isEmpty
+    }.thenByDescending {
+        it.stack.item in automated.inventoryConfig.disposables
+    }.thenByDescending {
+        !it.stack.item.components.contains(DataComponentTypes.TOOL)
+    }.thenByDescending {
+        !it.stack.item.components.contains(DataComponentTypes.FOOD)
+    }.thenByDescending {
+        !it.stack.item.components.contains(DataComponentTypes.CONSUMABLE)
+    }.thenByDescending {
+        it.stack.isStackable
+    }
+
     @TextDsl
+    context(_: SafeContext)
     fun TextBuilder.stock(selection: StackSelection) {
         literal("\n")
         literal("Contains ")
@@ -66,6 +86,7 @@ abstract class MaterialContainer(
         highlighted("${selection.optimalStack?.name?.string}")
     }
 
+    context(_: SafeContext)
     fun description(selection: StackSelection) =
         buildText {
             text(description)
@@ -75,20 +96,21 @@ abstract class MaterialContainer(
     override val name: String
         get() = buildText { text(description) }.string
 
+    context(_: SafeContext)
     val shulkerContainer
         get() =
-            stacks.filter {
-                it.item in ItemUtils.shulkerBoxes
-            }.map { stack ->
+            slots.filter {
+                it.stack.item in ItemUtils.shulkerBoxes
+            }.map { slot ->
                 ShulkerBoxContainer(
-                    stack.shulkerBoxContents,
+                    slot.stack.shulkerBoxContents,
                     containedIn = this@MaterialContainer,
-                    shulkerStack = stack
+                    shulkerSlot = slot
                 )
             }.toSet()
 
-    fun update(stacks: List<ItemStack>) {
-        this.stacks = stacks
+    fun update(slots: List<ItemStack>) {
+        this.stacks = slots
     }
 
     class FailureTask(override val name: String) : Task<Unit>() {
@@ -97,68 +119,57 @@ abstract class MaterialContainer(
         }
     }
 
-    class AwaitItemTask(
-        override val name: String,
-        val selection: StackSelection,
-        automated: Automated
-    ) : Task<Unit>(), Automated by automated {
-        init {
-            listen<TickEvent.Post> {
-                if (selection.findContainerWithMaterial() != null) {
-                    success()
-                }
-            }
-        }
-
-        override fun SafeContext.onStart() {
-            logError(name)
+    context(_: SafeContext)
+    open fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        if (fromHere.stack.isEmpty) pickupAndPlace(toSlot.id, fromHere.id)
+        else {
+            pickupAndPlace(fromHere.id, toSlot.id)
+            if (!toSlot.stack.isEmpty) pickup(fromHere.id)
         }
     }
 
-    /**
-     * Withdraws items from the container to the player's inventory.
-     */
-    @Task.Ta5kBuilder
-    context(automated: Automated)
-    open fun withdraw(selection: StackSelection): Task<*>? = null
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun transfer(stackSelection: StackSelection, destination: MaterialContainer): Boolean =
+        with(automatedSafeContext) {
+            val fromSlot = getSlot(stackSelection) ?: return false
+            val toSlot = destination.getReplaceableSlot() ?: return false
+            return inventoryRequest {
+                if (swapMethodPriority > destination.swapMethodPriority) transfer(fromSlot, toSlot)
+                else with(destination) { transfer(toSlot, fromSlot) }
+            }.submit().done
+        }
 
-    /**
-     * Deposits items from the player's inventory into the container.
-     */
-    @Task.Ta5kBuilder
-    context(automated: Automated)
-    open fun deposit(selection: StackSelection): Task<*>? = null
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun transferByTask(stackSelection: StackSelection, destination: MaterialContainer, failIfNoMaterial: Boolean = false) =
+        ContainerTransferTask(this, destination, stackSelection, automatedSafeContext, failIfNoMaterial)
 
+    protected fun InventoryRequest.InvRequestBuilder.pickupAndPlace(fromId: Int, toId: Int) {
+        pickup(fromId)
+        pickup(toId)
+    }
+
+    context(_: SafeContext)
     open fun matchingStacks(selection: StackSelection) =
         selection.filterStacks(stacks)
 
+    context(_: SafeContext)
+    open fun matchingSlots(selection: StackSelection) =
+        selection.filterSlots(slots)
+
+    context(_: SafeContext)
     open fun materialAvailable(selection: StackSelection) =
         matchingStacks(selection).count
 
+    context(_: SafeContext)
     open fun spaceAvailable(selection: StackSelection) =
         matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
 
-    context(safeContext: SafeContext)
-    abstract fun isImmediatelyAccessible(): Boolean
+    context(_: AutomatedSafeContext)
+    open fun getReplaceableSlot() = slots.sortedWith(replaceSorter).firstOrNull()
 
-    context(automated: Automated)
-    fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
-        val amount = materialAvailable(selection)
-        if (amount < selection.count) {
-            return TransferResult.MissingItems(selection.count - amount)
-        }
-
-//        val space = destination.spaceAvailable(selection)
-//        if (space == 0) {
-//            return TransferResult.NoSpace
-//        }
-
-//        val transferAmount = minOf(amount, space)
-//        selection.selector = { true }
-//        selection.count = transferAmount
-
-        return TransferResult.ContainerTransfer(selection, from = this, to = destination, automated)
-    }
+    context(_: SafeContext)
+    open fun getSlot(stackSelection: StackSelection): Slot? =
+        stackSelection.filterSlots(slots).firstOrNull()
 
     enum class Rank {
         MainHand,

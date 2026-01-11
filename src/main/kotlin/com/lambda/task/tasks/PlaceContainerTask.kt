@@ -36,15 +36,15 @@ import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class PlaceContainer @Ta5kBuilder constructor(
-    val stack: ItemStack,
+class PlaceContainerTask @Ta5kBuilder constructor(
+    val slot: Slot,
     automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
-    private val startStack: ItemStack = stack.copy()
-    override val name: String get() = "Placing container ${startStack.name.string}"
+    override val name: String get() = "Placing container ${slot.stack.name.string}"
 
     override fun SafeContext.onStart() {
         val results = runSafeAutomated {
@@ -53,29 +53,29 @@ class PlaceContainer @Ta5kBuilder constructor(
                 .asSequence()
                 .filter { !ManagerUtils.isPosBlocked(it) }
                 .flatMap {
-                    it.toStructure(TargetState.Stack(startStack))
+                    it.toStructure(TargetState.Stack(slot.stack))
                         .simulate()
                 }
         }
 
         val options = results.filterIsInstance<InteractResult.Interact>().filter {
-            canBeOpened(startStack, it.pos, it.context.hitResult.side)
+            canBeOpened(slot.stack, it.pos, it.context.hitResult.side)
         } + results.filterIsInstance<GenericResult.WrongItemSelection>()
 
         val containerPosition = options.filter {
             // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
             it.pos.y == player.blockPos.y
         }.minByOrNull { it.pos distSq player.pos }?.pos ?: run {
-            failure("Couldn't find a valid container placement position for ${startStack.name.string}")
+            failure("Couldn't find a valid container placement position for ${slot.stack.name.string}")
             return@onStart
         }
 
         containerPosition
-            .toStructure(TargetState.Stack(startStack))
+            .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
             .finally { success(containerPosition) }
-            .execute(this@PlaceContainer)
+            .execute(this@PlaceContainerTask)
     }
 
     private fun SafeContext.canBeOpened(

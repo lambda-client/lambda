@@ -47,6 +47,7 @@ import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope
@@ -223,8 +224,9 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null
 		}
+		val hotbarStacks = player.hotbarStacks
 		return stackSelection.filterStacks(container.stacks).run {
-			firstOrNull { it.inventoryIndex == player.inventory.selectedSlot }
+			firstOrNull { hotbarStacks.indexOf(it) == player.inventory.selectedSlot }
 				?: firstOrNull()
 		}
 	}
@@ -271,7 +273,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
     }
 
     private suspend fun AutomatedSafeContext.testPlaceState(context: ItemPlacementContext): BlockState? {
-        val resultState = context.stack.blockItem.getPlacementState(context)
+        val resultState = (context.stack.blockItem ?: return null).getPlacementState(context)
             ?: run {
                 handleEntityBlockage(context)
                 return null
@@ -285,7 +287,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 
     private suspend fun AutomatedSafeContext.handleEntityBlockage(context: ItemPlacementContext): List<Entity> {
         val pos = context.blockPos
-        val theoreticalState = context.stack.blockItem.block.getPlacementState(context)
+        val theoreticalState = (context.stack.blockItem ?: return emptyList()).block.getPlacementState(context)
             ?: return emptyList()
 
         val collisionShape = theoreticalState.getCollisionShape(
