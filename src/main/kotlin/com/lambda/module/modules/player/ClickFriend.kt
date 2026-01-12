@@ -43,15 +43,16 @@ object ClickFriend : Module(
 
     init {
         // onPress listeners applied here to avoid recursion warning
-        friendBind.onPress { if (!unfriendBind.value.isSatisfied()) checkSetFriend(true) }
-        unfriendBind.onPress { if (!friendBind.value.isSatisfied()) checkSetFriend(false) }
+        friendBind.onPress { if (!unfriendBind.value.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
+        unfriendBind.onPress { if (!friendBind.value.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
     }
 
-    private fun SafeContext.checkSetFriend(friend: Boolean) {
+    private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {
         val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
-            ?: return
+            ?: return false
 
         if (friend && !target.isFriend && target.befriend()) info(FriendManager.befriendedText(target.name))
         else if (!friend && target.isFriend && target.unfriend()) info(FriendManager.unfriendedText(target.name))
+        return true
     }
 }
