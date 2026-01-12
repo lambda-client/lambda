@@ -21,7 +21,7 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
-import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onStaticRender
@@ -118,7 +118,7 @@ object AirPlace : Module(
 			}
 		}
 
-		listen<MouseEvent.Scroll> { event ->
+		listen<ButtonEvent.Mouse.Scroll> { event ->
 			if (!scrollBind.isSatisfied()) return@listen
 			event.cancel()
 			distance += event.delta.y

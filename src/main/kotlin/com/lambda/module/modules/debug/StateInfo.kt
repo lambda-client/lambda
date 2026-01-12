@@ -17,8 +17,7 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
@@ -35,6 +34,11 @@ object StateInfo : Module(
     tag = ModuleTag.DEBUG,
 ) {
     private val printBind by setting("Print", KeyCode.Unbound, "The bind used to print the info to chat")
+        .onPress {
+            val crosshair = mc.crosshairTarget ?: return@onPress
+            if (crosshair !is BlockHitResult) return@onPress
+            info(blockState(crosshair.blockPos).betterToString())
+        }
 
     val propertyFields = Properties::class.java.declaredFields
         .filter { Property::class.java.isAssignableFrom(it.type) }
@@ -44,15 +48,6 @@ object StateInfo : Module(
         onEnable {
             val crosshair = mc.crosshairTarget ?: return@onEnable
             if (crosshair !is BlockHitResult) return@onEnable
-            info(blockState(crosshair.blockPos).betterToString())
-        }
-
-        listen<KeyboardEvent.Press> { event ->
-            if (!event.isPressed ||
-                !event.satisfies(printBind)) return@listen
-
-            val crosshair = mc.crosshairTarget ?: return@listen
-            if (crosshair !is BlockHitResult) return@listen
             info(blockState(crosshair.blockPos).betterToString())
         }
     }
