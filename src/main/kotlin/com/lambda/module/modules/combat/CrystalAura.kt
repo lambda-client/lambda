@@ -141,16 +141,18 @@ object CrystalAura : Module(
         }
     }
 
-    init {
-        setDefaultAutomationConfig {
-            applyEdits {
-                hideAllGroupsExcept(buildConfig, rotationConfig, hotbarConfig, inventoryConfig)
-                buildConfig.apply {
-                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
-                        ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks)
-                }
-            }
-        }
+	init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(buildConfig, rotationConfig, hotbarConfig, inventoryConfig)
+				buildConfig.apply {
+					hide(
+						::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
+						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks
+					)
+				}
+			}
+		}
 
         // Async ticking
         fixedRateTimer(
@@ -276,15 +278,16 @@ object CrystalAura : Module(
             blueprint[mutableBlockPos]
         }.filter { it.hasCrystal }.maxByOrNull { it.priority }?.explode()
 
-        best.place()
-    }
+		best.place()
+	}
 
-    private fun SafeContext.placeInternal(opportunity: Opportunity, hand: Hand) {
-        connection.sendPacket {
-            PlayerInteractBlockC2SPacket(
-                hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), 0
-            )
-        }
+	private fun SafeContext.placeInternal(opportunity: Opportunity, hand: Hand) {
+		interaction.syncSelectedSlot()
+		connection.sendPacket {
+			PlayerInteractBlockC2SPacket(
+				hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), 0
+			)
+		}
 
         player.swingHand(hand)
     }
@@ -476,19 +479,22 @@ object CrystalAura : Module(
             if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done)
                 return@runSafe
 
-            val selection = selectStack { isItem(Items.END_CRYSTAL) }
-            if (swap &&
-                (swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
-                (swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
-            ) runSafeAutomated {
-                val crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
-                if (crystalSlot != -1) {
-                    if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
-                    else return@runSafeAutomated
-                }
-                val swapTo = when (swapHand) { Hand.MAIN_HAND -> HotbarContainer; Hand.OFF_HAND -> OffHandContainer }
-                if (!selection.transfer(swapTo)) return@runSafe
-            }
+			val selection = selectStack { isItem(Items.END_CRYSTAL) }
+			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
+				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
+			) runSafeAutomated {
+				if (!swap) return@runSafe
+				var crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
+				if (crystalSlot < 0) {
+					val swapTo = when (swapHand) {
+						Hand.MAIN_HAND -> HotbarContainer
+						Hand.OFF_HAND -> OffHandContainer
+					}
+					if (!selection.transfer(swapTo)) return@runSafe
+					crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
+				}
+				if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
+			}
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
                 placeInternal(this@Opportunity, swapHand)
