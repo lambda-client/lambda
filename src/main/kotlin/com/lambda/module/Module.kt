@@ -17,7 +17,6 @@
 
 package com.lambda.module
 
-import com.lambda.Lambda
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
@@ -26,12 +25,12 @@ import com.lambda.config.MutableAutomationConfigImpl
 import com.lambda.config.SettingCore
 import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -122,7 +121,9 @@ abstract class Module(
     autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig by MutableAutomationConfigImpl() {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    val keybindSetting = setting("Keybind", defaultKeybind) { false }
+    val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
+        .onPress { toggle() }
+        .onRelease { if (disableOnRelease) disable() }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }
     val drawSetting = setting("Draw", true, "Draws the module in the module list hud element")
 
@@ -137,24 +138,6 @@ abstract class Module(
         get() = !isEnabled && !alwaysListening
 
     init {
-        listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-            if (mc.options.commandKey.isPressed
-                || Lambda.mc.currentScreen != null
-                || !event.satisfies(keybind)) return@listen
-
-            if (event.isPressed && !event.isRepeated) toggle()
-            else if (event.isReleased && disableOnRelease) disable()
-        }
-
-        listen<MouseEvent.Click>(alwaysListen = true) { event ->
-            if (mc.options.commandKey.isPressed
-                || mc.currentScreen != null
-                || !event.satisfies(keybind)) return@listen
-
-            if (event.isPressed) toggle()
-            else if (event.isReleased && disableOnRelease) disable()
-        }
-
         onEnable { LambdaSound.ModuleOn.play() }
         onDisable { LambdaSound.ModuleOff.play() }
 

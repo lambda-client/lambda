@@ -52,9 +52,7 @@ import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.client.gui.hud.debug.DebugHudEntries
 import net.minecraft.client.gui.screen.DebugOptionsScreen
-import net.minecraft.command.permission.Permission
 import net.minecraft.network.packet.c2s.play.ChangeGameModeC2SPacket
 import net.minecraft.server.command.GameModeCommand
 import net.minecraft.util.Util
@@ -279,7 +277,7 @@ object MenuBar {
                     .filter { it.tag == tag }
                     .forEach { module ->
                         menuItem(module.name, selected = module.isEnabled) {
-                            if (module.isEnabled) module.disable() else module.enable()
+                            module.toggle()
                         }
                         // Optionally, offer a "Settings..." item to focus this module’s details UI.
                     }

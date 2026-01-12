@@ -28,6 +28,10 @@ import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.context.SafeContext
+import com.lambda.event.Muteable
+import com.lambda.event.events.ButtonEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
@@ -48,13 +52,42 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
-class KeybindSetting(defaultValue: Bind) : SettingCore<Bind>(
+class KeybindSetting(
+    defaultValue: Bind,
+    private val muteable: Muteable?,
+    private val alwaysListening: Boolean,
+    private val screenCheck: Boolean
+) : SettingCore<Bind>(
 	defaultValue,
 	TypeToken.get(Bind::class.java).type
-) {
-    constructor(defaultValue: KeyCode) : this(Bind(defaultValue.code, 0, -1))
+), Muteable {
+    constructor(defaultValue: KeyCode, muteable: Muteable?, alwaysListen: Boolean, screenCheck: Boolean)
+            : this(Bind(defaultValue.code, 0, -1), muteable, alwaysListen, screenCheck)
+
+    private val pressListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
+    private val repeatListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
+    private val releaseListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
 
     private var listening = false
+
+    override val isMuted
+        get() = muteable?.isMuted == true && !alwaysListening
+
+    init {
+        listen<ButtonEvent.Keyboard.Press> { event -> onButtonEvent(event) }
+        listen<ButtonEvent.Mouse.Click> { event -> onButtonEvent(event) }
+    }
+
+    private fun SafeContext.onButtonEvent(event: ButtonEvent) {
+        if (mc.options.commandKey.isPressed ||
+            (screenCheck && mc.currentScreen != null) ||
+            !event.satisfies(value)) return
+
+        if (event.isPressed) {
+            if (event.isRepeated) repeatListeners.forEach { it(event) }
+            else pressListeners.forEach { it(event) }
+        } else if (event.isReleased) releaseListeners.forEach { it(event) }
+    }
 
 	context(setting: Setting<*, Bind>)
     override fun ImGuiBuilder.buildLayout() {
@@ -159,6 +192,20 @@ class KeybindSetting(defaultValue: Bind) : SettingCore<Bind>(
                     return@executeWithResult success()
                 }
             }
+        }
+    }
+
+    companion object {
+        fun Setting<KeybindSetting, Bind>.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply {
+            core.pressListeners.add(block)
+        }
+
+        fun Setting<KeybindSetting, Bind>.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply {
+            core.repeatListeners.add(block)
+        }
+
+        fun Setting<KeybindSetting, Bind>.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply {
+            core.releaseListeners.add(block)
         }
     }
 }

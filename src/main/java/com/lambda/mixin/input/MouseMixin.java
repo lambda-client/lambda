@@ -18,7 +18,7 @@
 package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.MouseEvent;
+import com.lambda.event.events.ButtonEvent;
 import com.lambda.module.modules.render.Zoom;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -26,7 +26,6 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Mouse;
 import net.minecraft.client.input.MouseInput;
-import net.minecraft.client.option.SimpleOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -39,7 +38,7 @@ public class MouseMixin {
 
     @WrapMethod(method = "onMouseButton")
     private void onMouseButton(long window, MouseInput input, int action, Operation<Void> original) {
-        if (!EventFlow.post(new MouseEvent.Click(input.button(), action, input.modifiers())).isCanceled())
+        if (!EventFlow.post(new ButtonEvent.Mouse.Click(input.button(), action, input.modifiers())).isCanceled())
             original.call(window, input, action);
     }
 
@@ -47,7 +46,7 @@ public class MouseMixin {
     private void onMouseScroll(long window, double horizontal, double vertical, Operation<Void> original) {
         Vec2d delta = new Vec2d(horizontal, vertical);
 
-        if (!EventFlow.post(new MouseEvent.Scroll(delta)).isCanceled())
+        if (!EventFlow.post(new ButtonEvent.Mouse.Scroll(delta)).isCanceled())
             original.call(window, horizontal, vertical);
     }
 
@@ -57,7 +56,7 @@ public class MouseMixin {
 
         Vec2d position = new Vec2d(x, y);
 
-        if (!EventFlow.post(new MouseEvent.Move(position)).isCanceled())
+        if (!EventFlow.post(new ButtonEvent.Mouse.Move(position)).isCanceled())
             original.call(window, x, y);
     }
 

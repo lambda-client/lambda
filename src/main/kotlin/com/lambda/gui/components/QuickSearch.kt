@@ -23,7 +23,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
 import com.lambda.config.Setting
-import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.Layout
@@ -62,7 +62,7 @@ object QuickSearch {
             ImGuiWindowFlags.NoScrollWithMouse
 
     init {
-        listenUnsafe<KeyboardEvent.Press> { event ->
+        listenUnsafe<ButtonEvent.Keyboard.Press> { event ->
             if (mc.currentScreen !is LambdaScreen) return@listenUnsafe
             handleKeyPress(event)
         }
@@ -302,7 +302,7 @@ object QuickSearch {
         return "$configurableName » $group"
     }
 
-    private fun handleKeyPress(event: KeyboardEvent.Press) {
+    private fun handleKeyPress(event: ButtonEvent.Keyboard.Press) {
         if ((!event.isPressed || event.isRepeated) ||
             !(event.keyCode == KeyCode.LeftShift.code || event.keyCode == KeyCode.RightShift.code)) return
 

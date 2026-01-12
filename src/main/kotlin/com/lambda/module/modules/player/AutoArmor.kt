@@ -20,16 +20,14 @@ package com.lambda.module.modules.player
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EnchantmentUtils.getEnchantment
-import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.component.DataComponentTypes
@@ -49,6 +47,7 @@ object AutoArmor : Module(
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
 	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
+		.onPress { elytraPriority = !elytraPriority }
 	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)
 	private val chestProtection by setting("Preferred Chest Protection", Protection.Protection)
@@ -128,9 +127,6 @@ object AutoArmor : Module(
 				}
 			}.submit()
 		}
-
-		listen<KeyboardEvent.Press> { if (toggleElytraPriority.isSatisfied()) elytraPriority = !elytraPriority }
-		listen<MouseEvent.Click> { if (toggleElytraPriority.isSatisfied()) elytraPriority = !elytraPriority }
 	}
 
 	context(safeContext: SafeContext)
