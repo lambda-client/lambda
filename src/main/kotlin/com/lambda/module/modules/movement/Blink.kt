@@ -22,7 +22,6 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -59,7 +58,7 @@ object Blink : Module(
     private var lastBox = Box(BlockPos.ORIGIN)
 
     init {
-        listen<RenderEvent.Upload> {
+        listen<RenderEvent.UploadStatic> {
             val time = System.currentTimeMillis()
 
             if (isActive && time - lastUpdate < delay) return@listen

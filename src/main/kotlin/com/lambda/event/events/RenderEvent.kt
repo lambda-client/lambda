@@ -23,16 +23,18 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
+import com.lambda.graphics.mc.ImmediateRegionESP
 import com.lambda.graphics.mc.TransientRegionESP
 
 fun Any.onStaticRender(block: SafeContext.(TransientRegionESP) -> Unit) =
-	listen<RenderEvent.Upload> { block(RenderMain.StaticESP) }
+	listen<RenderEvent.UploadStatic> { block(RenderMain.staticESP) }
 
-fun Any.onDynamicRender(block: SafeContext.(TransientRegionESP) -> Unit) =
-	listen<RenderEvent.Upload> { block(RenderMain.DynamicESP) }
+fun Any.onDynamicRender(block: SafeContext.(ImmediateRegionESP) -> Unit) =
+	listen<RenderEvent.UploadDynamic> { block(RenderMain.dynamicESP) }
 
 sealed class RenderEvent {
-    object Upload : Event
+    object UploadStatic : Event
+	object UploadDynamic: Event
     object Render : Event
 
     class UpdateTarget : ICancellable by Cancellable()

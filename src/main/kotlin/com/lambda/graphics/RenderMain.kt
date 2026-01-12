@@ -24,6 +24,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
+import com.lambda.graphics.mc.ImmediateRegionESP
 import com.lambda.graphics.mc.TransientRegionESP
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
@@ -32,10 +33,10 @@ import org.joml.Vector4f
 
 object RenderMain {
     @JvmStatic
-    val StaticESP = TransientRegionESP("Static")
+    val staticESP = TransientRegionESP("Static")
 
     @JvmStatic
-    val DynamicESP = TransientRegionESP("Dynamic")
+    val dynamicESP = ImmediateRegionESP("Dynamic")
 
     val projectionMatrix = Matrix4f()
     val modelViewMatrix
@@ -90,22 +91,22 @@ object RenderMain {
         resetMatrices(positionMatrix)
         projectionMatrix.set(projMatrix)
 
-        // Render transient ESPs using the new pipeline
-        StaticESP.render() // Uses internal depthTest flag (true)
-        DynamicESP.render() // Uses internal depthTest flag (false)
+        staticESP.render()
 
         RenderEvent.Render.post()
+        dynamicESP.render()
     }
 
     init {
         listen<TickEvent.Post> {
-            StaticESP.clear()
-            DynamicESP.clear()
-
-            RenderEvent.Upload.post()
-
-            StaticESP.upload()
-            DynamicESP.upload()
+            staticESP.clear()
+            RenderEvent.UploadStatic.post()
+            staticESP.upload()
+        }
+        listen<RenderEvent.Render> {
+            dynamicESP.clear()
+            RenderEvent.UploadDynamic.post()
+            dynamicESP.upload()
         }
     }
 }

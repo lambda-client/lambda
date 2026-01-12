@@ -26,7 +26,6 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
@@ -269,11 +268,9 @@ object BreakManager : Manager<BreakRequest>(
                             it.offset(pos)
                         }.forEach boxes@{ box ->
                             val animationMode = info.breakConfig.animation
-                            val currentProgressBox = interpolateBox(box, currentProgress, animationMode)
-                            val nextProgressBox = interpolateBox(box, nextTicksProgress, animationMode)
-                            val dynamicAABB = DynamicAABB().update(currentProgressBox).update(nextProgressBox)
-                            if (config.fill) filled(dynamicAABB, fillColor)
-                            if (config.outline) outline(dynamicAABB, outlineColor)
+                            val interpolatedBox = interpolateBox(box, interpolatedProgress, animationMode)
+                            if (config.fill) filled(interpolatedBox, fillColor)
+                            if (config.outline) outline(interpolatedBox, outlineColor)
                         }
                     }
                 }

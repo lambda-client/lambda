@@ -37,9 +37,9 @@ object BlockOutline : Module(
 	tag = ModuleTag.RENDER
 ) {
 	private val fill by setting("Fill", true)
-	private val fillColor by setting("Fill Color", Color(255, 255, 255, 60)) { fill }
+	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill }
 	private val outline by setting("Outline", true)
-	private val outlineColor by setting("Outline Color", Color.WHITE) { outline }
+	private val outlineColor by setting("Outline Color", Color(255, 255, 255, 120)) { outline }
 	private val lineWidth by setting("Line Width", 1.0f, 0.5f..10.0f, 0.1f) { outline }
 	private val interpolate by setting("Interpolate", true)
 	private val throughWalls by setting("ESP", true)

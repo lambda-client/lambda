@@ -21,6 +21,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
 import com.lambda.gui.DearImGui;
+import com.lambda.module.modules.render.BlockOutline;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.Zoom;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -40,6 +41,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
@@ -75,5 +77,10 @@ public class GameRendererMixin {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
     private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
         DearImGui.INSTANCE.render();
+    }
+
+    @Inject(method = "shouldRenderBlockOutline()Z", at = @At("HEAD"), cancellable = true)
+    private void injectShouldRenderBlockOutline(CallbackInfoReturnable<Boolean> cir) {
+        if (BlockOutline.INSTANCE.isEnabled()) cir.setReturnValue(false);
     }
 }
