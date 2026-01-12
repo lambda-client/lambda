@@ -24,7 +24,7 @@ import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.tickDelta
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
@@ -35,7 +35,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 import kotlin.math.min
-import kotlin.math.sqrt
 
 /**
  * Shape builder for region-based rendering. All coordinates are automatically converted to
@@ -138,7 +137,7 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		val pair = box.pair ?: return
 		val prev = pair.first
 		val curr = pair.second
-		val tickDelta = mc.partialTicks
+		val tickDelta = mc.tickDelta
 		val interpolated = Box(
 			lerp(tickDelta, prev.minX, curr.minX),
 			lerp(tickDelta, prev.minY, curr.minY),
@@ -231,7 +230,7 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		val pair = box.pair ?: return
 		val prev = pair.first
 		val curr = pair.second
-		val tickDelta = mc.partialTicks
+		val tickDelta = mc.tickDelta
 		val interpolated = Box(
 			lerp(tickDelta, prev.minX, curr.minX),
 			lerp(tickDelta, prev.minY, curr.minY),

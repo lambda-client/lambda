@@ -21,18 +21,18 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderRegion
-import com.lambda.util.extension.tickDelta
+import com.lambda.util.extension.tickDeltaF
 import com.mojang.blaze3d.systems.RenderSystem
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.floor
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.floor
 
 /**
  * Base class for region-based ESP systems. Provides unified rendering logic and region management.
  */
-abstract class RegionESP(val name: String, val depthTest: Boolean) {
+abstract class RegionESP(val name: String, var depthTest: Boolean) {
     protected val renderers = ConcurrentHashMap<Long, RegionRenderer>()
 
     /** Get or create a ShapeScope for a specific world position. */
@@ -53,9 +53,9 @@ abstract class RegionESP(val name: String, val depthTest: Boolean) {
 
     /**
      * Render all active regions.
-     * @param tickDelta Progress within current tick (used for interpolation)
+     * @param tickDeltaF Progress within current tick (used for interpolation)
      */
-    open fun render(tickDelta: Float = mc.tickDelta) {
+    fun render() {
         val camera = mc.gameRenderer?.camera ?: return
         val cameraPos = camera.pos
 
@@ -78,7 +78,7 @@ abstract class RegionESP(val name: String, val depthTest: Boolean) {
         }
 
         // Render Faces
-        RegionRenderer.createRenderPass("$name Faces")?.use { pass ->
+        RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
             val pipeline =
                     if (depthTest) LambdaRenderPipelines.ESP_QUADS
                     else LambdaRenderPipelines.ESP_QUADS_THROUGH
@@ -91,7 +91,7 @@ abstract class RegionESP(val name: String, val depthTest: Boolean) {
         }
 
         // Render Edges
-        RegionRenderer.createRenderPass("$name Edges")?.use { pass ->
+        RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
             val pipeline =
                     if (depthTest) LambdaRenderPipelines.ESP_LINES
                     else LambdaRenderPipelines.ESP_LINES_THROUGH

@@ -126,14 +126,24 @@ class RegionRenderer(val region: RenderRegion) {
 	companion object {
 		/** Helper to create a render pass targeting the main framebuffer. */
 		fun createRenderPass(label: String): RenderPass? {
+			return createRenderPass(label, useDepth = true)
+		}
+
+		/**
+		 * Helper to create a render pass targeting the main framebuffer.
+		 * @param label Debug label for the render pass
+		 * @param useDepth Whether to attach the depth buffer for depth testing
+		 */
+		fun createRenderPass(label: String, useDepth: Boolean): RenderPass? {
 			val framebuffer = mc.framebuffer ?: return null
+			val depthView = if (useDepth) framebuffer.depthAttachmentView else null
 			return RenderSystem.getDevice()
 				.createCommandEncoder()
 				.createRenderPass(
 					{ label },
 					framebuffer.colorAttachmentView,
 					OptionalInt.empty(),
-					framebuffer.depthAttachmentView,
+					depthView,
 					OptionalDouble.empty()
 				)
 		}

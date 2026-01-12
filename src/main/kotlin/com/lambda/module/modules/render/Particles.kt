@@ -38,7 +38,7 @@ import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.UP
@@ -53,7 +53,6 @@ import com.mojang.blaze3d.opengl.GlConst.GL_ONE
 import com.mojang.blaze3d.opengl.GlConst.GL_SRC_ALPHA
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
-import org.joml.Matrix4f
 import kotlin.math.sin
 
 // FixMe: Do not call render stuff in the initialization block
@@ -180,7 +179,7 @@ object Particles : Module(
         }
 
         fun build(builder: VertexBuilder) = builder.apply {
-            val smoothAge = age + mc.partialTicks
+            val smoothAge = age + mc.tickDelta
             val colorTicks = smoothAge * 0.1 / ClickGuiLayout.colorSpeed
 
             val alpha = when {
@@ -196,7 +195,7 @@ object Particles : Module(
             val (c1, c2) = ClickGuiLayout.primaryColor to ClickGuiLayout.secondaryColor
             val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
 
-            val position = lerp(mc.partialTicks, prevPos, position)
+            val position = lerp(mc.tickDelta, prevPos, position)
             val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {

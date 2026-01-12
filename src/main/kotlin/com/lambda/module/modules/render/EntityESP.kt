@@ -17,19 +17,15 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.RenderMain
-import com.lambda.graphics.mc.InterpolatedRegionESP
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.ImmediateRegionESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
-import com.lambda.util.extension.tickDelta
+import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
 import imgui.ImGui
@@ -54,7 +50,7 @@ object EntityESP : Module(
 	description = "Highlight entities with smooth interpolated rendering",
 	tag = ModuleTag.RENDER
 ) {
-	private val esp = InterpolatedRegionESP("EntityESP")
+	private val esp = ImmediateRegionESP("EntityESP")
 
 	private data class LabelData(
 		val screenX: Float,
@@ -110,8 +106,10 @@ object EntityESP : Module(
 	private val otherColor by setting("Other Color", Color(200, 200, 200), "Color for other entities").group(Group.Colors)
 
 	init {
-		listen<TickEvent.Post> {
+		listen<RenderEvent.Render> {
+			esp.depthTest = !throughWalls
 			esp.tick()
+			val tickDelta = mc.tickDeltaF
 
 			entitySearch<Entity>(range) { shouldRender(it) }.forEach { entity ->
 				val color = getEntityColor(entity)
@@ -129,69 +127,26 @@ object EntityESP : Module(
 								)
 						}
 					}
+
+					if (tracers) {
+						val color = getEntityColor(entity)
+						val entityPos = getInterpolatedPos(entity, tickDelta)
+						val startPos = getTracerStartPos(tickDelta)
+						val endPos = entityPos.add(0.0, entity.height / 2.0, 0.0)
+						tracer(startPos, endPos, entity.id) {
+							color(color.setAlpha(outlineAlpha))
+							width(tracerWidth)
+							if (dashedTracers) dashed(dashLength, gapLength)
+						}
+					}
 				}
 			}
 
 			esp.upload()
-		}
-
-		listen<RenderEvent.Render> {
-			val tickDelta = mc.tickDelta
-			esp.render(tickDelta)
+			esp.render()
 
 			// Clear pending labels from previous frame
 			pendingLabels.clear()
-
-			if (tracers || nameTags) {
-				val tracerEsp = TransientRegionESP(
-						"EntityESP-Tracers",
-						depthTest = !throughWalls
-					)
-				entitySearch<Entity>(range) { shouldRender(it) }.forEach { entity ->
-					val color = getEntityColor(entity)
-					val entityPos = getInterpolatedPos(entity, tickDelta)
-
-					if (tracers) {
-						val startPos = getTracerStartPos(tickDelta)
-						val endPos = entityPos.add(0.0, entity.height / 2.0, 0.0)
-
-						tracerEsp.shapes(entity.x, entity.y, entity.z) {
-							tracer(startPos, endPos, entity.id) {
-								color(color.setAlpha(outlineAlpha))
-								width(tracerWidth)
-								if (dashedTracers) dashed(dashLength, gapLength)
-							}
-						}
-					}
-
-					if (nameTags) {
-						val namePos = entityPos.add(0.0, entity.height + 0.3, 0.0)
-						// Project to screen coords NOW while matrices are
-						// valid
-						val screen = RenderMain.worldToScreen(namePos)
-						if (screen != null) {
-							val nameText = buildNameTag(entity)
-							// Calculate distance-based scale (closer =
-							// larger)
-							val distance = player.pos.distanceTo(namePos).toFloat()
-							val scale = (1.0f / (distance * 0.1f + 1f)).coerceIn(0.5f, 2.0f)
-							pendingLabels.add(
-								LabelData(
-									screen.x,
-									screen.y,
-									nameText,
-									color,
-									scale
-								)
-							)
-						}
-					}
-				}
-
-				tracerEsp.upload()
-				tracerEsp.render()
-				tracerEsp.close()
-			}
 		}
 
 		// Draw ImGUI labels using pre-computed screen coordinates
@@ -310,7 +265,7 @@ object EntityESP : Module(
 				playerPos.add(0.0, player.standingEyeHeight.toDouble(), 0.0)
 			TracerOrigin.Crosshair -> {
 				val camera = mc.gameRenderer?.camera ?: return playerPos
-				camera.pos.add(Vec3d(camera.horizontalPlane).multiply(0.1))
+				camera.cameraPos.add(Vec3d(camera.horizontalPlane).multiply(0.1))
 			}
 		}
 	}

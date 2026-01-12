@@ -77,7 +77,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
@@ -248,7 +248,7 @@ object BreakManager : Manager<BreakRequest>(
 
                     val currentProgress = currentDelta / adjustedThreshold
                     val nextTicksProgress = (currentDelta + breakDelta) / adjustedThreshold
-                    val interpolatedProgress = lerp(mc.partialTicks, currentProgress, nextTicksProgress)
+                    val interpolatedProgress = lerp(mc.tickDelta, currentProgress, nextTicksProgress)
 
                     val fillColor = if (config.dynamicFillColor) lerp(
                         interpolatedProgress,
