@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
@@ -111,9 +112,6 @@ object CrystalAura : Module(
     /* Targeting */
     private val targeting = Targeting.Combat(this, Group.Targeting, 10.0)
 
-    /* Rotation */
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
-
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
     private var currentTarget: LivingEntity? = null
@@ -144,6 +142,16 @@ object CrystalAura : Module(
     }
 
     init {
+        setDefaultAutomationConfig {
+            applyEdits {
+                hideAllGroupsExcept(buildConfig, rotationConfig, hotbarConfig, inventoryConfig)
+                buildConfig.apply {
+                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
+                        ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks)
+                }
+            }
+        }
+
         // Async ticking
         fixedRateTimer(
             name = "Crystal Aura Thread",
@@ -476,6 +484,7 @@ object CrystalAura : Module(
                 val crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
                 if (crystalSlot != -1) {
                     if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
+                    else return@runSafeAutomated
                 }
                 val swapTo = when (swapHand) { Hand.MAIN_HAND -> HotbarContainer; Hand.OFF_HAND -> OffHandContainer }
                 if (!selection.transfer(swapTo)) return@runSafe
