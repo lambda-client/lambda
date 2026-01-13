@@ -18,156 +18,78 @@
 package com.lambda.graphics.esp
 
 import com.lambda.graphics.mc.RegionShapeBuilder
-import com.lambda.graphics.mc.RegionVertexCollector
 import com.lambda.graphics.mc.RenderRegion
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 
 @EspDsl
-class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
+class ShapeScope(val region: RenderRegion) {
 	internal val builder = RegionShapeBuilder(region)
-	internal val shapes = if (collectShapes) mutableListOf<EspShape>() else null
 
 	/** Start building a box. */
-	fun box(box: Box, id: Any? = null, block: BoxScope.() -> Unit) {
+	fun box(box: Box, block: BoxScope.() -> Unit) {
 		val scope = BoxScope(box, this)
 		scope.apply(block)
-		if (collectShapes) {
-			shapes?.add(
-				EspShape.BoxShape(
-					id?.hashCode() ?: box.hashCode(),
-					box,
-					scope.filledColor,
-					scope.outlineColor,
-					scope.sides,
-					scope.outlineMode,
-					scope.thickness
-				)
-			)
-		}
 	}
 
 	/** Draw a line between two points. */
-	fun line(start: Vec3d, end: Vec3d, color: Color, width: Float = 1.0f, id: Any? = null) {
+	fun line(start: Vec3d, end: Vec3d, color: Color, width: Float = 1.0f) {
 		builder.line(start, end, color, width)
-		if (collectShapes) {
-			shapes?.add(
-				EspShape.LineShape(
-					id?.hashCode() ?: (start.hashCode() xor end.hashCode()),
-					start,
-					end,
-					color,
-					width
-				)
-			)
-		}
 	}
 
 	/** Draw a tracer. */
-	fun tracer(from: Vec3d, to: Vec3d, id: Any? = null, block: LineScope.() -> Unit = {}) {
+	fun line(from: Vec3d, to: Vec3d, block: LineScope.() -> Unit = {}) {
 		val scope = LineScope(from, to, this)
 		scope.apply(block)
 		scope.draw()
-		if (collectShapes) {
-			shapes?.add(
-				EspShape.LineShape(
-					id?.hashCode() ?: (from.hashCode() xor to.hashCode()),
-					from,
-					to,
-					scope.lineColor,
-					scope.lineWidth,
-					scope.lineDashLength,
-					scope.lineGapLength
-				)
-			)
-		}
 	}
 
 	/** Draw a simple filled box. */
 	fun filled(box: Box, color: Color, sides: Int = DirectionMask.ALL) {
 		builder.filled(box, color, sides)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(box.hashCode(), box, color, null, sides))
-		}
 	}
 
 	/** Draw a simple outlined box. */
 	fun outline(box: Box, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
 		builder.outline(box, color, sides, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(box.hashCode(), box, null, color, sides, thickness = thickness))
-		}
 	}
 
 	fun filled(box: DynamicAABB, color: Color, sides: Int = DirectionMask.ALL) {
 		builder.filled(box, color, sides)
-		if (collectShapes) {
-			box.pair?.second?.let {
-				shapes?.add(EspShape.BoxShape(it.hashCode(), it, color, null, sides))
-			}
-		}
 	}
 
 	fun outline(box: DynamicAABB, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
 		builder.outline(box, color, sides, thickness = thickness)
-		if (collectShapes) {
-			box.pair?.second?.let {
-				shapes?.add(EspShape.BoxShape(it.hashCode(), it, null, color, sides, thickness = thickness))
-			}
-		}
 	}
 
 	fun filled(pos: BlockPos, color: Color, sides: Int = DirectionMask.ALL) {
 		builder.filled(pos, color, sides)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), color, null, sides))
-		}
 	}
 
 	fun outline(pos: BlockPos, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
 		builder.outline(pos, color, sides, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), null, color, sides, thickness = thickness))
-		}
 	}
 
 	fun filled(pos: BlockPos, state: BlockState, color: Color, sides: Int = DirectionMask.ALL) {
 		builder.filled(pos, state, color, sides)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), color, null, sides))
-		}
 	}
 
 	fun outline(pos: BlockPos, state: BlockState, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
 		builder.outline(pos, state, color, sides, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), null, color, sides, thickness = thickness))
-		}
 	}
 
 	fun filled(shape: VoxelShape, color: Color, sides: Int = DirectionMask.ALL) {
 		builder.filled(shape, color, sides)
-		if (collectShapes) {
-			shape.boundingBoxes.forEach {
-				shapes?.add(EspShape.BoxShape(it.hashCode(), it, color, null, sides))
-			}
-		}
 	}
 
 	fun outline(shape: VoxelShape, color: Color, sides: Int = DirectionMask.ALL, thickness: Float = builder.lineWidth) {
 		builder.outline(shape, color, sides, thickness = thickness)
-		if (collectShapes) {
-			shape.boundingBoxes.forEach {
-				shapes?.add(EspShape.BoxShape(it.hashCode(), it, null, color, sides, thickness = thickness))
-			}
-		}
 	}
 
 	fun box(
@@ -180,9 +102,6 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		thickness: Float = builder.lineWidth
 	) {
 		builder.box(pos, state, filled, outline, sides, mode, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), filled, outline, sides, mode, thickness = thickness))
-		}
 	}
 
 	fun box(
@@ -194,9 +113,6 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		thickness: Float = builder.lineWidth
 	) {
 		builder.box(pos, filled, outline, sides, mode, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(pos.hashCode(), Box(pos), filled, outline, sides, mode, thickness = thickness))
-		}
 	}
 
 	fun box(
@@ -208,9 +124,6 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		thickness: Float = builder.lineWidth
 	) {
 		builder.box(box, filledColor, outlineColor, sides, mode, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(EspShape.BoxShape(box.hashCode(), box, filledColor, outlineColor, sides, mode, thickness = thickness))
-		}
 	}
 
 	fun box(
@@ -222,13 +135,6 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		thickness: Float = builder.lineWidth
 	) {
 		builder.box(box, filledColor, outlineColor, sides, mode, thickness = thickness)
-		if (collectShapes) {
-			box.pair?.second?.let {
-				shapes?.add(
-					EspShape.BoxShape(it.hashCode(), it, filledColor, outlineColor, sides, mode, thickness = thickness)
-				)
-			}
-		}
 	}
 
 	fun box(
@@ -240,19 +146,6 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		thickness: Float = builder.lineWidth
 	) {
 		builder.box(entity, filled, outline, sides, mode, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(
-				EspShape.BoxShape(
-					entity.pos.hashCode(),
-					Box(entity.pos),
-					filled,
-					outline,
-					sides,
-					mode,
-					thickness = thickness
-				)
-			)
-		}
 	}
 
 	fun box(
@@ -264,19 +157,6 @@ class ShapeScope(val region: RenderRegion, val collectShapes: Boolean = false) {
 		thickness: Float = builder.lineWidth
 	) {
 		builder.box(entity, filled, outline, sides, mode, thickness = thickness)
-		if (collectShapes) {
-			shapes?.add(
-				EspShape.BoxShape(
-					entity.hashCode(),
-					entity.boundingBox,
-					filled,
-					outline,
-					sides,
-					mode,
-					thickness = thickness
-				)
-			)
-		}
 	}
 }
 
@@ -336,81 +216,6 @@ class LineScope(val from: Vec3d, val to: Vec3d, val parent: ShapeScope) {
 			parent.builder.dashedLine(from, to, lineColor, dLen, gLen, lineWidth)
 		} else {
 			parent.builder.line(from, to, lineColor, lineWidth)
-		}
-	}
-}
-
-sealed class EspShape(val id: Int) {
-	abstract fun renderInterpolated(
-		prev: EspShape,
-		tickDelta: Float,
-		collector: RegionVertexCollector,
-		region: RenderRegion
-	)
-
-	class BoxShape(
-		id: Int,
-		val box: Box,
-		val filledColor: Color?,
-		val outlineColor: Color?,
-		val sides: Int = DirectionMask.ALL,
-		val outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And,
-		val thickness: Float = 1.0f
-	) : EspShape(id) {
-		override fun renderInterpolated(
-			prev: EspShape,
-			tickDelta: Float,
-			collector: RegionVertexCollector,
-			region: RenderRegion
-		) {
-			val interpBox =
-				if (prev is BoxShape) {
-					Box(
-						MathHelper.lerp(tickDelta.toDouble(), prev.box.minX, box.minX),
-						MathHelper.lerp(tickDelta.toDouble(), prev.box.minY, box.minY),
-						MathHelper.lerp(tickDelta.toDouble(), prev.box.minZ, box.minZ),
-						MathHelper.lerp(tickDelta.toDouble(), prev.box.maxX, box.maxX),
-						MathHelper.lerp(tickDelta.toDouble(), prev.box.maxY, box.maxY),
-						MathHelper.lerp(tickDelta.toDouble(), prev.box.maxZ, box.maxZ)
-					)
-				} else box
-
-			val shapeBuilder = RegionShapeBuilder(region)
-			filledColor?.let { shapeBuilder.filled(interpBox, it, sides) }
-			outlineColor?.let { shapeBuilder.outline(interpBox, it, sides, outlineMode, thickness = thickness) }
-
-			collector.faceVertices.addAll(shapeBuilder.collector.faceVertices)
-			collector.edgeVertices.addAll(shapeBuilder.collector.edgeVertices)
-		}
-	}
-
-	class LineShape(
-		id: Int,
-		val from: Vec3d,
-		val to: Vec3d,
-		val color: Color,
-		val width: Float,
-		val dashLength: Double? = null,
-		val gapLength: Double? = null
-	) : EspShape(id) {
-		override fun renderInterpolated(
-			prev: EspShape,
-			tickDelta: Float,
-			collector: RegionVertexCollector,
-			region: RenderRegion
-		) {
-			val iFrom = if (prev is LineShape) prev.from.lerp(from, tickDelta.toDouble()) else from
-			val iTo = if (prev is LineShape) prev.to.lerp(to, tickDelta.toDouble()) else to
-
-			val shapeBuilder = RegionShapeBuilder(region)
-			if (dashLength != null && gapLength != null) {
-				shapeBuilder.dashedLine(iFrom, iTo, color, dashLength, gapLength, width)
-			} else {
-				shapeBuilder.line(iFrom, iTo, color, width)
-			}
-
-			collector.faceVertices.addAll(shapeBuilder.collector.faceVertices)
-			collector.edgeVertices.addAll(shapeBuilder.collector.edgeVertices)
 		}
 	}
 }

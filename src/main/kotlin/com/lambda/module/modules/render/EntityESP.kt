@@ -117,7 +117,7 @@ object EntityESP : Module(
 
 				esp.shapes(entity.x, entity.y, entity.z) {
 					if (drawBoxes) {
-						box(box, entity.id) {
+						box(box) {
 							if (drawFilled)
 								filled(color.setAlpha(filledAlpha))
 							if (drawOutline)
@@ -133,7 +133,7 @@ object EntityESP : Module(
 						val entityPos = getInterpolatedPos(entity, tickDelta)
 						val startPos = getTracerStartPos(tickDelta)
 						val endPos = entityPos.add(0.0, entity.height / 2.0, 0.0)
-						tracer(startPos, endPos, entity.id) {
+						line(startPos, endPos) {
 							color(color.setAlpha(outlineAlpha))
 							width(tracerWidth)
 							if (dashedTracers) dashed(dashLength, gapLength)
