@@ -59,13 +59,6 @@ object InputUtils : Loadable {
             .also { lastPressedKeys.clear() }
             .onEach { (key, state) -> lastPressedKeys[key] = state }
 
-        // FixMe: If you are pressing two or more keys considered 'modifier' keys, you must release both of them at the
-        //  same time in order to receive an update stipulating that the last key (not actually a modifier) was released alongside its modifiers.
-        //  For the time being, I will allow this as players can still bind unique 'modifier' keys with no issues.
-
-        // FixMe: The order in which modifier keys are ordered is wrong. When a user presses Left Control + Left Alt, the user must
-        //  press Left Alt + Left Control as the modifier key in order for the event to satisfies the bind
-
         val mods = pressedKeys.keys
             .filter { it in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER && lastPressedKeys.keys.firstOrNull()?.equals(it) == false }
             .foldRight(0) { v, acc -> acc or modMap.getValue(v) }
