@@ -111,9 +111,7 @@ class UnsafeListener<T : Event>(
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},
         ): UnsafeListener<T> {
-            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event ->
-                function(event)
-            }
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { function(it) }
 
             EventFlow.syncListeners.subscribe(listener)
 
