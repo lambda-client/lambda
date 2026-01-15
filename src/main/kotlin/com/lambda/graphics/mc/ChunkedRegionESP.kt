@@ -17,29 +17,35 @@
 
 package com.lambda.graphics.mc
 
+import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
-import com.lambda.graphics.esp.RegionESP
 import com.lambda.graphics.esp.ShapeScope
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
+import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.chunk.WorldChunk
+import org.joml.Matrix4f
+import org.joml.Vector3f
+import org.joml.Vector4f
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
 /**
- * Region-based chunked ESP system using MC 1.21.11's new render pipeline.
+ * Chunked ESP system using chunk-origin relative coordinates.
  *
  * This system:
- * - Uses region-relative coordinates for precision-safe rendering
- * - Maintains per-chunk geometry for efficient updates
+ * - Stores geometry relative to chunk origin (stable, small floats)
+ * - Only rebuilds when chunks are modified
+ * - At render time, translates from chunk origin to camera-relative position
  *
  * @param owner The module that owns this ESP system
  * @param name The name of the ESP system
@@ -49,18 +55,23 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class ChunkedRegionESP(
 	owner: Module,
 	name: String,
-	depthTest: Boolean = false,
+	private val depthTest: Boolean = false,
 	private val update: ShapeScope.(World, FastVector) -> Unit
-) : RegionESP(name, depthTest) {
-	private val chunkMap = ConcurrentHashMap<Long, RegionChunk>()
+) {
+	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
-	private val WorldChunk.regionChunk
-		get() = chunkMap.getOrPut(getRegionKey(pos.x shl 4, bottomY, pos.z shl 4)) {
-			RegionChunk(this)
-		}
+	private val WorldChunk.chunkKey: Long
+		get() = getChunkKey(pos.x, pos.z)
 
+	private val WorldChunk.chunkData
+		get() = chunkMap.getOrPut(chunkKey) { ChunkData(this) }
+
+	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
-	private val rebuildQueue = ConcurrentLinkedDeque<RegionChunk>()
+
+	private fun getChunkKey(chunkX: Int, chunkZ: Int): Long {
+		return (chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
+	}
 
 	/** Mark all tracked chunks for rebuild. */
 	fun rebuild() {
@@ -76,37 +87,94 @@ class ChunkedRegionESP(
 		runSafe {
 			val chunksArray = world.chunkManager.chunks.chunks
 			(0 until chunksArray.length()).forEach { i ->
-				chunksArray.get(i)?.regionChunk?.markDirty()
+				chunksArray.get(i)?.chunkData?.markDirty()
 			}
 		}
 	}
 
-	override fun clear() {
+	fun clear() {
 		chunkMap.values.forEach { it.close() }
 		chunkMap.clear()
 		rebuildQueue.clear()
 		uploadQueue.clear()
 	}
 
+	fun close() {
+		clear()
+	}
+
+	/**
+	 * Render all chunks with camera-relative translation.
+	 */
+	fun render() {
+		val cameraPos = mc.gameRenderer?.camera?.pos ?: return
+
+		val activeChunks = chunkMap.values.filter { it.renderer.hasData() }
+		if (activeChunks.isEmpty()) return
+
+		val modelViewMatrix = com.lambda.graphics.RenderMain.modelViewMatrix
+
+		// Pre-compute all transforms BEFORE starting render passes
+		val chunkTransforms = activeChunks.map { chunkData ->
+			// Compute chunk-to-camera offset in double precision
+			val offsetX = (chunkData.originX - cameraPos.x).toFloat()
+			val offsetY = (chunkData.originY - cameraPos.y).toFloat()
+			val offsetZ = (chunkData.originZ - cameraPos.z).toFloat()
+
+			val modelView = Matrix4f(modelViewMatrix).translate(offsetX, offsetY, offsetZ)
+			val dynamicTransform = RenderSystem.getDynamicUniforms()
+				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
+
+			chunkData to dynamicTransform
+		}
+
+		// Render Faces
+		RegionRenderer.createRenderPass("ChunkedESP Faces", depthTest)?.use { pass ->
+			val pipeline =
+				if (depthTest) LambdaRenderPipelines.ESP_QUADS
+				else LambdaRenderPipelines.ESP_QUADS_THROUGH
+			pass.setPipeline(pipeline)
+			RenderSystem.bindDefaultUniforms(pass)
+
+			chunkTransforms.forEach { (chunkData, transform) ->
+				pass.setUniform("DynamicTransforms", transform)
+				chunkData.renderer.renderFaces(pass)
+			}
+		}
+
+		// Render Edges
+		RegionRenderer.createRenderPass("ChunkedESP Edges", depthTest)?.use { pass ->
+			val pipeline =
+				if (depthTest) LambdaRenderPipelines.ESP_LINES
+				else LambdaRenderPipelines.ESP_LINES_THROUGH
+			pass.setPipeline(pipeline)
+			RenderSystem.bindDefaultUniforms(pass)
+
+			chunkTransforms.forEach { (chunkData, transform) ->
+				pass.setUniform("DynamicTransforms", transform)
+				chunkData.renderer.renderEdges(pass)
+			}
+		}
+	}
+
 	init {
 		owner.listen<WorldEvent.BlockUpdate.Client> { event ->
 			val pos = event.pos
-			world.getWorldChunk(pos)?.regionChunk?.markDirty()
+			world.getWorldChunk(pos)?.chunkData?.markDirty()
 
 			val xInChunk = pos.x and 15
 			val zInChunk = pos.z and 15
 
-			if (xInChunk == 0) world.getWorldChunk(pos.west())?.regionChunk?.markDirty()
-			if (xInChunk == 15) world.getWorldChunk(pos.east())?.regionChunk?.markDirty()
-			if (zInChunk == 0) world.getWorldChunk(pos.north())?.regionChunk?.markDirty()
-			if (zInChunk == 15) world.getWorldChunk(pos.south())?.regionChunk?.markDirty()
+			if (xInChunk == 0) world.getWorldChunk(pos.west())?.chunkData?.markDirty()
+			if (xInChunk == 15) world.getWorldChunk(pos.east())?.chunkData?.markDirty()
+			if (zInChunk == 0) world.getWorldChunk(pos.north())?.chunkData?.markDirty()
+			if (zInChunk == 15) world.getWorldChunk(pos.south())?.chunkData?.markDirty()
 		}
 
-		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.regionChunk.markDirty() }
+		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
 
 		owner.listen<WorldEvent.ChunkEvent.Unload> {
-			val pos = getRegionKey(it.chunk.pos.x shl 4, it.chunk.bottomY, it.chunk.pos.z shl 4)
-			chunkMap.remove(pos)?.close()
+			chunkMap.remove(it.chunk.chunkKey)?.close()
 		}
 
 		owner.listenConcurrently<TickEvent.Pre> {
@@ -123,10 +191,15 @@ class ChunkedRegionESP(
 		owner.listen<RenderEvent.Render> { render() }
 	}
 
-	/** Per-chunk rendering data. */
-	private inner class RegionChunk(val chunk: WorldChunk) {
-		val region = RenderRegion.forChunk(chunk.pos.x, chunk.pos.z, chunk.bottomY)
-		private val key = getRegionKey(chunk.pos.x shl 4, chunk.bottomY, chunk.pos.z shl 4)
+	/** Per-chunk data with its own renderer and origin. */
+	private inner class ChunkData(val chunk: WorldChunk) {
+		// Chunk origin in world coordinates
+		val originX: Double = (chunk.pos.x shl 4).toDouble()
+		val originY: Double = chunk.bottomY.toDouble()
+		val originZ: Double = (chunk.pos.z shl 4).toDouble()
+
+		// This chunk's own renderer
+		val renderer = RegionRenderer()
 
 		private var isDirty = false
 
@@ -137,9 +210,16 @@ class ChunkedRegionESP(
 			}
 		}
 
+		/**
+		 * Rebuild geometry relative to chunk origin.
+		 * Coordinates are stored as (worldPos - chunkOrigin).toFloat()
+		 */
 		fun rebuild() {
 			if (!isDirty) return
-			val scope = ShapeScope(region)
+
+			// Use chunk origin as the "camera" position for relative coords
+			val chunkOriginVec = Vec3d(originX, originY, originZ)
+			val scope = ShapeScope(chunkOriginVec)
 
 			for (x in chunk.pos.startX..chunk.pos.endX) {
 				for (z in chunk.pos.startZ..chunk.pos.endZ) {
@@ -150,14 +230,13 @@ class ChunkedRegionESP(
 			}
 
 			uploadQueue.add {
-				val renderer = renderers.getOrPut(key) { RegionRenderer(region) }
 				renderer.upload(scope.builder.collector)
 				isDirty = false
 			}
 		}
 
 		fun close() {
-			renderers.remove(key)?.close()
+			renderer.close()
 		}
 	}
 }

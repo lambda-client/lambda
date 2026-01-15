@@ -263,7 +263,7 @@ object BreakManager : Manager<BreakRequest>(
                     else config.staticOutlineColor
 
                     val pos = info.context.blockPos
-                    esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                    esp.shapes {
                         info.context.cachedState.getOutlineShape(world, pos).boundingBoxes.map {
                             it.offset(pos)
                         }.forEach boxes@{ box ->

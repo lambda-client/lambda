@@ -4,6 +4,14 @@
 
 uniform sampler2D Sampler0;
 
+// SDF effect parameters - passed via uniform buffer
+layout(std140) uniform SDFParams {
+    float SDFThreshold;      // Main text edge threshold (default 0.5)
+    float OutlineWidth;      // Outline width in SDF units (0 = no outline)
+    float GlowRadius;        // Glow radius in SDF units (0 = no glow)
+    float ShadowSoftness;    // Shadow softness (0 = no shadow)
+};
+
 in vec2 texCoord0;
 in vec4 vertexColor;
 in float sphericalVertexDistance;
@@ -14,35 +22,48 @@ out vec4 fragColor;
 void main() {
     // Sample the SDF texture - use ALPHA channel
     vec4 texSample = texture(Sampler0, texCoord0);
-    float sdfValue = texSample.a;  // SDF in alpha channel
+    float sdfValue = texSample.a;
 
-    // IMPORTANT: Adjust smoothing based on distance field range
-    // For a typical SDF with 0.5 at the edge:
-    float smoothing = fwidth(sdfValue) * 0.5;  // Reduced from 0.7
+    // Screen-space anti-aliasing
+    float smoothing = fwidth(sdfValue) * 0.5;
 
-    int layerType = int(vertexColor.a * 255.0 + 0.5);  // +0.5 for proper rounding
+    // Decode layer type from vertex alpha
+    int layerType = int(vertexColor.a * 255.0 + 0.5);
 
     float alpha;
 
     if (layerType >= 200) {
-        // Main text
-        alpha = smoothstep(0.5 - smoothing, 0.5 + smoothing, sdfValue);
+        // Main text layer - sharp edge at threshold
+        alpha = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
     } else if (layerType >= 100) {
-        // Outline - use wider threshold
-        alpha = smoothstep(0.4 - smoothing, 0.45 + smoothing * 2.0, sdfValue);
+        // Outline layer - uses OutlineWidth
+        float outlineEdge = SDFThreshold - OutlineWidth;
+        alpha = smoothstep(outlineEdge - smoothing, outlineEdge + smoothing, sdfValue);
+        // Mask out the main text area
+        float textMask = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
+        alpha = alpha * (1.0 - textMask);
     } else if (layerType >= 50) {
-        // Glow - softer, wider
-        alpha = smoothstep(0.3, 0.45, sdfValue) * 0.6;
+        // Glow layer - always starts from text edge (SDFThreshold) and extends outward
+        float glowStart = SDFThreshold - GlowRadius;
+        float glowEnd = SDFThreshold;
+        alpha = smoothstep(glowStart, glowEnd, sdfValue) * 0.6;
+        // Mask out the main text area (anything inside the text edge)
+        float textMask = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
+        alpha = alpha * (1.0 - textMask);
     } else {
-        // Shadow
-        alpha = smoothstep(0.25, 0.4, sdfValue) * 0.5;
+        // Shadow layer - uses ShadowSoftness
+        float shadowStart = SDFThreshold - ShadowSoftness - 0.15;
+        float shadowEnd = SDFThreshold - 0.1;
+        alpha = smoothstep(shadowStart, shadowEnd, sdfValue) * 0.5;
     }
 
-    // Apply vertex color and discard
+    // Apply vertex color (RGB from vertex, alpha computed above)
     vec4 result = vec4(vertexColor.rgb, alpha);
 
+    // Discard nearly transparent fragments
     if (result.a <= 0.001) discard;
 
+    // Apply color modulator and fog
     result *= ColorModulator;
     fragColor = apply_fog(result, sphericalVertexDistance, cylindricalVertexDistance,
                           FogEnvironmentalStart, FogEnvironmentalEnd,

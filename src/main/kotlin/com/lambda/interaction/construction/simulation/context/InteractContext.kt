@@ -47,7 +47,7 @@ data class InteractContext(
     override val sorter get() = interactConfig.sorter
 
     override fun render(esp: TransientRegionESP) {
-        esp.shapes(hitResult.pos.x, hitResult.pos.y, hitResult.pos.z) {
+        esp.shapes {
             val box = with(hitResult.pos) {
                 Box(
                     x - 0.05, y - 0.05, z - 0.05,

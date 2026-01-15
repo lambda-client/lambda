@@ -23,7 +23,6 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -119,7 +118,7 @@ object BackTrack : Module(
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)
 
-            esp.shapes(target.pos.x, target.pos.y, target.pos.z) {
+            esp.shapes {
                 box(box, c.multAlpha(0.3), c.multAlpha(0.8))
             }
         }

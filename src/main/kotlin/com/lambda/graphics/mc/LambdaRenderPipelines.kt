@@ -23,6 +23,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline
 import com.mojang.blaze3d.platform.DepthTestFunction
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.gl.RenderPipelines
+import net.minecraft.client.gl.UniformType
 import net.minecraft.client.render.VertexFormats
 import net.minecraft.util.Identifier
 
@@ -169,6 +170,7 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
 				.withSampler("Sampler0")
+				.withUniform("SDFParams", UniformType.UNIFORM_BUFFER)
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
@@ -188,6 +190,7 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
 				.withSampler("Sampler0")
+				.withUniform("SDFParams", UniformType.UNIFORM_BUFFER)
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)

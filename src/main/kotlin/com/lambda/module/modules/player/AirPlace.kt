@@ -110,7 +110,7 @@ object AirPlace : Module(
 			placementPos?.let { pos ->
 				val boxes = placementState?.getOutlineShape(world, pos)?.boundingBoxes
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
-				esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+				esp.shapes {
 					boxes.forEach { box ->
 						outline(box.offset(pos), outlineColor)
 					}

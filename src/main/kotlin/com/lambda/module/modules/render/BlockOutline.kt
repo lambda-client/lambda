@@ -68,7 +68,7 @@ object BlockOutline : Module(
 					interpolated.expand(0.001)
 				}
 
-			renderer.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+			renderer.shapes {
 				boxes.forEach { box ->
 					if (fill) filled(box, fillColor)
 					if (outline) outline(box, outlineColor, thickness = lineWidth)

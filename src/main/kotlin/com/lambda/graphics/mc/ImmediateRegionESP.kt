@@ -17,55 +17,99 @@
 
 package com.lambda.graphics.mc
 
-import com.lambda.graphics.esp.RegionESP
+import com.lambda.Lambda.mc
 import com.lambda.graphics.esp.ShapeScope
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.floor
+import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.util.math.Vec3d
+import org.joml.Matrix4f
+import org.joml.Vector3f
+import org.joml.Vector4f
 
 /**
- * Interpolated region-based ESP system for smooth entity rendering.
+ * Interpolated ESP system for smooth entity rendering.
  *
- * This system rebuilds and uploads vertices every frame. Callers are responsible for providing
- * interpolated positions (e.g., using entity.prevX/x with tickDelta). The tick() method swaps
- * builders to allow smooth transitions between frames.
+ * This system rebuilds and uploads vertices every frame with camera-relative coordinates.
+ * Callers are responsible for providing interpolated positions (e.g., using entity.prevX/x 
+ * with tickDelta). The tick() method clears builders to allow smooth transitions between frames.
  */
-class ImmediateRegionESP(name: String, depthTest: Boolean = false) : RegionESP(name, depthTest) {
-	// Current frame builders (being populated this tick)
-	private val currBuilders = ConcurrentHashMap<Long, ShapeScope>()
+class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
+	private val renderer = RegionRenderer()
 
-	override fun shapes(x: Double, y: Double, z: Double, block: ShapeScope.() -> Unit) {
-		val key = getRegionKey(x, y, z)
-		val scope =
-			currBuilders.getOrPut(key) {
-				val size = RenderRegion.REGION_SIZE
-				val rx = (size * floor(x / size)).toInt()
-				val ry = (size * floor(y / size)).toInt()
-				val rz = (size * floor(z / size)).toInt()
-				ShapeScope(RenderRegion(rx, ry, rz))
-			}
-		scope.apply(block)
+	// Current frame builder (being populated this frame)
+	private var currScope: ShapeScope? = null
+
+	/**
+	 * Get the current camera position for building camera-relative shapes.
+	 * Returns null if camera is not available.
+	 */
+	private fun getCameraPos(): Vec3d? = mc.gameRenderer?.camera?.pos
+
+	/** Get or create a ShapeScope for drawing with camera-relative coordinates. */
+	fun shapes(block: ShapeScope.() -> Unit) {
+		val s = currScope ?: ShapeScope(getCameraPos() ?: return).also { currScope = it }
+		s.apply(block)
 	}
 
-	override fun clear() {
-		currBuilders.clear()
+	/** Clear all geometry data. */
+	fun clear() {
+		currScope = null
 	}
 
+	/** Called each tick to reset for next frame. */
 	fun tick() {
-		currBuilders.clear()
+		currScope = null
 	}
 
-	override fun upload() {
-		val activeKeys = currBuilders.keys.toSet()
+	/** Upload collected geometry to GPU. Must be called on main thread. */
+	fun upload() {
+		currScope?.let { s ->
+			renderer.upload(s.builder.collector)
+		} ?: renderer.clearData()
+	}
 
-		currBuilders.forEach { (key, scope) ->
-			val renderer = renderers.getOrPut(key) { RegionRenderer(scope.region) }
-			renderer.upload(scope.builder.collector)
+	/** Close and release all GPU resources. */
+	fun close() {
+		renderer.close()
+		clear()
+	}
+
+	/**
+	 * Render all geometry. Since coordinates are already camera-relative,
+	 * we just use the base modelView matrix without additional translation.
+	 */
+	fun render() {
+		if (!renderer.hasData()) return
+
+		val modelViewMatrix = com.lambda.graphics.RenderMain.modelViewMatrix
+
+		val dynamicTransform = RenderSystem.getDynamicUniforms()
+			.write(
+				modelViewMatrix,
+				Vector4f(1f, 1f, 1f, 1f),
+				Vector3f(0f, 0f, 0f),
+				Matrix4f()
+			)
+
+		// Render Faces
+		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
+			val pipeline =
+				if (depthTest) LambdaRenderPipelines.ESP_QUADS
+				else LambdaRenderPipelines.ESP_QUADS_THROUGH
+			pass.setPipeline(pipeline)
+			RenderSystem.bindDefaultUniforms(pass)
+			pass.setUniform("DynamicTransforms", dynamicTransform)
+			renderer.renderFaces(pass)
 		}
 
-		renderers.forEach { (key, renderer) ->
-			if (key !in activeKeys) {
-				renderer.clearData()
-			}
+		// Render Edges
+		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
+			val pipeline =
+				if (depthTest) LambdaRenderPipelines.ESP_LINES
+				else LambdaRenderPipelines.ESP_LINES_THROUGH
+			pass.setPipeline(pipeline)
+			RenderSystem.bindDefaultUniforms(pass)
+			pass.setUniform("DynamicTransforms", dynamicTransform)
+			renderer.renderEdges(pass)
 		}
 	}
 }

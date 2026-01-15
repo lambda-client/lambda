@@ -25,14 +25,12 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import java.util.*
 
 /**
- * Region-based renderer for ESP rendering using MC 1.21.11's new render pipeline.
+ * Renderer for ESP rendering using MC 1.21.11's new render pipeline.
  *
- * This renderer manages the lifecycle of dedicated GPU buffers for a specific region and provides
+ * This renderer manages the lifecycle of dedicated GPU buffers and provides
  * methods to render them within a RenderPass.
- *
- * @param region The render region this renderer is associated with
  */
-class RegionRenderer(val region: RenderRegion) {
+class RegionRenderer {
 
 	// Dedicated GPU buffers for faces and edges
 	private var faceVertexBuffer: GpuBuffer? = null

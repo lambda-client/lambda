@@ -51,7 +51,7 @@ object BlockTest : Module(
             blockSearch(range, step = step) { _, state ->
                 state.isOf(Blocks.DIAMOND_BLOCK)
             }.forEach { (pos, state) ->
-                esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                esp.shapes {
                     state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
                         box(box.offset(pos), filledColor, outlineColor)
                     }

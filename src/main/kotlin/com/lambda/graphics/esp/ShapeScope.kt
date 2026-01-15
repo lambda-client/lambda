@@ -18,7 +18,6 @@
 package com.lambda.graphics.esp
 
 import com.lambda.graphics.mc.RegionShapeBuilder
-import com.lambda.graphics.mc.RenderRegion
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import net.minecraft.block.BlockState
@@ -28,9 +27,13 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 
+/**
+ * Scope for building ESP shapes with camera-relative coordinates.
+ * @param cameraPos The camera position for computing relative coordinates
+ */
 @EspDsl
-class ShapeScope(val region: RenderRegion) {
-	internal val builder = RegionShapeBuilder(region)
+class ShapeScope(cameraPos: Vec3d) {
+	internal val builder = RegionShapeBuilder(cameraPos)
 
 	/** Start building a box. */
 	fun box(box: Box, block: BoxScope.() -> Unit) {

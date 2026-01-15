@@ -176,7 +176,7 @@ object PacketMine : Module(
         onStaticRender { esp ->
             if (renderRebreak) {
                 rebreakPos?.let { pos ->
-                    esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                    esp.shapes {
                         outline(pos, rebreakColor)
                     }
                 }
@@ -191,7 +191,7 @@ object PacketMine : Module(
                         RenderMode.Box -> listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
                     }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
-                    esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+                    esp.shapes {
                         boxes.forEach { box ->
                             box(box, color, color.setAlpha(1.0))
                         }

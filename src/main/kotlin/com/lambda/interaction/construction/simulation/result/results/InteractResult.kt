@@ -83,7 +83,7 @@ sealed class InteractResult : BuildResult() {
         private val color = Color(252, 3, 3, 100)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 val box = with(simulated.hitPos) {
                     Box(
                         x - 0.05, y - 0.05, z - 0.05,
@@ -122,7 +122,7 @@ sealed class InteractResult : BuildResult() {
         private val color = Color(252, 3, 3, 100)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 val box = with(hitPos) {
                     Box(
                         x - 0.05, y - 0.05, z - 0.05,

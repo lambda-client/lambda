@@ -54,7 +54,7 @@ sealed class GenericResult : BuildResult() {
         private val color = Color(46, 0, 0, 80)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 val box = with(pos) {
                     Box(
                         x - 0.05, y - 0.05, z - 0.05,
@@ -103,7 +103,7 @@ sealed class GenericResult : BuildResult() {
         }
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 val center = pos.toCenterPos()
                 val box = Box(
                     center.x - 0.1, center.y - 0.1, center.z - 0.1,
@@ -136,7 +136,7 @@ sealed class GenericResult : BuildResult() {
         override val goal = GoalNear(pos, 3)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 val center = pos.toCenterPos()
                 val box = Box(
                     center.x - 0.1, center.y - 0.1, center.z - 0.1,

@@ -73,7 +73,7 @@ sealed class BreakResult : BuildResult() {
         private val color = Color(46, 0, 0, 30)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 box(pos, color, color, side.mask)
             }
         }
@@ -123,7 +123,7 @@ sealed class BreakResult : BuildResult() {
         private val color = Color(114, 27, 255, 100)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 box(pos, color, color)
             }
         }
@@ -141,7 +141,7 @@ sealed class BreakResult : BuildResult() {
         private val color = Color(50, 12, 112, 100)
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 val center = pos.toCenterPos()
                 val box = Box(
                     center.x - 0.1, center.y - 0.1, center.z - 0.1,
@@ -165,7 +165,7 @@ sealed class BreakResult : BuildResult() {
         override val goal = GoalInverted(GoalBlock(pos))
 
         override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+            esp.shapes {
                 box(pos, color, color)
             }
         }

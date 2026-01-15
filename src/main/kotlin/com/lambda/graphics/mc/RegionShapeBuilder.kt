@@ -37,19 +37,25 @@ import java.awt.Color
 import kotlin.math.min
 
 /**
- * Shape builder for region-based rendering. All coordinates are automatically converted to
- * region-relative positions.
+ * Shape builder for camera-relative rendering. All coordinates are computed
+ * relative to the camera position in double precision, then converted to float.
+ * This prevents floating-point jitter at large world coordinates.
  *
- * This class provides drawing primitives for region-based rendering and collects vertex data in thread-safe collections
- * for later upload to MC's BufferBuilder.
- *
- * @param region The render region (provides origin for coordinate conversion)
+ * @param cameraPos The camera's world position for computing relative coordinates
  */
-class RegionShapeBuilder(val region: RenderRegion) {
+class RegionShapeBuilder(private val cameraPos: Vec3d) {
 	val collector = RegionVertexCollector()
 
 	val lineWidth: Float
 		get() = StyleEditor.outlineWidth.toFloat()
+
+	/** Convert world coordinates to camera-relative. Computed in double precision. */
+	private fun toRelative(x: Double, y: Double, z: Double) =
+		Triple(
+			(x - cameraPos.x).toFloat(),
+			(y - cameraPos.y).toFloat(),
+			(z - cameraPos.z).toFloat()
+		)
 
 	fun box(
 		entity: BlockEntity,
@@ -66,14 +72,6 @@ class RegionShapeBuilder(val region: RenderRegion) {
 		sides: Int = DirectionMask.ALL,
 		mode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
 	) = box(entity.boundingBox, filled, outline, sides, mode)
-
-	/** Convert world coordinates to region-relative. */
-	private fun toRelative(x: Double, y: Double, z: Double) =
-		Triple(
-			(x - region.originX).toFloat(),
-			(y - region.originY).toFloat(),
-			(z - region.originZ).toFloat()
-		)
 
 	/** Add a colored quad face (filled rectangle). */
 	fun filled(

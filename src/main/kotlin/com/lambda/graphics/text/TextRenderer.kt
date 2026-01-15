@@ -40,7 +40,7 @@ import java.awt.Color
  */
 class TextRenderer(
 	fontPath: String,
-	fontSize: Float = 256f,
+	fontSize: Float = 128f,
 	atlasSize: Int = 512
 ) : AutoCloseable {
 
@@ -139,22 +139,25 @@ class TextRenderer(
 	/**
 	 * Draw text in screen space (2D overlay).
 	 *
-	 * @param x Screen X position
-	 * @param y Screen Y position  
+	 * @param x Screen X position in pixels
+	 * @param y Screen Y position in pixels
 	 * @param text Text string to render
 	 * @param color Text color
-	 * @param scale Scale factor (1.0 = native font size)
+	 * @param fontSize Target text height in pixels (default 16)
 	 */
 	fun drawScreen(
 		x: Float,
 		y: Float,
 		text: String,
 		color: Color = Color.WHITE,
-		scale: Float = 1f
+		fontSize: Float = 24f
 	) {
 		if (!atlas.isUploaded) atlas.upload()
 		val textureView = atlas.textureView ?: return
 		val sampler = atlas.sampler ?: return
+
+		// Convert fontSize to scale factor based on atlas font size
+		val scale = fontSize / atlas.fontSize
 
 		// Build transformation for screen space with orthographic projection
 		val window = mc.window

@@ -60,7 +60,7 @@ data class BreakContext(
     override val sorter get() = breakConfig.sorter
 
     override fun render(esp: TransientRegionESP) {
-        esp.shapes(blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble()) {
+        esp.shapes {
             box(blockPos, baseColor, sideColor)
         }
     }

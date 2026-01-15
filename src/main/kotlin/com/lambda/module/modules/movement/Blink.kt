@@ -69,8 +69,7 @@ object Blink : Module(
 
         onDynamicRender { esp ->
             val color = ClickGuiLayout.primaryColor
-            val pos = player.pos
-            esp.shapes(pos.x, pos.y, pos.z) {
+            esp.shapes {
                 box(box.update(lastBox), color.setAlpha(0.3), color)
             }
         }

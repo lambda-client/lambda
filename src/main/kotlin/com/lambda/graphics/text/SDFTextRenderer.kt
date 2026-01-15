@@ -70,23 +70,34 @@ object SDFTextRenderer {
 	/** Outline effect configuration */
 	data class TextOutline(
 		val color: Color = Color.BLACK,
-		val width: Float = 0.1f // 0.0 - 0.5 in SDF units
+		val width: Float = 0.1f // 0.0 - 0.3 in SDF units (distance from edge)
 	)
 
 	/** Glow effect configuration */
 	data class TextGlow(
 		val color: Color = Color(0, 200, 255, 180),
-		val radius: Float = 0.15f // Glow spread in SDF units
+		val radius: Float = 0.2f // Glow spread in SDF units
 	)
+
+	/** Shadow effect configuration */
+	data class TextShadow(
+		val color: Color = Color(0, 0, 0, 180),
+		val offset: Float = 0.05f, // Distance in text units
+		val angle: Float = 135f, // Angle in degrees: 0=right, 90=down, 180=left, 270=up (default: bottom-right)
+		val softness: Float = 0.15f // Shadow blur in SDF units (for documentation, not currently used)
+	) {
+		/** X offset computed from angle and distance */
+		val offsetX: Float get() = offset * kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat()
+		/** Y offset computed from angle and distance */
+		val offsetY: Float get() = offset * kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat()
+	}
 
 	/** Text style configuration */
 	data class TextStyle(
 		val color: Color = Color.WHITE,
 		val outline: TextOutline? = null,
 		val glow: TextGlow? = null,
-		val shadow: Boolean = true,
-		val shadowColor: Color = Color(0, 0, 0, 180),
-		val shadowOffset: Float = 0.05f
+		val shadow: TextShadow? = TextShadow() // Default shadow enabled
 	)
 
 	/**
@@ -96,7 +107,7 @@ object SDFTextRenderer {
 	 * @param size Font size in pixels
 	 * @return The loaded FontAtlas, or null if loading failed
 	 */
-	fun loadFont(path: String, size: Float = 256f): SDFFontAtlas? {
+	fun loadFont(path: String, size: Float = 128f): SDFFontAtlas? {
 		val key = "$path@$size"
 		return fonts.getOrPut(key) {
 			try {
@@ -120,9 +131,9 @@ object SDFTextRenderer {
 		defaultFont?.let { return it }
 
 		// Try to load without catching, so the actual exception is visible
-		val key = "fonts/MinecraftDefault-Regular.ttf@$size"
+		val key = "fonts/FiraSans-Regular.ttf@$size"
 		val font = fonts[key] ?: run {
-			val newFont = SDFFontAtlas("fonts/MinecraftDefault-Regular.ttf", size)
+			val newFont = SDFFontAtlas("fonts/FiraSans-Regular.ttf", size)
 			fonts[key] = newFont
 			newFont
 		}
@@ -169,11 +180,11 @@ object SDFTextRenderer {
 		val startX = -textWidth / 2f
 
 		// Draw shadow first (offset, alpha < 50 signals shadow layer)
-		if (style.shadow) {
-			val shadowColor = Color(style.shadowColor.red, style.shadowColor.green, style.shadowColor.blue, 25)
+		if (style.shadow != null) {
+			val shadowColor = Color(style.shadow.color.red, style.shadow.color.green, style.shadow.color.blue, 25)
 			renderTextLayer(
-				atlas, text, startX + style.shadowOffset, style.shadowOffset,
-				shadowColor, modelMatrix, seeThrough
+				atlas, text, startX + style.shadow.offsetX, style.shadow.offsetY,
+				shadowColor, modelMatrix, seeThrough, style
 			)
 		}
 
@@ -182,7 +193,7 @@ object SDFTextRenderer {
 			val glowColor = Color(style.glow.color.red, style.glow.color.green, style.glow.color.blue, 75)
 			renderTextLayer(
 				atlas, text, startX, 0f,
-				glowColor, modelMatrix, seeThrough
+				glowColor, modelMatrix, seeThrough, style
 			)
 		}
 
@@ -191,7 +202,7 @@ object SDFTextRenderer {
 			val outlineColor = Color(style.outline.color.red, style.outline.color.green, style.outline.color.blue, 150)
 			renderTextLayer(
 				atlas, text, startX, 0f,
-				outlineColor, modelMatrix, seeThrough
+				outlineColor, modelMatrix, seeThrough, style
 			)
 		}
 
@@ -199,7 +210,7 @@ object SDFTextRenderer {
 		val mainColor = Color(style.color.red, style.color.green, style.color.blue, 255)
 		renderTextLayer(
 			atlas, text, startX, 0f,
-			mainColor, modelMatrix, seeThrough
+			mainColor, modelMatrix, seeThrough, style
 		)
 	}
 
@@ -211,42 +222,43 @@ object SDFTextRenderer {
 		text: String,
 		x: Float,
 		y: Float,
-		fontSize: Float = 16f,
+		fontSize: Float = 24f,
 		style: TextStyle = TextStyle()
 	) {
 		val atlas = font ?: getDefaultFont()
 		val scale = fontSize / atlas.baseSize
 
 		// Create orthographic model matrix
+		// Note: vertices are built with Y-up convention, so we negate Y scale for screen (Y-down)
 		val modelMatrix = Matrix4f()
 			.translate(x, y, 0f)
-			.scale(scale, scale, 1f)
+			.scale(scale, -scale, 1f)  // Negative Y to flip for screen coordinates
 
 		// Use screen-space rendering
-		if (style.shadow) {
+		if (style.shadow != null) {
 			renderTextLayerScreen(
-				atlas, text, style.shadowOffset * fontSize, style.shadowOffset * fontSize,
-				style.shadowColor, modelMatrix
-			)
-		}
-
-		if (style.outline != null) {
-			renderTextLayerScreen(
-				atlas, text, 0f, 0f,
-				style.outline.color, modelMatrix
+				atlas, text, style.shadow.offsetX * fontSize, style.shadow.offsetY * fontSize,
+				style.shadow.color, modelMatrix, style
 			)
 		}
 
 		if (style.glow != null) {
 			renderTextLayerScreen(
 				atlas, text, 0f, 0f,
-				style.glow.color, modelMatrix
+				style.glow.color, modelMatrix, style
+			)
+		}
+
+		if (style.outline != null) {
+			renderTextLayerScreen(
+				atlas, text, 0f, 0f,
+				style.outline.color, modelMatrix, style
 			)
 		}
 
 		renderTextLayerScreen(
 			atlas, text, 0f, 0f,
-			style.color, modelMatrix
+			style.color, modelMatrix, style
 		)
 	}
 
@@ -272,7 +284,8 @@ object SDFTextRenderer {
 		startY: Float,
 		color: Color,
 		modelMatrix: Matrix4f,
-		seeThrough: Boolean
+		seeThrough: Boolean,
+		style: TextStyle
 	) {
 		if (!atlas.isUploaded) atlas.upload()
 		val textureView = atlas.textureView ?: return
@@ -285,6 +298,12 @@ object SDFTextRenderer {
 
 		// Upload to GPU buffer
 		val gpuBuffer = uploadTextVertices(vertices) ?: return
+
+		// Create SDF params uniform buffer
+		val sdfParams = createSDFParamsBuffer(style) ?: run {
+			gpuBuffer.close()
+			return
+		}
 
 		// Use SDF_TEXT pipeline for proper smoothstep anti-aliasing
 		val pipeline = if (seeThrough) LambdaRenderPipelines.SDF_TEXT_THROUGH
@@ -299,6 +318,7 @@ object SDFTextRenderer {
 			pass.setPipeline(pipeline)
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
+			pass.setUniform("SDFParams", sdfParams)
 
 			// Bind texture using MC 1.21's proper API
 			pass.bindTexture("Sampler0", textureView, sampler)
@@ -314,6 +334,7 @@ object SDFTextRenderer {
 		}
 
 		gpuBuffer.close()
+		sdfParams.close()
 	}
 
 	private fun renderTextLayerScreen(
@@ -322,7 +343,8 @@ object SDFTextRenderer {
 		offsetX: Float,
 		offsetY: Float,
 		color: Color,
-		modelMatrix: Matrix4f
+		modelMatrix: Matrix4f,
+		style: TextStyle
 	) {
 		if (!atlas.isUploaded) atlas.upload()
 		val textureView = atlas.textureView ?: return
@@ -334,22 +356,31 @@ object SDFTextRenderer {
 
 		val gpuBuffer = uploadTextVertices(vertices) ?: return
 
+		// Create SDF params uniform buffer
+		val sdfParams = createSDFParamsBuffer(style) ?: run {
+			gpuBuffer.close()
+			return
+		}
+
 		val window = mc.window
+		// Ortho projection: left=0, right=scaledWidth, top=0, bottom=scaledHeight (Y-down for screen)
 		val ortho = Matrix4f().ortho(
 			0f, window.scaledWidth.toFloat(),
 			window.scaledHeight.toFloat(), 0f,
 			-1000f, 1000f
 		)
 
-		// Calculate MVP and dynamic uniforms BEFORE opening render pass
+		// Apply model matrix to ortho to get final MVP
+		// The model matrix has the screen position and scaling
 		val mvp = Matrix4f(ortho).mul(modelMatrix)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(mvp, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
 
 		RegionRenderer.createRenderPass("SDF Text Screen", useDepth = false)?.use { pass ->
 			pass.setPipeline(LambdaRenderPipelines.SDF_TEXT_THROUGH)
-			// Note: not calling bindDefaultUniforms - we provide complete MVP in DynamicTransforms
+			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
+			pass.setUniform("SDFParams", sdfParams)
 
 			// Bind texture using MC 1.21's proper API
 			pass.bindTexture("Sampler0", textureView, sampler)
@@ -364,6 +395,7 @@ object SDFTextRenderer {
 		}
 
 		gpuBuffer.close()
+		sdfParams.close()
 	}
 
 	private data class TextVertex(
@@ -449,6 +481,36 @@ object SDFTextRenderer {
 	fun getLineHeight(font: SDFFontAtlas? = null, fontSize: Float = 1f): Float {
 		val atlas = font ?: getDefaultFont()
 		return atlas.lineHeight * fontSize / atlas.baseSize
+	}
+
+	/**
+	 * Create a GpuBuffer containing the SDF effect parameters for the shader.
+	 * Layout matches std140 uniform block SDFParams in sdf_text.fsh:
+	 *   float SDFThreshold, OutlineWidth, GlowRadius, ShadowSoftness (4 floats = 16 bytes)
+	 */
+	private fun createSDFParamsBuffer(style: TextStyle): GpuBuffer? {
+		val device = RenderSystem.getDevice()
+		
+		// std140 layout: 4 floats (16 bytes total)
+		val bufferSize = 16
+		
+		// Use LWJGL MemoryUtil for direct ByteBuffer allocation
+		val buffer = org.lwjgl.system.MemoryUtil.memAlloc(bufferSize)
+		return try {
+			// Write the 4 floats
+			buffer.putFloat(0.5f)  // SDFThreshold - main text edge
+			buffer.putFloat(style.outline?.width ?: 0.1f)  // OutlineWidth
+			buffer.putFloat(style.glow?.radius ?: 0.2f)  // GlowRadius
+			buffer.putFloat(style.shadow?.softness ?: 0.15f)  // ShadowSoftness
+			
+			buffer.flip()
+			
+			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
+		} catch (e: Exception) {
+			null
+		} finally {
+			org.lwjgl.system.MemoryUtil.memFree(buffer)
+		}
 	}
 
 	/** Clean up all loaded fonts. */

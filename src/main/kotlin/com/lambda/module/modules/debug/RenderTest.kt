@@ -48,14 +48,14 @@ object RenderTest : Module(
         onDynamicRender { esp ->
             entitySearch<LivingEntity>(8.0)
                 .forEach { entity ->
-                    esp.shapes(entity.x, entity.y, entity.z) {
+                    esp.shapes {
                         box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
                     }
                 }
         }
 
         onStaticRender { esp ->
-            esp.shapes(player.x, player.y, player.z) {
+            esp.shapes {
                 box(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
             }
         }

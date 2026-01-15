@@ -27,6 +27,9 @@ import net.minecraft.client.gl.GpuSampler
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.stb.STBTTFontinfo
 import org.lwjgl.stb.STBTTVertex
+import org.lwjgl.stb.STBTruetype.STBTT_vcurve
+import org.lwjgl.stb.STBTruetype.STBTT_vline
+import org.lwjgl.stb.STBTruetype.STBTT_vmove
 import org.lwjgl.stb.STBTruetype.stbtt_FindGlyphIndex
 import org.lwjgl.stb.STBTruetype.stbtt_FreeShape
 import org.lwjgl.stb.STBTruetype.stbtt_GetFontVMetrics
@@ -36,14 +39,9 @@ import org.lwjgl.stb.STBTruetype.stbtt_GetGlyphHMetrics
 import org.lwjgl.stb.STBTruetype.stbtt_GetGlyphShape
 import org.lwjgl.stb.STBTruetype.stbtt_InitFont
 import org.lwjgl.stb.STBTruetype.stbtt_ScaleForPixelHeight
-import org.lwjgl.stb.STBTruetype.STBTT_vcurve
-import org.lwjgl.stb.STBTruetype.STBTT_vline
-import org.lwjgl.stb.STBTruetype.STBTT_vmove
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import java.nio.ByteBuffer
-import kotlin.math.abs
-import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
@@ -61,7 +59,7 @@ import kotlin.math.sqrt
  */
 class SDFFontAtlas(
 	fontPath: String,
-	val baseSize: Float = 128f,
+	val baseSize: Float = 256f,
 	val sdfSpread: Int = 16,
 	val atlasSize: Int = 4096
 ) : AutoCloseable {
