@@ -27,7 +27,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.math.setAlpha
-import com.lambda.util.world.entitySearch
 import imgui.ImGui
 import net.minecraft.entity.Entity
 import net.minecraft.entity.ItemEntity
@@ -51,6 +50,9 @@ object EntityESP : Module(
 	tag = ModuleTag.RENDER
 ) {
 	private val esp = ImmediateRegionESP("EntityESP")
+	
+	// Text renderer for testing
+//	private val testTextRenderer by lazy { TextRenderer("fonts/FiraSans-Regular.ttf", 96f) }
 
 	private data class LabelData(
 		val screenX: Float,
@@ -62,7 +64,6 @@ object EntityESP : Module(
 
 	private val pendingLabels = mutableListOf<LabelData>()
 
-	private val range by setting("Range", 64.0, 8.0..256.0, 1.0, "Maximum render distance").group(Group.General)
 	private val throughWalls by setting("Through Walls", true, "Render through blocks").group(Group.General)
 	private val self by setting("Self", false, "Render own player in third person").group(Group.General)
 
@@ -111,7 +112,56 @@ object EntityESP : Module(
 			esp.tick()
 			val tickDelta = mc.tickDeltaF
 
-			entitySearch<Entity>(range) { shouldRender(it) }.forEach { entity ->
+			// Test SDF text rendering with glow and outline
+//			val eyePos = player.eyePos.add(player.rotationVector.multiply(2.0)) // 2 blocks in front
+//			SDFTextRenderer.drawWorld(
+//				text = "SDFTextRenderer World",
+//				pos = eyePos,
+//				fontSize = 0.5f,
+//				style = SDFTextRenderer.TextStyle(
+//					color = Color.WHITE,
+//					outline = SDFTextRenderer.TextOutline(Color.BLACK, 0.15f),
+//					glow = SDFTextRenderer.TextGlow(Color(0, 200, 255, 180), 0.2f),
+//					shadow = true
+//				),
+//				centered = true,
+//				seeThrough = true
+//			)
+//
+//			SDFTextRenderer.drawScreen(
+//				text = "SDFTextRenderer Screen",
+//				x = 20f,
+//				y = 20f,
+//				fontSize = 24f,
+//				style = SDFTextRenderer.TextStyle(
+//					color = Color.WHITE,
+//					outline = SDFTextRenderer.TextOutline(Color.BLACK, 0.15f),
+//					glow = SDFTextRenderer.TextGlow(Color(0, 200, 255, 180), 0.2f),
+//					shadow = true
+//				)
+//			)
+//
+//			// Test regular TextRenderer - World space (slightly below SDF text)
+//			val textWorldPos = player.eyePos.add(player.rotationVector.multiply(2.0)).add(0.0, -0.5, 0.0)
+//			testTextRenderer.drawWorld(
+//				pos = textWorldPos,
+//				text = "TextRenderer World",
+//				color = Color.YELLOW,
+//				scale = 0.025f,
+//				centered = true,
+//				seeThrough = true
+//			)
+//
+//			// Test regular TextRenderer - Screen space
+//			testTextRenderer.drawScreen(
+//				x = 20f,
+//				y = 100f,
+//				text = "TextRenderer Screen",
+//				color = Color.GREEN,
+//				scale = 1f
+//			)
+
+			world.entities.forEach { entity ->
 				val color = getEntityColor(entity)
 				val box = entity.boundingBox
 

@@ -116,4 +116,86 @@ object LambdaRenderPipelines : Loadable {
 				)
 				.build()
 		)
+
+	/**
+	 * Pipeline for textured text rendering with alpha blending.
+	 * Uses position_tex_color shader with Sampler0 for font atlas texture.
+	 */
+	val TEXT_QUADS: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/text_quads"))
+				.withVertexShader(Identifier.ofVanilla("core/position_tex_color"))
+				.withFragmentShader(Identifier.ofVanilla("core/position_tex_color"))
+				.withSampler("Sampler0")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE_COLOR,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/** Pipeline for text that renders through walls. */
+	val TEXT_QUADS_THROUGH: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/text_quads_through"))
+				.withVertexShader(Identifier.ofVanilla("core/position_tex_color"))
+				.withFragmentShader(Identifier.ofVanilla("core/position_tex_color"))
+				.withSampler("Sampler0")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE_COLOR,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for SDF text rendering with proper smoothstep anti-aliasing.
+	 * Uses lambda:core/sdf_text shaders with SDF-specific uniforms for effects.
+	 */
+	val SDF_TEXT: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/sdf_text"))
+				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
+				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
+				.withSampler("Sampler0")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE_COLOR,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/** SDF text pipeline that renders through walls. */
+	val SDF_TEXT_THROUGH: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/sdf_text_through"))
+				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
+				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
+				.withSampler("Sampler0")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE_COLOR,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
 }
