@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.mc
+package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.RenderMain
+import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.RegionRenderer
+import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.text.SDFFontAtlas
+import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
+import org.lwjgl.system.MemoryUtil
 
 /**
  * Modern replacement for the legacy Treed system. Handles geometry that is cleared and rebuilt
@@ -31,7 +38,7 @@ import org.joml.Vector4f
  * Geometry is stored relative to the camera position at tick time. At render time, we compute
  * the delta between tick-camera and current-camera to ensure smooth motion without jitter.
  */
-class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
+class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 	private val renderer = RegionRenderer()
 	private var renderBuilder: RenderBuilder? = null
 	
@@ -66,7 +73,7 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 	}
 
 	// Font atlas used for current text rendering
-	private var currentFontAtlas: com.lambda.graphics.text.SDFFontAtlas? = null
+	private var currentFontAtlas: SDFFontAtlas? = null
 
 	/** Close and release all GPU resources. */
 	fun close() {
@@ -83,7 +90,7 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 		val tickCamera = tickCameraPos ?: return
 		if (!renderer.hasData()) return
 
-		val modelViewMatrix = com.lambda.graphics.RenderMain.modelViewMatrix
+		val modelViewMatrix = RenderMain.modelViewMatrix
 
 		// Compute the camera movement since tick time in double precision
 		// Geometry is stored relative to tickCamera, so we translate by (tickCamera - currentCamera)
@@ -96,7 +103,7 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
 
 		// Render Faces
-		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
+		RegionRenderer.Companion.createRenderPass("$name Faces", depthTest)?.use { pass ->
 			val pipeline =
 				if (depthTest) LambdaRenderPipelines.ESP_QUADS
 				else LambdaRenderPipelines.ESP_QUADS_THROUGH
@@ -107,7 +114,7 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 		}
 
 		// Render Edges
-		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
+		RegionRenderer.Companion.createRenderPass("$name Edges", depthTest)?.use { pass ->
 			val pipeline =
 				if (depthTest) LambdaRenderPipelines.ESP_LINES
 				else LambdaRenderPipelines.ESP_LINES_THROUGH
@@ -127,7 +134,7 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 				if (textureView != null && sampler != null) {
 					val sdfParams = createSDFParamsBuffer()
 					if (sdfParams != null) {
-						RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
+						RegionRenderer.Companion.createRenderPass("$name Text", depthTest)?.use { pass ->
 							val pipeline =
 								if (depthTest) LambdaRenderPipelines.SDF_TEXT
 								else LambdaRenderPipelines.SDF_TEXT_THROUGH
@@ -145,20 +152,20 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 		}
 	}
 
-	private fun createSDFParamsBuffer(): com.mojang.blaze3d.buffers.GpuBuffer? {
+	private fun createSDFParamsBuffer(): GpuBuffer? {
 		val device = RenderSystem.getDevice()
-		val buffer = org.lwjgl.system.MemoryUtil.memAlloc(16)
+		val buffer = MemoryUtil.memAlloc(16)
 		return try {
 			buffer.putFloat(0.5f)
 			buffer.putFloat(0.1f)
 			buffer.putFloat(0.2f)
 			buffer.putFloat(0.15f)
 			buffer.flip()
-			device.createBuffer({ "SDFParams" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_UNIFORM, buffer)
+			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
 		} catch (e: Exception) {
 			null
 		} finally {
-			org.lwjgl.system.MemoryUtil.memFree(buffer)
+			MemoryUtil.memFree(buffer)
 		}
 	}
 }

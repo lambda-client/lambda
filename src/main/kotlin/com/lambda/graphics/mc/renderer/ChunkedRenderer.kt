@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.mc
+package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
@@ -23,12 +23,17 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.graphics.RenderMain
+import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.RegionRenderer
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.FontHandler
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
+import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
@@ -36,6 +41,7 @@ import net.minecraft.world.chunk.WorldChunk
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
+import org.lwjgl.system.MemoryUtil
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -52,7 +58,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
  * @param depthTest Whether to use depth testing
  * @param update The update function called for each block position
  */
-class ChunkedRegionESP(
+class ChunkedRenderer(
 	owner: Module,
 	name: String,
 	private val depthTest: Boolean = false,
@@ -112,7 +118,7 @@ class ChunkedRegionESP(
 		val activeChunks = chunkMap.values.filter { it.renderer.hasData() }
 		if (activeChunks.isEmpty()) return
 
-		val modelViewMatrix = com.lambda.graphics.RenderMain.modelViewMatrix
+		val modelViewMatrix = RenderMain.modelViewMatrix
 
 		// Pre-compute all transforms BEFORE starting render passes
 		val chunkTransforms = activeChunks.map { chunkData ->
@@ -129,7 +135,7 @@ class ChunkedRegionESP(
 		}
 
 		// Render Faces
-		RegionRenderer.createRenderPass("ChunkedESP Faces", depthTest)?.use { pass ->
+		RegionRenderer.Companion.createRenderPass("ChunkedESP Faces", depthTest)?.use { pass ->
 			val pipeline =
 				if (depthTest) LambdaRenderPipelines.ESP_QUADS
 				else LambdaRenderPipelines.ESP_QUADS_THROUGH
@@ -143,7 +149,7 @@ class ChunkedRegionESP(
 		}
 
 		// Render Edges
-		RegionRenderer.createRenderPass("ChunkedESP Edges", depthTest)?.use { pass ->
+		RegionRenderer.Companion.createRenderPass("ChunkedESP Edges", depthTest)?.use { pass ->
 			val pipeline =
 				if (depthTest) LambdaRenderPipelines.ESP_LINES
 				else LambdaRenderPipelines.ESP_LINES_THROUGH
@@ -167,7 +173,7 @@ class ChunkedRegionESP(
 			if (textureView != null && sampler != null) {
 				val sdfParams = createSDFParamsBuffer()
 				if (sdfParams != null) {
-					RegionRenderer.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
+					RegionRenderer.Companion.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
 						val pipeline =
 							if (depthTest) LambdaRenderPipelines.SDF_TEXT
 							else LambdaRenderPipelines.SDF_TEXT_THROUGH
@@ -187,20 +193,20 @@ class ChunkedRegionESP(
 		}
 	}
 
-	private fun createSDFParamsBuffer(): com.mojang.blaze3d.buffers.GpuBuffer? {
+	private fun createSDFParamsBuffer(): GpuBuffer? {
 		val device = RenderSystem.getDevice()
-		val buffer = org.lwjgl.system.MemoryUtil.memAlloc(16)
+		val buffer = MemoryUtil.memAlloc(16)
 		return try {
 			buffer.putFloat(0.5f)
 			buffer.putFloat(0.1f)
 			buffer.putFloat(0.2f)
 			buffer.putFloat(0.15f)
 			buffer.flip()
-			device.createBuffer({ "SDFParams" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_UNIFORM, buffer)
+			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
 		} catch (e: Exception) {
 			null
 		} finally {
-			org.lwjgl.system.MemoryUtil.memFree(buffer)
+			MemoryUtil.memFree(buffer)
 		}
 	}
 
@@ -292,8 +298,8 @@ class ChunkedRegionESP(
 			name: String,
 			depthTest: Boolean = false,
 			update: RenderBuilder.(World, FastVector) -> Unit
-		): ChunkedRegionESP {
-			return ChunkedRegionESP(this, name, depthTest, update)
+		): ChunkedRenderer {
+			return ChunkedRenderer(this, name, depthTest, update)
 		}
 	}
 }

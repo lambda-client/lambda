@@ -20,8 +20,8 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.graphics.mc.TransientRegionESP
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.graphics.mc.renderer.TickedRenderer
+import com.lambda.graphics.util.DirectionMask.mask
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -55,7 +55,7 @@ sealed class BreakResult : BuildResult() {
     ) : Contextual, Drawable, BreakResult() {
         override val rank = Rank.BreakSuccess
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             context.render(esp)
         }
     }
@@ -72,7 +72,7 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakNotExposed
         private val color = Color(46, 0, 0, 30)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)
@@ -125,7 +125,7 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakSubmerge
         private val color = Color(114, 27, 255, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)
@@ -145,7 +145,7 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakIsBlockedByFluid
         private val color = Color(50, 12, 112, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 val center = pos.toCenterPos()
                 val box = Box(
@@ -171,7 +171,7 @@ sealed class BreakResult : BuildResult() {
 
         override val goal = GoalInverted(GoalBlock(pos))
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)

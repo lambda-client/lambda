@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
@@ -53,7 +53,7 @@ sealed class GenericResult : BuildResult() {
         override val rank = Rank.NotVisible
         private val color = Color(46, 0, 0, 80)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 val box = with(pos) {
                     Box(
@@ -104,7 +104,7 @@ sealed class GenericResult : BuildResult() {
             neededSelection.transferByTask(HotbarContainer)?.execute(task)
         }
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 val center = pos.toCenterPos()
                 val box = Box(
@@ -139,7 +139,7 @@ sealed class GenericResult : BuildResult() {
 
         override val goal = GoalNear(pos, 3)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 val center = pos.toCenterPos()
                 val box = Box(

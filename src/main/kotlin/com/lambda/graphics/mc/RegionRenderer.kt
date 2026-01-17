@@ -31,7 +31,6 @@ import java.util.*
  * methods to render them within a RenderPass.
  */
 class RegionRenderer {
-
 	// Dedicated GPU buffers for faces, edges, and text
 	private var faceVertexBuffer: GpuBuffer? = null
 	private var edgeVertexBuffer: GpuBuffer? = null

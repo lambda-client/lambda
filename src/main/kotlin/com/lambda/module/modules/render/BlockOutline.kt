@@ -20,7 +20,7 @@ package com.lambda.module.modules.render
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.mc.ImmediateRegionESP
+import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
@@ -45,7 +45,7 @@ object BlockOutline : Module(
 	private val throughWalls by setting("ESP", true)
 		.onValueChange { _, to -> renderer.depthTest = !to }
 
-	val renderer = ImmediateRegionESP("BlockOutline")
+	val renderer = ImmediateRenderer("BlockOutline")
 
 	var previous: Pair<List<Box>, BlockState>? = null
 
@@ -59,13 +59,15 @@ object BlockOutline : Module(
 			val boxes = blockState
 				.getOutlineShape(world, pos)
 				.boundingBoxes
-				.mapIndexed { index, box ->
-					val offset = box.offset(pos)
-					val interpolated = previous?.let { previous ->
-						if (!interpolate || previous.second !== blockState) null
-						else lerp(mc.tickDelta, previous.first[index], offset)
-					} ?: offset
-					interpolated.expand(0.001)
+				.let { boxes ->
+					boxes.mapIndexed { index, box ->
+						val offset = box.offset(pos)
+						val interpolated = previous?.let { previous ->
+							if (!interpolate || previous.first.size < boxes.size) null
+							else lerp(mc.tickDelta, previous.first[index], offset)
+						} ?: offset
+						interpolated.expand(0.001)
+					}
 				}
 
 			renderer.shapes {

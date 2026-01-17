@@ -18,10 +18,10 @@
 package com.lambda.graphics.mc
 
 import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
+import com.lambda.graphics.util.DirectionMask
+import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos

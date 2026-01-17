@@ -24,8 +24,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
-import com.lambda.graphics.mc.ImmediateRegionESP
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.renderer.ImmediateRenderer
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector2f
@@ -33,10 +33,10 @@ import org.joml.Vector4f
 
 object RenderMain {
     @JvmStatic
-    val staticESP = TransientRegionESP("Static")
+    val staticESP = TickedRenderer("Static")
 
     @JvmStatic
-    val dynamicESP = ImmediateRegionESP("Dynamic")
+    val dynamicESP = ImmediateRenderer("Dynamic")
 
     val projectionMatrix = Matrix4f()
     val modelViewMatrix

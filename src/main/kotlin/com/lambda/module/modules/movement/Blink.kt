@@ -22,7 +22,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.esp.DynamicAABB
+import com.lambda.graphics.util.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura

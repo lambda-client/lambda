@@ -18,13 +18,12 @@
 package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
-import com.lambda.util.ChatUtils.colors
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
@@ -56,7 +55,7 @@ sealed class PreSimResult : BuildResult() {
 
         override val goal = GoalBlock(pos)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)
@@ -82,7 +81,7 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.BreakRestricted
         private val color = Color(255, 0, 0, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)
@@ -104,7 +103,7 @@ sealed class PreSimResult : BuildResult() {
         override val rank get() = Rank.BreakNoPermission
         private val color = Color(255, 0, 0, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)
@@ -124,7 +123,7 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.OutOfWorld
         private val color = Color(3, 148, 252, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)
@@ -146,7 +145,7 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.Unbreakable
         private val color = Color(11, 11, 11, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(pos, 1.5f) {
                     allColors(color)

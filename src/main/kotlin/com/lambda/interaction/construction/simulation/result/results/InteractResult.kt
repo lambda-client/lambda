@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Contextual
@@ -57,7 +57,7 @@ sealed class InteractResult : BuildResult() {
     ) : Contextual, Drawable, InteractResult() {
         override val rank = Rank.PlaceSuccess
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             context.render(esp)
         }
     }
@@ -82,7 +82,7 @@ sealed class InteractResult : BuildResult() {
         override val rank = Rank.PlaceNoIntegrity
         private val color = Color(252, 3, 3, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 val box = with(simulated.hitPos) {
                     Box(
@@ -123,7 +123,7 @@ sealed class InteractResult : BuildResult() {
         override val rank = Rank.PlaceBlockedByEntity
         private val color = Color(252, 3, 3, 100)
 
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 val box = with(hitPos) {
                     Box(

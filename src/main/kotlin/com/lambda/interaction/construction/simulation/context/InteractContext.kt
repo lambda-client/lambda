@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractRequest
@@ -46,7 +46,7 @@ data class InteractContext(
 
     override val sorter get() = interactConfig.sorter
 
-    override fun render(esp: TransientRegionESP) {
+    override fun render(esp: TickedRenderer) {
         esp.shapes {
             val box = with(hitResult.pos) {
                 Box(

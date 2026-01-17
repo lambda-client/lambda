@@ -21,7 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.mc.ImmediateRegionESP
+import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -48,7 +48,7 @@ object EntityESP : Module(
 	description = "Highlight entities with smooth interpolated rendering",
 	tag = ModuleTag.RENDER
 ) {
-	private val esp = ImmediateRegionESP("EntityESP")
+	private val esp = ImmediateRenderer("EntityESP")
 
 	private data class LabelData(
 		val screenX: Float,

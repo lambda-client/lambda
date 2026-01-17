@@ -19,7 +19,7 @@ package com.lambda.module.modules.debug
 
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.events.onStaticRender
-import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
+import com.lambda.graphics.util.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.tickDelta

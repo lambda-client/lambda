@@ -21,9 +21,9 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
-import com.lambda.graphics.mc.ChunkedRegionESP.Companion.chunkedEsp
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
+import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedEsp
+import com.lambda.graphics.util.DirectionMask
+import com.lambda.graphics.util.DirectionMask.buildSideMesh
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp
+package com.lambda.graphics.util
 
 import com.lambda.util.extension.prevPos
 import com.lambda.util.math.lerp

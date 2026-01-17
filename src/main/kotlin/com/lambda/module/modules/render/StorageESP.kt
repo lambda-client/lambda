@@ -20,9 +20,9 @@ package com.lambda.module.modules.render
 import com.lambda.context.SafeContext
 import com.lambda.event.events.onDynamicRender
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
+import com.lambda.graphics.util.DirectionMask
+import com.lambda.graphics.util.DirectionMask.buildSideMesh
+import com.lambda.graphics.util.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe

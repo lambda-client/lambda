@@ -15,9 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.mc
+package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.RenderMain
+import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.RegionRenderer
+import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.text.SDFFontAtlas
+import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
@@ -32,7 +38,7 @@ import org.lwjgl.system.MemoryUtil
  * Callers are responsible for providing interpolated positions (e.g., using entity.prevX/x 
  * with tickDelta). The tick() method clears builders to allow smooth transitions between frames.
  */
-class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
+class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 	private val renderer = RegionRenderer()
 
 	// Current frame builder (being populated this frame)
@@ -73,7 +79,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 	}
 
 	// Font atlas used for current text rendering
-	private var currentFontAtlas: com.lambda.graphics.text.SDFFontAtlas? = null
+	private var currentFontAtlas: SDFFontAtlas? = null
 
 	/** Close and release all GPU resources. */
 	fun close() {
@@ -88,7 +94,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 	fun render() {
 		if (!renderer.hasData()) return
 
-		val modelViewMatrix = com.lambda.graphics.RenderMain.modelViewMatrix
+		val modelViewMatrix = RenderMain.modelViewMatrix
 
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(
@@ -99,7 +105,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 			)
 
 		// Render Faces
-		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
+		RegionRenderer.Companion.createRenderPass("$name Faces", depthTest)?.use { pass ->
 			val pipeline =
 				if (depthTest) LambdaRenderPipelines.ESP_QUADS
 				else LambdaRenderPipelines.ESP_QUADS_THROUGH
@@ -110,7 +116,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 		}
 
 		// Render Edges
-		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
+		RegionRenderer.Companion.createRenderPass("$name Edges", depthTest)?.use { pass ->
 			val pipeline =
 				if (depthTest) LambdaRenderPipelines.ESP_LINES
 				else LambdaRenderPipelines.ESP_LINES_THROUGH
@@ -130,7 +136,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 				if (textureView != null && sampler != null) {
 					val sdfParams = createSDFParamsBuffer()
 					if (sdfParams != null) {
-						RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
+						RegionRenderer.Companion.createRenderPass("$name Text", depthTest)?.use { pass ->
 							val pipeline =
 								if (depthTest) LambdaRenderPipelines.SDF_TEXT
 								else LambdaRenderPipelines.SDF_TEXT_THROUGH
@@ -151,7 +157,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 	/**
 	 * Create SDF params uniform buffer with default values.
 	 */
-	private fun createSDFParamsBuffer(): com.mojang.blaze3d.buffers.GpuBuffer? {
+	private fun createSDFParamsBuffer(): GpuBuffer? {
 		val device = RenderSystem.getDevice()
 		val buffer = MemoryUtil.memAlloc(16)
 		return try {
@@ -160,7 +166,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 			buffer.putFloat(0.2f)   // GlowRadius
 			buffer.putFloat(0.15f)  // ShadowSoftness
 			buffer.flip()
-			device.createBuffer({ "SDFParams" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_UNIFORM, buffer)
+			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
 		} catch (_: Exception) {
 			null
 		} finally {

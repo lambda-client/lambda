@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -63,7 +63,7 @@ data class Simulation(
         .map { PossiblePos(it.key.toBlockPos(), it.value.count { it.rank.ordinal < 4 }) }
 
     class PossiblePos(val pos: BlockPos, val interactions: Int) : Drawable {
-        override fun render(esp: TransientRegionESP) {
+        override fun render(esp: TickedRenderer) {
             esp.shapes {
                 box(Vec3d.ofBottomCenter(pos).playerBox(), 1.5f) {
                     colors(Color(0, 255, 0, 50), Color(0, 255, 0, 50))
