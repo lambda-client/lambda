@@ -2,6 +2,8 @@ name: Nightly Build
 
 on:
   push:
+    branches:
+      - '*.*'
 
 jobs:
   build:

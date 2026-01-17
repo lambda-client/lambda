@@ -38,14 +38,11 @@ object ClickFriend : Module(
     description = "Add or remove friends with a single click",
     tag = ModuleTag.PLAYER,
 ) {
-    private val friendBind = setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
-    private val unfriendBind = setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
+    private val friendBind: Bind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
+        .onPress { if (!unfriendBind.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
 
-    init {
-        // onPress listeners applied here to avoid recursion warning
-        friendBind.onPress { if (!unfriendBind.value.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
-        unfriendBind.onPress { if (!friendBind.value.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
-    }
+    private val unfriendBind: Bind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
+        .onPress { if (!friendBind.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
 
     private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {
         val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
