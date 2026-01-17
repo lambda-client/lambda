@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
@@ -47,7 +46,8 @@ import java.lang.reflect.Type
 open class CollectionSetting<R : Any>(
 	defaultValue: MutableCollection<R>,
 	private var immutableCollection: Collection<R>,
-	type: Type
+	type: Type,
+	private val serialize: Boolean,
 ) : SettingCore<MutableCollection<R>>(
 	defaultValue,
 	type
@@ -107,16 +107,18 @@ open class CollectionSetting<R : Any>(
 
 	context(setting: Setting<*, MutableCollection<R>>)
     override fun toJson(): JsonElement =
-		gson.toJsonTree(value)
+		gson.toJsonTree(value, type)
 
 	context(setting: Setting<*, MutableCollection<R>>)
     override fun loadFromJson(serialized: JsonElement) {
-        val strList = gson.fromJson<Collection<String>>(serialized, strListType)
-            .mapNotNull { str -> immutableCollection.find { it.toString() == str } }
-            .toMutableList()
+		val strList =
+			if (serialize) gson.fromJson(serialized, type)
+			else gson.fromJson<Collection<String>>(serialized, strListType)
+				.mapNotNull { str -> immutableCollection.find { it.toString() == str } }
+				.toMutableList()
 
-        value = strList
-    }
+		value = strList
+	}
 
 	companion object {
 		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onSelect(block: SafeContext.(R) -> Unit) = apply {
