@@ -269,8 +269,9 @@ object BreakManager : Manager<BreakRequest>(
                         }.forEach boxes@{ box ->
                             val animationMode = info.breakConfig.animation
                             val interpolatedBox = interpolateBox(box, interpolatedProgress, animationMode)
-                            if (config.fill) filled(interpolatedBox, fillColor)
-                            if (config.outline) outline(interpolatedBox, outlineColor)
+                            box(interpolatedBox, info.breakConfig.outlineWidth) {
+                                colors(fillColor, outlineColor)
+                            }
                         }
                     }
                 }

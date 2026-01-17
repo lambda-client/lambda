@@ -61,7 +61,9 @@ data class BreakContext(
 
     override fun render(esp: TransientRegionESP) {
         esp.shapes {
-            box(blockPos, baseColor, sideColor)
+            box(blockPos, 1.5f) {
+                colors(baseColor, sideColor)
+            }
         }
     }
 }

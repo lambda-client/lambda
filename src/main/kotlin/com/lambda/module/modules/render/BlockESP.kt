@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
-import com.lambda.graphics.esp.chunkedEsp
+import com.lambda.graphics.mc.ChunkedRegionESP.Companion.chunkedEsp
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.module.Module
@@ -54,7 +54,7 @@ object BlockESP : Module(
 
     private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
     private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
-    private val outlineWidth by setting("Outline Width", 1.0f, 0.5f..5.0f, 0.5f) { searchBlocks && drawOutlines }.onValueChange(::rebuildMesh)
+    private val outlineWidth by setting("Outline Width", 0.01f, 0.001f..1.0f, 0.001f) { searchBlocks && drawOutlines }.onValueChange(::rebuildMesh)
 
     private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { searchBlocks }.onValueChange(::rebuildMesh)
 
@@ -85,11 +85,15 @@ object BlockESP : Module(
             val pos = position.toBlockPos()
             val shape = state.getOutlineShape(world, pos)
             val worldBox = if (shape.isEmpty) Box(pos) else shape.boundingBox.offset(pos)
-            box(worldBox) {
-                if (drawFaces)
-                    filled(if (useBlockColor) finalColor else faceColor, sides)
-                if (drawOutlines)
-                    outline(if (useBlockColor) extractedColor else BlockESP.outlineColor, sides, BlockESP.outlineMode, thickness = outlineWidth)
+            box(worldBox, outlineWidth) {
+                val hiddenSides = sides.inv()
+                hideSides(hiddenSides)
+                if (drawFaces) fillColor(if (useBlockColor) finalColor else faceColor) else hideFill()
+                if (!drawOutlines) hideOutline()
+                else {
+                    outlineColor(if (useBlockColor) extractedColor else outlineColor)
+                    outlineMode(this@BlockESP.outlineMode)
+                }
             }
         }
     }

@@ -24,6 +24,7 @@ import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
+import com.lambda.util.ChatUtils.colors
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
@@ -57,7 +58,9 @@ sealed class PreSimResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
 
@@ -81,7 +84,9 @@ sealed class PreSimResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -101,7 +106,9 @@ sealed class PreSimResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -119,7 +126,9 @@ sealed class PreSimResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -139,7 +148,9 @@ sealed class PreSimResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }

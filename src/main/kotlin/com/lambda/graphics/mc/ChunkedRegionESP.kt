@@ -23,7 +23,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
-import com.lambda.graphics.esp.ShapeScope
+import com.lambda.graphics.text.FontHandler
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
@@ -56,7 +56,7 @@ class ChunkedRegionESP(
 	owner: Module,
 	name: String,
 	private val depthTest: Boolean = false,
-	private val update: ShapeScope.(World, FastVector) -> Unit
+	private val update: RenderBuilder.(World, FastVector) -> Unit
 ) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
@@ -155,6 +155,53 @@ class ChunkedRegionESP(
 				chunkData.renderer.renderEdges(pass)
 			}
 		}
+
+		// Render Text (for any chunks that have text data)
+		val chunksWithText = chunkTransforms.filter { (chunkData, _) -> chunkData.renderer.hasTextData() }
+		if (chunksWithText.isNotEmpty()) {
+			// Use default font atlas for chunked text
+			val atlas = FontHandler.getDefaultFont()
+			if (!atlas.isUploaded) atlas.upload()
+			val textureView = atlas.textureView
+			val sampler = atlas.sampler
+			if (textureView != null && sampler != null) {
+				val sdfParams = createSDFParamsBuffer()
+				if (sdfParams != null) {
+					RegionRenderer.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
+						val pipeline =
+							if (depthTest) LambdaRenderPipelines.SDF_TEXT
+							else LambdaRenderPipelines.SDF_TEXT_THROUGH
+						pass.setPipeline(pipeline)
+						RenderSystem.bindDefaultUniforms(pass)
+						pass.setUniform("SDFParams", sdfParams)
+						pass.bindTexture("Sampler0", textureView, sampler)
+
+						chunksWithText.forEach { (chunkData, transform) ->
+							pass.setUniform("DynamicTransforms", transform)
+							chunkData.renderer.renderText(pass)
+						}
+					}
+					sdfParams.close()
+				}
+			}
+		}
+	}
+
+	private fun createSDFParamsBuffer(): com.mojang.blaze3d.buffers.GpuBuffer? {
+		val device = RenderSystem.getDevice()
+		val buffer = org.lwjgl.system.MemoryUtil.memAlloc(16)
+		return try {
+			buffer.putFloat(0.5f)
+			buffer.putFloat(0.1f)
+			buffer.putFloat(0.2f)
+			buffer.putFloat(0.15f)
+			buffer.flip()
+			device.createBuffer({ "SDFParams" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_UNIFORM, buffer)
+		} catch (e: Exception) {
+			null
+		} finally {
+			org.lwjgl.system.MemoryUtil.memFree(buffer)
+		}
 	}
 
 	init {
@@ -219,7 +266,7 @@ class ChunkedRegionESP(
 
 			// Use chunk origin as the "camera" position for relative coords
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
-			val scope = ShapeScope(chunkOriginVec)
+			val scope = RenderBuilder(chunkOriginVec)
 
 			for (x in chunk.pos.startX..chunk.pos.endX) {
 				for (z in chunk.pos.startZ..chunk.pos.endZ) {
@@ -230,13 +277,23 @@ class ChunkedRegionESP(
 			}
 
 			uploadQueue.add {
-				renderer.upload(scope.builder.collector)
+				renderer.upload(scope.collector)
 				isDirty = false
 			}
 		}
 
 		fun close() {
 			renderer.close()
+		}
+	}
+
+	companion object {
+		fun Module.chunkedEsp(
+			name: String,
+			depthTest: Boolean = false,
+			update: RenderBuilder.(World, FastVector) -> Unit
+		): ChunkedRegionESP {
+			return ChunkedRegionESP(this, name, depthTest, update)
 		}
 	}
 }

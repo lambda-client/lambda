@@ -65,7 +65,9 @@ data class Simulation(
     class PossiblePos(val pos: BlockPos, val interactions: Int) : Drawable {
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(Vec3d.ofBottomCenter(pos).playerBox(), Color(0, 255, 0, 50), Color(0, 255, 0, 50))
+                box(Vec3d.ofBottomCenter(pos).playerBox(), 1.5f) {
+                    colors(Color(0, 255, 0, 50), Color(0, 255, 0, 50))
+                }
             }
         }
     }

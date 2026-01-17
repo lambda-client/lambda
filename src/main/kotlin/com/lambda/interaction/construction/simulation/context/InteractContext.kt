@@ -54,7 +54,9 @@ data class InteractContext(
                     x + 0.05, y + 0.05, z + 0.05,
                 ).offset(hitResult.side.doubleVector.multiply(0.05))
             }
-            box(box, baseColor, sideColor)
+            box(box, 1.5f) {
+                colors(baseColor, sideColor)
+            }
         }
     }
 

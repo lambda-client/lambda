@@ -32,10 +32,8 @@ import java.util.concurrent.ConcurrentHashMap
  * ```
  */
 object FontHandler {
-	private val sdfFonts = ConcurrentHashMap<String, SDFFontAtlas>()
-	private val fonts = ConcurrentHashMap<String, FontAtlas>()
-	private var defaultSDFFont: SDFFontAtlas? = null
-	private var defaultFont: FontAtlas? = null
+	private val fonts = ConcurrentHashMap<String, SDFFontAtlas>()
+	private var defaultFont: SDFFontAtlas? = null
 
 	/**
 	 * Load an SDF font from resources.
@@ -44,23 +42,11 @@ object FontHandler {
 	 * @param size Base font size for SDF generation (larger = higher quality, default 128)
 	 * @return The loaded SDFFontAtlas, or null if loading failed
 	 */
-	fun loadSDFFont(path: String, size: Float = 128f): SDFFontAtlas? {
-		val key = "$path@$size"
-		return sdfFonts.getOrPut(key) {
-			try {
-				SDFFontAtlas(path, size)
-			} catch (e: Exception) {
-				println("[FontHandler] Failed to load font: $path - ${e.message}")
-				return null
-			}
-		}
-	}
-
-	fun loadFont(path: String, size: Float = 128f): FontAtlas? {
+	fun loadFont(path: String, size: Float = 128f): SDFFontAtlas? {
 		val key = "$path@$size"
 		return fonts.getOrPut(key) {
 			try {
-				FontAtlas(path, size)
+				SDFFontAtlas(path, size)
 			} catch (e: Exception) {
 				println("[FontHandler] Failed to load font: $path - ${e.message}")
 				return null
@@ -72,25 +58,12 @@ object FontHandler {
 	 * Get or create the default font.
 	 * Uses MinecraftDefault-Regular.ttf at 128px base size.
 	 */
-	fun getDefaultSDFFont(size: Float = 128f): SDFFontAtlas {
-		defaultSDFFont?.let { return it }
-
-		val key = "fonts/FiraSans-Regular.ttf@$size"
-		val font = sdfFonts[key] ?: run {
-			val newFont = SDFFontAtlas("fonts/FiraSans-Regular.ttf", size)
-			sdfFonts[key] = newFont
-			newFont
-		}
-		defaultSDFFont = font
-		return font
-	}
-
-	fun getDefaultFont(size: Float = 128f): FontAtlas {
+	fun getDefaultFont(size: Float = 128f): SDFFontAtlas {
 		defaultFont?.let { return it }
 
 		val key = "fonts/FiraSans-Regular.ttf@$size"
 		val font = fonts[key] ?: run {
-			val newFont = FontAtlas("fonts/FiraSans-Regular.ttf", size)
+			val newFont = SDFFontAtlas("fonts/FiraSans-Regular.ttf", size)
 			fonts[key] = newFont
 			newFont
 		}
@@ -98,17 +71,7 @@ object FontHandler {
 		return font
 	}
 
-	/**
-	 * Check if a font is already loaded.
-	 */
-	fun isSDFFontLoaded(path: String, size: Float = 128f) = sdfFonts.containsKey("$path@$size")
-
 	fun isFontLoaded(path: String, size: Float = 128f) = fonts.containsKey("path@$size")
-
-	/**
-	 * Get all loaded font paths.
-	 */
-	fun getLoadedSDFFonts(): Set<String> = sdfFonts.keys.toSet()
 
 	fun getLoadedFonts(): Set<String> = fonts.keys.toSet()
 
@@ -117,11 +80,8 @@ object FontHandler {
 	 * Call this when shutting down or when fonts are no longer needed.
 	 */
 	fun cleanup() {
-		sdfFonts.values.forEach { it.close() }
 		fonts.values.forEach { it.close() }
-		sdfFonts.clear()
 		fonts.clear()
-		defaultSDFFont = null
 		defaultFont = null
 	}
 }

@@ -23,6 +23,7 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.render.BufferBuilder
 import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.util.BufferAllocator
+import org.lwjgl.system.MemoryUtil
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -35,19 +36,42 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class RegionVertexCollector {
 	val faceVertices = ConcurrentLinkedDeque<FaceVertex>()
 	val edgeVertices = ConcurrentLinkedDeque<EdgeVertex>()
+	val textVertices = ConcurrentLinkedDeque<TextVertex>()
 
 	/** Face vertex data (position + color). */
 	data class FaceVertex(
-		val x: Float,
-		val y: Float,
-		val z: Float,
-		val r: Int,
-		val g: Int,
-		val b: Int,
-		val a: Int
+		val x: Float, val y: Float, val z: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int
 	)
 
-	/** Edge vertex data (position + color + normal + line width). */
+	/**
+	 * Text vertex data for SDF billboard text rendering.
+	 * Uses POSITION_TEXTURE_COLOR_ANCHOR format for GPU-based billboarding.
+	 * 
+	 * @param localX Local glyph offset X (before billboard transform)
+	 * @param localY Local glyph offset Y (before billboard transform)
+	 * @param u Texture U coordinate
+	 * @param v Texture V coordinate
+	 * @param r Red color component
+	 * @param g Green color component
+	 * @param b Blue color component
+	 * @param a Alpha component (encodes layer type)
+	 * @param anchorX Camera-relative anchor position X
+	 * @param anchorY Camera-relative anchor position Y
+	 * @param anchorZ Camera-relative anchor position Z
+	 * @param scale Text scale
+	 * @param billboardFlag 0 = billboard towards camera, non-zero = fixed rotation already applied
+	 */
+	data class TextVertex(
+		val localX: Float, val localY: Float,
+		val u: Float, val v: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int,
+		val anchorX: Float, val anchorY: Float, val anchorZ: Float,
+		val scale: Float,
+		val billboardFlag: Float
+	)
+
+	/** Edge vertex data (position + color + normal + line width + dash style). */
 	data class EdgeVertex(
 		val x: Float,
 		val y: Float,
@@ -59,7 +83,12 @@ class RegionVertexCollector {
 		val nx: Float,
 		val ny: Float,
 		val nz: Float,
-		val lineWidth: Float
+		val lineWidth: Float,
+		// Dash style parameters (0 = solid line)
+		val dashLength: Float = 0f,
+		val gapLength: Float = 0f,
+		val dashOffset: Float = 0f,
+		val animationSpeed: Float = 0f  // 0 = no animation
 	)
 
 	/** Add a face vertex. */
@@ -67,7 +96,7 @@ class RegionVertexCollector {
 		faceVertices.add(FaceVertex(x, y, z, color.red, color.green, color.blue, color.alpha))
 	}
 
-	/** Add an edge vertex. */
+	/** Add an edge vertex (solid line). */
 	fun addEdgeVertex(
 		x: Float,
 		y: Float,
@@ -83,15 +112,78 @@ class RegionVertexCollector {
 		)
 	}
 
+	/** Add an edge vertex with dash style. */
+	fun addEdgeVertex(
+		x: Float,
+		y: Float,
+		z: Float,
+		color: Color,
+		nx: Float,
+		ny: Float,
+		nz: Float,
+		lineWidth: Float,
+		dashStyle: LineDashStyle?
+	) {
+		if (dashStyle == null) {
+			addEdgeVertex(x, y, z, color, nx, ny, nz, lineWidth)
+		} else {
+			edgeVertices.add(
+				EdgeVertex(
+					x, y, z,
+					color.red, color.green, color.blue, color.alpha,
+					nx, ny, nz,
+					lineWidth,
+					dashStyle.dashLength,
+					dashStyle.gapLength,
+					dashStyle.offset,
+					if (dashStyle.animated) dashStyle.animationSpeed else 0f
+				)
+			)
+		}
+	}
+
+	/**
+	 * Add a billboard text vertex.
+	 * 
+	 * @param localX Local glyph offset X (before billboard transform)
+	 * @param localY Local glyph offset Y (before billboard transform)
+	 * @param u Texture U coordinate
+	 * @param v Texture V coordinate
+	 * @param r Red color component
+	 * @param g Green color component
+	 * @param b Blue color component
+	 * @param a Alpha component (encodes layer type)
+	 * @param anchorX Camera-relative anchor X
+	 * @param anchorY Camera-relative anchor Y
+	 * @param anchorZ Camera-relative anchor Z
+	 * @param scale Text scale
+	 * @param billboard True = auto-billboard towards camera, False = fixed rotation (offset already transformed)
+	 */
+	fun addTextVertex(
+		localX: Float, localY: Float,
+		u: Float, v: Float,
+		r: Int, g: Int, b: Int, a: Int,
+		anchorX: Float, anchorY: Float, anchorZ: Float,
+		scale: Float,
+		billboard: Boolean
+	) {
+		textVertices.add(TextVertex(
+			localX, localY, u, v, r, g, b, a,
+			anchorX, anchorY, anchorZ, scale,
+			if (billboard) 0f else 1f
+		))
+	}
+
 	/**
 	 * Upload collected data to GPU buffers. Must be called on the main/render thread.
 	 *
-	 * @return Pair of (faceBuffer, edgeBuffer) and their index counts, or null if no data
+	 * @return UploadResult containing face, edge, and text buffers with index counts
 	 */
 	fun upload(): UploadResult {
 		val faces = uploadFaces()
 		val edges = uploadEdges()
-		return UploadResult(faces, edges)
+		val text = uploadText()
+		return UploadResult(faces, edges, text)
 	}
 
 	private fun uploadFaces(): BufferResult {
@@ -133,19 +225,41 @@ class RegionVertexCollector {
 		edgeVertices.clear()
 
 		var result: BufferResult? = null
-		BufferAllocator(vertices.size * 32).use { allocator ->
+		// Increased buffer size to accommodate the new dash vec3 (3 floats = 12 bytes extra)
+		BufferAllocator(vertices.size * 48).use { allocator ->
 			val builder =
 				BufferBuilder(
 					allocator,
 					VertexFormat.DrawMode.QUADS,
-					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH
+					LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH
 				)
 
 			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, v.z)
 					.color(v.r, v.g, v.b, v.a)
-					.normal(v.nx, v.ny, v.nz)
-					.lineWidth(v.lineWidth)
+				
+				// Write Normal as 3 floats (NOT using .normal() which writes bytes)
+				val normalPointer = builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT)
+				if (normalPointer != -1L) {
+					MemoryUtil.memPutFloat(normalPointer, v.nx)
+					MemoryUtil.memPutFloat(normalPointer + 4L, v.ny)
+					MemoryUtil.memPutFloat(normalPointer + 8L, v.nz)
+				}
+				
+				// Write LineWidth as float
+				val widthPointer = builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT)
+				if (widthPointer != -1L) {
+					MemoryUtil.memPutFloat(widthPointer, v.lineWidth)
+				}
+				
+				// Write dash data using access-widened beginElement (vec4)
+				val dashPointer = builder.beginElement(LambdaVertexFormats.DASH_ELEMENT)
+				if (dashPointer != -1L) {
+					MemoryUtil.memPutFloat(dashPointer, v.dashLength)
+					MemoryUtil.memPutFloat(dashPointer + 4L, v.gapLength)
+					MemoryUtil.memPutFloat(dashPointer + 8L, v.dashOffset)
+					MemoryUtil.memPutFloat(dashPointer + 12L, v.animationSpeed)
+				}
 			}
 
 			builder.endNullable()?.let { built ->
@@ -163,6 +277,57 @@ class RegionVertexCollector {
 		return result ?: BufferResult(null, 0)
 	}
 
+	private fun uploadText(): BufferResult {
+		if (textVertices.isEmpty()) return BufferResult(null, 0)
+
+		val vertices = textVertices.toList()
+		textVertices.clear()
+
+		var result: BufferResult? = null
+		// POSITION_TEXTURE_COLOR_ANCHOR: 12 + 8 + 4 + 12 + 8 = 44 bytes per vertex
+		BufferAllocator(vertices.size * 48).use { allocator ->
+			val builder = BufferBuilder(
+				allocator,
+				VertexFormat.DrawMode.QUADS,
+				LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR
+			)
+
+			vertices.forEach { v ->
+				// Position stores local glyph offset (z unused, set to 0)
+				builder.vertex(v.localX, v.localY, 0f)
+					.texture(v.u, v.v)
+					.color(v.r, v.g, v.b, v.a)
+				
+				// Write Anchor position (camera-relative world pos)
+				val anchorPointer = builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT)
+				if (anchorPointer != -1L) {
+					MemoryUtil.memPutFloat(anchorPointer, v.anchorX)
+					MemoryUtil.memPutFloat(anchorPointer + 4L, v.anchorY)
+					MemoryUtil.memPutFloat(anchorPointer + 8L, v.anchorZ)
+				}
+				
+				// Write Billboard data (scale, billboardFlag)
+				val billboardPointer = builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT)
+				if (billboardPointer != -1L) {
+					MemoryUtil.memPutFloat(billboardPointer, v.scale)
+					MemoryUtil.memPutFloat(billboardPointer + 4L, v.billboardFlag)
+				}
+			}
+
+			builder.endNullable()?.let { built ->
+				val gpuDevice = RenderSystem.getDevice()
+				val buffer = gpuDevice.createBuffer(
+					{ "Lambda ESP Text Buffer" },
+					GpuBuffer.USAGE_VERTEX,
+					built.buffer
+				)
+				result = BufferResult(buffer, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result ?: BufferResult(null, 0)
+	}
+
 	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
-	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?)
+	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
 }

@@ -32,6 +32,7 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.dist
 import com.lambda.util.math.lerp
 import com.lambda.util.math.minus
@@ -119,7 +120,10 @@ object BackTrack : Module(
             val c = lerp(p, c1, c2)
 
             esp.shapes {
-                box(box, c.multAlpha(0.3), c.multAlpha(0.8))
+                box(box.box(mc.tickDelta) ?: return@shapes, 0f) {
+                    hideOutline()
+                    gradientY(c.multAlpha(0.3), c.multAlpha(0.8))
+                }
             }
         }
 

@@ -90,7 +90,9 @@ sealed class InteractResult : BuildResult() {
                         x + 0.05, y + 0.05, z + 0.05,
                     ).offset(simulated.side.doubleVector.multiply(0.05))
                 }
-                box(box, color, color)
+                box(box, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -129,7 +131,9 @@ sealed class InteractResult : BuildResult() {
                         x + 0.05, y + 0.05, z + 0.05,
                     ).offset(side.doubleVector.multiply(0.05))
                 }
-                box(box, color, color)
+                box(box, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }

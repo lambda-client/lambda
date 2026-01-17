@@ -40,7 +40,7 @@ object BlockOutline : Module(
 	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill }
 	private val outline by setting("Outline", true)
 	private val outlineColor by setting("Outline Color", Color(255, 255, 255, 120)) { outline }
-	private val lineWidth by setting("Line Width", 1.0f, 0.5f..10.0f, 0.1f) { outline }
+	private val lineWidth by setting("Line Width", 0.01f, 0.001f..1.0f, 0.001f) { outline }
 	private val interpolate by setting("Interpolate", true)
 	private val throughWalls by setting("ESP", true)
 		.onValueChange { _, to -> renderer.depthTest = !to }
@@ -70,8 +70,11 @@ object BlockOutline : Module(
 
 			renderer.shapes {
 				boxes.forEach { box ->
-					if (fill) filled(box, fillColor)
-					if (outline) outline(box, outlineColor, thickness = lineWidth)
+					box(box, lineWidth) {
+						colors(fillColor, outlineColor)
+						if (!fill) hideFill()
+						if (!outline) hideOutline()
+					}
 				}
 			}
 

@@ -1,50 +1,94 @@
 #version 330
 
 #moj_import <minecraft:fog.glsl>
+#moj_import <minecraft:globals.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
 
-in vec4 vertexColor;
-noperspective in float v_LineDist;
-noperspective in float v_LineWidth;
-noperspective in vec2 v_DistPixels;
-noperspective in float v_LineLength;
+// Inputs from vertex shader
+in vec4 v_Color;
+in vec3 v_WorldPos;                  // Position before expansion (interpolated along line)
+in vec3 v_ExpandedPos;               // Position after expansion (interpolated - fragment position)
+flat in vec3 v_Normal;               // Raw Normal input (line direction * length)
+flat in vec3 v_LineCenter;           // Line center (same for all vertices)
+flat in float v_LineWidth;           // Line width
+flat in float v_SegmentLength;       // Segment length
+flat in float v_IsStart;             // 1.0 if from start vertex
+flat in vec4 v_Dash;                 // x = dashLength, y = gapLength, z = dashOffset, w = animationSpeed
 in float sphericalVertexDistance;
 in float cylindricalVertexDistance;
 
 out vec4 fragColor;
 
 void main() {
-    // Closest point on the center line segment [0, L]
-    float closestX = clamp(v_DistPixels.x, 0.0, v_LineLength);
-    vec2 closestPoint = vec2(closestX, 0.0);
+    // Reconstruct line geometry from flat varyings
+    vec3 lineDir = normalize(v_Normal);
+    float halfLength = v_SegmentLength / 2.0;
     
-    // Pixel distance from the closest point (Round Capsule SDF)
-    float dist = length(v_DistPixels - closestPoint);
+    // Compute line start and end from center (which IS consistent)
+    vec3 lineStart = v_LineCenter - lineDir * halfLength;
+    vec3 lineEnd = v_LineCenter + lineDir * halfLength;
     
-    // SDF value: distance from the capsule edge
-    float sdf = dist - (v_LineWidth / 2.0);
+    float radius = v_LineWidth / 2.0;
     
-    // Ultra-sharp edges (AA transition of 0.3 pixels total)
-    float alpha;
-    if (v_LineWidth >= 1.0) {
-        alpha = smoothstep(0.15, -0.15, sdf);
-    } else {
-        // Super thin lines: reduce opacity instead of shrinking width
-        float transverseAlpha = (1.0 - smoothstep(0.0, 1.0, abs(v_DistPixels.y))) * v_LineWidth;
-        alpha = transverseAlpha;
-    }
-
-    // Aggressive fade for tiny segments far away to prevent blobbing
-    // If a segment is less than 0.8px on screen, fade it out to nothing
-    float lengthFade = clamp(v_LineLength / 0.8, 0.0, 1.0);
-    alpha *= lengthFade * lengthFade; // Quadratic falloff for tiny segments
-
+    // ===== CAPSULE SDF =====
+    // Project fragment position onto line to find closest point
+    vec3 toFragment = v_ExpandedPos - lineStart;
+    float projLength = dot(toFragment, lineDir);
+    
+    // Clamp to segment bounds [0, segmentLength] for capsule behavior
+    float clampedProj = clamp(projLength, 0.0, v_SegmentLength);
+    
+    // Closest point on line segment
+    vec3 closestPoint = lineStart + lineDir * clampedProj;
+    
+    // 3D distance from fragment to closest point on line
+    float dist3D = length(v_ExpandedPos - closestPoint);
+    
+    // SDF: distance to capsule surface (positive = outside, negative = inside)
+    float sdf = dist3D - radius;
+    
+    // Anti-aliasing using screen-space derivatives
+    float aaWidth = fwidth(sdf);
+    float alpha = 1.0 - smoothstep(-aaWidth, aaWidth, sdf);
+    
+    // Skip fragments outside the line
     if (alpha <= 0.0) {
         discard;
     }
-
-    vec4 color = vertexColor * ColorModulator;
+    
+    // ===== DASH PATTERN =====
+    float dashLength = v_Dash.x;
+    float gapLength = v_Dash.y;
+    float dashOffset = v_Dash.z;
+    float animationSpeed = v_Dash.w;
+    
+    // Only apply dash if dashLength > 0 (0 = solid line)
+    if (dashLength > 0.0) {
+        float cycleLength = dashLength + gapLength;
+        
+        // Calculate animated offset
+        float animatedOffset = dashOffset;
+        if (animationSpeed > 0.0) {
+            animatedOffset += GameTime * animationSpeed * 1200.0;
+        }
+        
+        // Use the CLAMPED position along the line for dash calculation
+        // This ensures dashes are in world-space units
+        float dashPos = clampedProj + animatedOffset * cycleLength;
+        float posInCycle = mod(dashPos, cycleLength);
+        
+        // In gap = discard
+        if (posInCycle > dashLength) {
+            discard;
+        }
+    }
+    
+    // Apply color
+    vec4 color = v_Color * ColorModulator;
     color.a *= alpha;
     
-    fragColor = apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance, FogEnvironmentalStart, FogEnvironmentalEnd, FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
+    // Apply fog
+    fragColor = apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance,
+                          FogEnvironmentalStart, FogEnvironmentalEnd,
+                          FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
 }

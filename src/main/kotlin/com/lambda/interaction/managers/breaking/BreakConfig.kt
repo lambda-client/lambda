@@ -73,7 +73,7 @@ interface BreakConfig : ActionConfig, ISettingGroup {
     val renders: Boolean
     val fill: Boolean
     val outline: Boolean
-    val outlineWidth: Int
+    val outlineWidth: Float
     val animation: AnimationMode
 
     val dynamicFillColor: Boolean

@@ -18,7 +18,6 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.esp.ShapeScope
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
@@ -34,33 +33,40 @@ import org.joml.Vector4f
  */
 class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 	private val renderer = RegionRenderer()
-	private var scope: ShapeScope? = null
+	private var renderBuilder: RenderBuilder? = null
 	
 	// Camera position captured at tick time (when shapes are built)
 	private var tickCameraPos: Vec3d? = null
 
 	/** Get the current shape scope for drawing. Geometry stored relative to tick camera. */
-	fun shapes(block: ShapeScope.() -> Unit) {
+	fun shapes(block: RenderBuilder.() -> Unit) {
 		val cameraPos = mc.gameRenderer?.camera?.pos ?: return
-		if (scope == null) {
+		if (renderBuilder == null) {
 			tickCameraPos = cameraPos
-			scope = ShapeScope(cameraPos)
+			renderBuilder = RenderBuilder(cameraPos)
 		}
-		scope?.apply(block)
+		renderBuilder?.apply(block)
 	}
 
 	/** Clear all current builders. Call this at the end of every tick. */
 	fun clear() {
-		scope = null
+		renderBuilder = null
 		tickCameraPos = null
 	}
 
 	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload() {
-		scope?.let { s ->
-			renderer.upload(s.builder.collector)
-		} ?: renderer.clearData()
+		renderBuilder?.let { s ->
+			renderer.upload(s.collector)
+			currentFontAtlas = s.fontAtlas
+		} ?: run {
+			renderer.clearData()
+			currentFontAtlas = null
+		}
 	}
+
+	// Font atlas used for current text rendering
+	private var currentFontAtlas: com.lambda.graphics.text.SDFFontAtlas? = null
 
 	/** Close and release all GPU resources. */
 	fun close() {
@@ -109,6 +115,50 @@ class TransientRegionESP(val name: String, var depthTest: Boolean = false) {
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
 			renderer.renderEdges(pass)
+		}
+
+		// Render Text
+		if (renderer.hasTextData()) {
+			val atlas = currentFontAtlas
+			if (atlas != null) {
+				if (!atlas.isUploaded) atlas.upload()
+				val textureView = atlas.textureView
+				val sampler = atlas.sampler
+				if (textureView != null && sampler != null) {
+					val sdfParams = createSDFParamsBuffer()
+					if (sdfParams != null) {
+						RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
+							val pipeline =
+								if (depthTest) LambdaRenderPipelines.SDF_TEXT
+								else LambdaRenderPipelines.SDF_TEXT_THROUGH
+							pass.setPipeline(pipeline)
+							RenderSystem.bindDefaultUniforms(pass)
+							pass.setUniform("DynamicTransforms", dynamicTransform)
+							pass.setUniform("SDFParams", sdfParams)
+							pass.bindTexture("Sampler0", textureView, sampler)
+							renderer.renderText(pass)
+						}
+						sdfParams.close()
+					}
+				}
+			}
+		}
+	}
+
+	private fun createSDFParamsBuffer(): com.mojang.blaze3d.buffers.GpuBuffer? {
+		val device = RenderSystem.getDevice()
+		val buffer = org.lwjgl.system.MemoryUtil.memAlloc(16)
+		return try {
+			buffer.putFloat(0.5f)
+			buffer.putFloat(0.1f)
+			buffer.putFloat(0.2f)
+			buffer.putFloat(0.15f)
+			buffer.flip()
+			device.createBuffer({ "SDFParams" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_UNIFORM, buffer)
+		} catch (e: Exception) {
+			null
+		} finally {
+			org.lwjgl.system.MemoryUtil.memFree(buffer)
 		}
 	}
 }

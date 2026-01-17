@@ -18,18 +18,18 @@
 package com.lambda.module.modules.render
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.onStaticRender
-import com.lambda.graphics.esp.ShapeScope
+import com.lambda.event.events.onDynamicRender
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
+import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.setAlpha
-import com.lambda.util.world.blockEntitySearch
-import com.lambda.util.world.entitySearch
 import net.minecraft.block.entity.BarrelBlockEntity
 import net.minecraft.block.entity.BlastFurnaceBlockEntity
 import net.minecraft.block.entity.BlockEntity
@@ -53,7 +53,6 @@ object StorageESP : Module(
 	description = "Render storage blocks/entities",
 	tag = ModuleTag.RENDER,
 ) {
-	private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering").group(Group.General)
 	private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").group(Group.Render)
 	private var drawEdges: Boolean by setting("Draw Edges", true, "Draw edges of blocks").group(Group.Render)
 	private val mode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode").group(Group.Render)
@@ -111,23 +110,27 @@ object StorageESP : Module(
 	)
 
 	init {
-		onStaticRender { esp ->
-			blockEntitySearch<BlockEntity>(distance)
+		onDynamicRender { esp ->
+			world.blockEntities
 				.filter { it::class in entities }
-				.forEach { be ->
+				.forEach { entity ->
 					esp.shapes {
-						build(be, excludedSides(be))
+						build(entity, excludedSides(entity))
 					}
 				}
 
 			val mineCarts =
-				entitySearch<AbstractMinecartEntity>(distance).filter {
-					it::class in entities
-				}
+				world.entities
+					.filterIsInstance<AbstractMinecartEntity>()
+					.filter {
+						it::class in entities
+					}
 			val itemFrames =
-				entitySearch<ItemFrameEntity>(distance).filter {
-					it::class in entities
-				}
+				world.entities
+					.filterIsInstance<ItemFrameEntity>()
+					.filter {
+						it::class in entities
+					}
 			(mineCarts + itemFrames).forEach { entity ->
 				esp.shapes {
 					build(entity, DirectionMask.ALL)
@@ -152,16 +155,24 @@ object StorageESP : Module(
 		} else DirectionMask.ALL
 	}
 
-	private fun ShapeScope.build(block: BlockEntity, sides: Int) = runSafe {
+	private fun RenderBuilder.build(blockEntity: BlockEntity, sides: Int) = runSafe {
 		val color =
-			if (useBlockColor) blockColor(block.cachedState, block.pos)
-			else block.color ?: return@runSafe
-		box(block, color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha), sides, mode, thickness = outlineWidth)
+			if (useBlockColor) blockColor(blockEntity.cachedState, blockEntity.pos)
+			else blockEntity.color ?: return@runSafe
+		boxes(blockEntity.pos, blockEntity.cachedState, outlineWidth) {
+			colors(color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha))
+			outlineMode(mode)
+			hideSides(sides.inv())
+		}
 	}
 
-	private fun ShapeScope.build(entity: Entity, sides: Int) = runSafe {
+	private fun RenderBuilder.build(entity: Entity, sides: Int) = runSafe {
 		val color = entity.color ?: return@runSafe
-		box(entity, color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha), sides, mode, thickness = outlineWidth)
+		box(entity.dynamicBox.box(mc.tickDelta) ?: return@runSafe, outlineWidth) {
+			colors(color.setAlpha(facesAlpha), color.setAlpha(edgesAlpha))
+			outlineMode(mode)
+			hideSides(sides.inv())
+		}
 	}
 
 	private val BlockEntity?.color

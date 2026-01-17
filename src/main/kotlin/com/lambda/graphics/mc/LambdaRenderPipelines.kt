@@ -55,7 +55,7 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH,
+					LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
@@ -73,7 +73,7 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					VertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH,
+					LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
@@ -176,7 +176,7 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					VertexFormats.POSITION_TEXTURE_COLOR,
+					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
@@ -196,7 +196,7 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					VertexFormats.POSITION_TEXTURE_COLOR,
+					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()

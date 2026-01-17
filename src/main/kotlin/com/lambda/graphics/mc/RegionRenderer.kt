@@ -32,13 +32,15 @@ import java.util.*
  */
 class RegionRenderer {
 
-	// Dedicated GPU buffers for faces and edges
+	// Dedicated GPU buffers for faces, edges, and text
 	private var faceVertexBuffer: GpuBuffer? = null
 	private var edgeVertexBuffer: GpuBuffer? = null
+	private var textVertexBuffer: GpuBuffer? = null
 
 	// Index counts for draw calls
 	private var faceIndexCount = 0
 	private var edgeIndexCount = 0
+	private var textIndexCount = 0
 
 	// State tracking
 	private var hasData = false
@@ -55,6 +57,7 @@ class RegionRenderer {
 		// Cleanup old buffers
 		faceVertexBuffer?.close()
 		edgeVertexBuffer?.close()
+		textVertexBuffer?.close()
 
 		// Assign new buffers and counts
 		faceVertexBuffer = result.faces?.buffer
@@ -63,7 +66,10 @@ class RegionRenderer {
 		edgeVertexBuffer = result.edges?.buffer
 		edgeIndexCount = result.edges?.indexCount ?: 0
 
-		hasData = faceVertexBuffer != null || edgeVertexBuffer != null
+		textVertexBuffer = result.text?.buffer
+		textIndexCount = result.text?.indexCount ?: 0
+
+		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null
 	}
 
 	/**
@@ -102,14 +108,39 @@ class RegionRenderer {
 		renderPass.drawIndexed(0, 0, edgeIndexCount, 1)
 	}
 
+	/**
+	 * Render text using the given render pass.
+	 * Note: Caller must bind the font texture and SDF params uniform before calling.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderText(renderPass: RenderPass) {
+		val vb = textVertexBuffer ?: return
+		if (textIndexCount == 0) return
+
+		renderPass.setVertexBuffer(0, vb)
+		// Use vanilla's sequential index buffer for quads
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val indexBuffer = shapeIndexBuffer.getIndexBuffer(textIndexCount)
+
+		renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+		renderPass.drawIndexed(0, 0, textIndexCount, 1)
+	}
+
+	/** Check if this renderer has text data. */
+	fun hasTextData(): Boolean = textVertexBuffer != null && textIndexCount > 0
+
 	/** Clear all geometry data and release GPU resources. */
 	fun clearData() {
 		faceVertexBuffer?.close()
 		edgeVertexBuffer?.close()
+		textVertexBuffer?.close()
 		faceVertexBuffer = null
 		edgeVertexBuffer = null
+		textVertexBuffer = null
 		faceIndexCount = 0
 		edgeIndexCount = 0
+		textIndexCount = 0
 		hasData = false
 	}
 

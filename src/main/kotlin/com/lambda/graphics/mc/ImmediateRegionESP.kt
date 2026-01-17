@@ -18,12 +18,12 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.esp.ShapeScope
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
+import org.lwjgl.system.MemoryUtil
 
 /**
  * Interpolated ESP system for smooth entity rendering.
@@ -36,7 +36,7 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 	private val renderer = RegionRenderer()
 
 	// Current frame builder (being populated this frame)
-	private var currScope: ShapeScope? = null
+	private var renderBuilder: RenderBuilder? = null
 
 	/**
 	 * Get the current camera position for building camera-relative shapes.
@@ -45,27 +45,35 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 	private fun getCameraPos(): Vec3d? = mc.gameRenderer?.camera?.pos
 
 	/** Get or create a ShapeScope for drawing with camera-relative coordinates. */
-	fun shapes(block: ShapeScope.() -> Unit) {
-		val s = currScope ?: ShapeScope(getCameraPos() ?: return).also { currScope = it }
+	fun shapes(block: RenderBuilder.() -> Unit) {
+		val s = renderBuilder ?: RenderBuilder(getCameraPos() ?: return).also { renderBuilder = it }
 		s.apply(block)
 	}
 
 	/** Clear all geometry data. */
 	fun clear() {
-		currScope = null
+		renderBuilder = null
 	}
 
 	/** Called each tick to reset for next frame. */
 	fun tick() {
-		currScope = null
+		renderBuilder = null
 	}
 
 	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload() {
-		currScope?.let { s ->
-			renderer.upload(s.builder.collector)
-		} ?: renderer.clearData()
+		renderBuilder?.let { s ->
+			renderer.upload(s.collector)
+			// Track font atlas for text rendering
+			currentFontAtlas = s.fontAtlas
+		} ?: run {
+			renderer.clearData()
+			currentFontAtlas = null
+		}
 	}
+
+	// Font atlas used for current text rendering
+	private var currentFontAtlas: com.lambda.graphics.text.SDFFontAtlas? = null
 
 	/** Close and release all GPU resources. */
 	fun close() {
@@ -110,6 +118,53 @@ class ImmediateRegionESP(val name: String, var depthTest: Boolean = false) {
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
 			renderer.renderEdges(pass)
+		}
+
+		// Render Text
+		if (renderer.hasTextData()) {
+			val atlas = currentFontAtlas
+			if (atlas != null) {
+				if (!atlas.isUploaded) atlas.upload()
+				val textureView = atlas.textureView
+				val sampler = atlas.sampler
+				if (textureView != null && sampler != null) {
+					val sdfParams = createSDFParamsBuffer()
+					if (sdfParams != null) {
+						RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
+							val pipeline =
+								if (depthTest) LambdaRenderPipelines.SDF_TEXT
+								else LambdaRenderPipelines.SDF_TEXT_THROUGH
+							pass.setPipeline(pipeline)
+							RenderSystem.bindDefaultUniforms(pass)
+							pass.setUniform("DynamicTransforms", dynamicTransform)
+							pass.setUniform("SDFParams", sdfParams)
+							pass.bindTexture("Sampler0", textureView, sampler)
+							renderer.renderText(pass)
+						}
+						sdfParams.close()
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Create SDF params uniform buffer with default values.
+	 */
+	private fun createSDFParamsBuffer(): com.mojang.blaze3d.buffers.GpuBuffer? {
+		val device = RenderSystem.getDevice()
+		val buffer = MemoryUtil.memAlloc(16)
+		return try {
+			buffer.putFloat(0.5f)   // SDFThreshold
+			buffer.putFloat(0.1f)   // OutlineWidth
+			buffer.putFloat(0.2f)   // GlowRadius
+			buffer.putFloat(0.15f)  // ShadowSoftness
+			buffer.flip()
+			device.createBuffer({ "SDFParams" }, com.mojang.blaze3d.buffers.GpuBuffer.USAGE_UNIFORM, buffer)
+		} catch (_: Exception) {
+			null
+		} finally {
+			MemoryUtil.memFree(buffer)
 		}
 	}
 }

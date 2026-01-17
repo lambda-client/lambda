@@ -18,6 +18,7 @@
 package com.lambda.graphics.renderer.esp
 
 import com.lambda.util.extension.prevPos
+import com.lambda.util.math.lerp
 import com.lambda.util.math.minus
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Box
@@ -34,6 +35,13 @@ class DynamicAABB {
 
         return this
     }
+
+    fun box(tickDelta: Double): Box? =
+        prev?.let { prev ->
+            curr?.let { curr ->
+                lerp(tickDelta, prev, curr)
+            }
+        }
 
     fun reset() {
         prev = null

@@ -67,7 +67,10 @@ object WorldEater : Module(
 
         onStaticRender { esp ->
             esp.shapes {
-                outline(Box.enclosing(pos1, pos2), Color.BLUE)
+                box(Box.enclosing(pos1, pos2), 1.5f) {
+                    hideFill()
+                    outlineColor(Color.BLUE)
+                }
             }
         }
     }

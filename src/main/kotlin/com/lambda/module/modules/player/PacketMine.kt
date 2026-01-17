@@ -71,6 +71,7 @@ object PacketMine : Module(
     private val staticColor by setting("Color", Color(255, 0, 0, 60)) { renderQueue && !dynamicColor }.group(Group.Renders)
     private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
     private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }.group(Group.Renders)
+    private val outlineWidth by setting("Outline Width", 1.5f, 0.5f..10f, 0.1f)
 
     private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
@@ -177,7 +178,10 @@ object PacketMine : Module(
             if (renderRebreak) {
                 rebreakPos?.let { pos ->
                     esp.shapes {
-                        outline(pos, rebreakColor)
+                        box(pos, outlineWidth) {
+                            hideFill()
+                            outlineColor(rebreakColor)
+                        }
                     }
                 }
             }
@@ -193,7 +197,9 @@ object PacketMine : Module(
 
                     esp.shapes {
                         boxes.forEach { box ->
-                            box(box, color, color.setAlpha(1.0))
+                            box(box, outlineWidth) {
+                                colors(color, color.setAlpha(1.0))
+                            }
                         }
                     }
                 }

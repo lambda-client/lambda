@@ -22,8 +22,6 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.ImmediateRegionESP
-import com.lambda.graphics.text.SDFTextRenderer
-import com.lambda.graphics.text.TextRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -52,9 +50,6 @@ object EntityESP : Module(
 ) {
 	private val esp = ImmediateRegionESP("EntityESP")
 
-	// Text renderer for testing
-	private val testTextRenderer by lazy { TextRenderer("fonts/FiraSans-Regular.ttf", 96f) }
-
 	private data class LabelData(
 		val screenX: Float,
 		val screenY: Float,
@@ -65,10 +60,12 @@ object EntityESP : Module(
 
 	private val pendingLabels = mutableListOf<LabelData>()
 
+	private val lineLength by setting("Line Length", 5f, 0f..15f, 0.1f)
 	private val outlineWidth by setting("Outline Width", 0.15f, 0f..1f, 0.01f)
 	private val glowWidth by setting("Glow Width", 0.25f, 0f..1f, 0.01f)
 	private val shadowDistance by setting("Shadow Distance", 0.2f, 0f..1f, 0.01f)
 	private val shadowAngle by setting("Shadow Angle", 135f, 0f..360f, 1f)
+	private val animationSpeed by setting("Animation Speed", 1f, 0.1f..5f, 0.1f)
 
 	private val throughWalls by setting("Through Walls", true, "Render through blocks").group(Group.General)
 	private val self by setting("Self", false, "Render own player in third person").group(Group.General)
@@ -118,6 +115,28 @@ object EntityESP : Module(
 			esp.tick()
 			val tickDelta = mc.tickDeltaF
 
+//			esp.shapes {
+//				val startPos = lerp(mc.tickDelta, player.prevPos, player.pos)
+//				lineGradient(
+//					startPos,
+//					Color.BLUE,
+//					startPos.offset(Direction.EAST, lineLength.toDouble()),
+//					Color.RED,
+//					0.1f,
+//					marchingAnts(speed = animationSpeed)
+//				)
+//				worldText(
+//					"Test FONT FONT FONT BLEHHHHH!",
+//					startPos.offset(Direction.EAST,
+//						lineLength.toDouble()),
+//					style = RenderBuilder.TextStyle(
+//						outline = RenderBuilder.TextOutline(),
+//						glow = RenderBuilder.TextGlow(),
+//						shadow = RenderBuilder.TextShadow()
+//					)
+//				)
+//			}
+
 			// Test SDF text rendering with glow and outline
 			val eyePos = player.eyePos.add(player.rotationVector.multiply(2.0)) // 2 blocks in front
 //			SDFTextRenderer.drawWorld(
@@ -134,69 +153,18 @@ object EntityESP : Module(
 //				seeThrough = true
 //			)
 
-			SDFTextRenderer.drawScreen(
-				text = "SDFTextRenderer Screen",
-				x = 20f,
-				y = 20f,
-				fontSize = 24f,
-				style = SDFTextRenderer.TextStyle(
-					color = Color.WHITE,
-					outline = SDFTextRenderer.TextOutline(Color.BLACK, 0.15f),
-					glow = SDFTextRenderer.TextGlow(Color(0, 200, 255, 180), 0.2f),
-					shadow = SDFTextRenderer.TextShadow(Color.YELLOW, 0.2f)
-				)
-			)
-
-//			// Test regular TextRenderer - World space (slightly below SDF text)
-//			val textWorldPos = player.eyePos.add(player.rotationVector.multiply(2.0)).add(0.0, -0.5, 0.0)
-//			testTextRenderer.drawWorld(
-//				pos = textWorldPos,
-//				text = "TextRenderer World",
-//				color = Color.YELLOW,
-//				scale = 0.025f,
-//				centered = true,
-//				seeThrough = true
+//			SDFTextRenderer.drawScreen(
+//				text = "SDFTextRenderer Screen",
+//				x = 20f,
+//				y = 20f,
+//				fontSize = 24f,
+//				style = SDFTextRenderer.TextStyle(
+//					color = Color.WHITE,
+//					outline = SDFTextRenderer.TextOutline(Color.BLACK, 0.15f),
+//					glow = SDFTextRenderer.TextGlow(Color(0, 200, 255, 180), 0.2f),
+//					shadow = SDFTextRenderer.TextShadow(Color.YELLOW, 0.2f)
+//				)
 //			)
-
-			// Test regular TextRenderer - Screen space
-			testTextRenderer.drawScreen(
-				x = 20f,
-				y = 100f,
-				text = "TextRenderer Screen",
-				color = Color.GREEN,
-				fontSize = 24f
-			)
-
-//			entitySearch<Entity>(range) { shouldRender(it) }.forEach { entity ->
-//				val color = getEntityColor(entity)
-//				val box = entity.boundingBox
-//
-//				esp.shapes(entity.x, entity.y, entity.z) {
-//					if (drawBoxes) {
-//						box(box) {
-//							if (drawFilled)
-//								filled(color.setAlpha(filledAlpha))
-//							if (drawOutline)
-//								outline(
-//									color.setAlpha(outlineAlpha),
-//									thickness = outlineWidth
-//								)
-//						}
-//					}
-//
-//					if (tracers) {
-//						val color = getEntityColor(entity)
-//						val entityPos = getInterpolatedPos(entity, tickDelta)
-//						val startPos = getTracerStartPos(tickDelta)
-//						val endPos = entityPos.add(0.0, entity.height / 2.0, 0.0)
-//						line(startPos, endPos) {
-//							color(color.setAlpha(outlineAlpha))
-//							width(tracerWidth)
-//							if (dashedTracers) dashed(dashLength, gapLength)
-//						}
-//					}
-//				}
-//			}
 
 			esp.upload()
 			esp.render()

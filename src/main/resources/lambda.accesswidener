@@ -72,6 +72,12 @@ transitive-accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTe
 transitive-accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer indexBuffer Lcom/mojang/blaze3d/buffers/GpuBuffer;
 transitive-accessible field net/minecraft/client/gl/GlGpuBuffer id I
 
+# BufferBuilder - Custom vertex element support
+transitive-accessible method net/minecraft/client/render/BufferBuilder beginElement (Lcom/mojang/blaze3d/vertex/VertexFormatElement;)J
+transitive-accessible field net/minecraft/client/render/BufferBuilder offsetsByElementId [I
+transitive-accessible field net/minecraft/client/render/BufferBuilder vertexPointer J
+transitive-accessible field net/minecraft/client/render/BufferBuilder currentMask I
+
 # Text
 transitive-accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
 transitive-accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;

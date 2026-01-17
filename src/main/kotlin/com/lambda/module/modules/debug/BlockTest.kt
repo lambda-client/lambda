@@ -53,7 +53,9 @@ object BlockTest : Module(
             }.forEach { (pos, state) ->
                 esp.shapes {
                     state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
-                        box(box.offset(pos), filledColor, outlineColor)
+                        box(box.offset(pos), 1.5f) {
+                            colors(filledColor, outlineColor)
+                        }
                     }
                 }
             }

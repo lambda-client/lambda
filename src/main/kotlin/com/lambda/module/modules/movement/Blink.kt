@@ -30,6 +30,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.minus
 import com.lambda.util.math.setAlpha
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
@@ -70,7 +71,9 @@ object Blink : Module(
         onDynamicRender { esp ->
             val color = ClickGuiLayout.primaryColor
             esp.shapes {
-                box(box.update(lastBox), color.setAlpha(0.3), color)
+                box(box.update(lastBox).box(mc.tickDelta) ?: return@shapes, 1.5f) {
+                    colors(color.setAlpha(0.3), color)
+                }
             }
         }
 

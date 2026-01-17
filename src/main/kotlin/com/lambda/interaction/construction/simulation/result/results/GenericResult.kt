@@ -61,7 +61,9 @@ sealed class GenericResult : BuildResult() {
                         x + 0.05, y + 0.05, z + 0.05,
                     ).offset(pos)
                 }
-                box(box, color, color)
+                box(box, 1.5f) {
+                    allColors(color)
+                }
             }
         }
 
@@ -109,7 +111,9 @@ sealed class GenericResult : BuildResult() {
                     center.x - 0.1, center.y - 0.1, center.z - 0.1,
                     center.x + 0.1, center.y + 0.1, center.z + 0.1
                 )
-                box(box, color, color)
+                box(box, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -142,7 +146,9 @@ sealed class GenericResult : BuildResult() {
                     center.x - 0.1, center.y - 0.1, center.z - 0.1,
                     center.x + 0.1, center.y + 0.1, center.z + 0.1
                 )
-                box(box, color, color)
+                box(box, 1.5f) {
+                    allColors(color)
+                }
             }
         }
 

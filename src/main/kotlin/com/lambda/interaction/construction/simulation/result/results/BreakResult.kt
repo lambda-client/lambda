@@ -74,7 +74,10 @@ sealed class BreakResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color, side.mask)
+                box(pos, 1.5f) {
+                    allColors(color)
+                    hideSides(side.mask.inv())
+                }
             }
         }
 
@@ -124,7 +127,9 @@ sealed class BreakResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -147,7 +152,9 @@ sealed class BreakResult : BuildResult() {
                     center.x - 0.1, center.y - 0.1, center.z - 0.1,
                     center.x + 0.1, center.y + 0.1, center.z + 0.1
                 )
-                box(box, color, color)
+                box(box, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }
@@ -166,7 +173,9 @@ sealed class BreakResult : BuildResult() {
 
         override fun render(esp: TransientRegionESP) {
             esp.shapes {
-                box(pos, color, color)
+                box(pos, 1.5f) {
+                    allColors(color)
+                }
             }
         }
     }

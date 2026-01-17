@@ -63,6 +63,7 @@ object AirPlace : Module(
 	private val scrollBind by setting("Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the ctrl key and scroll to adjust distance").group(Group.General)
 
 	private val outlineColor by setting("Outline Color", Color.WHITE).group(Group.Render)
+	private val outlineWidth by setting("Outline Width", 1.5f, 0.5f..10f, 0.1f)
 
 	private var placementPos: BlockPos? = null
 	private var placementState: BlockState? = null
@@ -112,7 +113,9 @@ object AirPlace : Module(
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
 				esp.shapes {
 					boxes.forEach { box ->
-						outline(box.offset(pos), outlineColor)
+						box(box, outlineWidth) {
+							hideFill()
+						}
 					}
 				}
 			}
