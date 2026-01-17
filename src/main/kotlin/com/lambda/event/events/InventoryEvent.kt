@@ -88,14 +88,7 @@ sealed class InventoryEvent {
          *
          * Updated slot id will come to the server if it defers from last reported slot.
          */
-        data class Update(var slot: Int) : HotbarSlot()
-
-        /**
-         * Represents an event triggered when the client sends slot update to the server.
-         *
-         * This event happens when last slot defers from the previous one
-         */
-        data class Changed(var slot: Int) : HotbarSlot()
+        data class Update(val slot: Int) : HotbarSlot()
 
         /**
          * Represents an event triggered when the server forces the player to change active hotbar slot.
