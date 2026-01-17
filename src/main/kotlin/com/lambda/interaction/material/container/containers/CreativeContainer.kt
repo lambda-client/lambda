@@ -62,11 +62,11 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
 
     context(safeContext: SafeContext)
     override fun materialAvailable(selection: StackSelection): Int =
-        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else 0
+        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
     context(safeContext: SafeContext)
     override fun spaceAvailable(selection: StackSelection): Int =
-        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else 0
+        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
     context(safeContext: SafeContext)
     private val correctScreenHandler
