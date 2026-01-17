@@ -18,6 +18,8 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.Automated
+import com.lambda.event.EventFlow.post
+import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
@@ -76,6 +78,8 @@ class ContainerTransferTask(
 
 				fromContainer.getSlot(stackSelection)?.let { fromSlot ->
 					toContainer.getReplaceableSlot()?.let { toSlot ->
+						val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, fromContainer, toContainer)
+						if (transferEvent.post().isCanceled()) failure("Transfer prevented by an internal interruption")
 						inventoryRequest {
 							if (fromContainer.swapMethodPriority > toContainer.swapMethodPriority)
 								with(fromContainer) { transfer(fromSlot, toSlot) }

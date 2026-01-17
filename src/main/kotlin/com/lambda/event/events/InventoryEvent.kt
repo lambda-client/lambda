@@ -20,7 +20,6 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.managers.hotbar.HotbarRequest
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 
@@ -84,9 +83,6 @@ sealed class InventoryEvent {
     ) : Event
 
     abstract class HotbarSlot : Event {
-
-        data class Request(var request: HotbarRequest? = null) : HotbarSlot()
-
         /**
          * Represents an event triggered when the client attempts to send slot update to the server.
          *

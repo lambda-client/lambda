@@ -20,6 +20,8 @@ package com.lambda.interaction.material.container
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.post
+import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection
@@ -133,6 +135,8 @@ abstract class MaterialContainer(
         with(automatedSafeContext) {
             val fromSlot = getSlot(stackSelection) ?: return false
             val toSlot = destination.getReplaceableSlot() ?: return false
+            val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@MaterialContainer, destination)
+            if (transferEvent.post().isCanceled()) return false
             return inventoryRequest {
                 if (swapMethodPriority > destination.swapMethodPriority) transfer(fromSlot, toSlot)
                 else with(destination) { transfer(toSlot, fromSlot) }
