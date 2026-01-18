@@ -72,15 +72,32 @@ void main() {
             animatedOffset += GameTime * animationSpeed * 1200.0;
         }
         
-        // Use the CLAMPED position along the line for dash calculation
-        // This ensures dashes are in world-space units
-        float dashPos = clampedProj + animatedOffset * cycleLength;
+        // Use UNCLAMPED projLength so dashes continue through endcaps
+        float dashPos = projLength + animatedOffset * cycleLength;
         float posInCycle = mod(dashPos, cycleLength);
         
-        // In gap = discard
+        // SDF for dash edges with anti-aliasing
+        float dashSdf;
         if (posInCycle > dashLength) {
+            // In gap region - positive SDF
+            float distToGapEnd = cycleLength - posInCycle;
+            dashSdf = min(posInCycle - dashLength, distToGapEnd);
+        } else {
+            // In dash region - negative SDF (distance to nearest gap)
+            float distToDashEnd = dashLength - posInCycle;
+            float distFromDashStart = posInCycle;
+            dashSdf = -min(distToDashEnd, distFromDashStart);
+        }
+        
+        // Apply anti-aliasing at dash edges (use fwidth of SDF for consistent AA with capsule)
+        float dashAaWidth = fwidth(dashSdf);
+        float dashAlpha = 1.0 - smoothstep(-dashAaWidth, dashAaWidth, dashSdf);
+        
+        if (dashAlpha <= 0.0) {
             discard;
         }
+        
+        alpha *= dashAlpha;
     }
     
     // Apply color
