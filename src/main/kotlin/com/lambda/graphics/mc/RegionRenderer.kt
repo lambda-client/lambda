@@ -278,5 +278,24 @@ class RegionRenderer {
 					OptionalDouble.empty()
 				)
 		}
+
+		/**
+		 * Render a custom vertex buffer using quads mode.
+		 * Used for styled text rendering where each style has its own buffer.
+		 *
+		 * @param renderPass The active RenderPass to record commands into
+		 * @param buffer The vertex buffer to render
+		 * @param indexCount The number of indices (vertices) to render
+		 */
+		fun renderQuadBuffer(renderPass: RenderPass, buffer: GpuBuffer, indexCount: Int) {
+			if (indexCount == 0) return
+
+			renderPass.setVertexBuffer(0, buffer)
+			val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(indexCount)
+
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			renderPass.drawIndexed(0, 0, indexCount, 1)
+		}
 	}
 }

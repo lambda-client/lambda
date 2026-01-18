@@ -43,6 +43,17 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	var fontAtlas: SDFFontAtlas? = null
 		private set
 
+	/**
+	 * Map of TextStyle to lists of text vertices for that style.
+	 * Each text piece is grouped by its style to allow rendering with unique SDF params.
+	 */
+	val textStyleGroups = mutableMapOf<TextStyle, MutableList<RegionVertexCollector.TextVertex>>()
+	
+	/**
+	 * Map of TextStyle to lists of screen text vertices for that style.
+	 */
+	val screenTextStyleGroups = mutableMapOf<TextStyle, MutableList<RegionVertexCollector.ScreenTextVertex>>()
+
 	fun box(
 		box: Box,
 		lineWidth: Float,
@@ -172,7 +183,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val offsetY = style.shadow.offsetY
 			buildTextQuads(atlas, text, startX + offsetX, offsetY, 
 				shadowColor.red, shadowColor.green, shadowColor.blue, 25,
-				anchorX, anchorY, anchorZ, size, rotationMatrix)
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style)
 		}
 
 		// Glow layer (alpha 50-99 signals glow)
@@ -180,7 +191,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val glowColor = style.glow.color
 			buildTextQuads(atlas, text, startX, 0f, 
 				glowColor.red, glowColor.green, glowColor.blue, 75,
-				anchorX, anchorY, anchorZ, size, rotationMatrix)
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style)
 		}
 
 		// Outline layer (alpha 100-199 signals outline)
@@ -188,14 +199,14 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val outlineColor = style.outline.color
 			buildTextQuads(atlas, text, startX, 0f, 
 				outlineColor.red, outlineColor.green, outlineColor.blue, 150,
-				anchorX, anchorY, anchorZ, size, rotationMatrix)
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style)
 		}
 
 		// Main text layer (alpha >= 200 signals main text)
 		val mainColor = style.color
 		buildTextQuads(atlas, text, startX, 0f, 
 			mainColor.red, mainColor.green, mainColor.blue, 255,
-			anchorX, anchorY, anchorZ, size, rotationMatrix)
+			anchorX, anchorY, anchorZ, size, rotationMatrix, style)
 	}
 
 	// ============================================================================
@@ -400,7 +411,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val offsetY = style.shadow.offsetY * pixelSize
 			buildScreenTextQuads(atlas, text, startX + offsetX, offsetY,
 				shadowColor.red, shadowColor.green, shadowColor.blue, 25,
-				pixelX, pixelY, pixelSize)
+				pixelX, pixelY, pixelSize, style)
 		}
 
 		// Glow layer
@@ -408,7 +419,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val glowColor = style.glow.color
 			buildScreenTextQuads(atlas, text, startX, 0f,
 				glowColor.red, glowColor.green, glowColor.blue, 75,
-				pixelX, pixelY, pixelSize)
+				pixelX, pixelY, pixelSize, style)
 		}
 
 		// Outline layer
@@ -416,14 +427,14 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val outlineColor = style.outline.color
 			buildScreenTextQuads(atlas, text, startX, 0f,
 				outlineColor.red, outlineColor.green, outlineColor.blue, 150,
-				pixelX, pixelY, pixelSize)
+				pixelX, pixelY, pixelSize, style)
 		}
 
 		// Main text layer
 		val mainColor = style.color
 		buildScreenTextQuads(atlas, text, startX, 0f,
 			mainColor.red, mainColor.green, mainColor.blue, 255,
-			pixelX, pixelY, pixelSize)
+			pixelX, pixelY, pixelSize, style)
 	}
 
 	/**
@@ -437,8 +448,12 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		startY: Float,  // Offset in SCALED pixels
 		r: Int, g: Int, b: Int, a: Int,
 		anchorX: Float, anchorY: Float,
-		pixelSize: Float  // Final text size in pixels
+		pixelSize: Float,  // Final text size in pixels
+		style: TextStyle
 	) {
+		// Get or create the vertex list for this style
+		val vertices = screenTextStyleGroups.getOrPut(style) { mutableListOf() }
+		
 		// Glyph metrics (advance, bearingX, bearingY) are ALREADY normalized by baseSize in SDFFontAtlas
 		// Glyph width/height are in PIXELS and need to be normalized
 		var penX = 0f  // Pen position in normalized units
@@ -461,10 +476,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val y1 = anchorY + startY + localY1 * pixelSize
 
 			// Screen-space text uses simple 2D quads
-			collector.addScreenTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a)
-			collector.addScreenTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a)
-			collector.addScreenTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a)
-			collector.addScreenTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a)
+			vertices.add(RegionVertexCollector.ScreenTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a))
+			vertices.add(RegionVertexCollector.ScreenTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a))
+			vertices.add(RegionVertexCollector.ScreenTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a))
+			vertices.add(RegionVertexCollector.ScreenTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a))
 
 			// advance is already normalized, just add it
 			penX += glyph.advance
@@ -496,8 +511,12 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		r: Int, g: Int, b: Int, a: Int,
 		anchorX: Float, anchorY: Float, anchorZ: Float,
 		scale: Float,
-		rotationMatrix: Matrix4f?
+		rotationMatrix: Matrix4f?,
+		style: TextStyle
 	) {
+		// Get or create the vertex list for this style
+		val vertices = textStyleGroups.getOrPut(style) { mutableListOf() }
+		
 		var penX = startX
 		for (char in text) {
 			val glyph = atlas.getGlyph(char.code) ?: continue
@@ -510,10 +529,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			if (rotationMatrix == null) {
 				// Billboard mode: pass local offsets directly, shader handles billboard
 				// Bottom-left, Bottom-right, Top-right, Top-left
-				collector.addTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, true)
-				collector.addTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, true)
-				collector.addTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, true)
-				collector.addTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, true)
+				vertices.add(RegionVertexCollector.TextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
+				vertices.add(RegionVertexCollector.TextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
+				vertices.add(RegionVertexCollector.TextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
+				vertices.add(RegionVertexCollector.TextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
 			} else {
 				// Fixed rotation mode: pre-transform offsets with rotation matrix
 				// Scale is applied in shader, so we just apply rotation here
@@ -522,10 +541,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				val p2 = transformPoint(rotationMatrix, x1, -y0, 0f)
 				val p3 = transformPoint(rotationMatrix, x0, -y0, 0f)
 				
-				collector.addTextVertex(p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, false)
-				collector.addTextVertex(p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, false)
-				collector.addTextVertex(p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, false)
-				collector.addTextVertex(p3.x, p3.y, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, false)
+				vertices.add(RegionVertexCollector.TextVertex(p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
+				vertices.add(RegionVertexCollector.TextVertex(p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
+				vertices.add(RegionVertexCollector.TextVertex(p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
+				vertices.add(RegionVertexCollector.TextVertex(p3.x, p3.y, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
 			}
 
 			penX += glyph.advance

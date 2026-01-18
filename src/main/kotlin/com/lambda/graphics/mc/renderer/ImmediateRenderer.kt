@@ -20,8 +20,10 @@ package com.lambda.graphics.mc.renderer
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
+import com.lambda.graphics.mc.RegionVertexCollector
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
+import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
@@ -63,24 +65,53 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 		renderBuilder = null
 	}
 
+	// Font atlas used for current text rendering
+	private var currentFontAtlas: SDFFontAtlas? = null
+	
+	// Styled text buffers: maps TextStyle to (buffer, indexCount)
+	private val styledTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
+	private val styledScreenTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
+
 	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload() {
+		// Clean up previous styled buffers
+		styledTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+		styledTextBuffers.clear()
+		styledScreenTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+		styledScreenTextBuffers.clear()
+		
 		renderBuilder?.let { s ->
 			renderer.upload(s.collector)
-			// Track font atlas for text rendering
 			currentFontAtlas = s.fontAtlas
+			
+			// Upload styled text groups
+			s.textStyleGroups.forEach { (style, vertices) ->
+				val result = RegionVertexCollector.uploadTextVertices(vertices)
+				if (result.buffer != null) {
+					styledTextBuffers[style] = result.buffer to result.indexCount
+				}
+			}
+			
+			// Upload styled screen text groups
+			s.screenTextStyleGroups.forEach { (style, vertices) ->
+				val result = RegionVertexCollector.uploadScreenTextVertices(vertices)
+				if (result.buffer != null) {
+					styledScreenTextBuffers[style] = result.buffer to result.indexCount
+				}
+			}
 		} ?: run {
 			renderer.clearData()
 			currentFontAtlas = null
 		}
 	}
 
-	// Font atlas used for current text rendering
-	private var currentFontAtlas: SDFFontAtlas? = null
-
 	/** Close and release all GPU resources. */
 	fun close() {
 		renderer.close()
+		styledTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+		styledTextBuffers.clear()
+		styledScreenTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+		styledScreenTextBuffers.clear()
 		clear()
 	}
 
@@ -89,7 +120,7 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 	 * we just use the base modelView matrix without additional translation.
 	 */
 	fun render() {
-		if (!renderer.hasData()) return
+		if (!renderer.hasData() && styledTextBuffers.isEmpty()) return
 
 		val modelViewMatrix = RenderMain.modelViewMatrix
 
@@ -117,25 +148,32 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 			renderer.renderEdges(pass)
 		}
 
-		// Render Text
-		if (renderer.hasTextData()) {
+		// Render Styled Text - each style gets its own SDF params
+		if (styledTextBuffers.isNotEmpty()) {
 			val atlas = currentFontAtlas
 			if (atlas != null) {
 				if (!atlas.isUploaded) atlas.upload()
 				val textureView = atlas.textureView
 				val sampler = atlas.sampler
 				if (textureView != null && sampler != null) {
-					val sdfParams = RendererUtils.createSDFParamsBuffer()
-					if (sdfParams != null) {
-						RegionRenderer.Companion.createRenderPass("$name Text", depthTest)?.use { pass ->
-							pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
-							RenderSystem.bindDefaultUniforms(pass)
-							pass.setUniform("DynamicTransforms", dynamicTransform)
-							pass.setUniform("SDFParams", sdfParams)
-							pass.bindTexture("Sampler0", textureView, sampler)
-							renderer.renderText(pass)
+					styledTextBuffers.forEach { (style, bufferInfo) ->
+						val (buffer, indexCount) = bufferInfo
+						val outlineWidth = style.outline?.width ?: 0f
+						val glowRadius = style.glow?.radius ?: 0.2f
+						val shadowSoftness = style.shadow?.softness ?: 0.15f
+						
+						val sdfParams = RendererUtils.createSDFParamsBuffer(outlineWidth, glowRadius, shadowSoftness)
+						if (sdfParams != null) {
+							RegionRenderer.Companion.createRenderPass("$name Text", depthTest)?.use { pass ->
+								pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
+								RenderSystem.bindDefaultUniforms(pass)
+								pass.setUniform("DynamicTransforms", dynamicTransform)
+								pass.setUniform("SDFParams", sdfParams)
+								pass.bindTexture("Sampler0", textureView, sampler)
+								RegionRenderer.renderQuadBuffer(pass, buffer, indexCount)
+							}
+							sdfParams.close()
 						}
-						sdfParams.close()
 					}
 				}
 			}
@@ -147,7 +185,7 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 	 * This should be called after world-space render() for proper layering.
 	 */
 	fun renderScreen() {
-		if (!renderer.hasScreenData()) return
+		if (!renderer.hasScreenData() && styledScreenTextBuffers.isEmpty()) return
 
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
@@ -168,25 +206,32 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 				renderer.renderScreenEdges(pass)
 			}
 
-			// Render Screen Text
-			if (renderer.hasScreenTextData()) {
+			// Render Styled Screen Text - each style gets its own SDF params
+			if (styledScreenTextBuffers.isNotEmpty()) {
 				val atlas = currentFontAtlas
 				if (atlas != null) {
 					if (!atlas.isUploaded) atlas.upload()
 					val textureView = atlas.textureView
 					val sampler = atlas.sampler
 					if (textureView != null && sampler != null) {
-						val sdfParams = RendererUtils.createSDFParamsBuffer()
-						if (sdfParams != null) {
-							RegionRenderer.createRenderPass("$name Screen Text", false)?.use { pass ->
-								pass.setPipeline(RendererUtils.screenTextPipeline)
-								RenderSystem.bindDefaultUniforms(pass)
-								pass.setUniform("DynamicTransforms", dynamicTransform)
-								pass.setUniform("SDFParams", sdfParams)
-								pass.bindTexture("Sampler0", textureView, sampler)
-								renderer.renderScreenText(pass)
+						styledScreenTextBuffers.forEach { (style, bufferInfo) ->
+							val (buffer, indexCount) = bufferInfo
+							val outlineWidth = style.outline?.width ?: 0f
+							val glowRadius = style.glow?.radius ?: 0.2f
+							val shadowSoftness = style.shadow?.softness ?: 0.15f
+							
+							val sdfParams = RendererUtils.createSDFParamsBuffer(outlineWidth, glowRadius, shadowSoftness)
+							if (sdfParams != null) {
+								RegionRenderer.createRenderPass("$name Screen Text", false)?.use { pass ->
+									pass.setPipeline(RendererUtils.screenTextPipeline)
+									RenderSystem.bindDefaultUniforms(pass)
+									pass.setUniform("DynamicTransforms", dynamicTransform)
+									pass.setUniform("SDFParams", sdfParams)
+									pass.bindTexture("Sampler0", textureView, sampler)
+									RegionRenderer.renderQuadBuffer(pass, buffer, indexCount)
+								}
+								sdfParams.close()
 							}
-							sdfParams.close()
 						}
 					}
 				}

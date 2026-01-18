@@ -549,4 +549,95 @@ class RegionVertexCollector {
 	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
 	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
 	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
+
+	companion object {
+		/**
+		 * Upload a list of text vertices to a GPU buffer.
+		 * Used for style-grouped text rendering.
+		 */
+		fun uploadTextVertices(vertices: List<TextVertex>): BufferResult {
+			if (vertices.isEmpty()) return BufferResult(null, 0)
+
+			var result: BufferResult? = null
+			// POSITION_TEXTURE_COLOR_ANCHOR: 12 + 8 + 4 + 12 + 8 = 44 bytes per vertex
+			BufferAllocator(vertices.size * 48).use { allocator ->
+				val builder = BufferBuilder(
+					allocator,
+					VertexFormat.DrawMode.QUADS,
+					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR
+				)
+
+				vertices.forEach { v ->
+					// Position stores local glyph offset (z unused, set to 0)
+					builder.vertex(v.localX, v.localY, 0f)
+						.texture(v.u, v.v)
+						.color(v.r, v.g, v.b, v.a)
+					
+					// Write Anchor position (camera-relative world pos)
+					val anchorPointer = builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT)
+					if (anchorPointer != -1L) {
+						MemoryUtil.memPutFloat(anchorPointer, v.anchorX)
+						MemoryUtil.memPutFloat(anchorPointer + 4L, v.anchorY)
+						MemoryUtil.memPutFloat(anchorPointer + 8L, v.anchorZ)
+					}
+					
+					// Write Billboard data (scale, billboardFlag)
+					val billboardPointer = builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT)
+					if (billboardPointer != -1L) {
+						MemoryUtil.memPutFloat(billboardPointer, v.scale)
+						MemoryUtil.memPutFloat(billboardPointer + 4L, v.billboardFlag)
+					}
+				}
+
+				builder.endNullable()?.let { built ->
+					val gpuDevice = RenderSystem.getDevice()
+					val buffer = gpuDevice.createBuffer(
+						{ "Lambda Styled Text Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+					result = BufferResult(buffer, built.drawParameters.indexCount())
+					built.close()
+				}
+			}
+			return result ?: BufferResult(null, 0)
+		}
+
+		/**
+		 * Upload a list of screen text vertices to a GPU buffer.
+		 * Used for style-grouped screen text rendering.
+		 */
+		fun uploadScreenTextVertices(vertices: List<ScreenTextVertex>): BufferResult {
+			if (vertices.isEmpty()) return BufferResult(null, 0)
+
+			var result: BufferResult? = null
+			// Position (8, 2D) + Texture (8) + Color (4) = 20 bytes, but using POSITION (12) for simplicity
+			BufferAllocator(vertices.size * 24).use { allocator ->
+				val builder = BufferBuilder(
+					allocator,
+					VertexFormat.DrawMode.QUADS,
+					VertexFormats.POSITION_TEXTURE_COLOR
+				)
+
+				// Screen text: position is already final screen coordinates
+				vertices.forEach { v ->
+					builder.vertex(v.x, v.y, 0f)
+						.texture(v.u, v.v)
+						.color(v.r, v.g, v.b, v.a)
+				}
+
+				builder.endNullable()?.let { built ->
+					val gpuDevice = RenderSystem.getDevice()
+					val buffer = gpuDevice.createBuffer(
+						{ "Lambda Styled Screen Text Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+					result = BufferResult(buffer, built.drawParameters.indexCount())
+					built.close()
+				}
+			}
+			return result ?: BufferResult(null, 0)
+		}
+	}
 }

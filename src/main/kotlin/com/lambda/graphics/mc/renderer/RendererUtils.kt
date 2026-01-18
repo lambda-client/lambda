@@ -39,17 +39,25 @@ object RendererUtils {
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, true)
 
 	/**
-	 * Create SDF params uniform buffer with default values.
+	 * Create SDF params uniform buffer with specified or default values.
 	 * Used for SDF text rendering.
+	 *
+	 * @param outlineWidth Width of text outline in SDF units (0 = no outline)
+	 * @param glowRadius Radius of glow effect in SDF units (0 = no glow)
+	 * @param shadowSoftness Softness of shadow effect (0 = no shadow)
 	 */
-	fun createSDFParamsBuffer(): GpuBuffer? {
+	fun createSDFParamsBuffer(
+		outlineWidth: Float = 0f,
+		glowRadius: Float = 0.2f,
+		shadowSoftness: Float = 0.15f
+	): GpuBuffer? {
 		val device = RenderSystem.getDevice()
 		val buffer = MemoryUtil.memAlloc(16)
 		return try {
-			buffer.putFloat(0.5f)   // SDFThreshold
-			buffer.putFloat(0.1f)   // OutlineWidth
-			buffer.putFloat(0.2f)   // GlowRadius
-			buffer.putFloat(0.15f)  // ShadowSoftness
+			buffer.putFloat(0.5f)           // SDFThreshold
+			buffer.putFloat(outlineWidth)   // OutlineWidth
+			buffer.putFloat(glowRadius)     // GlowRadius
+			buffer.putFloat(shadowSoftness) // ShadowSoftness
 			buffer.flip()
 			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
 		} catch (_: Exception) {

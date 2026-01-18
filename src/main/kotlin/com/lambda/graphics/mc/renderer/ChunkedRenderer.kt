@@ -25,6 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
+import com.lambda.graphics.mc.RegionVertexCollector
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.FontHandler
 import com.lambda.module.Module
@@ -32,6 +33,7 @@ import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
+import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
@@ -112,7 +114,7 @@ class ChunkedRenderer(
 	fun render() {
 		val cameraPos = mc.gameRenderer?.camera?.pos ?: return
 
-		val activeChunks = chunkMap.values.filter { it.renderer.hasData() }
+		val activeChunks = chunkMap.values.filter { it.renderer.hasData() || it.styledTextBuffers.isNotEmpty() }
 		if (activeChunks.isEmpty()) return
 
 		val modelViewMatrix = RenderMain.modelViewMatrix
@@ -153,29 +155,44 @@ class ChunkedRenderer(
 			}
 		}
 
-		// Render Text (for any chunks that have text data)
-		val chunksWithText = chunkTransforms.filter { (chunkData, _) -> chunkData.renderer.hasTextData() }
-		if (chunksWithText.isNotEmpty()) {
-			// Use default font atlas for chunked text
+		// Render Styled Text - each style gets its own SDF params
+		val chunksWithStyledText = chunkTransforms.filter { (chunkData, _) -> chunkData.styledTextBuffers.isNotEmpty() }
+		if (chunksWithStyledText.isNotEmpty()) {
 			val atlas = FontHandler.getDefaultFont()
 			if (!atlas.isUploaded) atlas.upload()
 			val textureView = atlas.textureView
 			val sampler = atlas.sampler
 			if (textureView != null && sampler != null) {
-				val sdfParams = RendererUtils.createSDFParamsBuffer()
-				if (sdfParams != null) {
-					RegionRenderer.Companion.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
-						pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
-						RenderSystem.bindDefaultUniforms(pass)
-						pass.setUniform("SDFParams", sdfParams)
-						pass.bindTexture("Sampler0", textureView, sampler)
+				// Collect all unique styles across all chunks
+				val allStyles = chunksWithStyledText.flatMap { (chunkData, _) -> 
+					chunkData.styledTextBuffers.keys 
+				}.toSet()
 
-						chunksWithText.forEach { (chunkData, transform) ->
-							pass.setUniform("DynamicTransforms", transform)
-							chunkData.renderer.renderText(pass)
+				// Render each style
+				allStyles.forEach { style ->
+					val outlineWidth = style.outline?.width ?: 0f
+					val glowRadius = style.glow?.radius ?: 0.2f
+					val shadowSoftness = style.shadow?.softness ?: 0.15f
+					
+					val sdfParams = RendererUtils.createSDFParamsBuffer(outlineWidth, glowRadius, shadowSoftness)
+					if (sdfParams != null) {
+						RegionRenderer.Companion.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
+							pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
+							RenderSystem.bindDefaultUniforms(pass)
+							pass.setUniform("SDFParams", sdfParams)
+							pass.bindTexture("Sampler0", textureView, sampler)
+
+							chunksWithStyledText.forEach { (chunkData, transform) ->
+								val bufferInfo = chunkData.styledTextBuffers[style]
+								if (bufferInfo != null) {
+									val (buffer, indexCount) = bufferInfo
+									pass.setUniform("DynamicTransforms", transform)
+									RegionRenderer.renderQuadBuffer(pass, buffer, indexCount)
+								}
+							}
 						}
+						sdfParams.close()
 					}
-					sdfParams.close()
 				}
 			}
 		}
@@ -186,7 +203,7 @@ class ChunkedRenderer(
 	 * Uses orthographic projection for 2D rendering.
 	 */
 	fun renderScreen() {
-		val activeChunks = chunkMap.values.filter { it.renderer.hasScreenData() }
+		val activeChunks = chunkMap.values.filter { it.renderer.hasScreenData() || it.styledScreenTextBuffers.isNotEmpty() }
 		if (activeChunks.isEmpty()) return
 
 		RendererUtils.withScreenContext {
@@ -212,27 +229,42 @@ class ChunkedRenderer(
 				}
 			}
 
-			// Render Screen Text
-			val chunksWithText = activeChunks.filter { it.renderer.hasScreenTextData() }
-			if (chunksWithText.isNotEmpty()) {
+			// Render Styled Screen Text
+			val chunksWithStyledText = activeChunks.filter { it.styledScreenTextBuffers.isNotEmpty() }
+			if (chunksWithStyledText.isNotEmpty()) {
 				val atlas = FontHandler.getDefaultFont()
 				if (!atlas.isUploaded) atlas.upload()
 				val textureView = atlas.textureView
 				val sampler = atlas.sampler
 				if (textureView != null && sampler != null) {
-					val sdfParams = RendererUtils.createSDFParamsBuffer()
-					if (sdfParams != null) {
-						RegionRenderer.Companion.createRenderPass("ChunkedESP Screen Text", false)?.use { pass ->
-							pass.setPipeline(RendererUtils.screenTextPipeline)
-							RenderSystem.bindDefaultUniforms(pass)
-							pass.setUniform("DynamicTransforms", dynamicTransform)
-							pass.setUniform("SDFParams", sdfParams)
-							pass.bindTexture("Sampler0", textureView, sampler)
-							chunksWithText.forEach { chunkData ->
-								chunkData.renderer.renderScreenText(pass)
+					// Collect all unique styles across all chunks
+					val allStyles = chunksWithStyledText.flatMap { it.styledScreenTextBuffers.keys }.toSet()
+
+					// Render each style
+					allStyles.forEach { style ->
+						val outlineWidth = style.outline?.width ?: 0f
+						val glowRadius = style.glow?.radius ?: 0.2f
+						val shadowSoftness = style.shadow?.softness ?: 0.15f
+						
+						val sdfParams = RendererUtils.createSDFParamsBuffer(outlineWidth, glowRadius, shadowSoftness)
+						if (sdfParams != null) {
+							RegionRenderer.Companion.createRenderPass("ChunkedESP Screen Text", false)?.use { pass ->
+								pass.setPipeline(RendererUtils.screenTextPipeline)
+								RenderSystem.bindDefaultUniforms(pass)
+								pass.setUniform("DynamicTransforms", dynamicTransform)
+								pass.setUniform("SDFParams", sdfParams)
+								pass.bindTexture("Sampler0", textureView, sampler)
+
+								chunksWithStyledText.forEach { chunkData ->
+									val bufferInfo = chunkData.styledScreenTextBuffers[style]
+									if (bufferInfo != null) {
+										val (buffer, indexCount) = bufferInfo
+										RegionRenderer.renderQuadBuffer(pass, buffer, indexCount)
+									}
+								}
 							}
+							sdfParams.close()
 						}
-						sdfParams.close()
 					}
 				}
 			}
@@ -292,6 +324,10 @@ class ChunkedRenderer(
 
 		// This chunk's own renderer
 		val renderer = RegionRenderer()
+		
+		// Styled text buffers: maps TextStyle to (buffer, indexCount)
+		val styledTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
+		val styledScreenTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
 
 		private var isDirty = false
 
@@ -321,14 +357,45 @@ class ChunkedRenderer(
 				}
 			}
 
+			// Capture the styled groups for upload on main thread
+			val textGroups = scope.textStyleGroups.toMap()
+			val screenTextGroups = scope.screenTextStyleGroups.toMap()
+
 			uploadQueue.add {
 				renderer.upload(scope.collector)
+				
+				// Clean up previous styled buffers
+				styledTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+				styledTextBuffers.clear()
+				styledScreenTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+				styledScreenTextBuffers.clear()
+				
+				// Upload styled text groups
+				textGroups.forEach { (style, vertices) ->
+					val result = RegionVertexCollector.uploadTextVertices(vertices)
+					if (result.buffer != null) {
+						styledTextBuffers[style] = result.buffer to result.indexCount
+					}
+				}
+				
+				// Upload styled screen text groups
+				screenTextGroups.forEach { (style, vertices) ->
+					val result = RegionVertexCollector.uploadScreenTextVertices(vertices)
+					if (result.buffer != null) {
+						styledScreenTextBuffers[style] = result.buffer to result.indexCount
+					}
+				}
+				
 				isDirty = false
 			}
 		}
 
 		fun close() {
 			renderer.close()
+			styledTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+			styledTextBuffers.clear()
+			styledScreenTextBuffers.values.forEach { (buffer, _) -> buffer.close() }
+			styledScreenTextBuffers.clear()
 		}
 	}
 }

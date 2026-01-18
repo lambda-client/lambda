@@ -42,13 +42,15 @@ void main() {
         float textMask = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
         alpha = alpha * (1.0 - textMask);
     } else if (layerType >= 50) {
-        // Glow layer - starts from text edge and extends outward
-        float glowStart = SDFThreshold - GlowRadius;
-        float glowEnd = SDFThreshold;
+        // Glow layer - starts from outline edge (if outline enabled) or text edge
+        // Only expand past outline if OutlineWidth is actually set
+        float glowEdge = (OutlineWidth > 0.001) ? (SDFThreshold - OutlineWidth) : SDFThreshold;
+        float glowStart = glowEdge - GlowRadius;
+        float glowEnd = glowEdge;
         alpha = smoothstep(glowStart, glowEnd, sdfValue) * 0.6;
-        // Mask out the main text area
-        float textMask = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
-        alpha = alpha * (1.0 - textMask);
+        // Mask out the text and outline area
+        float outlineMask = smoothstep(glowEdge - smoothing, glowEdge + smoothing, sdfValue);
+        alpha = alpha * (1.0 - outlineMask);
     } else {
         // Shadow layer - uses ShadowSoftness
         float shadowStart = SDFThreshold - ShadowSoftness - 0.15;
