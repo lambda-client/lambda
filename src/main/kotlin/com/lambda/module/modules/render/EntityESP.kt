@@ -60,13 +60,6 @@ object EntityESP : Module(
 
 	private val pendingLabels = mutableListOf<LabelData>()
 
-	private val lineLength by setting("Line Length", 5f, 0f..15f, 0.1f)
-	private val outlineWidth by setting("Outline Width", 0.15f, 0f..1f, 0.01f)
-	private val glowWidth by setting("Glow Width", 0.25f, 0f..1f, 0.01f)
-	private val shadowDistance by setting("Shadow Distance", 0.2f, 0f..1f, 0.01f)
-	private val shadowAngle by setting("Shadow Angle", 135f, 0f..360f, 1f)
-	private val animationSpeed by setting("Animation Speed", 1f, 0.1f..5f, 0.1f)
-
 	private val throughWalls by setting("Through Walls", true, "Render through blocks").group(Group.General)
 	private val self by setting("Self", false, "Render own player in third person").group(Group.General)
 
@@ -168,6 +161,7 @@ object EntityESP : Module(
 
 			esp.upload()
 			esp.render()
+			esp.renderScreen()
 
 			// Clear pending labels from previous frame
 			pendingLabels.clear()

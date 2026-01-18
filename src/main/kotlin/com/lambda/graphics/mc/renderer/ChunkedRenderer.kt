@@ -24,7 +24,6 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.FontHandler
@@ -33,7 +32,6 @@ import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
-import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
@@ -41,7 +39,6 @@ import net.minecraft.world.chunk.WorldChunk
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
-import org.lwjgl.system.MemoryUtil
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -61,7 +58,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class ChunkedRenderer(
 	owner: Module,
 	name: String,
-	private val depthTest: Boolean = false,
+	var depthTest: Boolean = false,
 	private val update: RenderBuilder.(World, FastVector) -> Unit
 ) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
@@ -136,10 +133,7 @@ class ChunkedRenderer(
 
 		// Render Faces
 		RegionRenderer.Companion.createRenderPass("ChunkedESP Faces", depthTest)?.use { pass ->
-			val pipeline =
-				if (depthTest) LambdaRenderPipelines.ESP_QUADS
-				else LambdaRenderPipelines.ESP_QUADS_THROUGH
-			pass.setPipeline(pipeline)
+			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
 			RenderSystem.bindDefaultUniforms(pass)
 
 			chunkTransforms.forEach { (chunkData, transform) ->
@@ -150,10 +144,7 @@ class ChunkedRenderer(
 
 		// Render Edges
 		RegionRenderer.Companion.createRenderPass("ChunkedESP Edges", depthTest)?.use { pass ->
-			val pipeline =
-				if (depthTest) LambdaRenderPipelines.ESP_LINES
-				else LambdaRenderPipelines.ESP_LINES_THROUGH
-			pass.setPipeline(pipeline)
+			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
 			RenderSystem.bindDefaultUniforms(pass)
 
 			chunkTransforms.forEach { (chunkData, transform) ->
@@ -171,13 +162,10 @@ class ChunkedRenderer(
 			val textureView = atlas.textureView
 			val sampler = atlas.sampler
 			if (textureView != null && sampler != null) {
-				val sdfParams = createSDFParamsBuffer()
+				val sdfParams = RendererUtils.createSDFParamsBuffer()
 				if (sdfParams != null) {
 					RegionRenderer.Companion.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
-						val pipeline =
-							if (depthTest) LambdaRenderPipelines.SDF_TEXT
-							else LambdaRenderPipelines.SDF_TEXT_THROUGH
-						pass.setPipeline(pipeline)
+						pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
 						RenderSystem.bindDefaultUniforms(pass)
 						pass.setUniform("SDFParams", sdfParams)
 						pass.bindTexture("Sampler0", textureView, sampler)
@@ -193,20 +181,71 @@ class ChunkedRenderer(
 		}
 	}
 
-	private fun createSDFParamsBuffer(): GpuBuffer? {
-		val device = RenderSystem.getDevice()
-		val buffer = MemoryUtil.memAlloc(16)
-		return try {
-			buffer.putFloat(0.5f)
-			buffer.putFloat(0.1f)
-			buffer.putFloat(0.2f)
-			buffer.putFloat(0.15f)
-			buffer.flip()
-			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
-		} catch (e: Exception) {
-			null
-		} finally {
-			MemoryUtil.memFree(buffer)
+	/**
+	 * Render screen-space geometry for all chunks.
+	 * Uses orthographic projection for 2D rendering.
+	 */
+	fun renderScreen() {
+		val activeChunks = chunkMap.values.filter { it.renderer.hasScreenData() }
+		if (activeChunks.isEmpty()) return
+
+		RendererUtils.withScreenContext {
+			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
+
+			// Render Screen Faces
+			RegionRenderer.Companion.createRenderPass("ChunkedESP Screen Faces", false)?.use { pass ->
+				pass.setPipeline(RendererUtils.screenFacesPipeline)
+				RenderSystem.bindDefaultUniforms(pass)
+				pass.setUniform("DynamicTransforms", dynamicTransform)
+				activeChunks.forEach { chunkData ->
+					chunkData.renderer.renderScreenFaces(pass)
+				}
+			}
+
+			// Render Screen Edges
+			RegionRenderer.Companion.createRenderPass("ChunkedESP Screen Edges", false)?.use { pass ->
+				pass.setPipeline(RendererUtils.screenEdgesPipeline)
+				RenderSystem.bindDefaultUniforms(pass)
+				pass.setUniform("DynamicTransforms", dynamicTransform)
+				activeChunks.forEach { chunkData ->
+					chunkData.renderer.renderScreenEdges(pass)
+				}
+			}
+
+			// Render Screen Text
+			val chunksWithText = activeChunks.filter { it.renderer.hasScreenTextData() }
+			if (chunksWithText.isNotEmpty()) {
+				val atlas = FontHandler.getDefaultFont()
+				if (!atlas.isUploaded) atlas.upload()
+				val textureView = atlas.textureView
+				val sampler = atlas.sampler
+				if (textureView != null && sampler != null) {
+					val sdfParams = RendererUtils.createSDFParamsBuffer()
+					if (sdfParams != null) {
+						RegionRenderer.Companion.createRenderPass("ChunkedESP Screen Text", false)?.use { pass ->
+							pass.setPipeline(RendererUtils.screenTextPipeline)
+							RenderSystem.bindDefaultUniforms(pass)
+							pass.setUniform("DynamicTransforms", dynamicTransform)
+							pass.setUniform("SDFParams", sdfParams)
+							pass.bindTexture("Sampler0", textureView, sampler)
+							chunksWithText.forEach { chunkData ->
+								chunkData.renderer.renderScreenText(pass)
+							}
+						}
+						sdfParams.close()
+					}
+				}
+			}
+		}
+	}
+
+	companion object {
+		fun Module.chunkedEsp(
+			name: String,
+			depthTest: Boolean = false,
+			update: RenderBuilder.(World, FastVector) -> Unit
+		): ChunkedRenderer {
+			return ChunkedRenderer(this, name, depthTest, update)
 		}
 	}
 
@@ -290,16 +329,6 @@ class ChunkedRenderer(
 
 		fun close() {
 			renderer.close()
-		}
-	}
-
-	companion object {
-		fun Module.chunkedEsp(
-			name: String,
-			depthTest: Boolean = false,
-			update: RenderBuilder.(World, FastVector) -> Unit
-		): ChunkedRenderer {
-			return ChunkedRenderer(this, name, depthTest, update)
 		}
 	}
 }

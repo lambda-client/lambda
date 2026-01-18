@@ -38,6 +38,11 @@ class RegionVertexCollector {
 	val edgeVertices = ConcurrentLinkedDeque<EdgeVertex>()
 	val textVertices = ConcurrentLinkedDeque<TextVertex>()
 
+	// Screen-space vertex collections
+	val screenFaceVertices = ConcurrentLinkedDeque<ScreenFaceVertex>()
+	val screenEdgeVertices = ConcurrentLinkedDeque<ScreenEdgeVertex>()
+	val screenTextVertices = ConcurrentLinkedDeque<ScreenTextVertex>()
+
 	/** Face vertex data (position + color). */
 	data class FaceVertex(
 		val x: Float, val y: Float, val z: Float,
@@ -89,6 +94,36 @@ class RegionVertexCollector {
 		val gapLength: Float = 0f,
 		val dashOffset: Float = 0f,
 		val animationSpeed: Float = 0f  // 0 = no animation
+	)
+
+	// ============================================================================
+	// Screen-Space Vertex Types
+	// ============================================================================
+
+	/** Screen-space face vertex data (2D position + color). */
+	data class ScreenFaceVertex(
+		val x: Float, val y: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int
+	)
+
+	/** Screen-space edge vertex data (2D position + color + direction + width + dash). */
+	data class ScreenEdgeVertex(
+		val x: Float, val y: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int,
+		val dx: Float, val dy: Float,
+		val lineWidth: Float,
+		// Dash style parameters (0 = solid line)
+		val dashLength: Float = 0f,
+		val gapLength: Float = 0f,
+		val dashOffset: Float = 0f,
+		val animationSpeed: Float = 0f
+	)
+
+	/** Screen-space text vertex data (2D position + UV + color). */
+	data class ScreenTextVertex(
+		val x: Float, val y: Float,
+		val u: Float, val v: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int
 	)
 
 	/** Add a face vertex. */
@@ -172,6 +207,51 @@ class RegionVertexCollector {
 			anchorX, anchorY, anchorZ, scale,
 			if (billboard) 0f else 1f
 		))
+	}
+
+	// ============================================================================
+	// Screen-Space Vertex Add Methods
+	// ============================================================================
+
+	/** Add a screen-space face vertex. */
+	fun addScreenFaceVertex(x: Float, y: Float, color: Color) {
+		screenFaceVertices.add(ScreenFaceVertex(x, y, color.red, color.green, color.blue, color.alpha))
+	}
+
+	/** Add a screen-space edge vertex (solid line). */
+	fun addScreenEdgeVertex(x: Float, y: Float, color: Color, dx: Float, dy: Float, lineWidth: Float) {
+		screenEdgeVertices.add(ScreenEdgeVertex(x, y, color.red, color.green, color.blue, color.alpha, dx, dy, lineWidth))
+	}
+
+	/** Add a screen-space edge vertex with dash style. */
+	fun addScreenEdgeVertex(
+		x: Float, y: Float,
+		color: Color,
+		dx: Float, dy: Float,
+		lineWidth: Float,
+		dashStyle: LineDashStyle?
+	) {
+		if (dashStyle == null) {
+			addScreenEdgeVertex(x, y, color, dx, dy, lineWidth)
+		} else {
+			screenEdgeVertices.add(
+				ScreenEdgeVertex(
+					x, y,
+					color.red, color.green, color.blue, color.alpha,
+					dx, dy,
+					lineWidth,
+					dashStyle.dashLength,
+					dashStyle.gapLength,
+					dashStyle.offset,
+					if (dashStyle.animated) dashStyle.animationSpeed else 0f
+				)
+			)
+		}
+	}
+
+	/** Add a screen-space text vertex. */
+	fun addScreenTextVertex(x: Float, y: Float, u: Float, v: Float, r: Int, g: Int, b: Int, a: Int) {
+		screenTextVertices.add(ScreenTextVertex(x, y, u, v, r, g, b, a))
 	}
 
 	/**
@@ -328,6 +408,145 @@ class RegionVertexCollector {
 		return result ?: BufferResult(null, 0)
 	}
 
+	// ============================================================================
+	// Screen-Space Upload Methods
+	// ============================================================================
+
+	private fun uploadScreenFaces(): BufferResult {
+		if (screenFaceVertices.isEmpty()) return BufferResult(null, 0)
+
+		val vertices = screenFaceVertices.toList()
+		screenFaceVertices.clear()
+
+		var result: BufferResult? = null
+		BufferAllocator(vertices.size * 12).use { allocator ->
+			val builder = BufferBuilder(
+				allocator,
+				VertexFormat.DrawMode.QUADS,
+				VertexFormats.POSITION_COLOR
+			)
+
+			// For screen-space: use x, y, with z = 0
+			vertices.forEach { v -> builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a) }
+
+			builder.endNullable()?.let { built ->
+				val gpuDevice = RenderSystem.getDevice()
+				val buffer = gpuDevice.createBuffer(
+					{ "Lambda Screen Face Buffer" },
+					GpuBuffer.USAGE_VERTEX,
+					built.buffer
+				)
+				result = BufferResult(buffer, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result ?: BufferResult(null, 0)
+	}
+
+	private fun uploadScreenEdges(): BufferResult {
+		if (screenEdgeVertices.isEmpty()) return BufferResult(null, 0)
+
+		val vertices = screenEdgeVertices.toList()
+		screenEdgeVertices.clear()
+
+		var result: BufferResult? = null
+		// Position (12) + Color (4) + Direction (8) + Width (4) + Dash (16) = 44 bytes, round up
+		BufferAllocator(vertices.size * 48).use { allocator ->
+			val builder = BufferBuilder(
+				allocator,
+				VertexFormat.DrawMode.QUADS,
+				LambdaVertexFormats.SCREEN_LINE_FORMAT
+			)
+
+			vertices.forEach { v ->
+				builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a)
+
+				// Write direction (for calculating perpendicular offset in shader)
+				val dirPointer = builder.beginElement(LambdaVertexFormats.DIRECTION_2D_ELEMENT)
+				if (dirPointer != -1L) {
+					MemoryUtil.memPutFloat(dirPointer, v.dx)
+					MemoryUtil.memPutFloat(dirPointer + 4L, v.dy)
+				}
+
+				// Write line width
+				val widthPointer = builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT)
+				if (widthPointer != -1L) {
+					MemoryUtil.memPutFloat(widthPointer, v.lineWidth)
+				}
+
+				// Write dash data
+				val dashPointer = builder.beginElement(LambdaVertexFormats.DASH_ELEMENT)
+				if (dashPointer != -1L) {
+					MemoryUtil.memPutFloat(dashPointer, v.dashLength)
+					MemoryUtil.memPutFloat(dashPointer + 4L, v.gapLength)
+					MemoryUtil.memPutFloat(dashPointer + 8L, v.dashOffset)
+					MemoryUtil.memPutFloat(dashPointer + 12L, v.animationSpeed)
+				}
+			}
+
+			builder.endNullable()?.let { built ->
+				val gpuDevice = RenderSystem.getDevice()
+				val buffer = gpuDevice.createBuffer(
+					{ "Lambda Screen Edge Buffer" },
+					GpuBuffer.USAGE_VERTEX,
+					built.buffer
+				)
+				result = BufferResult(buffer, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result ?: BufferResult(null, 0)
+	}
+
+	private fun uploadScreenText(): BufferResult {
+		if (screenTextVertices.isEmpty()) return BufferResult(null, 0)
+
+		val vertices = screenTextVertices.toList()
+		screenTextVertices.clear()
+
+		var result: BufferResult? = null
+		// Position (8, 2D) + Texture (8) + Color (4) = 20 bytes, but using POSITION (12) for simplicity
+		BufferAllocator(vertices.size * 24).use { allocator ->
+			val builder = BufferBuilder(
+				allocator,
+				VertexFormat.DrawMode.QUADS,
+				VertexFormats.POSITION_TEXTURE_COLOR
+			)
+
+			// Screen text: position is already final screen coordinates
+			vertices.forEach { v ->
+				builder.vertex(v.x, v.y, 0f)
+					.texture(v.u, v.v)
+					.color(v.r, v.g, v.b, v.a)
+			}
+
+			builder.endNullable()?.let { built ->
+				val gpuDevice = RenderSystem.getDevice()
+				val buffer = gpuDevice.createBuffer(
+					{ "Lambda Screen Text Buffer" },
+					GpuBuffer.USAGE_VERTEX,
+					built.buffer
+				)
+				result = BufferResult(buffer, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result ?: BufferResult(null, 0)
+	}
+
+	/**
+	 * Upload screen-space data to GPU buffers.
+	 *
+	 * @return ScreenUploadResult containing screen-space face, edge, and text buffers
+	 */
+	fun uploadScreen(): ScreenUploadResult {
+		val faces = uploadScreenFaces()
+		val edges = uploadScreenEdges()
+		val text = uploadScreenText()
+		return ScreenUploadResult(faces, edges, text)
+	}
+
 	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
 	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
+	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
 }

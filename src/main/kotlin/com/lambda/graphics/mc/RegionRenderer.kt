@@ -31,18 +31,29 @@ import java.util.*
  * methods to render them within a RenderPass.
  */
 class RegionRenderer {
-	// Dedicated GPU buffers for faces, edges, and text
+	// Dedicated GPU buffers for world-space faces, edges, and text
 	private var faceVertexBuffer: GpuBuffer? = null
 	private var edgeVertexBuffer: GpuBuffer? = null
 	private var textVertexBuffer: GpuBuffer? = null
 
-	// Index counts for draw calls
+	// Dedicated GPU buffers for screen-space faces, edges, and text
+	private var screenFaceVertexBuffer: GpuBuffer? = null
+	private var screenEdgeVertexBuffer: GpuBuffer? = null
+	private var screenTextVertexBuffer: GpuBuffer? = null
+
+	// Index counts for world-space draw calls
 	private var faceIndexCount = 0
 	private var edgeIndexCount = 0
 	private var textIndexCount = 0
 
+	// Index counts for screen-space draw calls
+	private var screenFaceIndexCount = 0
+	private var screenEdgeIndexCount = 0
+	private var screenTextIndexCount = 0
+
 	// State tracking
 	private var hasData = false
+	private var hasScreenData = false
 
 	/**
 	 * Upload collected vertices from an external collector. This must be called on the main/render
@@ -52,13 +63,19 @@ class RegionRenderer {
 	 */
 	fun upload(collector: RegionVertexCollector) {
 		val result = collector.upload()
+		val screenResult = collector.uploadScreen()
 
-		// Cleanup old buffers
+		// Cleanup old world-space buffers
 		faceVertexBuffer?.close()
 		edgeVertexBuffer?.close()
 		textVertexBuffer?.close()
 
-		// Assign new buffers and counts
+		// Cleanup old screen-space buffers
+		screenFaceVertexBuffer?.close()
+		screenEdgeVertexBuffer?.close()
+		screenTextVertexBuffer?.close()
+
+		// Assign new world-space buffers and counts
 		faceVertexBuffer = result.faces?.buffer
 		faceIndexCount = result.faces?.indexCount ?: 0
 
@@ -68,7 +85,18 @@ class RegionRenderer {
 		textVertexBuffer = result.text?.buffer
 		textIndexCount = result.text?.indexCount ?: 0
 
+		// Assign new screen-space buffers and counts
+		screenFaceVertexBuffer = screenResult.faces?.buffer
+		screenFaceIndexCount = screenResult.faces?.indexCount ?: 0
+
+		screenEdgeVertexBuffer = screenResult.edges?.buffer
+		screenEdgeIndexCount = screenResult.edges?.indexCount ?: 0
+
+		screenTextVertexBuffer = screenResult.text?.buffer
+		screenTextIndexCount = screenResult.text?.indexCount ?: 0
+
 		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null
+		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null
 	}
 
 	/**
@@ -129,8 +157,71 @@ class RegionRenderer {
 	/** Check if this renderer has text data. */
 	fun hasTextData(): Boolean = textVertexBuffer != null && textIndexCount > 0
 
+	// ============================================================================
+	// Screen-Space Render Methods
+	// ============================================================================
+
+	/**
+	 * Render screen-space faces using the given render pass.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderScreenFaces(renderPass: RenderPass) {
+		val vb = screenFaceVertexBuffer ?: return
+		if (screenFaceIndexCount == 0) return
+
+		renderPass.setVertexBuffer(0, vb)
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val indexBuffer = shapeIndexBuffer.getIndexBuffer(screenFaceIndexCount)
+
+		renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+		renderPass.drawIndexed(0, 0, screenFaceIndexCount, 1)
+	}
+
+	/**
+	 * Render screen-space edges using the given render pass.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderScreenEdges(renderPass: RenderPass) {
+		val vb = screenEdgeVertexBuffer ?: return
+		if (screenEdgeIndexCount == 0) return
+
+		renderPass.setVertexBuffer(0, vb)
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val indexBuffer = shapeIndexBuffer.getIndexBuffer(screenEdgeIndexCount)
+
+		renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+		renderPass.drawIndexed(0, 0, screenEdgeIndexCount, 1)
+	}
+
+	/**
+	 * Render screen-space text using the given render pass.
+	 * Note: Caller must bind the font texture before calling.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderScreenText(renderPass: RenderPass) {
+		val vb = screenTextVertexBuffer ?: return
+		if (screenTextIndexCount == 0) return
+
+		renderPass.setVertexBuffer(0, vb)
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val indexBuffer = shapeIndexBuffer.getIndexBuffer(screenTextIndexCount)
+
+		renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+		renderPass.drawIndexed(0, 0, screenTextIndexCount, 1)
+	}
+
+	/** Check if this renderer has screen-space text data. */
+	fun hasScreenTextData(): Boolean = screenTextVertexBuffer != null && screenTextIndexCount > 0
+
+	/** Check if this renderer has any screen-space data to render. */
+	fun hasScreenData(): Boolean = hasScreenData
+
 	/** Clear all geometry data and release GPU resources. */
 	fun clearData() {
+		// Clear world-space buffers
 		faceVertexBuffer?.close()
 		edgeVertexBuffer?.close()
 		textVertexBuffer?.close()
@@ -141,6 +232,18 @@ class RegionRenderer {
 		edgeIndexCount = 0
 		textIndexCount = 0
 		hasData = false
+
+		// Clear screen-space buffers
+		screenFaceVertexBuffer?.close()
+		screenEdgeVertexBuffer?.close()
+		screenTextVertexBuffer?.close()
+		screenFaceVertexBuffer = null
+		screenEdgeVertexBuffer = null
+		screenTextVertexBuffer = null
+		screenFaceIndexCount = 0
+		screenEdgeIndexCount = 0
+		screenTextIndexCount = 0
+		hasScreenData = false
 	}
 
 	/** Check if this renderer has any data to render. */

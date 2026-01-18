@@ -127,4 +127,37 @@ object LambdaVertexFormats {
         .add("Anchor", ANCHOR_ELEMENT)
         .add("BillboardData", BILLBOARD_DATA_ELEMENT)
         .build()
+
+    /**
+     * 2D direction element for screen-space lines.
+     * Contains the line direction vector (dx, dy) used to compute perpendicular offset.
+     */
+    val DIRECTION_2D_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        22, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        2   // count (dx, dy)
+    )
+
+    /**
+     * Screen-space line format with dash support.
+     * Layout: Position (vec3), Color (vec4), Direction2D (vec2), LineWidth (float), Dash (vec4)
+     *
+     * Total size: 12 + 4 + 8 + 4 + 16 = 44 bytes
+     *
+     * - Position: Screen-space position (x, y, z where z = 0) (3 floats = 12 bytes)
+     * - Color: RGBA color (4 bytes)
+     * - Direction2D: Line direction for perpendicular offset (2 floats = 8 bytes)
+     * - LineWidth: Line width in pixels (1 float = 4 bytes)
+     * - Dash: vec4(dashLength, gapLength, dashOffset, animationSpeed) (4 floats = 16 bytes)
+     */
+    val SCREEN_LINE_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("Direction", DIRECTION_2D_ELEMENT)
+        .add("LineWidth", LINE_WIDTH_FLOAT)
+        .add("Dash", DASH_ELEMENT)
+        .build()
 }
+

@@ -17,11 +17,11 @@
 
 package com.lambda.graphics.mc
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.graphics.util.DirectionMask
-import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
@@ -82,19 +82,6 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	) = boxes(pos, safeContext.blockState(pos), lineWidth, builder)
 
 	fun filledQuadGradient(
-		corner1: Vec3d,
-		corner2: Vec3d,
-		corner3: Vec3d,
-		corner4: Vec3d,
-		color: Color
-	) {
-		faceVertex(corner1.x, corner1.y, corner1.z, color)
-		faceVertex(corner2.x, corner2.y, corner2.z, color)
-		faceVertex(corner3.x, corner3.y, corner3.z, color)
-		faceVertex(corner4.x, corner4.y, corner4.z, color)
-	}
-
-	fun filledQuadGradient(
 		x1: Double, y1: Double, z1: Double, c1: Color,
 		x2: Double, y2: Double, z2: Double, c2: Color,
 		x3: Double, y3: Double, z3: Double, c3: Color,
@@ -133,138 +120,6 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		width: Float,
 		dashStyle: LineDashStyle? = null
 	) = line(start.x, start.y, start.z, end.x, end.y, end.z, color, color, width, dashStyle)
-
-	/** Draw a polyline through a list of points. */
-	fun polyline(
-		points: List<Vec3d>,
-		color: Color,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		if (points.size < 2) return
-		for (i in 0 until points.size - 1) {
-			line(points[i], points[i + 1], color, width, dashStyle)
-		}
-	}
-
-	/**
-	 * Draw a quadratic Bezier curve.
-	 *
-	 * @param p0 Start point
-	 * @param p1 Control point
-	 * @param p2 End point
-	 * @param color Line color
-	 * @param segments Number of line segments (higher = smoother)
-	 */
-	fun quadraticBezierLine(
-		p0: Vec3d,
-		p1: Vec3d,
-		p2: Vec3d,
-		color: Color,
-		segments: Int = 16,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		val points = CurveUtils.quadraticBezierPoints(p0, p1, p2, segments)
-		polyline(points, color, width, dashStyle)
-	}
-
-	/**
-	 * Draw a cubic Bezier curve.
-	 *
-	 * @param p0 Start point
-	 * @param p1 First control point
-	 * @param p2 Second control point
-	 * @param p3 End point
-	 * @param color Line color
-	 * @param segments Number of line segments (higher = smoother)
-	 */
-	fun cubicBezierLine(
-		p0: Vec3d,
-		p1: Vec3d,
-		p2: Vec3d,
-		p3: Vec3d,
-		color: Color,
-		segments: Int = 32,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		val points = CurveUtils.cubicBezierPoints(p0, p1, p2, p3, segments)
-		polyline(points, color, width, dashStyle)
-	}
-
-	/**
-	 * Draw a Catmull-Rom spline that passes through all control points.
-	 *
-	 * @param controlPoints List of points the spline should pass through (minimum 4)
-	 * @param color Line color
-	 * @param segmentsPerSection Segments between each pair of control points
-	 */
-	fun catmullRomSplineLine(
-		controlPoints: List<Vec3d>,
-		color: Color,
-		segmentsPerSection: Int = 16,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		val points = CurveUtils.catmullRomSplinePoints(controlPoints, segmentsPerSection)
-		polyline(points, color, width, dashStyle)
-	}
-
-	/**
-	 * Draw a smooth path through waypoints using Catmull-Rom splines. Handles endpoints
-	 * naturally by mirroring.
-	 *
-	 * @param waypoints List of points to pass through (minimum 2)
-	 * @param color Line color
-	 * @param segmentsPerSection Smoothness (higher = smoother)
-	 */
-	fun smoothLine(
-		waypoints: List<Vec3d>,
-		color: Color,
-		segmentsPerSection: Int = 16,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		val points = CurveUtils.smoothPath(waypoints, segmentsPerSection)
-		polyline(points, color, width, dashStyle)
-	}
-
-	/**
-	 * Draw a circle in a plane.
-	 *
-	 * @param center Center of the circle
-	 * @param radius Radius of the circle
-	 * @param normal Normal vector of the plane (determines orientation)
-	 * @param color Line color
-	 * @param segments Number of segments
-	 */
-	fun circleLine(
-		center: Vec3d,
-		radius: Double,
-		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
-		color: Color,
-		segments: Int = 32,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		// Create basis vectors perpendicular to normal
-		val up =
-			if (kotlin.math.abs(normal.y) < 0.99) Vec3d(0.0, 1.0, 0.0)
-			else Vec3d(1.0, 0.0, 0.0)
-		val u = normal.crossProduct(up).normalize()
-		val v = u.crossProduct(normal).normalize()
-
-		val points =
-			(0..segments).map { i ->
-				val angle = 2.0 * Math.PI * i / segments
-				val x = kotlin.math.cos(angle) * radius
-				val y = kotlin.math.sin(angle) * radius
-				center.add(u.multiply(x)).add(v.multiply(y))
-			}
-
-		polyline(points, color, width, dashStyle)
-	}
 
 	/**
 	 * Draw billboard text at a world position.
@@ -343,6 +198,279 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			anchorX, anchorY, anchorZ, size, rotationMatrix)
 	}
 
+	// ============================================================================
+	// Screen-Space Rendering Methods (Normalized Coordinates)
+	// ============================================================================
+	// All coordinates use normalized 0-1 range:
+	// - (0, 0) = top-left corner
+	// - (1, 1) = bottom-right corner
+	// - Sizes are also normalized (e.g., 0.1 = 10% of screen dimension)
+
+	/** Get screen width in pixels (uses MC's scaled width). */
+	private val screenWidth: Float
+		get() = mc.window?.scaledWidth?.toFloat() ?: 1920f
+
+	/** Get screen height in pixels (uses MC's scaled height). */
+	private val screenHeight: Float
+		get() = mc.window?.scaledHeight?.toFloat() ?: 1080f
+
+	/** Convert normalized X coordinate (0-1) to pixel coordinate. */
+	private fun toPixelX(normalizedX: Float): Float = normalizedX * screenWidth
+
+	/** Convert normalized Y coordinate (0-1) to pixel coordinate. */
+	private fun toPixelY(normalizedY: Float): Float = normalizedY * screenHeight
+
+	/**
+	 * Convert normalized size to pixel size.
+	 * By default uses the average of width and height for uniform scaling.
+	 * Use toPixelSizeX/Y for non-uniform scaling.
+	 */
+	private fun toPixelSize(normalizedSize: Float): Float = 
+		normalizedSize * (screenWidth + screenHeight) / 2f
+
+	/**
+	 * Draw a filled quad on screen with gradient colors.
+	 * All coordinates use normalized 0-1 range.
+	 *
+	 * @param x1, y1 First corner position (0-1) and color
+	 * @param x2, y2 Second corner position (0-1) and color
+	 * @param x3, y3 Third corner position (0-1) and color
+	 * @param x4, y4 Fourth corner position (0-1) and color
+	 */
+	fun screenQuadGradient(
+		x1: Float, y1: Float, c1: Color,
+		x2: Float, y2: Float, c2: Color,
+		x3: Float, y3: Float, c3: Color,
+		x4: Float, y4: Float, c4: Color
+	) {
+		collector.addScreenFaceVertex(toPixelX(x1), toPixelY(y1), c1)
+		collector.addScreenFaceVertex(toPixelX(x2), toPixelY(y2), c2)
+		collector.addScreenFaceVertex(toPixelX(x3), toPixelY(y3), c3)
+		collector.addScreenFaceVertex(toPixelX(x4), toPixelY(y4), c4)
+	}
+
+	/**
+	 * Draw a filled quad on screen with a single color.
+	 * All coordinates use normalized 0-1 range.
+	 */
+	fun screenQuad(
+		x1: Float, y1: Float,
+		x2: Float, y2: Float,
+		x3: Float, y3: Float,
+		x4: Float, y4: Float,
+		color: Color
+	) = screenQuadGradient(x1, y1, color, x2, y2, color, x3, y3, color, x4, y4, color)
+
+	/**
+	 * Draw a filled rectangle on screen.
+	 * All values use normalized 0-1 range.
+	 *
+	 * @param x Left edge (0-1, where 0 = left, 1 = right)
+	 * @param y Top edge (0-1, where 0 = top, 1 = bottom)
+	 * @param width Rectangle width (0-1, where 1 = full screen width)
+	 * @param height Rectangle height (0-1, where 1 = full screen height)
+	 * @param color Fill color
+	 */
+	fun screenRect(x: Float, y: Float, width: Float, height: Float, color: Color) {
+		val x2 = x + width
+		val y2 = y + height
+		screenQuad(x, y, x2, y, x2, y2, x, y2, color)
+	}
+
+	/**
+	 * Draw a filled rectangle on screen with gradient colors.
+	 * All values use normalized 0-1 range.
+	 *
+	 * @param x Left edge (0-1)
+	 * @param y Top edge (0-1)
+	 * @param width Rectangle width (0-1)
+	 * @param height Rectangle height (0-1)
+	 * @param topLeft Color at top-left corner
+	 * @param topRight Color at top-right corner
+	 * @param bottomRight Color at bottom-right corner
+	 * @param bottomLeft Color at bottom-left corner
+	 */
+	fun screenRectGradient(
+		x: Float, y: Float, width: Float, height: Float,
+		topLeft: Color, topRight: Color, bottomRight: Color, bottomLeft: Color
+	) {
+		val x2 = x + width
+		val y2 = y + height
+		screenQuadGradient(x, y, topLeft, x2, y, topRight, x2, y2, bottomRight, x, y2, bottomLeft)
+	}
+
+	/**
+	 * Draw a line on screen with gradient colors.
+	 * All coordinates use normalized 0-1 range.
+	 *
+	 * @param x1, y1 Start position (0-1)
+	 * @param x2, y2 End position (0-1)
+	 * @param startColor Color at start
+	 * @param endColor Color at end
+	 * @param width Line width (normalized, e.g., 0.005 = 0.5% of screen)
+	 * @param dashStyle Optional dash style for dashed lines
+	 */
+	fun screenLineGradient(
+		x1: Float, y1: Float, startColor: Color,
+		x2: Float, y2: Float, endColor: Color,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		// Convert to pixels
+		val px1 = toPixelX(x1)
+		val py1 = toPixelY(y1)
+		val px2 = toPixelX(x2)
+		val py2 = toPixelY(y2)
+		val pixelWidth = toPixelSize(width)
+
+		// Calculate line direction in pixel space
+		val dx = px2 - px1
+		val dy = py2 - py1
+
+		// Convert dash style lengths to pixels if present
+		val pixelDashStyle = dashStyle?.let {
+			LineDashStyle(
+				dashLength = toPixelSize(it.dashLength),
+				gapLength = toPixelSize(it.gapLength),
+				offset = it.offset,
+				animated = it.animated,
+				animationSpeed = it.animationSpeed
+			)
+		}
+
+		// 4 vertices for screen-space line quad
+		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle)
+		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle)
+		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle)
+		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle)
+	}
+
+	/**
+	 * Draw a line on screen with a single color.
+	 * All coordinates use normalized 0-1 range.
+	 */
+	fun screenLine(
+		x1: Float, y1: Float,
+		x2: Float, y2: Float,
+		color: Color,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) = screenLineGradient(x1, y1, color, x2, y2, color, width, dashStyle)
+
+	/**
+	 * Draw text on screen at a specific position.
+	 * Position uses normalized 0-1 range, size is normalized.
+	 *
+	 * @param text Text to render
+	 * @param x X position (0-1, where 0 = left, 1 = right)
+	 * @param y Y position (0-1, where 0 = top, 1 = bottom)
+	 * @param size Text size (normalized, e.g., 0.02 = 2% of screen height)
+	 * @param font Font atlas to use (null = default font)
+	 * @param style Text style with color and effects
+	 * @param centered Center text horizontally at the given position
+	 */
+	fun screenText(
+		text: String,
+		x: Float,
+		y: Float,
+		size: Float = 0.02f,
+		font: SDFFontAtlas? = null,
+		style: TextStyle = TextStyle(),
+		centered: Boolean = false
+	) {
+		val atlas = font ?: FontHandler.getDefaultFont()
+		fontAtlas = atlas
+
+		// Convert to pixel coordinates
+		val pixelX = toPixelX(x)
+		val pixelY = toPixelY(y)
+		val pixelSize = toPixelSize(size)
+
+		// Calculate text width for centering
+		val textWidth = if (centered) atlas.getStringWidth(text, pixelSize) else 0f
+		val startX = -textWidth / 2f
+
+		// Render layers in order: shadow -> glow -> outline -> main text
+		// Alpha encodes layer type for shader
+
+		// Shadow layer
+		if (style.shadow != null) {
+			val shadowColor = style.shadow.color
+			val offsetX = style.shadow.offsetX * pixelSize
+			val offsetY = style.shadow.offsetY * pixelSize
+			buildScreenTextQuads(atlas, text, startX + offsetX, offsetY,
+				shadowColor.red, shadowColor.green, shadowColor.blue, 25,
+				pixelX, pixelY, pixelSize)
+		}
+
+		// Glow layer
+		if (style.glow != null) {
+			val glowColor = style.glow.color
+			buildScreenTextQuads(atlas, text, startX, 0f,
+				glowColor.red, glowColor.green, glowColor.blue, 75,
+				pixelX, pixelY, pixelSize)
+		}
+
+		// Outline layer
+		if (style.outline != null) {
+			val outlineColor = style.outline.color
+			buildScreenTextQuads(atlas, text, startX, 0f,
+				outlineColor.red, outlineColor.green, outlineColor.blue, 150,
+				pixelX, pixelY, pixelSize)
+		}
+
+		// Main text layer
+		val mainColor = style.color
+		buildScreenTextQuads(atlas, text, startX, 0f,
+			mainColor.red, mainColor.green, mainColor.blue, 255,
+			pixelX, pixelY, pixelSize)
+	}
+
+	/**
+	 * Build screen-space text quad vertices for a layer.
+	 * Internal method - uses pixel coordinates.
+	 */
+	private fun buildScreenTextQuads(
+		atlas: SDFFontAtlas,
+		text: String,
+		startX: Float,  // Offset in SCALED pixels (for centering)
+		startY: Float,  // Offset in SCALED pixels
+		r: Int, g: Int, b: Int, a: Int,
+		anchorX: Float, anchorY: Float,
+		pixelSize: Float  // Final text size in pixels
+	) {
+		// Glyph metrics (advance, bearingX, bearingY) are ALREADY normalized by baseSize in SDFFontAtlas
+		// Glyph width/height are in PIXELS and need to be normalized
+		var penX = 0f  // Pen position in normalized units
+
+		for (char in text) {
+			val glyph = atlas.getGlyph(char.code) ?: continue
+
+			// bearingX/Y are already normalized, just multiply by pixelSize
+			val localX0 = penX + glyph.bearingX
+			val localY0 = -glyph.bearingY  // Y flipped for screen (down = positive)
+			
+			// width/height are in pixels, need normalization
+			val localX1 = localX0 + glyph.width / atlas.baseSize
+			val localY1 = localY0 + glyph.height / atlas.baseSize
+
+			// Scale to final pixels and add anchor + offsets
+			val x0 = anchorX + startX + localX0 * pixelSize
+			val y0 = anchorY + startY + localY0 * pixelSize
+			val x1 = anchorX + startX + localX1 * pixelSize
+			val y1 = anchorY + startY + localY1 * pixelSize
+
+			// Screen-space text uses simple 2D quads
+			collector.addScreenTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a)
+			collector.addScreenTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a)
+			collector.addScreenTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a)
+			collector.addScreenTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a)
+
+			// advance is already normalized, just add it
+			penX += glyph.advance
+		}
+	}
+
 	/**
 	 * Build text quad vertices for a layer with specified color and alpha.
 	 * 
@@ -405,162 +533,9 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	}
 
 	private fun BoxBuilder.boxFaces(box: Box) {
-		// We need to call the internal methods, so we'll use filled() with interpolated colors
-		// For per-vertex colors on faces, we need direct access to the collector
-
-		if (fillSides.hasDirection(DirectionMask.EAST)) {
-			// East face (+X): uses NE and SE corners
-			filledQuadGradient(
-				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
-				box.maxX, box.maxY, box.minZ, fillTopNorthEast,
-				box.maxX, box.maxY, box.maxZ, fillTopSouthEast,
-				box.maxX, box.minY, box.maxZ, fillBottomSouthEast
-			)
-		}
-		if (fillSides.hasDirection(DirectionMask.WEST)) {
-			// West face (-X): uses NW and SW corners
-			filledQuadGradient(
-				box.minX, box.minY, box.minZ, fillBottomNorthWest,
-				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
-				box.minX, box.maxY, box.maxZ, fillTopSouthWest,
-				box.minX, box.maxY, box.minZ, fillTopNorthWest
-			)
-		}
-		if (fillSides.hasDirection(DirectionMask.UP)) {
-			// Top face (+Y): uses all top corners
-			filledQuadGradient(
-				box.minX, box.maxY, box.minZ, fillTopNorthWest,
-				box.minX, box.maxY, box.maxZ, fillTopSouthWest,
-				box.maxX, box.maxY, box.maxZ, fillTopSouthEast,
-				box.maxX, box.maxY, box.minZ, fillTopNorthEast
-			)
-		}
-		if (fillSides.hasDirection(DirectionMask.DOWN)) {
-			// Bottom face (-Y): uses all bottom corners
-			filledQuadGradient(
-				box.minX, box.minY, box.minZ, fillBottomNorthWest,
-				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
-				box.maxX, box.minY, box.maxZ, fillBottomSouthEast,
-				box.minX, box.minY, box.maxZ, fillBottomSouthWest
-			)
-		}
-		if (fillSides.hasDirection(DirectionMask.SOUTH)) {
-			// South face (+Z): uses SW and SE corners
-			filledQuadGradient(
-				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
-				box.maxX, box.minY, box.maxZ, fillBottomSouthEast,
-				box.maxX, box.maxY, box.maxZ, fillTopSouthEast,
-				box.minX, box.maxY, box.maxZ, fillTopSouthWest
-			)
-		}
-		if (fillSides.hasDirection(DirectionMask.NORTH)) {
-			// North face (-Z): uses NW and NE corners
-			filledQuadGradient(
-				box.minX, box.minY, box.minZ, fillBottomNorthWest,
-				box.minX, box.maxY, box.minZ, fillTopNorthWest,
-				box.maxX, box.maxY, box.minZ, fillTopNorthEast,
-				box.maxX, box.minY, box.minZ, fillBottomNorthEast
-			)
-		}
 	}
 
 	private fun BoxBuilder.boxOutline(box: Box) {
-		val hasEast = outlineSides.hasDirection(DirectionMask.EAST)
-		val hasWest = outlineSides.hasDirection(DirectionMask.WEST)
-		val hasUp = outlineSides.hasDirection(DirectionMask.UP)
-		val hasDown = outlineSides.hasDirection(DirectionMask.DOWN)
-		val hasSouth = outlineSides.hasDirection(DirectionMask.SOUTH)
-		val hasNorth = outlineSides.hasDirection(DirectionMask.NORTH)
-
-		// Top edges (all use top vertex colors)
-		if (outlineMode.check(hasUp, hasNorth)) {
-			lineGradient(
-				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
-				box.maxX, box.maxY, box.minZ, outlineTopNorthEast,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasUp, hasSouth)) {
-			lineGradient(
-				box.minX, box.maxY, box.maxZ, outlineTopSouthWest,
-				box.maxX, box.maxY, box.maxZ, outlineTopSouthEast,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasUp, hasWest)) {
-			lineGradient(
-				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
-				box.minX, box.maxY, box.maxZ, outlineTopSouthWest,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasUp, hasEast)) {
-			lineGradient(
-				box.maxX, box.maxY, box.maxZ, outlineTopSouthEast,
-				box.maxX, box.maxY, box.minZ, outlineTopNorthEast,
-				lineWidth, dashStyle
-			)
-		}
-
-		// Bottom edges (all use bottom vertex colors)
-		if (outlineMode.check(hasDown, hasNorth)) {
-			lineGradient(
-				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
-				box.maxX, box.minY, box.minZ, outlineBottomNorthEast,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasDown, hasSouth)) {
-			lineGradient(
-				box.minX, box.minY, box.maxZ, outlineBottomSouthWest,
-				box.maxX, box.minY, box.maxZ, outlineBottomSouthEast,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasDown, hasWest)) {
-			lineGradient(
-				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
-				box.minX, box.minY, box.maxZ, outlineBottomSouthWest,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasDown, hasEast)) {
-			lineGradient(
-				box.maxX, box.minY, box.minZ, outlineBottomNorthEast,
-				box.maxX, box.minY, box.maxZ, outlineBottomSouthEast,
-				lineWidth, dashStyle
-			)
-		}
-
-		// Vertical edges (gradient from top to bottom)
-		if (outlineMode.check(hasWest, hasNorth)) {
-			lineGradient(
-				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
-				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasNorth, hasEast)) {
-			lineGradient(
-				box.maxX, box.maxY, box.minZ, outlineTopNorthEast,
-				box.maxX, box.minY, box.minZ, outlineBottomNorthEast,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasEast, hasSouth)) {
-			lineGradient(
-				box.maxX, box.maxY, box.maxZ, outlineTopSouthEast,
-				box.maxX, box.minY, box.maxZ, outlineBottomSouthEast,
-				lineWidth, dashStyle
-			)
-		}
-		if (outlineMode.check(hasSouth, hasWest)) {
-			lineGradient(
-				box.minX, box.maxY, box.maxZ, outlineTopSouthWest,
-				box.minX, box.minY, box.maxZ, outlineBottomSouthWest,
-				lineWidth, dashStyle
-			)
-		}
 	}
 
 	/** Draw a line with world coordinates - handles relative conversion internally */

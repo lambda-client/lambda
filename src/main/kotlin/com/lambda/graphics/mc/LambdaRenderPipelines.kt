@@ -201,4 +201,53 @@ object LambdaRenderPipelines : Loadable {
 				)
 				.build()
 		)
+
+	// ============================================================================
+	// Screen-Space Pipelines
+	// ============================================================================
+
+	/**
+	 * Pipeline for screen-space lines.
+	 * Uses a custom vertex format with 2D direction for perpendicular offset calculation.
+	 */
+	val SCREEN_LINES: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/screen_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/screen_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/screen_lines"))
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.SCREEN_LINE_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for screen-space SDF text rendering.
+	 * Uses custom SDF shader with SDFParams for proper anti-aliased text with effects.
+	 */
+	val SCREEN_TEXT: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/screen_text"))
+				.withVertexShader(Identifier.of("lambda", "core/screen_sdf_text"))
+				.withFragmentShader(Identifier.of("lambda", "core/screen_sdf_text"))
+				.withSampler("Sampler0")
+				.withUniform("SDFParams", UniformType.UNIFORM_BUFFER)
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE_COLOR,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
 }
+

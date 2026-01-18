@@ -19,17 +19,14 @@ package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
-import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
-import org.lwjgl.system.MemoryUtil
 
 /**
  * Modern replacement for the legacy Treed system. Handles geometry that is cleared and rebuilt
@@ -103,22 +100,16 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
 
 		// Render Faces
-		RegionRenderer.Companion.createRenderPass("$name Faces", depthTest)?.use { pass ->
-			val pipeline =
-				if (depthTest) LambdaRenderPipelines.ESP_QUADS
-				else LambdaRenderPipelines.ESP_QUADS_THROUGH
-			pass.setPipeline(pipeline)
+		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
+			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
 			renderer.renderFaces(pass)
 		}
 
 		// Render Edges
-		RegionRenderer.Companion.createRenderPass("$name Edges", depthTest)?.use { pass ->
-			val pipeline =
-				if (depthTest) LambdaRenderPipelines.ESP_LINES
-				else LambdaRenderPipelines.ESP_LINES_THROUGH
-			pass.setPipeline(pipeline)
+		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
+			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
 			renderer.renderEdges(pass)
@@ -132,13 +123,10 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 				val textureView = atlas.textureView
 				val sampler = atlas.sampler
 				if (textureView != null && sampler != null) {
-					val sdfParams = createSDFParamsBuffer()
+					val sdfParams = RendererUtils.createSDFParamsBuffer()
 					if (sdfParams != null) {
-						RegionRenderer.Companion.createRenderPass("$name Text", depthTest)?.use { pass ->
-							val pipeline =
-								if (depthTest) LambdaRenderPipelines.SDF_TEXT
-								else LambdaRenderPipelines.SDF_TEXT_THROUGH
-							pass.setPipeline(pipeline)
+						RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
+							pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
 							RenderSystem.bindDefaultUniforms(pass)
 							pass.setUniform("DynamicTransforms", dynamicTransform)
 							pass.setUniform("SDFParams", sdfParams)
@@ -152,20 +140,55 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 		}
 	}
 
-	private fun createSDFParamsBuffer(): GpuBuffer? {
-		val device = RenderSystem.getDevice()
-		val buffer = MemoryUtil.memAlloc(16)
-		return try {
-			buffer.putFloat(0.5f)
-			buffer.putFloat(0.1f)
-			buffer.putFloat(0.2f)
-			buffer.putFloat(0.15f)
-			buffer.flip()
-			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
-		} catch (e: Exception) {
-			null
-		} finally {
-			MemoryUtil.memFree(buffer)
+	/**
+	 * Render screen-space geometry. Uses orthographic projection for 2D rendering.
+	 * This should be called after world-space render() for proper layering.
+	 */
+	fun renderScreen() {
+		if (!renderer.hasScreenData()) return
+
+		RendererUtils.withScreenContext {
+			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
+
+			// Render Screen Faces
+			RegionRenderer.createRenderPass("$name Screen Faces", false)?.use { pass ->
+				pass.setPipeline(RendererUtils.screenFacesPipeline)
+				RenderSystem.bindDefaultUniforms(pass)
+				pass.setUniform("DynamicTransforms", dynamicTransform)
+				renderer.renderScreenFaces(pass)
+			}
+
+			// Render Screen Edges
+			RegionRenderer.createRenderPass("$name Screen Edges", false)?.use { pass ->
+				pass.setPipeline(RendererUtils.screenEdgesPipeline)
+				RenderSystem.bindDefaultUniforms(pass)
+				pass.setUniform("DynamicTransforms", dynamicTransform)
+				renderer.renderScreenEdges(pass)
+			}
+
+			// Render Screen Text
+			if (renderer.hasScreenTextData()) {
+				val atlas = currentFontAtlas
+				if (atlas != null) {
+					if (!atlas.isUploaded) atlas.upload()
+					val textureView = atlas.textureView
+					val sampler = atlas.sampler
+					if (textureView != null && sampler != null) {
+						val sdfParams = RendererUtils.createSDFParamsBuffer()
+						if (sdfParams != null) {
+							RegionRenderer.Companion.createRenderPass("$name Screen Text", false)?.use { pass ->
+								pass.setPipeline(RendererUtils.screenTextPipeline)
+								RenderSystem.bindDefaultUniforms(pass)
+								pass.setUniform("DynamicTransforms", dynamicTransform)
+								pass.setUniform("SDFParams", sdfParams)
+								pass.bindTexture("Sampler0", textureView, sampler)
+								renderer.renderScreenText(pass)
+							}
+							sdfParams.close()
+						}
+					}
+				}
+			}
 		}
 	}
 }

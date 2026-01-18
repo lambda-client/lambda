@@ -112,5 +112,63 @@ data class LineDashStyle(
             dashLength = size,
             gapLength = size
         )
+
+        // ============================================================================
+        // Screen-Space Convenience Methods (Normalized 0-1 Coordinates)
+        // ============================================================================
+        // These use screen-normalized units where 1.0 = full screen dimension.
+        // Typical values: 0.01 = 1% of screen, 0.02 = 2% of screen, etc.
+
+        /**
+         * Create a dotted pattern for screen-space rendering.
+         * Default: 0.01 (1% of screen) for each dot and gap
+         */
+        fun screenDotted(size: Float = 0.01f) = LineDashStyle(
+            dashLength = size,
+            gapLength = size
+        )
+
+        /**
+         * Create an animated "marching ants" selection pattern for screen-space.
+         * Great for selection boxes and interactive UI elements.
+         * Default: 0.02 dash, 0.01 gap (2% dash, 1% gap)
+         */
+        fun screenMarchingAnts(
+            dashLength: Float = 0.02f,
+            gapLength: Float = 0.01f,
+            speed: Float = 1f
+        ) = LineDashStyle(
+            dashLength = dashLength,
+            gapLength = gapLength,
+            animated = true,
+            animationSpeed = speed
+        )
+
+        /**
+         * Create a dashed pattern for screen-space rendering.
+         * Default: 0.03 dash, 0.015 gap (3% dash, 1.5% gap)
+         */
+        fun screenDashed(dashLength: Float = 0.03f, gapLength: Float = 0.015f) = LineDashStyle(
+            dashLength = dashLength,
+            gapLength = gapLength
+        )
+
+        /**
+         * Create a short-dash pattern for screen-space rendering.
+         * Default: 0.015 (1.5% of screen) for each dash and gap
+         */
+        fun screenShortDash(size: Float = 0.015f) = LineDashStyle(
+            dashLength = size,
+            gapLength = size
+        )
+
+        /**
+         * Create a long-dash pattern for screen-space rendering.
+         * Default: 0.04 dash, 0.013 gap (4% dash, ~1.3% gap - 3:1 ratio)
+         */
+        fun screenLongDash(dashLength: Float = 0.04f) = LineDashStyle(
+            dashLength = dashLength,
+            gapLength = dashLength / 3f
+        )
     }
 }
