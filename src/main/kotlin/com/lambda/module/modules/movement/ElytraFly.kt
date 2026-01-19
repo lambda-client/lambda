@@ -32,6 +32,7 @@ import com.lambda.module.modules.movement.BetterFirework.canTakeoff
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.isElytraFlying
+import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.player.MovementUtils.addSpeed
 import net.minecraft.entity.Entity
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
@@ -52,7 +53,7 @@ object ElytraFly : Module(
     private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 20, 0..100, 1, "How long to pause if the server flags you for a movement check") { mode == FlyMode.Bounce }
 //    private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
-
+    private val lockRotation by setting("Lock Rotation",false,"Locks your yaw in increments of 45 degrees.") { mode == FlyMode.Bounce }
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0 ..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }
 
@@ -72,7 +73,7 @@ object ElytraFly : Module(
         listen<TickEvent.Pre> {
             if (mode != FlyMode.Bounce) return@listen
             if (autoPitch) rotationRequest { pitch(pitch.toFloat()) }.submit()
-
+            if (lockRotation) rotationRequest { yaw(player.yaw.roundToStep(45).toDouble()) }.submit()
             if (!player.isGliding) {
                 if (takeoff && player.canTakeoff) {
                     if (player.canOpenElytra) {
