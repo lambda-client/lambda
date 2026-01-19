@@ -44,15 +44,15 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		private set
 
 	/**
-	 * Map of TextStyle to lists of text vertices for that style.
+	 * Map of SDFStyle to lists of text vertices for that style.
 	 * Each text piece is grouped by its style to allow rendering with unique SDF params.
 	 */
-	val textStyleGroups = mutableMapOf<TextStyle, MutableList<RegionVertexCollector.TextVertex>>()
+	val textStyleGroups = mutableMapOf<SDFStyle, MutableList<RegionVertexCollector.TextVertex>>()
 	
 	/**
-	 * Map of TextStyle to lists of screen text vertices for that style.
+	 * Map of SDFStyle to lists of screen text vertices for that style.
 	 */
-	val screenTextStyleGroups = mutableMapOf<TextStyle, MutableList<RegionVertexCollector.ScreenTextVertex>>()
+	val screenTextStyleGroups = mutableMapOf<SDFStyle, MutableList<RegionVertexCollector.ScreenTextVertex>>()
 
 	fun box(
 		box: Box,
@@ -91,6 +91,19 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		lineWidth: Float,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = boxes(pos, safeContext.blockState(pos), lineWidth, builder)
+
+	fun filledQuadGradient(
+		corner1: Vec3d,
+		corner2: Vec3d,
+		corner3: Vec3d,
+		corner4: Vec3d,
+		color: Color
+	) {
+		faceVertex(corner1.x, corner1.y, corner1.z, color)
+		faceVertex(corner2.x, corner2.y, corner2.z, color)
+		faceVertex(corner3.x, corner3.y, corner3.z, color)
+		faceVertex(corner4.x, corner4.y, corner4.z, color)
+	}
 
 	fun filledQuadGradient(
 		x1: Double, y1: Double, z1: Double, c1: Color,
@@ -132,6 +145,138 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		dashStyle: LineDashStyle? = null
 	) = line(start.x, start.y, start.z, end.x, end.y, end.z, color, color, width, dashStyle)
 
+	/** Draw a polyline through a list of points. */
+	fun polyline(
+		points: List<Vec3d>,
+		color: Color,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		if (points.size < 2) return
+		for (i in 0 until points.size - 1) {
+			line(points[i], points[i + 1], color, width, dashStyle)
+		}
+	}
+
+	/**
+	 * Draw a quadratic Bezier curve.
+	 *
+	 * @param p0 Start point
+	 * @param p1 Control point
+	 * @param p2 End point
+	 * @param color Line color
+	 * @param segments Number of line segments (higher = smoother)
+	 */
+	fun quadraticBezierLine(
+		p0: Vec3d,
+		p1: Vec3d,
+		p2: Vec3d,
+		color: Color,
+		segments: Int = 16,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		val points = CurveUtils.quadraticBezierPoints(p0, p1, p2, segments)
+		polyline(points, color, width, dashStyle)
+	}
+
+	/**
+	 * Draw a cubic Bezier curve.
+	 *
+	 * @param p0 Start point
+	 * @param p1 First control point
+	 * @param p2 Second control point
+	 * @param p3 End point
+	 * @param color Line color
+	 * @param segments Number of line segments (higher = smoother)
+	 */
+	fun cubicBezierLine(
+		p0: Vec3d,
+		p1: Vec3d,
+		p2: Vec3d,
+		p3: Vec3d,
+		color: Color,
+		segments: Int = 32,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		val points = CurveUtils.cubicBezierPoints(p0, p1, p2, p3, segments)
+		polyline(points, color, width, dashStyle)
+	}
+
+	/**
+	 * Draw a Catmull-Rom spline that passes through all control points.
+	 *
+	 * @param controlPoints List of points the spline should pass through (minimum 4)
+	 * @param color Line color
+	 * @param segmentsPerSection Segments between each pair of control points
+	 */
+	fun catmullRomSplineLine(
+		controlPoints: List<Vec3d>,
+		color: Color,
+		segmentsPerSection: Int = 16,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		val points = CurveUtils.catmullRomSplinePoints(controlPoints, segmentsPerSection)
+		polyline(points, color, width, dashStyle)
+	}
+
+	/**
+	 * Draw a smooth path through waypoints using Catmull-Rom splines. Handles endpoints
+	 * naturally by mirroring.
+	 *
+	 * @param waypoints List of points to pass through (minimum 2)
+	 * @param color Line color
+	 * @param segmentsPerSection Smoothness (higher = smoother)
+	 */
+	fun smoothLine(
+		waypoints: List<Vec3d>,
+		color: Color,
+		segmentsPerSection: Int = 16,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		val points = CurveUtils.smoothPath(waypoints, segmentsPerSection)
+		polyline(points, color, width, dashStyle)
+	}
+
+	/**
+	 * Draw a circle in a plane.
+	 *
+	 * @param center Center of the circle
+	 * @param radius Radius of the circle
+	 * @param normal Normal vector of the plane (determines orientation)
+	 * @param color Line color
+	 * @param segments Number of segments
+	 */
+	fun circleLine(
+		center: Vec3d,
+		radius: Double,
+		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
+		color: Color,
+		segments: Int = 32,
+		width: Float,
+		dashStyle: LineDashStyle? = null
+	) {
+		// Create basis vectors perpendicular to normal
+		val up =
+			if (kotlin.math.abs(normal.y) < 0.99) Vec3d(0.0, 1.0, 0.0)
+			else Vec3d(1.0, 0.0, 0.0)
+		val u = normal.crossProduct(up).normalize()
+		val v = u.crossProduct(normal).normalize()
+
+		val points =
+			(0..segments).map { i ->
+				val angle = 2.0 * Math.PI * i / segments
+				val x = kotlin.math.cos(angle) * radius
+				val y = kotlin.math.sin(angle) * radius
+				center.add(u.multiply(x)).add(v.multiply(y))
+			}
+
+		polyline(points, color, width, dashStyle)
+	}
+
 	/**
 	 * Draw billboard text at a world position.
 	 * The text will face the camera by default, or use a custom rotation.
@@ -149,7 +294,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		pos: Vec3d,
 		size: Float = 0.5f,
 		font: SDFFontAtlas? = null,
-		style: TextStyle = TextStyle(),
+		style: SDFStyle = SDFStyle(),
 		centered: Boolean = true,
 		rotation: Vec3d? = null
 	) {
@@ -386,7 +531,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		y: Float,
 		size: Float = 0.02f,
 		font: SDFFontAtlas? = null,
-		style: TextStyle = TextStyle(),
+		style: SDFStyle = SDFStyle(),
 		centered: Boolean = false
 	) {
 		val atlas = font ?: FontHandler.getDefaultFont()
@@ -449,7 +594,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		r: Int, g: Int, b: Int, a: Int,
 		anchorX: Float, anchorY: Float,
 		pixelSize: Float,  // Final text size in pixels
-		style: TextStyle
+		style: SDFStyle
 	) {
 		// Get or create the vertex list for this style
 		val vertices = screenTextStyleGroups.getOrPut(style) { mutableListOf() }
@@ -512,7 +657,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		anchorX: Float, anchorY: Float, anchorZ: Float,
 		scale: Float,
 		rotationMatrix: Matrix4f?,
-		style: TextStyle
+		style: SDFStyle
 	) {
 		// Get or create the vertex list for this style
 		val vertices = textStyleGroups.getOrPut(style) { mutableListOf() }
@@ -601,24 +746,24 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		collector.addFaceVertex(rx, ry, rz, color)
 	}
 
-	/** Outline effect configuration */
-	data class TextOutline(
+	/** SDF outline effect configuration */
+	data class SDFOutline(
 		val color: Color = Color.BLACK,
 		val width: Float = 0.1f // 0.0 - 0.3 in SDF units (distance from edge)
 	)
 
-	/** Glow effect configuration */
-	data class TextGlow(
+	/** SDF glow effect configuration */
+	data class SDFGlow(
 		val color: Color = Color(0, 200, 255, 180),
 		val radius: Float = 0.2f // Glow spread in SDF units
 	)
 
-	/** Shadow effect configuration */
-	data class TextShadow(
+	/** SDF shadow effect configuration */
+	data class SDFShadow(
 		val color: Color = Color(0, 0, 0, 180),
 		val offset: Float = 0.05f, // Distance in text units
 		val angle: Float = 135f, // Angle in degrees: 0=right, 90=down, 180=left, 270=up (default: bottom-right)
-		val softness: Float = 0.15f // Shadow blur in SDF units (for documentation, not currently used)
+		val softness: Float = 0.15f // Shadow blur in SDF units
 	) {
 		/** X offset computed from angle and distance */
 		val offsetX: Float get() = offset * kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat()
@@ -626,11 +771,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val offsetY: Float get() = offset * kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat()
 	}
 
-	/** Text style configuration */
-	data class TextStyle(
+	/** SDF style configuration for text and other SDF-rendered elements */
+	data class SDFStyle(
 		val color: Color = Color.WHITE,
-		val outline: TextOutline? = null,
-		val glow: TextGlow? = null,
-		val shadow: TextShadow? = TextShadow() // Default shadow enabled
+		val outline: SDFOutline? = null,
+		val glow: SDFGlow? = null,
+		val shadow: SDFShadow? = SDFShadow() // Default shadow enabled
 	)
 }

@@ -17,30 +17,50 @@ out vec4 fragColor;
 void main() {
     // ===== CAPSULE SDF =====
     vec2 lineDir = normalize(v_LineEnd - v_LineStart);
-    float radius = v_LineWidth / 2.0;
+    vec2 perpDir = vec2(-lineDir.y, lineDir.x);  // Perpendicular to line
     
     // Project fragment position onto line to find closest point
     vec2 toFragment = v_ExpandedPos - v_LineStart;
     float projLength = dot(toFragment, lineDir);
     
+    // Perpendicular distance (signed) - this is stable for AA calculation
+    float perpDist = abs(dot(toFragment, perpDir));
+    
     // Clamp to segment bounds [0, segmentLength] for capsule behavior
     float clampedProj = clamp(projLength, 0.0, v_SegmentLength);
     
-    // Closest point on line segment
-    vec2 closestPoint = v_LineStart + lineDir * clampedProj;
+    // For end caps, we need the actual distance to the endpoint
+    float dist2D;
+    if (projLength < 0.0) {
+        // Before start - distance to start point
+        dist2D = length(v_ExpandedPos - v_LineStart);
+    } else if (projLength > v_SegmentLength) {
+        // After end - distance to end point
+        dist2D = length(v_ExpandedPos - v_LineEnd);
+    } else {
+        // Along the line - use perpendicular distance
+        dist2D = perpDist;
+    }
     
-    // 2D distance from fragment to closest point on line
-    float dist2D = length(v_ExpandedPos - closestPoint);
+    // Calculate AA width from screen-space derivatives of fragment position
+    // This is always stable regardless of line orientation
+    float aaWidth = length(vec2(fwidth(v_ExpandedPos.x), fwidth(v_ExpandedPos.y)));
+    
+    // Use requested line width - no minimum enforcement for thin lines
+    float radius = v_LineWidth * 0.5;
     
     // SDF: distance to capsule surface (positive = outside, negative = inside)
     float sdf = dist2D - radius;
     
-    // Anti-aliasing using screen-space derivatives (same as world-space)
-    float aaWidth = fwidth(sdf);
-    float alpha = 1.0 - smoothstep(-aaWidth, aaWidth, sdf);
+    // Adaptive AA: thin lines get softer edges, thick lines get crisp edges
+    // Below 2px width, scale up AA for smooth thin lines; above 2px, use tight 0.5px AA
+    float thinness = clamp(1.0 - v_LineWidth / (2.0 * aaWidth), 0.0, 1.0);
+    float adaptiveAA = mix(aaWidth * 0.5, aaWidth * 1.5, thinness);
+    
+    float alpha = 1.0 - smoothstep(-adaptiveAA, adaptiveAA, sdf);
     
     // Skip fragments outside the line
-    if (alpha <= 0.0) {
+    if (alpha < 0.004) {
         discard;
     }
     

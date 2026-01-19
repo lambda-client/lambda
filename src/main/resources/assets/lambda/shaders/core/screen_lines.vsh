@@ -41,9 +41,9 @@ void main() {
     // Perpendicular direction for line thickness
     vec2 perpDir = vec2(-lineDir.y, lineDir.x);
     
-    // Expand for AA (capsule shape)
+    // Expand for AA (capsule shape) - ensure minimum expansion for thin lines
     float halfWidth = LineWidth / 2.0;
-    float aaPadding = LineWidth * 0.25 + 1.0; // Scale-aware padding
+    float aaPadding = max(LineWidth * 0.5, 2.0);  // At least 2 pixels for AA gradient
     float halfWidthPadded = halfWidth + aaPadding;
     
     // Expand vertex

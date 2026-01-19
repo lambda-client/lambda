@@ -45,13 +45,16 @@ object RenderMain {
         get() = Matrix4f(projectionMatrix).mul(modelViewMatrix)
 
     /**
-     * Project a world position to screen coordinates. Returns null if the position is behind the
-     * camera or off-screen.
+     * Project a world position to normalized screen coordinates (0-1 range).
+     * This is the format used by RenderBuilder's screen methods (screenText, screenRect, etc).
+     * 
+     * Always returns coordinates, even if off-screen or behind camera.
+     * For behind-camera positions, the direction is preserved (useful for tracers).
      *
      * @param worldPos The world position to project
-     * @return Screen coordinates (x, y) in pixels, or null if not visible
+     * @return Normalized screen coordinates (x, y)
      */
-    fun worldToScreen(worldPos: Vec3d): Vector2f? {
+    fun worldToScreenNormalized(worldPos: Vec3d): Vector2f? {
         val camera = mc.gameRenderer?.camera ?: return null
         val cameraPos = camera.pos
 
@@ -64,27 +67,35 @@ object RenderMain {
         val vec = Vector4f(relX, relY, relZ, 1f)
         projModel.transform(vec)
 
-        // Behind camera check
-        if (vec.w <= 0) return null
+        val w = if (kotlin.math.abs(vec.w) < 0.001f) 0.001f else kotlin.math.abs(vec.w)
 
-        // Perspective divide to get NDC
-        val ndcX = vec.x / vec.w
-        val ndcY = vec.y / vec.w
-        val ndcZ = vec.z / vec.w
+        // Perspective divide to get NDC (-1 to 1)
+        val ndcX = vec.x / w
+        val ndcY = vec.y / w
 
-        // Off-screen check (NDC is -1 to 1)
-        if (ndcZ < -1 || ndcZ > 1) return null
+        // NDC to normalized 0-1 coordinates (Y is flipped: 0 = top, 1 = bottom)
+        val normalizedX = (ndcX + 1f) * 0.5f
+        val normalizedY = (1f - ndcY) * 0.5f
 
-        // NDC to screen coordinates (Y is flipped in screen space)
-        val window = mc.window
-        val screenX = (ndcX + 1f) * 0.5f * window.framebufferWidth
-        val screenY = (1f - ndcY) * 0.5f * window.framebufferHeight
-
-        return Vector2f(screenX, screenY)
+        return Vector2f(normalizedX, normalizedY)
     }
 
-    /** Check if a world position is visible on screen. */
-    fun isOnScreen(worldPos: Vec3d): Boolean = worldToScreen(worldPos) != null
+    /** Check if a world position is visible on screen (within 0-1 bounds and in front of camera). */
+    fun isOnScreen(worldPos: Vec3d): Boolean {
+        val camera = mc.gameRenderer?.camera ?: return false
+        val cameraPos = camera.pos
+        
+        // Check if in front of camera first
+        val relX = (worldPos.x - cameraPos.x).toFloat()
+        val relY = (worldPos.y - cameraPos.y).toFloat()
+        val relZ = (worldPos.z - cameraPos.z).toFloat()
+        val vec = Vector4f(relX, relY, relZ, 1f)
+        projModel.transform(vec)
+        if (vec.w <= 0) return false
+        
+        val pos = worldToScreenNormalized(worldPos) ?: return false
+        return pos.x in 0f..1f && pos.y in 0f..1f
+    }
 
     @JvmStatic
     fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {

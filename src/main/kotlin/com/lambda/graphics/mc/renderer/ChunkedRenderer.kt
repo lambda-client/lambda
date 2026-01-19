@@ -325,9 +325,9 @@ class ChunkedRenderer(
 		// This chunk's own renderer
 		val renderer = RegionRenderer()
 		
-		// Styled text buffers: maps TextStyle to (buffer, indexCount)
-		val styledTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
-		val styledScreenTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
+		// Styled text buffers: maps SDFStyle to (buffer, indexCount)
+		val styledTextBuffers = mutableMapOf<RenderBuilder.SDFStyle, Pair<GpuBuffer, Int>>()
+		val styledScreenTextBuffers = mutableMapOf<RenderBuilder.SDFStyle, Pair<GpuBuffer, Int>>()
 
 		private var isDirty = false
 

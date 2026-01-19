@@ -63,9 +63,9 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 	// Font atlas used for current text rendering
 	private var currentFontAtlas: SDFFontAtlas? = null
 	
-	// Styled text buffers: maps TextStyle to (buffer, indexCount)
-	private val styledTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
-	private val styledScreenTextBuffers = mutableMapOf<RenderBuilder.TextStyle, Pair<GpuBuffer, Int>>()
+	// Styled text buffers: maps SDFStyle to (buffer, indexCount)
+	private val styledTextBuffers = mutableMapOf<RenderBuilder.SDFStyle, Pair<GpuBuffer, Int>>()
+	private val styledScreenTextBuffers = mutableMapOf<RenderBuilder.SDFStyle, Pair<GpuBuffer, Int>>()
 
 	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload() {

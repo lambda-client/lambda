@@ -22,10 +22,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.LineDashStyle.Companion.marchingAnts
 import com.lambda.graphics.mc.LineDashStyle.Companion.screenMarchingAnts
-import com.lambda.graphics.mc.RenderBuilder.TextGlow
-import com.lambda.graphics.mc.RenderBuilder.TextOutline
-import com.lambda.graphics.mc.RenderBuilder.TextShadow
-import com.lambda.graphics.mc.RenderBuilder.TextStyle
+import com.lambda.graphics.mc.RenderBuilder.SDFGlow
+import com.lambda.graphics.mc.RenderBuilder.SDFOutline
+import com.lambda.graphics.mc.RenderBuilder.SDFShadow
+import com.lambda.graphics.mc.RenderBuilder.SDFStyle
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedEsp
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.graphics.mc.renderer.TickedRenderer
@@ -71,10 +71,10 @@ object ChunkedRendererTest : Module(
 		worldText(
 			"Test sdf font!",
 			startPos.offset(Direction.EAST, 5.0),
-			style = TextStyle(
-				outline = TextOutline(),
-				glow = TextGlow(),
-				shadow = TextShadow()
+			style = SDFStyle(
+				outline = SDFOutline(),
+				glow = SDFGlow(),
+				shadow = SDFShadow()
 			)
 		)
 
@@ -100,10 +100,10 @@ object ChunkedRendererTest : Module(
 			0.02f,
 			0.30f,
 			size = 0.025f,  // 2.5% of screen
-			style = TextStyle(
+			style = SDFStyle(
 				color = Color.WHITE,
-				outline = TextOutline(),
-				shadow = TextShadow()
+				outline = SDFOutline(),
+				shadow = SDFShadow()
 			)
 		)
 
@@ -113,10 +113,10 @@ object ChunkedRendererTest : Module(
 			0.5f,  // 50% from left = center
 			0.05f, // 5% from top
 			size = 0.03f,  // 3% of screen
-			style = TextStyle(
+			style = SDFStyle(
 				color = Color.YELLOW,
-				glow = TextGlow(Color(255, 200, 0, 150)),
-				shadow = TextShadow()
+				glow = SDFGlow(Color(255, 200, 0, 150)),
+				shadow = SDFShadow()
 			),
 			centered = true
 		)
@@ -171,10 +171,10 @@ object TickedRendererTest : Module(
 				worldText(
 					"Test sdf font!",
 					startPos.offset(Direction.EAST, 5.0),
-					style = TextStyle(
-						outline = TextOutline(),
-						glow = TextGlow(),
-						shadow = TextShadow()
+					style = SDFStyle(
+						outline = SDFOutline(),
+						glow = SDFGlow(),
+						shadow = SDFShadow()
 					)
 				)
 
@@ -200,10 +200,10 @@ object TickedRendererTest : Module(
 					0.02f,
 					0.30f,
 					size = 0.025f,  // 2.5% of screen
-					style = TextStyle(
+					style = SDFStyle(
 						color = Color.WHITE,
-						outline = TextOutline(),
-						shadow = TextShadow()
+						outline = SDFOutline(),
+						shadow = SDFShadow()
 					)
 				)
 
@@ -213,10 +213,10 @@ object TickedRendererTest : Module(
 					0.5f,  // 50% from left = center
 					0.05f, // 5% from top
 					size = 0.03f,  // 3% of screen
-					style = TextStyle(
+					style = SDFStyle(
 						color = Color.YELLOW,
-						glow = TextGlow(Color(255, 200, 0, 150)),
-						shadow = TextShadow()
+						glow = SDFGlow(Color(255, 200, 0, 150)),
+						shadow = SDFShadow()
 					),
 					centered = true
 				)
@@ -259,10 +259,10 @@ object ImmediateRendererTest : Module(
 				worldText(
 					"Test sdf font!",
 					startPos.offset(Direction.EAST, 5.0),
-					style = TextStyle(
-						outline = TextOutline(),
-						glow = TextGlow(),
-						shadow = TextShadow()
+					style = SDFStyle(
+						outline = SDFOutline(),
+						glow = SDFGlow(),
+						shadow = SDFShadow()
 					)
 				)
 
@@ -288,10 +288,10 @@ object ImmediateRendererTest : Module(
 					0.02f,
 					0.30f,
 					size = 0.025f,  // 2.5% of screen
-					style = TextStyle(
+					style = SDFStyle(
 						color = Color.WHITE,
-						outline = TextOutline(),
-						shadow = TextShadow()
+						outline = SDFOutline(),
+						shadow = SDFShadow()
 					)
 				)
 
@@ -301,10 +301,10 @@ object ImmediateRendererTest : Module(
 					0.5f,  // 50% from left = center
 					0.05f, // 5% from top
 					size = 0.03f,  // 3% of screen
-					style = TextStyle(
+					style = SDFStyle(
 						color = Color.YELLOW,
-						glow = TextGlow(Color(255, 200, 0, 150)),
-						shadow = TextShadow()
+						glow = SDFGlow(Color(255, 200, 0, 150)),
+						shadow = SDFShadow()
 					),
 					centered = true
 				)

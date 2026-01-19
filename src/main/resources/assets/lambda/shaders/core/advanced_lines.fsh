@@ -35,24 +35,41 @@ void main() {
     vec3 toFragment = v_ExpandedPos - lineStart;
     float projLength = dot(toFragment, lineDir);
     
+    // Perpendicular distance - stable for AA calculation along the line body
+    vec3 perpVec = toFragment - lineDir * projLength;
+    float perpDist = length(perpVec);
+    
     // Clamp to segment bounds [0, segmentLength] for capsule behavior
     float clampedProj = clamp(projLength, 0.0, v_SegmentLength);
     
-    // Closest point on line segment
-    vec3 closestPoint = lineStart + lineDir * clampedProj;
-    
-    // 3D distance from fragment to closest point on line
-    float dist3D = length(v_ExpandedPos - closestPoint);
+    // For end caps, we need the actual distance to the endpoint
+    float dist3D;
+    if (projLength < 0.0) {
+        // Before start - distance to start point
+        dist3D = length(v_ExpandedPos - lineStart);
+    } else if (projLength > v_SegmentLength) {
+        // After end - distance to end point
+        dist3D = length(v_ExpandedPos - lineEnd);
+    } else {
+        // Along the line - use perpendicular distance
+        dist3D = perpDist;
+    }
     
     // SDF: distance to capsule surface (positive = outside, negative = inside)
     float sdf = dist3D - radius;
     
-    // Anti-aliasing using screen-space derivatives
-    float aaWidth = fwidth(sdf);
-    float alpha = 1.0 - smoothstep(-aaWidth, aaWidth, sdf);
+    // Calculate AA width from screen-space derivatives of expanded position
+    float aaWidth = length(vec2(fwidth(v_ExpandedPos.x), fwidth(v_ExpandedPos.y)));
+    
+    // Adaptive AA: thin lines get softer edges, thick lines get crisp edges
+    // Below 2px width, scale up AA for smooth thin lines; above 2px, use tight 0.5px AA
+    float thinness = clamp(1.0 - v_LineWidth / (2.0 * aaWidth), 0.0, 1.0);
+    float adaptiveAA = mix(aaWidth * 0.5, aaWidth * 1.5, thinness);
+    
+    float alpha = 1.0 - smoothstep(-adaptiveAA, adaptiveAA, sdf);
     
     // Skip fragments outside the line
-    if (alpha <= 0.0) {
+    if (alpha < 0.004) {
         discard;
     }
     
