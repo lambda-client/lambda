@@ -54,7 +54,7 @@ open class BreakSettings(
     override val serverSwapTicks by c.setting("Server Swap", 0, 0..5, 1, "The number of ticks to give the server time to recognize the player attributes on the swapped item", " tick(s)").group(baseGroup, Group.General).index()
 
     //    override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { vis() && page == Page.General }
-    override val breakDelay by c.setting("Break Delay", 0, 0..5, 1, "The delay between breaking blocks", " tick(s)").group(baseGroup, Group.General).index()
+    override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)").group(baseGroup, Group.General).index()
 
     // Timing
     override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true).group(baseGroup, Group.General).index()

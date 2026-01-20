@@ -21,7 +21,6 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.inventory.InventoryManager;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -30,7 +29,6 @@ import net.minecraft.client.recipebook.ClientRecipeBook;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.stat.StatHandler;
 import net.minecraft.util.ActionResult;
@@ -50,6 +48,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ClientPlayInteractionManagerMixin {
     @Shadow
     public float currentBreakingProgress;
+
+    @Shadow
+    public int lastSelectedSlot;
 
     @Inject(method = "interactBlock", at = @At("HEAD"), cancellable = true)
     public void interactBlockHead(final ClientPlayerEntity player, final Hand hand, final BlockHitResult hitResult, final CallbackInfoReturnable<ActionResult> cir) {
@@ -103,9 +104,9 @@ public class ClientPlayInteractionManagerMixin {
      * }
      * }</pre>
      */
-    @ModifyExpressionValue(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getSelectedSlot()I"))
-    public int overrideSelectedSlotSync(int original) {
-        return EventFlow.post(new InventoryEvent.HotbarSlot.Update(original)).getSlot();
+    @Inject(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", shift = At.Shift.BEFORE))
+    public void overrideSelectedSlotSync(CallbackInfo ci) {
+        EventFlow.post(new InventoryEvent.HotbarSlot.Update(lastSelectedSlot));
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true)

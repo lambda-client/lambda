@@ -19,9 +19,11 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
@@ -88,6 +90,11 @@ object ToolSaver : Module(
 						pickup(it.first.id)
 				}
 			}.submit()
+		}
+
+		listen<ContainerEvent.Transfer> { event ->
+			if (event.to is HotbarContainer && event.fromSlot.stack.isEndangered) event.cancel()
+			else if (event.from is HotbarContainer && event.toSlot.stack.isEndangered) event.cancel()
 		}
 	}
 

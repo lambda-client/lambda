@@ -43,7 +43,7 @@ import net.minecraft.screen.slot.Slot
 object AutoArmor : Module(
 	name = "AutoArmor",
 	description = "Automatically equips armor",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.COMBAT
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
 	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
@@ -55,6 +55,44 @@ object AutoArmor : Module(
 	private val feetProtection by setting("Preferred Feet Protection", Protection.Protection)
 	private val ignoreBinding by setting("Ignore Binding", true, "Ignores curse of binding armor pieces")
 
+	val sorter = compareByDescending<Slot> {
+		if (it.stack.isDamageable && 1 - (it.stack.damage.toFloat() / it.stack.maxDamage) < minDurabilityPercentage.toFloat() / 100)
+			-Double.MAX_VALUE
+		else 0.0
+	}.thenByDescending {
+		if (elytraPriority) {
+			if (it.stack.item == Items.ELYTRA) 1.0
+			else 0.0
+		} else 0.0
+	}.thenByDescending {
+		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+			?.modifiers
+			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
+			?.modifier?.value
+			?: 0.0
+	}.thenByDescending {
+		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+			?.modifiers
+			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
+			?.modifier?.value
+			?: 0.0
+	}.thenByDescending {
+		val stack = it.stack
+		when {
+			stack.isIn(ItemTags.FOOT_ARMOR) -> stack.getEnchantment(feetProtection.enchant)
+			stack.isIn(ItemTags.LEG_ARMOR) -> stack.getEnchantment(legProtection.enchant)
+			stack.isIn(ItemTags.CHEST_ARMOR) -> stack.getEnchantment(chestProtection.enchant)
+			else -> stack.getEnchantment(headProtection.enchant)
+		}
+	}.thenByDescending { slot ->
+		Protection.entries.fold(0) { acc, protection ->
+			acc + slot.stack.getEnchantment(protection.enchant)
+		}
+	}.thenByDescending { slot ->
+		slot.stack.getEnchantment(Enchantments.UNBREAKING) +
+				slot.stack.getEnchantment(Enchantments.MENDING)
+	}
+
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
@@ -64,44 +102,6 @@ object AutoArmor : Module(
 
 		listen<TickEvent.Pre> {
 			val armorSlots = player.armorSlots
-
-			val sorter = compareByDescending<Slot> {
-				if (it.stack.isDamageable && 1 - (it.stack.damage.toFloat() / it.stack.maxDamage) < minDurabilityPercentage.toFloat() / 100)
-					-Double.MAX_VALUE
-				else 0.0
-			}.thenByDescending {
-				if (elytraPriority) {
-					if (it.stack.item == Items.ELYTRA) 1.0
-					else 0.0
-				} else 0.0
-			}.thenByDescending {
-				it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-					?.modifiers
-					?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
-					?.modifier?.value
-					?: 0.0
-			}.thenByDescending {
-				it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-					?.modifiers
-					?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
-					?.modifier?.value
-					?: 0.0
-			}.thenByDescending {
-				val stack = it.stack
-				when {
-					stack.isIn(ItemTags.FOOT_ARMOR) -> stack.getEnchantment(feetProtection.enchant)
-					stack.isIn(ItemTags.LEG_ARMOR) -> stack.getEnchantment(legProtection.enchant)
-					stack.isIn(ItemTags.CHEST_ARMOR) -> stack.getEnchantment(chestProtection.enchant)
-					else -> stack.getEnchantment(headProtection.enchant)
-				}
-			}.thenByDescending { slot ->
-				Protection.entries.fold(0) { acc, protection ->
-					acc + slot.stack.getEnchantment(protection.enchant)
-				}
-			}.thenByDescending { slot ->
-				slot.stack.getEnchantment(Enchantments.UNBREAKING) +
-						slot.stack.getEnchantment(Enchantments.MENDING)
-			}
 
 			val swappable = player.hotbarAndInventorySlots
 				.filter { it.stack.isEquipable && (!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0) }

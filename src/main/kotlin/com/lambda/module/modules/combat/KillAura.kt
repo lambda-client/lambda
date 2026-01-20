@@ -21,7 +21,7 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
-import com.lambda.event.events.PlayerPacketEvent
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -67,10 +67,7 @@ object KillAura : Module(
 
     private var lastAttackTime = 0L
     private var hitDelay = 100.0
-
-    private var prevY = 0.0
-    private var lastY = 0.0
-    private var lastOnGround = true
+    private var cooldownFromSwap = false
 
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),
@@ -98,21 +95,17 @@ object KillAura : Module(
             }
         }
 
-        listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
-            prevY = lastY
-            lastY = event.position.y
-            lastOnGround = event.onGround
-        }
+        listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
         listen<TickEvent.Input.Post> {
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
+                var rotated = true
                 if (rotate) runSafeAutomated {
                     val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
-                    val cantContinue = !rotationRequest.done || entity !== prevEntity || !validServerRot
+                    rotated = rotationRequest.done && entity === prevEntity && validServerRot
                     prevEntity = entity
                     validServerRot = rotationRequest.done
-                    if (cantContinue) return@listen
                 }
 
                 if (swap) {
@@ -126,11 +119,15 @@ object KillAura : Module(
                     }
                 }
 
+                if (!rotated) return@listen
+
                 // Cooldown check
                 when (attackMode) {
-                    AttackMode.Cooldown -> if (player.getAttackCooldownProgress(0.5f) + (cooldownShrink / 20f) < 1.0f) return@listen
+                    AttackMode.Cooldown -> if (player.getAttackCooldownProgress(0.5f) + (cooldownShrink / 20f) < 1.0f && !cooldownFromSwap) return@listen
                     AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return@listen
                 }
+
+                cooldownFromSwap = false
 
                 // Attack
                 connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
@@ -144,17 +141,5 @@ object KillAura : Module(
                 hitDelay = (hitDelay1..hitDelay2).random() * 50
             }
         }
-
-        onEnable { reset() }
-        onDisable { reset() }
-    }
-
-    private fun reset() {
-        lastY = 0.0
-        prevY = 0.0
-        lastOnGround = true
-
-        lastAttackTime = 0L
-        hitDelay = 100.0
     }
 }

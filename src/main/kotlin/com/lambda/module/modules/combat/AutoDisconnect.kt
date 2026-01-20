@@ -57,6 +57,8 @@ object AutoDisconnect : Module(
 ) {
     private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
     private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
+    private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
+    private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
     private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
     private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
     private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
@@ -201,6 +203,15 @@ object AutoDisconnect : Module(
                     highlighted(player.fullHealth.format())
                     literal(" below minimum of ")
                     highlighted("$minimumHealth")
+                    literal("!")
+                }
+            } else null
+        }),
+        YLevel({ yLevel }, {
+            if (player.pos.y < minimumYLevel) {
+                buildText {
+                    literal("Player went below y level ")
+                    highlighted("$minimumYLevel")
                     literal("!")
                 }
             } else null

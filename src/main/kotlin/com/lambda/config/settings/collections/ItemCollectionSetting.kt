@@ -17,9 +17,7 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
-import com.lambda.Lambda.gson
 import com.lambda.config.Setting
 import com.lambda.config.serializer.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -31,17 +29,9 @@ class ItemCollectionSetting(
 ) : CollectionSetting<Item>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Item::class.java).type
+	TypeToken.getParameterized(Collection::class.java, Item::class.java).type,
+	serialize = true,
 ) {
 	context(setting: Setting<*, MutableCollection<Item>>)
 	override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { ItemCodec.stringify(it) }
-
-	context(setting: Setting<*, MutableCollection<Item>>)
-	override fun toJson(): JsonElement = gson.toJsonTree(value, type)
-
-	context(setting: Setting<*, MutableCollection<Item>>)
-	override fun loadFromJson(serialized: JsonElement) {
-		value = gson.fromJson<Collection<Item>>(serialized, type)
-			.toMutableList()
-	}
 }

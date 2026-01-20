@@ -41,9 +41,9 @@ import java.util.*
 //  - Improve save file structure.
 object FriendManager : Configurable(FriendConfig), Loadable {
     override val name = "friends"
-    val friends by setting("friends", emptySet<GameProfile>())
+    val friends by setting("friends", emptySet<GameProfile>(), serialize = true)
 
-    fun befriend(profile: GameProfile) = friends.add(profile)
+    fun befriend(profile: GameProfile) = if (!isFriend(profile)) friends.add(profile) else false
     fun unfriend(profile: GameProfile): Boolean = friends.remove(profile)
 
     fun gameProfile(name: String) = friends.firstOrNull { it.name == name }
