@@ -161,7 +161,7 @@ object LambdaRenderPipelines : Loadable {
 
 	/**
 	 * Pipeline for SDF text rendering with proper smoothstep anti-aliasing.
-	 * Uses lambda:core/sdf_text shaders with SDF-specific uniforms for effects.
+	 * Uses lambda:core/sdf_text shaders with per-vertex style parameters.
 	 */
 	val SDF_TEXT: RenderPipeline =
 		RenderPipelines.register(
@@ -170,13 +170,12 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
 				.withSampler("Sampler0")
-				.withUniform("SDFParams", UniformType.UNIFORM_BUFFER)
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR,
+					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
@@ -190,13 +189,12 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
 				.withSampler("Sampler0")
-				.withUniform("SDFParams", UniformType.UNIFORM_BUFFER)
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR,
+					LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
@@ -229,7 +227,7 @@ object LambdaRenderPipelines : Loadable {
 
 	/**
 	 * Pipeline for screen-space SDF text rendering.
-	 * Uses custom SDF shader with SDFParams for proper anti-aliased text with effects.
+	 * Uses custom SDF shader with per-vertex style parameters for anti-aliased text with effects.
 	 */
 	val SCREEN_TEXT: RenderPipeline =
 		RenderPipelines.register(
@@ -238,13 +236,12 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/screen_sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/screen_sdf_text"))
 				.withSampler("Sampler0")
-				.withUniform("SDFParams", UniformType.UNIFORM_BUFFER)
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					VertexFormats.POSITION_TEXTURE_COLOR,
+					LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()

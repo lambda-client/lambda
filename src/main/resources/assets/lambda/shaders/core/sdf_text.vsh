@@ -12,11 +12,15 @@ in vec4 Color;
 in vec3 Anchor;
 // BillboardData.x = scale, BillboardData.y = billboardFlag (0 = auto-billboard)
 in vec2 BillboardData;
+// SDFStyle: vec4(outlineWidth, glowRadius, shadowSoftness, threshold)
+in vec4 SDFStyle;
 
 out vec2 texCoord0;
 out vec4 vertexColor;
 out float sphericalVertexDistance;
 out float cylindricalVertexDistance;
+// Pass SDF style to fragment shader
+out vec4 sdfStyleParams;
 
 void main() {
     float scale = BillboardData.x;
@@ -55,6 +59,7 @@ void main() {
 
     texCoord0 = UV0;
     vertexColor = Color;
+    sdfStyleParams = SDFStyle;
 
     sphericalVertexDistance = fog_spherical_distance(worldPos);
     cylindricalVertexDistance = fog_cylindrical_distance(worldPos);

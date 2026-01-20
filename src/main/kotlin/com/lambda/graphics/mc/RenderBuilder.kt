@@ -44,16 +44,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	var fontAtlas: SDFFontAtlas? = null
 		private set
 
-	/**
-	 * Map of SDFStyle to lists of text vertices for that style.
-	 * Each text piece is grouped by its style to allow rendering with unique SDF params.
-	 */
-	val textStyleGroups = mutableMapOf<SDFStyle, MutableList<RegionVertexCollector.TextVertex>>()
-	
-	/**
-	 * Map of SDFStyle to lists of screen text vertices for that style.
-	 */
-	val screenTextStyleGroups = mutableMapOf<SDFStyle, MutableList<RegionVertexCollector.ScreenTextVertex>>()
+	// Style grouping maps removed - style is now embedded in each text vertex
 
 	/**
 	 * Deferred ItemStack renders to be drawn via Minecraft's DrawContext.
@@ -607,7 +598,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 	/**
 	 * Build screen-space text quad vertices for a layer.
-	 * Internal method - uses pixel coordinates.
+	 * Internal method - uses pixel coordinates. Adds vertices directly to collector.
 	 */
 	private fun buildScreenTextQuads(
 		atlas: SDFFontAtlas,
@@ -619,8 +610,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		pixelSize: Float,  // Final text size in pixels
 		style: SDFStyle
 	) {
-		// Get or create the vertex list for this style
-		val vertices = screenTextStyleGroups.getOrPut(style) { mutableListOf() }
+		// Extract SDF style params from SDFStyle object
+		val outlineWidth = style.outline?.width ?: 0f
+		val glowRadius = style.glow?.radius ?: 0f
+		val shadowSoftness = style.shadow?.softness ?: 0f
+		val threshold = 0.5f  // Default SDF threshold
 		
 		// Glyph metrics (advance, bearingX, bearingY) are ALREADY normalized by baseSize in SDFFontAtlas
 		// Glyph width/height are in PIXELS and need to be normalized
@@ -643,11 +637,15 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val x1 = anchorX + startX + localX1 * pixelSize
 			val y1 = anchorY + startY + localY1 * pixelSize
 
-			// Screen-space text uses simple 2D quads
-			vertices.add(RegionVertexCollector.ScreenTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a))
-			vertices.add(RegionVertexCollector.ScreenTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a))
-			vertices.add(RegionVertexCollector.ScreenTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a))
-			vertices.add(RegionVertexCollector.ScreenTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a))
+			// Screen-space text uses simple 2D quads - add directly to collector with style params
+			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
+				x0, y1, glyph.u0, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
+				x1, y1, glyph.u1, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
+				x1, y0, glyph.u1, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
+				x0, y0, glyph.u0, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
 
 			// advance is already normalized, just add it
 			penX += glyph.advance
@@ -656,6 +654,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 	/**
 	 * Build text quad vertices for a layer with specified color and alpha.
+	 * Adds vertices directly to collector with embedded SDF style params.
 	 * 
 	 * @param atlas Font atlas
 	 * @param text Text string
@@ -682,8 +681,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		rotationMatrix: Matrix4f?,
 		style: SDFStyle
 	) {
-		// Get or create the vertex list for this style
-		val vertices = textStyleGroups.getOrPut(style) { mutableListOf() }
+		// Extract SDF style params from SDFStyle object
+		val outlineWidth = style.outline?.width ?: 0f
+		val glowRadius = style.glow?.radius ?: 0f
+		val shadowSoftness = style.shadow?.softness ?: 0f
+		val threshold = 0.5f  // Default SDF threshold
 		
 		var penX = startX
 		for (char in text) {
@@ -697,10 +699,18 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			if (rotationMatrix == null) {
 				// Billboard mode: pass local offsets directly, shader handles billboard
 				// Bottom-left, Bottom-right, Top-right, Top-left
-				vertices.add(RegionVertexCollector.TextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
-				vertices.add(RegionVertexCollector.TextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
-				vertices.add(RegionVertexCollector.TextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
-				vertices.add(RegionVertexCollector.TextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
 			} else {
 				// Fixed rotation mode: pre-transform offsets with rotation matrix
 				// Scale is applied in shader, so we just apply rotation here
@@ -709,10 +719,18 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				val p2 = transformPoint(rotationMatrix, x1, -y0, 0f)
 				val p3 = transformPoint(rotationMatrix, x0, -y0, 0f)
 				
-				vertices.add(RegionVertexCollector.TextVertex(p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
-				vertices.add(RegionVertexCollector.TextVertex(p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
-				vertices.add(RegionVertexCollector.TextVertex(p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
-				vertices.add(RegionVertexCollector.TextVertex(p3.x, p3.y, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.textVertices.add(RegionVertexCollector.TextVertex(
+					p3.x, p3.y, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
+					outlineWidth, glowRadius, shadowSoftness, threshold))
 			}
 
 			penX += glyph.advance

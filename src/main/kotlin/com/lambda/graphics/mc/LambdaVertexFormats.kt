@@ -159,5 +159,64 @@ object LambdaVertexFormats {
         .add("LineWidth", LINE_WIDTH_FLOAT)
         .add("Dash", DASH_ELEMENT)
         .build()
+
+    // ============================================================================
+    // SDF Text Style Vertex Attributes (replaces SDFParams uniform buffer)
+    // ============================================================================
+
+    /**
+     * SDF style parameters as vertex attributes.
+     * Contains: OutlineWidth, GlowRadius, ShadowSoftness, SDFThreshold (as vec4 of floats)
+     * 
+     * This replaces the SDFParams uniform buffer, enabling per-vertex style control
+     * and eliminating the need for style-based batching.
+     */
+    val SDF_STYLE_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        23, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        4   // count (outlineWidth, glowRadius, shadowSoftness, sdfThreshold)
+    )
+
+    /**
+     * Billboard text format with anchor position AND SDF style parameters.
+     * Layout: Position (vec3), UV0 (vec2), Color (vec4), Anchor (vec3), BillboardData (vec2), SDFStyle (vec4)
+     * 
+     * Total size: 12 + 8 + 4 + 12 + 8 + 16 = 60 bytes
+     * 
+     * - Position: Local glyph offset (x, y) with z unused (3 floats = 12 bytes)
+     * - UV0: Texture coordinates (2 floats = 8 bytes)
+     * - Color: RGBA color with alpha encoding layer type (4 bytes)
+     * - Anchor: Camera-relative world position of text anchor (3 floats = 12 bytes)
+     * - BillboardData: vec2(scale, billboardFlag) (2 floats = 8 bytes)
+     * - SDFStyle: vec4(outlineWidth, glowRadius, shadowSoftness, threshold) (4 floats = 16 bytes)
+     */
+    val POSITION_TEXTURE_COLOR_ANCHOR_SDF: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("UV0", VertexFormatElement.UV0)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("Anchor", ANCHOR_ELEMENT)
+        .add("BillboardData", BILLBOARD_DATA_ELEMENT)
+        .add("SDFStyle", SDF_STYLE_ELEMENT)
+        .build()
+
+    /**
+     * Screen-space text format with SDF style parameters.
+     * Layout: Position (vec3), UV0 (vec2), Color (vec4), SDFStyle (vec4)
+     * 
+     * Total size: 12 + 8 + 4 + 16 = 40 bytes
+     * 
+     * - Position: Screen-space position (x, y, z=0) (3 floats = 12 bytes)
+     * - UV0: Texture coordinates (2 floats = 8 bytes)
+     * - Color: RGBA color with alpha encoding layer type (4 bytes)
+     * - SDFStyle: vec4(outlineWidth, glowRadius, shadowSoftness, threshold) (4 floats = 16 bytes)
+     */
+    val SCREEN_TEXT_SDF_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("UV0", VertexFormatElement.UV0)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("SDFStyle", SDF_STYLE_ELEMENT)
+        .build()
 }
 

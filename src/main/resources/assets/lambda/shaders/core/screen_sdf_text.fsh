@@ -4,21 +4,21 @@
 
 uniform sampler2D Sampler0;
 
-// SDF effect parameters - matches world-space sdf_text
-layout(std140) uniform SDFParams {
-    float SDFThreshold;      // Main text edge threshold (default 0.5)
-    float OutlineWidth;      // Outline width in SDF units (0 = no outline)
-    float GlowRadius;        // Glow radius in SDF units (0 = no glow)
-    float ShadowSoftness;    // Shadow softness (0 = no shadow)
-};
-
 // Inputs from vertex shader
 in vec2 texCoord0;
 in vec4 vertexColor;
+// SDF style params from vertex shader: (outlineWidth, glowRadius, shadowSoftness, threshold)
+in vec4 sdfStyleParams;
 
 out vec4 fragColor;
 
 void main() {
+    // Extract SDF parameters from vertex attributes
+    float OutlineWidth = sdfStyleParams.x;
+    float GlowRadius = sdfStyleParams.y;
+    float ShadowSoftness = sdfStyleParams.z;
+    float SDFThreshold = sdfStyleParams.w;
+
     // Sample the SDF texture - use ALPHA channel
     vec4 texSample = texture(Sampler0, texCoord0);
     float sdfValue = texSample.a;

@@ -3,14 +3,17 @@
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:projection.glsl>
 
-// Vertex inputs (POSITION_TEXTURE_COLOR format)
+// Vertex inputs (SCREEN_TEXT_SDF_FORMAT)
 in vec3 Position;
 in vec2 UV0;
 in vec4 Color;
+// SDFStyle: vec4(outlineWidth, glowRadius, shadowSoftness, threshold)
+in vec4 SDFStyle;
 
 // Outputs to fragment shader
 out vec2 texCoord0;
 out vec4 vertexColor;
+out vec4 sdfStyleParams;
 
 void main() {
     // Screen-space position - already in screen coordinates
@@ -18,4 +21,5 @@ void main() {
     
     texCoord0 = UV0;
     vertexColor = Color;
+    sdfStyleParams = SDFStyle;
 }

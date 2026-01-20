@@ -21,7 +21,6 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.HudRenderEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.LambdaRenderPipelines
-import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.pipeline.RenderPipeline
 import com.mojang.blaze3d.systems.ProjectionType
@@ -30,7 +29,6 @@ import net.minecraft.client.render.ProjectionMatrix2
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
-import org.lwjgl.system.MemoryUtil
 
 /**
  * Shared utilities for ESP renderers.
@@ -40,34 +38,7 @@ object RendererUtils {
 	// Shared projection matrix for screen-space rendering
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, true)
 
-	/**
-	 * Create SDF params uniform buffer with specified or default values.
-	 * Used for SDF text rendering.
-	 *
-	 * @param outlineWidth Width of text outline in SDF units (0 = no outline)
-	 * @param glowRadius Radius of glow effect in SDF units (0 = no glow)
-	 * @param shadowSoftness Softness of shadow effect (0 = no shadow)
-	 */
-	fun createSDFParamsBuffer(
-		outlineWidth: Float = 0f,
-		glowRadius: Float = 0.2f,
-		shadowSoftness: Float = 0.15f
-	): GpuBuffer? {
-		val device = RenderSystem.getDevice()
-		val buffer = MemoryUtil.memAlloc(16)
-		return try {
-			buffer.putFloat(0.5f)           // SDFThreshold
-			buffer.putFloat(outlineWidth)   // OutlineWidth
-			buffer.putFloat(glowRadius)     // GlowRadius
-			buffer.putFloat(shadowSoftness) // ShadowSoftness
-			buffer.flip()
-			device.createBuffer({ "SDFParams" }, GpuBuffer.USAGE_UNIFORM, buffer)
-		} catch (_: Exception) {
-			null
-		} finally {
-			MemoryUtil.memFree(buffer)
-		}
-	}
+
 
 	/**
 	 * Create a dynamic transform uniform with identity matrices for screen-space rendering.
