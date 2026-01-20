@@ -33,7 +33,7 @@ Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element
 
 ### Automation Engine
 * **Build Engine:** Full integration with **Litematica** and schematic files for seamless automated building.
-* **Block State Handling:** The build engine natively supports special block states including rotations, attachments (doors, signs, bells), half-slabs, stairs, repeater delay, and even edge cases like flower pots with plants.
+* **Block State Handling:** The build engine natively supports special block states including rotations, attachments (doors, signs, bells), slabs, stairs, repeater delay, and even edge cases like flower pots with plants.
 * **Conflict-Free Orchestration:** A centralized manager system handles all core interactions (placing, breaking, rotating, inventory) to ensure zero conflicts between concurrently running modules.
 
 ### Unmatched Performance
