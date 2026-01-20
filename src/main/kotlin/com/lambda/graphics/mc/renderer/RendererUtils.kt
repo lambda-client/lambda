@@ -18,6 +18,8 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.event.events.HudRenderEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.buffers.GpuBufferSlice
@@ -139,4 +141,79 @@ object RendererUtils {
 
 	/** Screen-space text pipeline. */
 	val screenTextPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_TEXT
+
+	// ============================================================================
+	// Deferred Item Rendering
+	// ============================================================================
+
+	/**
+	 * Global queue of items to render during the next HUD render pass.
+	 * Items are added via renderDeferredItems() and rendered when HudRenderEvent fires.
+	 */
+	private val pendingItems = mutableListOf<com.lambda.graphics.mc.RenderBuilder.ScreenItemRender>()
+
+	/**
+	 * Queue deferred ItemStack renders to be drawn during the HUD render pass.
+	 * Items are rendered when Minecraft's HUD rendering occurs via HudRenderEvent.
+	 *
+	 * @param items List of ScreenItemRender to draw
+	 */
+	fun renderDeferredItems(items: List<com.lambda.graphics.mc.RenderBuilder.ScreenItemRender>) {
+		if (items.isEmpty()) return
+		pendingItems.addAll(items)
+	}
+
+	/**
+	 * Render pending items using the provided DrawContext.
+	 * Called by HudRenderEvent listener when Minecraft's HUD is being rendered.
+	 *
+	 * @param context The DrawContext from Minecraft's HUD rendering
+	 */
+	fun renderPendingItems(context: net.minecraft.client.gui.DrawContext) {
+		if (pendingItems.isEmpty()) return
+		
+		val window = mc.window ?: return
+		val textRenderer = mc.textRenderer ?: return
+		
+		val scaledWidth = window.scaledWidth
+		val scaledHeight = window.scaledHeight
+		
+		// Standard Minecraft item size is 16x16 pixels
+		val standardItemSize = 16f
+		
+		pendingItems.forEach { item ->
+			val pixelX = (item.x * scaledWidth).toInt()
+			val pixelY = (item.y * scaledHeight).toInt()
+			
+			// Calculate scale based on normalized size using average of dimensions (matches toPixelSize)
+			// Size of 0.05 means ~5% of screen, so pixelSize = size * (width + height) / 2
+			val targetPixelSize = item.size * (scaledWidth + scaledHeight) / 2f
+			val scale = targetPixelSize / standardItemSize
+			
+			if (scale != 1f) {
+				// For scaled items, we need to translate and scale the matrix
+				// Matrix3x2fStack uses JOML methods directly
+				context.matrices.pushMatrix()
+				context.matrices.translate(pixelX.toFloat(), pixelY.toFloat())
+				context.matrices.scale(scale, scale)
+				context.drawItem(item.stack, 0, 0)
+				context.drawStackOverlay(textRenderer, item.stack, 0, 0)
+				context.matrices.popMatrix()
+			} else {
+				context.drawItem(item.stack, pixelX, pixelY)
+				context.drawStackOverlay(textRenderer, item.stack, pixelX, pixelY)
+			}
+		}
+		
+		// Clear the queue after rendering
+		pendingItems.clear()
+	}
+
+	// Initialize HudRenderEvent listener
+	init {
+		listenUnsafe<HudRenderEvent> { event ->
+			renderPendingItems(event.context)
+		}
+	}
 }
+

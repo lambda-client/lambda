@@ -24,6 +24,7 @@ import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
+import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -53,6 +54,12 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	 * Map of SDFStyle to lists of screen text vertices for that style.
 	 */
 	val screenTextStyleGroups = mutableMapOf<SDFStyle, MutableList<RegionVertexCollector.ScreenTextVertex>>()
+
+	/**
+	 * Deferred ItemStack renders to be drawn via Minecraft's DrawContext.
+	 * These are rendered after Lambda's geometry for proper layering.
+	 */
+	val deferredItems = mutableListOf<ScreenItemRender>()
 
 	fun box(
 		box: Box,
@@ -514,6 +521,22 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	) = screenLineGradient(x1, y1, color, x2, y2, color, width, dashStyle)
 
 	/**
+	 * Queue an ItemStack to be rendered on screen.
+	 * Items are rendered after Lambda's geometry using Minecraft's DrawContext.
+	 * This provides full-fidelity item rendering with 3D models, enchantment glint,
+	 * durability bars, and stack counts.
+	 *
+	 * @param stack The ItemStack to render
+	 * @param x X position (0-1, where 0 = left, 1 = right)
+	 * @param y Y position (0-1, where 0 = top, 1 = bottom)
+	 * @param size Normalized size using avg of screen dimensions (e.g., 0.03 = ~3%, default ~1.5%)
+	 */
+	fun screenItem(stack: ItemStack, x: Float, y: Float, size: Float = 0.015f) {
+		if (stack.isEmpty) return
+		deferredItems.add(ScreenItemRender(stack, x, y, size))
+	}
+
+	/**
 	 * Draw text on screen at a specific position.
 	 * Position uses normalized 0-1 range, size is normalized.
 	 *
@@ -777,5 +800,13 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val outline: SDFOutline? = null,
 		val glow: SDFGlow? = null,
 		val shadow: SDFShadow? = SDFShadow() // Default shadow enabled
+	)
+
+	/** Data class for deferred screen-space item rendering. */
+	data class ScreenItemRender(
+		val stack: ItemStack,
+		val x: Float,      // Normalized 0-1
+		val y: Float,      // Normalized 0-1
+		val size: Float    // Normalized size (e.g., 0.05 = 5% of screen height)
 	)
 }

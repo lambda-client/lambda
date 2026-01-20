@@ -185,7 +185,9 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 	 * This should be called after world-space render() for proper layering.
 	 */
 	fun renderScreen() {
-		if (!renderer.hasScreenData() && styledScreenTextBuffers.isEmpty()) return
+		val hasDeferredItems = renderBuilder?.deferredItems?.isNotEmpty() == true
+		
+		if (!renderer.hasScreenData() && styledScreenTextBuffers.isEmpty() && !hasDeferredItems) return
 
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
@@ -235,6 +237,13 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 						}
 					}
 				}
+			}
+		}
+		
+		// Render deferred items last (uses Minecraft's DrawContext pipeline)
+		renderBuilder?.deferredItems?.let { items ->
+			if (items.isNotEmpty()) {
+				RendererUtils.renderDeferredItems(items)
 			}
 		}
 	}

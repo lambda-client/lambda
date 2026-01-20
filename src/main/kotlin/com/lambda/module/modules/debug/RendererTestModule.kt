@@ -36,6 +36,7 @@ import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.toBlockPos
+import net.minecraft.item.Items
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Direction
 import java.awt.Color
@@ -308,6 +309,15 @@ object ImmediateRendererTest : Module(
 					),
 					centered = true
 				)
+
+				// ========== Item Rendering Tests ==========
+				// Test screen items at various positions and sizes
+				// Size is normalized (e.g., 0.03 = 3% of screen height)
+				screenItem(Items.DIAMOND_SWORD.defaultStack, 0.02f, 0.40f)  // Default size ~1.5%
+				screenItem(Items.NETHERITE_CHESTPLATE.defaultStack, 0.06f, 0.40f)
+				screenItem(Items.ENCHANTED_GOLDEN_APPLE.defaultStack, 0.10f, 0.40f)
+				// Test larger item (5% of screen height)
+				screenItem(Items.DIAMOND.defaultStack, 0.14f, 0.40f, size = 0.05f)
 			}
 			
 			renderer.upload()
