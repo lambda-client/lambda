@@ -17,22 +17,35 @@
 
 package com.lambda.module.hud
 
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
+import com.lambda.module.hud.Coordinates.Group
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.Formatting.format
+import com.lambda.util.NamedEnum
 
-object Rotation : HudModule (
+object Rotation : HudModule(
 	name = "Rotation",
 	description = "Show your rotation",
 	tag = ModuleTag.HUD,
 ) {
+	enum class Group(override val displayName: String) : NamedEnum {
+		Rotation("Rotation"),
+	}
+
+	private val formatter = FormatterSettings(this, Group.Rotation).apply {
+		applyEdits {
+			::timeFormat.edit { hide() }
+		}
+	}
+
 	override fun ImGuiBuilder.buildLayout() {
 		runSafe {
-			val yaw = player.yaw
-			val pitch = player.pitch
-			val text = "($yaw, $pitch)"
-			textCopyable(text)
+			val rotation = player.rotationClient.format(formatter.locale, formatter.separator, "(", ")", formatter.precision)
+			textCopyable(rotation)
 		}
 	}
 
