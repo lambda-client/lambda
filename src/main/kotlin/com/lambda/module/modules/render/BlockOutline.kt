@@ -27,7 +27,6 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import net.minecraft.block.BlockState
 import net.minecraft.util.math.Box
 import java.awt.Color
 
@@ -47,7 +46,7 @@ object BlockOutline : Module(
 
 	val renderer = ImmediateRenderer("BlockOutline")
 
-	var previous: Pair<List<Box>, BlockState>? = null
+	var previous: List<Box>? = null
 
 	init {
 		listen<RenderEvent.Render> {
@@ -63,10 +62,10 @@ object BlockOutline : Module(
 					boxes.mapIndexed { index, box ->
 						val offset = box.offset(pos)
 						val interpolated = previous?.let { previous ->
-							if (!interpolate || previous.first.size < boxes.size) null
-							else lerp(mc.tickDelta, previous.first[index], offset)
+							if (!interpolate || previous.size < boxes.size) null
+							else lerp(mc.tickDelta, previous[index], offset)
 						} ?: offset
-						interpolated.expand(0.001)
+						interpolated.expand(0.0001)
 					}
 				}
 
@@ -87,12 +86,9 @@ object BlockOutline : Module(
 		listen<TickEvent.Post> {
 			val hitResult = mc.crosshairTarget?.blockResult ?: return@listen
 			val state = blockState(hitResult.blockPos)
-			previous = Pair(
-				state
-					.getOutlineShape(world, hitResult.blockPos).boundingBoxes
-					.map { it.offset(hitResult.blockPos) },
-				state
-			)
+			previous = state
+				.getOutlineShape(world, hitResult.blockPos).boundingBoxes
+				.map { it.offset(hitResult.blockPos) }
 		}
 	}
 }

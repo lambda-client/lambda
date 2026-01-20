@@ -133,7 +133,7 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 			)
 
 		// Render Faces
-		RegionRenderer.Companion.createRenderPass("$name Faces", depthTest)?.use { pass ->
+		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
 			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
@@ -141,7 +141,7 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 		}
 
 		// Render Edges
-		RegionRenderer.Companion.createRenderPass("$name Edges", depthTest)?.use { pass ->
+		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
 			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
 			RenderSystem.bindDefaultUniforms(pass)
 			pass.setUniform("DynamicTransforms", dynamicTransform)
@@ -164,7 +164,7 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 						
 						val sdfParams = RendererUtils.createSDFParamsBuffer(outlineWidth, glowRadius, shadowSoftness)
 						if (sdfParams != null) {
-							RegionRenderer.Companion.createRenderPass("$name Text", depthTest)?.use { pass ->
+							RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
 								pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
 								RenderSystem.bindDefaultUniforms(pass)
 								pass.setUniform("DynamicTransforms", dynamicTransform)

@@ -19,10 +19,18 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.DynamicReflectionSerializer.remappedName
+import com.lambda.util.EntityUtils.blockEntityMap
+import com.lambda.util.EntityUtils.bossEntityMap
+import com.lambda.util.EntityUtils.createNameMap
+import com.lambda.util.EntityUtils.decorationEntityMap
+import com.lambda.util.EntityUtils.miscEntityMap
+import com.lambda.util.EntityUtils.mobEntityMap
+import com.lambda.util.EntityUtils.passiveEntityMap
+import com.lambda.util.EntityUtils.playerEntityMap
+import com.lambda.util.EntityUtils.projectileEntityMap
+import com.lambda.util.EntityUtils.vehicleEntityMap
 import com.lambda.util.NamedEnum
 import com.lambda.util.reflections.scanResult
-import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
 import net.minecraft.entity.Entity
@@ -34,20 +42,7 @@ object NoRender : Module(
     description = "Disables rendering of certain things",
     tag = ModuleTag.RENDER,
 ) {
-    private val entities = scanResult
-        .getSubclasses(Entity::class.java)
-        .filter { !it.isAbstract && it.name.startsWith("net.minecraft") }
-
     private val particleMap = createParticleNameMap()
-    private val blockEntityMap = createBlockEntityNameMap()
-    private val playerEntityMap = createEntityNameMap("net.minecraft.client.network.")
-    private val bossEntityMap = createEntityNameMap("net.minecraft.entity.boss.")
-    private val decorationEntityMap = createEntityNameMap("net.minecraft.entity.decoration.")
-    private val mobEntityMap = createEntityNameMap("net.minecraft.entity.mob.")
-    private val passiveEntityMap = createEntityNameMap("net.minecraft.entity.passive.")
-    private val projectileEntityMap = createEntityNameMap("net.minecraft.entity.projectile.")
-    private val vehicleEntityMap = createEntityNameMap("net.minecraft.entity.vehicle.")
-    private val miscEntityMap = createEntityNameMap("net.minecraft.entity.", strictDir = true)
 
     private enum class Group(override val displayName: String) : NamedEnum {
         Hud("Hud"),
@@ -112,37 +107,6 @@ object NoRender : Module(
             .filter { !it.isAbstract }
             .createNameMap("net.minecraft.client.particle.", "Particle")
 
-    private fun createEntityNameMap(directory: String, strictDir: Boolean = false) =
-        entities.createNameMap(directory, "Entity", strictDir)
-
-    private fun createBlockEntityNameMap() =
-        scanResult
-            .getSubclasses(BlockEntity::class.java)
-            .filter { !it.isAbstract }.createNameMap("net.minecraft.block.entity", "BlockEntity")
-
-    private fun Collection<ClassInfo>.createNameMap(
-        directory: String,
-        removePattern: String = "",
-        strictDirectory: Boolean = false
-    ) = map {
-            val remappedName = it.name.remappedName
-            val displayName = remappedName
-                .substring(remappedName.indexOfLast { it == '.' } + 1)
-                .replace(removePattern, "")
-                .fancyFormat()
-            MappingInfo(it.simpleName, remappedName, displayName)
-        }
-        .sortedBy { it.displayName.lowercase() }
-        .filter { info ->
-            if (strictDirectory)
-                info.remapped.startsWith(directory) && !info.remapped.substring(directory.length).contains(".")
-            else info.remapped.startsWith(directory)
-        }
-        .associate { it.raw to it.displayName }
-
-    private fun String.fancyFormat() =
-        replace("$", " - ").replace("(?<!\\s)[A-Z]".toRegex(), " $0")
-
     @JvmStatic
     fun shouldOmitParticle(particle: Particle) =
         isEnabled && particleMap[particle.javaClass.simpleName] in particles
@@ -177,10 +141,4 @@ object NoRender : Module(
     @JvmStatic
     fun shouldOmitBlockEntity(blockEntity: BlockEntity) =
         isEnabled && blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities
-
-    private data class MappingInfo(
-        val raw: String,
-        val remapped: String,
-        val displayName: String
-    )
 }

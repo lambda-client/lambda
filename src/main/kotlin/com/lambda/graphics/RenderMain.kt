@@ -67,11 +67,27 @@ object RenderMain {
         val vec = Vector4f(relX, relY, relZ, 1f)
         projModel.transform(vec)
 
+        val isBehind = vec.w < 0
         val w = if (kotlin.math.abs(vec.w) < 0.001f) 0.001f else kotlin.math.abs(vec.w)
 
         // Perspective divide to get NDC (-1 to 1)
-        val ndcX = vec.x / w
-        val ndcY = vec.y / w
+        var ndcX = vec.x / w
+        var ndcY = vec.y / w
+
+        // When behind camera, extend the direction past the screen edge
+        // so tracers go off-screen rather than landing on-screen
+        if (isBehind) {
+            // Normalize the direction and extend to a fixed off-screen distance
+            val len = kotlin.math.sqrt(ndcX * ndcX + ndcY * ndcY)
+            if (len > 0.0001f) {
+                // Extend to 3.0 in NDC space (well past the -1 to 1 range)
+                ndcX = (ndcX / len) * 3f
+                ndcY = (ndcY / len) * 3f
+            } else {
+                // If almost directly behind, push down (arbitrary direction)
+                ndcY = 3f
+            }
+        }
 
         // NDC to normalized 0-1 coordinates (Y is flipped: 0 = top, 1 = bottom)
         val normalizedX = (ndcX + 1f) * 0.5f
