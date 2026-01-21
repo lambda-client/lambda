@@ -11,6 +11,7 @@ flat in vec2 v_LineEnd;           // Line end point
 flat in float v_LineWidth;        // Line width
 flat in float v_SegmentLength;    // Segment length
 flat in vec4 v_Dash;              // Dash params (x=dashLen, y=gapLen, z=offset, w=speed)
+in float v_Layer;                 // Layer depth for draw order
 
 out vec4 fragColor;
 
@@ -113,4 +114,7 @@ void main() {
     color.a *= alpha;
     
     fragColor = color;
+    
+    // Use layer as fragment depth for draw order
+    gl_FragDepth = v_Layer;
 }

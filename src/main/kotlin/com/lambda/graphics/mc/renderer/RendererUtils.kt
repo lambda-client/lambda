@@ -21,10 +21,13 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.HudRenderEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.RegionRenderer
+import com.lambda.graphics.text.SDFFontAtlas
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.pipeline.RenderPipeline
 import com.mojang.blaze3d.systems.ProjectionType
 import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.render.ProjectionMatrix2
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -36,7 +39,8 @@ import org.joml.Vector4f
  */
 object RendererUtils {
 	// Shared projection matrix for screen-space rendering
-	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, true)
+	// invertY=false means Y=0 at bottom, Y=height at top (OpenGL/math convention)
+	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, false)
 
 
 
@@ -104,8 +108,8 @@ object RendererUtils {
 		if (depthTest) LambdaRenderPipelines.SDF_TEXT
 		else LambdaRenderPipelines.SDF_TEXT_THROUGH
 
-	/** Screen-space faces pipeline (always no depth test). */
-	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.ESP_QUADS_THROUGH
+	/** Screen-space faces pipeline (with layer-based depth for draw order). */
+	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_FACES
 
 	/** Screen-space edges pipeline. */
 	val screenEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_LINES
@@ -140,7 +144,7 @@ object RendererUtils {
 	 *
 	 * @param context The DrawContext from Minecraft's HUD rendering
 	 */
-	fun renderPendingItems(context: net.minecraft.client.gui.DrawContext) {
+	fun renderPendingItems(context: DrawContext) {
 		if (pendingItems.isEmpty()) return
 		
 		val window = mc.window ?: return

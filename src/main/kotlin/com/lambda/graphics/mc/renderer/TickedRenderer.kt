@@ -22,6 +22,7 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
+import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
@@ -36,12 +37,19 @@ import org.joml.Vector4f
  * Geometry is stored relative to the camera position at tick time. At render time, we compute
  * the delta between tick-camera and current-camera to ensure smooth motion without jitter.
  */
-class TickedRenderer(val name: String, var depthTest: Boolean = false) {
+class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
 	private var renderBuilder: RenderBuilder? = null
 	
 	// Camera position captured at tick time (when shapes are built)
 	private var tickCameraPos: Vec3d? = null
+
+	// Font atlas used for current text rendering
+	private var _currentFontAtlas: SDFFontAtlas? = null
+	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
+	
+	override val deferredItems: List<RenderBuilder.ScreenItemRender>?
+		get() = renderBuilder?.deferredItems
 
 	/** Get the current shape scope for drawing. Geometry stored relative to tick camera. */
 	fun shapes(block: RenderBuilder.() -> Unit) {
@@ -59,17 +67,14 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 		tickCameraPos = null
 	}
 
-	// Font atlas used for current text rendering
-	private var currentFontAtlas: SDFFontAtlas? = null
-
 	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload() {
 		renderBuilder?.let { s ->
 			renderer.upload(s.collector)
-			currentFontAtlas = s.fontAtlas
+			_currentFontAtlas = s.fontAtlas
 		} ?: run {
 			renderer.clearData()
-			currentFontAtlas = null
+			_currentFontAtlas = null
 		}
 	}
 
@@ -79,15 +84,14 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 		clear()
 	}
 
-
 	/**
-	 * Render with smooth camera interpolation.
-	 * Computes delta between tick-camera and current-camera in double precision.
+	 * Get renderer/transform pairs for world-space rendering.
+	 * Computes delta between tick-camera and current-camera for smooth interpolation.
 	 */
-	fun render() {
-		val currentCameraPos = mc.gameRenderer?.camera?.pos ?: return
-		val tickCamera = tickCameraPos ?: return
-		if (!renderer.hasData()) return
+	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
+		val currentCameraPos = mc.gameRenderer?.camera?.pos ?: return emptyList()
+		val tickCamera = tickCameraPos ?: return emptyList()
+		if (!renderer.hasData()) return emptyList()
 
 		val modelViewMatrix = RenderMain.modelViewMatrix
 
@@ -100,93 +104,14 @@ class TickedRenderer(val name: String, var depthTest: Boolean = false) {
 		val modelView = Matrix4f(modelViewMatrix).translate(deltaX, deltaY, deltaZ)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
-
-		// Render Faces
-		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
-			RenderSystem.bindDefaultUniforms(pass)
-			pass.setUniform("DynamicTransforms", dynamicTransform)
-			renderer.renderFaces(pass)
-		}
-
-		// Render Edges
-		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
-			RenderSystem.bindDefaultUniforms(pass)
-			pass.setUniform("DynamicTransforms", dynamicTransform)
-			renderer.renderEdges(pass)
-		}
-
-		// Render Text - style params are now embedded in vertex attributes
-		val atlas = currentFontAtlas
-		if (atlas != null && renderer.hasTextData()) {
-			if (!atlas.isUploaded) atlas.upload()
-			val textureView = atlas.textureView
-			val sampler = atlas.sampler
-			if (textureView != null && sampler != null) {
-				RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
-					pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
-					RenderSystem.bindDefaultUniforms(pass)
-					pass.setUniform("DynamicTransforms", dynamicTransform)
-					pass.bindTexture("Sampler0", textureView, sampler)
-					renderer.renderText(pass)
-				}
-			}
-		}
+		
+		return listOf(renderer to dynamicTransform)
 	}
 
 	/**
-	 * Render screen-space geometry. Uses orthographic projection for 2D rendering.
-	 * This should be called after world-space render() for proper layering.
+	 * Get renderers for screen-space rendering.
 	 */
-	fun renderScreen() {
-		val hasDeferredItems = renderBuilder?.deferredItems?.isNotEmpty() == true
-		
-		if (!renderer.hasScreenData() && !hasDeferredItems) return
-
-		RendererUtils.withScreenContext {
-			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
-
-			// Render Screen Faces
-			RegionRenderer.createRenderPass("$name Screen Faces", false)?.use { pass ->
-				pass.setPipeline(RendererUtils.screenFacesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				renderer.renderScreenFaces(pass)
-			}
-
-			// Render Screen Edges
-			RegionRenderer.createRenderPass("$name Screen Edges", false)?.use { pass ->
-				pass.setPipeline(RendererUtils.screenEdgesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				renderer.renderScreenEdges(pass)
-			}
-
-			// Render Screen Text - style params are now embedded in vertex attributes
-			val atlas = currentFontAtlas
-			if (atlas != null && renderer.hasScreenTextData()) {
-				if (!atlas.isUploaded) atlas.upload()
-				val textureView = atlas.textureView
-				val sampler = atlas.sampler
-				if (textureView != null && sampler != null) {
-					RegionRenderer.createRenderPass("$name Screen Text", false)?.use { pass ->
-						pass.setPipeline(RendererUtils.screenTextPipeline)
-						RenderSystem.bindDefaultUniforms(pass)
-						pass.setUniform("DynamicTransforms", dynamicTransform)
-						pass.bindTexture("Sampler0", textureView, sampler)
-						renderer.renderScreenText(pass)
-					}
-				}
-			}
-		}
-		
-		// Render deferred items last (uses Minecraft's DrawContext pipeline)
-		renderBuilder?.deferredItems?.let { items ->
-			if (items.isNotEmpty()) {
-				RendererUtils.renderDeferredItems(items)
-			}
-		}
+	override fun getScreenRenderers(): List<RegionRenderer> {
+		return if (renderer.hasScreenData()) listOf(renderer) else emptyList()
 	}
 }
-

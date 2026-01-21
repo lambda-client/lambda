@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.RenderMain
@@ -62,6 +63,7 @@ object Tracers : Module(
 			renderer.tick()
 			renderer.shapes {
 				world.entities.forEach { entity ->
+					if (entity === player) return@forEach
 					val entityGroup = entity.entityGroup
 					if (entityGroup !in entities) return@forEach
 					val color = if (entity is OtherClientPlayerEntity) {
@@ -88,6 +90,10 @@ object Tracers : Module(
 			}
 			renderer.upload()
 			renderer.render()
+			// Screen rendering handled by ScreenRenderEvent listener below
+		}
+		
+		listen<ScreenRenderEvent> {
 			renderer.renderScreen()
 		}
 	}

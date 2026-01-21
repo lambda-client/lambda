@@ -10,6 +10,7 @@ in vec4 Color;
 in vec2 Direction;   // Line direction vector to OTHER endpoint (length = segment length)
 in float LineWidth;  // Line width in pixels
 in vec4 Dash;        // Dash parameters (dashLength, gapLength, offset, animSpeed)
+in float Layer;      // Layer depth for draw order
 
 // Outputs to fragment shader
 out vec4 v_Color;
@@ -19,6 +20,7 @@ flat out vec2 v_LineEnd;          // Line end point
 flat out float v_LineWidth;       // Line width
 flat out float v_SegmentLength;   // Segment length
 flat out vec4 v_Dash;             // Dash parameters (future: passed from vertex)
+out float v_Layer;                // Layer depth for draw order
 
 void main() {
     // Determine which corner of the quad this vertex is
@@ -64,4 +66,5 @@ void main() {
     v_LineWidth = LineWidth;
     v_SegmentLength = segmentLength;
     v_Dash = Dash;
+    v_Layer = Layer;
 }

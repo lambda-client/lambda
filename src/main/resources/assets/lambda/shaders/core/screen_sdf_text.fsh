@@ -9,6 +9,7 @@ in vec2 texCoord0;
 in vec4 vertexColor;
 // SDF style params from vertex shader: (outlineWidth, glowRadius, shadowSoftness, threshold)
 in vec4 sdfStyleParams;
+in float v_Layer;    // Layer depth for draw order
 
 out vec4 fragColor;
 
@@ -66,4 +67,7 @@ void main() {
 
     // Apply color modulator (no fog for screen-space)
     fragColor = result * ColorModulator;
+    
+    // Use layer as fragment depth for draw order
+    gl_FragDepth = v_Layer;
 }

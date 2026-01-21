@@ -109,13 +109,14 @@ class RegionVertexCollector {
 	// Screen-Space Vertex Types
 	// ============================================================================
 
-	/** Screen-space face vertex data (2D position + color). */
+	/** Screen-space face vertex data (2D position + color + layer). */
 	data class ScreenFaceVertex(
 		val x: Float, val y: Float,
-		val r: Int, val g: Int, val b: Int, val a: Int
+		val r: Int, val g: Int, val b: Int, val a: Int,
+		val layer: Float  // Depth for layering (higher = on top)
 	)
 
-	/** Screen-space edge vertex data (2D position + color + direction + width + dash). */
+	/** Screen-space edge vertex data (2D position + color + direction + width + dash + layer). */
 	data class ScreenEdgeVertex(
 		val x: Float, val y: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int,
@@ -125,12 +126,13 @@ class RegionVertexCollector {
 		val dashLength: Float = 0f,
 		val gapLength: Float = 0f,
 		val dashOffset: Float = 0f,
-		val animationSpeed: Float = 0f
+		val animationSpeed: Float = 0f,
+		val layer: Float = 0f  // Depth for layering (higher = on top)
 	)
 
 	/**
-	 * Screen-space text vertex data with SDF style params.
-	 * Uses SCREEN_TEXT_SDF_FORMAT (position + UV + color + style).
+	 * Screen-space text vertex data with SDF style params and layer.
+	 * Uses SCREEN_TEXT_SDF_FORMAT (position + UV + color + style + layer).
 	 * 
 	 * @param x Screen-space X position
 	 * @param y Screen-space Y position
@@ -144,6 +146,7 @@ class RegionVertexCollector {
 	 * @param glowRadius SDF glow radius (0 = no glow)
 	 * @param shadowSoftness SDF shadow softness (0 = no shadow)
 	 * @param threshold SDF edge threshold (default 0.5)
+	 * @param layer Depth for layering (higher = on top)
 	 */
 	data class ScreenTextVertex(
 		val x: Float, val y: Float,
@@ -153,7 +156,8 @@ class RegionVertexCollector {
 		val outlineWidth: Float = 0f,
 		val glowRadius: Float = 0f,
 		val shadowSoftness: Float = 0f,
-		val threshold: Float = 0.5f
+		val threshold: Float = 0.5f,
+		val layer: Float = 0f  // Depth for layering (higher = on top)
 	)
 
 	/** Add a face vertex. */
@@ -243,26 +247,27 @@ class RegionVertexCollector {
 	// Screen-Space Vertex Add Methods
 	// ============================================================================
 
-	/** Add a screen-space face vertex. */
-	fun addScreenFaceVertex(x: Float, y: Float, color: Color) {
-		screenFaceVertices.add(ScreenFaceVertex(x, y, color.red, color.green, color.blue, color.alpha))
+	/** Add a screen-space face vertex with layer for draw order. */
+	fun addScreenFaceVertex(x: Float, y: Float, color: Color, layer: Float) {
+		screenFaceVertices.add(ScreenFaceVertex(x, y, color.red, color.green, color.blue, color.alpha, layer))
 	}
 
-	/** Add a screen-space edge vertex (solid line). */
-	fun addScreenEdgeVertex(x: Float, y: Float, color: Color, dx: Float, dy: Float, lineWidth: Float) {
-		screenEdgeVertices.add(ScreenEdgeVertex(x, y, color.red, color.green, color.blue, color.alpha, dx, dy, lineWidth))
+	/** Add a screen-space edge vertex (solid line) with layer for draw order. */
+	fun addScreenEdgeVertex(x: Float, y: Float, color: Color, dx: Float, dy: Float, lineWidth: Float, layer: Float) {
+		screenEdgeVertices.add(ScreenEdgeVertex(x, y, color.red, color.green, color.blue, color.alpha, dx, dy, lineWidth, layer = layer))
 	}
 
-	/** Add a screen-space edge vertex with dash style. */
+	/** Add a screen-space edge vertex with dash style and layer for draw order. */
 	fun addScreenEdgeVertex(
 		x: Float, y: Float,
 		color: Color,
 		dx: Float, dy: Float,
 		lineWidth: Float,
-		dashStyle: LineDashStyle?
+		dashStyle: LineDashStyle?,
+		layer: Float
 	) {
 		if (dashStyle == null) {
-			addScreenEdgeVertex(x, y, color, dx, dy, lineWidth)
+			addScreenEdgeVertex(x, y, color, dx, dy, lineWidth, layer)
 		} else {
 			screenEdgeVertices.add(
 				ScreenEdgeVertex(
@@ -273,15 +278,16 @@ class RegionVertexCollector {
 					dashStyle.dashLength,
 					dashStyle.gapLength,
 					dashStyle.offset,
-					if (dashStyle.animated) dashStyle.animationSpeed else 0f
+					if (dashStyle.animated) dashStyle.animationSpeed else 0f,
+					layer
 				)
 			)
 		}
 	}
 
-	/** Add a screen-space text vertex. */
-	fun addScreenTextVertex(x: Float, y: Float, u: Float, v: Float, r: Int, g: Int, b: Int, a: Int) {
-		screenTextVertices.add(ScreenTextVertex(x, y, u, v, r, g, b, a))
+	/** Add a screen-space text vertex with layer for draw order. */
+	fun addScreenTextVertex(x: Float, y: Float, u: Float, v: Float, r: Int, g: Int, b: Int, a: Int, layer: Float) {
+		screenTextVertices.add(ScreenTextVertex(x, y, u, v, r, g, b, a, layer = layer))
 	}
 
 	/**
@@ -458,15 +464,24 @@ class RegionVertexCollector {
 		screenFaceVertices.clear()
 
 		var result: BufferResult? = null
-		BufferAllocator(vertices.size * 12).use { allocator ->
+		// SCREEN_FACE_FORMAT: 12 + 4 + 4 = 20 bytes per vertex
+		BufferAllocator(vertices.size * 24).use { allocator ->
 			val builder = BufferBuilder(
 				allocator,
 				VertexFormat.DrawMode.QUADS,
-				VertexFormats.POSITION_COLOR
+				LambdaVertexFormats.SCREEN_FACE_FORMAT
 			)
 
-			// For screen-space: use x, y, with z = 0
-			vertices.forEach { v -> builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a) }
+			// For screen-space: use x, y, with z = 0, plus layer
+			vertices.forEach { v -> 
+				builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a)
+				
+				// Write layer for draw order
+				val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
+				if (layerPointer != -1L) {
+					MemoryUtil.memPutFloat(layerPointer, v.layer)
+				}
+			}
 
 			builder.endNullable()?.let { built ->
 				val gpuDevice = RenderSystem.getDevice()
@@ -489,8 +504,8 @@ class RegionVertexCollector {
 		screenEdgeVertices.clear()
 
 		var result: BufferResult? = null
-		// Position (12) + Color (4) + Direction (8) + Width (4) + Dash (16) = 44 bytes, round up
-		BufferAllocator(vertices.size * 48).use { allocator ->
+		// Position (12) + Color (4) + Direction (8) + Width (4) + Dash (16) + Layer (4) = 48 bytes
+		BufferAllocator(vertices.size * 52).use { allocator ->
 			val builder = BufferBuilder(
 				allocator,
 				VertexFormat.DrawMode.QUADS,
@@ -521,6 +536,12 @@ class RegionVertexCollector {
 					MemoryUtil.memPutFloat(dashPointer + 8L, v.dashOffset)
 					MemoryUtil.memPutFloat(dashPointer + 12L, v.animationSpeed)
 				}
+
+				// Write layer for draw order
+				val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
+				if (layerPointer != -1L) {
+					MemoryUtil.memPutFloat(layerPointer, v.layer)
+				}
 			}
 
 			builder.endNullable()?.let { built ->
@@ -544,7 +565,7 @@ class RegionVertexCollector {
 		screenTextVertices.clear()
 
 		var result: BufferResult? = null
-		// SCREEN_TEXT_SDF_FORMAT: 12 + 8 + 4 + 16 = 40 bytes per vertex
+		// SCREEN_TEXT_SDF_FORMAT: 12 + 8 + 4 + 16 + 4 = 44 bytes per vertex
 		BufferAllocator(vertices.size * 48).use { allocator ->
 			val builder = BufferBuilder(
 				allocator,
@@ -565,6 +586,12 @@ class RegionVertexCollector {
 					MemoryUtil.memPutFloat(sdfPointer + 4L, v.glowRadius)
 					MemoryUtil.memPutFloat(sdfPointer + 8L, v.shadowSoftness)
 					MemoryUtil.memPutFloat(sdfPointer + 12L, v.threshold)
+				}
+
+				// Write layer for draw order
+				val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
+				if (layerPointer != -1L) {
+					MemoryUtil.memPutFloat(layerPointer, v.layer)
 				}
 			}
 

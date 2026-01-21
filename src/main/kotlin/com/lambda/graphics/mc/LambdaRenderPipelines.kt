@@ -201,12 +201,34 @@ object LambdaRenderPipelines : Loadable {
 		)
 
 	// ============================================================================
-	// Screen-Space Pipelines
+	// Screen-Space Pipelines (with layer-based depth for draw order)
 	// ============================================================================
+
+	/**
+	 * Pipeline for screen-space faces/quads.
+	 * Uses custom shader with layer support for draw order preservation.
+	 */
+	val SCREEN_FACES: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/screen_faces"))
+				.withVertexShader(Identifier.of("lambda", "core/screen_faces"))
+				.withFragmentShader(Identifier.of("lambda", "core/screen_faces"))
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(true)  // Enable depth write for layer ordering
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)  // Enable depth test
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.SCREEN_FACE_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
 
 	/**
 	 * Pipeline for screen-space lines.
 	 * Uses a custom vertex format with 2D direction for perpendicular offset calculation.
+	 * Includes layer support for draw order preservation.
 	 */
 	val SCREEN_LINES: RenderPipeline =
 		RenderPipelines.register(
@@ -215,8 +237,8 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/screen_lines"))
 				.withFragmentShader(Identifier.of("lambda", "core/screen_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
-				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withDepthWrite(true)  // Enable depth write for layer ordering
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)  // Enable depth test
 				.withCull(false)
 				.withVertexFormat(
 					LambdaVertexFormats.SCREEN_LINE_FORMAT,
@@ -228,6 +250,7 @@ object LambdaRenderPipelines : Loadable {
 	/**
 	 * Pipeline for screen-space SDF text rendering.
 	 * Uses custom SDF shader with per-vertex style parameters for anti-aliased text with effects.
+	 * Includes layer support for draw order preservation.
 	 */
 	val SCREEN_TEXT: RenderPipeline =
 		RenderPipelines.register(
@@ -237,8 +260,8 @@ object LambdaRenderPipelines : Loadable {
 				.withFragmentShader(Identifier.of("lambda", "core/screen_sdf_text"))
 				.withSampler("Sampler0")
 				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
-				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withDepthWrite(true)  // Enable depth write for layer ordering
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)  // Enable depth test
 				.withCull(false)
 				.withVertexFormat(
 					LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT,

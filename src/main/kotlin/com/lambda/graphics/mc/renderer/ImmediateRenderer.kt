@@ -22,6 +22,7 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
+import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
@@ -36,11 +37,18 @@ import org.joml.Vector4f
  * Callers are responsible for providing interpolated positions (e.g., using entity.prevX/x 
  * with tickDelta). The tick() method clears builders to allow smooth transitions between frames.
  */
-class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
+class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
 
 	// Current frame builder (being populated this frame)
 	private var renderBuilder: RenderBuilder? = null
+
+	// Font atlas used for current text rendering
+	private var _currentFontAtlas: SDFFontAtlas? = null
+	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
+	
+	override val deferredItems: List<RenderBuilder.ScreenItemRender>?
+		get() = renderBuilder?.deferredItems
 
 	/**
 	 * Get the current camera position for building camera-relative shapes.
@@ -64,17 +72,14 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 		renderBuilder = null
 	}
 
-	// Font atlas used for current text rendering
-	private var currentFontAtlas: SDFFontAtlas? = null
-
 	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload() {
 		renderBuilder?.let { s ->
 			renderer.upload(s.collector)
-			currentFontAtlas = s.fontAtlas
+			_currentFontAtlas = s.fontAtlas
 		} ?: run {
 			renderer.clearData()
-			currentFontAtlas = null
+			_currentFontAtlas = null
 		}
 	}
 
@@ -85,14 +90,13 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 	}
 
 	/**
-	 * Render all geometry. Since coordinates are already camera-relative,
-	 * we just use the base modelView matrix without additional translation.
+	 * Get renderer/transform pairs for world-space rendering.
+	 * Returns single renderer with identity-based transform (camera-relative coords).
 	 */
-	fun render() {
-		if (!renderer.hasData()) return
-
+	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
+		if (!renderer.hasData()) return emptyList()
+		
 		val modelViewMatrix = RenderMain.modelViewMatrix
-
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(
 				modelViewMatrix,
@@ -100,93 +104,14 @@ class ImmediateRenderer(val name: String, var depthTest: Boolean = false) {
 				Vector3f(0f, 0f, 0f),
 				Matrix4f()
 			)
-
-		// Render Faces
-		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
-			RenderSystem.bindDefaultUniforms(pass)
-			pass.setUniform("DynamicTransforms", dynamicTransform)
-			renderer.renderFaces(pass)
-		}
-
-		// Render Edges
-		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
-			RenderSystem.bindDefaultUniforms(pass)
-			pass.setUniform("DynamicTransforms", dynamicTransform)
-			renderer.renderEdges(pass)
-		}
-
-		// Render Text - style params are now embedded in vertex attributes
-		val atlas = currentFontAtlas
-		if (atlas != null && renderer.hasTextData()) {
-			if (!atlas.isUploaded) atlas.upload()
-			val textureView = atlas.textureView
-			val sampler = atlas.sampler
-			if (textureView != null && sampler != null) {
-				RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
-					pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
-					RenderSystem.bindDefaultUniforms(pass)
-					pass.setUniform("DynamicTransforms", dynamicTransform)
-					pass.bindTexture("Sampler0", textureView, sampler)
-					renderer.renderText(pass)
-				}
-			}
-		}
+		
+		return listOf(renderer to dynamicTransform)
 	}
 
 	/**
-	 * Render screen-space geometry. Uses orthographic projection for 2D rendering.
-	 * This should be called after world-space render() for proper layering.
+	 * Get renderers for screen-space rendering.
 	 */
-	fun renderScreen() {
-		val hasDeferredItems = renderBuilder?.deferredItems?.isNotEmpty() == true
-		
-		if (!renderer.hasScreenData() && !hasDeferredItems) return
-
-		RendererUtils.withScreenContext {
-			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
-
-			// Render Screen Faces (no depth test for 2D)
-			RegionRenderer.createRenderPass("$name Screen Faces", false)?.use { pass ->
-				pass.setPipeline(RendererUtils.screenFacesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				renderer.renderScreenFaces(pass)
-			}
-
-			// Render Screen Edges
-			RegionRenderer.createRenderPass("$name Screen Edges", false)?.use { pass ->
-				pass.setPipeline(RendererUtils.screenEdgesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				renderer.renderScreenEdges(pass)
-			}
-
-			// Render Screen Text - style params are now embedded in vertex attributes
-			val atlas = currentFontAtlas
-			if (atlas != null && renderer.hasScreenTextData()) {
-				if (!atlas.isUploaded) atlas.upload()
-				val textureView = atlas.textureView
-				val sampler = atlas.sampler
-				if (textureView != null && sampler != null) {
-					RegionRenderer.createRenderPass("$name Screen Text", false)?.use { pass ->
-						pass.setPipeline(RendererUtils.screenTextPipeline)
-						RenderSystem.bindDefaultUniforms(pass)
-						pass.setUniform("DynamicTransforms", dynamicTransform)
-						pass.bindTexture("Sampler0", textureView, sampler)
-						renderer.renderScreenText(pass)
-					}
-				}
-			}
-		}
-		
-		// Render deferred items last (uses Minecraft's DrawContext pipeline)
-		renderBuilder?.deferredItems?.let { items ->
-			if (items.isNotEmpty()) {
-				RendererUtils.renderDeferredItems(items)
-			}
-		}
+	override fun getScreenRenderers(): List<RegionRenderer> {
+		return if (renderer.hasScreenData()) listOf(renderer) else emptyList()
 	}
 }
-

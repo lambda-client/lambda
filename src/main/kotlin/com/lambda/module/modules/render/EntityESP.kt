@@ -20,6 +20,7 @@ package com.lambda.module.modules.render
 import com.lambda.context.SafeContext
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.module.Module
@@ -161,10 +162,14 @@ object EntityESP : Module(
 
 			esp.upload()
 			esp.render()
-			esp.renderScreen()
+			// Screen rendering handled by ScreenRenderEvent listener below
 
 			// Clear pending labels from previous frame
 			pendingLabels.clear()
+		}
+		
+		listen<ScreenRenderEvent> {
+			esp.renderScreen()
 		}
 
 		// Draw ImGUI labels using pre-computed screen coordinates

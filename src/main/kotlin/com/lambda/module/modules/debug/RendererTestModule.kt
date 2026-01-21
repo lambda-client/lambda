@@ -18,6 +18,7 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.LineDashStyle.Companion.marchingAnts
@@ -128,6 +129,9 @@ object ChunkedRendererTest : Module(
 		listen<RenderEvent.Render> {
 			esp.depthTest = !throughWalls
 			esp.render()
+		}
+		
+		listen<ScreenRenderEvent> {
 			esp.renderScreen()
 		}
 
@@ -152,6 +156,9 @@ object TickedRendererTest : Module(
 	init {
 		listen<RenderEvent.Render> {
 			renderer.render()
+		}
+		
+		listen<ScreenRenderEvent> {
 			renderer.renderScreen()
 		}
 
@@ -322,6 +329,9 @@ object ImmediateRendererTest : Module(
 			
 			renderer.upload()
 			renderer.render()
+		}
+		
+		listen<ScreenRenderEvent> {
 			renderer.renderScreen()
 		}
 

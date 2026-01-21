@@ -25,6 +25,8 @@ import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
+import com.lambda.util.EntityUtils.EntityGroup
+import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.distSq
@@ -32,9 +34,6 @@ import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.decoration.ArmorStandEntity
-import net.minecraft.entity.mob.HostileEntity
-import net.minecraft.entity.passive.PassiveEntity
 import java.util.*
 
 /**
@@ -60,52 +59,7 @@ abstract class Targeting(
      * between 1.0 and [maxRange].
      */
     override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05).group(baseGroup)
-
-    /**
-     * Whether players are included in the targeting scope.
-     */
-    override val players by c.setting("Players", true).group(baseGroup)
-
-    /**
-     * Whether friends are included in the targeting scope.
-     * Requires [players] to be true.
-     */
-    override val friends by c.setting("Friends", false) { players }.group(baseGroup)
-
-    /**
-     * Whether mobs are included in the targeting scope.
-     */
-    private val mobs by c.setting("Mobs", true).group(baseGroup)
-
-    /**
-     * Whether hostile mobs are included in the targeting scope
-     */
-    private val hostilesSetting by c.setting("Hostiles", true) { mobs }.group(baseGroup)
-
-    /**
-     * Whether passive animals are included in the targeting scope
-     */
-    private val animalsSetting by c.setting("Animals", true) { mobs }.group(baseGroup)
-
-    /**
-     * Indicates whether hostile entities are included in the targeting scope.
-     */
-    override val hostiles get() = mobs && hostilesSetting
-
-    /**
-     * Indicates whether passive animals are included in the targeting scope.
-     */
-    override val animals get() = mobs && animalsSetting
-
-    /**
-     * Whether invisible entities are included in the targeting scope.
-     */
-    override val invisible by c.setting("Invisible", true).group(baseGroup)
-
-    /**
-     * Whether dead entities are included in the targeting scope.
-     */
-    override val dead by c.setting("Dead", false).group(baseGroup)
+    override val targets by c.setting("Targets", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries)
 
     /**
      * Validates whether a given entity is targetable by the player based on current settings.
@@ -114,18 +68,8 @@ abstract class Targeting(
      * @param entity The [LivingEntity] being evaluated.
      * @return `true` if the entity is valid for targeting, `false` otherwise.
      */
-    open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
-        !players && entity is OtherClientPlayerEntity -> false
-        players && entity is OtherClientPlayerEntity && entity.isFriend -> false
-        !animals && entity is PassiveEntity -> false
-        !hostiles && entity is HostileEntity -> false
-        entity is ArmorStandEntity -> false
-
-        !invisible && entity.isInvisibleTo(player) -> false
-        !dead && entity.isDead -> false
-
-        else -> true
-    }
+    open fun validate(player: ClientPlayerEntity, entity: LivingEntity) =
+        entity.entityGroup in targets && (entity !is OtherClientPlayerEntity || !entity.isFriend)
 
     /**
      * Subclass for targeting entities specifically for combat purposes.
@@ -160,6 +104,7 @@ abstract class Targeting(
         override fun validate(player: ClientPlayerEntity, entity: LivingEntity): Boolean {
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
             if (entity.uuid in illegalTargets) return false
+            if (entity.isDead) return false
             return super.validate(player, entity)
         }
 
@@ -178,17 +123,10 @@ abstract class Targeting(
 
         private val illegalTargets = setOf(
             UUID(5706954458220675710, -6736729783554821869),
-            UUID(-2945922493004570036, -7599209072395336449)
+            UUID(-6076316721184881576, -7147993044363569449),
+            UUID(-2932596226593701300, -7553629058088633089)
         )
     }
-
-    /**
-     * Subclass for targeting entities for ESP (Extrasensory Perception) purposes.
-     */
-    class ESP(
-        c: Configurable,
-        baseGroup: NamedEnum,
-    ) : Targeting(c, baseGroup, 128.0, 1024.0)
 
     /**
      * Enum representing the different priority factors used for determining the best target.

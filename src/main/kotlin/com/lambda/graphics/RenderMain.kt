@@ -20,6 +20,7 @@ package com.lambda.graphics
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.Matrices
@@ -85,13 +86,15 @@ object RenderMain {
                 ndcY = (ndcY / len) * 3f
             } else {
                 // If almost directly behind, push down (arbitrary direction)
-                ndcY = 3f
+                // With Y-up, negative Y means down
+                ndcY = -3f
             }
         }
 
-        // NDC to normalized 0-1 coordinates (Y is flipped: 0 = top, 1 = bottom)
+        // NDC to normalized 0-1 coordinates 
+        // Y-up convention: 0 = bottom, 1 = top (matches screen rendering)
         val normalizedX = (ndcX + 1f) * 0.5f
-        val normalizedY = (1f - ndcY) * 0.5f
+        val normalizedY = (ndcY + 1f) * 0.5f  // No flip for Y-up
 
         return Vector2f(normalizedX, normalizedY)
     }
@@ -122,6 +125,21 @@ object RenderMain {
 
         RenderEvent.Render.post()
         dynamicESP.render()
+    }
+
+    /**
+     * Render all screen-space elements.
+     * Called after Minecraft's guiRenderer.render() to ensure Lambda's
+     * screen elements appear above all of Minecraft's GUI.
+     */
+    @JvmStatic
+    fun renderScreen() {
+        // Render screen-space elements from the main renderers
+        staticESP.renderScreen()
+        dynamicESP.renderScreen()
+        
+        // Post event for modules with custom renderers
+        ScreenRenderEvent.post()
     }
 
     init {

@@ -27,11 +27,13 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.FontHandler
+import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
+import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
@@ -59,9 +61,10 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class ChunkedRenderer(
 	owner: Module,
 	name: String,
-	var depthTest: Boolean = false,
+	depthTest: Boolean = false,
 	private val update: RenderBuilder.(World, FastVector) -> Unit
-) {
+) : AbstractRenderer(name, depthTest) {
+	
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
 	private val WorldChunk.chunkKey: Long
@@ -72,6 +75,14 @@ class ChunkedRenderer(
 
 	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
+
+	// Font atlas from the default font handler
+	override val currentFontAtlas: SDFFontAtlas
+		get() = FontHandler.getDefaultFont()
+	
+	// ChunkedRenderer doesn't support deferred items (per-chunk geometry only)
+	override val deferredItems: List<RenderBuilder.ScreenItemRender>?
+		get() = null
 
 	private fun getChunkKey(chunkX: Int, chunkZ: Int): Long {
 		return (chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
@@ -108,18 +119,18 @@ class ChunkedRenderer(
 	}
 
 	/**
-	 * Render all chunks with camera-relative translation.
+	 * Get renderer/transform pairs for all active chunks.
+	 * Each chunk has its own renderer and per-chunk transform (chunk-origin to camera).
 	 */
-	fun render() {
-		val cameraPos = mc.gameRenderer?.camera?.pos ?: return
+	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
+		val cameraPos = mc.gameRenderer?.camera?.pos ?: return emptyList()
 
 		val activeChunks = chunkMap.values.filter { it.renderer.hasData() }
-		if (activeChunks.isEmpty()) return
+		if (activeChunks.isEmpty()) return emptyList()
 
 		val modelViewMatrix = RenderMain.modelViewMatrix
 
-		// Pre-compute all transforms BEFORE starting render passes
-		val chunkTransforms = activeChunks.map { chunkData ->
+		return activeChunks.map { chunkData ->
 			// Compute chunk-to-camera offset in double precision
 			val offsetX = (chunkData.originX - cameraPos.x).toFloat()
 			val offsetY = (chunkData.originY - cameraPos.y).toFloat()
@@ -129,108 +140,19 @@ class ChunkedRenderer(
 			val dynamicTransform = RenderSystem.getDynamicUniforms()
 				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
 
-			chunkData to dynamicTransform
-		}
-
-		// Render Faces
-		RegionRenderer.createRenderPass("ChunkedESP Faces", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
-			RenderSystem.bindDefaultUniforms(pass)
-
-			chunkTransforms.forEach { (chunkData, transform) ->
-				pass.setUniform("DynamicTransforms", transform)
-				chunkData.renderer.renderFaces(pass)
-			}
-		}
-
-		// Render Edges
-		RegionRenderer.createRenderPass("ChunkedESP Edges", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
-			RenderSystem.bindDefaultUniforms(pass)
-
-			chunkTransforms.forEach { (chunkData, transform) ->
-				pass.setUniform("DynamicTransforms", transform)
-				chunkData.renderer.renderEdges(pass)
-			}
-		}
-
-		// Render Text - style params are now embedded in vertex attributes
-		val chunksWithText = chunkTransforms.filter { (chunkData, _) -> chunkData.renderer.hasTextData() }
-		if (chunksWithText.isNotEmpty()) {
-			val atlas = FontHandler.getDefaultFont()
-			if (!atlas.isUploaded) atlas.upload()
-			val textureView = atlas.textureView
-			val sampler = atlas.sampler
-			if (textureView != null && sampler != null) {
-				RegionRenderer.createRenderPass("ChunkedESP Text", depthTest)?.use { pass ->
-					pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
-					RenderSystem.bindDefaultUniforms(pass)
-					pass.bindTexture("Sampler0", textureView, sampler)
-
-					chunksWithText.forEach { (chunkData, transform) ->
-						pass.setUniform("DynamicTransforms", transform)
-						chunkData.renderer.renderText(pass)
-					}
-				}
-			}
+			chunkData.renderer to dynamicTransform
 		}
 	}
-
 
 	/**
-	 * Render screen-space geometry for all chunks.
-	 * Uses orthographic projection for 2D rendering.
+	 * Get renderers for screen-space rendering.
+	 * Returns all chunk renderers that have screen data.
 	 */
-	fun renderScreen() {
-		val activeChunks = chunkMap.values.filter { it.renderer.hasScreenData() }
-		if (activeChunks.isEmpty()) return
-
-		RendererUtils.withScreenContext {
-			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
-
-			// Render Screen Faces
-			RegionRenderer.createRenderPass("ChunkedESP Screen Faces", false)?.use { pass ->
-				pass.setPipeline(RendererUtils.screenFacesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				activeChunks.forEach { chunkData ->
-					chunkData.renderer.renderScreenFaces(pass)
-				}
-			}
-
-			// Render Screen Edges
-			RegionRenderer.createRenderPass("ChunkedESP Screen Edges", false)?.use { pass ->
-				pass.setPipeline(RendererUtils.screenEdgesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				activeChunks.forEach { chunkData ->
-					chunkData.renderer.renderScreenEdges(pass)
-				}
-			}
-
-			// Render Screen Text - style params are now embedded in vertex attributes
-			val chunksWithText = activeChunks.filter { it.renderer.hasScreenTextData() }
-			if (chunksWithText.isNotEmpty()) {
-				val atlas = FontHandler.getDefaultFont()
-				if (!atlas.isUploaded) atlas.upload()
-				val textureView = atlas.textureView
-				val sampler = atlas.sampler
-				if (textureView != null && sampler != null) {
-					RegionRenderer.createRenderPass("ChunkedESP Screen Text", false)?.use { pass ->
-						pass.setPipeline(RendererUtils.screenTextPipeline)
-						RenderSystem.bindDefaultUniforms(pass)
-						pass.setUniform("DynamicTransforms", dynamicTransform)
-						pass.bindTexture("Sampler0", textureView, sampler)
-
-						chunksWithText.forEach { chunkData ->
-							chunkData.renderer.renderScreenText(pass)
-						}
-					}
-				}
-			}
-		}
+	override fun getScreenRenderers(): List<RegionRenderer> {
+		return chunkMap.values
+			.filter { it.renderer.hasScreenData() }
+			.map { it.renderer }
 	}
-
 
 	companion object {
 		fun Module.chunkedEsp(
@@ -328,4 +250,3 @@ class ChunkedRenderer(
 		}
 	}
 }
-

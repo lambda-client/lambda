@@ -141,16 +141,45 @@ object LambdaVertexFormats {
     )
 
     /**
-     * Screen-space line format with dash support.
-     * Layout: Position (vec3), Color (vec4), Direction2D (vec2), LineWidth (float), Dash (vec4)
+     * Layer depth element for screen-space ordering.
+     * Contains a single float representing the draw order (higher = on top).
+     */
+    val LAYER_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        24, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        1   // count (single float: layer depth)
+    )
+
+    /**
+     * Screen-space face format with layer support for draw order preservation.
+     * Layout: Position (vec3), Color (vec4), Layer (float)
      *
-     * Total size: 12 + 4 + 8 + 4 + 16 = 44 bytes
+     * Total size: 12 + 4 + 4 = 20 bytes
+     *
+     * - Position: Screen-space position (x, y, z=0) (3 floats = 12 bytes)
+     * - Color: RGBA color (4 bytes)
+     * - Layer: Depth for layering (1 float = 4 bytes)
+     */
+    val SCREEN_FACE_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("Layer", LAYER_ELEMENT)
+        .build()
+
+    /**
+     * Screen-space line format with dash support and layer for draw order.
+     * Layout: Position (vec3), Color (vec4), Direction2D (vec2), LineWidth (float), Dash (vec4), Layer (float)
+     *
+     * Total size: 12 + 4 + 8 + 4 + 16 + 4 = 48 bytes
      *
      * - Position: Screen-space position (x, y, z where z = 0) (3 floats = 12 bytes)
      * - Color: RGBA color (4 bytes)
      * - Direction2D: Line direction for perpendicular offset (2 floats = 8 bytes)
      * - LineWidth: Line width in pixels (1 float = 4 bytes)
      * - Dash: vec4(dashLength, gapLength, dashOffset, animationSpeed) (4 floats = 16 bytes)
+     * - Layer: Depth for layering (1 float = 4 bytes)
      */
     val SCREEN_LINE_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
@@ -158,6 +187,7 @@ object LambdaVertexFormats {
         .add("Direction", DIRECTION_2D_ELEMENT)
         .add("LineWidth", LINE_WIDTH_FLOAT)
         .add("Dash", DASH_ELEMENT)
+        .add("Layer", LAYER_ELEMENT)
         .build()
 
     // ============================================================================
@@ -202,21 +232,23 @@ object LambdaVertexFormats {
         .build()
 
     /**
-     * Screen-space text format with SDF style parameters.
-     * Layout: Position (vec3), UV0 (vec2), Color (vec4), SDFStyle (vec4)
+     * Screen-space text format with SDF style parameters and layer for draw order.
+     * Layout: Position (vec3), UV0 (vec2), Color (vec4), SDFStyle (vec4), Layer (float)
      * 
-     * Total size: 12 + 8 + 4 + 16 = 40 bytes
+     * Total size: 12 + 8 + 4 + 16 + 4 = 44 bytes
      * 
      * - Position: Screen-space position (x, y, z=0) (3 floats = 12 bytes)
      * - UV0: Texture coordinates (2 floats = 8 bytes)
      * - Color: RGBA color with alpha encoding layer type (4 bytes)
      * - SDFStyle: vec4(outlineWidth, glowRadius, shadowSoftness, threshold) (4 floats = 16 bytes)
+     * - Layer: Depth for layering (1 float = 4 bytes)
      */
     val SCREEN_TEXT_SDF_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
         .add("SDFStyle", SDF_STYLE_ELEMENT)
+        .add("Layer", LAYER_ELEMENT)
         .build()
 }
 

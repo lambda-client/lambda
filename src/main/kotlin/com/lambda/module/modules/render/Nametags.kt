@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.module.modules.render
 
-import com.lambda.util.EntityUtils
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
 
-interface TargetingConfig {
-    val targetingRange: Double
-    val targets: Collection<EntityUtils.EntityGroup>
+object Nametags : Module(
+	name = "Nametags",
+	description = "Displays information about entities above them",
+	tag = ModuleTag.RENDER
+) {
+//	private val
 }

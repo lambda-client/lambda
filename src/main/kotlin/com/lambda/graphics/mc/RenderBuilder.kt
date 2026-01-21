@@ -22,6 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.graphics.util.DirectionMask
+import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
@@ -45,6 +46,25 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		private set
 
 	// Style grouping maps removed - style is now embedded in each text vertex
+
+	// ============================================================================
+	// Screen-Space Layer Tracking
+	// ============================================================================
+	// Layer depth for screen-space ordering. Higher values render on top.
+	// Range: 0.0 to ~1.0, incrementing with each screen draw call.
+	
+	/** Current layer depth for screen-space ordering */
+	private var currentLayer = 0f
+	
+	/** Increment per screen draw call (~10,000 possible layers) */
+	private val layerIncrement = 0.0001f
+	
+	/** Get and increment the current layer depth */
+	private fun nextLayer(): Float {
+		val layer = currentLayer
+		currentLayer += layerIncrement
+		return layer
+	}
 
 	/**
 	 * Deferred ItemStack renders to be drawn via Minecraft's DrawContext.
@@ -356,8 +376,8 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	// Screen-Space Rendering Methods (Normalized Coordinates)
 	// ============================================================================
 	// All coordinates use normalized 0-1 range:
-	// - (0, 0) = top-left corner
-	// - (1, 1) = bottom-right corner
+	// - (0, 0) = bottom-left corner
+	// - (1, 1) = top-right corner
 	// - Sizes are also normalized (e.g., 0.1 = 10% of screen dimension)
 
 	/** Get screen width in pixels (uses MC's scaled width). */
@@ -397,10 +417,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		x3: Float, y3: Float, c3: Color,
 		x4: Float, y4: Float, c4: Color
 	) {
-		collector.addScreenFaceVertex(toPixelX(x1), toPixelY(y1), c1)
-		collector.addScreenFaceVertex(toPixelX(x2), toPixelY(y2), c2)
-		collector.addScreenFaceVertex(toPixelX(x3), toPixelY(y3), c3)
-		collector.addScreenFaceVertex(toPixelX(x4), toPixelY(y4), c4)
+		val layer = nextLayer()
+		collector.addScreenFaceVertex(toPixelX(x1), toPixelY(y1), c1, layer)
+		collector.addScreenFaceVertex(toPixelX(x2), toPixelY(y2), c2, layer)
+		collector.addScreenFaceVertex(toPixelX(x3), toPixelY(y3), c3, layer)
+		collector.addScreenFaceVertex(toPixelX(x4), toPixelY(y4), c4, layer)
 	}
 
 	/**
@@ -420,7 +441,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	 * All values use normalized 0-1 range.
 	 *
 	 * @param x Left edge (0-1, where 0 = left, 1 = right)
-	 * @param y Top edge (0-1, where 0 = top, 1 = bottom)
+	 * @param y Bottom edge (0-1, where 0 = bottom, 1 = top)
 	 * @param width Rectangle width (0-1, where 1 = full screen width)
 	 * @param height Rectangle height (0-1, where 1 = full screen height)
 	 * @param color Fill color
@@ -436,7 +457,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	 * All values use normalized 0-1 range.
 	 *
 	 * @param x Left edge (0-1)
-	 * @param y Top edge (0-1)
+	 * @param y Bottom edge (0-1, where 0 = bottom, 1 = top)
 	 * @param width Rectangle width (0-1)
 	 * @param height Rectangle height (0-1)
 	 * @param topLeft Color at top-left corner
@@ -492,11 +513,14 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			)
 		}
 
+		// Get layer for draw order
+		val layer = nextLayer()
+
 		// 4 vertices for screen-space line quad
-		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle)
-		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle)
-		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle)
-		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle)
+		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle, layer)
+		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle, layer)
+		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle, layer)
+		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle, layer)
 	}
 
 	/**
@@ -561,39 +585,45 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val startX = -textWidth / 2f
 
 		// Render layers in order: shadow -> glow -> outline -> main text
+		// Each layer gets its own draw depth so they render in correct order
 		// Alpha encodes layer type for shader
 
 		// Shadow layer
 		if (style.shadow != null) {
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX * pixelSize
-			val offsetY = style.shadow.offsetY * pixelSize
+			// Negate offsetY for Y-up coordinate system (shadow should appear below text)
+			val offsetY = -style.shadow.offsetY * pixelSize
+			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX + offsetX, offsetY,
 				shadowColor.red, shadowColor.green, shadowColor.blue, 25,
-				pixelX, pixelY, pixelSize, style)
+				pixelX, pixelY, pixelSize, style, layer)
 		}
 
 		// Glow layer
 		if (style.glow != null) {
 			val glowColor = style.glow.color
+			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX, 0f,
 				glowColor.red, glowColor.green, glowColor.blue, 75,
-				pixelX, pixelY, pixelSize, style)
+				pixelX, pixelY, pixelSize, style, layer)
 		}
 
 		// Outline layer
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
+			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX, 0f,
 				outlineColor.red, outlineColor.green, outlineColor.blue, 150,
-				pixelX, pixelY, pixelSize, style)
+				pixelX, pixelY, pixelSize, style, layer)
 		}
 
 		// Main text layer
 		val mainColor = style.color
+		val mainLayer = nextLayer()
 		buildScreenTextQuads(atlas, text, startX, 0f,
 			mainColor.red, mainColor.green, mainColor.blue, 255,
-			pixelX, pixelY, pixelSize, style)
+			pixelX, pixelY, pixelSize, style, mainLayer)
 	}
 
 	/**
@@ -608,7 +638,8 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		r: Int, g: Int, b: Int, a: Int,
 		anchorX: Float, anchorY: Float,
 		pixelSize: Float,  // Final text size in pixels
-		style: SDFStyle
+		style: SDFStyle,
+		layer: Float  // Layer depth for draw order
 	) {
 		// Extract SDF style params from SDFStyle object
 		val outlineWidth = style.outline?.width ?: 0f
@@ -624,12 +655,15 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val glyph = atlas.getGlyph(char.code) ?: continue
 
 			// bearingX/Y are already normalized, just multiply by pixelSize
+			// bearingY is the distance from baseline to glyph top, so with Y-up:
+			// - glyph top is at baseline + bearingY
+			// - glyph bottom is at baseline + bearingY - height
 			val localX0 = penX + glyph.bearingX
-			val localY0 = -glyph.bearingY  // Y flipped for screen (down = positive)
+			val localY1 = glyph.bearingY  // Top of glyph (Y-up)
 			
 			// width/height are in pixels, need normalization
 			val localX1 = localX0 + glyph.width / atlas.baseSize
-			val localY1 = localY0 + glyph.height / atlas.baseSize
+			val localY0 = localY1 - glyph.height / atlas.baseSize  // Bottom of glyph
 
 			// Scale to final pixels and add anchor + offsets
 			val x0 = anchorX + startX + localX0 * pixelSize
@@ -638,14 +672,15 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val y1 = anchorY + startY + localY1 * pixelSize
 
 			// Screen-space text uses simple 2D quads - add directly to collector with style params
+			// Quad winding: bottom-left, bottom-right, top-right, top-left (CCW for Y-up)
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x0, y1, glyph.u0, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+				x0, y0, glyph.u0, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x1, y1, glyph.u1, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+				x1, y0, glyph.u1, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x1, y0, glyph.u1, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+				x1, y1, glyph.u1, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x0, y0, glyph.u0, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold))
+				x0, y1, glyph.u0, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 
 			// advance is already normalized, just add it
 			penX += glyph.advance
@@ -738,9 +773,162 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	}
 
 	private fun BoxBuilder.boxFaces(box: Box) {
+		// We need to call the internal methods, so we'll use filled() with interpolated colors
+		// For per-vertex colors on faces, we need direct access to the collector
+
+		if (fillSides.hasDirection(DirectionMask.EAST)) {
+			// East face (+X): uses NE and SE corners
+			filledQuadGradient(
+				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
+				box.maxX, box.maxY, box.minZ, fillTopNorthEast,
+				box.maxX, box.maxY, box.maxZ, fillTopSouthEast,
+				box.maxX, box.minY, box.maxZ, fillBottomSouthEast
+			)
+		}
+		if (fillSides.hasDirection(DirectionMask.WEST)) {
+			// West face (-X): uses NW and SW corners
+			filledQuadGradient(
+				box.minX, box.minY, box.minZ, fillBottomNorthWest,
+				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
+				box.minX, box.maxY, box.maxZ, fillTopSouthWest,
+				box.minX, box.maxY, box.minZ, fillTopNorthWest
+			)
+		}
+		if (fillSides.hasDirection(DirectionMask.UP)) {
+			// Top face (+Y): uses all top corners
+			filledQuadGradient(
+				box.minX, box.maxY, box.minZ, fillTopNorthWest,
+				box.minX, box.maxY, box.maxZ, fillTopSouthWest,
+				box.maxX, box.maxY, box.maxZ, fillTopSouthEast,
+				box.maxX, box.maxY, box.minZ, fillTopNorthEast
+			)
+		}
+		if (fillSides.hasDirection(DirectionMask.DOWN)) {
+			// Bottom face (-Y): uses all bottom corners
+			filledQuadGradient(
+				box.minX, box.minY, box.minZ, fillBottomNorthWest,
+				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
+				box.maxX, box.minY, box.maxZ, fillBottomSouthEast,
+				box.minX, box.minY, box.maxZ, fillBottomSouthWest
+			)
+		}
+		if (fillSides.hasDirection(DirectionMask.SOUTH)) {
+			// South face (+Z): uses SW and SE corners
+			filledQuadGradient(
+				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
+				box.maxX, box.minY, box.maxZ, fillBottomSouthEast,
+				box.maxX, box.maxY, box.maxZ, fillTopSouthEast,
+				box.minX, box.maxY, box.maxZ, fillTopSouthWest
+			)
+		}
+		if (fillSides.hasDirection(DirectionMask.NORTH)) {
+			// North face (-Z): uses NW and NE corners
+			filledQuadGradient(
+				box.minX, box.minY, box.minZ, fillBottomNorthWest,
+				box.minX, box.maxY, box.minZ, fillTopNorthWest,
+				box.maxX, box.maxY, box.minZ, fillTopNorthEast,
+				box.maxX, box.minY, box.minZ, fillBottomNorthEast
+			)
+		}
 	}
 
 	private fun BoxBuilder.boxOutline(box: Box) {
+		val hasEast = outlineSides.hasDirection(DirectionMask.EAST)
+		val hasWest = outlineSides.hasDirection(DirectionMask.WEST)
+		val hasUp = outlineSides.hasDirection(DirectionMask.UP)
+		val hasDown = outlineSides.hasDirection(DirectionMask.DOWN)
+		val hasSouth = outlineSides.hasDirection(DirectionMask.SOUTH)
+		val hasNorth = outlineSides.hasDirection(DirectionMask.NORTH)
+
+		// Top edges (all use top vertex colors)
+		if (outlineMode.check(hasUp, hasNorth)) {
+			lineGradient(
+				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
+				box.maxX, box.maxY, box.minZ, outlineTopNorthEast,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasUp, hasSouth)) {
+			lineGradient(
+				box.minX, box.maxY, box.maxZ, outlineTopSouthWest,
+				box.maxX, box.maxY, box.maxZ, outlineTopSouthEast,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasUp, hasWest)) {
+			lineGradient(
+				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
+				box.minX, box.maxY, box.maxZ, outlineTopSouthWest,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasUp, hasEast)) {
+			lineGradient(
+				box.maxX, box.maxY, box.maxZ, outlineTopSouthEast,
+				box.maxX, box.maxY, box.minZ, outlineTopNorthEast,
+				lineWidth, dashStyle
+			)
+		}
+
+		// Bottom edges (all use bottom vertex colors)
+		if (outlineMode.check(hasDown, hasNorth)) {
+			lineGradient(
+				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
+				box.maxX, box.minY, box.minZ, outlineBottomNorthEast,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasDown, hasSouth)) {
+			lineGradient(
+				box.minX, box.minY, box.maxZ, outlineBottomSouthWest,
+				box.maxX, box.minY, box.maxZ, outlineBottomSouthEast,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasDown, hasWest)) {
+			lineGradient(
+				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
+				box.minX, box.minY, box.maxZ, outlineBottomSouthWest,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasDown, hasEast)) {
+			lineGradient(
+				box.maxX, box.minY, box.minZ, outlineBottomNorthEast,
+				box.maxX, box.minY, box.maxZ, outlineBottomSouthEast,
+				lineWidth, dashStyle
+			)
+		}
+
+		// Vertical edges (gradient from top to bottom)
+		if (outlineMode.check(hasWest, hasNorth)) {
+			lineGradient(
+				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
+				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasNorth, hasEast)) {
+			lineGradient(
+				box.maxX, box.maxY, box.minZ, outlineTopNorthEast,
+				box.maxX, box.minY, box.minZ, outlineBottomNorthEast,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasEast, hasSouth)) {
+			lineGradient(
+				box.maxX, box.maxY, box.maxZ, outlineTopSouthEast,
+				box.maxX, box.minY, box.maxZ, outlineBottomSouthEast,
+				lineWidth, dashStyle
+			)
+		}
+		if (outlineMode.check(hasSouth, hasWest)) {
+			lineGradient(
+				box.minX, box.maxY, box.maxZ, outlineTopSouthWest,
+				box.minX, box.minY, box.maxZ, outlineBottomSouthWest,
+				lineWidth, dashStyle
+			)
+		}
 	}
 
 	/** Draw a line with world coordinates - handles relative conversion internally */
@@ -803,7 +991,9 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	data class SDFShadow(
 		val color: Color = Color(0, 0, 0, 180),
 		val offset: Float = 0.05f, // Distance in text units
-		val angle: Float = 135f, // Angle in degrees: 0=right, 90=down, 180=left, 270=up (default: bottom-right)
+		// Angle in degrees: 0=right, 90=up, 180=left, 270=down (for screen text with Y-up)
+		// For world text, angle is applied in local text space before billboarding
+		val angle: Float = 135f, // Default: bottom-right (45° below horizontal)
 		val softness: Float = 0.15f // Shadow blur in SDF units
 	) {
 		/** X offset computed from angle and distance */
