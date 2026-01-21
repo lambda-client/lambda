@@ -54,7 +54,6 @@ object Printer : Module(
 				editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
 				editTyped(breakConfig::efficientOnly, breakConfig::suitableToolsOnly) { defaultValue(false) }
 				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
-                inventoryConfig::immediateAccessOnly.edit { defaultValue(true) }
 			}
 		}
 

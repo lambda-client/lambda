@@ -301,8 +301,8 @@ object EventFlow {
      * @return `true` if the listener should not be notified, `false` otherwise.
      */
     private fun <T : Event> shouldNotNotify(listener: Listener<T>, event: Event) =
-        listener.owner is Muteable
-                && (listener.owner as Muteable).isMuted
-                && !listener.alwaysListen
-                || event is ICancellable && event.isCanceled()
+        (listener.owner is Muteable &&
+                (listener.owner as Muteable).isMuted &&
+                !listener.alwaysListen) ||
+                (event is ICancellable && event.isCanceled())
 }

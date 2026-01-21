@@ -32,7 +32,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.InputUtils.isKeyPressed
+import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -70,7 +70,6 @@ object Scaffold : Module(
 						::swapWithDisposables,
 						::providerPriority,
 						::storePriority,
-						::immediateAccessOnly,
 						::accessShulkerBoxes,
 						::accessEnderChest,
 						::accessChests,
@@ -85,7 +84,7 @@ object Scaffold : Module(
             val playerSupport = player.blockPos.down()
             val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
             if (alreadySupported) return@listen
-            val offset = if (isKeyPressed(descend.key)) descendAmount else 0
+            val offset = if (descend.isSatisfied()) descendAmount else 0
             val beneath = playerSupport.down(offset)
             runSafeAutomated {
                 scaffoldPositions(beneath)

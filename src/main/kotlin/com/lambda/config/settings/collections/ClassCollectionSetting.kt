@@ -34,7 +34,8 @@ class ClassCollectionSetting<T : Any>(
 ) : CollectionSetting<T>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Any::class.java).type
+	TypeToken.getParameterized(Collection::class.java, Any::class.java).type,
+	serialize = false,
 ) {
 	context(setting: Setting<*, MutableCollection<T>>)
 	override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.className }

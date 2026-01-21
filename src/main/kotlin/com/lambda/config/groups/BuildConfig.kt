@@ -34,8 +34,8 @@ interface BuildConfig : ISettingGroup {
     val actionTimeout: Int
     val maxBuildDependencies: Int
 
-    val entityReach: Double
     val blockReach: Double
+    val entityReach: Double
     val scanReach: Double
 
     val checkSideVisibility: Boolean

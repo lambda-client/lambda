@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@ import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 
 val ScreenHandler.containerSlots: List<Slot> get() = slots.filter { it.inventory is SimpleInventory }
-val ScreenHandler.inventorySlots: List<Slot> get() = slots.filter { it.inventory is PlayerInventory }
+val ScreenHandler.playerSlots: List<Slot> get() = slots.filter { it.inventory is PlayerInventory }
 val ScreenHandler.craftingSlots: List<Slot> get() = slots.filter { it.inventory is CraftingInventory }
 
 val ScreenHandler.containerStacks: List<ItemStack> get() = containerSlots.map { it.stack }
-val ScreenHandler.inventoryStacks: List<ItemStack> get() = inventorySlots.map { it.stack }
+val ScreenHandler.playerStacks: List<ItemStack> get() = playerSlots.map { it.stack }

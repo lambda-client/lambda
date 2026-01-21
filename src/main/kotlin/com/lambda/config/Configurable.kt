@@ -42,6 +42,7 @@ import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.config.settings.numeric.FloatSetting
 import com.lambda.config.settings.numeric.IntegerSetting
 import com.lambda.config.settings.numeric.LongSetting
+import com.lambda.event.Muteable
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
@@ -157,12 +158,13 @@ abstract class Configurable(
         immutableList: Collection<T> = defaultValue,
         description: String = "",
         displayClassName: Boolean = false,
+        serialize: Boolean = false,
         noinline visibility: () -> Boolean = { true },
     ) = Setting(
 	    name,
 	    description,
         if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type),
+                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
 		this,
 	    visibility
 	).register()
@@ -228,15 +230,19 @@ abstract class Configurable(
         name: String,
         defaultValue: Bind,
         description: String = "",
+        alwaysListening: Boolean = false,
+        screenCheck: Boolean = true,
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue), this, visibility).register()
+    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
 
     fun setting(
         name: String,
         defaultValue: KeyCode,
         description: String = "",
+        alwaysListening: Boolean = false,
+        screenCheck: Boolean = true,
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue), this, visibility).register()
+    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
 
     fun setting(
         name: String,

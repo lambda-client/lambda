@@ -57,7 +57,7 @@ import net.minecraft.util.math.Vec3d
 object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
-    tag = ModuleTag.PLAYER,
+    tag = ModuleTag.RENDER,
     autoDisable = true,
 ) {
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s")

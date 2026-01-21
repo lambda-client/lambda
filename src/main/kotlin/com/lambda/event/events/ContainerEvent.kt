@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container.containers
+package com.lambda.event.events
 
-import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.player.SlotUtils.inventorySlots
-import com.lambda.util.player.SlotUtils.inventoryStacks
-import com.lambda.util.text.buildText
-import com.lambda.util.text.literal
-import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object InventoryContainer : MaterialContainer(Rank.Inventory) {
-    context(safeContext: SafeContext)
-    override val slots: List<Slot>
-        get() = safeContext.player.inventorySlots
-    override var stacks: List<ItemStack>
-        get() = mc.player?.inventoryStacks ?: emptyList()
-        set(_) {}
-
-    override val description = buildText { literal("Inventory") }
+sealed class ContainerEvent {
+	data class Transfer(
+		val fromSlot: Slot,
+		val toSlot: Slot,
+		val from: MaterialContainer,
+		val to: MaterialContainer
+	) : ICancellable by Cancellable()
 }

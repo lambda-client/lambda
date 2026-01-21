@@ -20,9 +20,9 @@ package com.lambda.gui.components
 import com.lambda.Lambda.mc
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.GuiConfig
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
-import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.DearImGui
 import com.lambda.gui.LambdaScreen
@@ -63,7 +63,12 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	override val name = "GUI"
 	var open = false
 	var developerMode = false
-	val keybind by setting("Keybind", KeyCode.Y)
+	val keybind by setting("Keybind", KeyCode.Y, screenCheck = false)
+		.onPress {
+			if (!open && mc.currentScreen != null) return@onPress
+			if (DearImGui.io.wantTextInput) return@onPress
+			toggle()
+		}
 	private var initialLayoutComplete = false
 	private var frameCount = 0
 	private var activeDragWindowName: String? = null
@@ -342,16 +347,6 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 					ImPlot.showDemoWindow()
 				}
 			}
-		}
-
-		listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
-			if (!event.isPressed) return@listen
-			if (mc.options.commandKey.isPressed) return@listen
-			if (!event.satisfies(keybind)) return@listen
-			if (!open && mc.currentScreen != null) return@listen
-			if (open && DearImGui.io.wantTextInput) return@listen
-
-			toggle()
 		}
 	}
 

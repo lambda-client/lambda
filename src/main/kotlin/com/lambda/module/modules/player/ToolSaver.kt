@@ -19,16 +19,17 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.inventorySlots
-import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
@@ -67,7 +68,8 @@ object ToolSaver : Module(
 					}.thenByDescending {
 						it.stack.isEmpty
 					}.thenByDescending {
-						(it.stack.item as? BlockItem)?.block in inventoryConfig.disposables
+						it.stack.item in inventoryConfig.disposables
+					}.thenByDescending {
 						it.stack.isStackable
 					}
 					val swapWith = inventorySlots
@@ -78,6 +80,8 @@ object ToolSaver : Module(
 					endangered to swapWith
 				}
 
+			if (swaps.isEmpty()) return@listen
+
 			inventoryRequest {
 				swaps.forEach {
 					pickup(it.first.id)
@@ -86,6 +90,11 @@ object ToolSaver : Module(
 						pickup(it.first.id)
 				}
 			}.submit()
+		}
+
+		listen<ContainerEvent.Transfer> { event ->
+			if (event.to is HotbarContainer && event.fromSlot.stack.isEndangered) event.cancel()
+			else if (event.from is HotbarContainer && event.toSlot.stack.isEndangered) event.cancel()
 		}
 	}
 

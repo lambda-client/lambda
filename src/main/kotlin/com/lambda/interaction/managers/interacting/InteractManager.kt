@@ -256,7 +256,7 @@ object InteractManager : Manager<InteractRequest>(
 			) {
 			ActionResult.PASS
 	    } else {
-		    val item = itemStack.blockItem
+		    val item = itemStack.blockItem ?: return ActionResult.FAIL
 		    place(interactContext, request, hand, hitResult, item, ItemPlacementContext(context))
 	    }
     }

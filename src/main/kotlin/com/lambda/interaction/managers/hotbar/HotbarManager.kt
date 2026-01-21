@@ -93,7 +93,7 @@ object HotbarManager : Manager<HotbarRequest>(
      * @see setActiveSlot
      */
     override fun AutomatedSafeContext.handleRequest(request: HotbarRequest) {
-
+        if (request.slot !in 0..8) return
         if (request.nowOrNothing && tickStage !in hotbarConfig.tickStageMask) return
 
         activeRequest?.let { active ->

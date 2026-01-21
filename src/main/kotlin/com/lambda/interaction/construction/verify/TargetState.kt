@@ -34,7 +34,7 @@ import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-sealed class TargetState() : StateMatcher {
+sealed class TargetState : StateMatcher {
     data object Empty : TargetState() {
         override fun toString() = "Empty"
 
@@ -87,7 +87,7 @@ sealed class TargetState() : StateMatcher {
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
-                    it.item.block in inventoryConfig.disposables && it.item.block !in replace
+                    it.item in inventoryConfig.disposables && it.item.block !in replace
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
@@ -114,7 +114,7 @@ sealed class TargetState() : StateMatcher {
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
                 findDisposable()?.stacks?.firstOrNull {
-                    it.item.block in inventoryConfig.disposables
+                    it.item in inventoryConfig.disposables
                 } ?: ItemStack(Items.NETHERRACK)
             }
 
@@ -165,8 +165,7 @@ sealed class TargetState() : StateMatcher {
     }
 
     data class Stack(val itemStack: ItemStack) : TargetState() {
-        private val startStack: ItemStack = itemStack.copy()
-        override fun toString() = "Stack of ${startStack.item.name.string.capitalize()}"
+        override fun toString() = "Stack of ${itemStack.item.name.string.capitalize()}"
 
         private val block = itemStack.item.block
 
