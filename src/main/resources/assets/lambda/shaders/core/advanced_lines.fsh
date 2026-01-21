@@ -58,15 +58,30 @@ void main() {
     // SDF: distance to capsule surface (positive = outside, negative = inside)
     float sdf = dist3D - radius;
     
-    // Calculate AA width from screen-space derivatives of expanded position
-    float aaWidth = length(vec2(fwidth(v_ExpandedPos.x), fwidth(v_ExpandedPos.y)));
+    // Use fwidth(sdf) for AA - this measures how fast the SDF changes per pixel,
+    // which is stable regardless of viewing angle. When looking down the line,
+    // the SDF change per pixel remains consistent because we care about the
+    // perpendicular distance to the capsule surface, not world-space position.
+    float sdfGrad = fwidth(sdf);
     
-    // Adaptive AA: thin lines get softer edges, thick lines get crisp edges
-    // Below 2px width, scale up AA for smooth thin lines; above 2px, use tight 0.5px AA
-    float thinness = clamp(1.0 - v_LineWidth / (2.0 * aaWidth), 0.0, 1.0);
-    float adaptiveAA = mix(aaWidth * 0.5, aaWidth * 1.5, thinness);
+    // Calculate screen-space line width in pixels (diameter)
+    float screenLineWidth = (radius * 2.0) / max(sdfGrad, 0.0001);
     
-    float alpha = 1.0 - smoothstep(-adaptiveAA, adaptiveAA, sdf);
+    // For sub-pixel lines: fade alpha based on line width
+    // This allows lines to naturally disappear at distance
+    float coverageFactor = clamp(screenLineWidth, 0.0, 1.0);
+    
+    // Adaptive AA using consistent sdfGrad units:
+    // - Thick lines (>4px): crisp edges with 0.5px AA on each side
+    // - Thin lines (<2px): soft edges with 1.5px AA on each side
+    // All in screen-space for consistency
+    float thinness = clamp(1.0 - (screenLineWidth - 2.0) / 2.0, 0.0, 1.0);
+    float aaWidth = mix(sdfGrad * 0.5, sdfGrad * 1.5, thinness);
+    
+    float alpha = 1.0 - smoothstep(-aaWidth, aaWidth, sdf);
+    
+    // Apply coverage factor to fade sub-pixel lines
+    alpha *= coverageFactor;
     
     // Skip fragments outside the line
     if (alpha < 0.004) {
