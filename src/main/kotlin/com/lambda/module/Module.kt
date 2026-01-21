@@ -28,6 +28,7 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.updateListenerSorting
 import com.lambda.event.Muteable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
