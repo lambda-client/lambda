@@ -25,5 +25,4 @@ object Nametags : Module(
 	description = "Displays information about entities above them",
 	tag = ModuleTag.RENDER
 ) {
-//	private val
 }

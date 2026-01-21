@@ -129,8 +129,10 @@ object RenderMain {
 
     /**
      * Render all screen-space elements.
-     * Called after Minecraft's guiRenderer.render() to ensure Lambda's
-     * screen elements appear above all of Minecraft's GUI.
+     * Called after Minecraft's InGameHud.render() but before overlays/screens.
+     * Lambda screen elements appear:
+     * - Above: hotbar, held items, health bars
+     * - Below: inventory GUI, chat, escape menu
      */
     @JvmStatic
     fun renderScreen() {

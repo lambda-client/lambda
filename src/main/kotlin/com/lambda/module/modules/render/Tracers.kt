@@ -21,7 +21,7 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager.isFriend
-import com.lambda.graphics.RenderMain
+import com.lambda.graphics.RenderMain.worldToScreenNormalized
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -32,6 +32,7 @@ import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.dist
 import com.lambda.util.math.lerp
 import net.minecraft.client.network.OtherClientPlayerEntity
+import org.joml.Vector2f
 import org.joml.component1
 import org.joml.component2
 import java.awt.Color
@@ -41,9 +42,11 @@ object Tracers : Module(
 	description = "Draws lines to entities within the world",
 	tag = ModuleTag.RENDER
 ) {
-	private val friendColor by setting("Friend Color", Color.BLUE)
 	private val width by setting("Width", 1, 1..50, 1)
+	private val target by setting("Target", TracerMode.Feet)
+	private val stem by setting("Stem", true)
 	private val entities by setting("Entities", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries)
+	private val friendColor by setting("Friend Color", Color.BLUE)
 	private val playerDistanceGradient by setting("Player Distance Gradient", true) { EntityGroup.Player in entities }
 	private val playerDistanceColorFar by setting("Player Far Color", Color.GREEN) { EntityGroup.Player in entities && playerDistanceGradient }
 	private val playerDistanceColorClose by setting("Player Close Color", Color.RED) { EntityGroup.Player in entities && playerDistanceGradient }
@@ -84,17 +87,38 @@ object Tracers : Module(
 						EntityGroup.Boss -> bossColor
 						else -> miscColor
 					}
-					val (toX, toY) = RenderMain.worldToScreenNormalized(lerp(mc.tickDelta, entity.prevPos, entity.pos)) ?: return@forEach
+					val lerpedPos = lerp(mc.tickDelta, entity.prevPos, entity.pos)
+					val lerpedEyePos = lerpedPos.add(0.0, entity.standingEyeHeight.toDouble(), 0.0)
+					val targetPos = when(target) {
+						TracerMode.Feet -> lerpedPos
+						TracerMode.Middle -> lerpedPos.add(0.0, entity.standingEyeHeight / 2.0, 0.0)
+						TracerMode.Eyes -> lerpedEyePos
+					}
+					val (toX, toY) = worldToScreenNormalized(targetPos) ?: return@forEach
 					screenLine(0.5f, 0.5f, toX, toY, color, width * 0.0001f)
+					if (stem) {
+						val (lowerX, lowerY) =
+							if (target == TracerMode.Feet) Vector2f(toX, toY)
+							else worldToScreenNormalized(lerpedPos) ?: return@forEach
+						val (upperX, upperY) =
+							if (target == TracerMode.Eyes) Vector2f(toX, toY)
+							else worldToScreenNormalized(lerpedEyePos) ?: return@forEach
+						screenLine(lowerX, lowerY, upperX, upperY, color, width * 0.0001f)
+					}
 				}
 			}
 			renderer.upload()
 			renderer.render()
-			// Screen rendering handled by ScreenRenderEvent listener below
 		}
 		
 		listen<ScreenRenderEvent> {
 			renderer.renderScreen()
 		}
+	}
+
+	private enum class TracerMode {
+		Feet,
+		Middle,
+		Eyes
 	}
 }
