@@ -36,7 +36,7 @@ object BambooPreProcessor : StateProcessor {
 	context(safeContext: SafeContext)
 	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
 		if (state.block == Blocks.BAMBOO_SAPLING) {
-			omitPlacement()
+			omitInteraction()
 			return
 		}
 		noCaching()

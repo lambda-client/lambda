@@ -22,6 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
@@ -118,9 +119,8 @@ object ProcessorRegistry : Loadable {
 		Properties.DELAY,
 		Properties.COMPARATOR_MODE,
 		Properties.OPEN,
-		Properties.NOTE,
-
-		)
+		Properties.NOTE
+	)
 
 	override fun load() = "Loaded ${propertyPreProcessors.size} pre processors"
 
@@ -139,9 +139,9 @@ object ProcessorRegistry : Loadable {
 			preProcess(pos, state, targetBlockState, targetState.getStack(pos)).also { info ->
 				if (info?.noCaching != true) processorCache[processorCacheKey] = info
 			}
-		}
+		} ?: return null
 
-		return PreProcessingData(preProcessingInfo ?: return null, pos)
+		return PreProcessingData(preProcessingInfo, pos)
 	}
 
 	context(safeContext: SafeContext)
@@ -153,15 +153,20 @@ object ProcessorRegistry : Loadable {
 						with(processor) { preProcess(state, targetState, pos) }
 				}
 			}
-			if (omitPlacement) return@run complete()
-			if (!stateProcessing) {
-				if (!state.isReplaceable && state.block != expectedState.block) return@run null
-				if (state.block != expectedState.block) propertyPreProcessors.forEach { processor ->
-					if (processor.acceptsState(targetState))
-						with(processor) { preProcess(state, expectedState) }
-				} else propertyPostProcessors.forEach { processor ->
-					if (processor.acceptsState(state, expectedState))
-						with(processor) { preProcess(state, expectedState) }
+			if (!stateProcessing && !omitInteraction) {
+				if (state.block != expectedState.block) {
+					if (!state.isReplaceable) return@run null
+					propertyPreProcessors.forEach { processor ->
+						if (processor.acceptsState(targetState))
+							with(processor) { preProcess(state, expectedState, pos) }
+					}
+				} else {
+					propertyPostProcessors.forEach { processor ->
+						if (processor.acceptsState(state, expectedState)) {
+							with(processor) { preProcess(state, expectedState) }
+						}
+					}
+					if (!state.matches(targetState, ignore)) return@run null
 				}
 			}
 			complete()

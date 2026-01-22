@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -52,7 +52,7 @@ object Zoom : Module(
         get() = clamp((System.currentTimeMillis() - lastZoomTime) / (if (isEnabled) animationDuration else disableDuration).toDouble(), 0.0, 1.0).toFloat()
 
     init {
-        listen<MouseEvent.Scroll> { event ->
+        listen<ButtonEvent.Mouse.Scroll> { event ->
             val yDelta = event.delta.y.toFloat()
             val delta = (yDelta * sensitivity) + (((zoom + extraZoom) * sensitivity) * yDelta)
             if (persistentScroll) zoom += delta

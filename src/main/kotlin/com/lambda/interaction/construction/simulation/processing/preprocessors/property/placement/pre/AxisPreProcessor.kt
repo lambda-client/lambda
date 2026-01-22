@@ -17,10 +17,12 @@
 
 package com.lambda.interaction.construction.simulation.processing.preprocessors.property.placement.pre
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator
 import com.lambda.interaction.construction.simulation.processing.PropertyPreProcessor
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
@@ -28,7 +30,8 @@ object AxisPreProcessor : PropertyPreProcessor {
     override fun acceptsState(targetState: BlockState) =
         Properties.AXIS in targetState
 
-    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState) {
+    context(safeContext: SafeContext)
+    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
         val axis = targetState.get(Properties.AXIS)
         retainSides { side -> side.axis == axis }
     }

@@ -18,36 +18,36 @@
 package com.lambda.interaction.managers.inventory
 
 import com.lambda.config.ISettingGroup
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
-import net.minecraft.block.Block
+import net.minecraft.item.Item
 
 interface InventoryConfig : ISettingGroup {
     val actionsPerSecond: Int
     val tickStageMask: Collection<TickEvent>
-    val disposables: Collection<Block>
+    val disposables: Collection<Item>
     val swapWithDisposables: Boolean
     val providerPriority: Priority
     val storePriority: Priority
 
-    val immediateAccessOnly: Boolean
     val accessShulkerBoxes: Boolean
-    val accessEnderChest: Boolean
     val accessChests: Boolean
+    val accessEnderChest: Boolean
     val accessStashes: Boolean
 
     val containerSelection: ContainerSelection
         get() = ContainerSelection.selectContainer {
             val allowedContainers = buildSet {
                 addAll(MaterialContainer.Rank.entries)
-                if (!accessShulkerBoxes || immediateAccessOnly) remove(MaterialContainer.Rank.ShulkerBox)
-                if (!accessEnderChest || immediateAccessOnly) remove(MaterialContainer.Rank.EnderChest)
-                if (!accessChests || immediateAccessOnly) remove(MaterialContainer.Rank.Chest)
-                if (!accessStashes || immediateAccessOnly) remove(MaterialContainer.Rank.Stash)
+                if (!accessShulkerBoxes) remove(MaterialContainer.Rank.ShulkerBox)
+                if (!accessEnderChest) remove(MaterialContainer.Rank.EnderChest)
+                if (!accessChests) remove(MaterialContainer.Rank.Chest)
+                if (!accessStashes) remove(MaterialContainer.Rank.Stash)
             }
             ofAnyType(*allowedContainers.toTypedArray())
         }
@@ -59,6 +59,7 @@ interface InventoryConfig : ISettingGroup {
         WithMinItems("With Min Items", "Pick containers with the fewest matching items (or least space) first; useful for topping off or clearing leftovers."),
         WithMaxItems("With Max Items", "Pick containers with the most matching items (or most space) first; ideal for bulk moves with fewer transfers.");
 
+        context(_: SafeContext)
         fun materialComparator(selection: StackSelection) =
             when (this) {
                 WithMaxItems -> compareBy<MaterialContainer> { it.rank }
@@ -70,6 +71,7 @@ interface InventoryConfig : ISettingGroup {
                     .thenBy { it.name }
             }
 
+        context(_: SafeContext)
         fun spaceComparator(selection: StackSelection) =
             when (this) {
                 WithMaxItems -> compareBy<MaterialContainer> { it.rank }

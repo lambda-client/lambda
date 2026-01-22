@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.mc.TransientRegionESP
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -30,8 +29,8 @@ import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
+import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
-import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -168,7 +167,7 @@ sealed class InteractResult : BuildResult() {
      */
     data class BlockFeatureDisabled(
         override val pos: BlockPos,
-        val itemStack: ItemStack,
+        val item: Item,
     ) : InteractResult() {
         override val rank = Rank.PlaceBlockFeatureDisabled
     }

@@ -74,8 +74,7 @@ object InteractManager : Manager<InteractRequest>(
     private var maxPlacementsThisTick = 0
 
     private var shouldSneak = false
-    private val validSneak: (player: ClientPlayerEntity) -> Boolean =
-        { player -> !shouldSneak || player.isSneaking }
+    private val ClientPlayerEntity.validSneak get() = isSneaking == shouldSneak
 
     override val blockedPositions
         get() = pendingActions.map { it.context.blockPos }
@@ -113,7 +112,7 @@ object InteractManager : Manager<InteractRequest>(
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
-        if (activeRequest != null || request.contexts.isEmpty()) return
+        if (!request.buildConfig.interactBlocks || activeRequest != null || request.contexts.isEmpty()) return
 	    if (BreakManager.activeThisTick) return
 
         activeRequest = request
@@ -143,12 +142,12 @@ object InteractManager : Manager<InteractRequest>(
             if (placementsThisTick + 1 > maxPlacementsThisTick) break
             val ctx = iterator.next()
 
-            if (ctx.sneak) shouldSneak = true
+            shouldSneak = ctx.sneak
             if (!ctx.requestDependencies(request)) return
-            if (!validSneak(player)) return
+            if (!player.validSneak) return
             if (tickStage !in interactConfig.tickStageMask) return
 
-            val actionResult = if (ctx.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
+            val actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
 	        else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
             if (actionResult.isAccepted && interactConfig.swing) {
                 swingHand(interactConfig.swingType, Hand.MAIN_HAND)
@@ -257,7 +256,7 @@ object InteractManager : Manager<InteractRequest>(
 			) {
 			ActionResult.PASS
 	    } else {
-		    val item = itemStack.blockItem
+		    val item = itemStack.blockItem ?: return ActionResult.FAIL
 		    place(interactContext, request, hand, hitResult, item, ItemPlacementContext(context))
 	    }
     }

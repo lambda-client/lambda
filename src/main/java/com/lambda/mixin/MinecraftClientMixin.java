@@ -29,6 +29,8 @@ import com.lambda.module.modules.player.Interact;
 import com.lambda.module.modules.player.InventoryMove;
 import com.lambda.module.modules.player.PacketMine;
 import com.lambda.util.WindowUtils;
+import com.llamalad7.mixinextras.expression.Definition;
+import com.llamalad7.mixinextras.expression.Expression;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -40,7 +42,6 @@ import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.sound.SoundManager;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.HitResult;
@@ -49,7 +50,6 @@ import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -67,9 +67,6 @@ public class MinecraftClientMixin {
     @Shadow
     public int itemUseCooldown;
 
-    @Unique
-    private boolean lambda$inputHandledThisTick;
-
     @Inject(method = "close", at = @At("HEAD"))
     void closeImGui(CallbackInfo ci) {
         DearImGui.INSTANCE.destroy();
@@ -84,8 +81,6 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "tick")
     void onTick(Operation<Void> original) {
-        this.lambda$inputHandledThisTick = false;
-
         EventFlow.post(TickEvent.Pre.INSTANCE);
         original.call();
         EventFlow.post(TickEvent.Post.INSTANCE);
@@ -98,27 +93,23 @@ public class MinecraftClientMixin {
         EventFlow.post(TickEvent.Network.Post.INSTANCE);
     }
 
+    @Definition(id = "overlay", field = "Lnet/minecraft/client/MinecraftClient;overlay:Lnet/minecraft/client/gui/screen/Overlay;")
+    @Expression("this.overlay == null")
+    @ModifyExpressionValue(method = "tick", at = @At("MIXINEXTRAS:EXPRESSION"))
+    private boolean modifyCurrentScreenNullCheck(boolean original) {
+        if (!original || this.currentScreen != null) {
+            EventFlow.post(TickEvent.Input.Pre.INSTANCE);
+            EventFlow.post(TickEvent.Input.Post.INSTANCE);
+        }
+        return original;
+    }
+
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;handleInputEvents()V"))
     void onInput(MinecraftClient instance, Operation<Void> original) {
         EventFlow.post(TickEvent.Input.Pre.INSTANCE);
         original.call(instance);
         EventFlow.post(TickEvent.Input.Post.INSTANCE);
-
-        this.lambda$inputHandledThisTick = true;
     }
-
-//    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
-//    void onWorldRenderer(WorldRenderer instance, Operation<Void> original) {
-//        if (!this.lambda$inputHandledThisTick) {
-//            EventFlow.post(TickEvent.Input.Pre.INSTANCE);
-//            EventFlow.post(TickEvent.Input.Post.INSTANCE);
-//            this.lambda$inputHandledThisTick = true;
-//        }
-//
-//        EventFlow.post(TickEvent.WorldRender.Pre.INSTANCE);
-//        original.call(instance);
-//        EventFlow.post(TickEvent.WorldRender.Post.INSTANCE);
-//    }
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/sound/SoundManager;tick(Z)V"))
     void onSound(SoundManager instance, boolean paused, Operation<Void> original) {

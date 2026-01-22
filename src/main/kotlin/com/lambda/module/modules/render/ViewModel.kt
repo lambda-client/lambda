@@ -18,8 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -53,20 +52,20 @@ object ViewModel : Module(
 //    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 
     private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings").group(Group.Scale)
-    private val xScale by setting("X Scale", 1.0f, -1.0f..1.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftXScale = to; rightXScale = to }.group(Group.Scale)
-    private val yScale by setting("Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftYScale = to; rightYScale = to }.group(Group.Scale)
-    private val zScale by setting("Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftZScale = to; rightZScale = to }.group(Group.Scale)
-    private var leftXScale by setting("Left X Scale", 1.0f, -1.0f..1.0f, 0.025f) { splitScale }.group(Group.Scale)
-    private var leftYScale by setting("Left Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { splitScale }.group(Group.Scale)
-    private var leftZScale by setting("Left Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { splitScale }.group(Group.Scale)
-    private var rightXScale by setting("Right X Scale", 1.0f, -1.0f..1.0f, 0.025f) { splitScale }.group(Group.Scale)
-    private var rightYScale by setting("Right Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { splitScale }.group(Group.Scale)
-    private var rightZScale by setting("Right Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { splitScale }.group(Group.Scale)
+    private val xScale by setting("X Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftXScale = to; rightXScale = to }.group(Group.Scale)
+    private val yScale by setting("Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftYScale = to; rightYScale = to }.group(Group.Scale)
+    private val zScale by setting("Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftZScale = to; rightZScale = to }.group(Group.Scale)
+    private var leftXScale by setting("Left X Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
+    private var leftYScale by setting("Left Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
+    private var leftZScale by setting("Left Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
+    private var rightXScale by setting("Right X Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
+    private var rightYScale by setting("Right Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
+    private var rightZScale by setting("Right Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
 
     private val splitPosition by setting("Split Position", false, "Splits left and right position settings").group(Group.Position)
-    private val xPosition by setting("X Position", 1.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftXPosition = to; rightXPosition = to }.group(Group.Position)
-    private val yPosition by setting("Y Position", 1.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftYPosition = to; rightYPosition = to }.group(Group.Position)
-    private val zPosition by setting("Z Position", 1.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftZPosition = to; rightZPosition = to }.group(Group.Position)
+    private val xPosition by setting("X Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftXPosition = to; rightXPosition = to }.group(Group.Position)
+    private val yPosition by setting("Y Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftYPosition = to; rightYPosition = to }.group(Group.Position)
+    private val zPosition by setting("Z Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftZPosition = to; rightZPosition = to }.group(Group.Position)
     private var leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
     private var leftYPosition by setting("Left Y Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
     private var leftZPosition by setting("Left Z Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
@@ -94,9 +93,9 @@ object ViewModel : Module(
     private var rightFovAnchorDistance by setting("Right Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right FOV transformation from") { splitFov }.group(Group.Fov)
 
     private val enableHand by setting("Hand", false, "Enables settings for the players hand").group(Group.Hand)
-    private val handXScale by setting("Hand X Scale", 1.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
-    private val handYScale by setting("Hand Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
-    private val handZScale by setting("Hand Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
+    private val handXScale by setting("Hand X Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }.group(Group.Hand)
+    private val handYScale by setting("Hand Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }.group(Group.Hand)
+    private val handZScale by setting("Hand Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }.group(Group.Hand)
     private val handXPosition by setting("Hand X Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
     private val handYPosition by setting("Hand Y Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
     private val handZPosition by setting("Hand Z Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
@@ -109,12 +108,12 @@ object ViewModel : Module(
     private var attackKeyTicksPressed = -1
 
     init {
-        listen<MouseEvent.Click> { event ->
+        listen<ButtonEvent.Mouse.Click> { event ->
             if (event.button == mc.options.attackKey.boundKey.code)
                 attackKeyTicksPressed = if (event.action == 0) -1 else 0
         }
 
-        listen<KeyboardEvent.Press> { event ->
+        listen<ButtonEvent.Keyboard.Press> { event ->
             if (event.keyCode == mc.options.attackKey.boundKey.code) {
                 if (event.isPressed) attackKeyTicksPressed = 0
                 else if (event.isReleased) attackKeyTicksPressed = -1

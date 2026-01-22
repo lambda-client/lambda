@@ -71,24 +71,19 @@ object ElytraFly : Module(
 
         listen<TickEvent.Pre> {
             if (mode != FlyMode.Bounce) return@listen
-            if (autoPitch) {
-                rotationRequest {
-                    pitch(pitch.toFloat())
-                }.submit()
-            }
+            if (autoPitch) rotationRequest { pitch(pitch.toFloat()) }.submit()
 
             if (!player.isGliding) {
                 if (takeoff && player.canTakeoff) {
                     if (player.canOpenElytra) {
                         player.startGliding()
                         startFlyPacket()
-                    };
-                    else jumpThisTick = true
+                    } else jumpThisTick = true
                 }
                 return@listen
             }
 
-            if (mode == FlyMode.Bounce) startFlyPacket()
+            startFlyPacket()
         }
 
         listen<TickEvent.Post> {

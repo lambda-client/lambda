@@ -44,7 +44,6 @@ object StackReplenish : Module(
 			applyEdits {
 				hideAllGroupsExcept(inventoryConfig)
 				inventoryConfig.apply {
-					::immediateAccessOnly.edit { defaultValue(true) }
 					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
 				}
 			}
@@ -62,7 +61,7 @@ object StackReplenish : Module(
 		if (!stack.isStackable) return
 
 		player.inventoryStacks.forEach { invStack ->
-			if (invStack.item !== stack.item) return@forEach
+			if (!ItemStack.areItemsAndComponentsEqual(invStack, stack)) return@forEach
 			val invId = invStack.slotId
 			val completing = stack.count + invStack.count >= stack.maxCount
 			val tooMany = invStack.count + stack.count > stack.maxCount

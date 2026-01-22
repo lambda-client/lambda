@@ -38,8 +38,9 @@ class ContainerSelection {
      * which matches the given StackSelection.
      */
     @ContainerSelectionDsl
+    context(_: SafeContext)
     fun matches(stackSelection: StackSelection): (MaterialContainer) -> Boolean =
-        { container -> container.matchingStacks(stackSelection).isNotEmpty() }
+        { container -> container.matchingSlots(stackSelection).isNotEmpty() }
 
     /**
      * Returns a function that checks whether a given MaterialContainer matches the criteria
@@ -62,11 +63,6 @@ class ContainerSelection {
     @ContainerSelectionDsl
     fun noneOfType(vararg types: MaterialContainer.Rank): (MaterialContainer) -> Boolean =
         { container -> !types.contains(container.rank) }
-
-    @ContainerSelectionDsl
-    context(_: SafeContext)
-    fun immediateOnly(): (MaterialContainer) -> Boolean =
-        { container -> !container.isImmediatelyAccessible() }
 
     /**
      * Returns a function that combines two container predicates using logical AND.

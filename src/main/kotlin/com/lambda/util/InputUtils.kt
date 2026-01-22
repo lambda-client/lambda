@@ -21,8 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.events.MouseEvent
+import com.lambda.event.events.ButtonEvent
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_ALT
@@ -53,19 +52,12 @@ object InputUtils : Loadable {
      * Note: This function is extremely expensive to execute, it is recommended to not use
      * it unless you absolutely need to. Additionally, you might screw with the key cache.
      */
-    fun newKeyboardEvent(): KeyboardEvent.Press? {
+    fun newKeyboardEvent(): ButtonEvent.Keyboard.Press? {
         val pressedKeys = keys
             .associateWith { glfwGetKey(mc.window.handle, it) }
             .filter { (key, state) -> state >= GLFW_PRESS || lastPressedKeys[key] >= GLFW_PRESS }
             .also { lastPressedKeys.clear() }
             .onEach { (key, state) -> lastPressedKeys[key] = state }
-
-        // FixMe: If you are pressing two or more keys considered 'modifier' keys, you must release both of them at the
-        //  same time in order to receive an update stipulating that the last key (not actually a modifier) was released alongside its modifiers.
-        //  For the time being, I will allow this as players can still bind unique 'modifier' keys with no issues.
-
-        // FixMe: The order in which modifier keys are ordered is wrong. When a user presses Left Control + Left Alt, the user must
-        //  press Left Alt + Left Control as the modifier key in order for the event to satisfies the bind
 
         val mods = pressedKeys.keys
             .filter { it in GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER && lastPressedKeys.keys.firstOrNull()?.equals(it) == false }
@@ -76,13 +68,13 @@ object InputUtils : Loadable {
 
         val scancode = scancodes.getOrElse(key.first) { 0 }
 
-        return KeyboardEvent.Press(key.first, scancode, key.second, mods)
+        return ButtonEvent.Keyboard.Press(key.first, scancode, key.second, mods)
     }
 
     /**
      * Creates a new mouse event from the current glfw states.
      */
-    fun newMouseEvent(): MouseEvent.Click? {
+    fun newMouseEvent(): ButtonEvent.Mouse.Click? {
         val mods = (GLFW_KEY_LEFT_SHIFT..GLFW_KEY_RIGHT_SUPER)
             .filter { glfwGetKey(mc.window.handle, it) >= GLFW_PRESS }
             .foldRight(0) { v, acc -> acc or modMap.getValue(v) }
@@ -91,15 +83,13 @@ object InputUtils : Loadable {
             .firstOrNull { glfwGetMouseButton(mc.window.handle, it) == GLFW_PRESS }
             ?: return null
 
-        return MouseEvent.Click(mouse, GLFW_PRESS, mods)
+        return ButtonEvent.Mouse.Click(mouse, GLFW_PRESS, mods)
     }
 
 	fun Bind.isSatisfied(): Boolean =
 		(key == -1 ||  glfwGetKey(mc.window.handle, key).pressedOrRepeated) &&
 				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
-				truemods.all {
-					glfwGetKey(mc.window.handle, it.code).pressedOrRepeated
-				}
+				truemods.all { glfwGetKey(mc.window.handle, it.code).pressedOrRepeated }
 	private val Int.pressedOrRepeated
 		get() = this == 1 || this == 2
 

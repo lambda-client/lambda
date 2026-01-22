@@ -18,8 +18,8 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.settings.complex.Bind
-import com.lambda.event.events.MouseEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.context.SafeContext
 import com.lambda.friend.FriendManager
 import com.lambda.friend.FriendManager.befriend
 import com.lambda.friend.FriendManager.isFriend
@@ -27,6 +27,7 @@ import com.lambda.friend.FriendManager.unfriend
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
+import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.client.network.OtherClientPlayerEntity
 import org.lwjgl.glfw.GLFW
@@ -37,23 +38,18 @@ object ClickFriend : Module(
     description = "Add or remove friends with a single click",
     tag = ModuleTag.PLAYER,
 ) {
-    private val friendBind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
-    private val unfriendBind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
+    private val friendBind: Bind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
+        .onPress { if (!unfriendBind.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
 
-    init {
-        listen<MouseEvent.Click> {
-            if (mc.currentScreen != null) return@listen
+    private val unfriendBind: Bind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
+        .onPress { if (!friendBind.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
 
-            val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
-                ?: return@listen
+    private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {
+        val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
+            ?: return false
 
-            when {
-                it.satisfies(friendBind) && !target.isFriend && target.befriend() ->
-                    info(FriendManager.befriendedText(target.name))
-
-                it.satisfies(unfriendBind) && target.isFriend && target.unfriend() ->
-                    info(FriendManager.unfriendedText(target.name))
-            }
-        }
+        if (friend && !target.isFriend && target.befriend()) info(FriendManager.befriendedText(target.name))
+        else if (!friend && target.isFriend && target.unfriend()) info(FriendManager.unfriendedText(target.name))
+        return true
     }
 }

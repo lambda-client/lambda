@@ -33,17 +33,19 @@ class BuildSettings(
         Scan("Scan")
     }
 
-    // General
-    override val pathing by c.setting("Pathing", true, "Path to blocks").group(baseGroup, Group.General).index()
-    override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks").group(baseGroup, Group.General).index()
+    override val breakBlocks by c.setting("Break", true, "Break blocks").group(baseGroup, Group.General).index()
+    override val interactBlocks by c.setting("Place / Interact", true, "Interact blocks").group(baseGroup, Group.General).index()
+
+    override val pathing by c.setting("Pathing", false, "Path to blocks").group(baseGroup, Group.General).index()
+    override val stayInRange by c.setting("Stay In Range", false, "Stay in range of blocks").group(baseGroup, Group.General).index()
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks").group(baseGroup, Group.General).index()
     override val spleefEntities by c.setting("Spleef Entities", false, "Breaks blocks beneath entities blocking placements to get them out of the way").group(baseGroup, Group.General).index()
     override val maxPendingActions by c.setting("Max Pending Actions", 15, 1..30, 1, "The maximum count of pending interactions to allow before pausing future interactions").group(baseGroup, Group.General).index()
     override val actionTimeout by c.setting("Action Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks").group(baseGroup, Group.General).index()
     override val maxBuildDependencies by c.setting("Max Sim Dependencies", 3, 0..10, 1, "Maximum dependency build results").group(baseGroup, Group.General).index()
 
-    override var entityReach by c.setting("Attack Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance").group(baseGroup, Group.Reach).index()
     override var blockReach by c.setting("Interact Reach", 4.5, 1.0..7.0, 0.01, "Maximum block interaction distance").group(baseGroup, Group.Reach).index()
+    override var entityReach by c.setting("Attack Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance").group(baseGroup, Group.Reach).index()
     override val scanReach: Double get() = max(entityReach, blockReach)
 
     override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible").group(baseGroup, Group.Scan).index()

@@ -296,7 +296,7 @@ object BreakManager : Manager<BreakRequest>(
      * @see processRequest
      */
     override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
-        if (activeRequest != null || request.contexts.isEmpty()) return
+        if (!request.buildConfig.breakBlocks || activeRequest != null || request.contexts.isEmpty()) return
 	    if (InteractManager.activeThisTick) return
 
         activeRequest = request
@@ -799,7 +799,8 @@ object BreakManager : Manager<BreakRequest>(
         if (instantBreakable) {
             info.vanillaInstantBreakable = progress >= 1
             onBlockBreak(info)
-            if (!info.vanillaInstantBreakable) breakCooldown = breakConfig.breakDelay + 1
+            if (!info.vanillaInstantBreakable)
+                breakCooldown = if (breakConfig.breakDelay == 0) 0 else breakConfig.breakDelay + 1
         } else {
             info.apply {
                 breaking = true

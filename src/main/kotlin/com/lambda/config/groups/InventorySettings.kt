@@ -41,9 +41,8 @@ class InventorySettings(
     override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from").group(baseGroup, Group.Container).index()
     override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to").group(baseGroup, Group.Container).index()
 
-    override val immediateAccessOnly by c.setting("Immediate Access Only", false, "Only allow access to inventories that can be accessed immediately").group(baseGroup, Group.Access).index()
-    override val accessShulkerBoxes by c.setting("Access Shulker Boxes", true, "Allow access to the player's shulker boxes") { !immediateAccessOnly }.group(baseGroup, Group.Access).index()
-    override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest") { !immediateAccessOnly }.group(baseGroup, Group.Access).index()
-    override val accessChests by c.setting("Access Chests", false, "Allow access to the player's normal chests") { !immediateAccessOnly }.group(baseGroup, Group.Access).index()
-    override val accessStashes by c.setting("Access Stashes", false, "Allow access to the player's stashes") { !immediateAccessOnly }.group(baseGroup, Group.Access).index()
+    override val accessShulkerBoxes by c.setting("Access Shulker Boxes", false, "Allow access to the player's shulker boxes").group(baseGroup, Group.Access).index()
+    override val accessChests by c.setting("Access Chests", false, "Allow access to the player's normal chests").group(baseGroup, Group.Access).index()
+    override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest").group(baseGroup, Group.Access).index()
+    override val accessStashes by c.setting("Access Stashes", false, "Allow access to the player's stashes").group(baseGroup, Group.Access).index()
 }

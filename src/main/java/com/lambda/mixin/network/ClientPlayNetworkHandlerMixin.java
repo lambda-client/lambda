@@ -18,6 +18,7 @@
 package com.lambda.mixin.network;
 
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.ChatEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.managers.inventory.InventoryManager;
@@ -117,5 +118,13 @@ public class ClientPlayNetworkHandlerMixin {
     @WrapMethod(method = "onInventory")
     private void wrapOnInventory(InventoryS2CPacket packet, Operation<Void> original) {
         InventoryManager.onInventoryUpdate(packet, original);
+    }
+
+    @WrapMethod(method = "sendChatMessage(Ljava/lang/String;)V")
+    void onSendMessage(String content, Operation<Void> original) {
+        var event = new ChatEvent.Send(content);
+
+        if (!EventFlow.post(event).isCanceled())
+            original.call(event.getMessage());
     }
 }

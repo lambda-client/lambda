@@ -74,6 +74,8 @@ object RotationManager : Manager<RotationRequest>(
 
     private var changedThisTick = false
 
+    private val IRotationRequest.overridable get() = age >= 1
+
     override fun load(): String {
         super.load()
 
@@ -161,7 +163,21 @@ object RotationManager : Manager<RotationRequest>(
             else -> false
         }
 
-    private val IRotationRequest.overridable get() = age >= 1
+    context(safeContext: SafeContext)
+    fun setPlayerYaw(yaw: Double) {
+        if (lockYaw == null) safeContext.player.yaw = yaw.toFloat()
+    }
+
+    context(safeContext: SafeContext)
+    fun setPlayerPitch(pitch: Double) {
+        if (lockPitch == null) safeContext.player.pitch = pitch.toFloat()
+    }
+
+    context(safeContext: SafeContext)
+    fun setPlayerRotation(rotation: Rotation) {
+        setPlayerYaw(rotation.yaw)
+        setPlayerPitch(rotation.pitch)
+    }
 
     /**
      * If the rotation has not been changed this tick, the [activeRequest]'s target rotation is updated, and

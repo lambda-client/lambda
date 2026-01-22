@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material
+package com.lambda.interaction.material.container
 
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.task.Task
+import com.lambda.task.TaskGenerator
 
-abstract class ContainerTask : Task<Unit>() {
-    private var finish = false
-    private val delay = 5
-    private var currentDelay = 0
-
-    fun delayedFinish() {
-        finish = true
-    }
-
-    init {
-        listen<TickEvent.Post> {
-            if (finish) {
-                if (currentDelay++ > delay) success()
-            }
-        }
-    }
+interface ExternalContainer {
+	context(_: AutomatedSafeContext)
+	fun accessThen(exitAfter: Boolean = true, taskGenerator: TaskGenerator<Unit>): Task<*>?
 }

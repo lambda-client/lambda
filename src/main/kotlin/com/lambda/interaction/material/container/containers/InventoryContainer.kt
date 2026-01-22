@@ -20,18 +20,20 @@ package com.lambda.interaction.material.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.player.SlotUtils.allStacks
+import com.lambda.util.player.SlotUtils.inventorySlots
+import com.lambda.util.player.SlotUtils.inventoryStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 
 object InventoryContainer : MaterialContainer(Rank.Inventory) {
+    context(safeContext: SafeContext)
+    override val slots: List<Slot>
+        get() = safeContext.player.inventorySlots
     override var stacks: List<ItemStack>
-        get() = mc.player?.allStacks ?: emptyList()
+        get() = mc.player?.inventoryStacks ?: emptyList()
         set(_) {}
 
     override val description = buildText { literal("Inventory") }
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = true
 }

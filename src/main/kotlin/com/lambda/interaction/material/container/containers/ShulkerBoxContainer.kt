@@ -17,83 +17,60 @@
 
 package com.lambda.interaction.material.container.containers
 
-import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
-import com.lambda.interaction.material.transfer.SlotTransfer.Companion.withdraw
-import com.lambda.task.Task
+import com.lambda.task.TaskGenerator
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.OpenContainer
-import com.lambda.task.tasks.PlaceContainer
+import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.threading.runSafe
+import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
+import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
+import net.minecraft.util.math.BlockPos
 
 data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
     val containedIn: MaterialContainer,
-    val shulkerStack: ItemStack,
-) : MaterialContainer(Rank.ShulkerBox) {
+    val shulkerSlot: Slot,
+) : MaterialContainer(Rank.ShulkerBox), ExternalContainer {
+    context(safeContext: SafeContext)
+    override val slots
+        get(): List<Slot> =
+            if (ContainerManager.lastInteractedBlockEntity is ShulkerBoxBlockEntity)
+                safeContext.player.currentScreenHandler.containerSlots
+            else emptyList()
+
     override val description =
         buildText {
-            highlighted(shulkerStack.name.string)
+            highlighted(shulkerSlot.stack.name.string)
             literal(" in ")
             highlighted(containedIn.name)
             literal(" in slot ")
-            highlighted("$slotInContainer")
+            highlighted("${runSafe { slotInContainer }}")
         }
 
-    private val slotInContainer: Int get() = containedIn.stacks.indexOf(shulkerStack)
+    context(_: SafeContext)
+    private val slotInContainer: Int get() = containedIn.slots.indexOf(shulkerSlot)
 
-    class ShulkerWithdraw(
-        private val selection: StackSelection,
-        private val shulkerStack: ItemStack,
-        automated: Automated
-    ) : Task<Unit>(), Automated by automated {
-        override val name = "Withdraw $selection from ${shulkerStack.name.string}"
+    private var placePos = BlockPos.ORIGIN
 
-        override fun SafeContext.onStart() {
-            PlaceContainer(shulkerStack, this@ShulkerWithdraw).then { placePos ->
-                OpenContainer(placePos, this@ShulkerWithdraw).then { screen ->
-                    withdraw(screen, selection).then {
-                        breakAndCollectBlock(placePos).finally {
-                            success()
-                        }
-                    }
+    context(automatedSafeContext: AutomatedSafeContext)
+    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
+        PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
+            placePos = pos
+            OpenContainerTask(pos, automatedSafeContext).then {
+                taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
+                    if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos)
+                    else null
                 }
-            }.execute(this@ShulkerWithdraw)
+            }
         }
-    }
-
-    context(automated: Automated)
-    override fun withdraw(selection: StackSelection) = ShulkerWithdraw(selection, shulkerStack, automated)
-
-    class ShulkerDeposit(
-        private val selection: StackSelection,
-        private val shulkerStack: ItemStack,
-        automated: Automated
-    ) : Task<Unit>(), Automated by automated {
-        override val name = "Deposit $selection into ${shulkerStack.name.string}"
-
-        override fun SafeContext.onStart() {
-            PlaceContainer(shulkerStack, this@ShulkerDeposit).then { placePos ->
-                OpenContainer(placePos, this@ShulkerDeposit).then { screen ->
-                    deposit(screen, selection).then {
-                        breakAndCollectBlock(placePos).finally {
-                            success()
-                        }
-                    }
-                }
-            }.execute(this@ShulkerDeposit)
-        }
-    }
-
-    context(automated: Automated)
-    override fun deposit(selection: StackSelection) = ShulkerDeposit(selection, shulkerStack, automated)
-
-    context(safeContext: SafeContext)
-    override fun isImmediatelyAccessible() = false
 }

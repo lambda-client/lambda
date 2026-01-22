@@ -1,0 +1,89 @@
+name: Nightly Build
+
+on:
+  push:
+    branches:
+      - '*.*'
+
+jobs:
+  build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    name: Build Lambda
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    env:
+      SEGMENT_DOWNLOAD_TIMEOUT_MINS: '5'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: vars
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set-Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'oracle'
+          java-version: '21'
+          architecture: x64
+          cache: 'gradle'
+
+      - name: Read Gradle Properties
+        uses: BrycensRanch/read-properties-action@v1.0.4
+        id: all
+        with:
+          file: gradle.properties
+          all: true
+
+      - name: Publish snapshot to maven
+        #        if: github.event_name == 'push'
+        id: upload-maven
+        run: ./gradlew publish -PmavenType=snapshots -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
+
+      #      - name: Generate Summary
+      #        if: steps.upload.conclusion == 'success' && github.event_name == 'push'
+      #        run: |
+      #          cat << EOF >> $GITHUB_STEP_SUMMARY
+      #          ### [Lambda ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://maven.lambda-client.org/snapshots/com/lambda/lambda/${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+      #          EOF
+
+      - name: Rename jar
+        #        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
+        run: mv build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+
+      - name: Upload
+        #        if: steps.upload.conclusion == 'failure' || github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        id: upload-git
+        with:
+          name: lambda-nightly
+          path: |
+            build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+
+      - name: Get latest version
+        if: steps.upload-maven.conclusion == 'success' || steps.upload-git.conclusion == 'success'
+        run: |
+          COMMIT_MESSAGE=$(git log --pretty=format:'- \`%h\` %s' -1 --reverse)
+          LATEST_VERSION=$(curl -s "https://maven.lambda-client.org/snapshots/com/lambda/lambda/maven-metadata.xml" | grep -oP '(?<=<latest>).*?(?=</latest>)')
+          LATEST_MAVEN_METADATA=$(curl -s "https://maven.lambda-client.org/snapshots/com/lambda/lambda/${LATEST_VERSION}/maven-metadata.xml")
+          TIMESTAMP=$(echo "$LATEST_MAVEN_METADATA" | grep -oP '(?<=<timestamp>).*?(?=</timestamp>)')
+          BUILD_NUMBER=$(echo "$LATEST_MAVEN_METADATA" | grep -oP '(?<=<buildNumber>).*?(?=</buildNumber>)')
+          LATEST_SNAPSHOT="lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${TIMESTAMP}-${BUILD_NUMBER}"
+          
+          echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}" >> $GITHUB_ENV
+          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+          echo "LATEST_SNAPSHOT=lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${TIMESTAMP}-${BUILD_NUMBER}" >> $GITHUB_ENV
+
+      - name: Send Discord build message
+        if: steps.upload-maven.conclusion == 'success' || steps.upload-git.conclusion == 'success'
+        run: |
+          curl "${{ secrets.WEBHOOK }}" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build ${{ github.run_number }}\",\"description\":\"**Branch:** ${{ github.ref_name }}\\n**Changes:**\\n${{ env.COMMIT_MESSAGE }}\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [${{ env.LATEST_SNAPSHOT }}.jar](https://maven.lambda-client.org/snapshots/com/lambda/lambda/${{ env.LATEST_VERSION }}/${{ env.LATEST_SNAPSHOT }}.jar)\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda%20logo%20banner%20transparent.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda.png\"}"
+        

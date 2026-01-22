@@ -42,12 +42,12 @@ import java.awt.Color
 
 object FriendCommand : LambdaCommand(
     name = "friends",
-    usage = "friends <add | remove> <name | uuid>",
+    usage = "friends <add <name> | add-uuid <uuid> | remove <name>>",
     description = "Add or remove a friend"
 ) {
     override fun CommandBuilder.create() {
         execute {
-            this@FriendCommand.info(
+            info(
                 buildText {
                     if (FriendManager.friends.isEmpty()) {
                         literal("You have no friends yet. Go make some! :3\n")
@@ -55,7 +55,13 @@ object FriendCommand : LambdaCommand(
                         literal("Your friends (${FriendManager.friends.size}):\n")
 
                         FriendManager.friends.forEachIndexed { index, gameProfile ->
-                            literal("   ${index + 1}. ${gameProfile.name}\n")
+                            literal("   ${index + 1}. ${gameProfile.name} ")
+                            styled(
+                                color = Color.RED,
+                                clickEvent = ClickEvents.suggestCommand(";friends remove ${gameProfile.name}")
+                            ) {
+                                literal("x\n")
+                            }
                         }
                     }
 
@@ -84,11 +90,15 @@ object FriendCommand : LambdaCommand(
                 }
 
                 executeWithResult {
+                    val name = player().value()
+
+                    if (FriendManager.isFriend(name))
+                        return@executeWithResult failure("This player is already in your friend list")
+
+                    if (mc.gameProfile.name == name)
+                        return@executeWithResult failure("You can't befriend yourself")
+
                     runBlocking {
-                        val name = player().value()
-
-                        if (mc.gameProfile.name == name) return@runBlocking failure("You can't befriend yourself")
-
                         val profile = mc.networkHandler
                             ?.playerList
                             ?.map { it.profile }
@@ -96,16 +106,16 @@ object FriendCommand : LambdaCommand(
                             ?: getProfile(name)
                                 .getOrElse { return@runBlocking failure("Could not find the player") }
 
-                        return@runBlocking if (FriendManager.befriend(profile)) {
-                            info(FriendManager.befriendedText(profile.name))
-                            success()
-                        } else {
-                            failure("This player is already in your friend list")
-                        }
+                        FriendManager.befriend(profile)
+
+                        info(FriendManager.befriendedText(profile.name))
+                        success()
                     }
                 }
             }
+        }
 
+        required(literal("add-uuid")) {
             required(uuid("player uuid")) { player ->
                 suggests { _, builder ->
                     mc.networkHandler
@@ -118,11 +128,15 @@ object FriendCommand : LambdaCommand(
                 }
 
                 executeWithResult {
+                    val uuid = player().value()
+
+                    if (FriendManager.isFriend(uuid))
+                        return@executeWithResult failure("This player is already in your friend list")
+
+                    if (mc.gameProfile.id == uuid)
+                        return@executeWithResult failure("You can't befriend yourself")
+
                     runBlocking {
-                        val uuid = player().value()
-
-                        if (mc.gameProfile.id == uuid) return@runBlocking failure("You can't befriend yourself")
-
                         val profile = mc.networkHandler
                             ?.playerList
                             ?.map { it.profile }
@@ -130,12 +144,10 @@ object FriendCommand : LambdaCommand(
                             ?: getProfile(uuid)
                                 .getOrElse { return@runBlocking failure("Could not find the player") }
 
-                        return@runBlocking if (FriendManager.befriend(profile)) {
-                            this@FriendCommand.info(FriendManager.befriendedText(profile.name))
-                            success()
-                        } else {
-                            failure("This player is already in your friend list")
-                        }
+                        FriendManager.befriend(profile)
+
+                        info(FriendManager.befriendedText(profile.name))
+                        success()
                     }
                 }
             }
@@ -155,12 +167,10 @@ object FriendCommand : LambdaCommand(
                     val profile = FriendManager.gameProfile(name)
                         ?: return@executeWithResult failure("This player is not in your friend list")
 
-                    return@executeWithResult if (FriendManager.unfriend(profile)) {
-                        this@FriendCommand.info(FriendManager.unfriendedText(name))
-                        success()
-                    } else {
-                        failure("This player is not in your friend list")
-                    }
+                    FriendManager.unfriend(profile)
+
+                    info(FriendManager.unfriendedText(name))
+                    success()
                 }
             }
         }
