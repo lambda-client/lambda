@@ -21,21 +21,87 @@ import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.threading.runSafeConcurrent
+import com.lambda.util.extension.tickDelta
+import com.lambda.util.math.distSq
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import net.minecraft.entity.Entity
+import net.minecraft.entity.mob.PiglinActivity
+import net.minecraft.entity.mob.PiglinEntity
+import net.minecraft.entity.mob.ZombifiedPiglinEntity
+import net.minecraft.entity.passive.BeeEntity
+import net.minecraft.entity.passive.PolarBearEntity
+import net.minecraft.entity.passive.WolfEntity
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
 import net.minecraft.util.math.Vec3d
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class LambdaAngerManagement: Loadable {
+
+	/*
+	for future reference, these are the entities that use this
+	enderman
+	zombified piglin
+	bee
+	iron golem
+	wolf
+	polar bear
+
+    private static final UniformIntProvider ANGER_TIME_RANGE = TimeHelper.betweenSeconds(20, 39);
+
+	though because zombified piglins tell their friends with a delay and the anger time is counted
+	for each entity separately they will not stop attacking, this seems to be a bug in the game
+
+	 */
+
+	private var i = 0
 
 	init {
 		listen<PacketEvent.Receive.Pre> { event ->
 			if (event.packet is PlaySoundS2CPacket) {
 				val uuid = findClosestEntity(event.packet) ?: return@listen // this was not a sound that entities emit when angry
 				registerAngryEntity(uuid)
+			}
+		}
+		listen<TickEvent.Pre> {
+			if (i++ % 10 != 0) return@listen
+			i = 0
+			runSafeConcurrent {
+				mc.world?.entities?.forEach { entity ->
+					when (entity) {
+						is BeeEntity -> {
+							if (entity.hasAngerTime()) {
+								registerAngryEntity(entity.uuid)
+							}
+						}
+						is WolfEntity -> {
+							if (entity.hasAngerTime()) {
+								registerAngryEntity(entity.uuid)
+							}
+						}
+						is ZombifiedPiglinEntity -> {
+							if (entity.isAttacking) {
+								registerAngryEntity(entity.uuid)
+							}
+						}
+						is PiglinEntity -> {
+							if (entity.activity == PiglinActivity.ATTACKING_WITH_MELEE_WEAPON ||
+								entity.activity == PiglinActivity.CROSSBOW_CHARGE
+							) {
+								registerAngryEntity(entity.uuid)
+							}
+						}
+						is PolarBearEntity -> {
+							if (entity.getWarningAnimationProgress(mc.tickDelta) > 0f) {
+								registerAngryEntity(entity.uuid)
+							}
+						}
+					}
+				} ?: return@runSafeConcurrent
+				cleanupUnloadedEntities()
 			}
 		}
 		listen<ConnectionEvent.Disconnect> {
@@ -45,25 +111,18 @@ class LambdaAngerManagement: Loadable {
 	}
 
 	companion object {
-		const val ANGER_DURATION_MS = 60000L
-		private val angryEntities = mutableMapOf<UUID, Long>()
+		const val ANGER_DURATION_MS = 30000L
+		private val angryEntities = ConcurrentHashMap<UUID, Long>()
 
 		@JvmStatic
 		private fun matchLocations(vec3d: Vec3d, radius: Double = 3.0): UUID? {
 			val maxDistSq = radius * radius
 			return mc.world?.entities
 				?.asSequence()
-				?.map { it to it.distanceSqTo(vec3d) }
+				?.map { it to it.distSq(vec3d) }
 				?.filter { it.second <= maxDistSq }
 				?.minByOrNull { it.second }
 				?.first?.uuid
-		}
-
-		fun Entity.distanceSqTo(vec3d: Vec3d): Double {
-			val dx = this.x - vec3d.x
-			val dy = this.y - vec3d.y
-			val dz = this.z - vec3d.z
-			return dx * dx + dy * dy + dz * dz
 		}
 
 		@JvmStatic

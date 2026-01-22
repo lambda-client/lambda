@@ -37,7 +37,9 @@ import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.AmbientEntity
 import net.minecraft.entity.mob.Angerable
 import net.minecraft.entity.mob.HostileEntity
+import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.entity.passive.AnimalEntity
+import net.minecraft.entity.passive.GolemEntity
 import net.minecraft.entity.passive.PassiveEntity
 import java.util.*
 
@@ -104,6 +106,22 @@ abstract class Targeting(
 	 */
 	private val animalsSetting by c.setting("Animals", true) { mobs }.group(baseGroup)
 
+	private val animalsOnlyAngrySetting by c.setting(
+		"Animals Only Angry", false,
+		"Only attacks Animals if they are angry. For example Bees and Wolves."
+	) { animalsSetting }.group(baseGroup)
+
+	/**
+	 * Whether golems are included in the targeting scope
+	 */
+	private val golemsSetting by c.setting("Golems", true) { mobs }.group(baseGroup)
+
+	private val golemsOnlyAngrySetting by c.setting(
+		"Golems Only Angry",
+		true,
+		"Iron and Copper golems."
+	) { golemsSetting }.group(baseGroup)
+
 	/**
 	 * Indicates whether hostile entities are included in the targeting scope.
 	 */
@@ -121,6 +139,10 @@ abstract class Targeting(
 	 * Indicates whether animals are included in the targeting scope.
 	 */
 	override val animals get() = mobs && animalsSetting
+	override val animalsOnlyAngry get() = mobs && animalsSetting && animalsOnlyAngrySetting
+
+	override val golems get() = mobs && golemsSetting
+	override val golemsOnlyAngry get() = mobs && golemsSetting && golemsOnlyAngrySetting
 
 	/**
 	 * Whether invisible entities are included in the targeting scope.
@@ -142,10 +164,25 @@ abstract class Targeting(
 	open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
 		players && entity is OtherClientPlayerEntity -> true
 		!players && entity is OtherClientPlayerEntity && entity.isFriend -> true
-		animals && (entity is AnimalEntity || entity is AmbientEntity) -> true
+		animals && (entity is AnimalEntity || entity is AmbientEntity) -> {
+			if (animalsOnlyAngry) {
+				LambdaAngerManagement.isEntityAngry(entity.uuid)
+			} else {
+				true
+			}
+		}
 		passives && entity is PassiveEntity -> true
 		hostiles && entity is HostileEntity -> {
-			if (hostilesOnlyAngry && entity is Angerable) {
+			if (hostilesOnlyAngry) {
+				LambdaAngerManagement.isEntityAngry(entity.uuid)
+			} else {
+				true
+			}
+		}
+
+		/* For some reason Shulkers are golems, I decided to exclude them from the selection as what does it matter for the player */
+		golems && entity is GolemEntity && entity !is ShulkerEntity -> {
+			if (golemsOnlyAngry) {
 				LambdaAngerManagement.isEntityAngry(entity.uuid)
 			} else {
 				true

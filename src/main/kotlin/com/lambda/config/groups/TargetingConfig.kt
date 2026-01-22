@@ -26,6 +26,9 @@ interface TargetingConfig {
     val hostilesOnlyAngry: Boolean
     val passives: Boolean
     val animals: Boolean
+    val animalsOnlyAngry: Boolean
+    val golems: Boolean
+    val golemsOnlyAngry: Boolean
 
     val invisible: Boolean
     val dead: Boolean
