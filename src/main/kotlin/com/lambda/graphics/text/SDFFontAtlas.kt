@@ -17,6 +17,7 @@
 
 package com.lambda.graphics.text
 
+import com.lambda.Lambda.mc
 import com.lambda.util.stream
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
@@ -599,13 +600,56 @@ class SDFFontAtlas(
 
 	fun getGlyph(codepoint: Int): Glyph? = glyphs[codepoint]
 
-	fun getStringWidth(text: String, fontSize: Float): Float {
+	private fun getStringWidth(text: String, fontSize: Float): Float {
 		var width = 0f
 		for (char in text) {
 			val glyph = glyphs[char.code] ?: glyphs[' '.code] ?: continue
 			width += glyph.advance * fontSize
 		}
 		return width
+	}
+
+	/** Get screen width in pixels (uses MC's scaled width). */
+	private val screenWidth: Float
+		get() = mc.window.scaledWidth.toFloat()
+
+	/** Get screen height in pixels (uses MC's scaled height). */
+	private val screenHeight: Float
+		get() = mc.window.scaledHeight.toFloat()
+
+	/**
+	 * Get the width of text using normalized size (0-1 range, matching screenText).
+	 * @param text The text string to measure
+	 * @param normalizedSize Text size in normalized units (e.g., 0.02 = 2% of screen)
+	 * @return Width in normalized units (0-1 range relative to screen width)
+	 */
+	fun getStringWidthNormalized(text: String, normalizedSize: Float): Float {
+		// Apply the same baseSize/ascent correction that screenText uses
+		// so dimensions match what actually gets rendered
+		val targetPixelHeight = normalizedSize * screenHeight
+		val pixelSize = targetPixelHeight * baseSize / ascent
+		val pixelWidth = getStringWidth(text, pixelSize)
+		return pixelWidth / screenWidth
+	}
+
+	/**
+	 * Get the descent using normalized size (0-1 range, matching screenText).
+	 * @param normalizedSize Text size in normalized units
+	 * @return Descent in normalized units (0-1 range relative to screen height)
+	 */
+	fun getDescentNormalized(normalizedSize: Float): Float {
+		// descent / ascent = proportion of ascent that is descent
+		return normalizedSize * descent / ascent
+	}
+
+	/**
+	 * Get both width and height of text using normalized size (0-1 range, matching screenText).
+	 * @param text The text string to measure
+	 * @param normalizedSize Text size in normalized units
+	 * @return Pair of (width, height) in normalized units
+	 */
+	fun getStringDimensionsNormalized(text: String, normalizedSize: Float): Pair<Float, Float> {
+		return Pair(getStringWidthNormalized(text, normalizedSize), normalizedSize)
 	}
 
 	override fun close() {

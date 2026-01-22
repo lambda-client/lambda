@@ -17,7 +17,9 @@
 
 package com.lambda.graphics.util
 
+import com.lambda.Lambda.mc
 import com.lambda.util.extension.prevPos
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.math.minus
 import net.minecraft.entity.Entity
@@ -49,6 +51,10 @@ class DynamicAABB {
     }
 
     companion object {
+        val Entity.interpolatedBox
+            get() = boundingBox.let { box ->
+                lerp(mc.tickDelta, box.offset(prevPos - pos), box)
+            }
         val Entity.dynamicBox
             get() = DynamicAABB().apply {
                 update(boundingBox.offset(prevPos - pos))

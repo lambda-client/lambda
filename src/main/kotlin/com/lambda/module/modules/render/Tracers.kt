@@ -46,7 +46,7 @@ object Tracers : Module(
 	private val target by setting("Target", TracerMode.Feet)
 	private val stem by setting("Stem", true)
 	private val entities by setting("Entities", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries)
-	private val friendColor by setting("Friend Color", Color.BLUE)
+	private val friendColor by setting("Friend Color", Color(80, 80, 255, 255))
 	private val playerDistanceGradient by setting("Player Distance Gradient", true) { EntityGroup.Player in entities }
 	private val playerDistanceColorFar by setting("Player Far Color", Color.GREEN) { EntityGroup.Player in entities && playerDistanceGradient }
 	private val playerDistanceColorClose by setting("Player Close Color", Color.RED) { EntityGroup.Player in entities && playerDistanceGradient }

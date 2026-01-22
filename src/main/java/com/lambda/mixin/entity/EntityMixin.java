@@ -151,11 +151,13 @@ public abstract class EntityMixin {
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setYaw(F)V"))
     private boolean wrapSetYaw(Entity instance, float yaw) {
+        if ((Object) this != Lambda.getMc().player) return true;
         return RotationManager.getLockYaw() == null;
     }
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
     private boolean wrapSetPitch(Entity instance, float yaw) {
+        if ((Object) this != Lambda.getMc().player) return true;
         return RotationManager.getLockPitch() == null;
     }
 

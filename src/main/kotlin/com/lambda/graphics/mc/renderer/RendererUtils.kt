@@ -157,27 +157,29 @@ object RendererUtils {
 		val standardItemSize = 16f
 		
 		pendingItems.forEach { item ->
-			val pixelX = (item.x * scaledWidth).toInt()
-			val pixelY = (item.y * scaledHeight).toInt()
+			// Use floating point for smooth sub-pixel positioning (prevents jitter from integer truncation)
+			val pixelX = item.x * scaledWidth
 			
-			// Calculate scale based on normalized size using average of dimensions (matches toPixelSize)
-			// Size of 0.05 means ~5% of screen, so pixelSize = size * (width + height) / 2
-			val targetPixelSize = item.size * (scaledWidth + scaledHeight) / 2f
+			// Calculate scale based on normalized size using height-only (matches toPixelSize)
+			// Size of 0.05 means 5% of screen height, so pixelSize = size * height
+			val targetPixelSize = item.size * scaledHeight
 			val scale = targetPixelSize / standardItemSize
 			
+			// Flip Y: our normalized coords use Y=0 at bottom, but DrawContext uses Y=0 at top
+			// Also offset by item height so items grow UPWARD from the specified position
+			// (DrawContext draws from top-left extending down, we want bottom-left extending up)
+			val itemHeight = standardItemSize * scale
+			val pixelY = (1f - item.y) * scaledHeight - itemHeight
+			
+			// Always use matrix translation for smooth sub-pixel positioning
+			context.matrices.pushMatrix()
+			context.matrices.translate(pixelX, pixelY)
 			if (scale != 1f) {
-				// For scaled items, we need to translate and scale the matrix
-				// Matrix3x2fStack uses JOML methods directly
-				context.matrices.pushMatrix()
-				context.matrices.translate(pixelX.toFloat(), pixelY.toFloat())
 				context.matrices.scale(scale, scale)
-				context.drawItem(item.stack, 0, 0)
-				context.drawStackOverlay(textRenderer, item.stack, 0, 0)
-				context.matrices.popMatrix()
-			} else {
-				context.drawItem(item.stack, pixelX, pixelY)
-				context.drawStackOverlay(textRenderer, item.stack, pixelX, pixelY)
 			}
+			context.drawItem(item.stack, 0, 0)
+			context.drawStackOverlay(textRenderer, item.stack, 0, 0)
+			context.matrices.popMatrix()
 		}
 		
 		// Clear the queue after rendering

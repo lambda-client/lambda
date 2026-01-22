@@ -38,7 +38,7 @@ object FontHandler {
 	/**
 	 * Load an SDF font from resources.
 	 *
-	 * @param path Resource path to TTF/OTF file (e.g., "fonts/FiraSans-Regular.ttf")
+	 * @param path Resource path to TTF/OTF file (e.g., "fonts/MinecraftDefault-Regular.ttf")
 	 * @param size Base font size for SDF generation (larger = higher quality, default 128)
 	 * @return The loaded SDFFontAtlas, or null if loading failed
 	 */
@@ -61,9 +61,9 @@ object FontHandler {
 	fun getDefaultFont(size: Float = 128f): SDFFontAtlas {
 		defaultFont?.let { return it }
 
-		val key = "fonts/FiraSans-Regular.ttf@$size"
+		val key = "fonts/MinecraftDefault-Regular.ttf@$size"
 		val font = fonts[key] ?: run {
-			val newFont = SDFFontAtlas("fonts/FiraSans-Regular.ttf", size)
+			val newFont = SDFFontAtlas("fonts/MinecraftDefault-Regular.ttf", size)
 			fonts[key] = newFont
 			newFont
 		}

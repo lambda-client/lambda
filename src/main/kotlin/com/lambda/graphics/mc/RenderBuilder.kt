@@ -324,8 +324,8 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val anchorY = (pos.y - cameraPos.y).toFloat()
 		val anchorZ = (pos.z - cameraPos.z).toFloat()
 
-		// Calculate text width for centering
-		val textWidth = if (centered) atlas.getStringWidth(text, 1f) else 0f
+		// Calculate text width for centering (using normalized width which works directly with glyph advances)
+		val textWidth = if (centered) atlas.getStringWidthNormalized(text, 1f) else 0f
 		val startX = -textWidth / 2f
 
 		// For fixed rotation, we need to build a rotation matrix to pre-transform offsets
@@ -396,11 +396,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 	/**
 	 * Convert normalized size to pixel size.
-	 * By default uses the average of width and height for uniform scaling.
-	 * Use toPixelSizeX/Y for non-uniform scaling.
+	 * Uses height-only scaling to maintain consistent visual size regardless of aspect ratio.
+	 * This matches how world-space elements behave when projected to screen.
 	 */
 	private fun toPixelSize(normalizedSize: Float): Float = 
-		normalizedSize * (screenWidth + screenHeight) / 2f
+		normalizedSize * screenHeight
 
 	/**
 	 * Draw a filled quad on screen with gradient colors.
@@ -557,7 +557,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	 *
 	 * @param text Text to render
 	 * @param x X position (0-1, where 0 = left, 1 = right)
-	 * @param y Y position (0-1, where 0 = top, 1 = bottom)
+	 * @param y Y position (0-1, where 0 = bottom, 1 = top)
 	 * @param size Text size (normalized, e.g., 0.02 = 2% of screen height)
 	 * @param font Font atlas to use (null = default font)
 	 * @param style Text style with color and effects
@@ -578,10 +578,19 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		// Convert to pixel coordinates
 		val pixelX = toPixelX(x)
 		val pixelY = toPixelY(y)
-		val pixelSize = toPixelSize(size)
+		
+		// Convert normalized size to target pixel height
+		val targetPixelHeight = toPixelSize(size)
+		
+		// Adjust font size so that text ASCENT (height of capital letters) matches the target pixel height
+		// getAscent(fontSize) = ascent / baseSize * fontSize
+		// We want: ascent / baseSize * adjustedFontSize = targetPixelHeight
+		// So: adjustedFontSize = targetPixelHeight * baseSize / ascent
+		val pixelSize = targetPixelHeight * atlas.baseSize / atlas.ascent
 
-		// Calculate text width for centering
-		val textWidth = if (centered) atlas.getStringWidth(text, pixelSize) else 0f
+		// Calculate text width for centering (normalized width converted to pixels)
+		val normalizedTextWidth = if (centered) atlas.getStringWidthNormalized(text, size) else 0f
+		val textWidth = normalizedTextWidth * screenWidth
 		val startX = -textWidth / 2f
 
 		// Render layers in order: shadow -> glow -> outline -> main text
