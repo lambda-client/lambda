@@ -652,6 +652,34 @@ class SDFFontAtlas(
 		return Pair(getStringWidthNormalized(text, normalizedSize), normalizedSize)
 	}
 
+	/**
+	 * Get the normalized size needed to make text fit a target width.
+	 * This is the inverse of getStringWidthNormalized.
+	 * @param text The text string to measure
+	 * @param targetWidthNormalized The desired width in normalized units (0-1 range relative to screen width)
+	 * @return The normalized size that would produce the target width
+	 */
+	fun getSizeForWidthNormalized(text: String, targetWidthNormalized: Float): Float {
+		// Calculate the raw advance width of the text (sum of glyph advances)
+		var rawAdvance = 0f
+		for (char in text) {
+			val glyph = glyphs[char.code] ?: glyphs[' '.code] ?: continue
+			rawAdvance += glyph.advance
+		}
+		if (rawAdvance <= 0f) return 0f
+
+		// Width formula from getStringWidthNormalized:
+		// targetPixelHeight = normalizedSize * screenHeight
+		// pixelSize = targetPixelHeight * baseSize / ascent
+		// pixelWidth = rawAdvance * pixelSize  (since getStringWidth multiplies advance by fontSize)
+		// normalizedWidth = pixelWidth / screenWidth
+		//
+		// Solving for normalizedSize:
+		// normalizedWidth = (rawAdvance * normalizedSize * screenHeight * baseSize / ascent) / screenWidth
+		// normalizedSize = (normalizedWidth * screenWidth * ascent) / (rawAdvance * screenHeight * baseSize)
+		return (targetWidthNormalized * screenWidth * ascent) / (rawAdvance * screenHeight * baseSize)
+	}
+
 	override fun close() {
 		glTextureView?.close()
 		glTextureView = null

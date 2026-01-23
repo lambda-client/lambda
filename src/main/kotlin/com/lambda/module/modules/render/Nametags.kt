@@ -30,6 +30,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils
 import com.lambda.util.EntityUtils.entityGroup
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.maxFullHealth
 import com.lambda.util.math.MathUtils.roundToStep
@@ -38,17 +39,22 @@ import com.lambda.util.math.lerp
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.util.math.Vec3d
 import org.joml.component1
 import org.joml.component2
 import java.awt.Color
 
-//ToDo: implement all settings
 object Nametags : Module(
 	name = "Nametags",
 	description = "Displays information about entities above them",
 	tag = ModuleTag.RENDER
 ) {
+	private enum class Group(override val displayName: String) : NamedEnum {
+
+	}
+
 	private val textScale by setting("Text Scale", 1.2f, 0.4f..5f, 0.01f)
 	private val itemScale by setting("Item Scale", 1.9f, 0.4f..5f, 0.01f)
 	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01)
@@ -57,10 +63,15 @@ object Nametags : Module(
 	private val friendColor by setting("Friend Color", Color.BLUE)
 	private val self by setting("Self", false)
 	private val health by setting("Health", false)
+	private val ping by setting("Ping", true)
 	private val gear by setting("Gear", true)
 	private val mainItem by setting("Main Item", true) { gear }
+	private val itemName by setting("Item Name", true)
+	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f)
 	private val offhandItem by setting("Offhand Item", true) { gear }
-	private val enchantments by setting("Enchantments", false) { gear }
+	private val durability by setting("Durability", true) { gear }
+	//ToDo: Implement
+//	private val enchantments by setting("Enchantments", false) { gear }
 	private val entities by setting("Entities", setOf(EntityUtils.EntityGroup.Player), EntityUtils.EntityGroup.entries)
 
 	val renderer = ImmediateRenderer("Nametags")
@@ -95,25 +106,45 @@ object Nametags : Module(
 								?: return@forEach
 
 						if (entity is LivingEntity) {
-							val healthCount = if (health) entity.fullHealth else -1.0
+							if (itemName && !entity.mainHandStack.isEmpty) {
+								val itemNameText = entity.mainHandStack.name.string
+								val itemNameScale = trueTextScale * itemNameScale
+								screenText(itemNameText, anchorX, anchorY - (itemNameScale * 1.1f) - trueSpacingY, itemNameScale, centered = true)
+							}
+
 							val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, trueTextScale)
+
+							val healthCount = if (health) entity.fullHealth else -1.0
 							val healthText = if (health) " ${healthCount.roundToStep(0.01)}" else ""
-							val healthWidth = getDefaultFont().getStringWidthNormalized(healthText, trueTextScale)
-							var combinedWidth = nameWidth + healthWidth
-							if (healthCount >= 0) combinedWidth += trueSpacingX
+							val healthWidth =
+								getDefaultFont().getStringWidthNormalized(healthText, trueTextScale)
+									.let { if (healthCount > 0) it + trueSpacingX else it }
+
+							val pingCount = if (ping && entity is PlayerEntity) connection.getPlayerListEntry(entity.uuid)?.latency ?: -1 else -1
+							val pingText = if (pingCount >= 0) " [$pingCount]" else ""
+							val pingWidth =
+								getDefaultFont().getStringWidthNormalized(pingText, trueTextScale)
+									.let { if (pingCount > 0 ) it + trueSpacingX else it }
+
+							var combinedWidth = nameWidth + healthWidth + pingWidth
 							val nameX = anchorX - (combinedWidth / 2)
 							screenText(nameText, nameX, anchorY, trueTextScale)
 							if (healthCount >= 0) {
-								val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN)
+								val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN).brighter()
 								val healthStyle = RenderBuilder.SDFStyle(healthColor)
 								screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, trueTextScale, style = healthStyle)
+							}
+							if (pingCount >= 0) {
+								val pingColor = lerp(pingCount / 500.0, Color.GREEN, Color.RED).brighter()
+								val pingStyle = RenderBuilder.SDFStyle(pingColor)
+								screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, trueTextScale, style = pingStyle)
 							}
 							if (gear) {
 								if (EquipmentSlot.entries.none { it.index in 1..4 && !entity.getEquippedStack(it).isEmpty }) {
 									if (mainItem && !entity.mainHandStack.isEmpty)
-										screenItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX, anchorY, trueItemScaleY)
+										renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX - (trueItemScaleX * 0.1f), anchorY)
 									if (offhandItem && !entity.offHandStack.isEmpty)
-										screenItem(entity.offHandStack, anchorX + (combinedWidth / 2) + trueSpacingX, anchorY, trueItemScaleY)
+										renderItem(entity.offHandStack, anchorX + (combinedWidth / 2) + trueSpacingX, anchorY)
 								} else drawArmorAndItems(entity, anchorX, anchorY + trueTextScale + trueSpacingY)
 							}
 						} else screenText(nameText, anchorX, anchorY + (trueTextScale / 2f), trueTextScale, centered = true)
@@ -132,21 +163,34 @@ object Nametags : Module(
 	private fun RenderBuilder.drawArmorAndItems(entity: LivingEntity, x: Float, y: Float) {
 		val stepAmount = trueItemScaleX + trueSpacingX
 		var iteratorX = x - (stepAmount * 3) + (trueSpacingX / 2)
-		if (mainItem && !entity.mainHandStack.isEmpty) screenItem(entity.mainHandStack, iteratorX, y, trueItemScaleY)
+		if (mainItem && !entity.mainHandStack.isEmpty) renderItem(entity.mainHandStack, iteratorX - (trueItemScaleX * 0.1f), y)
 		iteratorX += stepAmount
 		val headStack = entity.getEquippedStack(EquipmentSlot.HEAD)
 		val chestStack = entity.getEquippedStack(EquipmentSlot.CHEST)
 		val legsStack = entity.getEquippedStack(EquipmentSlot.LEGS)
 		val feetStack = entity.getEquippedStack(EquipmentSlot.FEET)
-		if (!headStack.isEmpty) screenItem(headStack, iteratorX, y, trueItemScaleY)
+		if (!headStack.isEmpty) renderItem(headStack, iteratorX, y)
 		iteratorX += stepAmount
-		if (!chestStack.isEmpty) screenItem(chestStack, iteratorX, y, trueItemScaleY)
+		if (!chestStack.isEmpty) renderItem(chestStack, iteratorX, y)
 		iteratorX += stepAmount
-		if (!legsStack.isEmpty) screenItem(legsStack, iteratorX, y, trueItemScaleY)
+		if (!legsStack.isEmpty) renderItem(legsStack, iteratorX, y)
 		iteratorX += stepAmount
-		if (!feetStack.isEmpty) screenItem(feetStack, iteratorX, y, trueItemScaleY)
+		if (!feetStack.isEmpty) renderItem(feetStack, iteratorX, y)
 		iteratorX += stepAmount
-		if (offhandItem && !entity.offHandStack.isEmpty) screenItem(entity.offHandStack, iteratorX, y, trueItemScaleY)
+		if (offhandItem && !entity.offHandStack.isEmpty) renderItem(entity.offHandStack, iteratorX, y)
+	}
+
+	private fun RenderBuilder.renderItem(stack: ItemStack, x: Float, y: Float) {
+		screenItem(stack, x, y, trueItemScaleY)
+		var iteratorY = y
+		iteratorY += trueItemScaleY
+		if (durability && stack.isDamageable) {
+			val dura = (1 - (stack.damage / stack.maxDamage.toDouble())).roundToStep(0.01) * 100
+			val duraText = "$dura%"
+			val textSize = getDefaultFont().getSizeForWidthNormalized(duraText, trueItemScaleX) * 0.9f
+			val textStyle = RenderBuilder.SDFStyle(lerp(dura / 100, Color.RED, Color.GREEN).brighter())
+			screenText(duraText, x, iteratorY, textSize, style = textStyle)
+		}
 	}
 
 	@JvmStatic
