@@ -105,49 +105,53 @@ object Nametags : Module(
 							worldToScreenNormalized(Vec3d(boxCenter.x, box.maxY + yOffset, boxCenter.z))
 								?: return@forEach
 
-						if (entity is LivingEntity) {
-							if (itemName && !entity.mainHandStack.isEmpty) {
-								val itemNameText = entity.mainHandStack.name.string
-								val itemNameScale = trueTextScale * itemNameScale
-								screenText(itemNameText, anchorX, anchorY - (itemNameScale * 1.1f) - trueSpacingY, itemNameScale, centered = true)
-							}
+						if (entity !is LivingEntity) {
+							screenText(nameText, anchorX, anchorY + (trueTextScale / 2f), trueTextScale, centered = true)
+							return@forEach
+						}
 
-							val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, trueTextScale)
+						if (itemName && !entity.mainHandStack.isEmpty) {
+							val itemNameText = entity.mainHandStack.name.string
+							val itemNameScale = trueTextScale * itemNameScale
+							screenText(itemNameText, anchorX, anchorY - (itemNameScale * 1.1f) - trueSpacingY, itemNameScale, centered = true)
+						}
 
-							val healthCount = if (health) entity.fullHealth else -1.0
-							val healthText = if (health) " ${healthCount.roundToStep(0.01)}" else ""
-							val healthWidth =
-								getDefaultFont().getStringWidthNormalized(healthText, trueTextScale)
-									.let { if (healthCount > 0) it + trueSpacingX else it }
+						val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, trueTextScale)
 
-							val pingCount = if (ping && entity is PlayerEntity) connection.getPlayerListEntry(entity.uuid)?.latency ?: -1 else -1
-							val pingText = if (pingCount >= 0) " [$pingCount]" else ""
-							val pingWidth =
-								getDefaultFont().getStringWidthNormalized(pingText, trueTextScale)
-									.let { if (pingCount > 0 ) it + trueSpacingX else it }
+						val healthCount = if (health) entity.fullHealth else -1.0
+						val healthText = if (health) " ${healthCount.roundToStep(0.01)}" else ""
+						val healthWidth =
+							getDefaultFont().getStringWidthNormalized(healthText, trueTextScale)
+								.let { if (healthCount > 0) it + trueSpacingX else it }
 
-							var combinedWidth = nameWidth + healthWidth + pingWidth
-							val nameX = anchorX - (combinedWidth / 2)
-							screenText(nameText, nameX, anchorY, trueTextScale)
-							if (healthCount >= 0) {
-								val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN).brighter()
-								val healthStyle = RenderBuilder.SDFStyle(healthColor)
-								screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, trueTextScale, style = healthStyle)
-							}
-							if (pingCount >= 0) {
-								val pingColor = lerp(pingCount / 500.0, Color.GREEN, Color.RED).brighter()
-								val pingStyle = RenderBuilder.SDFStyle(pingColor)
-								screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, trueTextScale, style = pingStyle)
-							}
-							if (gear) {
-								if (EquipmentSlot.entries.none { it.index in 1..4 && !entity.getEquippedStack(it).isEmpty }) {
-									if (mainItem && !entity.mainHandStack.isEmpty)
-										renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX - (trueItemScaleX * 0.1f), anchorY)
-									if (offhandItem && !entity.offHandStack.isEmpty)
-										renderItem(entity.offHandStack, anchorX + (combinedWidth / 2) + trueSpacingX, anchorY)
-								} else drawArmorAndItems(entity, anchorX, anchorY + trueTextScale + trueSpacingY)
-							}
-						} else screenText(nameText, anchorX, anchorY + (trueTextScale / 2f), trueTextScale, centered = true)
+						val pingCount = if (ping && entity is PlayerEntity) connection.getPlayerListEntry(entity.uuid)?.latency ?: -1 else -1
+						val pingText = if (pingCount >= 0) " [$pingCount]" else ""
+						val pingWidth =
+							getDefaultFont().getStringWidthNormalized(pingText, trueTextScale)
+								.let { if (pingCount > 0 ) it + trueSpacingX else it }
+
+						var combinedWidth = nameWidth + healthWidth + pingWidth
+						val nameX = anchorX - (combinedWidth / 2)
+						screenText(nameText, nameX, anchorY, trueTextScale)
+						if (healthCount >= 0) {
+							val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN).brighter()
+							val healthStyle = RenderBuilder.SDFStyle(healthColor)
+							screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, trueTextScale, style = healthStyle)
+						}
+						if (pingCount >= 0) {
+							val pingColor = lerp(pingCount / 500.0, Color.GREEN, Color.RED).brighter()
+							val pingStyle = RenderBuilder.SDFStyle(pingColor)
+							screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, trueTextScale, style = pingStyle)
+						}
+
+						if (!gear) return@forEach
+
+						if (EquipmentSlot.entries.none { it.index in 1..4 && !entity.getEquippedStack(it).isEmpty }) {
+							if (mainItem && !entity.mainHandStack.isEmpty)
+								renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX - (trueItemScaleX * 0.1f), anchorY)
+							if (offhandItem && !entity.offHandStack.isEmpty)
+								renderItem(entity.offHandStack, anchorX + (combinedWidth / 2) + trueSpacingX, anchorY)
+						} else drawArmorAndItems(entity, anchorX, anchorY + trueTextScale + trueSpacingY)
 					}
 			}
 

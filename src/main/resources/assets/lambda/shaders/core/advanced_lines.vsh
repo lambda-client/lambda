@@ -43,8 +43,9 @@ void main() {
     vec3 lineEnd = lineCenter + lineDir * (segmentLength * 0.5);
     vec3 thisPoint = isStart ? lineStart : lineEnd;
     
-    // Billboard direction
-    vec3 toCamera = normalize(-lineCenter);
+    // Billboard direction: extract camera forward from ModelViewMat
+    // ModelViewMat is the view matrix, its third row gives the camera's forward direction in world space
+    vec3 toCamera = vec3(ModelViewMat[0][2], ModelViewMat[1][2], ModelViewMat[2][2]);
     vec3 perpDir = cross(lineDir, toCamera);
     if (length(perpDir) < 0.001) {
         perpDir = cross(lineDir, vec3(0.0, 1.0, 0.0));
