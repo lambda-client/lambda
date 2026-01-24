@@ -68,8 +68,8 @@ object RotationManager : Manager<RotationRequest>(
     val requests = mutableListOf<IRotationRequest?>(null, null)
 
     private var usingBaritoneRotation = false
-    var activeRotation = Rotation.ZERO
-    var serverRotation = Rotation.ZERO
+    @JvmStatic var activeRotation = Rotation.ZERO
+    @JvmStatic var serverRotation = Rotation.ZERO
     @JvmStatic var prevServerRotation = Rotation.ZERO
 
     private var changedThisTick = false
@@ -293,7 +293,7 @@ object RotationManager : Manager<RotationRequest>(
     private fun multiplier(positive: Boolean, negative: Boolean) =
         ((if (positive) 1 else 0) - (if (negative) 1 else 0)).toFloat()
 
-    fun onRotationSend() {
+    @JvmStatic fun onRotationSend() {
         prevServerRotation = serverRotation
         serverRotation = activeRotation
 

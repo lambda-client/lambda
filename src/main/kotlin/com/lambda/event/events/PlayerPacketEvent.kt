@@ -33,9 +33,9 @@ sealed class PlayerPacketEvent {
         var isCollidingHorizontally: Boolean,
     ) : ICancellable by Cancellable()
 
-    class Post : Event
-
     data class Send(
         val packet: PlayerMoveC2SPacket,
     ) : ICancellable by Cancellable()
+
+    class Post : Event
 }
