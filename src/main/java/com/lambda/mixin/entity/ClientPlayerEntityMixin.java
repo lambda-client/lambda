@@ -29,7 +29,6 @@ import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -38,11 +37,14 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.MovementType;
+import net.minecraft.network.packet.Packet;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -57,7 +59,6 @@ import java.util.Objects;
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
     @Shadow public Input input;
     @Shadow @Final protected MinecraftClient client;
-    @Shadow private boolean autoJumpEnabled;
 
     public ClientPlayerEntityMixin(ClientWorld world, GameProfile profile) {
         super(world, profile);
@@ -83,17 +84,37 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
     }
 
-    @Inject(method = "sendMovementPackets", at = @At("HEAD"))
-    private void injectSendMovementPackets(CallbackInfo ci) {
-        PlayerPacketHandler.sendPlayerPackets();
-        autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
+    private float modifyGetYaw(float original) {
+        final var rot = RotationManager.getHeadYaw();
+        return rot != null ? rot : original;
     }
-    
-    @WrapWithCondition(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSprintingPacket()V"))
-    private boolean wrapSendSprintingPackets(ClientPlayerEntity instance) { return false; }
 
-    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isCamera()Z"))
-    private boolean wrapIsCamera(boolean original) { return false; }
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
+    private float modifyGetPitch(float original) {
+        final var rot = RotationManager.getHeadPitch();
+        return rot != null ? rot : original;
+    }
+
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayerEntity;lastYawClient:F", opcode = Opcodes.GETFIELD))
+    private float modifyLastYawClient(float original) {
+        return RotationManager.getServerRotation().getYawF();
+    }
+
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayerEntity;lastPitchClient:F", opcode = Opcodes.GETFIELD))
+    private float modifyLastPitchClient(float original) {
+        return RotationManager.getServerRotation().getPitchF();
+    }
+
+    @WrapOperation(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"))
+    private void wrapSendPacket(ClientPlayNetworkHandler instance, Packet packet, Operation<Void> original) {
+        PlayerPacketHandler.sendPlayerPackets(packet);
+    }
+
+    @Inject(method = "sendMovementPackets", at = @At("TAIL"))
+    private void injectSendMovementPackets(CallbackInfo ci) {
+        RotationManager.onRotationSend();
+    }
 
     @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
     boolean isSprinting(boolean original) {
