@@ -21,8 +21,8 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
+import com.lambda.event.events.PlayerPacketEvent;
 import com.lambda.event.events.TickEvent;
-import com.lambda.interaction.PlayerPacketHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.movement.NoJumpCooldown;
@@ -37,17 +37,16 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.MovementType;
-import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
-import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -57,8 +56,13 @@ import java.util.Objects;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
-    @Shadow public Input input;
-    @Shadow @Final protected MinecraftClient client;
+    @Shadow
+    public Input input;
+    @Shadow
+    @Final
+    protected MinecraftClient client;
+    @Unique
+    private PlayerPacketEvent.Pre moveEvent;
 
     public ClientPlayerEntityMixin(ClientWorld world, GameProfile profile) {
         super(world, profile);
@@ -84,36 +88,35 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
     }
 
-    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
-    private float modifyGetYaw(float original) {
-        final var rot = RotationManager.getHeadYaw();
-        return rot != null ? rot : original;
+    @Inject(method = "sendMovementPackets", at = @At("HEAD"))
+    private void MovementEventPre(CallbackInfo ci) {
+        moveEvent = EventFlow.post(new PlayerPacketEvent.Pre(pos, RotationManager.getActiveRotation(), isOnGround(), isSprinting(), horizontalCollision));
     }
 
-    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
-    private float modifyGetPitch(float original) {
-        final var rot = RotationManager.getHeadPitch();
-        return rot != null ? rot : original;
+    @WrapOperation(method = "sendMovementPackets", at = @At(value = "NEW", target = "net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket$Full"))
+    private PlayerMoveC2SPacket.Full onFullPacket(Vec3d pos, float yaw, float pitch, boolean onGround, boolean horizontalCollision, Operation<PlayerMoveC2SPacket.Full> original) {
+        return original.call(moveEvent.getPosition(), moveEvent.getRotation().getYawF(), moveEvent.getRotation().getPitchF(), moveEvent.getOnGround(), moveEvent.isCollidingHorizontally());
     }
 
-    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayerEntity;lastYawClient:F", opcode = Opcodes.GETFIELD))
-    private float modifyLastYawClient(float original) {
-        return RotationManager.getServerRotation().getYawF();
+    @WrapOperation(method = "sendMovementPackets", at = @At(value = "NEW", target = "net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket$PositionAndOnGround"))
+    private PlayerMoveC2SPacket.PositionAndOnGround onPositionPacket(Vec3d pos, boolean onGround, boolean horizontalCollision, Operation<PlayerMoveC2SPacket.PositionAndOnGround> original) {
+        return original.call(moveEvent.getPosition(), moveEvent.getOnGround(), moveEvent.isCollidingHorizontally());
     }
 
-    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayerEntity;lastPitchClient:F", opcode = Opcodes.GETFIELD))
-    private float modifyLastPitchClient(float original) {
-        return RotationManager.getServerRotation().getPitchF();
+    @WrapOperation(method = "sendMovementPackets", at = @At(value = "NEW", target = "net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket$LookAndOnGround"))
+    private PlayerMoveC2SPacket.LookAndOnGround onLookPacket(float yaw, float pitch, boolean onGround, boolean horizontalCollision, Operation<PlayerMoveC2SPacket.LookAndOnGround> original) {
+        return original.call(moveEvent.getRotation().getYawF(), moveEvent.getRotation().getPitchF(), moveEvent.getOnGround(), moveEvent.isCollidingHorizontally());
     }
 
-    @WrapOperation(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"))
-    private void wrapSendPacket(ClientPlayNetworkHandler instance, Packet packet, Operation<Void> original) {
-        PlayerPacketHandler.sendPlayerPackets(packet);
+    @WrapOperation(method = "sendMovementPackets", at = @At(value = "NEW", target = "net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket$OnGroundOnly"))
+    private PlayerMoveC2SPacket.OnGroundOnly onOnGroundPacket(boolean onGround, boolean horizontalCollision, Operation<PlayerMoveC2SPacket.OnGroundOnly> original) {
+        return original.call(moveEvent.getOnGround(), moveEvent.isCollidingHorizontally());
     }
 
     @Inject(method = "sendMovementPackets", at = @At("TAIL"))
     private void injectSendMovementPackets(CallbackInfo ci) {
         RotationManager.onRotationSend();
+        EventFlow.post(new PlayerPacketEvent.Post());
     }
 
     @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
@@ -171,6 +174,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     /**
      * Prevents the game from closing Guis when the player is in a nether portal
+     * 
      * <pre>{@code
      * if (this.client.currentScreen != null
      *         && !this.client.currentScreen.shouldPause()
