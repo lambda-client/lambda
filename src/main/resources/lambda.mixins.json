@@ -86,6 +86,7 @@
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
+    "world.DirectionMixin",
     "world.StructureTemplateMixin",
     "world.WorldMixin"
   ],

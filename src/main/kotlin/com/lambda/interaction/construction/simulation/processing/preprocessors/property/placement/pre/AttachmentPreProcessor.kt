@@ -29,7 +29,7 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object AttachmentPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(targetState: BlockState) =
+    override fun acceptsState(state: BlockState, targetState: BlockState) =
         Properties.ATTACHMENT in targetState
 
 	context(safeContext: SafeContext)

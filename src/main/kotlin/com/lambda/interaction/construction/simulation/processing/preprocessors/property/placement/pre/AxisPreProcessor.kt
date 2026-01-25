@@ -27,7 +27,7 @@ import net.minecraft.util.math.BlockPos
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object AxisPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(targetState: BlockState) =
+    override fun acceptsState(state: BlockState, targetState: BlockState) =
         Properties.AXIS in targetState
 
     context(safeContext: SafeContext)
