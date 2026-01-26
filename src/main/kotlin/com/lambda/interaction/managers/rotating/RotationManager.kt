@@ -65,7 +65,7 @@ object RotationManager : Manager<RotationRequest>(
     var yawRequest
         get() = requests[1] as? IRotationRequest.YawRot
         set(value) { requests[1] = value }
-    val requests = mutableListOf<IRotationRequest?>(null, null)
+    @JvmStatic val requests = mutableListOf<IRotationRequest?>(null, null)
 
     private var usingBaritoneRotation = false
     @JvmStatic var activeRotation = Rotation.ZERO

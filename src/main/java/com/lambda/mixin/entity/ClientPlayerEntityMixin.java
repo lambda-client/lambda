@@ -23,6 +23,7 @@ import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.PlayerPacketEvent;
 import com.lambda.event.events.TickEvent;
+import com.lambda.interaction.managers.rotating.Rotation;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.movement.NoJumpCooldown;
@@ -36,7 +37,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -46,7 +46,6 @@ import net.minecraft.entity.MovementType;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -54,16 +53,16 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.Objects;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
     @Shadow
-    public Input input;
+    private float lastYawClient;
     @Shadow
-    @Final
-    protected MinecraftClient client;
+    private float lastPitchClient;
     @Unique
     private PlayerPacketEvent.Pre moveEvent;
 
@@ -101,6 +100,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @ModifyExpressionValue(method = "sendMovementPackets", at = @At("MIXINEXTRAS:EXPRESSION"))
     private boolean modifyHasRotated(boolean original) {
         return !RotationManager.getActiveRotation().equalFloat(RotationManager.getServerRotation()) || original;
+    }
+
+    @Inject(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
+    private void injectSendPacket(CallbackInfo ci, double d, double e, double f, double g, double h, boolean bl, boolean bl2) {
+        if (RotationManager.getRequests().stream().allMatch(Objects::nonNull)) {
+            moveEvent.setRotation(new Rotation(g + lastYawClient, h + lastPitchClient));
+        }
     }
 
     @WrapOperation(method = "sendMovementPackets", at = @At(value = "NEW", target = "net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket$Full"))
