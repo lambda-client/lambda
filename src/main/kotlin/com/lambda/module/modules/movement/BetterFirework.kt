@@ -33,7 +33,6 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
-import com.lambda.util.item.ItemStackUtils.copy
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
@@ -52,18 +51,18 @@ object BetterFirework : Module(
 ) {
 	private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
-			mc.player?.isElytraEquipped?.let { equipped ->
+			player.isElytraEquipped.let { equipped ->
 				if (!equipped) {
 					warn("You need to equip an elytra to use this module!")
 					return@onPress
 				}
-			} ?: return@onPress
-			mc.player?.hasFireworks?.let { hasFireworks ->
+			}
+			player.hasFireworks.let { hasFireworks ->
 				if (!hasFireworks) {
 					warn("You need to have fireworks in your inventory to use this module!")
 					return@onPress
 				}
-			} ?: return@onPress
+			}
 			// Prevent using multiple times
 			if (takeoffState != TakeoffState.None) return@onPress
 			// If already gliding use another firework
