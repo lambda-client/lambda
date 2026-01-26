@@ -31,7 +31,7 @@ sealed class PlayerPacketEvent {
         var onGround: Boolean,
         var isSprinting: Boolean,
         var isCollidingHorizontally: Boolean,
-    ) : ICancellable by Cancellable()
+    ) : Event
 
     data class Send(
         val packet: PlayerMoveC2SPacket,

@@ -100,7 +100,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @Expression("g != 0.0")
     @ModifyExpressionValue(method = "sendMovementPackets", at = @At("MIXINEXTRAS:EXPRESSION"))
     private boolean modifyHasRotated(boolean original) {
-        return RotationManager.getActiveRotation() != RotationManager.getServerRotation() || original;
+        return !RotationManager.getActiveRotation().equalFloat(RotationManager.getServerRotation()) || original;
     }
 
     @WrapOperation(method = "sendMovementPackets", at = @At(value = "NEW", target = "net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket$Full"))
@@ -123,7 +123,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         return original.call(moveEvent.getOnGround(), moveEvent.isCollidingHorizontally());
     }
 
-    @Inject(method = "sendMovementPackets", at = @At("RETURN"))
+    @Inject(method = "sendMovementPackets", at = @At("TAIL"))
     private void injectSendMovementPacketsReturn(CallbackInfo ci) {
         RotationManager.onRotationSend();
         EventFlow.post(new PlayerPacketEvent.Post());
