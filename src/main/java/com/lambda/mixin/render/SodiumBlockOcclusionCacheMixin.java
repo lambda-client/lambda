@@ -33,6 +33,7 @@ public class SodiumBlockOcclusionCacheMixin {
     private boolean modifyShouldDrawSide(boolean original, BlockState state, BlockView view, BlockPos pos, Direction facing) {
         if (XRay.INSTANCE.isEnabled() && XRay.isSelected(state) && XRay.getOpacity() < 100)
             return true;
+
         return original;
     }
 }

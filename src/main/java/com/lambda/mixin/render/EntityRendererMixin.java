@@ -18,6 +18,8 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.render.Frustum;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.EntityRenderer;
@@ -26,20 +28,20 @@ import net.minecraft.client.render.state.CameraRenderState;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityRenderer.class)
-public class EntityRendererMixin {
-    @Inject(method = "shouldRender(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/render/Frustum;DDD)Z", at = @At("HEAD"), cancellable = true)
-    private void injectShouldRender(Entity entity, Frustum frustum, double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
-        if (NoRender.shouldOmitEntity(entity)) cir.cancel();
+public class EntityRendererMixin<T extends Entity, S extends EntityRenderState> {
+    @WrapMethod(method = "shouldRender(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/render/Frustum;DDD)Z")
+    private boolean injectShouldRender(T entity, Frustum frustum, double x, double y, double z, Operation<Boolean> original) {
+        if (!NoRender.shouldOmitEntity(entity))
+            original.call(entity, frustum, x, y, z);
+
+        return false;
     }
 
-    @Inject(method = "renderLabelIfPresent", at = @At("HEAD"), cancellable = true)
-    private void injectRenderLabelIfPresent(EntityRenderState state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoNametags()) ci.cancel();
+    @WrapMethod(method = "renderLabelIfPresent")
+    private void injectRenderLabelIfPresent(S state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraRenderState, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoNametags())
+            original.call(state, matrices, queue, cameraRenderState);
     }
 }

@@ -67,9 +67,10 @@ public class MinecraftClientMixin {
     @Shadow
     public int itemUseCooldown;
 
-    @Inject(method = "close", at = @At("HEAD"))
-    void closeImGui(CallbackInfo ci) {
+    @WrapMethod(method = "close")
+    void closeImGui(Operation<Void> original) {
         DearImGui.INSTANCE.destroy();
+        original.call();
     }
 
     @WrapMethod(method = "render")
@@ -175,7 +176,6 @@ public class MinecraftClientMixin {
     @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z"))
     void injectFastPlace(CallbackInfo ci) {
         if (!Interact.INSTANCE.isEnabled()) return;
-
         itemUseCooldown = Interact.getPlaceDelay();
     }
 
@@ -201,10 +201,13 @@ public class MinecraftClientMixin {
             return (float) TimerManager.INSTANCE.getLength();
     }
 
-    @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)
-    void updateWindowTitle(CallbackInfo ci) {
-        if (!ClickGuiLayout.getSetLambdaWindowTitle()) return;
+    @WrapMethod(method = "updateWindowTitle")
+    void updateWindowTitle(Operation<Void> original) {
+        if (!ClickGuiLayout.getSetLambdaWindowTitle()) {
+            original.call();
+            return;
+        }
+
         WindowUtils.setLambdaTitle();
-        ci.cancel();
     }
 }

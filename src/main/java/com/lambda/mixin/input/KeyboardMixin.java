@@ -28,27 +28,14 @@ import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Mixin to intercept keyboard input events.
- *
- * Note: In 1.21.11, onKey/onChar methods were refactored to use KeyInput/CharInput records.
- * - onKey(long window, int action, KeyInput input) where KeyInput has key, scancode, modifiers
- * - onChar(long window, CharInput input) where CharInput has codepoint, modifiers
- */
 @Mixin(Keyboard.class)
 public class KeyboardMixin {
     @WrapMethod(method = "onKey")
     private void onKey(long window, int action, KeyInput input, Operation<Void> original) {
         EventFlow.post(new ButtonEvent.Keyboard.Press(input.key(), input.scancode(), action, input.modifiers()));
         original.call(window, action, input);
-    }
 
-    @Inject(method = "onKey", at = @At("RETURN"))
-    private void onKeyTail(long window, int action, KeyInput input, CallbackInfo ci) {
         int key = input.key();
         if (!InventoryMove.getShouldMove() || !InventoryMove.isKeyMovementRelated(key)) return;
         InputUtil.Key fromCode = InputUtil.fromKeyCode(input);

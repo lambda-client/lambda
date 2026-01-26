@@ -22,6 +22,8 @@ import com.lambda.module.modules.render.ExtraTab;
 import com.lambda.util.text.TextBuilder;
 import com.lambda.util.text.TextDslKt;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import kotlin.Unit;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.PlayerListHud;
@@ -38,9 +40,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Comparator;
 import java.util.List;
@@ -57,19 +57,19 @@ public class PlayerListHudMixin {
 
     @Shadow @Final private MinecraftClient client;
 
-    @Inject(method = "collectPlayerEntries", at = @At(value = "HEAD"), cancellable = true)
-    private void onCollectPlayerEntriesHead(CallbackInfoReturnable<List<PlayerListEntry>> cir) {
-        if (ExtraTab.INSTANCE.isDisabled()) return;
-        if (client.player == null) return;
-        cir.setReturnValue(
-                client.player.networkHandler
-                        .getListedPlayerListEntries()
-                        .stream()
-                        .filter(entry -> !ExtraTab.getFriendsOnly() || FriendManager.INSTANCE.isFriend(entry.getProfile()))
-                        .sorted(ExtraTab.getSortFriendsFirst() ? FRIENDS_FIRST_ENTRY_ORDERING : ENTRY_ORDERING)
-                        .limit(ExtraTab.getTabEntries())
-                        .toList()
-        );
+    @SuppressWarnings("DataFlowIssue")
+    @WrapMethod(method = "collectPlayerEntries")
+    private List<PlayerListEntry> onCollectPlayerEntriesHead(Operation<List<PlayerListEntry>> original) {
+        if (ExtraTab.INSTANCE.isDisabled())
+            return original.call();
+
+        return client.player.networkHandler
+                .getListedPlayerListEntries()
+                .stream()
+                .filter(entry -> !ExtraTab.getFriendsOnly() || FriendManager.INSTANCE.isFriend(entry.getProfile()))
+                .sorted(ExtraTab.getSortFriendsFirst() ? FRIENDS_FIRST_ENTRY_ORDERING : ENTRY_ORDERING)
+                .limit(ExtraTab.getTabEntries())
+                .toList();
     }
 
     @ModifyConstant(method = "render", constant = @Constant(intValue = 20))

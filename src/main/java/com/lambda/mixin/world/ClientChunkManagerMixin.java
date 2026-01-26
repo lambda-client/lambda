@@ -19,19 +19,18 @@ package com.lambda.mixin.world;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.WorldEvent;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.world.ClientChunkManager;
-import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.ChunkData;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.chunk.WorldChunk;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
@@ -40,49 +39,23 @@ import java.util.function.Consumer;
 
 @Mixin(ClientChunkManager.class)
 public class ClientChunkManagerMixin {
-    @Final
-    @Shadow
-    ClientWorld world;
+    @WrapMethod(method = "loadChunkFromPacket")
+    private WorldChunk onChunkLoad(int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps, Consumer<ChunkData.BlockEntityVisitor> consumer, Operation<WorldChunk> original) {
+        var ret = original.call(x, z, buf, heightmaps, consumer);
 
-    @Inject(method = "loadChunkFromPacket", at = @At("TAIL"))
-    private void onChunkLoad(
-            int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfoReturnable<WorldChunk> cir
-    ) {
-        EventFlow.post(new WorldEvent.ChunkEvent.Load(cir.getReturnValue()));
+        EventFlow.post(new WorldEvent.ChunkEvent.Load(ret));
+        return ret;
     }
 
     @Inject(method = "loadChunkFromPacket", at = @At(value = "NEW", target = "net/minecraft/world/chunk/WorldChunk", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD)
     private void onChunkUnload(int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfoReturnable<WorldChunk> cir, int i, WorldChunk chunk, ChunkPos chunkPos) {
-        if (chunk != null) {
+        if (chunk != null)
             EventFlow.post(new WorldEvent.ChunkEvent.Unload(chunk));
-        }
     }
 
-    @Inject(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;unloadChunk(ILnet/minecraft/world/chunk/WorldChunk;)V"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void onChunkUnload(ChunkPos pos, CallbackInfo ci, int i, WorldChunk chunk) {
+    @WrapOperation(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;unloadChunk(ILnet/minecraft/world/chunk/WorldChunk;)V"))
+    private void onChunkUnload(ClientChunkManager.ClientChunkMap instance, int index, WorldChunk chunk, Operation<Void> original) {
+        original.call(instance, index, chunk);
         EventFlow.post(new WorldEvent.ChunkEvent.Unload(chunk));
     }
-
-//    @Inject(
-//            method = "updateLoadDistance",
-//            at = @At(
-//                    value = "INVOKE",
-//                    target = "net/minecraft/client/world/ClientChunkManager$ClientChunkMap.isInRadius(II)Z"
-//            ),
-//            locals = LocalCapture.CAPTURE_FAILHARD
-//    )
-//    private void onUpdateLoadDistance(
-//            int loadDistance,
-//            CallbackInfo ci,
-//            int oldRadius,
-//            int newRadius,
-//            ClientChunkManager.ClientChunkMap clientChunkMap,
-//            int k,
-//            WorldChunk oldChunk,
-//            ChunkPos chunkPos
-//    ) {
-//        if (!clientChunkMap.isInRadius(chunkPos.x, chunkPos.z)) {
-//            EventFlow.post(new WorldEvent.ChunkEvent.Unload(this.world, oldChunk));
-//        }
-//    }
 }

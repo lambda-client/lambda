@@ -18,30 +18,28 @@
 package com.lambda.mixin.render.blockentity;
 
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.render.block.entity.BlockEntityRenderManager;
 import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
 import net.minecraft.client.render.command.ModelCommandRenderer;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.jspecify.annotations.Nullable;
+import org.spongepowered.asm.mixin.Mixin;
 
 /**
  * Mixin to disable block entity rendering when NoRender is enabled.
- *
  * Note: In 1.21.11, BlockEntityRenderDispatcher was renamed to BlockEntityRenderManager
  * and uses a render state system. Returning null from getRenderState prevents rendering.
  */
 @Mixin(BlockEntityRenderManager.class)
 public class BlockEntityRenderDispatcherMixin {
-    @Inject(method = "getRenderState", at = @At("HEAD"), cancellable = true)
-    private <E extends BlockEntity, S extends BlockEntityRenderState> void injectGetRenderState(
-            E blockEntity, float tickProgress, ModelCommandRenderer.@Nullable CrumblingOverlayCommand crumblingOverlay,
-            CallbackInfoReturnable<S> cir) {
-        if (NoRender.shouldOmitBlockEntity(blockEntity)) {
-            cir.setReturnValue(null);
-        }
+    @WrapMethod(method = "getRenderState")
+    private <E extends BlockEntity, S extends BlockEntityRenderState> @Nullable S injectGetRenderState(
+            E blockEntity, float tickProgress, ModelCommandRenderer.@Nullable CrumblingOverlayCommand crumblingOverlay, Operation<S> original) {
+        if (NoRender.shouldOmitBlockEntity(blockEntity))
+            return null;
+
+        return original.call(blockEntity, tickProgress, crumblingOverlay);
     }
 }

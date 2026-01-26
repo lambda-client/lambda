@@ -18,30 +18,27 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.ContainerPreview;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(HandledScreen.class)
 public class HandledScreenMixin {
-    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(Click click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
-        if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
-            if (ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y())) {
-                cir.setReturnValue(true);
-            }
-        }
+    @WrapMethod(method = "mouseClicked")
+    private boolean onMouseClicked(Click click, boolean doubled, Operation<Boolean> original) {
+        if (ContainerPreview.INSTANCE.isDisabled() || !ContainerPreview.isLocked())
+            original.call(click, doubled);
+
+        return ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y());
     }
 
-    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
-    private void onMouseReleased(Click click, CallbackInfoReturnable<Boolean> cir) {
-        if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
-            if (ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y())) {
-                cir.setReturnValue(true);
-            }
-        }
+    @WrapMethod(method = "mouseReleased")
+    private boolean onMouseReleased(Click click, Operation<Boolean> original) {
+        if (ContainerPreview.INSTANCE.isDisabled() || !ContainerPreview.isLocked())
+            original.call(click);
+
+        return ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y());
     }
 }

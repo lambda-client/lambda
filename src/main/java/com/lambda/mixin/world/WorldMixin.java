@@ -20,39 +20,39 @@ package com.lambda.mixin.world;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.Weather;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(World.class)
 public abstract class WorldMixin {
-    @Inject(method = "onBlockStateChanged", at = @At("TAIL"))
-    void onBlockChanged(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        EventFlow.post(new WorldEvent.BlockUpdate.Client(pos, oldBlock, newBlock));
+    @WrapMethod(method = "onBlockStateChanged")
+    void onBlockChanged(BlockPos pos, BlockState oldState, BlockState newState, Operation<Void> original) {
+        original.call(pos, oldState, newState);
+        EventFlow.post(new WorldEvent.BlockUpdate.Client(pos, oldState, newState));
     }
 
-    @Inject(method = "getThunderGradient(F)F", at = @At("HEAD"), cancellable = true)
-    private void injectGetThunderGradient(float tickProgress, CallbackInfoReturnable<Float> cir) {
-        if (Weather.INSTANCE.isEnabled()) {
-            if (Weather.getWeatherMode() == Weather.WeatherMode.Thunder) cir.setReturnValue(1f);
-            else cir.setReturnValue(0f);
-        }
+    @WrapMethod(method = "getThunderGradient(F)F")
+    private float injectGetThunderGradient(float tickProgress, Operation<Float> original) {
+        if (Weather.INSTANCE.isDisabled())
+            return original.call(tickProgress);
+
+        if (Weather.getWeatherMode() == Weather.WeatherMode.Thunder) return 1f;
+        else return 0f;
     }
 
-    @Inject(method = "getRainGradient", at = @At("HEAD"), cancellable = true)
-    private void injectGetRainGradient(float tickProgress, CallbackInfoReturnable<Float> cir) {
-        if (Weather.INSTANCE.isEnabled()) {
-            Weather.WeatherMode mode = Weather.getWeatherMode();
-            if (mode == Weather.WeatherMode.Rain ||
-                    mode == Weather.WeatherMode.Snow ||
-                    mode == Weather.WeatherMode.Thunder
-            ) cir.setReturnValue(1f);
-            else cir.setReturnValue(0f);
-        }
+    @WrapMethod(method = "getRainGradient")
+    private float injectGetRainGradient(float tickProgress, Operation<Float> original) {
+        if (Weather.INSTANCE.isDisabled())
+            return original.call(tickProgress);
+
+        Weather.WeatherMode mode = Weather.getWeatherMode();
+        if (mode == Weather.WeatherMode.Rain ||
+                mode == Weather.WeatherMode.Snow ||
+                mode == Weather.WeatherMode.Thunder) return 1f;
+        else return 0f;
     }
 }

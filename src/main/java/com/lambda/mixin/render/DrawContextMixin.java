@@ -19,6 +19,8 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.MapPreview;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -30,15 +32,11 @@ import net.minecraft.item.Items;
 import net.minecraft.item.tooltip.TooltipData;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Optional;
@@ -64,11 +62,10 @@ public abstract class DrawContextMixin {
     @Shadow
     public abstract void drawMap(MapRenderState mapRenderState);
 
-    @Inject(method = "drawStackOverlay(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/item/ItemStack;IILjava/lang/String;)V", at = @At(value = "TAIL"))
-    private void injectDrawMap(TextRenderer textRenderer, ItemStack stack, int i, int j, String string, CallbackInfo ci) {
-        if (MapPreview.INSTANCE.isDisabled() || !MapPreview.getShowInSlot()) return;
-
-        if (!stack.isOf(Items.FILLED_MAP)) return;
+    @WrapMethod(method = "drawStackOverlay(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/item/ItemStack;IILjava/lang/String;)V")
+    private void injectDrawMap(TextRenderer textRenderer, ItemStack stack, int x, int y, String stackCountText, Operation<Void> original) {
+        if (MapPreview.INSTANCE.isDisabled() || !MapPreview.getShowInSlot() || !stack.isOf(Items.FILLED_MAP))
+            original.call(textRenderer, stack, x, y, stackCountText);
 
         var mapId = stack.get(DataComponentTypes.MAP_ID);
         var savedData = FilledMapItem.getMapState(mapId, client.world);
@@ -76,7 +73,7 @@ public abstract class DrawContextMixin {
         if (savedData == null) return;
 
         this.getMatrices().pushMatrix();
-        this.getMatrices().translate(i, j);
+        this.getMatrices().translate(x, y);
         this.getMatrices().scale(0.125F, 0.125F);
 
         client.getMapRenderer().update(mapId, savedData, this.mapRenderState);
@@ -85,21 +82,17 @@ public abstract class DrawContextMixin {
         this.getMatrices().popMatrix();
     }
 
-    @Inject(method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/util/Identifier;)V", at = @At("HEAD"), cancellable = true)
-    private void onDrawTooltip(TextRenderer textRenderer, List<Text> text, Optional<TooltipData> data, int x, int y, @Nullable Identifier texture, CallbackInfo ci) {
-        if (!ContainerPreview.INSTANCE.isEnabled()) return;
-
-        if (ContainerPreview.isRenderingSubTooltip()) return;
+    @WrapMethod(method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/util/Identifier;)V")
+    private void onDrawTooltip(TextRenderer textRenderer, List<Text> text, Optional<TooltipData> data, int x, int y, @org.jspecify.annotations.Nullable Identifier texture, Operation<Void> original) {
+        if (ContainerPreview.INSTANCE.isDisabled() || ContainerPreview.isRenderingSubTooltip())
+            original.call(textRenderer, text, data, x, y, texture);
 
         if (ContainerPreview.isLocked()) {
-            ci.cancel();
             ContainerPreview.renderLockedTooltip((DrawContext)(Object)this, textRenderer);
             return;
         }
 
-        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent component) {
-            ci.cancel();
+        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent component)
             ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, component, x, y);
-        }
     }
 }

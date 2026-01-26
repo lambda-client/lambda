@@ -18,25 +18,22 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.render.fog.DarknessEffectFogModifier;
-import net.minecraft.block.enums.CameraSubmersionType;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Mixin to disable darkness fog effect when NoRender is enabled.
  */
 @Mixin(DarknessEffectFogModifier.class)
 public class DarknessEffectFogMixin {
+    @WrapMethod(method = "applyDarknessModifier")
+    private float injectShouldApplyDarkness(LivingEntity cameraEntity, float darkness, float tickProgress, Operation<Float> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoDarkness())
+            return original.call(cameraEntity, darkness, tickProgress);
 
-    @Inject(method = "applyDarknessModifier", at = @At("HEAD"), cancellable = true)
-    private void injectShouldApplyDarkness(LivingEntity cameraEntity, float darkness, float tickProgress, CallbackInfoReturnable<Float> cir) {
-        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) {
-            cir.setReturnValue(0.0f);
-        }
+        return 0f;
     }
 }

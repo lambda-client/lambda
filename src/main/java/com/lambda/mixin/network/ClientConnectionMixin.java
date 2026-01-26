@@ -20,6 +20,8 @@ package com.lambda.mixin.network;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ConnectionEvent;
 import com.lambda.event.events.PacketEvent;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
@@ -34,10 +36,6 @@ import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientConnection.class)
 public class ClientConnectionMixin {
@@ -46,66 +44,37 @@ public class ClientConnectionMixin {
     private NetworkSide side;
 
     @SuppressWarnings("unchecked")
-    @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
-    private void sendingPacket(Packet<?> packet, final CallbackInfo callbackInfo) {
+    @WrapMethod(method = "send(Lnet/minecraft/network/packet/Packet;)V")
+    private void sendingPacket(Packet<?> packet, Operation<Void> original) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        if (EventFlow.post(new PacketEvent.Send.Pre((Packet<? extends ServerPlayPacketListener>) packet)).isCanceled()) {
-            callbackInfo.cancel();
+        if (!EventFlow.post(new PacketEvent.Send.Pre((Packet<? extends ServerPlayPacketListener>) packet)).isCanceled()) {
+            original.call(packet);
+            EventFlow.post(new PacketEvent.Send.Post((Packet<? extends ServerPlayPacketListener>) packet));
         }
     }
 
     @SuppressWarnings("unchecked")
-    @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("RETURN"))
-    private void sendingPacketPost(Packet<?> packet, final CallbackInfo callbackInfo) {
+    @WrapMethod(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", require = 1)
+    private void receivingPacket(ChannelHandlerContext channelHandlerContext, Packet<?> packet, Operation<Void> original) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        EventFlow.post(new PacketEvent.Send.Post((Packet<? extends ServerPlayPacketListener>) packet));
-    }
-
-    @SuppressWarnings("unchecked")
-    @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V", shift = At.Shift.BEFORE), cancellable = true, require = 1)
-    private void receivingPacket(
-            ChannelHandlerContext channelHandlerContext,
-            Packet<?> packet,
-            CallbackInfo callbackInfo
-    ) {
-        if (side != NetworkSide.CLIENTBOUND) return;
-
-        if (EventFlow.post(new PacketEvent.Receive.Pre((Packet<? extends ClientPlayPacketListener>) packet)).isCanceled()) {
-            callbackInfo.cancel();
+        if (!EventFlow.post(new PacketEvent.Receive.Pre((Packet<? extends ClientPlayPacketListener>) packet)).isCanceled()) {
+            original.call(channelHandlerContext, packet);
+            EventFlow.post(new PacketEvent.Receive.Post((Packet<? extends ClientPlayPacketListener>) packet));
         }
     }
 
-    @SuppressWarnings("unchecked")
-    @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V", shift = At.Shift.AFTER))
-    private void receivingPacketPost(
-            ChannelHandlerContext channelHandlerContext,
-            Packet<?> packet,
-            CallbackInfo callbackInfo
-    ) {
-        if (side != NetworkSide.CLIENTBOUND) return;
-
-        EventFlow.post(new PacketEvent.Receive.Post((Packet<? extends ClientPlayPacketListener>) packet));
-    }
-
-    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/listener/ClientPacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
+    @WrapMethod(method = "connect(Ljava/lang/String;ILnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/listener/ClientPacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V")
     private <S extends ServerPacketListener, C extends ClientPacketListener>
-    void onConnect(
-            String address,
-            int port,
-            NetworkState<S> outboundState,
-            NetworkState<C> inboundState,
-            C prePlayStateListener,
-            ConnectionIntent intent,
-            CallbackInfo ci
-    ) {
-        if (EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, prePlayStateListener, intent)).isCanceled())
-            ci.cancel();
+    void onConnect(String address, int port, NetworkState<S> outboundState, NetworkState<C> inboundState, C prePlayStateListener, ConnectionIntent intent, Operation<Void> original) {
+        if (!EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, prePlayStateListener, intent)).isCanceled())
+            original.call(address, port, outboundState, inboundState, prePlayStateListener, intent);
     }
 
-    @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
-    private void onDisconnect(Text reason, CallbackInfo ci) {
-        EventFlow.post(new ConnectionEvent.Disconnect(reason));
+    @WrapMethod(method = "disconnect(Lnet/minecraft/text/Text;)V")
+    private void onDisconnect(Text disconnectReason, Operation<Void> original) {
+        original.call(disconnectReason);
+        EventFlow.post(new ConnectionEvent.Disconnect(disconnectReason));
     }
 }

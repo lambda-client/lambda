@@ -19,19 +19,19 @@ package com.lambda.mixin.render;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
 @Mixin(ScreenHandler.class)
 public class ScreenHandlerMixin {
-    @Inject(method = "updateSlotStacks", at = @At("TAIL"))
-    private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, CallbackInfo ci) {
+    @WrapMethod(method = "updateSlotStacks")
+    private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, Operation<Void> original) {
+        original.call(revision, stacks, cursorStack);
         EventFlow.post(new InventoryEvent.FullUpdate(revision, stacks, cursorStack));
     }
 }

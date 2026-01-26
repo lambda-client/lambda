@@ -18,35 +18,36 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.XRay;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.BlockRenderLayer;
 import net.minecraft.client.render.BlockRenderLayers;
 import net.minecraft.fluid.FluidState;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Mixin to make blocks render as translucent for XRay functionality.
- *
  * Note: In 1.21.11, RenderLayers was split - BlockRenderLayers now handles
  * block/fluid layer determination and returns BlockRenderLayer enum instead of RenderLayer.
  */
 @Mixin(BlockRenderLayers.class)
 public class RenderLayersMixin {
-    @Inject(method = "getBlockLayer", at = @At("HEAD"), cancellable = true)
-    private static void injectGetBlockLayer(BlockState state, CallbackInfoReturnable<BlockRenderLayer> cir) {
-        if (XRay.INSTANCE.isDisabled()) return;
+    @WrapMethod(method = "getBlockLayer")
+    private static BlockRenderLayer injectGetBlockLayer(BlockState state, Operation<BlockRenderLayer> original) {
         final var opacity = XRay.getOpacity();
-        if (opacity <= 0 || opacity >= 100) return;
-        if (!XRay.isSelected(state)) cir.setReturnValue(BlockRenderLayer.TRANSLUCENT);
+        if (XRay.INSTANCE.isDisabled() || XRay.isSelected(state) || opacity <= 0 || opacity >= 100)
+            return original.call(state);
+
+        return BlockRenderLayer.TRANSLUCENT;
     }
 
-    @Inject(method = "getFluidLayer", at = @At("HEAD"), cancellable = true)
-    private static void injectGetFluidLayer(FluidState state, CallbackInfoReturnable<BlockRenderLayer> cir) {
-        if (XRay.INSTANCE.isDisabled()) return;
+    @WrapMethod(method = "getFluidLayer")
+    private static BlockRenderLayer injectGetFluidLayer(FluidState state, Operation<BlockRenderLayer> original) {
         final var opacity = XRay.getOpacity();
-        if (opacity > 0 && opacity < 100) cir.setReturnValue(BlockRenderLayer.TRANSLUCENT);
+        if (XRay.INSTANCE.isDisabled() || opacity <= 0 || opacity >= 100)
+            return original.call(state);
+
+        return BlockRenderLayer.TRANSLUCENT;
     }
 }

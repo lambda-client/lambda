@@ -22,6 +22,8 @@ import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.FreeLook;
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.block.enums.CameraSubmersionType;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
@@ -33,7 +35,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(Camera.class)
@@ -48,14 +49,15 @@ public abstract class CameraMixin {
     public abstract float getYaw();
 
     @Shadow
-    public float yaw;
+    private float yaw;
 
     @Shadow
-    public float pitch;
+    private float pitch;
 
-    @Inject(method = "update", at = @At("TAIL"))
-    private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
-        if (!Freecam.INSTANCE.isEnabled()) return;
+    @WrapMethod(method = "update")
+    private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, Operation<Void> original) {
+        if (Freecam.INSTANCE.isDisabled())
+            original.call(area, focusedEntity, thirdPerson, inverseView, tickProgress);
 
         Freecam.updateCam();
     }
@@ -86,12 +88,12 @@ public abstract class CameraMixin {
     /**
      * Allows the camera to clip through blocks in third person
      */
-    @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
+    /*@Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
     private void onClipToSpace(float distance, CallbackInfoReturnable<Float> cir) {
         if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
             cir.setReturnValue(distance);
         }
-    }
+    }*/
 
     /**
      * Modifies the third person camera distance
@@ -155,8 +157,11 @@ public abstract class CameraMixin {
         }
     }
 
-    @Inject(method = "getSubmersionType", at = @At("HEAD"), cancellable = true)
-    private void injectGetSubmersionType(CallbackInfoReturnable<CameraSubmersionType> cir) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoFluidOverlay()) cir.setReturnValue(CameraSubmersionType.NONE);
+    @WrapMethod(method = "getSubmersionType")
+    private CameraSubmersionType injectGetSubmersionType(Operation<CameraSubmersionType> original) {
+        if (NoRender.INSTANCE.isDisabled() && !NoRender.getNoFluidOverlay())
+            return original.call();
+
+        return CameraSubmersionType.NONE;
     }
 }

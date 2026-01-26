@@ -18,19 +18,19 @@
 package com.lambda.mixin.render.particle;
 
 import com.lambda.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.particle.BillboardParticle;
 import net.minecraft.client.particle.BillboardParticleSubmittable;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.render.Camera;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BillboardParticle.class)
 public class BillboardParticleMixin {
-    @Inject(method = "render(Lnet/minecraft/client/particle/BillboardParticleSubmittable;Lnet/minecraft/client/render/Camera;F)V", at = @At("HEAD"), cancellable = true)
-    private void injectRender(BillboardParticleSubmittable submittable, Camera camera, float tickDelta, CallbackInfo ci) {
-        if (NoRender.shouldOmitParticle((Particle) ((Object) this))) ci.cancel();
+    @WrapMethod(method = "render(Lnet/minecraft/client/particle/BillboardParticleSubmittable;Lnet/minecraft/client/render/Camera;F)V")
+    private void injectRender(BillboardParticleSubmittable submittable, Camera camera, float tickProgress, Operation<Void> original) {
+        if (!NoRender.shouldOmitParticle((Particle) ((Object) this)))
+            original.call(submittable, camera, tickProgress);
     }
 }

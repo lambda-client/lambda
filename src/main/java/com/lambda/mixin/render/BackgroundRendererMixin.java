@@ -19,9 +19,6 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.NoRender;
 import net.minecraft.client.render.fog.BlindnessEffectFogModifier;
-import net.minecraft.client.render.fog.DarknessEffectFogModifier;
-import net.minecraft.block.enums.CameraSubmersionType;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

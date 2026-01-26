@@ -18,28 +18,30 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.Weather;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.render.WeatherRendering;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(WeatherRendering.class)
 public class WeatherRenderingMixin {
-    @Inject(method = "getPrecipitationAt", at = @At("HEAD"), cancellable = true)
-    private void injectGetPrecipitationAt(World world, BlockPos pos, CallbackInfoReturnable<Biome.Precipitation> cir) {
-        if (Weather.INSTANCE.isEnabled()) {
-            Weather.WeatherMode mode = Weather.getWeatherMode();
-            if (world.getRegistryKey() == World.OVERWORLD) {
-                if (mode == Weather.WeatherMode.Rain && Weather.getOverrideSnow()) cir.setReturnValue(Biome.Precipitation.RAIN);
-                else if (mode == Weather.WeatherMode.Snow) cir.setReturnValue(Biome.Precipitation.SNOW);
-            } else {
-                if (mode == Weather.WeatherMode.Snow) cir.setReturnValue(Biome.Precipitation.SNOW);
-                else cir.setReturnValue(Biome.Precipitation.RAIN);
-            }
+    @WrapMethod(method = "getPrecipitationAt")
+    private Biome.Precipitation injectGetPrecipitationAt(World world, BlockPos pos, Operation<Biome.Precipitation> original) {
+        if (Weather.INSTANCE.isDisabled())
+            return original.call(world, pos);
+
+        Weather.WeatherMode mode = Weather.getWeatherMode();
+        if (world.getRegistryKey() == World.OVERWORLD) {
+            if (mode == Weather.WeatherMode.Rain && Weather.getOverrideSnow()) return Biome.Precipitation.RAIN;
+            else if (mode == Weather.WeatherMode.Snow) return Biome.Precipitation.SNOW;
+        } else {
+            if (mode == Weather.WeatherMode.Snow) return Biome.Precipitation.SNOW;
+            else return Biome.Precipitation.RAIN;
         }
+
+        return original.call(world, pos); // ??
     }
 }

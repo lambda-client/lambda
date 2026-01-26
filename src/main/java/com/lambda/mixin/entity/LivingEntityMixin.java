@@ -35,10 +35,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
@@ -62,11 +59,11 @@ public abstract class LivingEntityMixin extends EntityMixin {
      * }
      * }</pre>
      */
-    @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
-    void onJump(CallbackInfo ci) {
+    @WrapMethod(method = "jump")
+    void onJump(Operation<Void> original) {
         LivingEntity self = lambda$instance;
-        if (self != Lambda.getMc().player) return;
-        ci.cancel();
+        if (self != Lambda.getMc().player)
+            original.call();
 
         float height = this.getJumpVelocity();
         MovementEvent.Jump event = EventFlow.post(new MovementEvent.Jump(height));
@@ -85,16 +82,12 @@ public abstract class LivingEntityMixin extends EntityMixin {
         self.velocityDirty = true;
     }
 
-    @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
-    void onTravelPre(Vec3d movementInput, CallbackInfo ci) {
-        if (EventFlow.post(new MovementEvent.Entity.Pre(lambda$instance, movementInput)).isCanceled()) {
-            ci.cancel();
+    @WrapMethod(method = "travel")
+    void onTravelPre(Vec3d movementInput, Operation<Void> original) {
+        if (!EventFlow.post(new MovementEvent.Entity.Pre(lambda$instance, movementInput)).isCanceled()) {
+            original.call(movementInput);
+            EventFlow.post(new MovementEvent.Entity.Post(lambda$instance, movementInput));
         }
-    }
-
-    @Inject(method = "travel", at = @At("TAIL"))
-    void onTravelPost(Vec3d movementInput, CallbackInfo ci) {
-        EventFlow.post(new MovementEvent.Entity.Post(lambda$instance, movementInput));
     }
 
     /**
@@ -185,9 +178,11 @@ public abstract class LivingEntityMixin extends EntityMixin {
         original.call(entity);
     }
 
-    @Inject(method = "isGliding", at = @At("HEAD"), cancellable = true)
-    private void injectIsGliding(CallbackInfoReturnable<Boolean> cir) {
-        if (lambda$instance != Lambda.getMc().player) return;
-        cir.setReturnValue(ElytraFly.isGliding());
+    @WrapMethod(method = "isGliding")
+    private boolean injectIsGliding(Operation<Boolean> original) {
+        if (lambda$instance != Lambda.getMc().player)
+            return original.call();
+
+        return ElytraFly.isGliding();
     }
 }

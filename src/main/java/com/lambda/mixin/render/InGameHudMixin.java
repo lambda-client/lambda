@@ -17,9 +17,10 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.gui.DearImGui;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.render.RenderTickCounter;
@@ -28,37 +29,39 @@ import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArgs;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
-
-    @Inject(method = "renderNauseaOverlay", at = @At("HEAD"), cancellable = true)
-    private void injectRenderNauseaOverlay(DrawContext context, float nauseaStrength, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoNausea()) ci.cancel();
+    @WrapMethod(method = "renderNauseaOverlay")
+    private void injectRenderNauseaOverlay(DrawContext context, float nauseaStrength, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoNausea())
+            original.call(context, nauseaStrength);
     }
 
-    @Inject(method = "renderPortalOverlay", at = @At("HEAD"), cancellable = true)
-    private void injectRenderPortalOverlay(DrawContext context, float nauseaStrength, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoPortalOverlay()) ci.cancel();
+    @WrapMethod(method = "renderPortalOverlay")
+    private void injectRenderPortalOverlay(DrawContext context, float nauseaStrength, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoPortalOverlay())
+            original.call(context, nauseaStrength);
     }
 
-    @Inject(method = "renderVignetteOverlay", at = @At("HEAD"), cancellable = true)
-    private void injectRenderVignetteOverlay(DrawContext context, Entity entity, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoVignette()) ci.cancel();
+    @WrapMethod(method = "renderVignetteOverlay")
+    private void injectRenderVignetteOverlay(DrawContext context, Entity entity, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoVignette())
+            original.call(context, entity);
     }
 
-    @Inject(method = "renderStatusEffectOverlay", at = @At("HEAD"), cancellable = true)
-    private void injectRenderStatusEffectOverlay(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoStatusEffects()) ci.cancel();
+    @WrapMethod(method = "renderStatusEffectOverlay")
+    private void injectRenderStatusEffectOverlay(DrawContext context, RenderTickCounter tickCounter, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoStatusEffects())
+            original.call(context, tickCounter);
     }
 
-    @Inject(method = "renderSpyglassOverlay", at = @At("HEAD"), cancellable = true)
-    private void injectRenderSpyglassOverlay(DrawContext context, float scale, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoSpyglassOverlay()) ci.cancel();
+    @WrapMethod(method = "renderSpyglassOverlay")
+    private void injectRenderSpyglassOverlay(DrawContext context, float scale, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoSpyglassOverlay())
+            original.call(context, scale);
     }
 
     @ModifyArgs(method = "renderMiscOverlays", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;renderOverlay(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/util/Identifier;F)V"))
@@ -74,13 +77,15 @@ public class InGameHudMixin {
         return (NoRender.INSTANCE.isEnabled() && NoRender.getNoPowderedSnowOverlay()) ? 0 : original;
     }
 
-    @Inject(method = "renderScoreboardSidebar(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/scoreboard/ScoreboardObjective;)V", at = @At("HEAD"), cancellable = true)
-    private void injectRenderScoreboardSidebar(DrawContext drawContext, ScoreboardObjective objective, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoScoreBoard()) ci.cancel();
+    @WrapMethod(method = "renderScoreboardSidebar(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/scoreboard/ScoreboardObjective;)V")
+    private void injectRenderScoreboardSidebar(DrawContext context, ScoreboardObjective objective, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoScoreBoard())
+            original.call(context, objective);
     }
 
-    @Inject(method = "renderCrosshair", at = @At("HEAD"), cancellable = true)
-    private void injectRenderCrosshair(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoCrosshair()) ci.cancel();
+    @WrapMethod(method = "renderCrosshair")
+    private void injectRenderCrosshair(DrawContext context, RenderTickCounter tickCounter, Operation<Void> original) {
+        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoCrosshair())
+            original.call(context, tickCounter);
     }
 }
