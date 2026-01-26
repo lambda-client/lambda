@@ -37,13 +37,14 @@ object EasyTrash : Module(
 
     /**
      * Called when a slot is clicked in a screen handler.
-     * Returns false if the click was handled and should be cancelled.
+     * Returns false if the click was handled and should be canceled.
      */
     @JvmStatic
-    fun onClick(screenHandler: ScreenHandler, slotIndex: Int, button: Int, actionType: SlotActionType, player: PlayerEntity): Boolean =
+    fun onClick(slotIndex: Int, button: Int, actionType: SlotActionType): Boolean =
         runSafe {
             if (!isEnabled) return true
             if (actionType != SlotActionType.QUICK_MOVE || button != 0) return true
+            var screenHandler = player.currentScreenHandler
 
             if (!trashNetherrack) return true
             if (screenHandler is GenericContainerScreenHandler) {

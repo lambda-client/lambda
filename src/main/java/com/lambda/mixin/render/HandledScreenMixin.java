@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.module.modules.player.EasyTrash;
 import com.lambda.module.modules.render.ContainerPreview;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
@@ -32,6 +33,11 @@ public class HandledScreenMixin {
         if (ContainerPreview.INSTANCE.isEnabled() && ContainerPreview.isLocked()) {
             if (ContainerPreview.isMouseOverLockedTooltip((int) click.x(), (int) click.y())) {
                 cir.setReturnValue(true);
+            }
+        }
+        if (EasyTrash.INSTANCE.isEnabled()) {
+            if (!EasyTrash.onClick(slotId, button, actionType)) {
+                ci.cancel();
             }
         }
     }

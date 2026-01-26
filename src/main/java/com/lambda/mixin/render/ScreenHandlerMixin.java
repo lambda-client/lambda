@@ -39,11 +39,4 @@ public class ScreenHandlerMixin {
     private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.FullUpdate(revision, stacks, cursorStack));
     }
-
-    @WrapMethod(method = "internalOnSlotClick(IILnet/minecraft/screen/slot/SlotActionType;Lnet/minecraft/entity/player/PlayerEntity;)V")
-    private void onInternalOnSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player, Operation<Void> original) {
-        if (EasyTrash.onClick((ScreenHandler) (Object) this, slotIndex, button, actionType, player)) {
-            original.call(slotIndex, button, actionType, player);
-        }
-    }
 }
