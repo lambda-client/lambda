@@ -33,6 +33,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
+import com.lambda.util.item.ItemStackUtils.copy
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
@@ -51,13 +52,13 @@ object BetterFirework : Module(
 ) {
 	private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
-			mc.player?.isElytraEquipped()?.let { equipped ->
+			mc.player?.isElytraEquipped?.let { equipped ->
 				if (!equipped) {
 					warn("You need to equip an elytra to use this module!")
 					return@onPress
 				}
 			} ?: return@onPress
-			mc.player?.hasFireworks()?.let { hasFireworks ->
+			mc.player?.hasFireworks?.let { hasFireworks ->
 				if (!hasFireworks) {
 					warn("You need to have fireworks in your inventory to use this module!")
 					return@onPress
@@ -80,24 +81,16 @@ object BetterFirework : Module(
 
 	private var takeoffState = TakeoffState.None
 
-	fun ClientPlayerEntity.isElytraEquipped(): Boolean {
-		this.inventory?.equipment?.get(EquipmentSlot.CHEST)?.let { return it.item == Items.ELYTRA }
-		return false
-	}
+	val ClientPlayerEntity.isElytraEquipped: Boolean
+		get() = inventory.equipment.get(EquipmentSlot.CHEST)?.item == Items.ELYTRA
 
-	fun ClientPlayerEntity.hasFireworks(minimum: Int = 1): Boolean {
-		var total = 0
-		inventory?.mainStacks?.forEach {
-			if (it.item == Items.FIREWORK_ROCKET) {
-				total += it.count
-			}
-		}
-		if (offHandStack.item == Items.FIREWORK_ROCKET) total += offHandStack.count
-		return total >= minimum
-	}
+	val ClientPlayerEntity.hasFireworks: Boolean
+		get() = selectStack { isItem(Items.FIREWORK_ROCKET) }
+			.filterStacks(inventory.mainStacks)
+			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
 
 	val ClientPlayerEntity.canTakeoff: Boolean
-		get() = (isOnGround || canOpenElytra) && isElytraEquipped() && hasFireworks()
+		get() = (isOnGround || canOpenElytra) && isElytraEquipped && hasFireworks
 
 	val ClientPlayerEntity.canOpenElytra: Boolean
 		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
