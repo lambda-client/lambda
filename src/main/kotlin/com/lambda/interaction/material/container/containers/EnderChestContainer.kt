@@ -37,32 +37,32 @@ import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContainer {
-    context(safeContext: SafeContext)
-    override val slots
-        get() =
-            if (ContainerManager.lastInteractedBlockEntity is EnderChestBlockEntity)
-                safeContext.player.currentScreenHandler.containerSlots
-            else emptyList()
-    override var stacks = emptyList<ItemStack>()
+	context(safeContext: SafeContext)
+	override val slots
+		get() =
+			if (ContainerManager.lastInteractedBlockEntity is EnderChestBlockEntity)
+				safeContext.player.currentScreenHandler.containerSlots
+			else emptyList()
+	override var stacks = emptyList<ItemStack>()
 
-    override val description = buildText { literal("Ender Chest") }
+	override val description = buildText { literal("Ender Chest") }
 
-    private var placePos = BlockPos.ORIGIN
+	private var placePos = BlockPos.ORIGIN
 
-    context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
-        Items.ENDER_CHEST
-            .select()
-            .findSlotsWithMaterial()
-            .firstOrNull()?.let { slot ->
-                PlaceContainerTask(slot, automatedSafeContext).then { pos ->
-                    placePos = pos
-                    OpenContainerTask(pos, automatedSafeContext).then {
-                        taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-                            if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos, lifeMaintenance = false)
-                            else null
-                        }
-                    }
-                }
-            }
+	context(automatedSafeContext: AutomatedSafeContext)
+	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
+		Items.ENDER_CHEST
+			.select()
+			.findSlotsWithMaterial()
+			.firstOrNull()?.let { slot ->
+				PlaceContainerTask(slot, automatedSafeContext).then { pos ->
+					placePos = pos
+					OpenContainerTask(pos, automatedSafeContext).then {
+						taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
+							if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos, lifeMaintenance = false)
+							else null
+						}
+					}
+				}
+			}
 }

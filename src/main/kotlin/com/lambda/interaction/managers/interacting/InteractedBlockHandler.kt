@@ -29,42 +29,42 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
 object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
-    override val pendingActions = LimitedDecayQueue<InteractInfo>(
-        DEFAULT.buildConfig.maxPendingActions,
-        DEFAULT.buildConfig.actionTimeout * 50L
-    ) {
-        if (managerDebugLogs) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
-            runSafe {
-                world.setBlockState(it.context.blockPos, it.context.cachedState)
-            }
-        }
-        it.pendingInteractionsList.remove(it.context)
-    }
+	override val pendingActions = LimitedDecayQueue<InteractInfo>(
+		DEFAULT.buildConfig.maxPendingActions,
+		DEFAULT.buildConfig.actionTimeout * 50L
+	) {
+		if (managerDebugLogs) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
+		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
+			runSafe {
+				world.setBlockState(it.context.blockPos, it.context.cachedState)
+			}
+		}
+		it.pendingInteractionsList.remove(it.context)
+	}
 
-    init {
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            pendingActions
-                .firstOrNull { it.context.blockPos == event.pos }
-                ?.let { pending ->
-                    if (!pending.context.expectedState.matches(event.newState)) {
-                        if (pending.context.cachedState.matches(event.newState, pending.context.preProcessingInfo.ignore)) {
-                            pending.context.cachedState = event.newState
-                            return@listen
-                        }
+	init {
+		listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
+			pendingActions
+				.firstOrNull { it.context.blockPos == event.pos }
+				?.let { pending ->
+					if (!pending.context.expectedState.matches(event.newState)) {
+						if (pending.context.cachedState.matches(event.newState, pending.context.preProcessingInfo.ignore)) {
+							pending.context.cachedState = event.newState
+							return@listen
+						}
 
-                        pending.stopPending()
+						pending.stopPending()
 
-                        if (managerDebugLogs) this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
-                        return@listen
-                    }
+						if (managerDebugLogs) this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+						return@listen
+					}
 
-                    pending.stopPending()
+					pending.stopPending()
 
-                    if (pending.interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
-                        with(pending.context) { placeSound(expectedState, blockPos) }
-                    pending.onPlace?.invoke(this, pending.context.blockPos)
-                }
-        }
-    }
+					if (pending.interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
+						with(pending.context) { placeSound(expectedState, blockPos) }
+					pending.onPlace?.invoke(this, pending.context.blockPos)
+				}
+		}
+	}
 }

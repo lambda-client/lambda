@@ -49,25 +49,25 @@ import net.minecraft.client.world.ClientWorld
  * @property connection The network handler for the player.
  **/
 interface SafeContext {
-    val mc: MinecraftClient
-    val world: ClientWorld
-    val player: ClientPlayerEntity
-    val interaction: ClientPlayerInteractionManager
-    val connection: ClientPlayNetworkHandler
+	val mc: MinecraftClient
+	val world: ClientWorld
+	val player: ClientPlayerEntity
+	val interaction: ClientPlayerInteractionManager
+	val connection: ClientPlayNetworkHandler
 
-    companion object {
-        fun create(): SafeContext? {
-            val world = mc.world ?: return null
-            val player = mc.player ?: return null
-            val interaction = mc.interactionManager ?: return null
-            val connection = mc.networkHandler ?: return null
-            return object : SafeContext {
-                override val mc = Lambda.mc
-                override val world = world
-                override val player = player
-                override val interaction = interaction
-                override val connection = connection
-            }
-        }
-    }
+	companion object {
+		fun create(): SafeContext? {
+			val world = mc.world ?: return null
+			val player = mc.player ?: return null
+			val interaction = mc.interactionManager ?: return null
+			val connection = mc.networkHandler ?: return null
+			return object : SafeContext {
+				override val mc = Lambda.mc
+				override val world = world
+				override val player = player
+				override val interaction = interaction
+				override val connection = connection
+			}
+		}
+	}
 }
