@@ -102,9 +102,9 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         return !RotationManager.getActiveRotation().equalFloat(RotationManager.getServerRotation()) || original;
     }
 
-    @Inject(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
+    @Inject(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILEXCEPTION)
     private void injectSendPacket(CallbackInfo ci, double d, double e, double f, double g, double h, boolean bl, boolean bl2) {
-        if (RotationManager.getRequests().stream().allMatch(Objects::nonNull)) {
+        if (RotationManager.getRequests().stream().allMatch(Objects::isNull)) {
             moveEvent.setRotation(new Rotation(g + lastYawClient, h + lastPitchClient));
         }
     }
