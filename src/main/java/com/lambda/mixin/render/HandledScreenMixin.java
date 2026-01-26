@@ -21,9 +21,12 @@ import com.lambda.module.modules.player.EasyTrash;
 import com.lambda.module.modules.render.ContainerPreview;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.screen.slot.Slot;
+import net.minecraft.screen.slot.SlotActionType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(HandledScreen.class)
@@ -35,10 +38,13 @@ public class HandledScreenMixin {
                 cir.setReturnValue(true);
             }
         }
-        if (EasyTrash.INSTANCE.isEnabled()) {
-            if (!EasyTrash.onClick(slotId, button, actionType)) {
-                ci.cancel();
-            }
+    }
+
+    @Inject(method = "onMouseClick(Lnet/minecraft/screen/slot/Slot;IILnet/minecraft/screen/slot/SlotActionType;)V", at = @At(value = "HEAD"), cancellable = true)
+    private void onMouseClickSlotPre(Slot slot, int slotId, int button, SlotActionType actionType, CallbackInfo ci) {
+        if (slot == null) return;
+        if (EasyTrash.INSTANCE.isEnabled() && EasyTrash.onClick(slot.id, button, actionType)) {
+            ci.cancel();
         }
     }
 
