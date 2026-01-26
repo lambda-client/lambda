@@ -93,7 +93,7 @@ object EasyTrash : Module(
         runSafe {
             if (!isEnabled) return false
             if (actionType != SlotActionType.QUICK_MOVE || button != 0) return false
-            var screenHandler = player.currentScreenHandler
+            val screenHandler = player.currentScreenHandler
 
             if (screenHandler is GenericContainerScreenHandler) {
                 val slot = screenHandler.getSlot(slotIndex)
