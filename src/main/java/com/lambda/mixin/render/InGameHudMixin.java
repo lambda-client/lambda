@@ -17,7 +17,6 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.gui.DearImGui;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.gui.DrawContext;

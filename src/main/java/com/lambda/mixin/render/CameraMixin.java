@@ -48,10 +48,10 @@ public abstract class CameraMixin {
     public abstract float getYaw();
 
     @Shadow
-    public float yaw;
+    private float yaw;
 
     @Shadow
-    public float pitch;
+    private float pitch;
 
     @Inject(method = "update", at = @At("TAIL"))
     private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
