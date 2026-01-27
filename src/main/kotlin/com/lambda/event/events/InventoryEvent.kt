@@ -22,6 +22,8 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.slot.Slot
+import net.minecraft.screen.slot.SlotActionType
 
 /**
  * Represents various events related to inventory interactions, updates, and state changes.
@@ -81,6 +83,33 @@ sealed class InventoryEvent {
         val slot: Int,
         val stack: ItemStack,
     ) : Event
+
+	/**
+	 * Represents an action performed on an inventory slot, such as clicking or interacting with it.
+	 */
+	abstract class SlotAction : Event, ICancellable {
+		/**
+		 * Represents a click action performed on an inventory slot.
+		 *
+		 * This event provides detailed information about the click action, including the screen handler,
+		 * the slot involved, the button used, and the type of action performed.
+		 *
+		 * This event is [Cancellable], allowing handlers to prevent the default click behavior if necessary.
+		 *
+		 * @property screenHandler The screen handler managing the inventory interaction.
+		 * @property slot The slot that was clicked, or null if no slot was involved.
+		 * @property slotId The ID of the slot that was clicked.
+		 * @property button The mouse button used for the click action.
+		 * @property actionType The type of action performed on the slot.
+		 */
+		data class Click(
+			val screenHandler: ScreenHandler,
+			val slot: Slot?,
+			val slotId: Int,
+			val button: Int,
+			val actionType: SlotActionType,
+		) : ICancellable by Cancellable()
+	}
 
     abstract class HotbarSlot : Event {
         /**

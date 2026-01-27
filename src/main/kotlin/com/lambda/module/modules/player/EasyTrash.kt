@@ -18,6 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
@@ -25,7 +26,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.InventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.Timer
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.ItemEntity
@@ -56,17 +56,52 @@ object EasyTrash : Module(
             }
             checkShouldTrashSomething()
         }
+
+	    listen<InventoryEvent.SlotAction.Click> { event ->
+		    if (event.actionType != SlotActionType.QUICK_MOVE || event.button != 0) {
+			    return@listen
+		    }
+
+		    if (event.screenHandler is GenericContainerScreenHandler) {
+				val sh = event.screenHandler
+			    val rows = sh.rows
+
+			    if (event.slotId >= rows * 9) {
+					// Clicked in inventory, not in container
+					return@listen
+			    }
+
+			    if (sh.slots.subList(rows * 9, sh.slots.size).any { !it.hasStack() }) {
+					// There is empty space in the inventory, no need to trash
+					return@listen
+			    }
+
+			    StackSelection.selectStack {
+				    isOneOfItems(itemsCanTrash)
+			    }.filterSlots(InventoryContainer.slots).firstOrNull()?.let { trashSlot ->
+				    inventoryRequest {
+					    pickup(event.slotId, 0)
+					    pickup(trashSlot.id, 0)
+					    pickup(ScreenHandler.EMPTY_SPACE_SLOT_INDEX, 0)
+				    }.submit(true)
+				    event.cancel()
+			    }
+		    }
+	    }
     }
 
     fun SafeContext.checkShouldTrashSomething() {
         if (player.health > 0.0f && !player.isSpectator && dropToPickup && !player.isCreative) {
-            val box = if (player.vehicle != null && !player.vehicle!!.isRemoved) {
-                player.boundingBox.union(player.vehicle!!.boundingBox).expand(1.0, 0.0, 1.0)
+			val vehicle = player.vehicle
+            val box = if (vehicle != null && !vehicle.isRemoved) {
+                player.boundingBox.union(vehicle.boundingBox).expand(1.0, 0.0, 1.0)
             } else {
                 player.boundingBox.expand(1.0, 0.5, 1.0)
             }
-            val items = world.getEntitiesByType<ItemEntity>(EntityType.ITEM, box) { entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround }.map { i -> i.stack.item }
-            if (items.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(items) }) == 0) {
+            val items = world.getEntitiesByType<ItemEntity>(EntityType.ITEM, box) {
+				entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround
+			}.map { i -> i.stack.item }
+            if (items.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(items) }) <= 0) {
                 if (trashSomething()) timer.reset()
             }
         }
@@ -83,39 +118,4 @@ object EasyTrash : Module(
         }
         return false
     }
-
-    /**
-     * Called when a slot is clicked in a screen handler.
-     * Returns true if the click was handled
-     */
-    @JvmStatic
-    fun onClick(slotIndex: Int, button: Int, actionType: SlotActionType): Boolean =
-        runSafe {
-            if (!isEnabled) return false
-            if (actionType != SlotActionType.QUICK_MOVE || button != 0) return false
-            val screenHandler = player.currentScreenHandler
-
-            if (screenHandler is GenericContainerScreenHandler) {
-                val slot = screenHandler.getSlot(slotIndex)
-                val rows = screenHandler.rows
-
-                if (slotIndex >= rows * 9) return false // Not in the container
-
-                val inventorySlots = screenHandler.slots.subList(rows * 9, screenHandler.slots.size)
-                val freeInventorySlot = inventorySlots.any { !it.hasStack() }
-                if (freeInventorySlot) return false
-
-                StackSelection.selectStack {
-                    isOneOfItems(itemsCanTrash)
-                }.filterSlots(InventoryContainer.slots).firstOrNull()?.let { trashSlot ->
-                    inventoryRequest {
-                        pickup(slot.id, 0)
-                        pickup(trashSlot.id, 0)
-                        pickup(ScreenHandler.EMPTY_SPACE_SLOT_INDEX, 0)
-                    }.submit(true)
-                    return true
-                }
-            }
-            return false
-        } ?: false
 }
