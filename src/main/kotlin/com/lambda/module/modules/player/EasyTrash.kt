@@ -47,7 +47,10 @@ object EasyTrash : Module(
 
     init {
         listen<TickEvent.Pre> {
-            checkShouldTrashSomething()
+			if (!dropToPickup) return@listen
+	        DropOnEntityFunctionality.run {
+		        tick(itemsToPickup, itemsCanTrash)
+	        }
         }
 
 	    listen<InventoryEvent.SlotAction.Click> { event ->
@@ -83,32 +86,34 @@ object EasyTrash : Module(
 	    }
     }
 
-    fun SafeContext.checkShouldTrashSomething() {
-        if (player.health > 0.0f && !player.isSpectator && dropToPickup && !player.isCreative) {
-			val vehicle = player.vehicle
-            val box = if (vehicle != null && !vehicle.isRemoved) {
-                player.boundingBox.union(vehicle.boundingBox).expand(1.0, 0.0, 1.0)
-            } else {
-                player.boundingBox.expand(1.0, 0.5, 1.0)
-            }
-            val items = world.getEntitiesByType<ItemEntity>(EntityType.ITEM, box) {
-				entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround
-			}.map { i -> i.stack.item }
-            if (items.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(items) }) <= 0) {
-                dropOneTrashStack()
-            }
-        }
-    }
+	object DropOnEntityFunctionality {
+		fun SafeContext.tick(itemsToPickup: Collection<Item>, trashItems: Collection<Item>) {
+			if (player.health > 0.0f && !player.isSpectator && !player.isCreative) {
+				val vehicle = player.vehicle
+				val box = if (vehicle != null && !vehicle.isRemoved) {
+					player.boundingBox.union(vehicle.boundingBox).expand(1.0, 0.0, 1.0)
+				} else {
+					player.boundingBox.expand(1.0, 0.5, 1.0)
+				}
+				val onGroundAndInRange = world.getEntitiesByType<ItemEntity>(EntityType.ITEM, box) {
+						entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround
+				}.map { i -> i.stack.item }
+				if (onGroundAndInRange.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(onGroundAndInRange) }) <= 0) {
+					dropOneTrashStack(trashItems)
+				}
+			}
+		}
 
-    fun SafeContext.dropOneTrashStack(): Boolean {
-        StackSelection.selectStack {
-            isOneOfItems(itemsCanTrash)
-        }.filterSlots(InventoryContainer.slots).firstOrNull()?.let {
-            inventoryRequest {
-                throwStack(it.id)
-            }.submit(true)
-            return true
-        }
-        return false
-    }
+		fun SafeContext.dropOneTrashStack(trashItems: Collection<Item>): Boolean {
+			StackSelection.selectStack {
+				isOneOfItems(trashItems)
+			}.filterSlots(InventoryContainer.slots).firstOrNull()?.let {
+				inventoryRequest {
+					throwStack(it.id)
+				}.submit(true)
+				return true
+			}
+			return false
+		}
+	}
 }
