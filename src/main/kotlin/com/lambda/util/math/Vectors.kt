@@ -86,10 +86,14 @@ val ChunkPos.center: ChunkPos
 infix fun ChunkPos.dist(other: Vec3i): Double = other dist this
 infix fun ChunkPos.dist(other: Vec3d): Double = other dist this
 infix fun ChunkPos.dist(other: ChunkPos): Double = sqrt((this distSq other).toDouble())
+infix fun ChunkPos.distCenter(other: Vec3i): Double = sqrt((this distSqCenter other).toDouble())
+infix fun ChunkPos.distCenter(other: Vec3d): Double = sqrt(this distSqCenter other)
 infix fun ChunkPos.distCenter(other: ChunkPos): Double = sqrt((this distSqCenter other).toDouble())
 infix fun ChunkPos.distSq(other: Vec3i): Int = other distSq this
 infix fun ChunkPos.distSq(other: Vec3d): Double = other distSq this
 infix fun ChunkPos.distSq(other: ChunkPos): Int = (other.x - x).sq + (other.z - z).sq
+infix fun ChunkPos.distSqCenter(other: Vec3i): Int = (other.x - centerX).sq + (other.z - centerZ).sq
+infix fun ChunkPos.distSqCenter(other: Vec3d): Double = (other.x - centerX).sq + (other.z - centerZ).sq
 infix fun ChunkPos.distSqCenter(other: ChunkPos): Int = (other.centerX - centerX).sq + (other.centerZ - centerZ).sq
 
 /* Vec3d */
@@ -117,7 +121,7 @@ infix fun Vec3d.dist(other: Vec3i): Double = sqrt(this distSq other)
 infix fun Vec3d.dist(other: ChunkPos): Double = sqrt(this distSq other)
 infix fun Vec3d.distSq(other: Vec3d): Double = (other.x - x).sq + (other.y - y).sq + (other.z - z).sq
 infix fun Vec3d.distSq(other: Vec3i): Double = (other.x - x).sq + (other.y - y).sq + (other.z - z).sq
-infix fun Vec3d.distSq(other: ChunkPos): Double = (other.x - x).sq + (other.z - z).sq
+infix fun Vec3d.distSq(other: ChunkPos): Double = (other.x * 16 - x).sq + (other.z * 16 - z).sq
 
 infix operator fun Vec3d.plus(other: Vec3d): Vec3d = add(other)
 infix operator fun Vec3d.plus(other: Vec3i): Vec3d = Vec3d(x + other.x, y + other.y, z + other.z)
@@ -166,7 +170,7 @@ infix fun Vec3i.dist(other: Vec3i): Double = sqrt((this distSq other).toDouble()
 infix fun Vec3i.dist(other: ChunkPos): Double = sqrt((this distSq other).toDouble())
 infix fun Vec3i.distSq(other: Vec3d): Double = getSquaredDistance(other)
 infix fun Vec3i.distSq(other: Vec3i): Int = (x - other.x).sq + (y - other.y).sq + (z - other.z).sq
-infix fun Vec3i.distSq(other: ChunkPos): Int = (other.x - x).sq + (other.z - z).sq
+infix fun Vec3i.distSq(other: ChunkPos): Int = (other.x * 16 - x).sq + (other.z * 16 - z).sq
 
 infix operator fun Vec3i.plus(other: Vec3i): Vec3i = add(other)
 infix operator fun Vec3i.plus(other: Int): Vec3i = add(other, other, other)
