@@ -44,57 +44,57 @@ import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT
 import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
 
 object InventoryMove : Module(
-    name = "InventoryMove",
-    description = "Allows you to move with GUIs opened",
-    tag = ModuleTag.PLAYER,
+	name = "InventoryMove",
+	description = "Allows you to move with GUIs opened",
+	tag = ModuleTag.PLAYER,
 ) {
-    private val clickGui by setting("ClickGui", false)
-    private val disableSneak by setting("Disable Crouch", false)
-    private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
-    private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
-    override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+	private val clickGui by setting("ClickGui", false)
+	private val disableSneak by setting("Disable Crouch", false)
+	private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
+	private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
+	override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
-    @JvmStatic
-    val shouldMove get() = isEnabled && !mc.currentScreen.hasInputOrNull
+	@JvmStatic
+	val shouldMove get() = isEnabled && !mc.currentScreen.hasInputOrNull
 
-    /**
-     * Whether the current screen has text inputs or is null
-     */
-    @JvmStatic
-    val Screen?.hasInputOrNull: Boolean
-        get() = this is ChatScreen ||
-                this is AbstractSignEditScreen ||
-                this is AnvilScreen ||
-                this is AbstractCommandBlockScreen ||
-                (this is LambdaScreen && !clickGui) ||
-                this is BookEditScreen ||
-                this == null
+	/**
+	 * Whether the current screen has text inputs or is null
+	 */
+	@JvmStatic
+	val Screen?.hasInputOrNull: Boolean
+		get() = this is ChatScreen ||
+				this is AbstractSignEditScreen ||
+				this is AnvilScreen ||
+				this is AbstractCommandBlockScreen ||
+				(this is LambdaScreen && !clickGui) ||
+				this is BookEditScreen ||
+				this == null
 
-    init {
-        listen<TickEvent.Pre> {
-            if (!arrowKeys || mc.currentScreen.hasInputOrNull) return@listen
+	init {
+		listen<TickEvent.Pre> {
+			if (!arrowKeys || mc.currentScreen.hasInputOrNull) return@listen
 
-            val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
-                    isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
-            val yaw = (isKeyPressed(GLFW_KEY_RIGHT, GLFW_KEY_KP_6).toFloatSign() -
-                    isKeyPressed(GLFW_KEY_LEFT, GLFW_KEY_KP_4).toFloatSign()) * speed
+			val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
+					isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
+			val yaw = (isKeyPressed(GLFW_KEY_RIGHT, GLFW_KEY_KP_6).toFloatSign() -
+					isKeyPressed(GLFW_KEY_LEFT, GLFW_KEY_KP_4).toFloatSign()) * speed
 
-            rotationRequest { rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f)) }.submit()
-        }
-    }
+			rotationRequest { rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f)) }.submit()
+		}
+	}
 
-    @JvmStatic
-    fun isKeyMovementRelated(key: Int): Boolean {
-        val options = mc.options
-        return when (key) {
-            options.forwardKey.boundKey.code,
-            options.backKey.boundKey.code,
-            options.leftKey.boundKey.code,
-            options.rightKey.boundKey.code,
-            options.jumpKey.boundKey.code,
-            options.sprintKey.boundKey.code -> true
-            options.sneakKey.boundKey.code if (!disableSneak) -> true
-            else -> false
-        }
-    }
+	@JvmStatic
+	fun isKeyMovementRelated(key: Int): Boolean {
+		val options = mc.options
+		return when (key) {
+			options.forwardKey.boundKey.code,
+			options.backKey.boundKey.code,
+			options.leftKey.boundKey.code,
+			options.rightKey.boundKey.code,
+			options.jumpKey.boundKey.code,
+			options.sprintKey.boundKey.code -> true
+			options.sneakKey.boundKey.code if (!disableSneak) -> true
+			else -> false
+		}
+	}
 }
