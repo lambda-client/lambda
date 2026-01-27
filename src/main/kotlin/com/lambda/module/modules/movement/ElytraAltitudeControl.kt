@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,20 +27,18 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
+import com.lambda.util.math.dist
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.projectile.FireworkRocketEntity
-import net.minecraft.text.Text.literal
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
-
 
 object ElytraAltitudeControl : Module(
 	name = "ElytraAttitudeControl",
@@ -86,7 +84,7 @@ object ElytraAltitudeControl : Module(
 
 	val useTimerOnChunkLoad by setting("Use Timer On Slow Chunk Loading", false, "Slows down the game when chunks load slow to keep momentum").group(Group.TimerControls)
 	val timerMinChunkDistance by setting("Min Chunk Distance", 4, 1..20, 1, "Min unloaded chunk distance to start timer effect", unit = " chunks") { useTimerOnChunkLoad }.group(Group.TimerControls)
-	val timerReturnValue by setting("Timer Return Value", 1.0f, 0.0f..1.0f, 0.05f, description = "Timer speed to return when above min chunk distance") { useTimerOnChunkLoad }.group(Group.TimerControls)
+	val timerReturnValue by setting("Timer Return Value", 1.0, 0.0..1.0, 0.05, description = "Timer speed to return when above min chunk distance") { useTimerOnChunkLoad }.group(Group.TimerControls)
 
 	override val rotationConfig = RotationSettings(this, Group.Rotation)
 
@@ -97,6 +95,9 @@ object ElytraAltitudeControl : Module(
 	var lastY = 0.0
 
 	val usageDelay = com.lambda.util.Timer()
+
+	val SafeContext.hasFirework: Boolean
+		get() = fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == this.player }.any()
 
 	init {
 		setDefaultAutomationConfig {
@@ -111,6 +112,7 @@ object ElytraAltitudeControl : Module(
 					ControlState.AttitudeControl -> updateAltitudeControls()
 					ControlState.Pitch40Fly -> updatePitch40Controls()
 				}
+
 				updateTimerUsage()
 				lastPos = player.pos
 			}
@@ -126,16 +128,14 @@ object ElytraAltitudeControl : Module(
 		}
 
 		onDisable {
-			if (useTimerOnChunkLoad) {
-				Timer.timer = timerReturnValue.toDouble()
-			}
+			if (useTimerOnChunkLoad)
+				Timer.timer = timerReturnValue
 		}
 	}
 
 	private fun SafeContext.updateAltitudeControls() {
-		if (disableOnFirework && hasFirework) {
-			return
-		}
+		if (disableOnFirework && hasFirework) return
+
 		if (usePitch40OnHeight) {
 			if (player.y < minHeightForPitch40) {
 				controlState = ControlState.Pitch40Fly
@@ -143,29 +143,23 @@ object ElytraAltitudeControl : Module(
 				return
 			}
 		}
-		val outputPitch = when (controlValue) {
-			Mode.Speed -> {
-				speedController.getOutput(targetSpeed, player.flySpeed(horizontalSpeed).toDouble())
-			}
-			Mode.Altitude -> {
-				-1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
-			}
-		}.coerceIn(-maxPitchAngle, maxPitchAngle)
-		RotationRequest(Rotation(player.yaw, outputPitch.toFloat()), this@ElytraAltitudeControl).submit()
 
-		if (usageDelay.timePassed(2.seconds) && !hasFirework) {
-			if (useFireworkOnHeight && minHeight > player.y) {
-				usageDelay.reset()
-				runSafe {
-					startFirework(true)
-				}
-			}
-			if (useFireworkOnSpeed && minSpeed > player.flySpeed()) {
-				usageDelay.reset()
-				runSafe {
-					startFirework(true)
-				}
-			}
+		val outputPitch = when (controlValue) {
+			Mode.Speed -> speedController.getOutput(targetSpeed, player.flySpeed(horizontalSpeed).toDouble())
+			Mode.Altitude -> -1 * altitudeController.getOutput(targetAltitude.toDouble(), player.y) // Negative because in minecraft pitch > 0 is looking down not up
+		}.coerceIn(-maxPitchAngle, maxPitchAngle)
+
+		rotationRequest {
+			yaw(player.yaw)
+			pitch(outputPitch)
+		}.submit()
+
+		if (usageDelay.delayIfPassed(2.seconds) && !hasFirework) {
+			if (useFireworkOnHeight && minHeight > player.y)
+				startFirework(true)
+
+			if (useFireworkOnSpeed && minSpeed > player.flySpeed())
+				startFirework(true)
 		}
 	}
 
@@ -173,20 +167,18 @@ object ElytraAltitudeControl : Module(
 		when (state) {
 			Pitch40State.GainSpeed -> {
 				rotationRequest { pitch(pitch40DownAngle) }.submit()
-				if (player.flySpeed() > pitch40SpeedThreshold) {
+
+				if (player.flySpeed() > pitch40SpeedThreshold)
 					state = Pitch40State.PitchUp
-				}
 			}
 			Pitch40State.PitchUp -> {
 				lastAngle -= 5f
 				rotationRequest { pitch(lastAngle) }.submit()
 				if (lastAngle <= pitch40UpStartAngle) {
 					state = Pitch40State.FlyUp
-					if (pitch40UseFireworkOnUpTrajectory) {
-						runSafe {
-							startFirework(true)
-						}
-					}
+
+					if (pitch40UseFireworkOnUpTrajectory)
+						startFirework(true)
 				}
 			}
 			Pitch40State.FlyUp -> {
@@ -194,15 +186,18 @@ object ElytraAltitudeControl : Module(
 				rotationRequest { pitch(lastAngle) }.submit()
 				if (lastAngle >= 0f) {
 					state = Pitch40State.GainSpeed
+
 					if (logHeightGain) {
 						val timeDelta = lastCycleFinish.elapsedNow().inWholeMilliseconds
 						val heightDelta = player.pos.y - lastY
 						val heightPerMinute = (heightDelta) / (timeDelta / 1000.0) * 60.0
-						info(literal("Height gained this cycle: %.2f in %.2f seconds (%.2f blocks/min)".format(heightDelta, timeDelta / 1000.0, heightPerMinute)))
+
+						info("Height gained this cycle: %.2f in %.2f seconds (%.2f blocks/min)".format(heightDelta, timeDelta / 1000.0, heightPerMinute))
 					}
 
 					lastCycleFinish = TimeSource.Monotonic.markNow()
 					lastY = player.pos.y
+
 					if (pitch40ExitHeight < player.y) {
 						controlState = ControlState.AttitudeControl
 						speedController.reset()
@@ -215,25 +210,20 @@ object ElytraAltitudeControl : Module(
 
 	private fun SafeContext.updateTimerUsage() {
 		if (useTimerOnChunkLoad) {
-			val nearestChunkDistance = getNearestUnloadedChunkDistance()
-			if (nearestChunkDistance != -1 && nearestChunkDistance / 16.0 <= timerMinChunkDistance) {
-				val speedFactor = 0.1f + (nearestChunkDistance.toFloat() / timerMinChunkDistance.toFloat() * 16.0) * 0.9f
-				Timer.enable()
-				Timer.timer = speedFactor.coerceIn(0.1, 1.0)
-			} else {
-				if (Timer.isEnabled) {
-					Timer.timer = timerReturnValue.toDouble()
+			nearestUnloadedChunk(world, player)
+				?.dist(player.pos)
+				?.let {
+					if (it / 16.0 <= timerMinChunkDistance) {
+						val speedFactor = 0.1f + (it / timerMinChunkDistance * 16.0) * 0.9f
+						Timer.enable()
+						Timer.timer = speedFactor.coerceIn(0.1, 1.0)
+					}
 				}
-			}
+				?: run {
+					if (Timer.isEnabled)
+						Timer.timer = timerReturnValue
+				}
 		}
-	}
-
-	val hasFirework: Boolean
-		get() = runSafe { return fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == player }.any() } ?: false
-
-	private fun SafeContext.getNearestUnloadedChunkDistance(): Int {
-		val nearestChunk: ChunkPos? = nearestUnloadedChunk(world, player)
-		return if (nearestChunk != null) distanceToChunk(nearestChunk, player).toInt() else -1
 	}
 
 	fun nearestUnloadedChunk(world: ClientWorld, player: ClientPlayerEntity): ChunkPos? {
@@ -245,9 +235,10 @@ object ElytraAltitudeControl : Module(
 		for (x in -scanRangeInt..<scanRangeInt) {
 			for (z in -scanRangeInt..<scanRangeInt) {
 				val chunkPos = ChunkPos(playerChunk.x + x, playerChunk.z + z)
-				if (world.chunkManager.isChunkLoaded(chunkPos.x, chunkPos.z)) {
+
+				if (world.chunkManager.isChunkLoaded(chunkPos.x, chunkPos.z))
 					continue
-				}
+
 				val distance = distanceToChunk(chunkPos, player).toDouble()
 				if (distance < nearestDistance) {
 					nearestDistance = distance
@@ -255,11 +246,12 @@ object ElytraAltitudeControl : Module(
 				}
 			}
 		}
+
 		return nearestChunk
 	}
 
 	fun distanceToChunk(chunkPos: ChunkPos, player: ClientPlayerEntity): Float {
-		val playerPos = player.getPos()
+		val playerPos = player.pos
 		val chunkCenter = Vec3d((chunkPos.startX + 8).toDouble(), playerPos.y, (chunkPos.startZ + 8).toDouble())
 		return playerPos.distanceTo(chunkCenter).toFloat()
 	}
