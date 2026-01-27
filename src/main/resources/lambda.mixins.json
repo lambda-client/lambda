@@ -31,7 +31,6 @@
     "network.LoginKeyC2SPacketMixin",
     "render.AbstractTerrainRenderContextMixin",
     "render.ArmorFeatureRendererMixin",
-    "render.BackgroundRendererMixin",
     "render.BlockMixin",
     "render.BlockModelRendererMixin",
     "render.BlockRenderManagerMixin",
@@ -42,9 +41,6 @@
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
     "render.ChunkOcclusionDataBuilderMixin",
-    "render.DarknessEffectFogMixin",
-    "render.DebugHudMixin",
-    "render.DebugRendererMixin",
     "render.DrawContextMixin",
     "render.ElytraFeatureRendererMixin",
     "render.EntityRendererMixin",
@@ -70,6 +66,7 @@
     "render.SodiumWorldRendererMixin",
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
+    "render.StatusEffectFogModifierMixin",
     "render.TooltipComponentMixin",
     "render.WeatherRenderingMixin",
     "render.WorldBorderRenderingMixin",
@@ -86,6 +83,7 @@
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
+    "world.DirectionMixin",
     "world.StructureTemplateMixin",
     "world.WorldMixin"
   ],
@@ -95,5 +93,6 @@
   "overwrites": {
     "conformVisibility": true
   },
-  "mixinextras": {"minVersion": "0.5.0"}
+  "mixinextras": {
+    "minVersion": "0.5.0"}
 }

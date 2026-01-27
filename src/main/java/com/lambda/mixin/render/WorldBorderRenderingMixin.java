@@ -21,7 +21,6 @@ import com.lambda.module.modules.render.NoRender;
 import net.minecraft.client.render.WorldBorderRendering;
 import net.minecraft.client.render.state.WorldBorderRenderState;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.border.WorldBorder;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

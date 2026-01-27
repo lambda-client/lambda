@@ -34,21 +34,21 @@ import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
 
 object Printer : Module(
-    name = "Printer",
-    description = "Automatically prints schematics",
-    tag = ModuleTag.PLAYER
+	name = "Printer",
+	description = "Automatically prints schematics",
+	tag = ModuleTag.PLAYER
 ) {
-    private fun isLitematicaAvailable(): Boolean = runCatching {
-        Class.forName("fi.dy.masa.litematica.Litematica")
-        true
-    }.getOrDefault(false)
+	private fun isLitematicaAvailable(): Boolean = runCatching {
+		Class.forName("fi.dy.masa.litematica.Litematica")
+		true
+	}.getOrDefault(false)
 
-    private val range by setting("Range", 5, 1..7, 1)
-    private val air by setting("Air", false)
+	private val range by setting("Range", 5, 1..7, 1)
+	private val air by setting("Air", false)
 
-    private var buildTask: Task<*>? = null
+	private var buildTask: Task<*>? = null
 
-    init {
+	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
@@ -57,23 +57,23 @@ object Printer : Module(
 			}
 		}
 
-        onEnable {
-            if (!isLitematicaAvailable()) {
-                logError("Litematica is not installed!")
-                disable()
-                return@onEnable
-            }
-            buildTask = TickingBlueprint {
-                val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@TickingBlueprint emptyMap()
-                BlockPos.iterateOutwards(player.blockPos, range, range, range)
-                    .map { it.blockPos }
-                    .asSequence()
-                    .filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
-                    .associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
-                    .filter { air || !it.value.blockState.isAir }
-            }.build(finishOnDone = false).run()
-        }
+		onEnable {
+			if (!isLitematicaAvailable()) {
+				logError("Litematica is not installed!")
+				disable()
+				return@onEnable
+			}
+			buildTask = TickingBlueprint {
+				val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@TickingBlueprint emptyMap()
+				BlockPos.iterateOutwards(player.blockPos, range, range, range)
+					.map { it.blockPos }
+					.asSequence()
+					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
+					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
+					.filter { air || !it.value.blockState.isAir }
+			}.build(finishOnDone = false).run()
+		}
 
-        onDisable { buildTask?.cancel(); buildTask = null }
-    }
+		onDisable { buildTask?.cancel(); buildTask = null }
+	}
 }

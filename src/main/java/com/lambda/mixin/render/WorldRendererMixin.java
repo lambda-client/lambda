@@ -21,6 +21,7 @@ import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.entity.Entity;
@@ -52,5 +53,13 @@ public class WorldRendererMixin {
     @ModifyExpressionValue(method = "fillEntityRenderStates", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;isThirdPerson()Z"))
     private boolean modifyIsThirdPerson(boolean original) {
         return Freecam.INSTANCE.isEnabled() || original;
+    }
+
+    @ModifyReturnValue(method = "hasBlindnessOrDarkness", at = @At("RETURN"))
+    boolean modHasBlindnessOrDarkness(boolean original) {
+        if (NoRender.INSTANCE.isEnabled() && (NoRender.getNoBlindness() || NoRender.getNoDarkness()))
+            return false;
+
+        return original;
     }
 }

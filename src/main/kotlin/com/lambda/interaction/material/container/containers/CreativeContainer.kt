@@ -31,44 +31,44 @@ import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.Slot
 
 data object CreativeContainer : MaterialContainer(Rank.Creative) {
-    context(_: SafeContext)
-    override val slots: List<Slot>
-	    get() = emptyList()
+	context(_: SafeContext)
+	override val slots: List<Slot>
+		get() = emptyList()
 	override var stacks = emptyList<ItemStack>()
 
-    override val swapMethodPriority = 11
+	override val swapMethodPriority = 11
 
-    override val description = buildText { literal("Creative") }
+	override val description = buildText { literal("Creative") }
 
-    context(safeContext : SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
-        clickCreativeStack(fromHere.stack, toSlot.id)
-        safeContext.player.currentScreenHandler.slots[toSlot.id].stack = fromHere.stack
-    }
+	context(safeContext : SafeContext)
+	override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+		clickCreativeStack(fromHere.stack, toSlot.id)
+		safeContext.player.currentScreenHandler.slots[toSlot.id].stack = fromHere.stack
+	}
 
-    context(safeContext: SafeContext)
-    override fun getSlot(stackSelection: StackSelection) =
-        stackSelection.optimalStack?.let { stack ->
-            Slot(
-                object : SingleStackInventory {
-                    override fun getStack() = stack
-                    override fun setStack(stack: ItemStack?) {}
-                    override fun markDirty() {}
-                    override fun canPlayerUse(player: PlayerEntity?) = false
-                },
-                0, 0, 0
-            )
-        }
+	context(safeContext: SafeContext)
+	override fun getSlot(stackSelection: StackSelection) =
+		stackSelection.optimalStack?.let { stack ->
+			Slot(
+				object : SingleStackInventory {
+					override fun getStack() = stack
+					override fun setStack(stack: ItemStack?) {}
+					override fun markDirty() {}
+					override fun canPlayerUse(player: PlayerEntity?) = false
+				},
+				0, 0, 0
+			)
+		}
 
-    context(safeContext: SafeContext)
-    override fun materialAvailable(selection: StackSelection): Int =
-        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+	context(safeContext: SafeContext)
+	override fun materialAvailable(selection: StackSelection): Int =
+		if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
-    context(safeContext: SafeContext)
-    override fun spaceAvailable(selection: StackSelection): Int =
-        if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+	context(safeContext: SafeContext)
+	override fun spaceAvailable(selection: StackSelection): Int =
+		if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
-    context(safeContext: SafeContext)
-    private val correctScreenHandler
-        get() = safeContext.player.currentScreenHandler is PlayerScreenHandler || safeContext.player.currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler
+	context(safeContext: SafeContext)
+	private val correctScreenHandler
+		get() = safeContext.player.currentScreenHandler is PlayerScreenHandler || safeContext.player.currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler
 }

@@ -25,8 +25,8 @@ import com.lambda.context.SafeContext
  * to avoid having to use multiple requests.
  */
 sealed interface InventoryAction {
-    val action: SafeContext.() -> Unit
+	val action: SafeContext.() -> Unit
 
-    class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
-    class Other(override val action: SafeContext.() -> Unit) : InventoryAction
+	class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
+	class Other(override val action: SafeContext.() -> Unit) : InventoryAction
 }

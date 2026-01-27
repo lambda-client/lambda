@@ -31,9 +31,6 @@ import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * Mixin to override cape textures with Lambda capes.
- *
- * Note: In 1.21.11, render method uses OrderedRenderCommandQueue instead of VertexConsumerProvider.
- * Cape texture is now accessed via skinTextures.cape().texturePath() instead of capeTexture().
  */
 @Mixin(CapeFeatureRenderer.class)
 public class CapeFeatureRendererMixin {

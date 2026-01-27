@@ -39,29 +39,29 @@ annotation class RotationDsl
 
 @RotationDsl
 fun SafeContext.lookAt(pos: Vec3d): Rotation {
-    val direction = pos.subtract(player.eyePos).normalize()
-    val yaw = Math.toDegrees(atan2(direction.z, direction.x)) - 90.0
-    val pitch = -Math.toDegrees(atan2(direction.y, hypot(direction.x, direction.z)))
-    return Rotation(yaw, pitch)
+	val direction = pos.subtract(player.eyePos).normalize()
+	val yaw = Math.toDegrees(atan2(direction.z, direction.x)) - 90.0
+	val pitch = -Math.toDegrees(atan2(direction.y, hypot(direction.x, direction.z)))
+	return Rotation(yaw, pitch)
 }
 
 @RotationDsl
 fun SafeContext.lookInDirection(direction: PlaceDirection) =
-    if (!direction.isInArea(player.rotation)) direction.snapToArea(RotationManager.activeRotation)
-    else player.rotation
+	if (!direction.isInArea(player.rotation)) direction.snapToArea(RotationManager.activeRotation)
+	else player.rotation
 
 @RotationDsl
 fun AutomatedSafeContext.lookAtHit(hit: HitResult) =
-    when (hit) {
-        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side))
-        is EntityHitResult -> lookAtEntity(hit.entity)
-        else -> null
-    }
+	when (hit) {
+		is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side))
+		is EntityHitResult -> lookAtEntity(hit.entity)
+		else -> null
+	}
 
 @RotationDsl
 fun AutomatedSafeContext.lookAtEntity(entity: Entity, sides: Set<Direction> = ALL_SIDES) =
-    entity.findRotation(buildConfig.entityReach, player.eyePos, sides)
+	entity.findRotation(buildConfig.entityReach, player.eyePos, sides)
 
 @RotationDsl
 fun AutomatedSafeContext.lookAtBlock(pos: BlockPos, sides: Set<Direction> = ALL_SIDES) =
-    pos.findRotation(buildConfig.blockReach, player.eyePos, sides)
+	pos.findRotation(buildConfig.blockReach, player.eyePos, sides)
