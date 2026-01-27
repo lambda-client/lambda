@@ -38,9 +38,9 @@ import net.minecraft.screen.slot.SlotActionType
 import kotlin.time.Duration.Companion.milliseconds
 
 object EasyTrash : Module(
-    "EasyTrash",
-    "Automatically trashes unwanted items",
-    ModuleTag.PLAYER
+    name = "EasyTrash",
+    description = "Automatically trashes unwanted items",
+    tag = ModuleTag.PLAYER
 ) {
     private val itemsCanTrash by setting("Items Can Trash", setOf<Item>(Items.NETHERRACK, Items.COBBLESTONE), ITEM.toSet())
 
