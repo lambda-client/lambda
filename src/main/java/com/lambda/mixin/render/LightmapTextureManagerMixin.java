@@ -33,8 +33,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.OptionalInt;
-
 /**
  * Mixin to override lightmap for Fullbright/XRay and disable darkness effect.
  *
@@ -54,7 +52,7 @@ public class LightmapTextureManagerMixin {
 
     @ModifyReturnValue(method = "getDarkness", at = @At("RETURN"))
     private float modifyGetDarkness(float original, LivingEntity entity, float factor, float tickProgress) {
-        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) return 0.0f;
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoDarkness()) return 0.0f;
         return original;
     }
 }

@@ -29,7 +29,7 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object BlockFacePreProcessor : PropertyPreProcessor {
-    override fun acceptsState(targetState: BlockState) =
+    override fun acceptsState(state: BlockState, targetState: BlockState) =
         Properties.BLOCK_FACE in targetState
 
 	context(safeContext: SafeContext)

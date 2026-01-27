@@ -18,6 +18,6 @@
 package com.lambda.context
 
 class AutomatedSafeContext(
-    safeContext: SafeContext,
-    automated: Automated
+	safeContext: SafeContext,
+	automated: Automated
 ) : IAutomatedSafeContext, SafeContext by safeContext, Automated by automated

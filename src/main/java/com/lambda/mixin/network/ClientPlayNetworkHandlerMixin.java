@@ -74,8 +74,6 @@ public class ClientPlayNetworkHandlerMixin {
      * this.seenInsecureChatWarning = true;
      * }
      * }</pre>
-     *
-     * Note: In 1.21.11, displayedUnsecureChatWarning was renamed to seenInsecureChatWarning.
      */
     @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;seenInsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(boolean original) {
@@ -107,7 +105,7 @@ public class ClientPlayNetworkHandlerMixin {
      */
     @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;playerKnockback()Ljava/util/Optional;"), cancellable = true)
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (Velocity.getExplosion() && Velocity.INSTANCE.isEnabled()) ci.cancel();
+        if (Velocity.INSTANCE.isEnabled() && Velocity.getExplosion()) ci.cancel();
     }
 
     @WrapMethod(method = "onScreenHandlerSlotUpdate")

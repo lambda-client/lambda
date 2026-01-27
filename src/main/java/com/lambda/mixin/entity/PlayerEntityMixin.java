@@ -46,14 +46,4 @@ public class PlayerEntityMixin {
         Float yaw = RotationManager.getHeadYaw();
         return (yaw != null) ? yaw : original.call(instance);
     }
-
-//    @WrapOperation(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
-//    private float wrapAttackYaw(PlayerEntity instance, Operation<Float> original) {
-//        if ((Object) this != Lambda.getMc().player) {
-//            return original.call(instance);
-//        }
-//
-//        Float yaw = RotationManager.getMovementYaw();
-//        return (yaw != null) ? yaw : original.call(instance);
-//    }
 }

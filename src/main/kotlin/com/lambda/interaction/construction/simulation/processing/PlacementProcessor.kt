@@ -34,7 +34,7 @@ interface StateProcessor {
 }
 
 interface PropertyPreProcessor {
-	fun acceptsState(targetState: BlockState): Boolean
+	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
 
 	context(safeContext: SafeContext)
 	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos)
@@ -42,5 +42,7 @@ interface PropertyPreProcessor {
 
 interface PropertyPostProcessor {
 	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
-	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState)
+
+	context(safeContext: SafeContext)
+	fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos)
 }

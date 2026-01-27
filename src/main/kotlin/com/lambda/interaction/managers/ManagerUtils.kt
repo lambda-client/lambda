@@ -21,10 +21,10 @@ import com.lambda.util.reflections.getInstances
 import net.minecraft.util.math.BlockPos
 
 object ManagerUtils {
-    val managers = getInstances<Manager<*>>()
-    val accumulatedManagerPriority = managers.map { it.stagePriority }.reduce { acc, priority -> acc + priority }
-    val positionBlockingManagers = getInstances<PositionBlocking>()
+	val managers = getInstances<Manager<*>>()
+	val accumulatedManagerPriority = managers.map { it.stagePriority }.reduce { acc, priority -> acc + priority }
+	val positionBlockingManagers = getInstances<PositionBlocking>()
 
-    fun isPosBlocked(pos: BlockPos) =
-        positionBlockingManagers.any { pos in it.blockedPositions }
+	fun isPosBlocked(pos: BlockPos) =
+		positionBlockingManagers.any { pos in it.blockedPositions }
 }

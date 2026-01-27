@@ -36,15 +36,15 @@ data class InteractRequest private constructor(
 	private val automated: Automated,
 	override val nowOrNothing: Boolean = false,
 ) : Request(), Automated by automated {
-    override val requestId = ++requestCount
-    override val tickStageMask get() = interactConfig.tickStageMask
+	override val requestId = ++requestCount
+	override val tickStageMask get() = interactConfig.tickStageMask
 
 	var onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 
-    override val done: Boolean
-        get() = runSafe {
-            contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
-        } == true
+	override val done: Boolean
+		get() = runSafe {
+			contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
+		} == true
 
 	@DslMarker
 	annotation class PlaceRequestDsl
@@ -68,35 +68,35 @@ data class InteractRequest private constructor(
 		}
 	}
 
-    companion object {
-        var requestCount = 0
+	companion object {
+		var requestCount = 0
 
-	    @PlaceRequestDsl
-	    @JvmName("interactRequest1")
-	    context(automated: Automated)
-	    fun Collection<BuildResult>.interactRequest(
-		    pendingInteractions: MutableCollection<BuildContext>,
-		    nowOrNothing: Boolean = false,
-		    builder: (PlaceRequestBuilder.() -> Unit)? = null
-	    ) = asSequence()
-		    .map { if (it is Dependent) it.lastDependency else it }
-		    .filterIsInstance<InteractResult.Interact>()
-		    .sorted()
+		@PlaceRequestDsl
+		@JvmName("interactRequest1")
+		context(automated: Automated)
+		fun Collection<BuildResult>.interactRequest(
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (PlaceRequestBuilder.() -> Unit)? = null
+		) = asSequence()
+			.map { if (it is Dependent) it.lastDependency else it }
+			.filterIsInstance<InteractResult.Interact>()
+			.sorted()
 			.map { it.context }
-		    .toSet()
-		    .takeIf { it.isNotEmpty() }
-		    ?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
+			.toSet()
+			.takeIf { it.isNotEmpty() }
+			?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
 
-	    @PlaceRequestDsl
-	    @JvmName("interactRequest2")
-	    fun Automated.interactRequest(
-		    contexts: Collection<InteractContext>,
-		    pendingInteractions: MutableCollection<BuildContext>,
-		    nowOrNothing: Boolean = false,
-		    builder: (PlaceRequestBuilder.() -> Unit)? = null
+		@PlaceRequestDsl
+		@JvmName("interactRequest2")
+		fun Automated.interactRequest(
+			contexts: Collection<InteractContext>,
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (PlaceRequestBuilder.() -> Unit)? = null
 		) = PlaceRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
 
-	    @PlaceRequestDsl
-	    fun PlaceRequestBuilder.build() = request
-    }
+		@PlaceRequestDsl
+		fun PlaceRequestBuilder.build() = request
+	}
 }

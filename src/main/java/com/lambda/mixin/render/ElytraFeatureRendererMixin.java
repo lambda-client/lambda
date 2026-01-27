@@ -35,9 +35,6 @@ import org.spongepowered.asm.mixin.injection.At;
 
 /**
  * Mixin to override elytra textures with Lambda capes and disable elytra rendering.
- *
- * Note: In 1.21.11, render method uses OrderedRenderCommandQueue instead of VertexConsumerProvider.
- * getTexture is now a private static method.
  */
 @Mixin(ElytraFeatureRenderer.class)
 public class ElytraFeatureRendererMixin {

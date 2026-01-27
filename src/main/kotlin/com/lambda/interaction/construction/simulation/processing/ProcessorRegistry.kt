@@ -147,26 +147,26 @@ object ProcessorRegistry : Loadable {
 	context(safeContext: SafeContext)
 	private fun preProcess(pos: BlockPos, state: BlockState, targetState: BlockState, itemStack: ItemStack) =
 		PreProcessingInfoAccumulator(targetState, itemStack.item).run {
-			val stateProcessing = stateProcessors.any { processor ->
-				processor.acceptsState(state, targetState).also { accepted ->
-					if (accepted)
-						with(processor) { preProcess(state, targetState, pos) }
+			stateProcessors.forEach { processor ->
+				if (processor.acceptsState(state, targetState)) {
+					with(processor) { preProcess(state, targetState, pos) }
 				}
 			}
-			if (!stateProcessing && !omitInteraction) {
+			if (!omitInteraction) {
 				if (state.block != expectedState.block) {
 					if (!state.isReplaceable) return@run null
 					propertyPreProcessors.forEach { processor ->
-						if (processor.acceptsState(targetState))
+						if (processor.acceptsState(state, expectedState)) {
 							with(processor) { preProcess(state, expectedState, pos) }
+						}
 					}
 				} else {
 					propertyPostProcessors.forEach { processor ->
 						if (processor.acceptsState(state, expectedState)) {
-							with(processor) { preProcess(state, expectedState) }
+							with(processor) { preProcess(state, expectedState, pos) }
 						}
 					}
-					if (!state.matches(targetState, ignore)) return@run null
+					if (!state.matches(expectedState, ignore)) return@run null
 				}
 			}
 			complete()

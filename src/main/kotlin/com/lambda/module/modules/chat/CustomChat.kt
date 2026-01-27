@@ -18,8 +18,10 @@
 package com.lambda.module.modules.chat
 
 import com.google.common.collect.Comparators.min
+import com.lambda.command.CommandRegistry.prefix
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.BaritoneManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -36,6 +38,15 @@ object CustomChat : Module(
 
 	init {
 		listen<ChatEvent.Send> {
+			val isBaritone = BaritoneManager.baritoneSettings?.prefix?.value
+				?.let { setting -> it.message.startsWith(setting)}
+				?: false
+
+			val isLambda = it.message.startsWith(prefix)
+
+			if (isLambda || isBaritone)
+				return@listen
+			
 			val message = "${it.message} ${decoration.block(text.block())}"
 			it.message = message.take(min(256, message.length))
 		}

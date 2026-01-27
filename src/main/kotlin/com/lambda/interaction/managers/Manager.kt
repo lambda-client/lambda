@@ -34,95 +34,95 @@ import kotlin.reflect.KClass
  * next opening if closed
  */
 abstract class Manager<R : Request>(
-    val stagePriority: Int,
-    vararg val blacklistedStages: TickEvent,
-    private val onOpen: (SafeContext.() -> Unit)? = null,
-    private val onClose: (SafeContext.() -> Unit)? = null
+	val stagePriority: Int,
+	vararg val blacklistedStages: TickEvent,
+	private val onOpen: (SafeContext.() -> Unit)? = null,
+	private val onClose: (SafeContext.() -> Unit)? = null
 ) : Loadable {
 	val openStages: List<TickEvent> = ALL_STAGES.filter { it !in blacklistedStages }
 
-    /**
-     * Represents if the handler is accepting requests at any given time
-     */
-    private var acceptingRequests = false
+	/**
+	 * Represents if the handler is accepting requests at any given time
+	 */
+	private var acceptingRequests = false
 
-    /**
-     * Represents the sequence stage the current tick is at
-     */
-    var tickStage: Event? = null; private set
+	/**
+	 * Represents the sequence stage the current tick is at
+	 */
+	var tickStage: Event? = null; private set
 
-    /**
-     * If a request is made while the handler isn't accepting requests, it is placed into [queuedRequest] and run
-     * at the start of the next open request timeframe
-     */
-    var queuedRequest: R? = null; protected set
+	/**
+	 * If a request is made while the handler isn't accepting requests, it is placed into [queuedRequest] and run
+	 * at the start of the next open request timeframe
+	 */
+	var queuedRequest: R? = null; protected set
 
-    /**
-     * Represents if the handler performed any actions within this tick
-     */
-    var activeThisTick = false; protected set
+	/**
+	 * Represents if the handler performed any actions within this tick
+	 */
+	var activeThisTick = false; protected set
 
-    override fun load(): String {
-        openStages.forEach { openRequestsFor(it::class, it) }
+	override fun load(): String {
+		openStages.forEach { openRequestsFor(it::class, it) }
 
-        listen<TickEvent.Post>(Int.MIN_VALUE) {
-            activeThisTick = false
-            queuedRequest = null
-        }
+		listen<TickEvent.Post>(Int.MIN_VALUE) {
+			activeThisTick = false
+			queuedRequest = null
+		}
 
-        return super.load()
-    }
+		return super.load()
+	}
 
-    /**
-     * opens the handler for requests for the duration of the given event
-     */
-    private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
-        listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
-            tickStage = stage
-            queuedRequest?.let { request ->
-                if (tickStage !in request.tickStageMask) return@let
-                request.runSafeAutomated { handleRequest(request) }
-                request.fresh = false
-                queuedRequest = null
-            }
-            acceptingRequests = true
-            onOpen?.invoke(this)
-        }
+	/**
+	 * opens the handler for requests for the duration of the given event
+	 */
+	private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
+		listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
+			tickStage = stage
+			queuedRequest?.let { request ->
+				if (tickStage !in request.tickStageMask) return@let
+				request.runSafeAutomated { handleRequest(request) }
+				request.fresh = false
+				queuedRequest = null
+			}
+			acceptingRequests = true
+			onOpen?.invoke(this)
+		}
 
-        listen(instance, priority = (Int.MIN_VALUE + 1) + stagePriority) {
-            onClose?.invoke(this)
-            acceptingRequests = false
-        }
-    }
+		listen(instance, priority = (Int.MIN_VALUE + 1) + stagePriority) {
+			onClose?.invoke(this)
+			acceptingRequests = false
+		}
+	}
 
-    /**
-     * Registers a new request
-     *
-     * @param request The request to register.
-     * @param queueIfMismatchedStage queues the request for the next time the handlers accepting requests
-     * @return The registered request.
-     */
-    fun request(request: R, queueIfMismatchedStage: Boolean = true): R {
-        val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
-        if (!canOverrideQueued) return request
-        if ((!acceptingRequests || tickStage !in request.tickStageMask)) {
-            if (!queueIfMismatchedStage || request.nowOrNothing) return request
-            val currentStageIndex = ALL_STAGES.indexOf(tickStage)
-            if (openStages.none { ALL_STAGES.indexOf(it) > currentStageIndex && it in request.tickStageMask })
-                return request
-            queuedRequest = request
-            return request
-        }
+	/**
+	 * Registers a new request
+	 *
+	 * @param request The request to register.
+	 * @param queueIfMismatchedStage queues the request for the next time the handlers accepting requests
+	 * @return The registered request.
+	 */
+	fun request(request: R, queueIfMismatchedStage: Boolean = true): R {
+		val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
+		if (!canOverrideQueued) return request
+		if ((!acceptingRequests || tickStage !in request.tickStageMask)) {
+			if (!queueIfMismatchedStage || request.nowOrNothing) return request
+			val currentStageIndex = ALL_STAGES.indexOf(tickStage)
+			if (openStages.none { ALL_STAGES.indexOf(it) > currentStageIndex && it in request.tickStageMask })
+				return request
+			queuedRequest = request
+			return request
+		}
 
-        request.runSafeAutomated {
-            handleRequest(request)
-            request.fresh = false
-        }
-        return request
-    }
+		request.runSafeAutomated {
+			handleRequest(request)
+			request.fresh = false
+		}
+		return request
+	}
 
-    /**
-     * Handles a request
-     */
-    abstract fun AutomatedSafeContext.handleRequest(request: R)
+	/**
+	 * Handles a request
+	 */
+	abstract fun AutomatedSafeContext.handleRequest(request: R)
 }

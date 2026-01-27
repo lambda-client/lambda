@@ -18,11 +18,11 @@
 package com.lambda.interaction.managers.breaking
 
 sealed class RebreakResult {
-    data object Ignored : RebreakResult()
+	data object Ignored : RebreakResult()
 
-    data object Rebroke : RebreakResult()
+	data object Rebroke : RebreakResult()
 
-    class StillBreaking(
-        val breakInfo: BreakInfo
-    ) : RebreakResult()
+	class StillBreaking(
+		val breakInfo: BreakInfo
+	) : RebreakResult()
 }

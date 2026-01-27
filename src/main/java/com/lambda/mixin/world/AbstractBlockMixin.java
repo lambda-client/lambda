@@ -20,9 +20,6 @@ package com.lambda.mixin.world;
 import com.lambda.module.modules.render.XRay;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.BlockView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 

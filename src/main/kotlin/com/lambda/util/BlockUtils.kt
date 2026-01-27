@@ -53,6 +53,7 @@ import net.minecraft.block.DecoratedPotBlock
 import net.minecraft.block.DispenserBlock
 import net.minecraft.block.DoorBlock
 import net.minecraft.block.DragonEggBlock
+import net.minecraft.block.DropperBlock
 import net.minecraft.block.EnchantingTableBlock
 import net.minecraft.block.EnderChestBlock
 import net.minecraft.block.FenceBlock
@@ -226,6 +227,7 @@ object BlockUtils {
         DaylightDetectorBlock::class,
         DecoratedPotBlock::class,
         DispenserBlock::class,
+        DropperBlock::class,
         DoorBlock::class,
         DragonEggBlock::class,
         EnchantingTableBlock::class,
