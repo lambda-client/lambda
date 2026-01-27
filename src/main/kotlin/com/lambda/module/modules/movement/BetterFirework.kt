@@ -51,17 +51,13 @@ object BetterFirework : Module(
 ) {
 	private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
-			player.isElytraEquipped.let { equipped ->
-				if (!equipped) {
-					warn("You need to equip an elytra to use this module!")
-					return@onPress
-				}
+			if (!player.isElytraEquipped) {
+				warn("You need to equip an elytra to use this module!")
+				return@onPress
 			}
-			player.hasFireworks.let { hasFireworks ->
-				if (!hasFireworks) {
-					warn("You need to have fireworks in your inventory to use this module!")
-					return@onPress
-				}
+			if (!player.hasFireworks) {
+				warn("You need to have fireworks in your inventory to use this module!")
+				return@onPress
 			}
 			// Prevent using multiple times
 			if (takeoffState != TakeoffState.None) return@onPress
