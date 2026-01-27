@@ -26,11 +26,11 @@ import com.lambda.interaction.managers.inventory.InventoryConfig
 import com.lambda.interaction.managers.rotating.RotationConfig
 
 interface Automated {
-    val buildConfig: BuildConfig
-    val breakConfig: BreakConfig
-    val interactConfig: InteractConfig
-    val rotationConfig: RotationConfig
-    val inventoryConfig: InventoryConfig
-    val hotbarConfig: HotbarConfig
-    val eatConfig: EatConfig
+	val buildConfig: BuildConfig
+	val breakConfig: BreakConfig
+	val interactConfig: InteractConfig
+	val rotationConfig: RotationConfig
+	val inventoryConfig: InventoryConfig
+	val hotbarConfig: HotbarConfig
+	val eatConfig: EatConfig
 }

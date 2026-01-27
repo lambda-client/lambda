@@ -30,13 +30,13 @@ import com.lambda.threading.runSafeAutomated
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object FastBreak : Module(
-    name = "FastBreak",
-    description = "Break blocks faster.",
-    tag = ModuleTag.PLAYER,
+	name = "FastBreak",
+	description = "Break blocks faster.",
+	tag = ModuleTag.PLAYER,
 ) {
-    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
+	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
-    init {
+	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
@@ -78,12 +78,12 @@ object FastBreak : Module(
 			}
 		}
 
-        listen<PlayerEvent.Attack.Block> { it.cancel() }
-        listen<PlayerEvent.Breaking.Update> { event ->
-            event.cancel()
-	        runSafeAutomated {
+		listen<PlayerEvent.Attack.Block> { it.cancel() }
+		listen<PlayerEvent.Breaking.Update> { event ->
+			event.cancel()
+			runSafeAutomated {
 				breakRequest(listOf(event.pos), pendingActions)?.submit()
 			}
-        }
-    }
+		}
+	}
 }

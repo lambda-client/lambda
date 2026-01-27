@@ -31,11 +31,11 @@ sealed class PlayerPacketEvent {
         var onGround: Boolean,
         var isSprinting: Boolean,
         var isCollidingHorizontally: Boolean,
-    ) : ICancellable by Cancellable()
-
-    class Post : Event
+    ) : Event
 
     data class Send(
         val packet: PlayerMoveC2SPacket,
     ) : ICancellable by Cancellable()
+
+    class Post : Event
 }

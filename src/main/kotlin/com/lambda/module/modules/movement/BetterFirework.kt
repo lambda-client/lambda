@@ -30,11 +30,13 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
@@ -43,35 +45,52 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
 
 object BetterFirework : Module(
-    name = "BetterFirework",
-    description = "Automatic takeoff with fireworks",
-    tag = ModuleTag.MOVEMENT,
+	name = "BetterFirework",
+	description = "Automatic takeoff with fireworks",
+	tag = ModuleTag.MOVEMENT,
 ) {
-    private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
-        .onPress {
-            if (takeoffState != TakeoffState.None) return@onPress // Prevent using multiple times
-            // If already gliding use another firework
-            if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
-            else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
-        }
-    private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
-        .onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
-    private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
-    private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
-    private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
+	private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
+		.onPress {
+			if (!player.isElytraEquipped) {
+				warn("You need to equip an elytra to use this module!")
+				return@onPress
+			}
+			if (!player.hasFireworks) {
+				warn("You need to have fireworks in your inventory to use this module!")
+				return@onPress
+			}
+			// Prevent using multiple times
+			if (takeoffState != TakeoffState.None) return@onPress
+			// If already gliding use another firework
+			if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
+			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
+		}
+	private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
+		.onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
+	private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
+	private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")
+	private var fireworkInteractCancel by setting("Right Click Cancel", false, "Cancel block interactions while holding fireworks") { fireworkInteract }
 
-    private var clientSwing by setting("Swing", true, "Swing hand client side")
-    private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
+	private var clientSwing by setting("Swing", true, "Swing hand client side")
+	private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
 
-    private var takeoffState = TakeoffState.None
+	private var takeoffState = TakeoffState.None
 
-    val ClientPlayerEntity.canTakeoff: Boolean
-        get() = isOnGround || canOpenElytra
+	val ClientPlayerEntity.isElytraEquipped: Boolean
+		get() = inventory.equipment.get(EquipmentSlot.CHEST)?.item == Items.ELYTRA
 
-    val ClientPlayerEntity.canOpenElytra: Boolean
-        get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
+	val ClientPlayerEntity.hasFireworks: Boolean
+		get() = selectStack { isItem(Items.FIREWORK_ROCKET) }
+			.filterStacks(inventory.mainStacks)
+			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
 
-    init {
+	val ClientPlayerEntity.canTakeoff: Boolean
+		get() = (isOnGround || canOpenElytra) && isElytraEquipped && hasFireworks
+
+	val ClientPlayerEntity.canOpenElytra: Boolean
+		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
+
+	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(hotbarConfig, inventoryConfig)
@@ -80,117 +99,117 @@ object BetterFirework : Module(
 			}
 		}
 
-        listen<TickEvent.Pre> {
-            when (takeoffState) {
-                TakeoffState.None -> {}
+		listen<TickEvent.Pre> {
+			when (takeoffState) {
+				TakeoffState.None -> {}
 
-                TakeoffState.Jumping -> {
-                    player.jump()
-                    takeoffState = TakeoffState.StartFlying
-                }
+				TakeoffState.Jumping -> {
+					player.jump()
+					takeoffState = TakeoffState.StartFlying
+				}
 
-                TakeoffState.StartFlying -> {
-                    if (player.canOpenElytra) {
-                        player.startGliding()
-                        connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
-                    }
-                    startFirework(invUse)
-                    takeoffState = TakeoffState.None
-                }
-            }
-        }
-    }
+				TakeoffState.StartFlying -> {
+					if (player.canOpenElytra) {
+						player.startGliding()
+						connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+					}
+					startFirework(invUse)
+					takeoffState = TakeoffState.None
+				}
+			}
+		}
+	}
 
-    /**
-     * Returns true if the mc item interaction should be canceled
-     */
-    @JvmStatic
-    fun onInteract() =
-        runSafe {
-            when {
-                !fireworkInteract ||
-                        player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET ||
-                        player.isGliding || // No need to do special magic if we are already holding fireworks and flying
-                        (mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
-                else -> {
-                    mc.itemUseCooldown += 4
-                    val cancelInteract = player.canTakeoff || fireworkInteractCancel
-                    if (player.canTakeoff) {
-                        takeoffState = TakeoffState.Jumping
-                    } else if (player.canOpenElytra) {
-                        takeoffState = TakeoffState.StartFlying
-                    }
-                    cancelInteract
-                }
-            }
-        } ?: false
+	/**
+	 * Returns true if the mc item interaction should be canceled
+	 */
+	@JvmStatic
+	fun onInteract() =
+		runSafe {
+			when {
+				!fireworkInteract ||
+						player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET ||
+						player.isGliding || // No need to do special magic if we are already holding fireworks and flying
+						(mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
+				else -> {
+					mc.itemUseCooldown += 4
+					val cancelInteract = player.canTakeoff || fireworkInteractCancel
+					if (player.canTakeoff) {
+						takeoffState = TakeoffState.Jumping
+					} else if (player.canOpenElytra) {
+						takeoffState = TakeoffState.StartFlying
+					}
+					cancelInteract
+				}
+			}
+		} ?: false
 
-    /**
-     * Returns true when the pick interaction should be canceled.
-     */
-    @JvmStatic
-    fun onPick() =
-        runSafe {
-            when {
-                (mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
-                        activateButton.mouse != mc.options.pickItemKey.boundKey.code ||
-                        takeoffState != TakeoffState.None -> false // Prevent using multiple times
-                else -> middleClickCancel
-            }
-        } ?: false
+	/**
+	 * Returns true when the pick interaction should be canceled.
+	 */
+	@JvmStatic
+	fun onPick() =
+		runSafe {
+			when {
+				(mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
+						activateButton.mouse != mc.options.pickItemKey.boundKey.code ||
+						takeoffState != TakeoffState.None -> false // Prevent using multiple times
+				else -> middleClickCancel
+			}
+		} ?: false
 
-    fun SafeContext.sendSwing() {
-        if (clientSwing) {
-            player.swingHand(Hand.MAIN_HAND)
-        } else {
-            connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
-        }
-    }
+	fun SafeContext.sendSwing() {
+		if (clientSwing) {
+			player.swingHand(Hand.MAIN_HAND)
+		} else {
+			connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
+		}
+	}
 
-    /**
-     * Use a firework from the hotbar or inventory if possible.
-     * Return true if a firework has been used
-     */
-    @JvmStatic
-    fun SafeContext.startFirework(silent: Boolean) {
-        val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
+	/**
+	 * Use a firework from the hotbar or inventory if possible.
+	 * Return true if a firework has been used
+	 */
+	@JvmStatic
+	fun SafeContext.startFirework(silent: Boolean) {
+		val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
 
-        stack.bestItemMatch(player.hotbarStacks)
-            ?.let {
-                val request = HotbarRequest(player.hotbarStacks.indexOf(it), this@BetterFirework, keepTicks = 0)
-                    .submit(queueIfMismatchedStage = false)
-                if (request.done) {
-                    interaction.interactItem(player, Hand.MAIN_HAND)
-                    sendSwing()
-                }
-                return
-            }
+		stack.bestItemMatch(player.hotbarStacks)
+			?.let {
+				val request = HotbarRequest(player.hotbarStacks.indexOf(it), this@BetterFirework, keepTicks = 0)
+					.submit(queueIfMismatchedStage = false)
+				if (request.done) {
+					interaction.interactItem(player, Hand.MAIN_HAND)
+					sendSwing()
+				}
+				return
+			}
 
-        if (!silent) return
+		if (!silent) return
 
-        stack.bestItemMatch(player.hotbarAndInventoryStacks)
-            ?.let {
-                val swapSlotId = player.hotbarAndInventoryStacks.indexOf(it)
-                val hotbarSlotToSwapWith = player.hotbarStacks.find { slot -> slot.isEmpty }?.let { slot -> player.hotbarStacks.indexOf(slot) } ?: 8
+		stack.bestItemMatch(player.hotbarAndInventoryStacks)
+			?.let {
+				val swapSlotId = player.hotbarAndInventoryStacks.indexOf(it)
+				val hotbarSlotToSwapWith = player.hotbarStacks.find { slot -> slot.isEmpty }?.let { slot -> player.hotbarStacks.indexOf(slot) } ?: 8
 
-                inventoryRequest {
-                    swap(swapSlotId, hotbarSlotToSwapWith)
-                    action {
-                        val request = HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true)
-                            .submit(queueIfMismatchedStage = false)
-                        if (request.done) {
-                            interaction.interactItem(player, Hand.MAIN_HAND)
-                            sendSwing()
-                        }
-                    }
-                    swap(swapSlotId, hotbarSlotToSwapWith)
-                }.submit()
-            }
-    }
+				inventoryRequest {
+					swap(swapSlotId, hotbarSlotToSwapWith)
+					action {
+						val request = HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true)
+							.submit(queueIfMismatchedStage = false)
+						if (request.done) {
+							interaction.interactItem(player, Hand.MAIN_HAND)
+							sendSwing()
+						}
+					}
+					swap(swapSlotId, hotbarSlotToSwapWith)
+				}.submit()
+			}
+	}
 
-    enum class TakeoffState {
-        None,
-        Jumping,
-        StartFlying
-    }
+	enum class TakeoffState {
+		None,
+		Jumping,
+		StartFlying
+	}
 }
