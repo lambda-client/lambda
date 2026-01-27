@@ -25,10 +25,10 @@ import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.MovementType;
@@ -39,7 +39,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static com.lambda.Lambda.getMc;
 
@@ -160,18 +159,26 @@ public abstract class EntityMixin {
         return RotationManager.getLockPitch() == null;
     }
 
-    @Inject(method = "isSprinting()Z", at = @At("HEAD"), cancellable = true)
-    private void injectIsSprinting(CallbackInfoReturnable<Boolean> cir) {
+    @ModifyReturnValue(method = "isSprinting()Z", at = @At("RETURN"))
+    private boolean injectIsSprinting(boolean original) {
         var player = getMc().player;
-        if ((Object) this != getMc().player) return;
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(true);
+        if ((Object) this != getMc().player) return original;
+
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding())
+            return true;
+
+        return original;
     }
 
-    @Inject(method = "getPose", at = @At("HEAD"), cancellable = true)
-    private void injectGetPose(CallbackInfoReturnable<EntityPose> cir) {
-        var entity = (Entity) (Object) this;
-        if (!(entity instanceof ClientPlayerEntity player)) return;
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(EntityPose.GLIDING);
+    @ModifyReturnValue(method = "getPose", at = @At("RETURN"))
+    private EntityPose injectGetPose(EntityPose original) {
+        var player = getMc().player;
+        if ((Object) this != getMc().player) return original;
+
+        if (ElytraFly.INSTANCE.isDisabled() ||
+                ElytraFly.getMode() != ElytraFly.FlyMode.Bounce || !player.isGliding()) return original;
+
+        return EntityPose.GLIDING;
     }
 
     @ModifyExpressionValue(method = "getHorizontalFacing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))

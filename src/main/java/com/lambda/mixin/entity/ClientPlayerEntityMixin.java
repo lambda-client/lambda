@@ -32,6 +32,7 @@ import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.expression.Definition;
 import com.llamalad7.mixinextras.expression.Expression;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -46,13 +47,13 @@ import net.minecraft.entity.MovementType;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.Objects;
@@ -140,13 +141,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         return EventFlow.post(new MovementEvent.Sprint(original)).getSprint();
     }
 
-    @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
-    void injectSneakingInput(CallbackInfoReturnable<Boolean> cir) {
+    @ModifyReturnValue(method = "isSneaking", at = @At("RETURN"))
+    boolean injectSneakingInput(boolean original) {
         ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
+        if (self != Lambda.getMc().player ||
+                self.input == null) return original;
 
-        if (self.input == null) return;
-        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
+        return EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak();
     }
 
     @WrapMethod(method = "tick")
@@ -204,7 +205,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
      * }
      * }</pre>
      */
-    @ModifyExpressionValue(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;"))
+    @ModifyExpressionValue(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;", opcode = Opcodes.GETFIELD))
     Screen modifyCurrentScreen(Screen original) {
         if (PortalGui.INSTANCE.isEnabled()) return null;
         else return original;
