@@ -18,19 +18,19 @@
 package com.lambda.mixin.render.blockentity;
 
 import com.lambda.module.modules.render.NoRender;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.render.block.entity.AbstractSignBlockEntityRenderer;
 import net.minecraft.client.render.block.entity.state.SignBlockEntityRenderState;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.util.math.MatrixStack;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(AbstractSignBlockEntityRenderer.class)
 public class AbstractSignBlockEntityRendererMixin {
-    @WrapMethod(method = "renderText")
-    private void injectRenderText(SignBlockEntityRenderState renderState, MatrixStack matrices, OrderedRenderCommandQueue queue, boolean front, Operation<Void> original) {
-        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoSignText())
-            original.call(renderState, matrices, queue, front);
+    @Inject(method = "renderText", at = @At("HEAD"), cancellable = true)
+    private void injectRenderText(SignBlockEntityRenderState renderState, MatrixStack matrices, OrderedRenderCommandQueue queue, boolean front, CallbackInfo ci) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoSignText()) ci.cancel();
     }
 }

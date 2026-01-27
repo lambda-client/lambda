@@ -25,7 +25,6 @@ import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.Zoom;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
@@ -44,15 +43,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
-    @WrapMethod(method = "updateCrosshairTarget(F)V")
-    private void updateTargetedEntityInvoke(float tickProgress, Operation<Void> original) {
-        if (!EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled())
-            original.call(tickProgress);
+    @Inject(method = "updateCrosshairTarget(F)V", at = @At("HEAD"), cancellable = true)
+    private void updateTargetedEntityInvoke(float tickDelta, CallbackInfo info) {
+        if (EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled()) {
+            info.cancel();
+        }
     }
 
     @WrapOperation(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;render(Lnet/minecraft/client/util/ObjectAllocator;Lnet/minecraft/client/render/RenderTickCounter;ZLnet/minecraft/client/render/Camera;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lorg/joml/Vector4f;Z)V"))
     void onRenderWorld(WorldRenderer instance, ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, Camera camera, Matrix4f positionMatrix, Matrix4f basicProjectionMatrix, Matrix4f projectionMatrix, GpuBufferSlice fogBuffer, Vector4f fogColor, boolean renderSky, Operation<Void> original) {
         original.call(instance, allocator, tickCounter, renderBlockOutline, camera, positionMatrix, basicProjectionMatrix, projectionMatrix, fogBuffer, fogColor, renderSky);
+
         RenderMain.render3D(positionMatrix, projectionMatrix);
     }
 
@@ -61,10 +62,9 @@ public class GameRendererMixin {
         return (NoRender.INSTANCE.isEnabled() && NoRender.getNoNausea()) ? 0 : original;
     }
 
-    @WrapMethod(method = "showFloatingItem")
-    private void injectShowFloatingItem(ItemStack floatingItem, Operation<Void> original) {
-        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoFloatingItemAnimation())
-            original.call(floatingItem);
+    @Inject(method = "showFloatingItem", at = @At("HEAD"), cancellable = true)
+    private void injectShowFloatingItem(ItemStack floatingItem, CallbackInfo ci) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoFloatingItemAnimation()) ci.cancel();
     }
 
     @ModifyReturnValue(method = "getFov", at = @At("RETURN"))

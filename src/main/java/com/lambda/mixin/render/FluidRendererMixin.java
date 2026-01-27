@@ -18,8 +18,6 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.XRay;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.block.FluidRenderer;
@@ -28,32 +26,34 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.BlockRenderView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(FluidRenderer.class)
 public class FluidRendererMixin {
     @Unique
     private final ThreadLocal<Integer> opacity = new ThreadLocal<>();
 
-    @WrapMethod(method = "render")
-    private void injectRender(BlockRenderView world, BlockPos pos, VertexConsumer vertexConsumer, BlockState blockState, FluidState fluidState, Operation<Void> original) {
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private void injectRender(BlockRenderView world, BlockPos pos, VertexConsumer vertexConsumer, BlockState blockState, FluidState fluidState, CallbackInfo info) {
         if (XRay.INSTANCE.isDisabled()) {
             opacity.set(255);
-            original.call(world, pos, vertexConsumer, blockState, fluidState);
+            return;
         }
-
         int alpha = (int) (XRay.getOpacity() * 2.55);
 
-        if (alpha > 0)
-            this.opacity.set(alpha);
+        if (alpha == 0) info.cancel();
+        else this.opacity.set(alpha);
     }
 
-    @WrapMethod(method = "vertex")
-    private void injectVertex(VertexConsumer vertexConsumer, float x, float y, float z, float red, float green, float blue, float u, float v, int light, Operation<Void> original) {
+    @Inject(method = "vertex", at = @At("HEAD"), cancellable = true)
+    private void injectVertex(VertexConsumer vertexConsumer, float x, float y, float z, float red, float green, float blue, float u, float v, int light, CallbackInfo info) {
         int alpha = this.opacity.get();
 
-        if (alpha != 255)
+        if (alpha != 255) {
             vertexConsumer.vertex(x, y, z).color((int) (red * 255), (int) (green * 255), (int) (blue * 255), alpha).texture(u, v).light(light).normal(0.0f, 1.0f, 0.0f);
-
-        original.call(vertexConsumer, x, y, z, red, green, blue, u, v, light);
+            info.cancel();
+        }
     }
 }

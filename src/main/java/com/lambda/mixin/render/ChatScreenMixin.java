@@ -18,18 +18,18 @@
 package com.lambda.mixin.render;
 
 import com.lambda.command.CommandManager;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.gui.screen.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
-    @WrapMethod(method = "sendMessage")
-    void sendMessageInject(String chatText, boolean addToHistory, Operation<Void> original) {
-        if (!CommandManager.INSTANCE.isLambdaCommand(chatText))
-            original.call(chatText, addToHistory);
-
+    @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
+    void sendMessageInject(String chatText, boolean addToHistory, CallbackInfo ci) {
+        if (!CommandManager.INSTANCE.isLambdaCommand(chatText)) return;
         CommandManager.INSTANCE.executeCommand(chatText);
+        ci.cancel();
     }
 }

@@ -18,17 +18,17 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.NoRender;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.BossBarHud;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BossBarHud.class)
 public class BossBarHudMixin {
-    @WrapMethod(method = "render")
-    private void injectRender(DrawContext context, Operation<Void> original) {
-        if (NoRender.INSTANCE.isDisabled() || !NoRender.getNoBossBar())
-            original.call(context);
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private void injectRender(DrawContext context, CallbackInfo ci) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoBossBar()) ci.cancel();
     }
 }

@@ -18,14 +18,15 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.NoRender;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import net.minecraft.client.render.fog.FogRenderer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static net.minecraft.client.render.fog.FogRenderer.FOG_UBO_SIZE;
 
@@ -35,11 +36,9 @@ public class FogRendererMixin {
     @Shadow
     private GpuBuffer emptyBuffer;
 
-    @WrapMethod(method = "getFogBuffer")
-    private GpuBufferSlice modify(FogRenderer.FogType fogType, Operation<GpuBufferSlice> original) {
+    @Inject(method = "getFogBuffer", at = @At("HEAD"), cancellable = true)
+    private void modify(FogRenderer.FogType fogType, CallbackInfoReturnable<GpuBufferSlice> cir) {
         if (fogType == FogRenderer.FogType.WORLD && NoRender.INSTANCE.isEnabled() && NoRender.getNoTerrainFog())
-            return emptyBuffer.slice(0L, FOG_UBO_SIZE);
-
-        return original.call(fogType);
+            cir.setReturnValue(emptyBuffer.slice(0L, FOG_UBO_SIZE));
     }
 }

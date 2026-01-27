@@ -46,8 +46,9 @@ public class CrashReportMixin {
 
     @Inject(method = "<init>(Ljava/lang/String;Ljava/lang/Throwable;)V", at = @At("TAIL"))
     void injectConstructor(String message, Throwable cause, CallbackInfo ci) {
-        if (!Lambda.INSTANCE.isDebug() && MinecraftClient.getInstance() != null)
+        if (!Lambda.INSTANCE.isDebug() && MinecraftClient.getInstance() != null) {
             this.cause = DynamicExceptionKt.dynamicException(cause);
+        }
     }
 
     @WrapMethod(method = "asString(Lnet/minecraft/util/crash/ReportType;Ljava/util/List;)Ljava/lang/String;")

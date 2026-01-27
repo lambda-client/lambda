@@ -20,30 +20,29 @@ package com.lambda.mixin.world;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.WorldEvent;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.lambda.module.modules.render.WorldColors;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
-    @WrapMethod(method = "addEntity")
-    private void onAddEntity(Entity entity, Operation<Void> original) {
-        if (!EventFlow.post(new EntityEvent.Spawn(entity)).isCanceled())
-            original.call(entity);
+    @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
+    private void onAddEntity(Entity entity, CallbackInfo ci) {
+        if (EventFlow.post(new EntityEvent.Spawn(entity)).isCanceled()) ci.cancel();
     }
 
-    @WrapMethod(method = "removeEntity")
-    private void onRemoveEntity(int entityId, Entity.RemovalReason removalReason, Operation<Void> original) {
+    @Inject(method = "removeEntity", at = @At("HEAD"))
+    private void onRemoveEntity(int entityId, Entity.RemovalReason removalReason, CallbackInfo ci) {
         Entity entity = ((ClientWorld) (Object) this).getEntityById(entityId);
-        if (entity == null) {
-            original.call(entityId, removalReason);
-            return;
-        }
-
+        if (entity == null) return;
         EventFlow.post(new EntityEvent.Removal(entity, removalReason));
     }
 
@@ -64,9 +63,8 @@ public class ClientWorldMixin {
 //    }
 
 
-    @WrapMethod(method = "handleBlockUpdate")
-    private void handleBlockUpdateInject(BlockPos pos, BlockState state, int flags, Operation<Void> original) {
-        if (!EventFlow.post(new WorldEvent.BlockUpdate.Server(pos, state)).isCanceled())
-            original.call(pos, state, flags);
+    @Inject(method = "handleBlockUpdate", at = @At("HEAD"), cancellable = true)
+    private void handleBlockUpdateInject(BlockPos pos, BlockState newState, int flags, CallbackInfo ci) {
+        if (EventFlow.post(new WorldEvent.BlockUpdate.Server(pos, newState)).isCanceled()) ci.cancel();
     }
 }

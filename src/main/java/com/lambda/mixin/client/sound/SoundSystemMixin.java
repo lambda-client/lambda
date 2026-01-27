@@ -19,19 +19,20 @@ package com.lambda.mixin.client.sound;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.sound.SoundInstance;
 import net.minecraft.client.sound.SoundSystem;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(SoundSystem.class)
 public class SoundSystemMixin {
-    @WrapMethod(method = "play(Lnet/minecraft/client/sound/SoundInstance;)Lnet/minecraft/client/sound/SoundSystem$PlayResult;")
-    public SoundSystem.PlayResult onPlay(SoundInstance sound, Operation<SoundSystem.PlayResult> original) {
-        if (EventFlow.post(new ClientEvent.Sound(sound)).isCanceled())
-            return SoundSystem.PlayResult.NOT_STARTED;
-
-        return original.call(sound);
+    @Inject(method = "play(Lnet/minecraft/client/sound/SoundInstance;)Lnet/minecraft/client/sound/SoundSystem$PlayResult;", at = @At("HEAD"), cancellable = true)
+    public void onPlay(SoundInstance sound, CallbackInfoReturnable<SoundSystem.PlayResult> cir) {
+        if (EventFlow.post(new ClientEvent.Sound(sound)).isCanceled()) {
+            cir.setReturnValue(SoundSystem.PlayResult.NOT_STARTED);
+        }
     }
 }

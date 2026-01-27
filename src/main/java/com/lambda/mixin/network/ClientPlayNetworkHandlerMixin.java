@@ -37,22 +37,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
-    @WrapMethod(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V")
-    void injectJoinPacket(GameJoinS2CPacket packet, Operation<Void> original) {
-        original.call(packet);
+    @Inject(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At("TAIL"))
+    void injectJoinPacket(GameJoinS2CPacket packet, CallbackInfo ci) {
         EventFlow.post(new WorldEvent.Join());
     }
 
-    @WrapMethod(method = "handlePlayerListAction(Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Action;Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Entry;Lnet/minecraft/client/network/PlayerListEntry;)V")
-    void injectPlayerList(PlayerListS2CPacket.Action action, PlayerListS2CPacket.Entry receivedEntry, PlayerListEntry currentEntry, Operation<Void> original) {
-        if (action != PlayerListS2CPacket.Action.UPDATE_LISTED)
-            original.call(action, receivedEntry, currentEntry);
+    @Inject(method = "handlePlayerListAction(Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Action;Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Entry;Lnet/minecraft/client/network/PlayerListEntry;)V", at = @At("TAIL"))
+    void injectPlayerList(PlayerListS2CPacket.Action action, PlayerListS2CPacket.Entry receivedEntry, PlayerListEntry currentEntry, CallbackInfo ci) {
+        if (action != PlayerListS2CPacket.Action.UPDATE_LISTED) return;
 
         var name = currentEntry.getProfile().name();
         var uuid = currentEntry.getProfile().id();
 
-        if (receivedEntry.listed()) EventFlow.post(new WorldEvent.Player.Join(name, uuid, currentEntry));
-        else EventFlow.post(new WorldEvent.Player.Leave(name, uuid, currentEntry));
+        if (receivedEntry.listed()) {
+            EventFlow.post(new WorldEvent.Player.Join(name, uuid, currentEntry));
+        } else EventFlow.post(new WorldEvent.Player.Leave(name, uuid, currentEntry));
     }
 
     @Inject(method = "onUpdateSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift = At.Shift.AFTER), cancellable = true)
@@ -60,9 +59,8 @@ public class ClientPlayNetworkHandlerMixin {
         if (EventFlow.post(new InventoryEvent.HotbarSlot.Sync(packet.slot())).isCanceled()) ci.cancel();
     }
 
-    @WrapMethod(method = "onScreenHandlerSlotUpdate")
-    private void onScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet, Operation<Void> original) {
-        original.call(packet);
+    @Inject(method = "onScreenHandlerSlotUpdate", at = @At("TAIL"))
+    private void onScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet, CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.SlotUpdate(packet.getSyncId(), packet.getRevision(), packet.getSlot(), packet.getStack()));
     }
 

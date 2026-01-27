@@ -43,6 +43,8 @@
     "render.ChatScreenMixin",
     "render.ChunkOcclusionDataBuilderMixin",
     "render.DarknessEffectFogMixin",
+    "render.DebugHudMixin",
+    "render.DebugRendererMixin",
     "render.DrawContextMixin",
     "render.ElytraFeatureRendererMixin",
     "render.EntityRendererMixin",

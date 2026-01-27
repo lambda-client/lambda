@@ -19,23 +19,30 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.MapPreview;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import net.minecraft.client.gui.tooltip.BundleTooltipComponent;
+import net.minecraft.client.gui.tooltip.ProfilesTooltipComponent;
 import net.minecraft.client.gui.tooltip.TooltipComponent;
+import net.minecraft.item.tooltip.BundleTooltipData;
 import net.minecraft.item.tooltip.TooltipData;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(TooltipComponent.class)
 public interface TooltipComponentMixin {
-    @WrapMethod(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;")
-    private static TooltipComponent of(TooltipData tooltipData, Operation<TooltipComponent> original) {
-        if (ContainerPreview.INSTANCE.isEnabled() &&
-                tooltipData instanceof ContainerPreview.ContainerComponent containerComponent)
-            return containerComponent;
+    @Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
+    private static void of(TooltipData tooltipData, CallbackInfoReturnable<TooltipComponent> cir) {
+        if (ContainerPreview.INSTANCE.isEnabled() && tooltipData instanceof ContainerPreview.ContainerComponent containerComponent) {
+            cir.setReturnValue(containerComponent);
+            return;
+        }
 
-        if (MapPreview.INSTANCE.isEnabled() && tooltipData instanceof MapPreview.MapComponent mapComponent)
-            return mapComponent;
-
-        return original.call(tooltipData);
+        if (MapPreview.INSTANCE.isEnabled()) cir.setReturnValue((switch (tooltipData) {
+            case MapPreview.MapComponent mapComponent -> mapComponent;
+            case BundleTooltipData bundleTooltipData -> new BundleTooltipComponent(bundleTooltipData.contents());
+            case ProfilesTooltipComponent.ProfilesData profilesData -> new ProfilesTooltipComponent(profilesData);
+            default -> throw new IllegalArgumentException("Unknown TooltipComponent");
+        }));
     }
 }

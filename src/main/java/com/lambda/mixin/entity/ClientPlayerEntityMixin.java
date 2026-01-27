@@ -52,6 +52,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.Objects;
@@ -89,13 +90,9 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
     }
 
-    @WrapMethod(method = "sendMovementPackets")
-    private void injectSendMovementPacketsHead(Operation<Void> original) {
-        moveEvent = EventFlow.post(
-                new PlayerPacketEvent.Pre(pos, RotationManager.getActiveRotation(), isOnGround(), isSprinting(), horizontalCollision)
-        );
-
-        original.call();
+    @Inject(method = "sendMovementPackets", at = @At("HEAD"))
+    private void injectSendMovementPacketsHead(CallbackInfo ci) {
+        moveEvent = EventFlow.post(new PlayerPacketEvent.Pre(pos, RotationManager.getActiveRotation(), isOnGround(), isSprinting(), horizontalCollision));
     }
 
     @Definition(id = "g", local = @Local(type = double.class, ordinal = 3))
@@ -132,9 +129,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         return original.call(moveEvent.getOnGround(), moveEvent.isCollidingHorizontally());
     }
 
-    @WrapMethod(method = "sendMovementPackets")
-    private void injectSendMovementPacketsReturn(Operation<Void> original) {
-        original.call();
+    @Inject(method = "sendMovementPackets", at = @At("TAIL"))
+    private void injectSendMovementPacketsReturn(CallbackInfo ci) {
         RotationManager.onRotationSend();
         EventFlow.post(new PlayerPacketEvent.Post());
     }
@@ -144,14 +140,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         return EventFlow.post(new MovementEvent.Sprint(original)).getSprint();
     }
 
-    @WrapMethod(method = "isSneaking")
-    boolean injectSneakingInput(Operation<Boolean> original) {
+    @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
+    void injectSneakingInput(CallbackInfoReturnable<Boolean> cir) {
         ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
+        if (self != Lambda.getMc().player) return;
 
-        if (self != Lambda.getMc().player) return false;
-        if (self.input == null) return false;
-
-        return EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak();
+        if (self.input == null) return;
+        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
     }
 
     @WrapMethod(method = "tick")
@@ -188,10 +183,9 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         viewModel.adjustSwing(hand, instance);
     }
 
-    @WrapMethod(method = "updateHealth")
-    public void injectUpdateHealth(float health, Operation<Void> original) {
+    @Inject(method = "updateHealth", at = @At("HEAD"))
+    public void injectUpdateHealth(float health, CallbackInfo ci) {
         EventFlow.post(new PlayerEvent.Health(health));
-        original.call(health);
     }
 
     /**

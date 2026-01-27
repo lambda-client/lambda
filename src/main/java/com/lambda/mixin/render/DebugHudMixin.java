@@ -17,21 +17,13 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.event.EventFlow;
-import com.lambda.event.events.InventoryEvent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
+import net.minecraft.client.gui.hud.DebugHud;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.List;
-
-@Mixin(ScreenHandler.class)
-public class ScreenHandlerMixin {
-    @Inject(method = "updateSlotStacks", at = @At("TAIL"))
-    private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, CallbackInfo ci) {
-        EventFlow.post(new InventoryEvent.FullUpdate(revision, stacks, cursorStack));
-    }
+@Mixin(DebugHud.class)
+public class DebugHudMixin {
+//    @Inject(method = "getRightText", at = @At("TAIL"))
+//    private void onGetRightText(CallbackInfoReturnable<List<String>> cir) {
+//        DebugInfoHud.addDebugInfo(cir.getReturnValue());
+//    }
 }

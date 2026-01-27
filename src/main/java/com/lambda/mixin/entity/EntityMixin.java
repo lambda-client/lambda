@@ -26,9 +26,9 @@ import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.MovementType;
@@ -37,6 +37,9 @@ import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static com.lambda.Lambda.getMc;
 
@@ -126,15 +129,13 @@ public abstract class EntityMixin {
         return (float) rot.getY();
     }
 
-    @WrapMethod(method = "changeLookDirection")
-    private void changeLookDirection(double cursorDeltaX, double cursorDeltaY, Operation<Void> original) {
-        if (!EventFlow.post(new PlayerEvent.ChangeLookDirection(cursorDeltaX, cursorDeltaY)).isCanceled())
-            original.call(cursorDeltaX, cursorDeltaY);
+    @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
+    private void changeLookDirection(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
+        if (EventFlow.post(new PlayerEvent.ChangeLookDirection(cursorDeltaX, cursorDeltaY)).isCanceled()) ci.cancel();
     }
 
-    @WrapMethod(method = "onTrackedDataSet(Lnet/minecraft/entity/data/TrackedData;)V")
-    public void onTrackedDataSet(TrackedData<?> data, Operation<Void> original) {
-        original.call(data);
+    @Inject(method = "onTrackedDataSet(Lnet/minecraft/entity/data/TrackedData;)V", at = @At("TAIL"))
+    public void onTrackedDataSet(TrackedData<?> data, CallbackInfo ci) {
         Entity entity = (Entity) (Object) this;
         EventFlow.post(new EntityEvent.Update(entity, data));
     }
@@ -159,28 +160,18 @@ public abstract class EntityMixin {
         return RotationManager.getLockPitch() == null;
     }
 
-    @WrapMethod(method = "isSprinting()Z")
-    private boolean injectIsSprinting(Operation<Boolean> original) {
+    @Inject(method = "isSprinting()Z", at = @At("HEAD"), cancellable = true)
+    private void injectIsSprinting(CallbackInfoReturnable<Boolean> cir) {
         var player = getMc().player;
-        if ((Object) this != getMc().player)
-            original.call();
-
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding())
-            return true;
-
-        return original.call();
+        if ((Object) this != getMc().player) return;
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(true);
     }
 
-    @WrapMethod(method = "getPose")
-    private EntityPose injectGetPose(Operation<EntityPose> original) {
-        var player = getMc().player;
-        if ((Object) this != getMc().player)
-            original.call();
-
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding())
-            return EntityPose.GLIDING;
-
-        return original.call();
+    @Inject(method = "getPose", at = @At("HEAD"), cancellable = true)
+    private void injectGetPose(CallbackInfoReturnable<EntityPose> cir) {
+        var entity = (Entity) (Object) this;
+        if (!(entity instanceof ClientPlayerEntity player)) return;
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(EntityPose.GLIDING);
     }
 
     @ModifyExpressionValue(method = "getHorizontalFacing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
