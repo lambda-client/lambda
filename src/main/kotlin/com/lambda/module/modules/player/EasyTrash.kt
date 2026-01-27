@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
@@ -26,6 +27,8 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.InventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.RootTask.run
+import com.lambda.task.Task
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.Item
@@ -40,18 +43,25 @@ object EasyTrash : Module(
     description = "Automatically trashes unwanted items",
     tag = ModuleTag.PLAYER
 ) {
-    private val itemsCanTrash by setting("Items Can Trash", setOf<Item>(Items.NETHERRACK, Items.COBBLESTONE), ITEM.toSet())
+    private val itemsCanTrash by setting("Items Can Trash", setOf<Item>(Items.NETHERRACK, Items.COBBLESTONE), ITEM.toSet()).onValueChange { _, _ -> setTask() }
 
-    private val dropToPickup by setting("Drop To Pickup", true)
-    private val itemsToPickup by setting("Items To Pickup", setOf(), ITEM.toSet())
+    private val dropToPickup by setting("Drop To Pickup", true).onValueChange { _, _ -> setTask() }
+    private val itemsToPickup by setting("Items To Pickup", setOf(), ITEM.toSet()).onValueChange { _, _ -> setTask() }
+
+	private var task: EnsureItemPickup? = null
+
+	private fun setTask() {
+		task?.cancel()
+		task = if (dropToPickup) {
+			EnsureItemPickup(itemsToPickup, itemsCanTrash, this@EasyTrash).run()
+		} else {
+			null
+		}
+	}
 
     init {
-        listen<TickEvent.Pre> {
-			if (!dropToPickup) return@listen
-	        DropOnEntityFunctionality.run {
-		        tick(itemsToPickup, itemsCanTrash)
-	        }
-        }
+	    onEnable { setTask() }
+	    onDisable { task?.cancel(); task = null }
 
 	    listen<InventoryEvent.SlotAction.Click> { event ->
 		    if (event.actionType != SlotActionType.QUICK_MOVE || event.button != 0) {
@@ -86,8 +96,21 @@ object EasyTrash : Module(
 	    }
     }
 
-	object DropOnEntityFunctionality {
-		fun SafeContext.tick(itemsToPickup: Collection<Item>, trashItems: Collection<Item>) {
+	class EnsureItemPickup(
+		val itemsToPickup: MutableCollection<Item>,
+		val trashItems: MutableCollection<Item>,
+		automated: Automated
+	) : Task<Unit>(), Automated by automated {
+		override val name: String
+			get() = "EasyTrash Drop On Entity Task"
+
+		init {
+			listen<TickEvent.Pre> {
+				tick()
+			}
+		}
+
+		fun SafeContext.tick() {
 			if (player.health > 0.0f && !player.isSpectator && !player.isCreative) {
 				val vehicle = player.vehicle
 				val box = if (vehicle != null && !vehicle.isRemoved) {
@@ -99,12 +122,12 @@ object EasyTrash : Module(
 						entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround
 				}.map { i -> i.stack.item }
 				if (onGroundAndInRange.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(onGroundAndInRange) }) <= 0) {
-					dropOneTrashStack(trashItems)
+					dropOneTrashStack()
 				}
 			}
 		}
 
-		fun SafeContext.dropOneTrashStack(trashItems: Collection<Item>): Boolean {
+		fun SafeContext.dropOneTrashStack(): Boolean {
 			StackSelection.selectStack {
 				isOneOfItems(trashItems)
 			}.filterSlots(InventoryContainer.slots).firstOrNull()?.let {
