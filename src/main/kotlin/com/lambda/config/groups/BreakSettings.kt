@@ -109,7 +109,8 @@ open class BreakSettings(
 
 	// Outline
 	override val outline by c.setting("Outline", true, "Renders the lines of the box to display break progress") { renders }.group(baseGroup, Group.Cosmetic).index()
-	override val outlineWidth by c.setting("Outline Width", 2f, 0f..10f, 0.1f, "The width of the outline") { renders && outline }.group(baseGroup, Group.Cosmetic).index()	override val dynamicOutlineColor by c.setting("Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { renders && outline }.group(baseGroup, Group.Cosmetic).index()
+	override val outlineWidth by c.setting("Outline Width", 2f, 0f..10f, 0.1f, "The width of the outline") { renders && outline }.group(baseGroup, Group.Cosmetic).index()
+	override val dynamicOutlineColor by c.setting("Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { renders && outline }.group(baseGroup, Group.Cosmetic).index()
 	override val staticOutlineColor by c.setting("Outline Color", Color.RED.brighter(), "The Color of the outline at the start of breaking") { renders && !dynamicOutlineColor && outline }.group(baseGroup, Group.Cosmetic).index()
 	override val startOutlineColor by c.setting("Start Outline Color", Color.RED.brighter(), "The color of the outline at the start of breaking") { renders && dynamicOutlineColor && outline }.group(baseGroup, Group.Cosmetic).index()
 	override val endOutlineColor by c.setting("End Outline Color", Color.GREEN.brighter(), "The color of the outline at the end of breaking") { renders && dynamicOutlineColor && outline }.group(baseGroup, Group.Cosmetic).index()
