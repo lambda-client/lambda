@@ -32,11 +32,7 @@ object Rotation : HudModule(
 	description = "Show your rotation",
 	tag = ModuleTag.HUD,
 ) {
-	enum class Group(override val displayName: String) : NamedEnum {
-		Rotation("Rotation"),
-	}
-
-	private val formatter = FormatterSettings(this, Group.Rotation).apply {
+	private val formatter = FormatterSettings(this).apply {
 		applyEdits {
 			::timeFormat.edit { hide() }
 		}
@@ -44,9 +40,8 @@ object Rotation : HudModule(
 
 	override fun ImGuiBuilder.buildLayout() {
 		runSafe {
-			val rotation = player.rotationClient.format(formatter.locale, formatter.separator, "(", ")", formatter.precision)
+			val rotation = player.rotationClient.format(formatter)
 			textCopyable(rotation)
 		}
 	}
-
 }
