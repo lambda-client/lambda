@@ -29,6 +29,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.util.Timer
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.Item
@@ -37,6 +38,7 @@ import net.minecraft.registry.Registries.ITEM
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
+import kotlin.time.Duration.Companion.milliseconds
 
 object EasyTrash : Module(
     name = "EasyTrash",
@@ -50,6 +52,8 @@ object EasyTrash : Module(
 
 	private var task: EnsureItemPickup? = null
 
+	private val timer = Timer()
+
 	private fun setTask() {
 		task?.cancel()
 		task = if (dropToPickup) {
@@ -62,6 +66,13 @@ object EasyTrash : Module(
     init {
 	    onEnable { setTask() }
 	    onDisable { task?.cancel(); task = null }
+
+	    listen<TickEvent.Pre> {
+			if (task?.isCompleted == true && timer.timePassed(200.milliseconds)) { // prevent rapid re-creation of task
+				setTask()
+				timer.reset()
+			}
+	    }
 
 	    listen<InventoryEvent.SlotAction.Click> { event ->
 		    if (event.actionType != SlotActionType.QUICK_MOVE || event.button != 0) {
@@ -100,17 +111,19 @@ object EasyTrash : Module(
 		val itemsToPickup: MutableCollection<Item>,
 		val trashItems: MutableCollection<Item>,
 		automated: Automated
-	) : Task<Unit>(), Automated by automated {
+	) : Task<Boolean>(), Automated by automated {
 		override val name: String
 			get() = "EasyTrash Drop On Entity Task"
 
 		init {
 			listen<TickEvent.Pre> {
-				tick()
+				if (!tick()) {
+					failure("No trashable items to drop")
+				}
 			}
 		}
 
-		fun SafeContext.tick() {
+		fun SafeContext.tick(): Boolean {
 			if (player.health > 0.0f && !player.isSpectator && !player.isCreative) {
 				val vehicle = player.vehicle
 				val box = if (vehicle != null && !vehicle.isRemoved) {
@@ -122,9 +135,10 @@ object EasyTrash : Module(
 						entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround
 				}.map { i -> i.stack.item }
 				if (onGroundAndInRange.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(onGroundAndInRange) }) <= 0) {
-					dropOneTrashStack()
+					return dropOneTrashStack()
 				}
 			}
+			return true
 		}
 
 		fun SafeContext.dropOneTrashStack(): Boolean {
