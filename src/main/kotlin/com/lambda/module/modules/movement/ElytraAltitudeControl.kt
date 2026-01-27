@@ -30,7 +30,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
-import com.lambda.util.math.dist
+import com.lambda.util.math.distCenter
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.world.ClientWorld
@@ -113,7 +113,25 @@ object ElytraAltitudeControl : Module(
 					ControlState.Pitch40Fly -> updatePitch40Controls()
 				}
 
-				updateTimerUsage()
+				if (useTimerOnChunkLoad) {
+					nearestUnloadedChunk(world, player)
+						?.distCenter(player.pos)
+						?.let {
+							if (it <= timerMinChunkDistance * 16.0) {
+								val speedFactor = 0.1f + (it / (timerMinChunkDistance * 16.0)) * 0.9f
+								Timer.enable()
+								Timer.timer = speedFactor.coerceIn(0.1, 1.0)
+							}
+						}
+						?: run {
+							// FixMe:
+							//  When the timer is changed in an unloaded chunk and the player stop gliding,
+							//  the timer value is never set back.
+							if (Timer.isEnabled)
+								Timer.timer = timerReturnValue
+						}
+				}
+
 				lastPos = player.pos
 			}
 		}
@@ -205,24 +223,6 @@ object ElytraAltitudeControl : Module(
 					}
 				}
 			}
-		}
-	}
-
-	private fun SafeContext.updateTimerUsage() {
-		if (useTimerOnChunkLoad) {
-			nearestUnloadedChunk(world, player)
-				?.dist(player.pos)
-				?.let {
-					if (it / 16.0 <= timerMinChunkDistance) {
-						val speedFactor = 0.1f + (it / timerMinChunkDistance * 16.0) * 0.9f
-						Timer.enable()
-						Timer.timer = speedFactor.coerceIn(0.1, 1.0)
-					}
-				}
-				?: run {
-					if (Timer.isEnabled)
-						Timer.timer = timerReturnValue
-				}
 		}
 	}
 
