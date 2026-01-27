@@ -26,7 +26,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.InventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Timer
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.Item
@@ -35,7 +34,6 @@ import net.minecraft.registry.Registries.ITEM
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
-import kotlin.time.Duration.Companion.milliseconds
 
 object EasyTrash : Module(
     name = "EasyTrash",
@@ -47,13 +45,8 @@ object EasyTrash : Module(
     private val dropToPickup by setting("Drop To Pickup", true)
     private val itemsToPickup by setting("Items To Pickup", setOf(), ITEM.toSet())
 
-    private val timer = Timer()
-
     init {
         listen<TickEvent.Pre> {
-            if (!timer.timePassed(200.milliseconds)) {
-                return@listen
-            }
             checkShouldTrashSomething()
         }
 
@@ -102,12 +95,12 @@ object EasyTrash : Module(
 				entity -> itemsToPickup.contains(entity.stack.item) && entity.isOnGround
 			}.map { i -> i.stack.item }
             if (items.isNotEmpty() && InventoryContainer.spaceAvailable(StackSelection.selectStack { isOneOfItems(items) }) <= 0) {
-                if (trashSomething()) timer.reset()
+                dropOneTrashStack()
             }
         }
     }
 
-    fun SafeContext.trashSomething(): Boolean {
+    fun SafeContext.dropOneTrashStack(): Boolean {
         StackSelection.selectStack {
             isOneOfItems(itemsCanTrash)
         }.filterSlots(InventoryContainer.slots).firstOrNull()?.let {
