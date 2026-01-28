@@ -17,8 +17,20 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.Lambda.mc
+import com.lambda.event.events.GuiEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.LambdaScreen
+import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
+import com.lambda.gui.dsl.ImGuiBuilder.button
+import com.lambda.gui.dsl.ImGuiBuilder.openPopup
+import com.lambda.gui.dsl.ImGuiBuilder.popupModal
+import com.lambda.gui.dsl.ImGuiBuilder.sameLine
+import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
 import org.slf4j.LoggerFactory
@@ -26,6 +38,7 @@ import java.net.URI
 import java.nio.file.Path
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.concurrent.thread
+import kotlin.system.exitProcess
 
 object AutoUpdater : Module(
     name = "AutoUpdater",
@@ -38,6 +51,11 @@ object AutoUpdater : Module(
     private val loaderBranch by setting("Loader Branch", Branch.STABLE, "Select loader update branch")
     private val clientBranch by setting("Client Branch", Branch.STABLE, "Select client update branch")
 
+    var showInstallModal = false
+        private set
+    var showUninstallModal = false
+        private set
+
     private enum class Branch {
         STABLE,
         SNAPSHOT
@@ -45,83 +63,89 @@ object AutoUpdater : Module(
 
     init {
         onEnable {
-            //TODO: Add modal to prompt user for confirmation before updating and restart after download and confirmation
-            thread(name = "Lambda-Client-Updater") {
-                try {
-                    // Check if Lambda client mod is present
-                    if (!isModContainerPresent("lambda")) {
-                        logger.error("Lambda client mod not found!")
-                        return@thread
+            // Check if ClickGuiLayout is currently open
+            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open) {
+                // Open modal in GUI
+                showInstallModal = true
+            } else {
+                // Run update directly if GUI is not open
+                return@onEnable
+            }
+        }
+
+        // Listen for GUI events to render the install modal
+        listen<GuiEvent.NewFrame> {
+            if (showInstallModal) {
+                buildLayout {
+                    // Open the modal popup
+                    openPopup("Install Lambda Loader")
+
+                    // Render the modal
+                    popupModal("Install Lambda Loader", ImGuiWindowFlags.AlwaysAutoResize) {
+                        text("Do you want to install Lambda Client?")
+                        text("")
+                        text("This will close the client automatically once the install is finished.")
+                        text("")
+
+                        button("Install", 120f, 0f) {
+                            showInstallModal = false
+                            performLoaderInstall()
+                        }
+
+                        sameLine()
+
+                        button("Cancel", 120f, 0f) {
+                            showInstallModal = false
+                        }
                     }
+                }
+            }
 
-                    logger.info("Starting Lambda client update...")
+            if (showUninstallModal) {
+                buildLayout {
+                    // Open the modal popup
+                    openPopup("Uninstall Lambda Loader")
 
-                    // Download the latest client JAR
-                    val clientJar = downloadLatestClient()
-                    if (clientJar == null) {
-                        logger.error("Failed to download latest Lambda client")
-                        return@thread
+                    // Render the modal
+                    popupModal("Uninstall Lambda Loader", ImGuiWindowFlags.AlwaysAutoResize) {
+                        text("Do you want to uninstall Lambda Loader?")
+                        text("")
+                        text("This will close the client automatically once the uninstall is finished.")
+                        text("")
+
+                        button("Uninstall", 120f, 0f) {
+                            showUninstallModal = false
+                            disable()
+                            performLoaderUninstall()
+                        }
+
+                        sameLine()
+
+                        button("Cancel", 120f, 0f) {
+                            showUninstallModal = false
+                        }
                     }
-
-                    // Get the current Lambda mod JAR path
-                    val lambdaJarPath = getModJarPath("lambda")
-                    if (debug) {
-                        logger.info("Lambda JAR path: $lambdaJarPath")
-                    }
-
-                    // Write the new JAR to replace the old one
-                    val jarFile = lambdaJarPath.toFile()
-                    jarFile.writeBytes(clientJar)
-
-                    logger.info("Successfully updated Lambda client! Restart required.")
-                } catch (e: Exception) {
-                    logger.error("Error updating Lambda client", e)
                 }
             }
         }
 
         onDisable {
-            //TODO: Add modal to prompt user for confirmation before updating and restart after download and confirmation
-            thread(name = "Lambda-Loader-Updater") {
-                try {
-                    // Check if Lambda loader mod is present
-                    if (!isModContainerPresent("lambda-loader")) {
-                        logger.error("Lambda loader mod not found!")
-                        return@thread
-                    }
-
-                    logger.info("Starting Lambda loader update...")
-
-                    // Download the latest loader JAR
-                    val loaderJar = downloadLatestLoader()
-                    if (loaderJar == null) {
-                        logger.error("Failed to download latest Lambda loader")
-                        return@thread
-                    }
-
-                    // Get the current Lambda loader mod JAR path
-                    val loaderJarPath = getModJarPath("lambda-loader")
-                    if (debug) {
-                        logger.info("Lambda loader JAR path: $loaderJarPath")
-                    }
-
-                    // Write the new JAR to replace the old one
-                    val jarFile = loaderJarPath.toFile()
-                    jarFile.writeBytes(loaderJar)
-
-                    logger.info("Successfully updated Lambda loader! Restart required.")
-                } catch (e: Exception) {
-                    logger.error("Error updating Lambda loader", e)
-                }
+            // Check if ClickGuiLayout is currently open
+            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open) {
+                // Open modal in GUI - keep module enabled until user confirms
+                showUninstallModal = true
+                enable()
+            } else {
+                // Run uninstall directly if GUI is not open
+                performLoaderUninstall()
             }
         }
     }
 
     // Maven URLs
     private const val MAVEN_URL = "https://maven.lambda-client.org"
-    private const val MAVEN_THC_URL = "https://maven.lambda-client.org"
-    private const val LOADER_RELEASES_META = "$MAVEN_THC_URL/releases/com/lambda/loader/maven-metadata.xml"
-    private const val LOADER_SNAPSHOTS_META = "$MAVEN_THC_URL/snapshots/com/lambda/loader/maven-metadata.xml"
+    private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/loader/maven-metadata.xml"
+    private const val LOADER_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/loader/maven-metadata.xml"
     private const val CLIENT_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda/maven-metadata.xml"
     private const val CLIENT_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda/maven-metadata.xml"
 
@@ -279,6 +303,88 @@ object AutoUpdater : Module(
         } catch (e: Exception) {
             logger.error("Failed to download loader", e)
             null
+        }
+    }
+
+    /**
+     * Performs the client install in a background thread
+     */
+    private fun performLoaderInstall() {
+        thread(name = "Lambda-Client-Installer") {
+            try {
+                // Check if Lambda client mod is present
+                if (!isModContainerPresent("lambda")) {
+                    logger.error("Lambda client mod not found!")
+                    return@thread
+                }
+
+                logger.info("Starting Lambda client install...")
+
+                // Download the latest client JAR
+                val clientJar = downloadLatestClient()
+                if (clientJar == null) {
+                    logger.error("Failed to download latest Lambda client")
+                    return@thread
+                }
+
+                // Get the current Lambda client mod JAR path
+                val clientJarPath = getModJarPath("lambda")
+                if (debug) {
+                    logger.info("Lambda client JAR path: $clientJarPath")
+                }
+
+                // Write the new JAR to replace the old one
+                val jarFile = clientJarPath.toFile()
+                jarFile.writeBytes(clientJar)
+
+                logger.info("Successfully installed Lambda client! Restarting...")
+
+                // Automatically restart the game
+                exitProcess(0)
+            } catch (e: Exception) {
+                logger.error("Error installing Lambda client", e)
+            }
+        }
+    }
+
+    /**
+     * Performs the loader uninstall in a background thread
+     */
+    private fun performLoaderUninstall() {
+        thread(name = "Lambda-Loader-Uninstaller") {
+            try {
+                // Check if Lambda loader mod is present
+                if (!isModContainerPresent("lambda-loader")) {
+                    logger.error("Lambda loader mod not found!")
+                    return@thread
+                }
+
+                logger.info("Starting Lambda loader uninstall...")
+
+                // Download the latest loader JAR
+                val loaderJar = downloadLatestLoader()
+                if (loaderJar == null) {
+                    logger.error("Failed to download latest Lambda loader")
+                    return@thread
+                }
+
+                // Get the current Lambda loader mod JAR path
+                val loaderJarPath = getModJarPath("lambda-loader")
+                if (debug) {
+                    logger.info("Lambda loader JAR path: $loaderJarPath")
+                }
+
+                // Write the new JAR to replace the old one
+                val jarFile = loaderJarPath.toFile()
+                jarFile.writeBytes(loaderJar)
+
+                logger.info("Successfully uninstalled Lambda loader! Restarting...")
+
+                // Automatically restart the game
+                exitProcess(0)
+            } catch (e: Exception) {
+                logger.error("Error uninstalling Lambda loader", e)
+            }
         }
     }
 
