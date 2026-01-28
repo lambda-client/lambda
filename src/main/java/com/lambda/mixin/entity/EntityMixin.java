@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.entity;
 
+import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
@@ -151,7 +152,7 @@ public abstract class EntityMixin {
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setYaw(F)V"))
     private boolean wrapSetYaw(Entity instance, float yaw) {
-        if ((Object) this != Lambda.getMc().player) return true;
+        if ((Object) this != getMc().player) return true;
         return RotationManager.getLockYaw() == null;
     }
 

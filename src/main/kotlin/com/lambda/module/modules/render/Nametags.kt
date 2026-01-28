@@ -46,6 +46,7 @@ import org.joml.component1
 import org.joml.component2
 import java.awt.Color
 
+//ToDo: implement all settings
 object Nametags : Module(
 	name = "Nametags",
 	description = "Displays information about entities above them",

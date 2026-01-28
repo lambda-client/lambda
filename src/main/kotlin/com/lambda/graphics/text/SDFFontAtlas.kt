@@ -44,6 +44,9 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import java.nio.ByteBuffer
 import kotlin.math.sqrt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Signed Distance Field font atlas for high-quality scalable text rendering.
@@ -74,6 +77,22 @@ class SDFFontAtlas(
 		val advance: Float,
 		val u0: Float, val v0: Float,
 		val u1: Float, val v1: Float
+	)
+
+	/**
+	 * Work unit for parallel glyph SDF generation.
+	 * Contains all data needed to generate the SDF independently.
+	 */
+	private data class GlyphJob(
+		val codepoint: Int,
+		val glyphIndex: Int,
+		val atlasX: Int,
+		val atlasY: Int,
+		val paddedW: Int,
+		val paddedH: Int,
+		val glyphW: Int,
+		val glyphH: Int,
+		val glyph: Glyph
 	)
 
 	private val fontBuffer: ByteBuffer
@@ -131,6 +150,12 @@ class SDFFontAtlas(
 		buildSDFAtlas()
 	}
 
+	/**
+	 * Build the SDF atlas using parallel glyph generation.
+	 * 
+	 * Phase 1: Sequential layout - calculate glyph positions in the atlas
+	 * Phase 2: Parallel generation - generate SDF for each glyph concurrently
+	 */
 	private fun buildSDFAtlas() {
 		val data = atlasData ?: return
 		var penX = sdfSpread
@@ -138,7 +163,9 @@ class SDFFontAtlas(
 		var rowHeight = 0
 
 		val codepoints = (32..126) + (160..255)
+		val jobs = mutableListOf<GlyphJob>()
 
+		// Phase 1: Calculate all glyph positions (sequential, fast)
 		MemoryStack.stackPush().use { stack ->
 			val x0 = stack.mallocInt(1)
 			val y0 = stack.mallocInt(1)
@@ -170,11 +197,7 @@ class SDFFontAtlas(
 					break
 				}
 
-				if (glyphW > 0 && glyphH > 0) {
-					generateGlyphSDF(glyphIndex, data, penX, penY, paddedW, paddedH, glyphW, glyphH)
-				}
-
-				glyphs[cp] = Glyph(
+				val glyph = Glyph(
 					codepoint = cp,
 					width = paddedW,
 					height = paddedH,
@@ -187,8 +210,39 @@ class SDFFontAtlas(
 					v1 = (penY + paddedH).toFloat() / atlasSize
 				)
 
+				glyphs[cp] = glyph
+
+				// Only create job if glyph has visible content
+				if (glyphW > 0 && glyphH > 0) {
+					jobs.add(GlyphJob(
+						codepoint = cp,
+						glyphIndex = glyphIndex,
+						atlasX = penX,
+						atlasY = penY,
+						paddedW = paddedW,
+						paddedH = paddedH,
+						glyphW = glyphW,
+						glyphH = glyphH,
+						glyph = glyph
+					))
+				}
+
 				penX += paddedW + sdfSpread
 				rowHeight = maxOf(rowHeight, paddedH)
+			}
+		}
+
+		// Phase 2: Generate SDF for each glyph in parallel
+		runBlocking(Dispatchers.Default) {
+			for (job in jobs) {
+				launch {
+					generateGlyphSDF(
+						job.glyphIndex, data,
+						job.atlasX, job.atlasY,
+						job.paddedW, job.paddedH,
+						job.glyphW, job.glyphH
+					)
+				}
 			}
 		}
 	}
