@@ -26,6 +26,7 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Mouse;
 import net.minecraft.client.input.MouseInput;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -60,7 +61,7 @@ public class MouseMixin {
             original.call(window, x, y);
     }
 
-    @ModifyExpressionValue(method = "updateMouse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;smoothCameraEnabled:Z"))
+    @ModifyExpressionValue(method = "updateMouse", at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;smoothCameraEnabled:Z", opcode = Opcodes.GETFIELD))
     private boolean modifySmoothCameraEnabled(boolean original) {
         if (Zoom.INSTANCE.isEnabled() && Zoom.getSmoothMovement()) return true;
         else return original;

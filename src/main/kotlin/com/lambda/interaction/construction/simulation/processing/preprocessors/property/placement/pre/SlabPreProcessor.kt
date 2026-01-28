@@ -32,7 +32,7 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object SlabPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(targetState: BlockState) = targetState.block is SlabBlock
+    override fun acceptsState(state: BlockState, targetState: BlockState) = targetState.block is SlabBlock
 
     context(safeContext: SafeContext)
     override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {

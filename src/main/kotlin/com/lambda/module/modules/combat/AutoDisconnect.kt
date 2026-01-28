@@ -152,7 +152,7 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
-        if (connection.brand == "2b2t (Velocity)" && player.gameMode == GameMode.SPECTATOR) return
+        if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE) return
         if (reason == Reason.Health || reason == Reason.Totem) disable()
         connection.connection.disconnect(generateInfo(reasonText))
         playSound(SoundEvents.BLOCK_ANVIL_LAND)

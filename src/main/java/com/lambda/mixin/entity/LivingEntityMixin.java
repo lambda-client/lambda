@@ -24,6 +24,7 @@ import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.ViewModel;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -38,7 +39,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
@@ -185,9 +185,11 @@ public abstract class LivingEntityMixin extends EntityMixin {
         original.call(entity);
     }
 
-    @Inject(method = "isGliding", at = @At("HEAD"), cancellable = true)
-    private void injectIsGliding(CallbackInfoReturnable<Boolean> cir) {
-        if (lambda$instance != Lambda.getMc().player) return;
-        cir.setReturnValue(ElytraFly.isGliding());
+    @SuppressWarnings("ConstantConditions")
+    @ModifyReturnValue(method = "isGliding", at = @At("RETURN"))
+    private boolean injectIsGliding(boolean original) {
+        if (lambda$instance != Lambda.getMc().player) return original;
+
+        return ElytraFly.isGliding();
     }
 }

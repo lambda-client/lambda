@@ -17,7 +17,6 @@
 
 package com.lambda.mixin.entity;
 
-import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
@@ -26,10 +25,10 @@ import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.MovementType;
@@ -40,7 +39,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import static com.lambda.Lambda.getMc;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
@@ -56,7 +56,7 @@ public abstract class EntityMixin {
      */
     @WrapOperation(method = "updateVelocity", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     public float velocityYaw(Entity entity, Operation<Float> original) {
-        if ((Object) this != Lambda.getMc().player) return original.call(entity);
+        if ((Object) this != getMc().player) return original.call(entity);
 
         Float y = RotationManager.getMovementYaw();
         if (y == null) return original.call(entity);
@@ -75,7 +75,7 @@ public abstract class EntityMixin {
     @WrapOperation(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw(F)F"))
     float fixDirectionYaw(Entity entity, float tickDelta, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(tickDelta);
-        if (entity != Lambda.getMc().player || rot == null) return original.call(entity, tickDelta);
+        if (entity != getMc().player || rot == null) return original.call(entity, tickDelta);
 
         return (float) rot.getX();
     }
@@ -91,7 +91,7 @@ public abstract class EntityMixin {
     @WrapOperation(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch(F)F"))
     float fixDirectionPitch(Entity entity, float tickDelta, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(tickDelta);
-        if (entity != Lambda.getMc().player || rot == null) return original.call(entity, tickDelta);
+        if (entity != getMc().player || rot == null) return original.call(entity, tickDelta);
 
         return (float) rot.getY();
     }
@@ -107,7 +107,7 @@ public abstract class EntityMixin {
     @WrapOperation(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     float fixDirectionYaw2(Entity entity, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(1.0);
-        if (entity != Lambda.getMc().player || rot == null) return original.call(entity);
+        if (entity != getMc().player || rot == null) return original.call(entity);
 
         return (float) rot.getX();
     }
@@ -123,7 +123,7 @@ public abstract class EntityMixin {
     @WrapOperation(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch()F"))
     float fixDirectionPitch2(Entity entity, Operation<Float> original) {
         Vec2d rot = RotationManager.getRotationForVector(1.0);
-        if (entity != Lambda.getMc().player || rot == null) return original.call(entity);
+        if (entity != getMc().player || rot == null) return original.call(entity);
 
         return (float) rot.getY();
     }
@@ -161,17 +161,30 @@ public abstract class EntityMixin {
         return RotationManager.getLockPitch() == null;
     }
 
-    @Inject(method = "isSprinting()Z", at = @At("HEAD"), cancellable = true)
-    private void injectIsSprinting(CallbackInfoReturnable<Boolean> cir) {
-        var player = Lambda.getMc().player;
-        if ((Object) this != Lambda.getMc().player) return;
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(true);
+    @ModifyReturnValue(method = "isSprinting()Z", at = @At("RETURN"))
+    private boolean injectIsSprinting(boolean original) {
+        var player = getMc().player;
+        if ((Object) this != getMc().player) return original;
+
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding())
+            return true;
+
+        return original;
     }
 
-    @Inject(method = "getPose", at = @At("HEAD"), cancellable = true)
-    private void injectGetPose(CallbackInfoReturnable<EntityPose> cir) {
-        var entity = (Entity) (Object) this;
-        if (!(entity instanceof ClientPlayerEntity player)) return;
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce && player.isGliding()) cir.setReturnValue(EntityPose.GLIDING);
+    @ModifyReturnValue(method = "getPose", at = @At("RETURN"))
+    private EntityPose injectGetPose(EntityPose original) {
+        var player = getMc().player;
+        if ((Object) this != getMc().player) return original;
+
+        if (ElytraFly.INSTANCE.isDisabled() ||
+                ElytraFly.getMode() != ElytraFly.FlyMode.Bounce || !player.isGliding()) return original;
+
+        return EntityPose.GLIDING;
+    }
+
+    @ModifyExpressionValue(method = "getHorizontalFacing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
+    private float modifyGetYaw(float original) {
+        return (Object) this == getMc().player ? RotationManager.getServerRotation().getYawF() : original;
     }
 }

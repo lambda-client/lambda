@@ -54,22 +54,22 @@ abstract class Targeting(
     private val defaultRange: Double,
     private val maxRange: Double,
 ) : SettingGroup(c), TargetingConfig {
-    /**
-     * The range within which entities can be targeted. This value is configurable and constrained
-     * between 1.0 and [maxRange].
-     */
-    override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05).group(baseGroup)
+	/**
+	 * The range within which entities can be targeted. This value is configurable and constrained
+	 * between 1.0 and [maxRange].
+	 */
+	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05).group(baseGroup)
     override val targets by c.setting("Targets", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries)
 
-    /**
-     * Validates whether a given entity is targetable by the player based on current settings.
-     *
-     * @param player The [ClientPlayerEntity] performing the targeting.
-     * @param entity The [LivingEntity] being evaluated.
-     * @return `true` if the entity is valid for targeting, `false` otherwise.
-     */
+	/**
+	 * Validates whether a given entity is targetable by the player based on current settings.
+	 *
+	 * @param player The [ClientPlayerEntity] performing the targeting.
+	 * @param entity The [LivingEntity] being evaluated.
+	 * @return `true` if the entity is valid for targeting, `false` otherwise.
+	 */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) =
-        entity.entityGroup in targets && (entity !is OtherClientPlayerEntity || !entity.isFriend)
+		entity.entityGroup in targets && (entity !is OtherClientPlayerEntity || !entity.isFriend)
 
     /**
      * Subclass for targeting entities specifically for combat purposes.
