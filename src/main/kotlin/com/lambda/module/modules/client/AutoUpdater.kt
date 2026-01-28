@@ -23,21 +23,17 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
-import com.lambda.gui.dsl.ImGuiBuilder.button
-import com.lambda.gui.dsl.ImGuiBuilder.openPopup
-import com.lambda.gui.dsl.ImGuiBuilder.popupModal
-import com.lambda.gui.dsl.ImGuiBuilder.sameLine
-import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import imgui.flag.ImGuiWindowFlags
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
 import org.slf4j.LoggerFactory
 import java.net.URI
 import java.nio.file.Path
 import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
 object AutoUpdater : Module(
@@ -48,39 +44,35 @@ object AutoUpdater : Module(
     private val logger = LoggerFactory.getLogger("AutoUpdater")
 
     private val debug by setting("Debug", false, "Enable debug logging")
-    private val loaderBranch by setting("Loader Branch", Branch.STABLE, "Select loader update branch")
-    private val clientBranch by setting("Client Branch", Branch.STABLE, "Select client update branch")
+    private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
+    private val clientBranch by setting("Client Branch", Branch.Stable, "Select client update branch")
 
     var showInstallModal = false
         private set
     var showUninstallModal = false
         private set
 
+    private const val MAVEN_URL = "https://maven.lambda-client.org"
+    private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/loader/maven-metadata.xml"
+    private const val LOADER_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/loader/maven-metadata.xml"
+    private const val CLIENT_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda/maven-metadata.xml"
+    private const val CLIENT_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda/maven-metadata.xml"
+
     private enum class Branch {
-        STABLE,
-        SNAPSHOT
+        Stable,
+        Snapshot
     }
 
     init {
         onEnable {
-            // Check if ClickGuiLayout is currently open
-            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open) {
-                // Open modal in GUI
+            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open)
                 showInstallModal = true
-            } else {
-                // Run update directly if GUI is not open
-                return@onEnable
-            }
         }
 
-        // Listen for GUI events to render the install modal
         listen<GuiEvent.NewFrame> {
             if (showInstallModal) {
                 buildLayout {
-                    // Open the modal popup
                     openPopup("Install Lambda Loader")
-
-                    // Render the modal
                     popupModal("Install Lambda Loader", ImGuiWindowFlags.AlwaysAutoResize) {
                         text("Do you want to install Lambda Client?")
                         text("")
@@ -89,7 +81,7 @@ object AutoUpdater : Module(
 
                         button("Install", 120f, 0f) {
                             showInstallModal = false
-                            performLoaderInstall()
+                            installClient()
                         }
 
                         sameLine()
@@ -103,10 +95,7 @@ object AutoUpdater : Module(
 
             if (showUninstallModal) {
                 buildLayout {
-                    // Open the modal popup
                     openPopup("Uninstall Lambda Loader")
-
-                    // Render the modal
                     popupModal("Uninstall Lambda Loader", ImGuiWindowFlags.AlwaysAutoResize) {
                         text("Do you want to uninstall Lambda Loader?")
                         text("")
@@ -116,7 +105,7 @@ object AutoUpdater : Module(
                         button("Uninstall", 120f, 0f) {
                             showUninstallModal = false
                             disable()
-                            performLoaderUninstall()
+                            installLoader()
                         }
 
                         sameLine()
@@ -130,46 +119,167 @@ object AutoUpdater : Module(
         }
 
         onDisable {
-            // Check if ClickGuiLayout is currently open
             if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open) {
-                // Open modal in GUI - keep module enabled until user confirms
                 showUninstallModal = true
                 enable()
-            } else {
-                // Run uninstall directly if GUI is not open
-                performLoaderUninstall()
+            } else installLoader()
+        }
+    }
+
+    private fun installLoader() {
+        runBlocking(Dispatchers.IO) {
+            try {
+                logger.info("Starting Lambda loader uninstall...")
+
+                val loaderJar = downloadLatestLoader()
+                if (loaderJar == null) {
+                    logger.error("Failed to download latest Lambda loader")
+                    return@runBlocking
+                }
+
+                val loaderJarPath = getModJarPath("lambda-loader")
+                if (debug) logger.info("Lambda loader JAR path: $loaderJarPath")
+
+                val jarFile = loaderJarPath.toFile()
+                jarFile.writeBytes(loaderJar)
+
+                logger.info("Successfully uninstalled Lambda loader! Restarting...")
+
+                mc.stop()
+            } catch (e: Exception) {
+                logger.error("Error uninstalling Lambda loader", e)
             }
         }
     }
 
-    // Maven URLs
-    private const val MAVEN_URL = "https://maven.lambda-client.org"
-    private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/loader/maven-metadata.xml"
-    private const val LOADER_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/loader/maven-metadata.xml"
-    private const val CLIENT_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda/maven-metadata.xml"
-    private const val CLIENT_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda/maven-metadata.xml"
+    private fun installClient() {
+        runBlocking(Dispatchers.IO) {
+            try {
+                logger.info("Starting Lambda client install...")
 
-    /**
-     * Get the current Minecraft version
-     */
-    private fun getMinecraftVersion(): String {
-        return SharedConstants.getGameVersion().name()
+                val clientJar = downloadLatestClient()
+                if (clientJar == null) {
+                    logger.error("Failed to download latest Lambda client")
+                    return@runBlocking
+                }
+
+                val clientJarPath = getModJarPath("lambda")
+                if (debug) logger.info("Lambda client JAR path: $clientJarPath")
+
+                val jarFile = clientJarPath.toFile()
+                jarFile.writeBytes(clientJar)
+
+                logger.info("Successfully installed Lambda client! Restarting...")
+
+                mc.stop()
+            } catch (e: Exception) {
+                logger.error("Error installing Lambda client", e)
+            }
+        }
     }
 
-    private fun isModContainerPresent(modId: String): Boolean {
-        val fabricLoader = FabricLoader.getInstance()
-        return fabricLoader.getModContainer(modId).isPresent
+    fun downloadLatestLoader(): ByteArray? {
+        return try {
+            val branch = loaderBranch
+            val mcVersion = getMinecraftVersion()
+
+            if (debug) logger.info("Downloading loader for MC $mcVersion from ${branch.name} branch")
+
+            var version: String?
+            var baseUrl: String?
+
+            when (branch) {
+                Branch.Stable -> {
+                    val xml = URI(LOADER_RELEASES_META).toURL().readText()
+                    version = parseLatestVersion(xml, null)
+                    baseUrl = "$MAVEN_URL/releases"
+                }
+                Branch.Snapshot -> {
+                    val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
+                    version = parseLatestVersion(xml, null)
+                    baseUrl = "$MAVEN_URL/snapshots"
+                }
+            }
+
+            if (version == null && branch == Branch.Stable) {
+                logger.warn("No stable loader found, falling back to snapshot")
+                val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
+                version = parseLatestVersion(xml, null)
+                baseUrl = "$MAVEN_URL/snapshots"
+            }
+
+            if (version == null) {
+                logger.error("No loader version found")
+                return null
+            }
+
+            val jarUrl = if (version.endsWith("-SNAPSHOT")) {
+                val snapshotInfo = getSnapshotInfo(baseUrl, "com/lambda/loader", version) ?: return null
+                val baseVersion = version.replace("-SNAPSHOT", "")
+                "$baseUrl/com/lambda/loader/$version/loader-$baseVersion-${snapshotInfo.timestamp}-${snapshotInfo.buildNumber}.jar"
+            } else {
+                "$baseUrl/com/lambda/loader/$version/loader-$version.jar"
+            }
+
+            if (debug) logger.info("Downloading from: $jarUrl")
+
+            URI(jarUrl).toURL().readBytes()
+        } catch (e: Exception) {
+            logger.error("Failed to download loader", e)
+            null
+        }
     }
 
-    private fun getModJarPath(modId: String): Path {
-        val fabricLoader = FabricLoader.getInstance()
-        val modContainer = fabricLoader.getModContainer(modId)
-        return modContainer.get().origin.paths[0].toAbsolutePath()
+    fun downloadLatestClient(): ByteArray? {
+        return try {
+            val branch = clientBranch
+            val mcVersion = getMinecraftVersion()
+
+            if (debug) logger.info("Downloading client for MC $mcVersion from ${branch.name} branch")
+
+            var version: String?
+            var baseUrl: String?
+
+            when (branch) {
+                Branch.Stable -> {
+                    val xml = URI(CLIENT_RELEASES_META).toURL().readText()
+                    version = parseLatestVersion(xml, mcVersion)
+                    baseUrl = "$MAVEN_URL/releases"
+                }
+                Branch.Snapshot -> {
+                    val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
+                    version = parseLatestVersion(xml, mcVersion)
+                    baseUrl = "$MAVEN_URL/snapshots"
+                }
+            }
+
+            if (version == null && branch == Branch.Stable) {
+                logger.warn("No stable client found for MC $mcVersion, falling back to snapshot")
+                val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
+                version = parseLatestVersion(xml, mcVersion)
+                baseUrl = "$MAVEN_URL/snapshots"
+            }
+
+            if (version == null) {
+                logger.error("No client version found for MC $mcVersion")
+                return null
+            }
+
+            val jarUrl = if (version.endsWith("-SNAPSHOT")) {
+                val snapshotInfo = getSnapshotInfo(baseUrl, "com/lambda/lambda", version) ?: return null
+                val baseVersion = version.replace("-SNAPSHOT", "")
+                "$baseUrl/com/lambda/lambda/$version/lambda-$baseVersion-${snapshotInfo.timestamp}-${snapshotInfo.buildNumber}.jar"
+            } else "$baseUrl/com/lambda/lambda/$version/lambda-$version.jar"
+
+            if (debug) logger.info("Downloading from: $jarUrl")
+
+            URI(jarUrl).toURL().readBytes()
+        } catch (e: Exception) {
+            logger.error("Failed to download client", e)
+            null
+        }
     }
 
-    /**
-     * Parse latest version from maven-metadata.xml, optionally filtering by MC version
-     */
     private fun parseLatestVersion(xml: String, mcVersion: String? = null): String? {
         return try {
             val factory = DocumentBuilderFactory.newInstance()
@@ -207,23 +317,12 @@ object AutoUpdater : Module(
                     logger.warn("No versions found $versionMsg")
                 }
                 null
-            } else {
-                matchingVersions.last()
-            }
+            } else matchingVersions.last()
         } catch (e: Exception) {
             logger.error("Error parsing version", e)
             null
         }
     }
-
-    /**
-     * Get snapshot info (timestamp and build number)
-     */
-    private data class SnapshotInfo(
-        val version: String,
-        val timestamp: String,
-        val buildNumber: String
-    )
 
     private fun getSnapshotInfo(baseUrl: String, artifactPath: String, version: String): SnapshotInfo? {
         return try {
@@ -244,209 +343,17 @@ object AutoUpdater : Module(
         }
     }
 
-    /**
-     * Download the latest loader JAR from selected branch or fallback to snapshot
-     */
-    fun downloadLatestLoader(): ByteArray? {
-        return try {
-            val branch = loaderBranch
-            val mcVersion = getMinecraftVersion()
+    private fun getMinecraftVersion() = SharedConstants.getGameVersion().name()
 
-            if (debug) {
-                logger.info("Downloading loader for MC $mcVersion from ${branch.name} branch")
-            }
-
-            // Try selected branch first
-            var version: String?
-            var baseUrl: String?
-
-	        when (branch) {
-                Branch.STABLE -> {
-                    val xml = URI(LOADER_RELEASES_META).toURL().readText()
-                    version = parseLatestVersion(xml, null)
-                    baseUrl = "$MAVEN_URL/releases"
-                }
-                Branch.SNAPSHOT -> {
-                    val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
-                    version = parseLatestVersion(xml, null)
-                    baseUrl = "$MAVEN_URL/snapshots"
-                }
-            }
-
-            // Fallback to snapshot if stable not found
-            if (version == null && branch == Branch.STABLE) {
-                logger.warn("No stable loader found, falling back to snapshot")
-                val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
-                version = parseLatestVersion(xml, null)
-                baseUrl = "$MAVEN_URL/snapshots"
-            }
-
-            if (version == null) {
-                logger.error("No loader version found")
-                return null
-            }
-
-            // Build download URL
-            val jarUrl = if (version.endsWith("-SNAPSHOT")) {
-                val snapshotInfo = getSnapshotInfo(baseUrl, "com/lambda/loader", version) ?: return null
-                val baseVersion = version.replace("-SNAPSHOT", "")
-                "$baseUrl/com/lambda/loader/$version/loader-$baseVersion-${snapshotInfo.timestamp}-${snapshotInfo.buildNumber}.jar"
-            } else {
-                "$baseUrl/com/lambda/loader/$version/loader-$version.jar"
-            }
-
-            if (debug) {
-                logger.info("Downloading from: $jarUrl")
-            }
-
-            URI(jarUrl).toURL().readBytes()
-        } catch (e: Exception) {
-            logger.error("Failed to download loader", e)
-            null
-        }
+    private fun getModJarPath(modId: String): Path {
+        val fabricLoader = FabricLoader.getInstance()
+        val modContainer = fabricLoader.getModContainer(modId)
+        return modContainer.get().origin.paths[0].toAbsolutePath()
     }
 
-    /**
-     * Performs the client install in a background thread
-     */
-    private fun performLoaderInstall() {
-        thread(name = "Lambda-Client-Installer") {
-            try {
-                // Check if Lambda client mod is present
-                if (!isModContainerPresent("lambda")) {
-                    logger.error("Lambda client mod not found!")
-                    return@thread
-                }
-
-                logger.info("Starting Lambda client install...")
-
-                // Download the latest client JAR
-                val clientJar = downloadLatestClient()
-                if (clientJar == null) {
-                    logger.error("Failed to download latest Lambda client")
-                    return@thread
-                }
-
-                // Get the current Lambda client mod JAR path
-                val clientJarPath = getModJarPath("lambda")
-                if (debug) {
-                    logger.info("Lambda client JAR path: $clientJarPath")
-                }
-
-                // Write the new JAR to replace the old one
-                val jarFile = clientJarPath.toFile()
-                jarFile.writeBytes(clientJar)
-
-                logger.info("Successfully installed Lambda client! Restarting...")
-
-                // Automatically restart the game
-                exitProcess(0)
-            } catch (e: Exception) {
-                logger.error("Error installing Lambda client", e)
-            }
-        }
-    }
-
-    /**
-     * Performs the loader uninstall in a background thread
-     */
-    private fun performLoaderUninstall() {
-        thread(name = "Lambda-Loader-Uninstaller") {
-            try {
-                // Check if Lambda loader mod is present
-                if (!isModContainerPresent("lambda-loader")) {
-                    logger.error("Lambda loader mod not found!")
-                    return@thread
-                }
-
-                logger.info("Starting Lambda loader uninstall...")
-
-                // Download the latest loader JAR
-                val loaderJar = downloadLatestLoader()
-                if (loaderJar == null) {
-                    logger.error("Failed to download latest Lambda loader")
-                    return@thread
-                }
-
-                // Get the current Lambda loader mod JAR path
-                val loaderJarPath = getModJarPath("lambda-loader")
-                if (debug) {
-                    logger.info("Lambda loader JAR path: $loaderJarPath")
-                }
-
-                // Write the new JAR to replace the old one
-                val jarFile = loaderJarPath.toFile()
-                jarFile.writeBytes(loaderJar)
-
-                logger.info("Successfully uninstalled Lambda loader! Restarting...")
-
-                // Automatically restart the game
-                exitProcess(0)
-            } catch (e: Exception) {
-                logger.error("Error uninstalling Lambda loader", e)
-            }
-        }
-    }
-
-    /**
-     * Download the latest client JAR for current MC version from selected branch or fallback to snapshot
-     */
-    fun downloadLatestClient(): ByteArray? {
-        return try {
-            val branch = clientBranch
-            val mcVersion = getMinecraftVersion()
-
-            if (debug) {
-                logger.info("Downloading client for MC $mcVersion from ${branch.name} branch")
-            }
-
-            // Try selected branch first
-            var version: String?
-            var baseUrl: String?
-
-            when (branch) {
-                Branch.STABLE -> {
-                    val xml = URI(CLIENT_RELEASES_META).toURL().readText()
-                    version = parseLatestVersion(xml, mcVersion)
-                    baseUrl = "$MAVEN_URL/releases"
-                }
-                Branch.SNAPSHOT -> {
-                    val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
-                    version = parseLatestVersion(xml, mcVersion)
-                    baseUrl = "$MAVEN_URL/snapshots"
-                }
-            }
-
-            // Fallback to snapshot if stable not found
-            if (version == null && branch == Branch.STABLE) {
-                logger.warn("No stable client found for MC $mcVersion, falling back to snapshot")
-                val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
-                version = parseLatestVersion(xml, mcVersion)
-                baseUrl = "$MAVEN_URL/snapshots"
-            }
-
-            if (version == null) {
-                logger.error("No client version found for MC $mcVersion")
-                return null
-            }
-
-            // Build download URL
-            val jarUrl = if (version.endsWith("-SNAPSHOT")) {
-                val snapshotInfo = getSnapshotInfo(baseUrl, "com/lambda/lambda", version) ?: return null
-                val baseVersion = version.replace("-SNAPSHOT", "")
-                "$baseUrl/com/lambda/lambda/$version/lambda-$baseVersion-${snapshotInfo.timestamp}-${snapshotInfo.buildNumber}.jar"
-            } else {
-                "$baseUrl/com/lambda/lambda/$version/lambda-$version.jar"
-            }
-
-            if (debug) {
-                logger.info("Downloading from: $jarUrl")
-            }
-
-            URI(jarUrl).toURL().readBytes()
-        } catch (e: Exception) {
-            logger.error("Failed to download client", e)
-            null
-        }
-    }
+    private data class SnapshotInfo(
+        val version: String,
+        val timestamp: String,
+        val buildNumber: String
+    )
 }
