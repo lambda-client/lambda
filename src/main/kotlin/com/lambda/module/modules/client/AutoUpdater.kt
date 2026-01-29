@@ -25,6 +25,7 @@ import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -34,7 +35,6 @@ import org.slf4j.LoggerFactory
 import java.net.URI
 import java.nio.file.Path
 import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.system.exitProcess
 
 object AutoUpdater : Module(
     name = "AutoUpdater",
@@ -45,7 +45,7 @@ object AutoUpdater : Module(
 
     private val debug by setting("Debug", false, "Enable debug logging")
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
-    private val clientBranch by setting("Client Branch", Branch.Stable, "Select client update branch")
+    private val clientBranch by setting("Client Branch", Branch.Snapshot, "Select client update branch")
 
     var showInstallModal = false
         private set
@@ -69,67 +69,65 @@ object AutoUpdater : Module(
                 showInstallModal = true
         }
 
-        listen<GuiEvent.NewFrame> {
+        onDisable {
+            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open)
+                showUninstallModal = true
+        }
+
+        listen<GuiEvent.NewFrame>(alwaysListen = true) {
             if (showInstallModal) {
                 buildLayout {
-                    openPopup("Install Lambda Loader")
-                    popupModal("Install Lambda Loader", ImGuiWindowFlags.AlwaysAutoResize) {
+                    openPopup("install-lambda-loader")
+                    popupModal("install-lambda-loader", ImGuiWindowFlags.AlwaysAutoResize) {
                         text("Do you want to install Lambda Client?")
-                        text("")
+                        ImGui.spacing()
                         text("This will close the client automatically once the install is finished.")
-                        text("")
+                        ImGui.spacing()
 
                         button("Install", 120f, 0f) {
                             showInstallModal = false
-                            installClient()
-                        }
-
-                        sameLine()
-
-                        button("Cancel", 120f, 0f) {
-                            showInstallModal = false
-                        }
-                    }
-                }
-            }
-
-            if (showUninstallModal) {
-                buildLayout {
-                    openPopup("Uninstall Lambda Loader")
-                    popupModal("Uninstall Lambda Loader", ImGuiWindowFlags.AlwaysAutoResize) {
-                        text("Do you want to uninstall Lambda Loader?")
-                        text("")
-                        text("This will close the client automatically once the uninstall is finished.")
-                        text("")
-
-                        button("Uninstall", 120f, 0f) {
-                            showUninstallModal = false
-                            disable()
                             installLoader()
                         }
 
                         sameLine()
 
                         button("Cancel", 120f, 0f) {
+                            showInstallModal = false
+                        }
+                    }
+                }
+                return@listen
+            }
+
+            if (showUninstallModal) {
+                buildLayout {
+                    openPopup("uninstall-lambda-loader")
+                    popupModal("uninstall-lambda-loader", ImGuiWindowFlags.AlwaysAutoResize) {
+                        text("Do you want to uninstall Lambda Loader?")
+                        ImGui.spacing()
+                        text("This will close the client automatically once the uninstall is finished.")
+                        ImGui.spacing()
+
+                        button("Uninstall", 120f, 0f) {
+                            showUninstallModal = false
+                            installClient()
+                        }
+
+                        sameLine()
+
+                        button("Cancel", 120f, 0f) {
                             showUninstallModal = false
                         }
                     }
                 }
             }
         }
-
-        onDisable {
-            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open) {
-                showUninstallModal = true
-                enable()
-            } else installLoader()
-        }
     }
 
     private fun installLoader() {
         runBlocking(Dispatchers.IO) {
             try {
-                logger.info("Starting Lambda loader uninstall...")
+                logger.info("Starting Lambda loader install...")
 
                 val loaderJar = downloadLatestLoader()
                 if (loaderJar == null) {
@@ -137,17 +135,17 @@ object AutoUpdater : Module(
                     return@runBlocking
                 }
 
-                val loaderJarPath = getModJarPath("lambda-loader")
-                if (debug) logger.info("Lambda loader JAR path: $loaderJarPath")
+                val clientJarPath = getModJarPath("lambda")
+                if (debug) logger.info("Lambda client JAR path: $clientJarPath")
 
-                val jarFile = loaderJarPath.toFile()
+                val jarFile = clientJarPath.toFile()
                 jarFile.writeBytes(loaderJar)
 
-                logger.info("Successfully uninstalled Lambda loader! Restarting...")
+                logger.info("Successfully installed Lambda loader! Restarting...")
 
                 mc.stop()
             } catch (e: Exception) {
-                logger.error("Error uninstalling Lambda loader", e)
+                logger.error("Error installing Lambda loader", e)
             }
         }
     }
@@ -163,10 +161,10 @@ object AutoUpdater : Module(
                     return@runBlocking
                 }
 
-                val clientJarPath = getModJarPath("lambda")
-                if (debug) logger.info("Lambda client JAR path: $clientJarPath")
+                val loaderJarPath = getModJarPath("lambda-loader")
+                if (debug) logger.info("Lambda loader JAR path: $loaderJarPath")
 
-                val jarFile = clientJarPath.toFile()
+                val jarFile = loaderJarPath.toFile()
                 jarFile.writeBytes(clientJar)
 
                 logger.info("Successfully installed Lambda client! Restarting...")
@@ -289,7 +287,7 @@ object AutoUpdater : Module(
             val versionNodes = document.getElementsByTagName("version")
             val versions = mutableListOf<String>()
 
-            for (i in 0 until versionNodes.length) {
+            (0 until versionNodes.length).forEach  { i ->
                 versions.add(versionNodes.item(i).textContent)
             }
 
