@@ -66,6 +66,12 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 		val chunks = getRendererTransforms()
 		if (chunks.isEmpty()) return
 
+		// When using xray mode (depthTest=false), clear our custom depth buffer
+		// This gives us correct self-ordering while showing through MC's world
+		if (!depthTest) {
+			RendererUtils.clearXrayDepthBuffer()
+		}
+
 		// Render Faces
 		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
 			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
@@ -105,6 +111,28 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 				}
 			}
 		}
+
+		// Render World Images
+		val imageChunks = chunks.filter { (renderer, _) -> renderer.hasWorldImageData() }
+		if (imageChunks.isNotEmpty()) {
+			// Pre-load glint texture before creating render pass
+			RendererUtils.ensureGlintTextureLoaded()
+			
+			RegionRenderer.createRenderPass("$name World Images", depthTest)?.use { pass ->
+				pass.setPipeline(RendererUtils.getWorldImagePipeline(depthTest))
+				RenderSystem.bindDefaultUniforms(pass)
+				
+				// Bind enchantment glint texture for overlay support
+				RendererUtils.bindGlintTexture(pass, "Sampler1")
+				
+				// Use per-chunk transforms for correct positioning
+				// Glint animation is calculated in shader using GameTime with corrected speed
+				imageChunks.forEach { (renderer, transform) ->
+					pass.setUniform("DynamicTransforms", transform)
+					renderer.renderWorldImages(pass)
+				}
+			}
+		}
 	}
 
 	/**
@@ -120,8 +148,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
 
-			// Render Screen Faces (no depth test for 2D)
-			RegionRenderer.createRenderPass("$name Screen Faces", false)?.use { pass ->
+			// Render Screen Faces (no depth test - painter's algorithm)
+			RegionRenderer.createScreenRenderPass("$name Screen Faces")?.use { pass ->
 				pass.setPipeline(RendererUtils.screenFacesPipeline)
 				RenderSystem.bindDefaultUniforms(pass)
 				pass.setUniform("DynamicTransforms", dynamicTransform)
@@ -129,7 +157,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 			}
 
 			// Render Screen Edges
-			RegionRenderer.createRenderPass("$name Screen Edges", false)?.use { pass ->
+			RegionRenderer.createScreenRenderPass("$name Screen Edges")?.use { pass ->
 				pass.setPipeline(RendererUtils.screenEdgesPipeline)
 				RenderSystem.bindDefaultUniforms(pass)
 				pass.setUniform("DynamicTransforms", dynamicTransform)
@@ -144,13 +172,35 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 				val textureView = atlas.textureView
 				val sampler = atlas.sampler
 				if (textureView != null && sampler != null) {
-					RegionRenderer.createRenderPass("$name Screen Text", false)?.use { pass ->
+					RegionRenderer.createScreenRenderPass("$name Screen Text")?.use { pass ->
 						pass.setPipeline(RendererUtils.screenTextPipeline)
 						RenderSystem.bindDefaultUniforms(pass)
 						pass.setUniform("DynamicTransforms", dynamicTransform)
 						pass.bindTexture("Sampler0", textureView, sampler)
 						textRenderers.forEach { it.renderScreenText(pass) }
 					}
+				}
+			}
+
+			// Render Screen Images - needs separate transform with glint matrix for animation
+			val imageRenderers = renderers.filter { it.hasScreenImageData() }
+			if (imageRenderers.isNotEmpty()) {
+				// Pre-load glint texture BEFORE creating render pass to avoid command conflicts
+				RendererUtils.ensureGlintTextureLoaded()
+				
+				// Create a fresh dynamic transform with glint matrix calculated NOW (not at build time)
+				val glintTransform = RendererUtils.createScreenDynamicTransformWithGlint()
+				
+				RegionRenderer.createScreenRenderPass("$name Screen Images")?.use { pass ->
+					pass.setPipeline(RendererUtils.getScreenImagePipeline())
+					RenderSystem.bindDefaultUniforms(pass)
+					pass.setUniform("DynamicTransforms", glintTransform)
+					
+					// Bind enchantment glint texture for overlay support
+					RendererUtils.bindGlintTexture(pass, "Sampler1")
+					
+					// Each renderer handles its own texture batches
+					imageRenderers.forEach { it.renderScreenImages(pass) }
 				}
 			}
 		}

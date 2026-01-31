@@ -250,5 +250,63 @@ object LambdaVertexFormats {
         .add("SDFStyle", SDF_STYLE_ELEMENT)
         .add("Layer", LAYER_ELEMENT)
         .build()
+
+    // ============================================================================
+    // Image Rendering Vertex Formats
+    // ============================================================================
+
+    /**
+     * Overlay UV element for image rendering with overlay textures (e.g., enchantment glint).
+     * Contains: overlayU, overlayV, hasOverlay (as vec3 of floats)
+     */
+    val OVERLAY_UV_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        25, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        3   // count (overlayU, overlayV, hasOverlay)
+    )
+
+    /**
+     * Screen-space image format with overlay support and layer for draw order.
+     * Layout: Position (vec3), UV0 (vec2), Color (vec4), OverlayUV (vec3), Layer (float)
+     *
+     * Total size: 12 + 8 + 4 + 12 + 4 = 40 bytes
+     *
+     * - Position: Screen-space position (x, y, z=0) (3 floats = 12 bytes)
+     * - UV0: Main texture coordinates (2 floats = 8 bytes)
+     * - Color: RGBA tint color (4 bytes)
+     * - OverlayUV: vec3(overlayU, overlayV, hasOverlay) for glint effect (3 floats = 12 bytes)
+     * - Layer: Depth for layering (1 float = 4 bytes)
+     */
+    val SCREEN_IMAGE_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("UV0", VertexFormatElement.UV0)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("OverlayUV", OVERLAY_UV_ELEMENT)
+        .add("Layer", LAYER_ELEMENT)
+        .build()
+
+    /**
+     * World-space image format with anchor for billboarding and overlay support.
+     * Layout: Position (vec3), UV0 (vec2), Color (vec4), Anchor (vec3), BillboardData (vec2), OverlayUV (vec3)
+     *
+     * Total size: 12 + 8 + 4 + 12 + 8 + 12 = 56 bytes
+     *
+     * - Position: Local offset (x, y) with z unused (3 floats = 12 bytes)
+     * - UV0: Main texture coordinates (2 floats = 8 bytes)
+     * - Color: RGBA tint color (4 bytes)
+     * - Anchor: Camera-relative world position (3 floats = 12 bytes)
+     * - BillboardData: vec2(scale, billboardFlag) (2 floats = 8 bytes)
+     * - OverlayUV: vec3(overlayU, overlayV, hasOverlay) (3 floats = 12 bytes)
+     */
+    val WORLD_IMAGE_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("UV0", VertexFormatElement.UV0)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("Anchor", ANCHOR_ELEMENT)
+        .add("BillboardData", BILLBOARD_DATA_ELEMENT)
+        .add("OverlayUV", OVERLAY_UV_ELEMENT)
+        .build()
 }
 

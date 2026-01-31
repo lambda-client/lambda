@@ -18,6 +18,7 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.mc.renderer.RendererUtils
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
@@ -40,6 +41,10 @@ class RegionRenderer {
 	private var screenFaceVertexBuffer: GpuBuffer? = null
 	private var screenEdgeVertexBuffer: GpuBuffer? = null
 	private var screenTextVertexBuffer: GpuBuffer? = null
+
+	// Image batches (texture -> buffer) for screen and world space
+	private var screenImageBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
+	private var worldImageBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
 
 	// Index counts for world-space draw calls
 	private var faceIndexCount = 0
@@ -95,8 +100,16 @@ class RegionRenderer {
 		screenTextVertexBuffer = screenResult.text?.buffer
 		screenTextIndexCount = screenResult.text?.indexCount ?: 0
 
-		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null
-		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null
+		// Clean up old image batches
+		screenImageBatches.forEach { it.buffer.close() }
+		worldImageBatches.forEach { it.buffer.close() }
+
+		// Store new image batches
+		screenImageBatches = screenResult.images
+		worldImageBatches = collector.uploadWorldImageBatches()
+
+		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty()
+		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty()
 	}
 
 	/**
@@ -216,6 +229,58 @@ class RegionRenderer {
 	/** Check if this renderer has screen-space text data. */
 	fun hasScreenTextData(): Boolean = screenTextVertexBuffer != null && screenTextIndexCount > 0
 
+	/**
+	 * Render screen-space images using the given render pass.
+	 * Each texture batch is rendered separately with its texture bound.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderScreenImages(renderPass: RenderPass) {
+		if (screenImageBatches.isEmpty()) return
+		
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		
+		for (batch in screenImageBatches) {
+			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
+			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			renderPass.setVertexBuffer(0, batch.buffer)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
+		}
+	}
+
+	/** Check if this renderer has screen-space image data. */
+	fun hasScreenImageData(): Boolean = screenImageBatches.isNotEmpty()
+
+	/**
+	 * Render world-space images using the given render pass.
+	 * Each texture batch is rendered separately with its texture bound.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderWorldImages(renderPass: RenderPass) {
+		if (worldImageBatches.isEmpty()) return
+		
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		
+		for (batch in worldImageBatches) {
+			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
+			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			renderPass.setVertexBuffer(0, batch.buffer)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
+		}
+	}
+
+	/** Check if this renderer has world-space image data. */
+	fun hasWorldImageData(): Boolean = worldImageBatches.isNotEmpty()
+
 	/** Check if this renderer has any screen-space data to render. */
 	fun hasScreenData(): Boolean = hasScreenData
 
@@ -243,6 +308,13 @@ class RegionRenderer {
 		screenFaceIndexCount = 0
 		screenEdgeIndexCount = 0
 		screenTextIndexCount = 0
+
+		// Clear image batches
+		screenImageBatches.forEach { it.buffer.close() }
+		worldImageBatches.forEach { it.buffer.close() }
+		screenImageBatches = emptyList()
+		worldImageBatches = emptyList()
+
 		hasScreenData = false
 	}
 
@@ -255,19 +327,29 @@ class RegionRenderer {
 	}
 
 	companion object {
-		/** Helper to create a render pass targeting the main framebuffer. */
+		/** Helper to create a render pass targeting the main framebuffer with MC's depth. */
 		fun createRenderPass(label: String): RenderPass? {
-			return createRenderPass(label, useDepth = true)
+			return createRenderPass(label, useMcDepth = true)
 		}
 
 		/**
-		 * Helper to create a render pass targeting the main framebuffer.
+		 * Helper to create a render pass for world-space rendering.
 		 * @param label Debug label for the render pass
-		 * @param useDepth Whether to attach the depth buffer for depth testing
+		 * @param useMcDepth If true, use MC's depth buffer (normal depth testing against world).
+		 *                   If false, use Lambda's custom xray depth buffer (self-ordering, ignores MC world).
 		 */
-		fun createRenderPass(label: String, useDepth: Boolean): RenderPass? {
+		fun createRenderPass(label: String, useMcDepth: Boolean): RenderPass? {
 			val framebuffer = mc.framebuffer ?: return null
-			val depthView = if (useDepth) framebuffer.depthAttachmentView else null
+			
+			// Choose depth buffer:
+			// - true = MC's depth (normal depth testing against world)
+			// - false = Lambda's xray depth (self-ordering, ignores MC world)
+			val depthView = if (useMcDepth) {
+				framebuffer.depthAttachmentView
+			} else {
+				RendererUtils.getXrayDepthView()
+			}
+			
 			return RenderSystem.getDevice()
 				.createCommandEncoder()
 				.createRenderPass(
@@ -275,6 +357,25 @@ class RegionRenderer {
 					framebuffer.colorAttachmentView,
 					OptionalInt.empty(),
 					depthView,
+					OptionalDouble.empty()
+				)
+		}
+
+		/**
+		 * Helper to create a render pass for screen-space rendering (no depth buffer).
+		 * Uses painter's algorithm: last drawn is on top.
+		 * @param label Debug label for the render pass
+		 */
+		fun createScreenRenderPass(label: String): RenderPass? {
+			val framebuffer = mc.framebuffer ?: return null
+			
+			return RenderSystem.getDevice()
+				.createCommandEncoder()
+				.createRenderPass(
+					{ label },
+					framebuffer.colorAttachmentView,
+					OptionalInt.empty(),
+					null, // No depth buffer - painter's algorithm
 					OptionalDouble.empty()
 				)
 		}

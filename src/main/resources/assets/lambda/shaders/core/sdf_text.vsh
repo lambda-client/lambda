@@ -56,6 +56,24 @@ void main() {
     }
     
     gl_Position = ProjMat * ModelViewMat * vec4(worldPos, 1.0);
+    
+    // Apply per-layer depth bias to prevent z-fighting between text effect layers
+    // Layer type is encoded in Color.a: 200+ = text, 100+ = outline, 50+ = glow, <50 = shadow
+    // Each layer needs a unique depth offset so they don't fight
+    // Order from back to front: shadow < glow < outline < text
+    int layerType = int(Color.a * 255.0 + 0.5);
+    float layerOffset;
+    if (layerType >= 200) {
+        layerOffset = 0.0004;  // Text - closest to camera
+    } else if (layerType >= 100) {
+        layerOffset = 0.0003;  // Outline
+    } else if (layerType >= 50) {
+        layerOffset = 0.0002;  // Glow
+    } else {
+        layerOffset = 0.0001;  // Shadow - furthest back
+    }
+    
+    gl_Position.z -= layerOffset * gl_Position.w;
 
     texCoord0 = UV0;
     vertexColor = Color;

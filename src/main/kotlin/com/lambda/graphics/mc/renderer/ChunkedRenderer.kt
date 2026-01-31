@@ -121,6 +121,7 @@ class ChunkedRenderer(
 	/**
 	 * Get renderer/transform pairs for all active chunks.
 	 * Each chunk has its own renderer and per-chunk transform (chunk-origin to camera).
+	 * Includes fresh glint TextureMat for world image animation.
 	 */
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		val cameraPos = mc.gameRenderer?.camera?.pos ?: return emptyList()
@@ -129,6 +130,9 @@ class ChunkedRenderer(
 		if (activeChunks.isEmpty()) return emptyList()
 
 		val modelViewMatrix = RenderMain.modelViewMatrix
+		
+		// Pre-compute the glint matrix once for all chunks (same animation for all)
+		val glintMatrix = RendererUtils.createGlintTransform(0.25f)
 
 		return activeChunks.map { chunkData ->
 			// Compute chunk-to-camera offset in double precision
@@ -138,7 +142,7 @@ class ChunkedRenderer(
 
 			val modelView = Matrix4f(modelViewMatrix).translate(offsetX, offsetY, offsetZ)
 			val dynamicTransform = RenderSystem.getDynamicUniforms()
-				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
+				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), glintMatrix)
 
 			chunkData.renderer to dynamicTransform
 		}

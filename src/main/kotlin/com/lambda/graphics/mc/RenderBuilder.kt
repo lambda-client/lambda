@@ -21,11 +21,13 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
+import com.lambda.graphics.texture.LambdaImageAtlas
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
+import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -549,6 +551,253 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	fun screenItem(stack: ItemStack, x: Float, y: Float, size: Float = 0.015f) {
 		if (stack.isEmpty) return
 		deferredItems.add(ScreenItemRender(stack, x, y, size))
+	}
+
+	// ============================================================================
+	// Image Rendering Methods
+	// ============================================================================
+
+	/**
+	 * Draw an image on screen at a specific position.
+	 * Uses Lambda's custom image rendering pipeline for direct GPU rendering.
+	 *
+	 * @param image The ImageEntry from LambdaImageAtlas
+	 * @param x X position (0-1, normalized screen coordinates)
+	 * @param y Y position (0-1, normalized screen coordinates)
+	 * @param width Width (0-1, normalized)
+	 * @param height Height (0-1, normalized)
+	 * @param tint Tint color (default white = no tint)
+	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
+	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: false)
+	 */
+	fun screenImage(
+		image: LambdaImageAtlas.ImageEntry,
+		x: Float, y: Float,
+		width: Float, height: Float,
+		tint: Color = Color.WHITE,
+		hasOverlay: Boolean = false,
+		pixelPerfect: Boolean = false
+	) {
+		val layer = nextLayer()
+		val x0 = toPixelX(x)
+		val y0 = toPixelY(y)
+		val x1 = toPixelX(x + width)
+		val y1 = toPixelY(y + height)
+		
+		val overlayFlag = if (hasOverlay) 1f else 0f
+		val u0 = image.u0
+		val v0 = image.v0
+		val u1 = image.u1
+		val v1 = image.v1
+		
+		// Calculate animation time for glint effect
+		// Use Util.getMeasuringTimeMs() for consistent timing matching Minecraft's system
+		val glintTime = if (hasOverlay) {
+			(net.minecraft.util.Util.getMeasuringTimeMs() / 1000.0f) % 1000f  // Seconds, 0-1000 loop
+		} else 0f
+		
+		// Calculate aspect ratio for square glint tiling
+		// overlayV carries width/height ratio so shader can correct UVs
+		val aspectRatio = if (hasOverlay && height != 0f) width / height else 1f
+		
+		// Build quad: bottom-left, bottom-right, top-right, top-left (CCW for Y-up)
+		// overlayU = animation time, overlayV = aspect ratio
+		val vertices = listOf(
+			RegionVertexCollector.ScreenImageVertex(
+				x0, y0, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
+				glintTime, aspectRatio, overlayFlag, layer
+			),
+			RegionVertexCollector.ScreenImageVertex(
+				x1, y0, u1, v1, tint.red, tint.green, tint.blue, tint.alpha,
+				glintTime, aspectRatio, overlayFlag, layer
+			),
+			RegionVertexCollector.ScreenImageVertex(
+				x1, y1, u1, v0, tint.red, tint.green, tint.blue, tint.alpha,
+				glintTime, aspectRatio, overlayFlag, layer
+			),
+			RegionVertexCollector.ScreenImageVertex(
+				x0, y1, u0, v0, tint.red, tint.green, tint.blue, tint.alpha,
+				glintTime, aspectRatio, overlayFlag, layer
+			)
+		)
+		collector.addScreenImageVertices(image.textureView, vertices, pixelPerfect)
+	}
+
+	/**
+	 * Draw a billboard image at a world position.
+	 * The image will face the camera by default, or use a custom rotation.
+	 *
+	 * @param image The ImageEntry from LambdaImageAtlas
+	 * @param pos World position for the image
+	 * @param size Size in world units
+	 * @param tint Tint color (default white = no tint)
+	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
+	 * @param aspectRatio Width/height ratio (auto-calculated from image if not specified)
+	 * @param rotation Custom rotation as Euler angles in degrees (x=pitch, y=yaw, z=roll), null = billboard towards camera
+	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: false)
+	 */
+	fun worldImage(
+		image: LambdaImageAtlas.ImageEntry,
+		pos: Vec3d,
+		size: Float = 0.5f,
+		tint: Color = Color.WHITE,
+		hasOverlay: Boolean = false,
+		aspectRatio: Float? = null,
+		rotation: Vec3d? = null,
+		pixelPerfect: Boolean = false
+	) {
+		val ratio = aspectRatio ?: image.aspectRatio
+		val u0 = image.u0
+		val v0 = image.v0
+		val u1 = image.u1
+		val v1 = image.v1
+		
+		// Camera-relative anchor position
+		val anchorX = (pos.x - cameraPos.x).toFloat()
+		val anchorY = (pos.y - cameraPos.y).toFloat()
+		val anchorZ = (pos.z - cameraPos.z).toFloat()
+		
+		// Calculate quad corners (centered on anchor)
+		val halfWidth = size * ratio / 2f
+		val halfHeight = size / 2f
+		
+		val overlayFlag = if (hasOverlay) 1f else 0f
+		val billboardFlag = if (rotation == null) 0f else 1f
+		
+		// Calculate animation time for glint effect
+		// Use Util.getMeasuringTimeMs() for consistent timing matching Minecraft's system
+		val glintTime = if (hasOverlay) {
+			(net.minecraft.util.Util.getMeasuringTimeMs() / 1000.0f) % 1000f  // Seconds, 0-1000 loop
+		} else 0f
+		
+		// Calculate aspect ratio for square glint tiling
+		val glintAspectRatio = if (hasOverlay) ratio else 1f
+		
+		// Quad offsets (local space, scaled in shader)
+		val x0 = -halfWidth / size
+		val x1 = halfWidth / size
+		val y0 = -halfHeight / size
+		val y1 = halfHeight / size
+		
+		val vertices = if (rotation == null) {
+			// Billboard mode: pass local offsets directly, shader handles billboard
+			listOf(
+				RegionVertexCollector.WorldImageVertex(
+					x0, y0, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				),
+				RegionVertexCollector.WorldImageVertex(
+					x1, y0, u1, v1, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				),
+				RegionVertexCollector.WorldImageVertex(
+					x1, y1, u1, v0, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				),
+				RegionVertexCollector.WorldImageVertex(
+					x0, y1, u0, v0, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				)
+			)
+		} else {
+			// Fixed rotation mode: pre-transform offsets with rotation matrix
+			val rotationMatrix = Matrix4f()
+				.rotateY(Math.toRadians(rotation.y).toFloat())
+				.rotateX(Math.toRadians(rotation.x).toFloat())
+				.rotateZ(Math.toRadians(rotation.z).toFloat())
+			
+			val p0 = transformPoint(rotationMatrix, x0, -y0, 0f)
+			val p1 = transformPoint(rotationMatrix, x1, -y0, 0f)
+			val p2 = transformPoint(rotationMatrix, x1, -y1, 0f)
+			val p3 = transformPoint(rotationMatrix, x0, -y1, 0f)
+			
+			listOf(
+				RegionVertexCollector.WorldImageVertex(
+					p0.x, p0.y, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				),
+				RegionVertexCollector.WorldImageVertex(
+					p1.x, p1.y, u1, v1, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				),
+				RegionVertexCollector.WorldImageVertex(
+					p2.x, p2.y, u1, v0, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				),
+				RegionVertexCollector.WorldImageVertex(
+					p3.x, p3.y, u0, v0, tint.red, tint.green, tint.blue, tint.alpha,
+					anchorX, anchorY, anchorZ, size, billboardFlag,
+					glintTime, glintAspectRatio, overlayFlag
+				)
+			)
+		}
+		collector.addWorldImageVertices(image.textureView, vertices, pixelPerfect)
+	}
+
+	// ============================================================================
+	// Simplified Image API (Identifier-based)
+	// ============================================================================
+
+	/**
+	 * Draw a Minecraft texture on screen at a specific position.
+	 * The texture is loaded automatically - no UV coordinates needed.
+	 *
+	 * @param texture Identifier of the texture (e.g., Identifier.ofVanilla("textures/item/diamond.png"))
+	 * @param x X position (0-1, normalized screen coordinates)
+	 * @param y Y position (0-1, normalized screen coordinates)
+	 * @param width Width (0-1, normalized)
+	 * @param height Height (0-1, normalized)
+	 * @param tint Tint color (default white = no tint)
+	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
+	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: true for MC textures)
+	 */
+	fun screenImage(
+		texture: Identifier,
+		x: Float, y: Float,
+		width: Float, height: Float,
+		tint: Color = Color.WHITE,
+		hasOverlay: Boolean = false,
+		pixelPerfect: Boolean = true
+	) {
+		// Load the texture via LambdaImageAtlas
+		val imageEntry = LambdaImageAtlas.loadMCTexture(texture) ?: return
+		screenImage(imageEntry, x, y, width, height, tint, hasOverlay, pixelPerfect)
+	}
+
+	/**
+	 * Draw a Minecraft texture as a billboard at a world position.
+	 * The texture is loaded automatically - no UV coordinates needed.
+	 *
+	 * @param texture Identifier of the texture
+	 * @param pos World position for the image
+	 * @param size Size in world units
+	 * @param tint Tint color (default white = no tint)
+	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
+	 * @param aspectRatio Width/height ratio (for non-square images)
+	 * @param rotation Custom rotation, null = billboard towards camera
+	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: true for MC textures)
+	 */
+	fun worldImage(
+		texture: Identifier,
+		pos: Vec3d,
+		size: Float = 0.5f,
+		tint: Color = Color.WHITE,
+		hasOverlay: Boolean = false,
+		aspectRatio: Float? = null,
+		rotation: Vec3d? = null,
+		pixelPerfect: Boolean = true
+	) {
+		// Load the texture via LambdaImageAtlas
+		val imageEntry = LambdaImageAtlas.loadMCTexture(texture) ?: return
+		val ratio = aspectRatio ?: imageEntry.aspectRatio
+		worldImage(imageEntry, pos, size, tint, hasOverlay, ratio, rotation, pixelPerfect)
 	}
 
 	/**

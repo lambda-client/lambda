@@ -25,9 +25,12 @@ import com.lambda.graphics.RenderMain.worldToScreenNormalized
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.graphics.text.FontHandler.getDefaultFont
+import com.lambda.graphics.texture.LambdaImageAtlas
+import com.lambda.graphics.texture.TextureOwner.texture
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.EnchantmentUtils.hasEnchantments
 import com.lambda.util.EntityUtils
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
@@ -186,7 +189,7 @@ object Nametags : Module(
 	}
 
 	private fun RenderBuilder.renderItem(stack: ItemStack, x: Float, y: Float) {
-		screenItem(stack, x, y, trueItemScaleY)
+		screenImage(LambdaImageAtlas.getItemSprite(stack) ?: return, x, y, trueItemScaleX, trueItemScaleY, hasOverlay = stack.hasEnchantments, pixelPerfect = true)
 		var iteratorY = y
 		iteratorY += trueItemScaleY
 		if (durability && stack.isDamageable) {

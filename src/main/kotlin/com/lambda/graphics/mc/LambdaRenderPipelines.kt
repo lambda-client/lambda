@@ -51,7 +51,7 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
 				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
+				.withDepthWrite(false) // No depth write for proper transparency blending
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
@@ -90,7 +90,7 @@ object LambdaRenderPipelines : Loadable {
 				.withVertexShader(Identifier.ofVanilla("core/position_color"))
 				.withFragmentShader(Identifier.ofVanilla("core/position_color"))
 				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
+				.withDepthWrite(false) // No depth write for proper transparency blending
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
@@ -171,7 +171,7 @@ object LambdaRenderPipelines : Loadable {
 				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
 				.withSampler("Sampler0")
 				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
+				.withDepthWrite(false) // No depth write for proper transparency blending
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
@@ -265,6 +265,78 @@ object LambdaRenderPipelines : Loadable {
 				.withCull(false)
 				.withVertexFormat(
 					LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	// ============================================================================
+	// Image Rendering Pipelines (with glint overlay support)
+	// ============================================================================
+
+	/**
+	 * Pipeline for screen-space image rendering with overlay support.
+	 * Uses two samplers: Sampler0 for main texture, Sampler1 for overlay (glint).
+	 */
+	val SCREEN_IMAGE: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/screen_image"))
+				.withVertexShader(Identifier.of("lambda", "core/screen_image"))
+				.withFragmentShader(Identifier.of("lambda", "core/screen_image"))
+				.withSampler("Sampler0")
+				.withSampler("Sampler1")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(true)  // Enable depth write for layer ordering
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.SCREEN_IMAGE_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for world-space billboard image rendering with overlay support.
+	 * Uses anchor-based positioning with optional billboarding.
+	 */
+	val WORLD_IMAGE: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/world_image"))
+				.withVertexShader(Identifier.of("lambda", "core/world_image"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_image"))
+				.withSampler("Sampler0")
+				.withSampler("Sampler1")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false) // No depth write for proper transparency blending
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.WORLD_IMAGE_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for world-space billboard image rendering that renders through walls.
+	 */
+	val WORLD_IMAGE_THROUGH: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/world_image_through"))
+				.withVertexShader(Identifier.of("lambda", "core/world_image"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_image"))
+				.withSampler("Sampler0")
+				.withSampler("Sampler1")
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.WORLD_IMAGE_FORMAT,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()

@@ -91,7 +91,7 @@ class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRend
 
 	/**
 	 * Get renderer/transform pairs for world-space rendering.
-	 * Returns single renderer with identity-based transform (camera-relative coords).
+	 * Returns single renderer with camera-relative transform and fresh glint TextureMat.
 	 */
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		if (!renderer.hasData()) return emptyList()
@@ -102,7 +102,7 @@ class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRend
 				modelViewMatrix,
 				Vector4f(1f, 1f, 1f, 1f),
 				Vector3f(0f, 0f, 0f),
-				Matrix4f()
+				RendererUtils.createGlintTransform(0.25f)  // Fresh glint matrix for world images
 			)
 		
 		return listOf(renderer to dynamicTransform)

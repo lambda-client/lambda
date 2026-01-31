@@ -87,6 +87,7 @@ class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRendere
 	/**
 	 * Get renderer/transform pairs for world-space rendering.
 	 * Computes delta between tick-camera and current-camera for smooth interpolation.
+	 * Includes fresh glint TextureMat for world image animation.
 	 */
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		val currentCameraPos = mc.gameRenderer?.camera?.pos ?: return emptyList()
@@ -103,7 +104,7 @@ class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRendere
 
 		val modelView = Matrix4f(modelViewMatrix).translate(deltaX, deltaY, deltaZ)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
-			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f())
+			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), RendererUtils.createGlintTransform(0.25f))
 		
 		return listOf(renderer to dynamicTransform)
 	}

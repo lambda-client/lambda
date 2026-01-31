@@ -19,6 +19,7 @@ package com.lambda.graphics.mc
 
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.render.BufferBuilder
 import net.minecraft.client.render.VertexFormats
@@ -159,6 +160,104 @@ class RegionVertexCollector {
 		val threshold: Float = 0.5f,
 		val layer: Float = 0f  // Depth for layering (higher = on top)
 	)
+
+	// ============================================================================
+	// Image Vertex Types
+	// ============================================================================
+
+	/**
+	 * Screen-space image vertex data with overlay support.
+	 * Uses SCREEN_IMAGE_FORMAT (position + UV + color + overlayUV + layer).
+	 *
+	 * @param x Screen-space X position
+	 * @param y Screen-space Y position
+	 * @param u Main texture U coordinate
+	 * @param v Main texture V coordinate
+	 * @param r Red tint component
+	 * @param g Green tint component
+	 * @param b Blue tint component
+	 * @param a Alpha component
+	 * @param overlayU Overlay texture U coordinate
+	 * @param overlayV Overlay texture V coordinate
+	 * @param hasOverlay 1.0 if overlay should be rendered, 0.0 otherwise
+	 * @param layer Depth for layering (higher = on top)
+	 */
+	data class ScreenImageVertex(
+		val x: Float, val y: Float,
+		val u: Float, val v: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int,
+		val overlayU: Float, val overlayV: Float,
+		val hasOverlay: Float,
+		val layer: Float
+	)
+
+	/**
+	 * World-space image vertex data with billboard support and overlay.
+	 * Uses WORLD_IMAGE_FORMAT (position + UV + color + anchor + billboard + overlayUV).
+	 *
+	 * @param localX Local offset X (before billboard transform)
+	 * @param localY Local offset Y (before billboard transform)
+	 * @param u Main texture U coordinate
+	 * @param v Main texture V coordinate
+	 * @param r Red tint component
+	 * @param g Green tint component
+	 * @param b Blue tint component
+	 * @param a Alpha component
+	 * @param anchorX Camera-relative anchor X
+	 * @param anchorY Camera-relative anchor Y
+	 * @param anchorZ Camera-relative anchor Z
+	 * @param scale Image scale
+	 * @param billboardFlag 0 = billboard towards camera, non-zero = fixed rotation
+	 * @param overlayU Overlay texture U coordinate
+	 * @param overlayV Overlay texture V coordinate
+	 * @param hasOverlay 1.0 if overlay should be rendered, 0.0 otherwise
+	 */
+	data class WorldImageVertex(
+		val localX: Float, val localY: Float,
+		val u: Float, val v: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int,
+		val anchorX: Float, val anchorY: Float, val anchorZ: Float,
+		val scale: Float,
+		val billboardFlag: Float,
+		val overlayU: Float, val overlayV: Float,
+		val hasOverlay: Float
+	)
+
+	/**
+	 * Key for image batches - combines texture and filter mode.
+	 * Batches with the same texture but different filter modes are separate.
+	 */
+	data class ImageBatchKey(
+		val textureView: com.mojang.blaze3d.textures.GpuTextureView,
+		val useNearestFilter: Boolean
+	)
+
+	// Image vertex collections - keyed by texture + filter mode for batching
+	// Each unique key gets its own list of vertices, rendered as separate draw calls
+	private val screenImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
+	private val worldImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>()
+
+	/**
+	 * Add screen image vertices for a specific texture.
+	 * @param texture The GPU texture view
+	 * @param vertices The vertices to add
+	 * @param useNearestFilter If true, use NEAREST filtering for pixel-perfect rendering
+	 */
+	fun addScreenImageVertices(texture: GpuTextureView, vertices: List<ScreenImageVertex>, useNearestFilter: Boolean = false) {
+		val key = ImageBatchKey(texture, useNearestFilter)
+		screenImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+	}
+
+	/**
+	 * Add world image vertices for a specific texture.
+	 * @param texture The GPU texture view
+	 * @param vertices The vertices to add
+	 * @param useNearestFilter If true, use NEAREST filtering for pixel-perfect rendering
+	 */
+	fun addWorldImageVertices(texture: GpuTextureView, vertices: List<WorldImageVertex>, useNearestFilter: Boolean = false) {
+		val key = ImageBatchKey(texture, useNearestFilter)
+		worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+	}
 
 	/** Add a face vertex. */
 	fun addFaceVertex(x: Float, y: Float, z: Float, color: Color) {
@@ -612,17 +711,145 @@ class RegionVertexCollector {
 	/**
 	 * Upload screen-space data to GPU buffers.
 	 *
-	 * @return ScreenUploadResult containing screen-space face, edge, and text buffers
+	 * @return ScreenUploadResult containing screen-space face, edge, text, and image buffers
 	 */
 	fun uploadScreen(): ScreenUploadResult {
 		val faces = uploadScreenFaces()
 		val edges = uploadScreenEdges()
 		val text = uploadScreenText()
-		return ScreenUploadResult(faces, edges, text)
+		val images = uploadScreenImageBatches()
+		return ScreenUploadResult(faces, edges, text, images)
+	}
+
+	/**
+	 * Result for a single texture batch - buffer, index count, and filter mode.
+	 */
+	data class TextureBatchResult(
+		val textureView: com.mojang.blaze3d.textures.GpuTextureView,
+		val buffer: GpuBuffer,
+		val indexCount: Int,
+		val useNearestFilter: Boolean = false
+	)
+
+	private fun uploadScreenImageBatches(): List<TextureBatchResult> {
+		if (screenImageBatches.isEmpty()) return emptyList()
+
+		val results = mutableListOf<TextureBatchResult>()
+		
+		screenImageBatches.forEach { (batchKey, vertexDeque) ->
+			val vertices = vertexDeque.toList()
+			vertexDeque.clear()
+			if (vertices.isEmpty()) return@forEach
+			
+			// SCREEN_IMAGE_FORMAT: 12 + 8 + 4 + 12 + 4 = 40 bytes per vertex
+			BufferAllocator(vertices.size * 44).use { allocator ->
+				val builder = BufferBuilder(
+					allocator,
+					VertexFormat.DrawMode.QUADS,
+					LambdaVertexFormats.SCREEN_IMAGE_FORMAT
+				)
+
+				vertices.forEach { v ->
+					builder.vertex(v.x, v.y, 0f)
+						.texture(v.u, v.v)
+						.color(v.r, v.g, v.b, v.a)
+
+					// Write overlay UV data (overlayU, overlayV, hasOverlay)
+					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
+					if (overlayPointer != -1L) {
+						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
+						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
+						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
+					}
+
+					// Write layer for draw order
+					val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
+					if (layerPointer != -1L) {
+						MemoryUtil.memPutFloat(layerPointer, v.layer)
+					}
+				}
+
+				builder.endNullable()?.let { built ->
+					val gpuDevice = RenderSystem.getDevice()
+					val buffer = gpuDevice.createBuffer(
+						{ "Lambda Screen Image Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					built.close()
+				}
+			}
+		}
+		screenImageBatches.clear()
+		return results
+	}
+
+	fun uploadWorldImageBatches(): List<TextureBatchResult> {
+		if (worldImageBatches.isEmpty()) return emptyList()
+
+		val results = mutableListOf<TextureBatchResult>()
+		
+		worldImageBatches.forEach { (batchKey, vertexDeque) ->
+			val vertices = vertexDeque.toList()
+			vertexDeque.clear()
+			if (vertices.isEmpty()) return@forEach
+			
+			// WORLD_IMAGE_FORMAT: 12 + 8 + 4 + 12 + 8 + 12 = 56 bytes per vertex
+			BufferAllocator(vertices.size * 60).use { allocator ->
+				val builder = BufferBuilder(
+					allocator,
+					VertexFormat.DrawMode.QUADS,
+					LambdaVertexFormats.WORLD_IMAGE_FORMAT
+				)
+
+				vertices.forEach { v ->
+					builder.vertex(v.localX, v.localY, 0f)
+						.texture(v.u, v.v)
+						.color(v.r, v.g, v.b, v.a)
+
+					// Write Anchor position (camera-relative world pos)
+					val anchorPointer = builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT)
+					if (anchorPointer != -1L) {
+						MemoryUtil.memPutFloat(anchorPointer, v.anchorX)
+						MemoryUtil.memPutFloat(anchorPointer + 4L, v.anchorY)
+						MemoryUtil.memPutFloat(anchorPointer + 8L, v.anchorZ)
+					}
+
+					// Write Billboard data (scale, billboardFlag)
+					val billboardPointer = builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT)
+					if (billboardPointer != -1L) {
+						MemoryUtil.memPutFloat(billboardPointer, v.scale)
+						MemoryUtil.memPutFloat(billboardPointer + 4L, v.billboardFlag)
+					}
+
+					// Write overlay UV data (overlayU, overlayV, hasOverlay)
+					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
+					if (overlayPointer != -1L) {
+						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
+						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
+						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
+					}
+				}
+
+				builder.endNullable()?.let { built ->
+					val gpuDevice = RenderSystem.getDevice()
+					val buffer = gpuDevice.createBuffer(
+						{ "Lambda World Image Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					built.close()
+				}
+			}
+		}
+		worldImageBatches.clear()
+		return results
 	}
 
 	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
-	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
-	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null)
+	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val images: List<TextureBatchResult> = emptyList())
+	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val images: List<TextureBatchResult> = emptyList())
 }
 
