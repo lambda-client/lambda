@@ -32,62 +32,62 @@ import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 
 class EatTask @Ta5kBuilder constructor(
-    automated: Automated
+	automated: Automated
 ) : Task<Unit>(), Automated by automated {
-    override val name: String
-        get() = reason.message(eatStack ?: ItemStack.EMPTY)
+	override val name: String
+		get() = reason.message(eatStack ?: ItemStack.EMPTY)
 
-    private var eatStack: ItemStack? = null
-    private var reason = EatConfig.Reason.None
-    private var holdingUse = false
+	private var eatStack: ItemStack? = null
+	private var reason = EatConfig.Reason.None
+	private var holdingUse = false
 
-    override fun SafeContext.onStart() {
-        reason = runSafeAutomated { reasonEating() }
-    }
+	override fun SafeContext.onStart() {
+		reason = runSafeAutomated { reasonEating() }
+	}
 
-    init {
-        listen<TickEvent.Input.Pre> {
-            if (holdingUse && !reason.shouldKeepEating(eatStack)) {
-                mc.options.useKey.isPressed = false
-                holdingUse = false
-                interaction.stopUsingItem(player)
-                success()
-                return@listen
-            }
+	init {
+		listen<TickEvent.Input.Pre> {
+			if (holdingUse && !reason.shouldKeepEating(eatStack)) {
+				mc.options.useKey.isPressed = false
+				holdingUse = false
+				interaction.stopUsingItem(player)
+				success()
+				return@listen
+			}
 
-            if (player.isUsingItem) {
-                if (!holdingUse) {
-                    mc.options.useKey.isPressed = true
-                    holdingUse = true
-                }
-                return@listen
-            }
+			if (player.isUsingItem) {
+				if (!holdingUse) {
+					mc.options.useKey.isPressed = true
+					holdingUse = true
+				}
+				return@listen
+			}
 
-            val foodFinder = reason.selector()
-            if (!foodFinder.matches(player.mainHandStack)) {
-                if (holdingUse) {
-                    mc.options.useKey.isPressed = false
-                    holdingUse = false
-                }
-                runSafeAutomated {
-                    foodFinder.transfer(MainHandContainer)
-                }
-                return@listen
-            }
-            eatStack = player.mainHandStack
+			val foodFinder = reason.selector()
+			if (!foodFinder.matches(player.mainHandStack)) {
+				if (holdingUse) {
+					mc.options.useKey.isPressed = false
+					holdingUse = false
+				}
+				runSafeAutomated {
+					foodFinder.transfer(MainHandContainer)
+				}
+				return@listen
+			}
+			eatStack = player.mainHandStack
 
-            (interaction.interactItem(player, Hand.MAIN_HAND) as? ActionResult.Success)?.let {
-                if (it.swingSource == ActionResult.SwingSource.CLIENT) player.swingHand(Hand.MAIN_HAND)
-                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
-                mc.options.useKey.isPressed = true
-                holdingUse = true
-            }
-        }
-    }
+			(interaction.interactItem(player, Hand.MAIN_HAND) as? ActionResult.Success)?.let {
+				if (it.swingSource == ActionResult.SwingSource.CLIENT) player.swingHand(Hand.MAIN_HAND)
+				mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
+				mc.options.useKey.isPressed = true
+				holdingUse = true
+			}
+		}
+	}
 
-    companion object {
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun eat() = EatTask(automated)
-    }
+	companion object {
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun eat() = EatTask(automated)
+	}
 }

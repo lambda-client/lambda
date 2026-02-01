@@ -25,17 +25,17 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.util.math.Vec3d
 
 sealed class PlayerPacketEvent {
-    data class Pre(
-        var position: Vec3d,
-        var rotation: Rotation,
-        var onGround: Boolean,
-        var isSprinting: Boolean,
-        var isCollidingHorizontally: Boolean,
-    ) : Event
+	data class Pre(
+		var position: Vec3d,
+		var rotation: Rotation,
+		var onGround: Boolean,
+		var isSprinting: Boolean,
+		var isCollidingHorizontally: Boolean,
+	) : Event
 
-    data class Send(
-        val packet: PlayerMoveC2SPacket,
-    ) : ICancellable by Cancellable()
+	data class Send(
+		val packet: PlayerMoveC2SPacket,
+	) : ICancellable by Cancellable()
 
-    class Post : Event
+	class Post : Event
 }

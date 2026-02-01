@@ -62,214 +62,214 @@ import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class BuildTask private constructor(
-    private val blueprint: Blueprint,
-    private val finishOnDone: Boolean,
-    private val collectDrops: Boolean,
-    private val lifeMaintenance: Boolean,
-    automated: Automated
+	private val blueprint: Blueprint,
+	private val finishOnDone: Boolean,
+	private val collectDrops: Boolean,
+	private val lifeMaintenance: Boolean,
+	automated: Automated
 ) : Task<Structure>(), Automated by automated {
-    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
+	override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
-    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
-    private val atMaxPendingInteractions
-        get() = pendingInteractions.size >= buildConfig.maxPendingActions
+	private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+	private val atMaxPendingInteractions
+		get() = pendingInteractions.size >= buildConfig.maxPendingActions
 
-    private var placements = 0
-    private var breaks = 0
-    private val dropsToCollect = mutableSetOf<ItemEntity>()
-    var eatTask: EatTask? = null
+	private var placements = 0
+	private var breaks = 0
+	private val dropsToCollect = mutableSetOf<ItemEntity>()
+	var eatTask: EatTask? = null
 
-    private val onItemDrop: ((item: ItemEntity) -> Unit)?
-        get() = if (collectDrops) { item ->
-            dropsToCollect.add(item)
-        } else null
+	private val onItemDrop: ((item: ItemEntity) -> Unit)?
+		get() = if (collectDrops) { item ->
+			dropsToCollect.add(item)
+		} else null
 
-    override fun SafeContext.onStart() {
-        iteratePropagating()
-    }
+	override fun SafeContext.onStart() {
+		iteratePropagating()
+	}
 
-    init {
-        listen<TickEvent.Pre> {
-            when {
-                lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
-                    eatTask = eat()
-                    eatTask?.finally {
-                        eatTask = null
-                    }?.execute(this@BuildTask)
-                    return@listen
-                }
-                eatTask != null -> return@listen
-            }
+	init {
+		listen<TickEvent.Pre> {
+			when {
+				lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
+					eatTask = eat()
+					eatTask?.finally {
+						eatTask = null
+					}?.execute(this@BuildTask)
+					return@listen
+				}
+				eatTask != null -> return@listen
+			}
 
-            if (blueprint is TickingBlueprint) {
-                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
-            }
+			if (blueprint is TickingBlueprint) {
+				blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
+			}
 
-            if (collectDrops()) return@listen
+			if (collectDrops()) return@listen
 
-            runSafeAutomated { simulateAndProcess() }
-        }
+			runSafeAutomated { simulateAndProcess() }
+		}
 
-        listen<TickEvent.Post> {
-            if (finishOnDone && blueprint.structure.isEmpty()) {
-                failure("Structure is empty")
-                return@listen
-            }
-        }
-    }
+		listen<TickEvent.Post> {
+			if (finishOnDone && blueprint.structure.isEmpty()) {
+				failure("Structure is empty")
+				return@listen
+			}
+		}
+	}
 
-    private fun AutomatedSafeContext.simulateAndProcess() {
-        val results =
-            blueprint.structure
-                .simulate()
-                .asSequence()
+	private fun AutomatedSafeContext.simulateAndProcess() {
+		val results =
+			blueprint.structure
+				.simulate()
+				.asSequence()
 
-        DEFAULT.drawables = results
-            .filterIsInstance<Drawable>()
-            .plus(pendingInteractions.toList())
-            .toList()
+		DEFAULT.drawables = results
+			.filterIsInstance<Drawable>()
+			.plus(pendingInteractions.toList())
+			.toList()
 
-        val viableResults = results
-            .filter { result ->
-                val finalResult = (result as? Dependent)?.lastDependency ?: result
-                pendingInteractions.none { it.blockPos == finalResult.pos } &&
-                        (finalResult !is Contextual ||
-                        when (finalResult) {
-                            is BreakResult -> buildConfig.breakBlocks
-                            else -> buildConfig.interactBlocks
-                        })
-            }
-            .sorted()
+		val viableResults = results
+			.filter { result ->
+				val finalResult = (result as? Dependent)?.lastDependency ?: result
+				pendingInteractions.none { it.blockPos == finalResult.pos } &&
+						(finalResult !is Contextual ||
+								when (finalResult) {
+									is BreakResult -> buildConfig.breakBlocks
+									else -> buildConfig.interactBlocks
+								})
+			}
+			.sorted()
 
-        val bestResult = viableResults.firstOrNull() ?: return
-        handleResult(bestResult, viableResults)
-    }
+		val bestResult = viableResults.firstOrNull() ?: return
+		handleResult(bestResult, viableResults)
+	}
 
-    private fun AutomatedSafeContext.handleResult(result: BuildResult, allResults: Sequence<BuildResult>) {
-        if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty()) return
+	private fun AutomatedSafeContext.handleResult(result: BuildResult, allResults: Sequence<BuildResult>) {
+		if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty()) return
 
-        when (result) {
-            is PreSimResult.Done,
-            is PreSimResult.Unbreakable,
-            is PreSimResult.Restricted,
-            is PreSimResult.NoPermission,
-            is GenericResult.Ignored -> {
-                if (iteratePropagating()) {
-                    simulateAndProcess()
-                    return
-                }
+		when (result) {
+			is PreSimResult.Done,
+			is PreSimResult.Unbreakable,
+			is PreSimResult.Restricted,
+			is PreSimResult.NoPermission,
+			is GenericResult.Ignored -> {
+				if (iteratePropagating()) {
+					simulateAndProcess()
+					return
+				}
 
-                if (finishOnDone) success(blueprint.structure)
-            }
+				if (finishOnDone) success(blueprint.structure)
+			}
 
-            is GenericResult.NotVisible,
-            is InteractResult.NoIntegrity -> {
-                if (!buildConfig.pathing) return
-                val sim = blueprint.simulation()
-                val goal = BuildGoal(sim, player.blockPos)
-                BaritoneManager.setGoalAndPath(goal)
-            }
+			is GenericResult.NotVisible,
+			is InteractResult.NoIntegrity -> {
+				if (!buildConfig.pathing) return
+				val sim = blueprint.simulation()
+				val goal = BuildGoal(sim, player.blockPos)
+				BaritoneManager.setGoalAndPath(goal)
+			}
 
-            is Navigable -> {
-                if (buildConfig.pathing) BaritoneManager.setGoalAndPath(result.goal)
-            }
+			is Navigable -> {
+				if (buildConfig.pathing) BaritoneManager.setGoalAndPath(result.goal)
+			}
 
-            is Contextual -> {
-                if (atMaxPendingInteractions) return
-                when (result) {
-                    is BreakResult.Break ->
-                        allResults.breakRequest(pendingInteractions) {
-                            onStop { breaks++ }
-                            onItemDrop?.let { onItemDrop ->
-                                onItemDrop { onItemDrop(it) }
-                            }
-                        }?.submit()
+			is Contextual -> {
+				if (atMaxPendingInteractions) return
+				when (result) {
+					is BreakResult.Break ->
+						allResults.breakRequest(pendingInteractions) {
+							onStop { breaks++ }
+							onItemDrop?.let { onItemDrop ->
+								onItemDrop { onItemDrop(it) }
+							}
+						}?.submit()
 
-                    is InteractResult.Interact -> {
-	                    allResults.interactRequest(pendingInteractions, false) {
-		                    onPlace { placements++ }
-	                    }?.submit()
-                    }
-                }
-            }
+					is InteractResult.Interact -> {
+						allResults.interactRequest(pendingInteractions, false) {
+							onPlace { placements++ }
+						}?.submit()
+					}
+				}
+			}
 
-            is Dependent -> handleResult(result.lastDependency, allResults)
+			is Dependent -> handleResult(result.lastDependency, allResults)
 
-            is Resolvable -> {
-	            LOG.info("Resolving: ${result.name}")
-                result.resolve()
-            }
-        }
-    }
+			is Resolvable -> {
+				LOG.info("Resolving: ${result.name}")
+				result.resolve()
+			}
+		}
+	}
 
-    private fun SafeContext.collectDrops() =
-        dropsToCollect
-            .firstOrNull()
-            ?.let { itemDrop ->
-                if (pendingInteractions.isNotEmpty()) return@let true
+	private fun SafeContext.collectDrops() =
+		dropsToCollect
+			.firstOrNull()
+			?.let { itemDrop ->
+				if (pendingInteractions.isNotEmpty()) return@let true
 
-                if (!world.entities.contains(itemDrop)) {
-                    dropsToCollect.remove(itemDrop)
-                    BaritoneManager.cancel()
-                    return@let true
-                }
+				if (!world.entities.contains(itemDrop)) {
+					dropsToCollect.remove(itemDrop)
+					BaritoneManager.cancel()
+					return@let true
+				}
 
-                if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
-                    val stackToThrow = player.currentScreenHandler.playerSlots.firstOrNull {
-                        it.stack.item in inventoryConfig.disposables
-                    } ?: run {
-                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
-                        return@let true
-                    }
-                    inventoryRequest {
-                        throwStack(stackToThrow.id)
-                    }.submit()
-                    return@let true
-                }
+				if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
+					val stackToThrow = player.currentScreenHandler.playerSlots.firstOrNull {
+						it.stack.item in inventoryConfig.disposables
+					} ?: run {
+						failure("No item in inventory to throw but inventory is full and cant pick up item drop")
+						return@let true
+					}
+					inventoryRequest {
+						throwStack(stackToThrow.id)
+					}.submit()
+					return@let true
+				}
 
-                BaritoneManager.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-                return@let true
-            } ?: false
+				BaritoneManager.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+				return@let true
+			} ?: false
 
-    fun iteratePropagating() =
-        if (blueprint is PropagatingBlueprint) {
-            blueprint.next() ?: failure("Failed to propagate the next blueprint")
-            true
-        } else false
+	fun iteratePropagating() =
+		if (blueprint is PropagatingBlueprint) {
+			blueprint.next() ?: failure("Failed to propagate the next blueprint")
+			true
+		} else false
 
-    companion object {
-        @Ta5kBuilder
-        fun Automated.build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false,
-            blueprint: () -> Blueprint
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
+	companion object {
+		@Ta5kBuilder
+		fun Automated.build(
+			finishOnDone: Boolean = true,
+			collectDrops: Boolean = buildConfig.collectDrops,
+			lifeMaintenance: Boolean = false,
+			blueprint: () -> Blueprint
+		) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
 
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun Structure.build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun Structure.build(
+			finishOnDone: Boolean = true,
+			collectDrops: Boolean = automated.buildConfig.collectDrops,
+			lifeMaintenance: Boolean = false
+		) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
 
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun Blueprint.build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun Blueprint.build(
+			finishOnDone: Boolean = true,
+			collectDrops: Boolean = automated.buildConfig.collectDrops,
+			lifeMaintenance: Boolean = false
+		) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
 
-        @Ta5kBuilder
-        fun Automated.breakAndCollectBlock(
-            blockPos: BlockPos,
-            finishOnDone: Boolean = true,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(
-            blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, true, lifeMaintenance, this
-        )
-    }
+		@Ta5kBuilder
+		fun Automated.breakAndCollectBlock(
+			blockPos: BlockPos,
+			finishOnDone: Boolean = true,
+			lifeMaintenance: Boolean = false
+		) = BuildTask(
+			blockPos.toStructure(TargetState.Air).toBlueprint(),
+			finishOnDone, true, lifeMaintenance, this
+		)
+	}
 }

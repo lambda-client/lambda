@@ -43,139 +43,139 @@ import net.minecraft.util.math.Direction
 import java.awt.Color
 
 sealed class BreakResult : BuildResult() {
-    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+	override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
 
-    /**
-     * Represents a successful break. All checks have been passed.
-     * @param context The context of the break.
-     */
-    data class Break(
-        override val pos: BlockPos,
-        override val context: BreakContext,
-    ) : Contextual, Drawable, BreakResult() {
-        override val rank = Rank.BreakSuccess
+	/**
+	 * Represents a successful break. All checks have been passed.
+	 * @param context The context of the break.
+	 */
+	data class Break(
+		override val pos: BlockPos,
+		override val context: BreakContext,
+	) : Contextual, Drawable, BreakResult() {
+		override val rank = Rank.BreakSuccess
 
-        override fun render(esp: TransientRegionESP) {
-            context.render(esp)
-        }
-    }
+		override fun render(esp: TransientRegionESP) {
+			context.render(esp)
+		}
+	}
 
-    /**
-     * Represents a break configuration where the hit side is not exposed to air.
-     * @param pos The position of the block that is not exposed.
-     * @param side The side that is not exposed.
-     */
-    data class NotExposed(
-        override val pos: BlockPos,
-        val side: Direction,
-    ) : Drawable, BreakResult() {
-        override val rank = Rank.BreakNotExposed
-        private val color = Color(46, 0, 0, 30)
+	/**
+	 * Represents a break configuration where the hit side is not exposed to air.
+	 * @param pos The position of the block that is not exposed.
+	 * @param side The side that is not exposed.
+	 */
+	data class NotExposed(
+		override val pos: BlockPos,
+		val side: Direction,
+	) : Drawable, BreakResult() {
+		override val rank = Rank.BreakNotExposed
+		private val color = Color(46, 0, 0, 30)
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                box(pos, color, color, side.mask)
-            }
-        }
+		override fun render(esp: TransientRegionESP) {
+			esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+				box(pos, color, color, side.mask)
+			}
+		}
 
-        override fun compareResult(other: ComparableResult<Rank>) =
-            when (other) {
-                is NotExposed -> pos.compareTo(other.pos)
-                else -> super.compareResult(other)
-            }
-    }
+		override fun compareResult(other: ComparableResult<Rank>) =
+			when (other) {
+				is NotExposed -> pos.compareTo(other.pos)
+				else -> super.compareResult(other)
+			}
+	}
 
-    /**
-     * The equipped item is not suitable for breaking blocks.
-     * @param blockState The block state that is being broken.
-     * @param badItem The item that is being used.
-     */
-    data class ItemCantMine(
-        override val pos: BlockPos,
-        val blockState: BlockState,
-        val badItem: Item
-    ) : Resolvable, BreakResult() {
-        override val rank = Rank.BreakItemCantMine
+	/**
+	 * The equipped item is not suitable for breaking blocks.
+	 * @param blockState The block state that is being broken.
+	 * @param badItem The item that is being used.
+	 */
+	data class ItemCantMine(
+		override val pos: BlockPos,
+		val blockState: BlockState,
+		val badItem: Item
+	) : Resolvable, BreakResult() {
+		override val rank = Rank.BreakItemCantMine
 
-        context(task: Task<*>, _: AutomatedSafeContext)
-        override fun resolve() {
-            selectStack {
-                isItem(badItem).not()
-            }.transferByTask(HotbarContainer)?.execute(task)
-        }
+		context(task: Task<*>, _: AutomatedSafeContext)
+		override fun resolve() {
+			selectStack {
+				isItem(badItem).not()
+			}.transferByTask(HotbarContainer)?.execute(task)
+		}
 
-        override fun compareResult(other: ComparableResult<Rank>) =
-            when (other) {
-                is ItemCantMine -> badItem.name.string.compareTo(other.badItem.name.string)
-                else -> super.compareResult(other)
-            }
-    }
+		override fun compareResult(other: ComparableResult<Rank>) =
+			when (other) {
+				is ItemCantMine -> badItem.name.string.compareTo(other.badItem.name.string)
+				else -> super.compareResult(other)
+			}
+	}
 
-    /**
-     * The block is a liquid and first has to be submerged.
-     * @param pos The position of the block that is a liquid.
-     */
-    data class Submerge(
-        override val pos: BlockPos,
-        val blockState: BlockState
-    ) : Drawable, BreakResult() {
-        override val rank = Rank.BreakSubmerge
-        private val color = Color(114, 27, 255, 100)
+	/**
+	 * The block is a liquid and first has to be submerged.
+	 * @param pos The position of the block that is a liquid.
+	 */
+	data class Submerge(
+		override val pos: BlockPos,
+		val blockState: BlockState
+	) : Drawable, BreakResult() {
+		override val rank = Rank.BreakSubmerge
+		private val color = Color(114, 27, 255, 100)
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                box(pos, color, color)
-            }
-        }
-    }
+		override fun render(esp: TransientRegionESP) {
+			esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+				box(pos, color, color)
+			}
+		}
+	}
 
-    /**
-     * The block is blocked by another liquid block that first has to be submerged.
-     */
-    data class BlockedByFluid(
-        override val pos: BlockPos,
-        val blockState: BlockState,
-        val affectedFluids: Set<BlockPos>
-    ) : Drawable, BreakResult() {
-        override val rank = Rank.BreakIsBlockedByFluid
-        private val color = Color(50, 12, 112, 100)
+	/**
+	 * The block is blocked by another liquid block that first has to be submerged.
+	 */
+	data class BlockedByFluid(
+		override val pos: BlockPos,
+		val blockState: BlockState,
+		val affectedFluids: Set<BlockPos>
+	) : Drawable, BreakResult() {
+		override val rank = Rank.BreakIsBlockedByFluid
+		private val color = Color(50, 12, 112, 100)
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                val center = pos.toCenterPos()
-                val box = Box(
-                    center.x - 0.1, center.y - 0.1, center.z - 0.1,
-                    center.x + 0.1, center.y + 0.1, center.z + 0.1
-                )
-                box(box, color, color)
-            }
-        }
-    }
+		override fun render(esp: TransientRegionESP) {
+			esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+				val center = pos.toCenterPos()
+				val box = Box(
+					center.x - 0.1, center.y - 0.1, center.z - 0.1,
+					center.x + 0.1, center.y + 0.1, center.z + 0.1
+				)
+				box(box, color, color)
+			}
+		}
+	}
 
-    /**
-     * The player is standing on the block.
-     */
-    data class PlayerOnTop(
-        override val pos: BlockPos,
-        val blockState: BlockState,
-    ) : Navigable, Drawable, BreakResult() {
-        override val rank = Rank.BreakPlayerOnTop
-        private val color = Color(252, 3, 207, 100)
+	/**
+	 * The player is standing on the block.
+	 */
+	data class PlayerOnTop(
+		override val pos: BlockPos,
+		val blockState: BlockState,
+	) : Navigable, Drawable, BreakResult() {
+		override val rank = Rank.BreakPlayerOnTop
+		private val color = Color(252, 3, 207, 100)
 
-        override val goal = GoalInverted(GoalBlock(pos))
+		override val goal = GoalInverted(GoalBlock(pos))
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                box(pos, color, color)
-            }
-        }
-    }
+		override fun render(esp: TransientRegionESP) {
+			esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+				box(pos, color, color)
+			}
+		}
+	}
 
-    data class Dependency(
-        override val pos: BlockPos,
-        override val dependency: BuildResult
-    ) : BreakResult(), Dependent by Dependent.Nested(dependency) {
-        override val rank = dependency.rank
-        override val compareBy = lastDependency
-    }
+	data class Dependency(
+		override val pos: BlockPos,
+		override val dependency: BuildResult
+	) : BreakResult(), Dependent by Dependent.Nested(dependency) {
+		override val rank = dependency.rank
+		override val compareBy = lastDependency
+	}
 }

@@ -18,14 +18,14 @@
 package com.lambda.util
 
 interface Nameable {
-    val name: String
-    val commandName get() = name.trim().replace(' ', '_')
+	val name: String
+	val commandName get() = name.trim().replace(' ', '_')
 }
 
 interface NamedEnum {
-    val displayName: String
+	val displayName: String
 }
 
 interface Describable {
-    val description: String
+	val description: String
 }

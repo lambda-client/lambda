@@ -45,26 +45,26 @@ import com.lambda.module.Module
  * @property alwaysListen If true, the [Listener] will always be triggered, even if the [owner] is [Muteable.isMuted].
  */
 abstract class Listener<T : Event> : Comparable<Listener<T>> {
-    abstract val priority: Int
-    abstract val owner: Any
-    abstract val alwaysListen: Boolean
+	abstract val priority: Int
+	abstract val owner: Any
+	abstract val alwaysListen: Boolean
 
-    /**
-     * Executes the actions defined by this listener when the event occurs.
-     *
-     * @param event The event that triggered this listener.
-     */
-    abstract fun execute(event: T)
+	/**
+	 * Executes the actions defined by this listener when the event occurs.
+	 *
+	 * @param event The event that triggered this listener.
+	 */
+	abstract fun execute(event: T)
 
-    override fun compareTo(other: Listener<T>) =
-        comparator.compare(this, other)
+	override fun compareTo(other: Listener<T>) =
+		comparator.compare(this, other)
 
-    companion object {
-        val comparator = compareBy<Listener<out Event>> {
-            it.priority
-        }.thenBy {
-            // Hashcode is needed because ConcurrentSkipListSet handles insertion based on compareTo
-            it.hashCode()
-        }
-    }
+	companion object {
+		val comparator = compareBy<Listener<out Event>> {
+			it.priority
+		}.thenBy {
+			// Hashcode is needed because ConcurrentSkipListSet handles insertion based on compareTo
+			it.hashCode()
+		}
+	}
 }

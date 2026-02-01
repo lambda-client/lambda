@@ -41,7 +41,7 @@ object FancyChat : Module(
 	init {
 		listen<ChatEvent.Send> {
 			val isBaritone = BaritoneManager.baritoneSettings?.prefix?.value
-				?.let { setting -> it.message.startsWith(setting)}
+				?.let { setting -> it.message.startsWith(setting) }
 				?: false
 
 			val isLambda = it.message.startsWith(prefix)

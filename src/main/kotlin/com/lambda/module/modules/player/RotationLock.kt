@@ -38,10 +38,12 @@ object RotationLock : Module(
 		Rotation("Rotation")
 	}
 
-	@JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap).group(Group.General)
+	@JvmStatic
+	val yawMode by setting("Yaw Mode", Mode.Snap).group(Group.General)
 	private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 1.0) { yawMode == Mode.Snap }.group(Group.General)
 	private val customYaw by setting("Custom Yaw", 0.0, -179.0..180.0, 1.0) { yawMode == Mode.Custom }.group(Group.General)
-	@JvmStatic val pitchMode by setting("Pitch Mode", Mode.None).group(Group.General)
+	@JvmStatic
+	val pitchMode by setting("Pitch Mode", Mode.None).group(Group.General)
 	private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 1.0) { pitchMode == Mode.Snap }.group(Group.General)
 	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 1.0) { pitchMode == Mode.Custom }.group(Group.General)
 

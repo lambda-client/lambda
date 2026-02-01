@@ -21,7 +21,7 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.StringUtils.capitalize
 
 val Enum<*>.displayValue
-    get() =
-        (this as? NamedEnum)?.displayName ?: name.split('_').joinToString(" ") { low ->
-            low.capitalize()
-        }
+	get() =
+		(this as? NamedEnum)?.displayName ?: name.split('_').joinToString(" ") { low ->
+			low.capitalize()
+		}

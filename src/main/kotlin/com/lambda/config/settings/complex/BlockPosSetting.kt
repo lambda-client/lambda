@@ -38,21 +38,21 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 	TypeToken.get(BlockPos::class.java).type
 ) {
 	context(setting: Setting<*, BlockPos>)
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3i(setting.name, value) { value = it.blockPos }
-        lambdaTooltip(setting.description)
-    }
+	override fun ImGuiBuilder.buildLayout() {
+		inputVec3i(setting.name, value) { value = it.blockPos }
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, BlockPos>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("X", -30000000, 30000000)) { x ->
-            required(integer("Y", -64, 255)) { y ->
-                required(integer("Z", -30000000, 30000000)) { z ->
-                    execute {
-                        setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
-                    }
-                }
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(integer("X", -30000000, 30000000)) { x ->
+			required(integer("Y", -64, 255)) { y ->
+				required(integer("Z", -30000000, 30000000)) { z ->
+					execute {
+						setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
+					}
+				}
+			}
+		}
+	}
 }

@@ -28,26 +28,26 @@ import java.io.File
 import java.io.OutputStream
 
 val LambdaHttp = HttpClient {
-    install(ContentNegotiation) {
-        // Use our gson instance
-        register(ContentType.Application.Json, GsonConverter(Lambda.gson))
-    }
+	install(ContentNegotiation) {
+		// Use our gson instance
+		register(ContentType.Application.Json, GsonConverter(Lambda.gson))
+	}
 }
 
 suspend inline fun HttpClient.download(url: String, file: File, block: HttpRequestBuilder.() -> Unit = {}) {
-    val response = get(url, block)
-    check(response.status.isSuccess()) { "Download for $url failed with non 2xx status code" }
+	val response = get(url, block)
+	check(response.status.isSuccess()) { "Download for $url failed with non 2xx status code" }
 
-    file.writeBytes(response.readRawBytes())
+	file.writeBytes(response.readRawBytes())
 }
 
 suspend inline fun HttpClient.download(url: String, output: OutputStream, block: HttpRequestBuilder.() -> Unit = {}) {
-    val response = get(url, block)
-    check(response.status.isSuccess()) { "Download for $url failed with non 2xx status code" }
+	val response = get(url, block)
+	check(response.status.isSuccess()) { "Download for $url failed with non 2xx status code" }
 
-    output.write(response.readRawBytes())
+	output.write(response.readRawBytes())
 }
 
 suspend inline fun HttpClient.download(url: String, block: HttpRequestBuilder.() -> Unit) =
-    get(url, block).readRawBytes()
+	get(url, block).readRawBytes()
 

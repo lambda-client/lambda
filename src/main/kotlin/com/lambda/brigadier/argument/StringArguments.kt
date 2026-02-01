@@ -32,14 +32,14 @@ import com.mojang.brigadier.arguments.StringArgumentType
  */
 @BrigadierDsl
 fun DefaultArgumentReader<StringArgumentType>.value(): String =
-    StringArgumentType.getString(context, name)
+	StringArgumentType.getString(context, name)
 
 /**
  * Creates a string argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> string(name: String): DefaultArgumentConstructor<S, StringArgumentType> =
-    argument(name, StringArgumentType.string())
+	argument(name, StringArgumentType.string())
 
 /**
  * Creates a greedy string argument with [name] as the parameter name.
@@ -50,11 +50,11 @@ fun <S> string(name: String): DefaultArgumentConstructor<S, StringArgumentType> 
  */
 @BrigadierDsl
 fun <S> greedyString(name: String): DefaultArgumentConstructor<S, StringArgumentType> =
-    argument(name, StringArgumentType.greedyString())
+	argument(name, StringArgumentType.greedyString())
 
 /**
  * Creates a word argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> word(name: String): DefaultArgumentConstructor<S, StringArgumentType> =
-    argument(name, StringArgumentType.word())
+	argument(name, StringArgumentType.word())

@@ -23,15 +23,15 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object Timer : Module(
-    name = "Timer",
-    description = "Modify client tick speed.",
-    tag = ModuleTag.MOVEMENT,
+	name = "Timer",
+	description = "Modify client tick speed.",
+	tag = ModuleTag.MOVEMENT,
 ) {
-    private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
+	private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
 
-    init {
-        listen<ClientEvent.TimerUpdate> {
-            it.speed = timer.coerceAtLeast(0.05)
-        }
-    }
+	init {
+		listen<ClientEvent.TimerUpdate> {
+			it.speed = timer.coerceAtLeast(0.05)
+		}
+	}
 }

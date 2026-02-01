@@ -26,24 +26,24 @@ import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
 object TaskCommand : LambdaCommand(
-    name = "task",
-    usage = "task <cancel|clear>",
-    description = "Control tasks"
+	name = "task",
+	usage = "task <cancel|clear>",
+	description = "Control tasks"
 ) {
-    override fun CommandBuilder.create() {
-        required(literal("cancel")) {
-            execute {
-                this@TaskCommand.info("Cancelling all tasks")
-                RootTask.cancel()
-            }
-        }
+	override fun CommandBuilder.create() {
+		required(literal("cancel")) {
+			execute {
+				this@TaskCommand.info("Cancelling all tasks")
+				RootTask.cancel()
+			}
+		}
 
-        required(literal("clear")) {
-            execute {
-                this@TaskCommand.info("Clearing all tasks")
-                RootTask.cancel()
-                RootTask.clear()
-            }
-        }
-    }
+		required(literal("clear")) {
+			execute {
+				this@TaskCommand.info("Clearing all tasks")
+				RootTask.cancel()
+				RootTask.clear()
+			}
+		}
+	}
 }

@@ -28,14 +28,17 @@ open class FunctionSetting<T>(defaultValue: () -> T) : SettingCore<() -> T>(
 	defaultValue,
 	TypeToken.get(defaultValue::class.java).type
 ) {
-    context(setting: Setting<*, () -> T>)
+	context(setting: Setting<*, () -> T>)
 	override fun ImGuiBuilder.buildLayout() {
-        button(setting.name) { value() }
-        lambdaTooltip(setting.description)
-    }
+		button(setting.name) { value() }
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, () -> T>)
-    override fun toJson(): JsonElement = JsonNull.INSTANCE
+	override fun toJson(): JsonElement = JsonNull.INSTANCE
+
 	context(setting: Setting<*, () -> T>)
-    override fun loadFromJson(serialized: JsonElement) { value = defaultValue }
+	override fun loadFromJson(serialized: JsonElement) {
+		value = defaultValue
+	}
 }

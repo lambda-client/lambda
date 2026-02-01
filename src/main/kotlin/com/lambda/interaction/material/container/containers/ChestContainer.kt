@@ -35,33 +35,33 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 data class ChestContainer(
-    override var stacks: List<ItemStack>,
-    val blockPos: BlockPos,
-    val containedInStash: StashContainer? = null
+	override var stacks: List<ItemStack>,
+	val blockPos: BlockPos,
+	val containedInStash: StashContainer? = null
 ) : MaterialContainer(Rank.Chest), ExternalContainer {
-    context(safeContext: SafeContext)
-    override val slots
-        get(): List<Slot> =
-            if (ContainerManager.lastInteractedBlockEntity is ChestBlockEntity)
-                safeContext.player.currentScreenHandler.containerSlots
-            else emptyList()
+	context(safeContext: SafeContext)
+	override val slots
+		get(): List<Slot> =
+			if (ContainerManager.lastInteractedBlockEntity is ChestBlockEntity)
+				safeContext.player.currentScreenHandler.containerSlots
+			else emptyList()
 
-    override val description =
-        buildText {
-            literal("Chest at ")
-            highlighted(blockPos.toShortString())
-            containedInStash?.let { stash ->
-                literal(" (contained in ")
-                highlighted(stash.name)
-                literal(")")
-            }
-        }
+	override val description =
+		buildText {
+			literal("Chest at ")
+			highlighted(blockPos.toShortString())
+			containedInStash?.let { stash ->
+				literal(" (contained in ")
+				highlighted(stash.name)
+				literal(")")
+			}
+		}
 
-    context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>): Task<*> =
-        OpenContainerTask(blockPos, automatedSafeContext).then {
-            taskGenerator.invoke(automatedSafeContext, Unit).finally {
-                if (exitAfter) automatedSafeContext.player.closeScreen()
-            }
-        }
+	context(automatedSafeContext: AutomatedSafeContext)
+	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>): Task<*> =
+		OpenContainerTask(blockPos, automatedSafeContext).then {
+			taskGenerator.invoke(automatedSafeContext, Unit).finally {
+				if (exitAfter) automatedSafeContext.player.closeScreen()
+			}
+		}
 }

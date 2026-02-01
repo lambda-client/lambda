@@ -27,26 +27,26 @@ import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 
 class AcquireMaterialTask @Ta5kBuilder constructor(
-    val selection: StackSelection,
-    automated: Automated
+	val selection: StackSelection,
+	automated: Automated
 ) : Task<StackSelection>(), Automated by automated {
-    override val name: String
-        get() = "Acquiring $selection"
+	override val name: String
+		get() = "Acquiring $selection"
 
-    override fun SafeContext.onStart() {
-        runSafeAutomated {
-            selection.findContainerWithMaterial()
-                ?.transferByTask(selection, HotbarContainer)
-                ?.finally {
-                    success(selection)
-                }?.execute(this@AcquireMaterialTask)
-                ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
-        }
-    }
+	override fun SafeContext.onStart() {
+		runSafeAutomated {
+			selection.findContainerWithMaterial()
+				?.transferByTask(selection, HotbarContainer)
+				?.finally {
+					success(selection)
+				}?.execute(this@AcquireMaterialTask)
+				?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
+		}
+	}
 
-    companion object {
-        @Ta5kBuilder
-        fun Automated.acquire(selection: () -> StackSelection) =
-            AcquireMaterialTask(selection(), this)
-    }
+	companion object {
+		@Ta5kBuilder
+		fun Automated.acquire(selection: () -> StackSelection) =
+			AcquireMaterialTask(selection(), this)
+	}
 }

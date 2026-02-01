@@ -130,12 +130,14 @@ object AutoArmor : Module(
 	}
 
 	context(safeContext: SafeContext)
-	private val ItemStack.isEquipable get() =
-		safeContext.player.armorSlots.any { it.canInsert(this) }
+	private val ItemStack.isEquipable
+		get() =
+			safeContext.player.armorSlots.any { it.canInsert(this) }
 
 	context(safeContext: SafeContext)
-	private val ItemStack.armorSlot get() =
-		safeContext.player.armorSlots.firstOrNull { it.canInsert(this) }
+	private val ItemStack.armorSlot
+		get() =
+			safeContext.player.armorSlots.firstOrNull { it.canInsert(this) }
 
 	private enum class Protection(val enchant: RegistryKey<Enchantment>) {
 		Protection(Enchantments.PROTECTION),

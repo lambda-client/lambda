@@ -52,15 +52,15 @@ open class CollectionSetting<R : Any>(
 	defaultValue,
 	type
 ) {
-    private var searchFilter = ""
-    private val strListType =
-        TypeToken.getParameterized(Collection::class.java, String::class.java).type
+	private var searchFilter = ""
+	private val strListType =
+		TypeToken.getParameterized(Collection::class.java, String::class.java).type
 
-    val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
-    val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.toString() }
+	override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.toString() }
 
 	context(setting: Setting<*, MutableCollection<R>>)
 	fun ImGuiBuilder.buildComboBox(itemName: String, toString: (R) -> String) {
@@ -106,11 +106,11 @@ open class CollectionSetting<R : Any>(
 	}
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun toJson(): JsonElement =
+	override fun toJson(): JsonElement =
 		gson.toJsonTree(value, type)
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun loadFromJson(serialized: JsonElement) {
+	override fun loadFromJson(serialized: JsonElement) {
 		val strList =
 			if (serialize) gson.fromJson(serialized, type)
 			else gson.fromJson<Collection<String>>(serialized, strListType)
@@ -129,10 +129,10 @@ open class CollectionSetting<R : Any>(
 			core.deselectListeners.add(block)
 		}
 
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
-        }
-    }
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+			(settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
+		}
+	}
 }

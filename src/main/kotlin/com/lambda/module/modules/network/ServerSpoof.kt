@@ -35,40 +35,40 @@ import net.minecraft.network.packet.s2c.common.ResourcePackSendS2CPacket
 import java.awt.Color
 
 object ServerSpoof : Module(
-    name = "ServerSpoof",
-    description = "Decide yourself if you want to accept the server resource pack.",
-    tag = ModuleTag.NETWORK,
+	name = "ServerSpoof",
+	description = "Decide yourself if you want to accept the server resource pack.",
+	tag = ModuleTag.NETWORK,
 ) {
-    private val spoofClientBrand by setting("Spoof Client Brand", true)
-    private val spoofName by setting("Spoof Name", "vanilla", visibility = { spoofClientBrand })
-    private val cancelResourcePack by setting("Cancel Resource Pack Loading", true)
+	private val spoofClientBrand by setting("Spoof Client Brand", true)
+	private val spoofName by setting("Spoof Name", "vanilla", visibility = { spoofClientBrand })
+	private val cancelResourcePack by setting("Cancel Resource Pack Loading", true)
 
-    init {
-        listenUnsafe<PacketEvent.Send.Pre> {
-            val packet = it.packet
-            if (packet !is CustomPayloadC2SPacket) return@listenUnsafe
-            val payload = packet.payload
-            if (payload !is BrandCustomPayload) return@listenUnsafe
-            if (!spoofClientBrand || payload.id != BrandCustomPayload.ID) return@listenUnsafe
+	init {
+		listenUnsafe<PacketEvent.Send.Pre> {
+			val packet = it.packet
+			if (packet !is CustomPayloadC2SPacket) return@listenUnsafe
+			val payload = packet.payload
+			if (payload !is BrandCustomPayload) return@listenUnsafe
+			if (!spoofClientBrand || payload.id != BrandCustomPayload.ID) return@listenUnsafe
 
-            payload.write(PacketByteBuf(Unpooled.buffer()).writeString(spoofName))
-        }
+			payload.write(PacketByteBuf(Unpooled.buffer()).writeString(spoofName))
+		}
 
-        listenUnsafe<PacketEvent.Receive.Pre> { event ->
-            val packet = event.packet
-            if (!cancelResourcePack) return@listenUnsafe
-            if (packet !is ResourcePackSendS2CPacket) return@listenUnsafe
+		listenUnsafe<PacketEvent.Receive.Pre> { event ->
+			val packet = event.packet
+			if (!cancelResourcePack) return@listenUnsafe
+			if (packet !is ResourcePackSendS2CPacket) return@listenUnsafe
 
-            event.cancel()
+			event.cancel()
 
-            this@ServerSpoof.info(buildText {
-                literal("Canceled ${if (packet.required) "required" else "optional"} server resource pack. ")
-                clickEvent(ClickEvents.openUrl(packet.url)) {
-                    styled(color = Color.GREEN, underlined = true) {
-                        literal("(Click here to download)")
-                    }
-                }
-            })
-        }
-    }
+			this@ServerSpoof.info(buildText {
+				literal("Canceled ${if (packet.required) "required" else "optional"} server resource pack. ")
+				clickEvent(ClickEvents.openUrl(packet.url)) {
+					styled(color = Color.GREEN, underlined = true) {
+						literal("(Click here to download)")
+					}
+				}
+			})
+		}
+	}
 }

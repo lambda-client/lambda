@@ -34,22 +34,22 @@ import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 
 object ClickFriend : Module(
-    name = "ClickFriend",
-    description = "Add or remove friends with a single click",
-    tag = ModuleTag.PLAYER,
+	name = "ClickFriend",
+	description = "Add or remove friends with a single click",
+	tag = ModuleTag.PLAYER,
 ) {
-    private val friendBind: Bind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
-        .onPress { if (!unfriendBind.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
+	private val friendBind: Bind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")
+		.onPress { if (!unfriendBind.isSatisfied()) if (checkSetFriend(true)) it.cancel() }
 
-    private val unfriendBind: Bind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
-        .onPress { if (!friendBind.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
+	private val unfriendBind: Bind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
+		.onPress { if (!friendBind.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
 
-    private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {
-        val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
-            ?: return false
+	private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {
+		val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
+			?: return false
 
-        if (friend && !target.isFriend && target.befriend()) info(FriendManager.befriendedText(target.name))
-        else if (!friend && target.isFriend && target.unfriend()) info(FriendManager.unfriendedText(target.name))
-        return true
-    }
+		if (friend && !target.isFriend && target.befriend()) info(FriendManager.befriendedText(target.name))
+		else if (!friend && target.isFriend && target.unfriend()) info(FriendManager.unfriendedText(target.name))
+		return true
+	}
 }

@@ -37,14 +37,15 @@ class BlockSetting(defaultValue: Block) : SettingCore<Block>(
 	TypeToken.get(Block::class.java).type
 ) {
 	context(setting: Setting<*, Block>)
-    override fun ImGuiBuilder.buildLayout() {}
+	override fun ImGuiBuilder.buildLayout() {
+	}
 
 	context(setting: Setting<*, Block>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(blockState(setting.name, registry)) { argument ->
-            execute {
-                setting.trySetValue(argument().value().blockState.block)
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(blockState(setting.name, registry)) { argument ->
+			execute {
+				setting.trySetValue(argument().value().blockState.block)
+			}
+		}
+	}
 }

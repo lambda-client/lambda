@@ -63,86 +63,86 @@ annotation class SimDsl
  */
 @SimDsl
 abstract class Sim<T : BuildResult> : Results<T> {
-    /**
-     * Can be overridden to return a typed Dependent result with the initial [buildResult] nested inside.
-     *
-     * @see com.lambda.interaction.construction.simulation.result.Dependent
-     */
-    @SimDsl
-    open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
+	/**
+	 * Can be overridden to return a typed Dependent result with the initial [buildResult] nested inside.
+	 *
+	 * @see com.lambda.interaction.construction.simulation.result.Dependent
+	 */
+	@SimDsl
+	open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
 
-    /**
-     * Pushes and pops the [dependent] onto and off of the dependency stack unless the [maxSimDependencies] is reached.
-     */
-    protected suspend fun SimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
-        // +1 because the build sim counts as a dependent
-        if (dependencyStack.size >= buildConfig.maxBuildDependencies + 1) return
-        dependencyStack.push(dependent)
-        block()
-        dependencyStack.pop()
-    }
+	/**
+	 * Pushes and pops the [dependent] onto and off of the dependency stack unless the [maxSimDependencies] is reached.
+	 */
+	protected suspend fun SimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
+		// +1 because the build sim counts as a dependent
+		if (dependencyStack.size >= buildConfig.maxBuildDependencies + 1) return
+		dependencyStack.push(dependent)
+		block()
+		dependencyStack.pop()
+	}
 
-    /**
-     * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].
-     */
-    suspend fun SimInfo.scanShape(
-        pov: Vec3d,
-        voxelShape: VoxelShape,
-        pos: BlockPos,
-        sides: Set<Direction>,
-        preProcessing: PreProcessingData?
-    ): Set<CheckedHit>? {
-        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
+	/**
+	 * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].
+	 */
+	suspend fun SimInfo.scanShape(
+		pov: Vec3d,
+		voxelShape: VoxelShape,
+		pos: BlockPos,
+		sides: Set<Direction>,
+		preProcessing: PreProcessingData?
+	): Set<CheckedHit>? {
+		val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
 
-        val reachSq = buildConfig.blockReach.pow(2)
+		val reachSq = buildConfig.blockReach.pow(2)
 
-        val validHits = ConcurrentSet<CheckedHit>()
-        val misses = ConcurrentSet<Pair<Vec3d, Direction>>()
+		val validHits = ConcurrentSet<CheckedHit>()
+		val misses = ConcurrentSet<Pair<Vec3d, Direction>>()
 
-        supervisorScope {
-            boxes.forEach { box ->
-                launch {
-                    if (!buildConfig.strictRayCast) {
-                        box.scanClosestPoints(pov, sides, preProcessing, interactConfig.airPlace.isEnabled) { vec, side ->
-                            if (pov distSq vec > reachSq)
-                                misses.add(Pair(vec, side))
-                            else {
-                                validHits.add(
-                                    CheckedHit(
-                                        BlockHitResult(vec, side, pos, false),
-                                        pov.rotationTo(vec)
-                                    )
-                                )
-                            }
-                        }
-                    } else box.scanSurfaces(pov, sides, buildConfig.resolution, preProcessing, false) { vec, side ->
-                        if (pov distSq vec > reachSq) {
-                            misses.add(Pair(vec, side))
-                            return@scanSurfaces
-                        }
+		supervisorScope {
+			boxes.forEach { box ->
+				launch {
+					if (!buildConfig.strictRayCast) {
+						box.scanClosestPoints(pov, sides, preProcessing, interactConfig.airPlace.isEnabled) { vec, side ->
+							if (pov distSq vec > reachSq)
+								misses.add(Pair(vec, side))
+							else {
+								validHits.add(
+									CheckedHit(
+										BlockHitResult(vec, side, pos, false),
+										pov.rotationTo(vec)
+									)
+								)
+							}
+						}
+					} else box.scanSurfaces(pov, sides, buildConfig.resolution, preProcessing, false) { vec, side ->
+						if (pov distSq vec > reachSq) {
+							misses.add(Pair(vec, side))
+							return@scanSurfaces
+						}
 
-                        val newRotation = pov.rotationTo(vec)
-                        val hit = newRotation.rayCast(buildConfig.blockReach, pov)?.blockResult ?: return@scanSurfaces
+						val newRotation = pov.rotationTo(vec)
+						val hit = newRotation.rayCast(buildConfig.blockReach, pov)?.blockResult ?: return@scanSurfaces
 
-                        if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
-                        val checked = CheckedHit(hit, newRotation)
+						if (hit.blockPos != pos || hit.side != side) return@scanSurfaces
+						val checked = CheckedHit(hit, newRotation)
 
-                        validHits.add(checked)
-                    }
-                }
-            }
-        }
+						validHits.add(checked)
+					}
+				}
+			}
+		}
 
-        if (validHits.isEmpty()) {
-            if (misses.isNotEmpty()) {
-                result(GenericResult.OutOfReach(pos, pov, misses))
-                return null
-            }
+		if (validHits.isEmpty()) {
+			if (misses.isNotEmpty()) {
+				result(GenericResult.OutOfReach(pos, pov, misses))
+				return null
+			}
 
-            result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
-            return null
-        }
+			result(GenericResult.NotVisible(pos, pos, pov.distanceTo(pos.vec3d)))
+			return null
+		}
 
-        return validHits
-    }
+		return validHits
+	}
 }

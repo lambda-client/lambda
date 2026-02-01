@@ -70,10 +70,8 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.RotationPropertyHelper
 import net.minecraft.util.shape.VoxelShapes
 
-class InteractSim private constructor(simInfo: InteractSimInfo)
-	: Sim<InteractResult>(),
-	InteractSimInfo by simInfo
-{
+class InteractSim private constructor(simInfo: InteractSimInfo) : Sim<InteractResult>(),
+	InteractSimInfo by simInfo {
 	override fun dependentUpon(buildResult: BuildResult) =
 		InteractResult.Dependency(pos, buildResult)
 

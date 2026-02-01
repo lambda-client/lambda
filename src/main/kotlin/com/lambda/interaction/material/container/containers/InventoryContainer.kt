@@ -28,12 +28,12 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
 object InventoryContainer : MaterialContainer(Rank.Inventory) {
-    context(safeContext: SafeContext)
-    override val slots: List<Slot>
-        get() = safeContext.player.inventorySlots
-    override var stacks: List<ItemStack>
-        get() = mc.player?.inventoryStacks ?: emptyList()
-        set(_) {}
+	context(safeContext: SafeContext)
+	override val slots: List<Slot>
+		get() = safeContext.player.inventorySlots
+	override var stacks: List<ItemStack>
+		get() = mc.player?.inventoryStacks ?: emptyList()
+		set(_) {}
 
-    override val description = buildText { literal("Inventory") }
+	override val description = buildText { literal("Inventory") }
 }

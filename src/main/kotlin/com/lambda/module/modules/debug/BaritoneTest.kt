@@ -25,17 +25,17 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object BaritoneTest : Module(
-    name = "BaritoneTest",
-    description = "Test Baritone",
-    tag = ModuleTag.DEBUG,
+	name = "BaritoneTest",
+	description = "Test Baritone",
+	tag = ModuleTag.DEBUG,
 ) {
-    init {
-        listen<TickEvent.Pre> {
-            BaritoneManager.setGoalAndPath(GoalXZ(0, 0))
-        }
+	init {
+		listen<TickEvent.Pre> {
+			BaritoneManager.setGoalAndPath(GoalXZ(0, 0))
+		}
 
-        onDisable {
-            BaritoneManager.cancel()
-        }
-    }
+		onDisable {
+			BaritoneManager.cancel()
+		}
+	}
 }

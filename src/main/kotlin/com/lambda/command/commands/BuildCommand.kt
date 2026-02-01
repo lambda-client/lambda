@@ -41,62 +41,62 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
 object BuildCommand : LambdaCommand(
-    name = "Build",
-    description = "Builds a structure",
-    usage = "build <structure>"
+	name = "Build",
+	description = "Builds a structure",
+	usage = "build <structure>"
 ) {
-    private var lastBuildTask: BuildTask? = null
+	private var lastBuildTask: BuildTask? = null
 
-    override fun CommandBuilder.create() {
-        required(literal("place")) {
-            required(greedyString("structure")) { structure ->
-                suggests { _, builder ->
-                    StructureRegistry.forEach { key, _ -> builder.suggest(key) }
-                    builder.buildFuture()
-                }
-                executeWithResult {
-                    val pathString = structure().value()
-                    runSafe<Unit> {
-                        try {
-                            StructureRegistry
-                                .loadStructureByRelativePath(Path.of(pathString))
-                                .let { template ->
-                                    info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
-                                    lastBuildTask = with(AutomationConfig.Companion.DEFAULT) {
-                                        template.toStructure()
-                                            .move(player.blockPos)
-                                            .toBlueprint()
-                                            .build()
-                                            .run()
-                                    }
+	override fun CommandBuilder.create() {
+		required(literal("place")) {
+			required(greedyString("structure")) { structure ->
+				suggests { _, builder ->
+					StructureRegistry.forEach { key, _ -> builder.suggest(key) }
+					builder.buildFuture()
+				}
+				executeWithResult {
+					val pathString = structure().value()
+					runSafe<Unit> {
+						try {
+							StructureRegistry
+								.loadStructureByRelativePath(Path.of(pathString))
+								.let { template ->
+									info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
+									lastBuildTask = with(AutomationConfig.Companion.DEFAULT) {
+										template.toStructure()
+											.move(player.blockPos)
+											.toBlueprint()
+											.build()
+											.run()
+									}
 
-                                    return@executeWithResult success()
-                                }
-                        } catch (e: InvalidPathException) {
-                            return@executeWithResult failure("Invalid path $pathString")
-                        } catch (e: NoSuchFileException) {
-                            return@executeWithResult failure("Structure $pathString not found")
-                        } catch (e: Exception) {
-                            return@executeWithResult failure(
-                                e.message ?: "Failed to load structure $pathString"
-                            )
-                        }
-                    }
+									return@executeWithResult success()
+								}
+						} catch (e: InvalidPathException) {
+							return@executeWithResult failure("Invalid path $pathString")
+						} catch (e: NoSuchFileException) {
+							return@executeWithResult failure("Structure $pathString not found")
+						} catch (e: Exception) {
+							return@executeWithResult failure(
+								e.message ?: "Failed to load structure $pathString"
+							)
+						}
+					}
 
-                    failure("Structure $pathString not found")
-                }
-            }
-        }
+					failure("Structure $pathString not found")
+				}
+			}
+		}
 
-        required(literal("cancel")) {
-            executeWithResult {
-                lastBuildTask?.cancel() ?: run {
-                    return@executeWithResult failure("No build task to cancel")
-                }
-                this@BuildCommand.info("$lastBuildTask cancelled")
-                lastBuildTask = null
-                success()
-            }
-        }
-    }
+		required(literal("cancel")) {
+			executeWithResult {
+				lastBuildTask?.cancel() ?: run {
+					return@executeWithResult failure("No build task to cancel")
+				}
+				this@BuildCommand.info("$lastBuildTask cancelled")
+				lastBuildTask = null
+				success()
+			}
+		}
+	}
 }

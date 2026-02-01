@@ -30,44 +30,44 @@ typealias CommandAction<S> = CommandContext<S>.() -> Unit
  * Representation of possible results of running a command.
  */
 sealed class CommandResult {
-    /**
-     * Representation of successful completion with the return value of [result].
-     */
-    class Success(
-        val result: Int = Command.SINGLE_SUCCESS,
-    ) : CommandResult()
+	/**
+	 * Representation of successful completion with the return value of [result].
+	 */
+	class Success(
+		val result: Int = Command.SINGLE_SUCCESS,
+	) : CommandResult()
 
-    /**
-     * Representation of the command failing with the specified error [message].
-     */
-    class Failure(
-        val message: Text,
-    ) : CommandResult()
+	/**
+	 * Representation of the command failing with the specified error [message].
+	 */
+	class Failure(
+		val message: Text,
+	) : CommandResult()
 
-    companion object {
-        /**
-         * Creates a [CommandResult.Success] with the given [result].
-         */
-        fun success(result: Int = Command.SINGLE_SUCCESS): Success {
-            return Success(result)
-        }
+	companion object {
+		/**
+		 * Creates a [CommandResult.Success] with the given [result].
+		 */
+		fun success(result: Int = Command.SINGLE_SUCCESS): Success {
+			return Success(result)
+		}
 
-        fun failure(message: String): Failure {
-            return Failure(Communication.LogLevel.Error.text(message))
-        }
+		fun failure(message: String): Failure {
+			return Failure(Communication.LogLevel.Error.text(message))
+		}
 
-        /** Creates a [CommandResult.Failure] with the given throwable [t]. */
-        fun failure(t: Throwable): Failure {
-            return failure(t.message ?: "An error occurred")
-        }
+		/** Creates a [CommandResult.Failure] with the given throwable [t]. */
+		fun failure(t: Throwable): Failure {
+			return failure(t.message ?: "An error occurred")
+		}
 
-        /**
-         * Creates a [CommandResult.Failure] with the given error [message].
-         */
-        fun failure(message: Text): Failure {
-            return Failure(message)
-        }
-    }
+		/**
+		 * Creates a [CommandResult.Failure] with the given error [message].
+		 */
+		fun failure(message: Text): Failure {
+			return Failure(message)
+		}
+	}
 }
 
 /**
@@ -82,12 +82,12 @@ sealed class CommandResult {
  */
 @BrigadierDsl
 fun <S> ArgumentBuilder<S, *>.executeWithResult(command: CommandActionWithResult<S>) {
-    executes {
-        when (val result = command(it)) {
-            is CommandResult.Success -> result.result
-            is CommandResult.Failure -> throw CommandException(result.message)
-        }
-    }
+	executes {
+		when (val result = command(it)) {
+			is CommandResult.Success -> result.result
+			is CommandResult.Failure -> throw CommandException(result.message)
+		}
+	}
 }
 
 /**
@@ -104,10 +104,10 @@ fun <S> ArgumentBuilder<S, *>.executeWithResult(command: CommandActionWithResult
  */
 @BrigadierDsl
 fun <S> ArgumentBuilder<S, *>.execute(command: CommandAction<S>) {
-    executeWithResult {
-        command(this)
-        CommandResult.Success()
-    }
+	executeWithResult {
+		command(this)
+		CommandResult.Success()
+	}
 }
 
 class CommandException(val info: Text) : RuntimeException(info.string)

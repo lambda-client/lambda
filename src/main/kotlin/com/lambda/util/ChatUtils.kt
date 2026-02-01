@@ -18,7 +18,12 @@
 package com.lambda.util
 
 object ChatUtils {
-	val slurs = sequenceOf("\\bch[i1l]nks?\\b", "\\bc[o0]{2}ns?\\b", "f[a@4](g{1,2}|qq)([e3il1o0]t{1,2}(ry|r[i1l]e)?)?\\b", "\\bk[il1y]k[e3](ry|r[i1l]e)?s?\\b", "\\b(s[a4]nd)?n[ila4o10][gq]{1,2}(l[e3]t|[e3]r|[a4]|n[o0]g)?s?\\b", "\\btr[a4]n{1,2}([il1][e3]|y|[e3]r)s?\\b").map { Regex(it, RegexOption.IGNORE_CASE) }
+	val slurs = sequenceOf("\\bch[i1l]nks?\\b", "\\bc[o0]{2}ns?\\b", "f[a@4](g{1,2}|qq)([e3il1o0]t{1,2}(ry|r[i1l]e)?)?\\b", "\\bk[il1y]k[e3](ry|r[i1l]e)?s?\\b", "\\b(s[a4]nd)?n[ila4o10][gq]{1,2}(l[e3]t|[e3]r|[a4]|n[o0]g)?s?\\b", "\\btr[a4]n{1,2}([il1][e3]|y|[e3]r)s?\\b").map {
+		Regex(
+			it,
+			RegexOption.IGNORE_CASE
+		)
+	}
 	val swears = sequenceOf("fuck(er)?", "shit", "cunt", "puss(ie|y)", "bitch", "twat").map { Regex(it, RegexOption.IGNORE_CASE) }
 	val sexual = sequenceOf("^cum[s\\$]?$", "cumm?[i1]ng", "h[o0]rny", "mast(e|ur)b(8|ait|ate)").map { Regex(it, RegexOption.IGNORE_CASE) }
 	val discord = sequenceOf("(http(s)?:\\/\\/)?(discord)?(\\.)?gg(\\/| ).\\S{1,25}", "(http(s)?:\\/\\/)?(discord)?(\\.)?com\\/invite(\\/| ).\\S{1,25}", "(dsc)?(\\.)?gg(\\/| ).\\S{1,25}").map { Regex(it, RegexOption.IGNORE_CASE) }
@@ -153,22 +158,23 @@ object ChatUtils {
 
 	val String.toFancy get() = buildString { this@toFancy.forEach { append(asciiToFancy.getOrDefault(it, it)) } }
 	val String.toAscii get() = buildString { this@toAscii.forEach { append(fancyToAscii.getOrDefault(it, it)) } }
- 	val String.toLeet get() = buildString { this@toLeet.forEach { append(asciiToLeet.getOrDefault(it, it)) } }
+	val String.toLeet get() = buildString { this@toLeet.forEach { append(asciiToLeet.getOrDefault(it, it)) } }
 	val String.toGreen get() = ">$this"
 	val String.toBlue get() = "`$this"
 
-	val String.toUwu get() =
-		replace("my", "mai")
-			.replace("friend", "fwend")
-			.replace("small", "smol")
-			.replace("cute", "cyute")
-			.replace("very", "vewy")
-			.replace("ove", "uv")
-			.replace("no", "nu")
-			.replace("you", "yew")
-			.replace("the", "da")
-			.replace("is", "ish")
-			.replace('r', 'w')
-			.replace("ve", "v")
-			.replace('l', 'w')
+	val String.toUwu
+		get() =
+			replace("my", "mai")
+				.replace("friend", "fwend")
+				.replace("small", "smol")
+				.replace("cute", "cyute")
+				.replace("very", "vewy")
+				.replace("ove", "uv")
+				.replace("no", "nu")
+				.replace("you", "yew")
+				.replace("the", "da")
+				.replace("is", "ish")
+				.replace('r', 'w')
+				.replace("ve", "v")
+				.replace('l', 'w')
 }

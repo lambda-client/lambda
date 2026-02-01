@@ -46,7 +46,7 @@ import net.minecraft.nbt.NbtElement
 @JvmName("valueNbtCompoundArg")
 @BrigadierDsl
 fun DefaultArgumentReader<NbtCompoundArgumentType>.value(): NbtCompound {
-    return NbtCompoundArgumentType.getNbtCompound(context, name)
+	return NbtCompoundArgumentType.getNbtCompound(context, name)
 }
 
 /**
@@ -58,7 +58,7 @@ fun DefaultArgumentReader<NbtCompoundArgumentType>.value(): NbtCompound {
 @JvmName("valueNbtElementArg")
 @BrigadierDsl
 fun DefaultArgumentReader<NbtElementArgumentType>.value(): NbtElement {
-    return NbtElementArgumentType.getNbtElement(context, name)
+	return NbtElementArgumentType.getNbtElement(context, name)
 }
 
 /**
@@ -70,7 +70,7 @@ fun DefaultArgumentReader<NbtElementArgumentType>.value(): NbtElement {
 @JvmName("valueNbtPathArg")
 @BrigadierDsl
 fun DefaultArgumentReader<NbtPathArgumentType>.value(): NbtPath {
-    return NbtPathArgumentType.getNbtPath(context.assumeSourceNotUsed(), name)
+	return NbtPathArgumentType.getNbtPath(context.assumeSourceNotUsed(), name)
 }
 
 /**
@@ -78,9 +78,9 @@ fun DefaultArgumentReader<NbtPathArgumentType>.value(): NbtPath {
  */
 @BrigadierDsl
 fun <S> nbtCompound(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, NbtCompoundArgumentType> {
-    return argument(name, NbtCompoundArgumentType.nbtCompound())
+	return argument(name, NbtCompoundArgumentType.nbtCompound())
 }
 
 /**
@@ -88,9 +88,9 @@ fun <S> nbtCompound(
  */
 @BrigadierDsl
 fun <S> nbtElement(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, NbtElementArgumentType> {
-    return argument(name, NbtElementArgumentType.nbtElement())
+	return argument(name, NbtElementArgumentType.nbtElement())
 }
 
 /**
@@ -98,7 +98,7 @@ fun <S> nbtElement(
  */
 @BrigadierDsl
 fun <S> nbtPath(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, NbtPathArgumentType> {
-    return argument(name, NbtPathArgumentType.nbtPath())
+	return argument(name, NbtPathArgumentType.nbtPath())
 }

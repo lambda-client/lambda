@@ -43,7 +43,7 @@ object ChestPostProcessor : PropertyPostProcessor {
 		val currentType = state.get(Properties.CHEST_TYPE)
 		if (currentType != ChestType.SINGLE) return
 		val currentFacing = state.get(Properties.HORIZONTAL_FACING)
-		val otherChestDirection = when(targetType) {
+		val otherChestDirection = when (targetType) {
 			ChestType.LEFT -> currentFacing.rotateYClockwise()
 			else -> currentFacing.rotateYCounterclockwise()
 		}

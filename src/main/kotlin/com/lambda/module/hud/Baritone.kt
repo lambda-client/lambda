@@ -24,21 +24,21 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
 object Baritone : HudModule(
-    name = "Baritone",
-    description = "Look inside of Baritones head",
-    tag = ModuleTag.HUD,
+	name = "Baritone",
+	description = "Look inside of Baritones head",
+	tag = ModuleTag.HUD,
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        if (!BaritoneManager.isBaritoneLoaded) {
-            text("Baritone is not loaded")
-            return
-        }
+	override fun ImGuiBuilder.buildLayout() {
+		if (!BaritoneManager.isBaritoneLoaded) {
+			text("Baritone is not loaded")
+			return
+		}
 
-        BaritoneManager.primary?.customGoalProcess?.goal?.let {
-            when(it) {
-                is BuildGoal -> text("Lambda Simulation: ${it.sim}")
-                else -> text("Baritone: $it")
-            }
-        } ?: text("No Baritone Process Running")
-    }
+		BaritoneManager.primary?.customGoalProcess?.goal?.let {
+			when (it) {
+				is BuildGoal -> text("Lambda Simulation: ${it.sim}")
+				else -> text("Baritone: $it")
+			}
+		} ?: text("No Baritone Process Running")
+	}
 }

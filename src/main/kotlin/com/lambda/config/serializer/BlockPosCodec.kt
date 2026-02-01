@@ -18,10 +18,8 @@
 package com.lambda.config.serializer
 
 import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.JsonSerializationContext
-import com.google.gson.JsonSerializer
 import com.lambda.config.Codec
 import com.lambda.config.Stringifiable
 import com.lambda.util.Formatting.format
@@ -31,22 +29,22 @@ import java.lang.reflect.Type
 import kotlin.jvm.optionals.getOrElse
 
 object BlockPosCodec : Codec<BlockPos>, Stringifiable<BlockPos> {
-    override fun serialize(
-        src: BlockPos,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement =
-        BlockPos.CODEC.encodeStart(JsonOps.INSTANCE, src)
-            .orThrow
+	override fun serialize(
+		src: BlockPos,
+		typeOfSrc: Type,
+		context: JsonSerializationContext,
+	): JsonElement =
+		BlockPos.CODEC.encodeStart(JsonOps.INSTANCE, src)
+			.orThrow
 
-    override fun deserialize(
-        json: JsonElement?,
-        typeOfT: Type?,
-        context: JsonDeserializationContext?,
-    ): BlockPos =
-        BlockPos.CODEC.parse(JsonOps.INSTANCE, json)
-            .result()
-            .getOrElse { BlockPos.ORIGIN }
+	override fun deserialize(
+		json: JsonElement?,
+		typeOfT: Type?,
+		context: JsonDeserializationContext?,
+	): BlockPos =
+		BlockPos.CODEC.parse(JsonOps.INSTANCE, json)
+			.result()
+			.getOrElse { BlockPos.ORIGIN }
 
-    override fun stringify(value: BlockPos) = value.format()
+	override fun stringify(value: BlockPos) = value.format()
 }

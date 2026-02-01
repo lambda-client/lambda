@@ -124,6 +124,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 			mc.window.setIcon(mc.defaultResourcePack, icon)
 		}
 	}
+
 	@JvmStatic
 	val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }.group(Group.General)
 	val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }.group(Group.General)

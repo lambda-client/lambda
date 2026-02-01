@@ -29,24 +29,24 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.Box
 
 data class StashContainer(
-    val chests: Set<ChestContainer>,
-    val pos: Box,
+	val chests: Set<ChestContainer>,
+	val pos: Box,
 ) : MaterialContainer(Rank.Stash) {
-    context(_: SafeContext)
-    override val slots: List<Slot>
-        get() = chests.flatMap { it.slots }
-    override var stacks: List<ItemStack>
-        get() = chests.flatMap { it.stacks }
-        set(_) {}
+	context(_: SafeContext)
+	override val slots: List<Slot>
+		get() = chests.flatMap { it.slots }
+	override var stacks: List<ItemStack>
+		get() = chests.flatMap { it.stacks }
+		set(_) {}
 
-    override val description = buildText {
-        literal("Stash at ")
-        highlighted(pos.center.roundedBlockPos.toShortString())
-    }
+	override val description = buildText {
+		literal("Stash at ")
+		highlighted(pos.center.roundedBlockPos.toShortString())
+	}
 
-    context(_: SafeContext)
-    override fun materialAvailable(selection: StackSelection): Int =
-        chests.sumOf {
-            it.materialAvailable(selection)
-        }
+	context(_: SafeContext)
+	override fun materialAvailable(selection: StackSelection): Int =
+		chests.sumOf {
+			it.materialAvailable(selection)
+		}
 }

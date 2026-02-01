@@ -27,23 +27,23 @@ import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 
 object SilentSwap : Module(
-    name = "SilentSwap",
-    description = "SilentSwap",
-    tag = ModuleTag.DEBUG,
+	name = "SilentSwap",
+	description = "SilentSwap",
+	tag = ModuleTag.DEBUG,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        Hotbar("Hotbar")
-    }
+	private enum class Group(override val displayName: String) : NamedEnum {
+		Hotbar("Hotbar")
+	}
 
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
+	override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
 
-    init {
-        listen<PlayerEvent.Attack.Block> {
-            if (!HotbarRequest(0, this@SilentSwap).submit().done) {
-                it.cancel()
-                return@listen
-            }
-            info("${interaction.lastSelectedSlot} ${player.mainHandStack}")
-        }
-    }
+	init {
+		listen<PlayerEvent.Attack.Block> {
+			if (!HotbarRequest(0, this@SilentSwap).submit().done) {
+				it.cancel()
+				return@listen
+			}
+			info("${interaction.lastSelectedSlot} ${player.mainHandStack}")
+		}
+	}
 }

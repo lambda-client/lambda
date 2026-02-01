@@ -21,16 +21,16 @@ import com.google.gson.annotations.SerializedName
 import java.util.*
 
 data class Player(
-    @SerializedName("name")
-    val name: String,
+	@SerializedName("name")
+	val name: String,
 
-    @SerializedName("id")
-    val uuid: UUID,
+	@SerializedName("id")
+	val uuid: UUID,
 
-    @SerializedName("discord_id")
-    val discordId: String,
+	@SerializedName("discord_id")
+	val discordId: String,
 
-    // Whether the player is verified or not
-    @SerializedName("unsafe")
-    val unsafe: Boolean,
+	// Whether the player is verified or not
+	@SerializedName("unsafe")
+	val unsafe: Boolean,
 )

@@ -28,22 +28,22 @@ import java.lang.reflect.Type
 import kotlin.jvm.optionals.getOrElse
 
 object ItemStackCodec : Codec<ItemStack>, Stringifiable<ItemStack> {
-    override fun serialize(
-        stack: ItemStack,
-        typeOfSrc: Type,
-        context: JsonSerializationContext
-    ): JsonElement =
-        ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack)
-            .orThrow
+	override fun serialize(
+		stack: ItemStack,
+		typeOfSrc: Type,
+		context: JsonSerializationContext
+	): JsonElement =
+		ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack)
+			.orThrow
 
-    override fun deserialize(
-        json: JsonElement,
-        typeOfT: Type,
-        context: JsonDeserializationContext
-    ): ItemStack =
-        ItemStack.CODEC.parse(JsonOps.INSTANCE, json)
-            .result()
-            .getOrElse { ItemStack.EMPTY }
+	override fun deserialize(
+		json: JsonElement,
+		typeOfT: Type,
+		context: JsonDeserializationContext
+	): ItemStack =
+		ItemStack.CODEC.parse(JsonOps.INSTANCE, json)
+			.result()
+			.getOrElse { ItemStack.EMPTY }
 
-    override fun stringify(value: ItemStack) = value.itemName.string.uppercase()
+	override fun stringify(value: ItemStack) = value.itemName.string.uppercase()
 }

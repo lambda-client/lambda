@@ -26,14 +26,14 @@ import com.lambda.util.combat.DamageUtils.fallDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 
 object FallTest : Module(
-    name = "FallTest",
-    tag = ModuleTag.DEBUG,
+	name = "FallTest",
+	tag = ModuleTag.DEBUG,
 ) {
-    init {
-        listen<TickEvent.Pre> {
-            val damage = fallDamage()
+	init {
+		listen<TickEvent.Pre> {
+			val damage = fallDamage()
 
-            info("Fall damage = $damage, Deadly = ${isFallDeadly()}")
-        }
-    }
+			info("Fall damage = $damage, Deadly = ${isFallDeadly()}")
+		}
+	}
 }

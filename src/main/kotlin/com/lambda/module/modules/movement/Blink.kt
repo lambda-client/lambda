@@ -22,7 +22,6 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -41,85 +40,85 @@ import net.minecraft.util.math.Vec3d
 import java.util.concurrent.ConcurrentLinkedDeque
 
 object Blink : Module(
-    name = "Blink",
-    description = "Holds packets",
-    tag = ModuleTag.MOVEMENT,
+	name = "Blink",
+	description = "Holds packets",
+	tag = ModuleTag.MOVEMENT,
 ) {
-    private var delay by setting("Delay", 500, 50..10000, 10)
-    private val shiftVelocity by setting("Shift velocity", true)
-    private val requiresAura by setting("Requires Aura", false)
+	private var delay by setting("Delay", 500, 50..10000, 10)
+	private val shiftVelocity by setting("Shift velocity", true)
+	private val requiresAura by setting("Requires Aura", false)
 
-    private val isActive get() = (KillAura.isEnabled && KillAura.target != null) || !requiresAura
+	private val isActive get() = (KillAura.isEnabled && KillAura.target != null) || !requiresAura
 
-    private var packetPool = ConcurrentLinkedDeque<ServerPacket>()
-    private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
-    private var lastUpdate = 0L
+	private var packetPool = ConcurrentLinkedDeque<ServerPacket>()
+	private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
+	private var lastUpdate = 0L
 
-    private var box = DynamicAABB()
-    private var lastBox = Box(BlockPos.ORIGIN)
+	private var box = DynamicAABB()
+	private var lastBox = Box(BlockPos.ORIGIN)
 
-    init {
-        listen<RenderEvent.Upload> {
-            val time = System.currentTimeMillis()
+	init {
+		listen<RenderEvent.Upload> {
+			val time = System.currentTimeMillis()
 
-            if (isActive && time - lastUpdate < delay) return@listen
-            lastUpdate = time
+			if (isActive && time - lastUpdate < delay) return@listen
+			lastUpdate = time
 
-            poolPackets()
-        }
+			poolPackets()
+		}
 
-        onDynamicRender { esp ->
-            val color = ClickGuiLayout.primaryColor
-            val pos = player.pos
-            esp.shapes(pos.x, pos.y, pos.z) {
-                box(box.update(lastBox), color.setAlpha(0.3), color)
-            }
-        }
+		onDynamicRender { esp ->
+			val color = ClickGuiLayout.primaryColor
+			val pos = player.pos
+			esp.shapes(pos.x, pos.y, pos.z) {
+				box(box.update(lastBox), color.setAlpha(0.3), color)
+			}
+		}
 
-        listen<PacketEvent.Send.Pre> { event ->
-            if (!isActive) return@listen
+		listen<PacketEvent.Send.Pre> { event ->
+			if (!isActive) return@listen
 
-            packetPool.add(event.packet)
-            event.cancel()
-            return@listen
-        }
+			packetPool.add(event.packet)
+			event.cancel()
+			return@listen
+		}
 
-        listen<PacketEvent.Send.Post> { event ->
-            val packet = event.packet
-            if (packet !is PlayerMoveC2SPacket) return@listen
+		listen<PacketEvent.Send.Post> { event ->
+			val packet = event.packet
+			if (packet !is PlayerMoveC2SPacket) return@listen
 
-            val vec = Vec3d(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0))
-            if (vec == Vec3d.ZERO) return@listen
+			val vec = Vec3d(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0))
+			if (vec == Vec3d.ZERO) return@listen
 
-            lastBox = player.boundingBox.offset(vec - player.pos)
-        }
+			lastBox = player.boundingBox.offset(vec - player.pos)
+		}
 
-        listen<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !shiftVelocity) return@listen
+		listen<PacketEvent.Receive.Pre> { event ->
+			if (!isActive || !shiftVelocity) return@listen
 
-            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
-            if (event.packet.entityId != player.id) return@listen
+			if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
+			if (event.packet.entityId != player.id) return@listen
 
-            lastVelocity = event.packet
-            event.cancel()
-            return@listen
-        }
+			lastVelocity = event.packet
+			event.cancel()
+			return@listen
+		}
 
-        onDisable {
-            poolPackets()
-        }
-    }
+		onDisable {
+			poolPackets()
+		}
+	}
 
-    private fun SafeContext.poolPackets() {
-        while (packetPool.isNotEmpty()) {
-            packetPool.poll().let { packet ->
-                connection.sendPacketSilently(packet)
-            }
-        }
+	private fun SafeContext.poolPackets() {
+		while (packetPool.isNotEmpty()) {
+			packetPool.poll().let { packet ->
+				connection.sendPacketSilently(packet)
+			}
+		}
 
-        lastVelocity?.let { velocity ->
-            connection.handlePacketSilently(velocity)
-            lastVelocity = null
-        }
-    }
+		lastVelocity?.let { velocity ->
+			connection.handlePacketSilently(velocity)
+			lastVelocity = null
+		}
+	}
 }

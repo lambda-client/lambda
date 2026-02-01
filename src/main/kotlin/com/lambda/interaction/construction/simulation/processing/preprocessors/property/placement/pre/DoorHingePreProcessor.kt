@@ -31,11 +31,11 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object DoorHingePreProcessor : PropertyPreProcessor {
-    override fun acceptsState(state: BlockState, targetState: BlockState) =
-        Properties.DOOR_HINGE in targetState
+	override fun acceptsState(state: BlockState, targetState: BlockState) =
+		Properties.DOOR_HINGE in targetState
 
 	context(safeContext: SafeContext)
-    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
 		val side = targetState.get(Properties.DOOR_HINGE) ?: return
 		val scanner = when (targetState.get(Properties.HORIZONTAL_FACING) ?: return) {
 			Direction.NORTH ->
@@ -54,5 +54,5 @@ object DoorHingePreProcessor : PropertyPreProcessor {
 				else SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Z)
 		}
 		return offerSurfaceScan(scanner)
-    }
+	}
 }

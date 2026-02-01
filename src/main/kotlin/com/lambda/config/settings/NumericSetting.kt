@@ -48,70 +48,70 @@ abstract class NumericSetting<T>(
 			super.value = newVal.coerceIn(range)
 		}
 
-    private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+	private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
-    override fun toString() = "${formatter.format(value)}$unit"
+	override fun toString() = "${formatter.format(value)}$unit"
 
-    /**
-     * Subclasses must implement this to provide their specific slider widget.
-     */
-    context(setting: Setting<*, T>)
-    protected abstract fun ImGuiBuilder.buildSlider()
+	/**
+	 * Subclasses must implement this to provide their specific slider widget.
+	 */
+	context(setting: Setting<*, T>)
+	protected abstract fun ImGuiBuilder.buildSlider()
 
 	context(setting: Setting<*, T>)
-    override fun ImGuiBuilder.buildLayout() {
-        val showReset = setting.isModified
-        val resetButtonText = "R"
-        val valueString = this@NumericSetting.toString()
+	override fun ImGuiBuilder.buildLayout() {
+		val showReset = setting.isModified
+		val resetButtonText = "R"
+		val valueString = this@NumericSetting.toString()
 
-        buildSlider()
-        lambdaTooltip(setting.description)
+		buildSlider()
+		lambdaTooltip(setting.description)
 
-        val itemRectMin = ImGui.getItemRectMin()
-        val itemRectMax = ImGui.getItemRectMax()
-        val textHeight = ImGui.getTextLineHeight()
-        val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-        val labelWidth = calcTextSize(setting.name).x
-        val valueWidth = calcTextSize(valueString).x
+		val itemRectMin = ImGui.getItemRectMin()
+		val itemRectMax = ImGui.getItemRectMax()
+		val textHeight = ImGui.getTextLineHeight()
+		val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
+		val labelWidth = calcTextSize(setting.name).x
+		val valueWidth = calcTextSize(valueString).x
 
-        val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
-        val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
+		val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
+		val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
 
-        windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), setting.name)
-        if (labelEndPosX < valueStartPosX) {
-            windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
-        }
+		windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), setting.name)
+		if (labelEndPosX < valueStartPosX) {
+			windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
+		}
 
-        sameLine(0.0f, style.itemSpacing.x)
-        if (showReset) {
-            button("$resetButtonText##${setting.name}") {
-                setting.reset()
-            }
-            onItemHover {
-                tooltip { text("Reset to default") }
-            }
-        } else {
-            dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
-        }
-    }
+		sameLine(0.0f, style.itemSpacing.x)
+		if (showReset) {
+			button("$resetButtonText##${setting.name}") {
+				setting.reset()
+			}
+			onItemHover {
+				tooltip { text("Reset to default") }
+			}
+		} else {
+			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
+		}
+	}
 
-    companion object {
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun <T> SettingGroupEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
-        }
+	companion object {
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun <T> SettingGroupEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+			(settings as Collection<NumericSetting<T>>).forEach { it.range = range }
+		}
 
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun <T> SettingGroupEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
-        }
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun <T> SettingGroupEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+			(settings as Collection<NumericSetting<T>>).forEach { it.step = step }
+		}
 
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun <T> SettingGroupEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
-        }
-    }
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun <T> SettingGroupEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+			(settings as Collection<NumericSetting<T>>).forEach { it.unit = unit }
+		}
+	}
 }

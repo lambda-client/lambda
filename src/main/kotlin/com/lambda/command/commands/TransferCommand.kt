@@ -39,71 +39,71 @@ import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
 object TransferCommand : LambdaCommand(
-    name = "transfer",
-    usage = "transfer <move | cancel | undo> <item> <amount> <to>",
-    description = "Transfer items from anywhere to anywhere",
+	name = "transfer",
+	usage = "transfer <move | cancel | undo> <item> <amount> <to>",
+	description = "Transfer items from anywhere to anywhere",
 ) {
-    private var lastContainerTransfer: Task<*>? = null
+	private var lastContainerTransfer: Task<*>? = null
 
-    override fun CommandBuilder.create() {
-        required(itemStack("stack", registry)) { stack ->
-            required(integer("amount", 1)) { amount ->
-                required(string("from")) { from ->
-                    suggests { ctx, builder ->
-                        val count = amount(ctx).value()
-                        val selection = selectStack(count) {
-                            isItem(stack(ctx).value().item)
-                        }
-                        AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-	                        selection.findContainersWithMaterial().forEachIndexed { i, container ->
-		                        builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
-	                        }
-                        }
-                        builder.buildFuture()
-                    }
-                    required(string("to")) { to ->
-                        suggests { ctx, builder ->
-                            val selection = selectStack(amount(ctx).value()) {
-                                isItem(stack(ctx).value().item)
-                            }
-                            AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-                                selection.findContainersWithSpace().forEachIndexed { i, container ->
-                                    builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
-                                }
-                            }
-                            builder.buildFuture()
-                        }
-                        executeWithResult {
-                            val selection = selectStack(amount().value()) {
-                                isItem(stack().value().item)
-                            }
-                            AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-                                val fromContainer = ContainerManager.containers().find {
-                                    it.name == from().value().split(".").last().trim()
-                                } ?: return@executeWithResult failure("From container not found")
+	override fun CommandBuilder.create() {
+		required(itemStack("stack", registry)) { stack ->
+			required(integer("amount", 1)) { amount ->
+				required(string("from")) { from ->
+					suggests { ctx, builder ->
+						val count = amount(ctx).value()
+						val selection = selectStack(count) {
+							isItem(stack(ctx).value().item)
+						}
+						AutomationConfig.Companion.DEFAULT.runSafeAutomated {
+							selection.findContainersWithMaterial().forEachIndexed { i, container ->
+								builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+							}
+						}
+						builder.buildFuture()
+					}
+					required(string("to")) { to ->
+						suggests { ctx, builder ->
+							val selection = selectStack(amount(ctx).value()) {
+								isItem(stack(ctx).value().item)
+							}
+							AutomationConfig.Companion.DEFAULT.runSafeAutomated {
+								selection.findContainersWithSpace().forEachIndexed { i, container ->
+									builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
+								}
+							}
+							builder.buildFuture()
+						}
+						executeWithResult {
+							val selection = selectStack(amount().value()) {
+								isItem(stack().value().item)
+							}
+							AutomationConfig.Companion.DEFAULT.runSafeAutomated {
+								val fromContainer = ContainerManager.containers().find {
+									it.name == from().value().split(".").last().trim()
+								} ?: return@executeWithResult failure("From container not found")
 
-                                val toContainer = ContainerManager.containers().find {
-                                    it.name == to().value().split(".").last().trim()
-                                } ?: return@executeWithResult failure("To container not found")
+								val toContainer = ContainerManager.containers().find {
+									it.name == to().value().split(".").last().trim()
+								} ?: return@executeWithResult failure("To container not found")
 
-	                            fromContainer.transferByTask(selection, toContainer).execute(RootTask)
-                            }
-                            return@executeWithResult success()
-                        }
-                    }
-                }
-            }
-        }
+								fromContainer.transferByTask(selection, toContainer).execute(RootTask)
+							}
+							return@executeWithResult success()
+						}
+					}
+				}
+			}
+		}
 
-        required(literal("cancel")) {
-            executeWithResult {
-                lastContainerTransfer?.cancel() ?: run {
-                    return@executeWithResult failure("No transfer to cancel")
-                }
-                this@TransferCommand.info("$lastContainerTransfer cancelled")
-                lastContainerTransfer = null
-                success()
-            }
-        }
-    }
+		required(literal("cancel")) {
+			executeWithResult {
+				lastContainerTransfer?.cancel() ?: run {
+					return@executeWithResult failure("No transfer to cancel")
+				}
+				this@TransferCommand.info("$lastContainerTransfer cancelled")
+				lastContainerTransfer = null
+				success()
+			}
+		}
+	}
 }

@@ -36,49 +36,49 @@ import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
 
 object InventoryTweaks : Module(
-    name = "InventoryTweaks",
-    tag = ModuleTag.PLAYER,
+	name = "InventoryTweaks",
+	tag = ModuleTag.PLAYER,
 ) {
-    private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
-    private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
-    private var placedPos: BlockPos? = null
-    private var placeAndOpen: Task<*>? = null
-    private var lastBreak: Task<*>? = null
-    private var lastOpenScreen: ScreenHandler? = null
+	private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
+	private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
+	private var placedPos: BlockPos? = null
+	private var placeAndOpen: Task<*>? = null
+	private var lastBreak: Task<*>? = null
+	private var lastOpenScreen: ScreenHandler? = null
 
-    init {
-        setDefaultAutomationConfig {
-            applyEdits {
-                hideAllGroupsExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
-            }
-        }
+	init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
+			}
+		}
 
-        listen<PlayerEvent.SlotClick> {
-            if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
-            val slot = it.screenHandler.getSlot(it.slot)
-            if (!(instantShulker && slot.stack.item in shulkerBoxes) && !(instantEChest && slot.stack.item == Items.ENDER_CHEST)) return@listen
-            it.cancel()
-            lastOpenScreen = null
-            placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
-                placedPos = placePos
-                OpenContainerTask(placePos, this@InventoryTweaks).finally { screenHandler ->
-                    lastOpenScreen = screenHandler
-                }
-            }.run()
-        }
+		listen<PlayerEvent.SlotClick> {
+			if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
+			val slot = it.screenHandler.getSlot(it.slot)
+			if (!(instantShulker && slot.stack.item in shulkerBoxes) && !(instantEChest && slot.stack.item == Items.ENDER_CHEST)) return@listen
+			it.cancel()
+			lastOpenScreen = null
+			placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
+				placedPos = placePos
+				OpenContainerTask(placePos, this@InventoryTweaks).finally { screenHandler ->
+					lastOpenScreen = screenHandler
+				}
+			}.run()
+		}
 
-        listen<InventoryEvent.Close> { event ->
-            if (event.screenHandler != lastOpenScreen) return@listen
-            lastOpenScreen = null
-            placedPos?.let {
-                lastBreak = breakAndCollectBlock(it).run()
-                placedPos = null
-            }
-        }
+		listen<InventoryEvent.Close> { event ->
+			if (event.screenHandler != lastOpenScreen) return@listen
+			lastOpenScreen = null
+			placedPos?.let {
+				lastBreak = breakAndCollectBlock(it).run()
+				placedPos = null
+			}
+		}
 
-        onDisable {
-            placeAndOpen?.cancel()
-            lastBreak?.cancel()
-        }
-    }
+		onDisable {
+			placeAndOpen?.cancel()
+			lastBreak?.cancel()
+		}
+	}
 }

@@ -36,106 +36,106 @@ import net.minecraft.util.math.Direction
  * from proceeding.
  */
 sealed class PlayerEvent {
-    /**
-     * Represents the player moving the cursor around
-     */
-    data class ChangeLookDirection(
-        val deltaYaw: Double,
-        val deltaPitch: Double,
-    ) : ICancellable by Cancellable()
+	/**
+	 * Represents the player moving the cursor around
+	 */
+	data class ChangeLookDirection(
+		val deltaYaw: Double,
+		val deltaPitch: Double,
+	) : ICancellable by Cancellable()
 
-    /**
-     * Represents the player swinging its hand
-     */
-    data class SwingHand(
-        val hand: Hand,
-    ) : ICancellable by Cancellable()
+	/**
+	 * Represents the player swinging its hand
+	 */
+	data class SwingHand(
+		val hand: Hand,
+	) : ICancellable by Cancellable()
 
-    /**
-     * Represents a health update for the player.
-     *
-     * @property amount The new player health.
-     */
-    data class Health(val amount: Float) : Event
+	/**
+	 * Represents a health update for the player.
+	 *
+	 * @property amount The new player health.
+	 */
+	data class Health(val amount: Float) : Event
 
-    sealed class Interact {
-        /**
-         * Represents the player interacting (right-click) with blocks
-         *
-         * @param hand The hand used to interact with the block
-         * @param blockHitResult Details about the block being interacted with
-         */
-        data class Block(
-            val hand: Hand,
-            val blockHitResult: BlockHitResult,
-        ) : ICancellable by Cancellable()
+	sealed class Interact {
+		/**
+		 * Represents the player interacting (right-click) with blocks
+		 *
+		 * @param hand The hand used to interact with the block
+		 * @param blockHitResult Details about the block being interacted with
+		 */
+		data class Block(
+			val hand: Hand,
+			val blockHitResult: BlockHitResult,
+		) : ICancellable by Cancellable()
 
-        /**
-         * Represents the player interacting (right-click) with entities
-         *
-         * @param hand The hand used to interact with the entity
-         * @param entity The entity being interacted with
-         * @param entityHitResult Details about the entity being interacted with
-         */
-        data class Entity(
-            val hand: Hand,
-            val entity: net.minecraft.entity.Entity,
-            val entityHitResult: EntityHitResult,
-        ) : ICancellable by Cancellable()
+		/**
+		 * Represents the player interacting (right-click) with entities
+		 *
+		 * @param hand The hand used to interact with the entity
+		 * @param entity The entity being interacted with
+		 * @param entityHitResult Details about the entity being interacted with
+		 */
+		data class Entity(
+			val hand: Hand,
+			val entity: net.minecraft.entity.Entity,
+			val entityHitResult: EntityHitResult,
+		) : ICancellable by Cancellable()
 
-        /**
-         * Represents the player interacting (right-click) with an item in the inventory
-         *
-         * @param hand The hand used to interact with the item
-         */
-        data class Item(
-            val hand: Hand,
-        ) : ICancellable by Cancellable()
-    }
+		/**
+		 * Represents the player interacting (right-click) with an item in the inventory
+		 *
+		 * @param hand The hand used to interact with the item
+		 */
+		data class Item(
+			val hand: Hand,
+		) : ICancellable by Cancellable()
+	}
 
-    sealed class Attack {
-        /**
-         * Represents the player attacking a block
-         */
-        data class Block(
-            val pos: BlockPos,
-            val side: Direction,
-        ) : ICancellable by Cancellable()
+	sealed class Attack {
+		/**
+		 * Represents the player attacking a block
+		 */
+		data class Block(
+			val pos: BlockPos,
+			val side: Direction,
+		) : ICancellable by Cancellable()
 
-        /**
-         * Represents the player attacking an entity
-         */
-        data class Entity(
-            val entity: net.minecraft.entity.Entity,
-        ) : ICancellable by Cancellable()
-    }
+		/**
+		 * Represents the player attacking an entity
+		 */
+		data class Entity(
+			val entity: net.minecraft.entity.Entity,
+		) : ICancellable by Cancellable()
+	}
 
-    sealed class Breaking {
-        /**
-         * Represents events triggered during a block breaking action
-         */
-        data class Update(
-            val pos: BlockPos,
-            val side: Direction,
-            var progress: Float,
-        ) : ICancellable by Cancellable()
+	sealed class Breaking {
+		/**
+		 * Represents events triggered during a block breaking action
+		 */
+		data class Update(
+			val pos: BlockPos,
+			val side: Direction,
+			var progress: Float,
+		) : ICancellable by Cancellable()
 
-        /**
-         * Represents the player canceling a block breaking action
-         */
-        data class Cancel(
-            var progress: Float,
-        ) : ICancellable by Cancellable()
-    }
+		/**
+		 * Represents the player canceling a block breaking action
+		 */
+		data class Cancel(
+			var progress: Float,
+		) : ICancellable by Cancellable()
+	}
 
-    /**
-     * Represents the player clicking on a slot in a screen
-     */
-    data class SlotClick(
-        val syncId: Int,
-        val slot: Int,
-        val button: Int,
-        val action: SlotActionType,
-        val screenHandler: ScreenHandler,
-    ) : ICancellable by Cancellable()
+	/**
+	 * Represents the player clicking on a slot in a screen
+	 */
+	data class SlotClick(
+		val syncId: Int,
+		val slot: Int,
+		val button: Int,
+		val action: SlotActionType,
+		val screenHandler: ScreenHandler,
+	) : ICancellable by Cancellable()
 }

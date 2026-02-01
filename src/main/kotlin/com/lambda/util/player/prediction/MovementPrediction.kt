@@ -32,4 +32,4 @@ import com.lambda.context.SafeContext
  * And im fucking tired of merging all shit from minecraft
  */
 fun SafeContext.buildPlayerPrediction(): PredictionTick =
-    PredictionEntity(player).lastTick
+	PredictionEntity(player).lastTick

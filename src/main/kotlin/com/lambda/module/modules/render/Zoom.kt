@@ -37,16 +37,19 @@ object Zoom : Module(
 	private val scroll by setting("Scroll", true)
 	private val persistentScroll by setting("Persistent Scroll", false) { scroll }
 	private val sensitivity by setting("Sensitivity", 0.2f, 0.1f..1f, 0.1f) { scroll }
-	@JvmStatic val smoothMovement by setting("Smooth Movement", false)
+	@JvmStatic
+	val smoothMovement by setting("Smooth Movement", false)
 
 	private var extraZoom = 0f
 		set(value) {
 			field = value.coerceAtLeast(-zoom + 1)
 		}
-	@JvmStatic val targetZoom: Float
+	@JvmStatic
+	val targetZoom: Float
 		get() = zoom + extraZoom
 	private var currentZoom = 1f
-	@JvmStatic var lerpedZoom = 1f; private set
+	@JvmStatic
+	var lerpedZoom = 1f; private set
 	private var lastZoomTime = 1L
 	private val zoomProgress
 		get() = clamp((System.currentTimeMillis() - lastZoomTime) / (if (isEnabled) animationDuration else disableDuration).toDouble(), 0.0, 1.0).toFloat()

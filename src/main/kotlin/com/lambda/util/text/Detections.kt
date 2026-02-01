@@ -19,7 +19,7 @@ package com.lambda.util.text
 
 import com.lambda.Lambda.mc
 
-val playerRegex =  "^<(.+)>".toRegex()
+val playerRegex = "^<(.+)>".toRegex()
 
 interface Detector {
 	fun matches(input: CharSequence): Boolean

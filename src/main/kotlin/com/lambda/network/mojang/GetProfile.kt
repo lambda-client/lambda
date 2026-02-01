@@ -30,7 +30,7 @@ import java.util.*
  *  - name: jeb_
  */
 suspend fun getProfile(name: String) = runCatching {
-    LambdaHttp.get("https://api.mojang.com/users/profiles/minecraft/$name").body<GameProfile>()
+	LambdaHttp.get("https://api.mojang.com/users/profiles/minecraft/$name").body<GameProfile>()
 }
 
 /**
@@ -40,5 +40,5 @@ suspend fun getProfile(name: String) = runCatching {
  *  - name: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
  */
 suspend fun getProfile(uuid: UUID) = runCatching {
-    LambdaHttp.get("https://api.minecraftservices.com/minecraft/profile/lookup/$uuid").body<GameProfile>()
+	LambdaHttp.get("https://api.minecraftservices.com/minecraft/profile/lookup/$uuid").body<GameProfile>()
 }

@@ -42,7 +42,7 @@ import net.minecraft.util.Identifier
 @JvmName("valueIdentifierArg")
 @BrigadierDsl
 fun DefaultArgumentReader<IdentifierArgumentType>.value(): Identifier {
-    return IdentifierArgumentType.getIdentifier(context.assumeSourceNotUsed(), name)
+	return IdentifierArgumentType.getIdentifier(context.assumeSourceNotUsed(), name)
 }
 
 /**
@@ -54,12 +54,12 @@ fun DefaultArgumentReader<IdentifierArgumentType>.value(): Identifier {
  */
 @BrigadierDsl
 fun ArgumentReader<
-        ServerCommandSource,
-        DefaultArgumentDescriptor<
-                IdentifierArgumentType
-                >
-        >.asAdvancement(): AdvancementEntry {
-    return RegistryKeyArgumentType.getAdvancementEntry(context, name)
+		ServerCommandSource,
+		DefaultArgumentDescriptor<
+				IdentifierArgumentType
+				>
+		>.asAdvancement(): AdvancementEntry {
+	return RegistryKeyArgumentType.getAdvancementEntry(context, name)
 }
 
 /**
@@ -105,12 +105,12 @@ fun ArgumentReader<
  */
 @BrigadierDsl
 fun ArgumentReader<
-        ServerCommandSource,
-        DefaultArgumentDescriptor<
-                IdentifierArgumentType
-                >
-        >.asRecipe(): RecipeEntry<*> {
-    return RegistryKeyArgumentType.getRecipeEntry(context, name)
+		ServerCommandSource,
+		DefaultArgumentDescriptor<
+				IdentifierArgumentType
+				>
+		>.asRecipe(): RecipeEntry<*> {
+	return RegistryKeyArgumentType.getRecipeEntry(context, name)
 }
 
 /**
@@ -118,7 +118,7 @@ fun ArgumentReader<
  */
 @BrigadierDsl
 fun <S> identifier(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, IdentifierArgumentType> {
-    return argument(name, IdentifierArgumentType.identifier())
+	return argument(name, IdentifierArgumentType.identifier())
 }

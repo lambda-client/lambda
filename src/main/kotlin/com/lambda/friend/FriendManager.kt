@@ -40,50 +40,50 @@ import java.util.*
 //  - Handle player changing names.
 //  - Improve save file structure.
 object FriendManager : Configurable(FriendConfig), Loadable {
-    override val name = "friends"
-    val friends by setting("friends", emptySet<GameProfile>(), serialize = true)
+	override val name = "friends"
+	val friends by setting("friends", emptySet<GameProfile>(), serialize = true)
 
-    fun befriend(profile: GameProfile) = if (!isFriend(profile)) friends.add(profile) else false
-    fun unfriend(profile: GameProfile): Boolean = friends.remove(profile)
+	fun befriend(profile: GameProfile) = if (!isFriend(profile)) friends.add(profile) else false
+	fun unfriend(profile: GameProfile): Boolean = friends.remove(profile)
 
-    fun gameProfile(name: String) = friends.firstOrNull { it.name == name }
-    fun gameProfile(uuid: UUID) = friends.firstOrNull { it.id == uuid }
+	fun gameProfile(name: String) = friends.firstOrNull { it.name == name }
+	fun gameProfile(uuid: UUID) = friends.firstOrNull { it.id == uuid }
 
-    fun isFriend(profile: GameProfile) = friends.contains(profile)
-    fun isFriend(name: String) = friends.any { it.name == name }
-    fun isFriend(uuid: UUID) = friends.any { it.id == uuid }
+	fun isFriend(profile: GameProfile) = friends.contains(profile)
+	fun isFriend(name: String) = friends.any { it.name == name }
+	fun isFriend(uuid: UUID) = friends.any { it.id == uuid }
 
-    fun clear() = friends.clear()
+	fun clear() = friends.clear()
 
-    val OtherClientPlayerEntity.isFriend: Boolean
-        get() = isFriend(gameProfile)
+	val OtherClientPlayerEntity.isFriend: Boolean
+		get() = isFriend(gameProfile)
 
-    fun OtherClientPlayerEntity.befriend() = befriend(gameProfile)
-    fun OtherClientPlayerEntity.unfriend() = unfriend(gameProfile)
+	fun OtherClientPlayerEntity.befriend() = befriend(gameProfile)
+	fun OtherClientPlayerEntity.unfriend() = unfriend(gameProfile)
 
-    override fun load() = "Loaded ${friends.size} friends"
+	override fun load() = "Loaded ${friends.size} friends"
 
-    fun befriendedText(name: String): Text = befriendedText(Text.of(name))
-    fun befriendedText(name: Text) = buildText {
-        literal(Color.GREEN, "Added ")
-        text(name)
-        literal(" to your friend list ")
-        clickEvent(ClickEvents.suggestCommand(";friends remove ${name.string}")) {
-            styled(underlined = true, color = Color.LIGHT_GRAY) {
-                literal("[Undo]")
-            }
-        }
-    }
+	fun befriendedText(name: String): Text = befriendedText(Text.of(name))
+	fun befriendedText(name: Text) = buildText {
+		literal(Color.GREEN, "Added ")
+		text(name)
+		literal(" to your friend list ")
+		clickEvent(ClickEvents.suggestCommand(";friends remove ${name.string}")) {
+			styled(underlined = true, color = Color.LIGHT_GRAY) {
+				literal("[Undo]")
+			}
+		}
+	}
 
-    fun unfriendedText(name: String): Text = unfriendedText(Text.of(name))
-    fun unfriendedText(name: Text) = buildText {
-        literal(Color.RED, "Removed ")
-        text(name)
-        literal(" from your friend list ")
-        clickEvent(ClickEvents.suggestCommand(";friends add ${name.string}")) {
-            styled(underlined = true, color = Color.LIGHT_GRAY) {
-                literal("[Undo]")
-            }
-        }
-    }
+	fun unfriendedText(name: String): Text = unfriendedText(Text.of(name))
+	fun unfriendedText(name: Text) = buildText {
+		literal(Color.RED, "Removed ")
+		text(name)
+		literal(" from your friend list ")
+		clickEvent(ClickEvents.suggestCommand(";friends add ${name.string}")) {
+			styled(underlined = true, color = Color.LIGHT_GRAY) {
+				literal("[Undo]")
+			}
+		}
+	}
 }

@@ -30,34 +30,34 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 
 object RenderTest : Module(
-    name = "Render:shrimp:Test:canned_food:",
-    description = "RenderTest",
-    tag = ModuleTag.DEBUG,
+	name = "Render:shrimp:Test:canned_food:",
+	description = "RenderTest",
+	tag = ModuleTag.DEBUG,
 ) {
-    private val test1 by setting("Toggle visibility", true)
-    private val test21 by setting("Hallo 1", true, visibility = ::test1)
-    private val test22 by setting("Hallo Slider", 1.0, 0.0..5.0, 0.5, visibility = ::test1)
-    private val test23 by setting("Hallo String", "bruh", visibility = ::test1)
-    private val test31 by setting("Holla huh 1", true, visibility = { !test1 })
-    private val test32 by setting("Holla buh 2", true, visibility = { !test1 })
+	private val test1 by setting("Toggle visibility", true)
+	private val test21 by setting("Hallo 1", true, visibility = ::test1)
+	private val test22 by setting("Hallo Slider", 1.0, 0.0..5.0, 0.5, visibility = ::test1)
+	private val test23 by setting("Hallo String", "bruh", visibility = ::test1)
+	private val test31 by setting("Holla huh 1", true, visibility = { !test1 })
+	private val test32 by setting("Holla buh 2", true, visibility = { !test1 })
 
-    private val outlineColor = Color(100, 150, 255).setAlpha(0.5)
-    private val filledColor = outlineColor.setAlpha(0.2)
+	private val outlineColor = Color(100, 150, 255).setAlpha(0.5)
+	private val filledColor = outlineColor.setAlpha(0.2)
 
-    init {
-        onDynamicRender { esp ->
-            entitySearch<LivingEntity>(8.0)
-                .forEach { entity ->
-                    esp.shapes(entity.x, entity.y, entity.z) {
-                        box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
-                    }
-                }
-        }
+	init {
+		onDynamicRender { esp ->
+			entitySearch<LivingEntity>(8.0)
+				.forEach { entity ->
+					esp.shapes(entity.x, entity.y, entity.z) {
+						box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
+					}
+				}
+		}
 
-        onStaticRender { esp ->
-            esp.shapes(player.x, player.y, player.z) {
-                box(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
-            }
-        }
-    }
+		onStaticRender { esp ->
+			esp.shapes(player.x, player.y, player.z) {
+				box(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
+			}
+		}
+	}
 }

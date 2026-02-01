@@ -56,22 +56,22 @@ internal const val MAX_Z = (1L shl Z_BITS - 1) - 1L
 const val F_ONE = 274945015809L
 
 fun fastVectorOf(x: Long, y: Long, z: Long): FastVector {
-    require(x in MIN_X..MAX_X) { "X coordinate out of bounds for $X_BITS bits: $x" }
-    require(z in MIN_Z..MAX_Z) { "Z coordinate out of bounds for $Z_BITS bits: $z" }
+	require(x in MIN_X..MAX_X) { "X coordinate out of bounds for $X_BITS bits: $x" }
+	require(z in MIN_Z..MAX_Z) { "Z coordinate out of bounds for $Z_BITS bits: $z" }
 
-    return ((x and X_MASK) shl X_SHIFT) or ((z and Z_MASK) shl Z_SHIFT) or (y and Y_MASK)
+	return ((x and X_MASK) shl X_SHIFT) or ((z and Z_MASK) shl Z_SHIFT) or (y and Y_MASK)
 }
 
 fun fastVectorOf(x: Int, y: Int, z: Int): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 val FastVector.x: Int
-    get() = ((this shr X_SHIFT and X_MASK).toInt() shl (32 - X_BITS)) shr (32 - X_BITS)
+	get() = ((this shr X_SHIFT and X_MASK).toInt() shl (32 - X_BITS)) shr (32 - X_BITS)
 
 val FastVector.z: Int
-    get() = ((this shr Z_SHIFT and Z_MASK).toInt() shl (32 - Z_BITS)) shr (32 - Z_BITS)
+	get() = ((this shr Z_SHIFT and Z_MASK).toInt() shl (32 - Z_BITS)) shr (32 - Z_BITS)
 
 val FastVector.y: Int
-    get() = ((this and Y_MASK).toInt() shl (32 - Y_BITS)) shr (32 - Y_BITS)
+	get() = ((this and Y_MASK).toInt() shl (32 - Y_BITS)) shr (32 - Y_BITS)
 
 infix fun FastVector.setX(x: Int): FastVector = bitSetTo(x.toLong(), X_SHIFT, X_BITS)
 infix fun FastVector.setY(y: Int): FastVector = bitSetTo(y.toLong(), 0, Y_BITS)
@@ -84,48 +84,48 @@ infix fun FastVector.addZ(value: Int): FastVector = setZ(z + value)
 infix fun FastVector.plus(vec: FastVector): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
 infix fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
 infix fun FastVector.plus(vec: Vec3d): FastVector =
-    fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
+	fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
 
 infix fun FastVector.minus(vec: FastVector): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
 infix fun FastVector.minus(vec: Vec3i): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
 infix fun FastVector.minus(vec: Vec3d): FastVector =
-    fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
+	fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
 
 infix fun FastVector.times(scalar: Int): FastVector = fastVectorOf(x * scalar, y * scalar, z * scalar)
 infix fun FastVector.times(scalar: Double): FastVector =
-    fastVectorOf((x * scalar).toLong(), (y * scalar).toLong(), (z * scalar).toLong())
+	fastVectorOf((x * scalar).toLong(), (y * scalar).toLong(), (z * scalar).toLong())
 
 infix fun FastVector.div(scalar: Int): FastVector = fastVectorOf(x / scalar, y / scalar, z / scalar)
 infix fun FastVector.div(scalar: Double): FastVector =
-    fastVectorOf((x / scalar).toLong(), (y / scalar).toLong(), (z / scalar).toLong())
+	fastVectorOf((x / scalar).toLong(), (y / scalar).toLong(), (z / scalar).toLong())
 
 infix fun FastVector.remainder(scalar: Int): FastVector = fastVectorOf(x % scalar, y % scalar, z % scalar)
 infix fun FastVector.remainder(scalar: Double): FastVector =
-    fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
+	fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
 
 infix fun FastVector.distSq(other: FastVector): Double {
-    val dx = x - other.x
-    val dy = y - other.y
-    val dz = z - other.z
-    return (dx * dx + dy * dy + dz * dz).toDouble()
+	val dx = x - other.x
+	val dy = y - other.y
+	val dz = z - other.z
+	return (dx * dx + dy * dy + dz * dz).toDouble()
 }
 
 infix fun FastVector.distSq(other: Vec3i): Double {
-    val dx = x - other.x
-    val dy = y - other.y
-    val dz = z - other.z
-    return (dx * dx + dy * dy + dz * dz).toDouble()
+	val dx = x - other.x
+	val dy = y - other.y
+	val dz = z - other.z
+	return (dx * dx + dy * dy + dz * dz).toDouble()
 }
 
 infix fun FastVector.distSq(other: Vec3d): Double {
-    val dx = x - other.x.toLong()
-    val dy = y - other.y.toLong()
-    val dz = z - other.z.toLong()
-    return (dx * dx + dy * dy + dz * dz).toDouble()
+	val dx = x - other.x.toLong()
+	val dy = y - other.y.toLong()
+	val dz = z - other.z.toLong()
+	return (dx * dx + dy * dy + dz * dz).toDouble()
 }
 
 fun FastVector.offset(dir: Direction) =
-    fastVectorOf(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ)
+	fastVectorOf(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ)
 
 fun Vec3i.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 fun Vec3d.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
@@ -137,6 +137,6 @@ fun FastVector.toBlockPos(): BlockPos = BlockPos(x, y, z)
  * Sets n bits to a value at a given position.
  */
 internal fun Long.bitSetTo(value: Long, position: Int, length: Int): Long {
-    val mask = (1L shl length) - 1L
-    return this and (mask shl position).inv() or (value and mask shl position)
+	val mask = (1L shl length) - 1L
+	return this and (mask shl position).inv() or (value and mask shl position)
 }

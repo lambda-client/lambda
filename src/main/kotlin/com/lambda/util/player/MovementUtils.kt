@@ -39,141 +39,161 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 object MovementUtils {
-    /**
-     * The forward value is independent of the player's rotation; normalized between -1 and 1
-     */
-    var Input.forward get() = movementVector.y; set(value) { movementVector = Vec2f(movementVector.x, value).normalize() }
+	/**
+	 * The forward value is independent of the player's rotation; normalized between -1 and 1
+	 */
+	var Input.forward
+		get() = movementVector.y
+		set(value) {
+			movementVector = Vec2f(movementVector.x, value).normalize()
+		}
 
-    /**
-     * The forward value is independent of the player's rotation; normalized between -1 and 1
-     */
-    var Input.strafe get() = movementVector.x; set(value) { movementVector = Vec2f(value, movementVector.y).normalize() }
-    var Input.jumping get() = playerInput.jump; set(value) { update(jump = value) }
-    var Input.sneaking get() = playerInput.sneak; set(value) { update(sneak = value) }
-    var Input.sprinting get() = playerInput.sprint; set(value) { update(sprint = value) }
+	/**
+	 * The forward value is independent of the player's rotation; normalized between -1 and 1
+	 */
+	var Input.strafe
+		get() = movementVector.x
+		set(value) {
+			movementVector = Vec2f(value, movementVector.y).normalize()
+		}
+	var Input.jumping
+		get() = playerInput.jump
+		set(value) {
+			update(jump = value)
+		}
+	var Input.sneaking
+		get() = playerInput.sneak
+		set(value) {
+			update(sneak = value)
+		}
+	var Input.sprinting
+		get() = playerInput.sprint
+		set(value) {
+			update(sprint = value)
+		}
 
-    /**
-     * Returns the absolute direction of the forward scalar
-     */
-    val Input.roundedForward get() = sign(movementVector.y).toDouble()
+	/**
+	 * Returns the absolute direction of the forward scalar
+	 */
+	val Input.roundedForward get() = sign(movementVector.y).toDouble()
 
-    /**
-     * Returns the absolute direction of the strafe scalar
-     */
-    val Input.roundedStrafing get() = sign(movementVector.x).toDouble()
+	/**
+	 * Returns the absolute direction of the strafe scalar
+	 */
+	val Input.roundedStrafing get() = sign(movementVector.x).toDouble()
 
-    val Input.handledByBaritone get() = this !is KeyboardInput
+	val Input.handledByBaritone get() = this !is KeyboardInput
 
-    val Input.isInputting get() = forward != 0f || strafe != 0f
-    val SafeContext.isInputting get() = player.input.isInputting
+	val Input.isInputting get() = forward != 0f || strafe != 0f
+	val SafeContext.isInputting get() = player.input.isInputting
 
-    fun SafeContext.newMovementInput(
-        assumeBaritone: Boolean = true,
-        slowdownCheck: Boolean = true,
-    ): Input {
-        if (assumeBaritone && player.input.handledByBaritone) return player.input
+	fun SafeContext.newMovementInput(
+		assumeBaritone: Boolean = true,
+		slowdownCheck: Boolean = true,
+	): Input {
+		if (assumeBaritone && player.input.handledByBaritone) return player.input
 
-        // ToDo: Add slowdown
-        return KeyboardInput(mc.options).apply { tick() }
-    }
+		// ToDo: Add slowdown
+		return KeyboardInput(mc.options).apply { tick() }
+	}
 
-    fun Input.update(
-        forward: Double = movementVector.y.toDouble(),
-        strafe: Double = movementVector.x.toDouble(),
-        jump: Boolean = playerInput.jump,
-        sneak: Boolean = playerInput.sneak,
-        sprint: Boolean = playerInput.sprint,
-    ) {
-        val input = buildMovementInput(forward, strafe, jump, sneak, sprint)
-        movementVector = input.movementVector
-        playerInput = input.playerInput
-    }
+	fun Input.update(
+		forward: Double = movementVector.y.toDouble(),
+		strafe: Double = movementVector.x.toDouble(),
+		jump: Boolean = playerInput.jump,
+		sneak: Boolean = playerInput.sneak,
+		sprint: Boolean = playerInput.sprint,
+	) {
+		val input = buildMovementInput(forward, strafe, jump, sneak, sprint)
+		movementVector = input.movementVector
+		playerInput = input.playerInput
+	}
 
-    fun buildMovementInput(
-        forward: Double,
-        strafe: Double,
-        jump: Boolean = false,
-        sneak: Boolean = false,
-        sprint: Boolean = false,
-    ) = Input().apply {
-        movementVector = Vec2f(strafe.toFloat(), forward.toFloat()).normalize()
-        playerInput = PlayerInput(
-            forward > 0.0,
-            forward < 0.0,
-            strafe < 0.0,
-            strafe > 0.0,
-            jump,
-            sneak,
-            sprint,
-        )
-    }
+	fun buildMovementInput(
+		forward: Double,
+		strafe: Double,
+		jump: Boolean = false,
+		sneak: Boolean = false,
+		sprint: Boolean = false,
+	) = Input().apply {
+		movementVector = Vec2f(strafe.toFloat(), forward.toFloat()).normalize()
+		playerInput = PlayerInput(
+			forward > 0.0,
+			forward < 0.0,
+			strafe < 0.0,
+			strafe > 0.0,
+			jump,
+			sneak,
+			sprint,
+		)
+	}
 
-    fun Input.cancel(vertical: Boolean = true) =
-        update(0.0, 0.0, !vertical, !vertical, false)
+	fun Input.cancel(vertical: Boolean = true) =
+		update(0.0, 0.0, !vertical, !vertical, false)
 
-    val Input.verticalMovement
-        get() = jumping.toDouble() - sneaking.toDouble()
+	val Input.verticalMovement
+		get() = jumping.toDouble() - sneaking.toDouble()
 
-    private fun inputMoveOffset(
-        moveForward: Double,
-        moveStrafe: Double,
-    ) = atan2(-moveStrafe, moveForward)
+	private fun inputMoveOffset(
+		moveForward: Double,
+		moveStrafe: Double,
+	) = atan2(-moveStrafe, moveForward)
 
-    fun SafeContext.calcMoveYaw(
-        yawIn: Float = player.moveYaw,
-        moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing,
-    ) = yawIn + inputMoveOffset(moveForward, moveStrafe).toDegree()
+	fun SafeContext.calcMoveYaw(
+		yawIn: Float = player.moveYaw,
+		moveForward: Double = player.input.roundedForward,
+		moveStrafe: Double = player.input.roundedStrafing,
+	) = yawIn + inputMoveOffset(moveForward, moveStrafe).toDegree()
 
-    fun SafeContext.calcMoveRad(
-        yawIn: Float = player.moveYaw,
-        moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing,
-    ) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
+	fun SafeContext.calcMoveRad(
+		yawIn: Float = player.moveYaw,
+		moveForward: Double = player.input.roundedForward,
+		moveStrafe: Double = player.input.roundedStrafing,
+	) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
 
-    fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
-        Vec3d(-sin(radDir), y, cos(radDir))
+	fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
+		Vec3d(-sin(radDir), y, cos(radDir))
 
-    var Entity.motion: Vec3d
-        get() = velocity
-        set(value) {
-            velocity = value
-        }
-    var Entity.motionX get() = velocity.x; set(value) = setVelocity(value, velocity.y, velocity.z)
-    var Entity.motionY get() = velocity.y; set(value) = setVelocity(velocity.x, value, velocity.z)
-    var Entity.motionZ get() = velocity.z; set(value) = setVelocity(velocity.x, velocity.y, value)
+	var Entity.motion: Vec3d
+		get() = velocity
+		set(value) {
+			velocity = value
+		}
+	var Entity.motionX get() = velocity.x; set(value) = setVelocity(value, velocity.y, velocity.z)
+	var Entity.motionY get() = velocity.y; set(value) = setVelocity(velocity.x, value, velocity.z)
+	var Entity.motionZ get() = velocity.z; set(value) = setVelocity(velocity.x, velocity.y, value)
 
-    fun SafeContext.setSpeed(speed: Double, direction: Double = calcMoveRad()) {
-        player.motion = movementVector(direction, player.motionY)
-        mulSpeed(speed)
-    }
+	fun SafeContext.setSpeed(speed: Double, direction: Double = calcMoveRad()) {
+		player.motion = movementVector(direction, player.motionY)
+		mulSpeed(speed)
+	}
 
-    fun SafeContext.addSpeed(speed: Double, direction: Double = calcMoveRad()) {
-        player.motion += movementVector(direction) * speed
-    }
+	fun SafeContext.addSpeed(speed: Double, direction: Double = calcMoveRad()) {
+		player.motion += movementVector(direction) * speed
+	}
 
-    fun SafeContext.mulSpeed(modifier: Double) {
-        player.motion *= Vec3d(modifier, 1.0, modifier)
-    }
+	fun SafeContext.mulSpeed(modifier: Double) {
+		player.motion *= Vec3d(modifier, 1.0, modifier)
+	}
 
-    val ClientPlayerEntity.moveYaw get() = RotationManager.movementYaw ?: yaw
+	val ClientPlayerEntity.moveYaw get() = RotationManager.movementYaw ?: yaw
 
-    val Entity.moveDiff get() = Vec3d(x - lastX, y - lastY, z - lastZ)
-    val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
+	val Entity.moveDiff get() = Vec3d(x - lastX, y - lastY, z - lastZ)
+	val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
 
-    val Entity.octant: EightWayDirection
-        get() = yaw.octant
+	val Entity.octant: EightWayDirection
+		get() = yaw.octant
 
-    val Float.octant: EightWayDirection
-        get() {
-            // Normalize the yaw to be within the range of -180 to 179 degrees
-            var normalizedYaw = (this + 180.0) % 360.0
-            if (normalizedYaw < 0) {
-                normalizedYaw += 360.0
-            }
+	val Float.octant: EightWayDirection
+		get() {
+			// Normalize the yaw to be within the range of -180 to 179 degrees
+			var normalizedYaw = (this + 180.0) % 360.0
+			if (normalizedYaw < 0) {
+				normalizedYaw += 360.0
+			}
 
-            // Calculate the index of the closest direction
-            val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
-            return EightWayDirection.entries[directionIndex]
-        }
+			// Calculate the index of the closest direction
+			val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
+			return EightWayDirection.entries[directionIndex]
+		}
 }

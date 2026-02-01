@@ -39,14 +39,14 @@ object CustomChat : Module(
 	init {
 		listen<ChatEvent.Send> {
 			val isBaritone = BaritoneManager.baritoneSettings?.prefix?.value
-				?.let { setting -> it.message.startsWith(setting)}
+				?.let { setting -> it.message.startsWith(setting) }
 				?: false
 
 			val isLambda = it.message.startsWith(prefix)
 
 			if (isLambda || isBaritone)
 				return@listen
-			
+
 			val message = "${it.message} ${decoration.block(text.block())}"
 			it.message = message.take(min(256, message.length))
 		}

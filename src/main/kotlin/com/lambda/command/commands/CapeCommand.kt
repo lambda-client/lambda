@@ -30,28 +30,28 @@ import com.lambda.util.Communication.logError
 import com.lambda.util.extension.CommandBuilder
 
 object CapeCommand : LambdaCommand(
-    name = "cape",
-    usage = "set <id>",
-    description = "Sets your cape",
+	name = "cape",
+	usage = "set <id>",
+	description = "Sets your cape",
 ) {
-    override fun CommandBuilder.create() {
-        required(literal("set")) {
-            required(string("id")) { id ->
-                suggests { _, builder ->
-                    CapeManager.availableCapes
-                        .forEach { builder.suggest(it) }
+	override fun CommandBuilder.create() {
+		required(literal("set")) {
+			required(string("id")) { id ->
+				suggests { _, builder ->
+					CapeManager.availableCapes
+						.forEach { builder.suggest(it) }
 
-                    builder.buildFuture()
-                }
+					builder.buildFuture()
+				}
 
-                execute {
-                    val cape = id().value()
-                    updateCape(cape) { error ->
-                        if (error != null) logError("Could not update your cape", error)
-                        else info("Updated your cape to $cape")
-                    }
-                }
-            }
-        }
-    }
+				execute {
+					val cape = id().value()
+					updateCape(cape) { error ->
+						if (error != null) logError("Could not update your cape", error)
+						else info("Updated your cape to $cape")
+					}
+				}
+			}
+		}
+	}
 }

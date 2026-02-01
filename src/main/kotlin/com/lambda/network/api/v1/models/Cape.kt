@@ -22,14 +22,14 @@ import com.lambda.network.LambdaAPI
 import java.util.*
 
 class Cape(
-    @SerializedName("uuid")
-    val uuid: UUID,
+	@SerializedName("uuid")
+	val uuid: UUID,
 
-    @SerializedName("type")
-    val id: String,
+	@SerializedName("type")
+	val id: String,
 ) {
-    val url: String
-        get() = "${LambdaAPI.capes}/$id.png"
+	val url: String
+		get() = "${LambdaAPI.capes}/$id.png"
 
-    override fun toString() = "Cape(uuid=$uuid, id=$id, url=$url)"
+	override fun toString() = "Cape(uuid=$uuid, id=$id, url=$url)"
 }

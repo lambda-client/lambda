@@ -31,35 +31,35 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class LongSetting(
-    defaultValue: Long,
-    override var range: ClosedRange<Long>,
-    override var step: Long = 1,
-    unit: String
+	defaultValue: Long,
+	override var range: ClosedRange<Long>,
+	override var step: Long = 1,
+	unit: String
 ) : NumericSetting<Long>(
-    defaultValue,
-    range,
-    step,
-    unit
+	defaultValue,
+	range,
+	step,
+	unit
 ) {
-    // ToDo: No worky for super large numbers
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).toInt()
-        set(index) {
-            value = (range.start + index * step).coerceIn(range)
-        }
+	// ToDo: No worky for super large numbers
+	private var valueIndex: Int
+		get() = ((value - range.start) / step).toInt()
+		set(index) {
+			value = (range.start + index * step).coerceIn(range)
+		}
 
 	context(setting: Setting<*, Long>)
-    override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
-    }
+	override fun ImGuiBuilder.buildSlider() {
+		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+		slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
+	}
 
 	context(setting: Setting<*, Long>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(long(setting.name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(long(setting.name, range.start, range.endInclusive)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 }

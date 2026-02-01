@@ -22,33 +22,33 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
 data class PredictionTick(
-    val position: Vec3d,
-    val rotation: Rotation,
-    val velocity: Vec3d,
-    val boundingBox: Box,
-    val eyePos: Vec3d,
-    val onGround: Boolean,
-    val isJumping: Boolean,
-    val predictionEntity: PredictionEntity,
+	val position: Vec3d,
+	val rotation: Rotation,
+	val velocity: Vec3d,
+	val boundingBox: Box,
+	val eyePos: Vec3d,
+	val onGround: Boolean,
+	val isJumping: Boolean,
+	val predictionEntity: PredictionEntity,
 ) {
-    fun next() = skipTicks(1)
+	fun next() = skipTicks(1)
 
-    fun skipTicks(amount: Int) = with(predictionEntity) {
-        repeat(amount) {
-            tickMovement()
-        }
+	fun skipTicks(amount: Int) = with(predictionEntity) {
+		repeat(amount) {
+			tickMovement()
+		}
 
-        lastTick
-    }
+		lastTick
+	}
 
-    fun skipUntil(amount: Int = 20, block: (PredictionTick) -> Boolean) = with(predictionEntity) {
-        repeat(amount) {
-            tickMovement()
-            val prediction = lastTick
+	fun skipUntil(amount: Int = 20, block: (PredictionTick) -> Boolean) = with(predictionEntity) {
+		repeat(amount) {
+			tickMovement()
+			val prediction = lastTick
 
-            if (block(prediction)) return@with lastTick
-        }
+			if (block(prediction)) return@with lastTick
+		}
 
-        return@with lastTick
-    }
+		return@with lastTick
+	}
 }

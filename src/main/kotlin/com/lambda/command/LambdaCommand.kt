@@ -39,55 +39,57 @@ import net.minecraft.registry.BuiltinRegistries
 import net.minecraft.server.command.CommandManager
 
 abstract class LambdaCommand(
-    final override val name: String,
-    val aliases: Set<String> = emptySet(),
-    val usage: String = "",
-    val description: String = "",
-    val examples: List<String> = listOf()
+	final override val name: String,
+	val aliases: Set<String> = emptySet(),
+	val usage: String = "",
+	val description: String = "",
+	val examples: List<String> = listOf()
 ) : Nameable, Loadable {
-    override val priority get() = -1
+	override val priority get() = -1
 
-    val registry: CommandRegistryAccess by lazy {
-        CommandManager.createRegistryAccess(BuiltinRegistries.createWrapperLookup())
-    }
+	val registry: CommandRegistryAccess by lazy {
+		CommandManager.createRegistryAccess(BuiltinRegistries.createWrapperLookup())
+	}
 
-    override fun load(): String {
-        (aliases + name).forEach { alias ->
-            LiteralArgumentBuilder.literal<CommandSource>(alias.lowercase()).apply {
-                create()
-                help()
-                dispatcher.register(this)
-            }
-        }
-        return ""
-    }
+	override fun load(): String {
+		(aliases + name).forEach { alias ->
+			LiteralArgumentBuilder.literal<CommandSource>(alias.lowercase()).apply {
+				create()
+				help()
+				dispatcher.register(this)
+			}
+		}
+		return ""
+	}
 
-    private fun CommandBuilder.help() {
-        required(literal("help")) {
-            execute {
-                this@LambdaCommand.info(buildText {
-                    literal("Help\n")
-                    highlighted("Usage:\n")
-                    literal("${CommandRegistry.prefix}$usage\n")
-                    highlighted("Description:\n")
-                    literal(description)
-                    if (examples.isNotEmpty()) {
-                        literal("\n")
-                        highlighted("Examples:\n")
-                        examples.forEachIndexed { i, example ->
-                            val full = "${CommandRegistry.prefix}$example"
-                            hoverEvent(HoverEvents.showText(buildText { literal("Click to try this example!") })) {
-                                clickEvent(ClickEvents.suggestCommand(full)) {
-                                    literal(full)
-                                    if (i != examples.lastIndex) { literal("\n") }
-                                }
-                            }
-                        }
-                    }
-                })
-            }
-        }
-    }
+	private fun CommandBuilder.help() {
+		required(literal("help")) {
+			execute {
+				this@LambdaCommand.info(buildText {
+					literal("Help\n")
+					highlighted("Usage:\n")
+					literal("${CommandRegistry.prefix}$usage\n")
+					highlighted("Description:\n")
+					literal(description)
+					if (examples.isNotEmpty()) {
+						literal("\n")
+						highlighted("Examples:\n")
+						examples.forEachIndexed { i, example ->
+							val full = "${CommandRegistry.prefix}$example"
+							hoverEvent(HoverEvents.showText(buildText { literal("Click to try this example!") })) {
+								clickEvent(ClickEvents.suggestCommand(full)) {
+									literal(full)
+									if (i != examples.lastIndex) {
+										literal("\n")
+									}
+								}
+							}
+						}
+					}
+				})
+			}
+		}
+	}
 
-    abstract fun CommandBuilder.create()
+	abstract fun CommandBuilder.create()
 }

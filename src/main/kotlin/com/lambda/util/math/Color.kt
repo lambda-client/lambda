@@ -21,10 +21,10 @@ import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 fun Color.setAlpha(value: Double) =
-    Color(red, green, blue, (value * 255.0).coerceIn(0.0, 255.0).toInt())
+	Color(red, green, blue, (value * 255.0).coerceIn(0.0, 255.0).toInt())
 
 fun Color.multAlpha(value: Double) =
-    Color(red, green, blue, (value * alpha).coerceIn(0.0, 255.0).toInt())
+	Color(red, green, blue, (value * alpha).coerceIn(0.0, 255.0).toInt())
 
 val Color.r get() = red / 255.0
 val Color.g get() = green / 255.0

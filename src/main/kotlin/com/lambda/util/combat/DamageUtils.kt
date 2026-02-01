@@ -57,115 +57,115 @@ import kotlin.math.max
 import kotlin.math.min
 
 object DamageUtils {
-    /**
-     * Returns whether the player will fall from high enough for the impact to be deadly
-     *
-     * @param minHealth The minimum health (in half hearts) at which the fall is considered deadly
-     */
-    fun SafeContext.isFallDeadly(minHealth: Double = 0.0) =
-        player.fullHealth - fallDamage() <= minHealth
+	/**
+	 * Returns whether the player will fall from high enough for the impact to be deadly
+	 *
+	 * @param minHealth The minimum health (in half hearts) at which the fall is considered deadly
+	 */
+	fun SafeContext.isFallDeadly(minHealth: Double = 0.0) =
+		player.fullHealth - fallDamage() <= minHealth
 
-    /**
-     * Calculates the fall damage for the player given its current input values and the predicted
-     * landing position.
-     */
-    fun SafeContext.fallDamage(): Double {
-        val prediction = buildPlayerPrediction()
-            .skipUntil(60) { it.onGround }
+	/**
+	 * Calculates the fall damage for the player given its current input values and the predicted
+	 * landing position.
+	 */
+	fun SafeContext.fallDamage(): Double {
+		val prediction = buildPlayerPrediction()
+			.skipUntil(60) { it.onGround }
 
-        val predictedPos = prediction.position
-        val fallDistance = player.y - predictedPos.y + player.fallDistance
+		val predictedPos = prediction.position
+		val fallDistance = player.y - predictedPos.y + player.fallDistance
 
-        val state = blockState(predictedPos.flooredBlockPos)
-        val block = state.block
+		val state = blockState(predictedPos.flooredBlockPos)
+		val block = state.block
 
-        val distance = fallDistance +
-                when (block) {
-                    is BedBlock -> 0.5
-                    is PointedDripstoneBlock -> if (state.get(VERTICAL_DIRECTION) == Direction.UP && state.get(THICKNESS) == Thickness.TIP) 2.0 else 0.0
-                    else -> 0.0
-                }
+		val distance = fallDistance +
+				when (block) {
+					is BedBlock -> 0.5
+					is PointedDripstoneBlock -> if (state.get(VERTICAL_DIRECTION) == Direction.UP && state.get(THICKNESS) == Thickness.TIP) 2.0 else 0.0
+					else -> 0.0
+				}
 
-        val multiplier = when (block) {
-            is HayBlock, is HoneyBlock -> 0.2
-            is PointedDripstoneBlock -> if (state.get(VERTICAL_DIRECTION) == Direction.UP && state.get(THICKNESS) == Thickness.TIP) 2.0 else 1.0
-            is PowderSnowBlock, is SlimeBlock, is CobwebBlock -> 0.0
-            else -> 1.0
-        }
+		val multiplier = when (block) {
+			is HayBlock, is HoneyBlock -> 0.2
+			is PointedDripstoneBlock -> if (state.get(VERTICAL_DIRECTION) == Direction.UP && state.get(THICKNESS) == Thickness.TIP) 2.0 else 1.0
+			is PowderSnowBlock, is SlimeBlock, is CobwebBlock -> 0.0
+			else -> 1.0
+		}
 
-        val source = player.damageSources.fall()
-        return source.scale(world, player, player.fallDamage(distance, multiplier))
-    }
+		val source = player.damageSources.fall()
+		return source.scale(world, player, player.fallDamage(distance, multiplier))
+	}
 
-    fun LivingEntity.fallDamage(distance: Double, multiplier: Double): Double {
-        if (type.isIn(FALL_DAMAGE_IMMUNE)) return 0.0
+	fun LivingEntity.fallDamage(distance: Double, multiplier: Double): Double {
+		if (type.isIn(FALL_DAMAGE_IMMUNE)) return 0.0
 
-        val modifier = getStatusEffect(JUMP_BOOST)?.amplifier?.plus(1.0) ?: 0.0
-        return max(0.0, ceil((distance - 3.0 - modifier) * multiplier))
-    }
+		val modifier = getStatusEffect(JUMP_BOOST)?.amplifier?.plus(1.0) ?: 0.0
+		return max(0.0, ceil((distance - 3.0 - modifier) * multiplier))
+	}
 
-    /**
-     * Scales damage up or down based on the player resistances and other variables
-     */
-    fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
-        val blockingItem = entity.blockingItem
-        val itemComponent = blockingItem?.get(DataComponentTypes.BLOCKS_ATTACKS)
+	/**
+	 * Scales damage up or down based on the player resistances and other variables
+	 */
+	fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
+		val blockingItem = entity.blockingItem
+		val itemComponent = blockingItem?.get(DataComponentTypes.BLOCKS_ATTACKS)
 
-        val source = source
-        val position = position
+		val source = source
+		val position = position
 
-        val blockingReduction = itemComponent
-            ?.bypassedBy
-            ?.filter { !isIn(it) }
-            ?.map {
-                if (source is PersistentProjectileEntity
-                    && source.pierceLevel > 0
-                ) return@map 0.0
+		val blockingReduction = itemComponent
+			?.bypassedBy
+			?.filter { !isIn(it) }
+			?.map {
+				if (source is PersistentProjectileEntity
+					&& source.pierceLevel > 0
+				) return@map 0.0
 
-                val horizontalAngle = if (position != null) {
-                    acos(
-                        (entity.pos - position).horizontal.normalize()
-                            .dotProduct(entity.getRotationVector(0f, entity.headYaw))
-                    )
-                } else Math.PI
+				val horizontalAngle = if (position != null) {
+					acos(
+						(entity.pos - position).horizontal.normalize()
+							.dotProduct(entity.getRotationVector(0f, entity.headYaw))
+					)
+				} else Math.PI
 
-                return@map itemComponent.getDamageReductionAmount(this, damage.toFloat(), horizontalAngle).toDouble()
-            }
-            ?.getOrDefault(0.0)
-            ?: 0.0
+				return@map itemComponent.getDamageReductionAmount(this, damage.toFloat(), horizontalAngle).toDouble()
+			}
+			?.getOrDefault(0.0)
+			?: 0.0
 
-        val amount = damage - blockingReduction
+		val amount = damage - blockingReduction
 
-        if (entity.isAlwaysInvulnerableTo(this) ||
-            entity.isDead ||
-            isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)
-        ) return 0.0
+		if (entity.isAlwaysInvulnerableTo(this) ||
+			entity.isDead ||
+			isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)
+		) return 0.0
 
-        if (isIn(IS_FREEZING) && entity.type.isIn(FREEZE_HURTS_EXTRA_TYPES))
-            return amount * 5.0
+		if (isIn(IS_FREEZING) && entity.type.isIn(FREEZE_HURTS_EXTRA_TYPES))
+			return amount * 5.0
 
-        if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
-            return amount * 0.75
+		if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
+			return amount * 0.75
 
-        val appliedDamage = entity.applyArmorToDamage(
-            this,
-            entity.modifyAppliedDamage(this, amount.toFloat())
-        ).toDouble()
+		val appliedDamage = entity.applyArmorToDamage(
+			this,
+			entity.modifyAppliedDamage(this, amount.toFloat())
+		).toDouble()
 
-        return if (entity is PlayerEntity && isScaledWithDifficulty)
-            world.scaleDamage(appliedDamage) else appliedDamage
-    }
+		return if (entity is PlayerEntity && isScaledWithDifficulty)
+			world.scaleDamage(appliedDamage) else appliedDamage
+	}
 
-    /**
-     * Scales the damage depending on the world difficulty
-     *
-     * Note: before using this function make sure to check if the damage scales with the given source
-     */
-    fun World.scaleDamage(damage: Double): Double =
-        when (difficulty) {
-            Difficulty.PEACEFUL -> 0.0
-            Difficulty.EASY -> min(damage / 2 + 1, damage)
-            Difficulty.HARD -> damage * 3 / 2
-            else -> damage
-        }
+	/**
+	 * Scales the damage depending on the world difficulty
+	 *
+	 * Note: before using this function make sure to check if the damage scales with the given source
+	 */
+	fun World.scaleDamage(damage: Double): Double =
+		when (difficulty) {
+			Difficulty.PEACEFUL -> 0.0
+			Difficulty.EASY -> min(damage / 2 + 1, damage)
+			Difficulty.HARD -> damage * 3 / 2
+			else -> damage
+		}
 }

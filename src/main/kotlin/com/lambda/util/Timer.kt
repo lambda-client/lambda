@@ -26,53 +26,53 @@ import kotlin.time.TimeSource
  * A utility class to manage time-based operations, such as delays and periodic tasks.
  */
 class Timer {
-    private var lastTiming = TimeSource.Monotonic.markNow()
+	private var lastTiming = TimeSource.Monotonic.markNow()
 
-    fun timePassed(duration: Duration): Boolean =
-        lastTiming.elapsedNow() > duration
+	fun timePassed(duration: Duration): Boolean =
+		lastTiming.elapsedNow() > duration
 
-    fun delayIfPassed(duration: Duration): Boolean =
-        timePassed(duration).apply {
-            if (this) reset()
-        }
+	fun delayIfPassed(duration: Duration): Boolean =
+		timePassed(duration).apply {
+			if (this) reset()
+		}
 
-    fun runIfPassed(duration: Duration, reset: Boolean = true, block: () -> Unit) =
-        timePassed(duration).apply {
-            if (!this) return@apply
-            if (reset) reset()
+	fun runIfPassed(duration: Duration, reset: Boolean = true, block: () -> Unit) =
+		timePassed(duration).apply {
+			if (!this) return@apply
+			if (reset) reset()
 
-            block()
-        }
+			block()
+		}
 
-    fun runIfNotPassed(duration: Duration, reset: Boolean = true, block: () -> Unit) =
-        timePassed(duration).also { passed ->
-            if (passed) return@also
-            if (reset) reset()
+	fun runIfNotPassed(duration: Duration, reset: Boolean = true, block: () -> Unit) =
+		timePassed(duration).also { passed ->
+			if (passed) return@also
+			if (reset) reset()
 
-            block()
-        }
+			block()
+		}
 
-    fun runSafeIfPassed(duration: Duration, reset: Boolean = true, block: SafeContext.() -> Unit) =
-        timePassed(duration).also { passed ->
-            if (!passed) return@also
+	fun runSafeIfPassed(duration: Duration, reset: Boolean = true, block: SafeContext.() -> Unit) =
+		timePassed(duration).also { passed ->
+			if (!passed) return@also
 
-            runSafe {
-                if (reset) reset()
-                block()
-            }
-        }
+			runSafe {
+				if (reset) reset()
+				block()
+			}
+		}
 
-    fun runSafeIfNotPassed(duration: Duration, reset: Boolean = true, block: SafeContext.() -> Unit) =
-        timePassed(duration).also { passed ->
-            if (passed) return@also
+	fun runSafeIfNotPassed(duration: Duration, reset: Boolean = true, block: SafeContext.() -> Unit) =
+		timePassed(duration).also { passed ->
+			if (passed) return@also
 
-            runSafe {
-                if (reset) reset()
-                block()
-            }
-        }
+			runSafe {
+				if (reset) reset()
+				block()
+			}
+		}
 
-    fun reset(additionalDelay: Duration = Duration.ZERO) {
-        lastTiming = TimeSource.Monotonic.markNow() + additionalDelay
-    }
+	fun reset(additionalDelay: Duration = Duration.ZERO) {
+		lastTiming = TimeSource.Monotonic.markNow() + additionalDelay
+	}
 }

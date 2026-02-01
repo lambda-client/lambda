@@ -49,7 +49,7 @@ import java.util.*
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<AngleArgumentType>>.value() =
-    AngleArgumentType.getAngle(context, name)
+	AngleArgumentType.getAngle(context, name)
 
 /**
  * Reads the raw [PosArgument] value from the
@@ -59,7 +59,7 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<AngleArgumentT
  */
 @BrigadierDsl
 fun DefaultArgumentReader<RotationArgumentType>.value(): PosArgument =
-    RotationArgumentType.getRotation(context.assumeSourceNotUsed(), name)
+	RotationArgumentType.getRotation(context.assumeSourceNotUsed(), name)
 
 /**
  * Reads the [Vec2f] value from the argument
@@ -71,7 +71,7 @@ fun DefaultArgumentReader<RotationArgumentType>.value(): PosArgument =
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<RotationArgumentType>>.absolute(): Vec2f =
-    RotationArgumentType.getRotation(context, name).getRotation(context.source)
+	RotationArgumentType.getRotation(context, name).getRotation(context.source)
 
 /**
  * Reads the set of [Direction.Axis] from the
@@ -81,7 +81,7 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<RotationArgume
  */
 @BrigadierDsl
 fun DefaultArgumentReader<SwizzleArgumentType>.value(): EnumSet<Direction.Axis> =
-    SwizzleArgumentType.getSwizzle(context.assumeSourceNotUsed(), name)
+	SwizzleArgumentType.getSwizzle(context.assumeSourceNotUsed(), name)
 
 /**
  * Reads the [BlockPos] value from the
@@ -92,7 +92,7 @@ fun DefaultArgumentReader<SwizzleArgumentType>.value(): EnumSet<Direction.Axis> 
 @JvmName("valueBlockPosArg")
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<BlockPosArgumentType>>.value(): BlockPos =
-    BlockPosArgumentType.getBlockPos(context, name)
+	BlockPosArgumentType.getBlockPos(context, name)
 
 /**
  * Reads the [BlockPos] value from the
@@ -105,7 +105,7 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<BlockPosArgume
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<BlockPosArgumentType>>.requireLoaded(): BlockPos =
-    BlockPosArgumentType.getLoadedBlockPos(context, name)
+	BlockPosArgumentType.getLoadedBlockPos(context, name)
 
 /**
  * Reads the [ColumnPos] value from the
@@ -115,7 +115,7 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<BlockPosArgume
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<ColumnPosArgumentType>>.value(): ColumnPos =
-    ColumnPosArgumentType.getColumnPos(context, name)
+	ColumnPosArgumentType.getColumnPos(context, name)
 
 /**
  * Reads the [Vec2f] value from the
@@ -125,7 +125,7 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<ColumnPosArgum
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<Vec2ArgumentType>>.value(): Vec2f =
-    Vec2ArgumentType.getVec2(context, name)
+	Vec2ArgumentType.getVec2(context, name)
 
 /**
  * Reads the [Vec3d] value from the
@@ -135,7 +135,7 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<Vec2ArgumentTy
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<Vec3ArgumentType>>.value(): Vec3d =
-    Vec3ArgumentType.getVec3(context, name)
+	Vec3ArgumentType.getVec3(context, name)
 
 /**
  * Reads the raw [PosArgument] value from the
@@ -145,30 +145,30 @@ fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<Vec3ArgumentTy
  */
 @BrigadierDsl
 fun DefaultArgumentReader<Vec3ArgumentType>.posArgument(): PosArgument =
-    Vec3ArgumentType.getPosArgument(context.assumeSourceNotUsed(), name)
+	Vec3ArgumentType.getPosArgument(context.assumeSourceNotUsed(), name)
 
 /**
  * Creates an angle argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> angle(name: String): DefaultArgumentConstructor<S, AngleArgumentType> =
-    argument(name, AngleArgumentType.angle())
+	argument(name, AngleArgumentType.angle())
 
 /**
  * Creates a rotation argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> rotation(name: String): DefaultArgumentConstructor<S, RotationArgumentType> =
-    argument(name, RotationArgumentType.rotation())
+	argument(name, RotationArgumentType.rotation())
 
 /**
  * Creates a swizzle argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> swizzle(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, SwizzleArgumentType> {
-    return argument(name, SwizzleArgumentType.swizzle())
+	return argument(name, SwizzleArgumentType.swizzle())
 }
 
 /**
@@ -176,9 +176,9 @@ fun <S> swizzle(
  */
 @BrigadierDsl
 fun <S> blockPos(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, BlockPosArgumentType> {
-    return argument(name, BlockPosArgumentType.blockPos())
+	return argument(name, BlockPosArgumentType.blockPos())
 }
 
 /**
@@ -186,9 +186,9 @@ fun <S> blockPos(
  */
 @BrigadierDsl
 fun <S> columnPos(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, ColumnPosArgumentType> {
-    return argument(name, ColumnPosArgumentType.columnPos())
+	return argument(name, ColumnPosArgumentType.columnPos())
 }
 
 /**
@@ -198,10 +198,10 @@ fun <S> columnPos(
  */
 @BrigadierDsl
 fun <S> vec2(
-    name: String,
-    centerIntegers: Boolean = false,
+	name: String,
+	centerIntegers: Boolean = false,
 ): DefaultArgumentConstructor<S, Vec2ArgumentType> {
-    return argument(name, Vec2ArgumentType.vec2(centerIntegers))
+	return argument(name, Vec2ArgumentType.vec2(centerIntegers))
 }
 
 /**
@@ -211,8 +211,8 @@ fun <S> vec2(
  */
 @BrigadierDsl
 fun <S> vec3(
-    name: String,
-    centerIntegers: Boolean = false,
+	name: String,
+	centerIntegers: Boolean = false,
 ): DefaultArgumentConstructor<S, Vec3ArgumentType> {
-    return argument(name, Vec3ArgumentType.vec3(centerIntegers))
+	return argument(name, Vec3ArgumentType.vec3(centerIntegers))
 }

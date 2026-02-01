@@ -30,32 +30,32 @@ import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
 
 object AutoEat : Module(
-    name = "AutoEat",
-    description = "Eats food when you are hungry",
-    tag = ModuleTag.PLAYER,
+	name = "AutoEat",
+	description = "Eats food when you are hungry",
+	tag = ModuleTag.PLAYER,
 ) {
-    private var eatTask: EatTask? = null
+	private var eatTask: EatTask? = null
 
-    init {
+	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(eatConfig)
 			}
 		}
 
-        listen<TickEvent.Pre> {
-            val reason = runSafeAutomated { reasonEating() }
-            if (eatTask != null || !reason.shouldEat()) return@listen
+		listen<TickEvent.Pre> {
+			val reason = runSafeAutomated { reasonEating() }
+			if (eatTask != null || !reason.shouldEat()) return@listen
 
-            val task = eat()
-            task.finally { eatTask = null }
-            task.run()
-            eatTask = task
-        }
+			val task = eat()
+			task.finally { eatTask = null }
+			task.run()
+			eatTask = task
+		}
 
-        onDisable {
-            eatTask?.cancel()
-            eatTask = null
-        }
-    }
+		onDisable {
+			eatTask?.cancel()
+			eatTask = null
+		}
+	}
 }

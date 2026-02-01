@@ -29,16 +29,16 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object AttachmentPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(state: BlockState, targetState: BlockState) =
-        Properties.ATTACHMENT in targetState
+	override fun acceptsState(state: BlockState, targetState: BlockState) =
+		Properties.ATTACHMENT in targetState
 
 	context(safeContext: SafeContext)
-    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
-        val attachment = targetState.get(Properties.ATTACHMENT) ?: return
-	    when (attachment) {
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+		val attachment = targetState.get(Properties.ATTACHMENT) ?: return
+		when (attachment) {
 			Attachment.FLOOR -> retainSides(Direction.DOWN)
-		    Attachment.CEILING -> retainSides(Direction.UP)
-		    else -> retainSides { it in Direction.Type.HORIZONTAL }
+			Attachment.CEILING -> retainSides(Direction.UP)
+			else -> retainSides { it in Direction.Type.HORIZONTAL }
 		}
-    }
+	}
 }

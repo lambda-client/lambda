@@ -21,13 +21,13 @@ import com.lambda.core.Loadable
 import com.lambda.util.reflections.getInstances
 
 object ModuleRegistry : Loadable {
-    override val priority = 1
+	override val priority = 1
 
-    val modules = getInstances<Module>()
-        .sortedBy { it.name }
+	val modules = getInstances<Module>()
+		.sortedBy { it.name }
 
-    val moduleNameMap = modules.associateBy { it.name }
+	val moduleNameMap = modules.associateBy { it.name }
 
-    override fun load() =
-        "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+	override fun load() =
+		"Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
 }

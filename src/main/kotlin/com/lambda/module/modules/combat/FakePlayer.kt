@@ -35,66 +35,67 @@ import com.mojang.datafixers.util.Either
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import java.util.*
-import kotlin.jvm.optionals.getOrElse
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.seconds
 
 object FakePlayer : Module(
-    name = "FakePlayer",
-    description = "Spawns a fake player",
-    tag = ModuleTag.COMBAT,
+	name = "FakePlayer",
+	description = "Spawns a fake player",
+	tag = ModuleTag.COMBAT,
 ) {
-    private val playerName by setting("Name", "Steve")
+	private val playerName by setting("Name", "Steve")
 
-    private var fakePlayer_field: OtherClientPlayerEntity? = null
-    private var SafeContext.fakePlayer
-        get() = fakePlayer_field
-        set(value) { fakePlayer_field = value; value?.let { world.addEntity(it) } }
+	private var fakePlayer_field: OtherClientPlayerEntity? = null
+	private var SafeContext.fakePlayer
+		get() = fakePlayer_field
+		set(value) {
+			fakePlayer_field = value; value?.let { world.addEntity(it) }
+		}
 
-    private val nilProfile: GameProfile
-        get() = GameProfile(UUID(0, 0), playerName)
+	private val nilProfile: GameProfile
+		get() = GameProfile(UUID(0, 0), playerName)
 
-    private val cachedProfiles = mutableMapOf<String, GameProfile>()
-    private val fetchTimer = Timer()
+	private val cachedProfiles = mutableMapOf<String, GameProfile>()
+	private val fetchTimer = Timer()
 
-    init {
-        listen<TickEvent.Pre> {
-            fakePlayer = cachedProfiles[playerName]
-                ?.let { spawnFakePlayer(it, fakePlayer ?: player, addToWorld = false) }
-                ?.takeUnless { it == fakePlayer?.gameProfile }
-                ?: fakePlayer?.takeIf { playerName == it.gameProfile.name }
-                        ?: spawnFakePlayer(nilProfile, fakePlayer ?: player, addToWorld = false)
-        }
+	init {
+		listen<TickEvent.Pre> {
+			fakePlayer = cachedProfiles[playerName]
+				?.let { spawnFakePlayer(it, fakePlayer ?: player, addToWorld = false) }
+				?.takeUnless { it == fakePlayer?.gameProfile }
+				?: fakePlayer?.takeIf { playerName == it.gameProfile.name }
+						?: spawnFakePlayer(nilProfile, fakePlayer ?: player, addToWorld = false)
+		}
 
-        listenConcurrently<TickEvent.Pre>(priority = 1000) {
-            if (!fetchTimer.timePassed(2.seconds)) return@listenConcurrently
+		listenConcurrently<TickEvent.Pre>(priority = 1000) {
+			if (!fetchTimer.timePassed(2.seconds)) return@listenConcurrently
 
-            cachedProfiles.getOrPut(playerName) { fetchProfile(playerName) }
-        }
+			cachedProfiles.getOrPut(playerName) { fetchProfile(playerName) }
+		}
 
-        listen<PlayerEvent.Attack.Entity> {
-            if (it.entity.id == FakePlayerId) it.cancel()
-        }
+		listen<PlayerEvent.Attack.Entity> {
+			if (it.entity.id == FakePlayerId) it.cancel()
+		}
 
-        listen<ConnectionEvent.Connect.Pre> { disable() }
-        onShutdown { disable() }
-        onDisable { fakePlayer?.discard(); fakePlayer = null }
-    }
+		listen<ConnectionEvent.Connect.Pre> { disable() }
+		onShutdown { disable() }
+		onDisable { fakePlayer?.discard(); fakePlayer = null }
+	}
 
-    suspend fun SafeContext.fetchProfile(user: String): GameProfile {
-        val requestedProfile = getProfile(user).getOrElse { return nilProfile }
+	suspend fun SafeContext.fetchProfile(user: String): GameProfile {
+		val requestedProfile = getProfile(user).getOrElse { return nilProfile }
 
-        // Fetch the skin properties from mojang
-        val properties = mc.apiServices.profileResolver
-            .getProfile(Either.right(requestedProfile.id)).getOrNull()?.properties
+		// Fetch the skin properties from mojang
+		val properties = mc.apiServices.profileResolver
+			.getProfile(Either.right(requestedProfile.id)).getOrNull()?.properties
 
-        // We use the nil profile to avoid the nil username if something wrong happens
-        // Check the GameProfile deserializer you'll understand
-        val profile = nilProfile
-        properties?.let { profile.properties.putAll(it) }
+		// We use the nil profile to avoid the nil username if something wrong happens
+		// Check the GameProfile deserializer you'll understand
+		val profile = nilProfile
+		properties?.let { profile.properties.putAll(it) }
 
-        mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
+		mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
 
-        return profile
-    }
+		return profile
+	}
 }

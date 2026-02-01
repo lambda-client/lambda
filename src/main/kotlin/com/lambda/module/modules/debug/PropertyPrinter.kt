@@ -25,28 +25,28 @@ import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 
 object PropertyPrinter : Module(
-    name = "PropertyPrinter",
-    description = "Prints all properties coupled with all the states that use them into a text file",
-    tag = ModuleTag.DEBUG,
+	name = "PropertyPrinter",
+	description = "Prints all properties coupled with all the states that use them into a text file",
+	tag = ModuleTag.DEBUG,
 ) {
-    init {
-        onEnable {
-            val file = FolderRegister.lambda.resolve("property-print").resolveFile("property-print.txt")
-            file.parentFile.mkdirs()
-            file.writeText("")
-            StateInfo.propertyFields.forEach properties@{ property ->
-                file.appendText("${property.value.name}\n")
-                Blocks::class.java.declaredFields.forEach blocks@{ field ->
-                    field.isAccessible = true
-                    val block = field.get(null)
-                    if (!Block::class.java.isAssignableFrom(block::class.java)) return@blocks
-                    if (property.key in (block as Block).defaultState.properties) {
-                        file.appendText("    $block\n")
-                    }
-                }
-                file.appendText("\n\n\n\n\n")
-            }
-            disable()
-        }
-    }
+	init {
+		onEnable {
+			val file = FolderRegister.lambda.resolve("property-print").resolveFile("property-print.txt")
+			file.parentFile.mkdirs()
+			file.writeText("")
+			StateInfo.propertyFields.forEach properties@{ property ->
+				file.appendText("${property.value.name}\n")
+				Blocks::class.java.declaredFields.forEach blocks@{ field ->
+					field.isAccessible = true
+					val block = field.get(null)
+					if (!Block::class.java.isAssignableFrom(block::class.java)) return@blocks
+					if (property.key in (block as Block).defaultState.properties) {
+						file.appendText("    $block\n")
+					}
+				}
+				file.appendText("\n\n\n\n\n")
+			}
+			disable()
+		}
+	}
 }

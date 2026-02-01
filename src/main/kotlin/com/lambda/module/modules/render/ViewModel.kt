@@ -49,7 +49,7 @@ object ViewModel : Module(
 	val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8").group(Group.General)
 	val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { oldAnimations }.group(Group.General)
 	//ToDo: Implement
-//    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
+	//    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 
 	private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings").group(Group.Scale)
 	private val xScale by setting("X Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftXScale = to; rightXScale = to }.group(Group.Scale)
@@ -228,15 +228,15 @@ object ViewModel : Module(
 			if (
 				(!handSwinging || handSwingTicks >= handSwingDuration / 2) ||
 				handSwingTicks < 0 ||
-				(noSwingDelay && attackKeyTicksPressed <= 1))
-			{
+				(noSwingDelay && attackKeyTicksPressed <= 1)
+			) {
 				handSwingTicks = -1
 				handSwinging = true
 				preferredHand = hand
 			}
 		}
 
-	private enum class Group(override val displayName: String): NamedEnum {
+	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
 		Scale("Scale"),
 		Position("Position"),

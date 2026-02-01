@@ -112,88 +112,88 @@ import com.lambda.util.Nameable
  * See [SafeListener] and [UnsafeListener] for more details.
  */
 abstract class Module(
-    override val name: String,
-    val description: String = "",
-    val tag: ModuleTag,
-    private val alwaysListening: Boolean = false,
-    enabledByDefault: Boolean = false,
-    defaultKeybind: Bind = Bind.EMPTY,
-    autoDisable: Boolean = false
+	override val name: String,
+	val description: String = "",
+	val tag: ModuleTag,
+	private val alwaysListening: Boolean = false,
+	enabledByDefault: Boolean = false,
+	defaultKeybind: Bind = Bind.EMPTY,
+	autoDisable: Boolean = false
 ) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig by MutableAutomationConfigImpl() {
-    private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
-        .onPress { toggle() }
-        .onRelease { if (disableOnRelease) disable() }
-    val disableOnReleaseSetting = setting("Disable On Release", false) { false }
-    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element")
+	private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
+	val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
+		.onPress { toggle() }
+		.onRelease { if (disableOnRelease) disable() }
+	val disableOnReleaseSetting = setting("Disable On Release", false) { false }
+	val drawSetting = setting("Draw", true, "Draws the module in the module list hud element")
 
-    var isEnabled by isEnabledSetting
-    val isDisabled get() = !isEnabled
+	var isEnabled by isEnabledSetting
+	val isDisabled get() = !isEnabled
 
-    val keybind by keybindSetting
-    val disableOnRelease by disableOnReleaseSetting
-    val draw by drawSetting
+	val keybind by keybindSetting
+	val disableOnRelease by disableOnReleaseSetting
+	val draw by drawSetting
 
-    override val isMuted: Boolean
-        get() = !isEnabled && !alwaysListening
+	override val isMuted: Boolean
+		get() = !isEnabled && !alwaysListening
 
-    init {
-        onEnable { LambdaSound.ModuleOn.play() }
-        onDisable { LambdaSound.ModuleOff.play() }
+	init {
+		onEnable { LambdaSound.ModuleOn.play() }
+		onDisable { LambdaSound.ModuleOff.play() }
 
-        onEnableUnsafe { LambdaSound.ModuleOn.play() }
-        onDisableUnsafe { LambdaSound.ModuleOff.play() }
+		onEnableUnsafe { LambdaSound.ModuleOn.play() }
+		onDisableUnsafe { LambdaSound.ModuleOff.play() }
 
-        listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
-        listen<ClientEvent.Startup> { if (autoDisable) disable() }
-        listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
-    }
+		listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
+		listen<ClientEvent.Startup> { if (autoDisable) disable() }
+		listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
+	}
 
-    fun enable() {
-        isEnabled = true
-    }
+	fun enable() {
+		isEnabled = true
+	}
 
-    fun disable() {
-        isEnabled = false
-    }
+	fun disable() {
+		isEnabled = false
+	}
 
-    fun toggle() {
-        isEnabled = !isEnabled
-    }
+	fun toggle() {
+		isEnabled = !isEnabled
+	}
 
-    protected fun onEnable(block: SafeContext.() -> Unit) {
-        isEnabledSetting.onValueChange { from, to ->
-            if (!from && to) block()
-        }
-    }
+	protected fun onEnable(block: SafeContext.() -> Unit) {
+		isEnabledSetting.onValueChange { from, to ->
+			if (!from && to) block()
+		}
+	}
 
-    protected fun onDisable(block: SafeContext.() -> Unit) {
-        isEnabledSetting.onValueChange { from, to ->
-            if (from && !to) block()
-        }
-    }
+	protected fun onDisable(block: SafeContext.() -> Unit) {
+		isEnabledSetting.onValueChange { from, to ->
+			if (from && !to) block()
+		}
+	}
 
-    protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
-        isEnabledSetting.onValueChange { from, to ->
-            if (from != to) block(to)
-        }
-    }
+	protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
+		isEnabledSetting.onValueChange { from, to ->
+			if (from != to) block(to)
+		}
+	}
 
-    protected fun onEnableUnsafe(block: () -> Unit) {
-        isEnabledSetting.onValueChangeUnsafe { from, to ->
-            if (!from && to) block()
-        }
-    }
+	protected fun onEnableUnsafe(block: () -> Unit) {
+		isEnabledSetting.onValueChangeUnsafe { from, to ->
+			if (!from && to) block()
+		}
+	}
 
-    protected fun onDisableUnsafe(block: () -> Unit) {
-        isEnabledSetting.onValueChangeUnsafe { from, to ->
-            if (from && !to) block()
-        }
-    }
+	protected fun onDisableUnsafe(block: () -> Unit) {
+		isEnabledSetting.onValueChangeUnsafe { from, to ->
+			if (from && !to) block()
+		}
+	}
 
-    protected fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
-        isEnabledSetting.onValueChangeUnsafe { from, to ->
-            if (from != to) block(to)
-        }
-    }
+	protected fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
+		isEnabledSetting.onValueChangeUnsafe { from, to ->
+			if (from != to) block(to)
+		}
+	}
 }

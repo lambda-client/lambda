@@ -27,8 +27,8 @@ import com.lambda.interaction.managers.inventory.InventoryConfig
 import com.lambda.interaction.managers.rotating.RotationConfig
 
 interface MutableAutomationConfig : Automated {
-    var defaultAutomationConfig: AutomationConfig
-    var backingAutomationConfig: AutomationConfig
+	var defaultAutomationConfig: AutomationConfig
+	var backingAutomationConfig: AutomationConfig
 	var automationConfig: AutomationConfig
 
 	override val buildConfig: BuildConfig get() = automationConfig.buildConfig

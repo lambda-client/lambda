@@ -33,54 +33,54 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 
 object WorldEater : Module(
-    name = "WorldEater",
-    description = "Eats the world",
-    tag = ModuleTag.PLAYER,
+	name = "WorldEater",
+	description = "Eats the world",
+	tag = ModuleTag.PLAYER,
 ) {
-    //    private val height by setting("Height", 4, 1..10, 1)
-//    private val width by setting("Width", 6, 1..30, 1)
-    private val pos1 by setting("Position 1", BlockPos(351, 104, 103))
-    private val pos2 by setting("Position 2", BlockPos(361, 70, 113))
-    private val layerSize by setting("Layer Size", 1, 1..10, 1)
-    private var runningTask: Task<*>? = null
-    private var area = BlockBox.create(pos1, pos2)
-    private val work = mutableListOf<BlockBox>()
+	//    private val height by setting("Height", 4, 1..10, 1)
+	//    private val width by setting("Width", 6, 1..30, 1)
+	private val pos1 by setting("Position 1", BlockPos(351, 104, 103))
+	private val pos2 by setting("Position 2", BlockPos(361, 70, 113))
+	private val layerSize by setting("Layer Size", 1, 1..10, 1)
+	private var runningTask: Task<*>? = null
+	private var area = BlockBox.create(pos1, pos2)
+	private val work = mutableListOf<BlockBox>()
 
-    init {
-        onEnable {
-            area = BlockBox.create(pos1, pos2)
-            val layerRanges = (area.minY..area.maxY step layerSize).reversed()
-            work.addAll(layerRanges.mapNotNull { y ->
-                if (y == area.minY) return@mapNotNull null
-                BlockBox(area.minX, y - layerSize, area.minZ, area.maxX, y, area.maxZ)
-            })
+	init {
+		onEnable {
+			area = BlockBox.create(pos1, pos2)
+			val layerRanges = (area.minY..area.maxY step layerSize).reversed()
+			work.addAll(layerRanges.mapNotNull { y ->
+				if (y == area.minY) return@mapNotNull null
+				BlockBox(area.minX, y - layerSize, area.minZ, area.maxX, y, area.maxZ)
+			})
 
-            buildLayer()
-        }
+			buildLayer()
+		}
 
-        onDisable {
-            runningTask?.cancel()
-            runningTask = null
-            work.clear()
-            BaritoneManager.cancel()
-        }
+		onDisable {
+			runningTask?.cancel()
+			runningTask = null
+			work.clear()
+			BaritoneManager.cancel()
+		}
 
-        onStaticRender { esp ->
-            esp.shapes(pos1.x.toDouble(), pos1.y.toDouble(), pos1.z.toDouble()) {
-                outline(Box.enclosing(pos1, pos2), Color.BLUE)
-            }
-        }
-    }
+		onStaticRender { esp ->
+			esp.shapes(pos1.x.toDouble(), pos1.y.toDouble(), pos1.z.toDouble()) {
+				outline(Box.enclosing(pos1, pos2), Color.BLUE)
+			}
+		}
+	}
 
-    private fun buildLayer() {
-        work.firstOrNull()?.let { box ->
-            runningTask = build {
-                box.toStructure(TargetState.Air)
-                    .toBlueprint()
-            }.finally {
-                work.removeFirstOrNull()
-                buildLayer()
-            }.run()
-        } ?: disable()
-    }
+	private fun buildLayer() {
+		work.firstOrNull()?.let { box ->
+			runningTask = build {
+				box.toStructure(TargetState.Air)
+					.toBlueprint()
+			}.finally {
+				work.removeFirstOrNull()
+				buildLayer()
+			}.run()
+		} ?: disable()
+	}
 }

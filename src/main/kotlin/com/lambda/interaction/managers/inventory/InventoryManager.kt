@@ -106,7 +106,8 @@ object InventoryManager : Manager<InventoryRequest>(
 		val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
 		if (inventoryActionCount > request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
 			!request.settleForLess &&
-			!request.mustPerform) return
+			!request.mustPerform
+		) return
 
 		if (request.fresh) populateFrom(request)
 
@@ -180,7 +181,7 @@ object InventoryManager : Manager<InventoryRequest>(
 	 * @see net.minecraft.client.network.ClientPlayNetworkHandler.onInventory
 	 */
 	@JvmStatic
-	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){
+	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>) {
 		runSafe {
 			if (!mc.isOnThread || !DEFAULT.avoidDesync) {
 				original.call(packet)

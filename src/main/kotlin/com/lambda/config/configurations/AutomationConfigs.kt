@@ -22,6 +22,6 @@ import com.lambda.util.FolderRegister
 import java.io.File
 
 object AutomationConfigs : Configuration() {
-    override val configName = "automation"
-    override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
+	override val configName = "automation"
+	override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
 }

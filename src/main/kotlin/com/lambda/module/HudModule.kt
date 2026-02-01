@@ -23,14 +23,14 @@ import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
 abstract class HudModule(
-    name: String,
-    description: String = "",
-    tag: ModuleTag,
-    alwaysListening: Boolean = false,
-    enabledByDefault: Boolean = false,
-    defaultKeybind: Bind = Bind.EMPTY,
+	name: String,
+	description: String = "",
+	tag: ModuleTag,
+	alwaysListening: Boolean = false,
+	enabledByDefault: Boolean = false,
+	defaultKeybind: Bind = Bind.EMPTY,
 ) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout {
-    val backgroundColor by setting("Background Color", Color(0, 0, 0, 0))
-    val outline by setting("Show Outline", false)
-    val outlineWidth by setting("Outline Width", 1f, 0f..10f, 0.1f) { outline }
+	val backgroundColor by setting("Background Color", Color(0, 0, 0, 0))
+	val outline by setting("Show Outline", false)
+	val outlineWidth by setting("Outline Width", 1f, 0f..10f, 0.1f) { outline }
 }

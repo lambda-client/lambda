@@ -23,32 +23,32 @@ import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
 
 data class TickingBlueprint(
-    val onTick: SafeContext.(Structure) -> Structure? = { it },
+	val onTick: SafeContext.(Structure) -> Structure? = { it },
 ) : Blueprint() {
-    fun tick() =
-        runSafe {
-            onTick(structure)?.also { new ->
-                structure = new
-            }
-        }
+	fun tick() =
+		runSafe {
+			onTick(structure)?.also { new ->
+				structure = new
+			}
+		}
 
-    override var structure: Structure = emptyMap()
-        private set(value) {
-            field = value
-            bounds.update()
-        }
+	override var structure: Structure = emptyMap()
+		private set(value) {
+			field = value
+			bounds.update()
+		}
 
-    override fun toString() = "Dynamic Blueprint at ${center?.toShortString()}"
+	override fun toString() = "Dynamic Blueprint at ${center?.toShortString()}"
 
-    companion object {
-        fun offset(offset: Vec3i): SafeContext.(Structure) -> Structure? = {
-            it.map { (pos, state) ->
-                pos.add(offset) to state
-            }.toMap()
-        }
+	companion object {
+		fun offset(offset: Vec3i): SafeContext.(Structure) -> Structure? = {
+			it.map { (pos, state) ->
+				pos.add(offset) to state
+			}.toMap()
+		}
 
-        fun tickingBlueprint(
-            onTick: SafeContext.(Structure) -> Structure?,
-        ) = TickingBlueprint(onTick)
-    }
+		fun tickingBlueprint(
+			onTick: SafeContext.(Structure) -> Structure?,
+		) = TickingBlueprint(onTick)
+	}
 }

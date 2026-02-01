@@ -63,10 +63,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import kotlin.jvm.optionals.getOrNull
 
-class BreakSim private constructor(simInfo: SimInfo)
-	: Sim<BreakResult>(),
-	SimInfo by simInfo
-{
+class BreakSim private constructor(simInfo: SimInfo) : Sim<BreakResult>(),
+	SimInfo by simInfo {
 	override fun dependentUpon(buildResult: BuildResult) =
 		BreakResult.Dependency(pos, buildResult)
 

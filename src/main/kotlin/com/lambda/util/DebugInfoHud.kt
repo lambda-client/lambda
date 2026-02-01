@@ -29,34 +29,34 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 
 object DebugInfoHud {
-    @JvmStatic
-    fun MutableList<String>.addDebugInfo() {
-        add("")
-        add("" + Formatting.UNDERLINE + "Lambda ${Lambda.VERSION}+${mc.versionType}")
-        add("Modules: ${ModuleRegistry.modules.size} with ${ModuleRegistry.modules.sumOf { it.settings.size }} settings")
-        add("Commands: ${CommandRegistry.commands.size}")
-        add("Synchronous Listeners: ${EventFlow.syncListeners.size}")
-        add("Concurrent Listeners: ${EventFlow.concurrentListeners.size}")
+	@JvmStatic
+	fun MutableList<String>.addDebugInfo() {
+		add("")
+		add("" + Formatting.UNDERLINE + "Lambda ${Lambda.VERSION}+${mc.versionType}")
+		add("Modules: ${ModuleRegistry.modules.size} with ${ModuleRegistry.modules.sumOf { it.settings.size }} settings")
+		add("Commands: ${CommandRegistry.commands.size}")
+		add("Synchronous Listeners: ${EventFlow.syncListeners.size}")
+		add("Concurrent Listeners: ${EventFlow.concurrentListeners.size}")
 
-        when (val hit = mc.crosshairTarget) {
-            is BlockHitResult -> {
-                add("Crosshair Target: Block")
-                add("  Vec3d: %.5f, %.5f, %.5f".format(hit.pos.x, hit.pos.y, hit.pos.z))
-                add("  BlockPos: ${hit.blockPos.toShortString()}")
-                add("  Side: ${hit.side}")
-            }
+		when (val hit = mc.crosshairTarget) {
+			is BlockHitResult -> {
+				add("Crosshair Target: Block")
+				add("  Vec3d: %.5f, %.5f, %.5f".format(hit.pos.x, hit.pos.y, hit.pos.z))
+				add("  BlockPos: ${hit.blockPos.toShortString()}")
+				add("  Side: ${hit.side}")
+			}
 
-            is EntityHitResult -> {
-                add("Crosshair Target: Entity")
-                add("  Vec3d: ${hit.pos}")
-                add("  Entity: ${hit.entity}")
-            }
+			is EntityHitResult -> {
+				add("Crosshair Target: Entity")
+				add("  Vec3d: ${hit.pos}")
+				add("  Entity: ${hit.entity}")
+			}
 
-            null -> add("Crosshair Target: None")
-        }
+			null -> add("Crosshair Target: None")
+		}
 
-        add("Eye Pos: ${mc.cameraEntity?.getCameraPosVec(mc.tickDelta)?.format()}")
+		add("Eye Pos: ${mc.cameraEntity?.getCameraPosVec(mc.tickDelta)?.format()}")
 
-        return
-    }
+		return
+	}
 }

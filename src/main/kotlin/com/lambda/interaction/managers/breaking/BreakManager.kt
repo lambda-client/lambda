@@ -106,7 +106,7 @@ object BreakManager : Manager<BreakRequest>(
 	onOpen = {
 		processRequest(activeRequest)
 		simulateAbandoned()
-			 },
+	},
 	onClose = { checkForCancels() }
 ), PositionBlocking {
 	private val breakInfos = arrayOfNulls<BreakInfo>(2)
@@ -118,11 +118,15 @@ object BreakManager : Manager<BreakRequest>(
 
 	private var primaryBreak: BreakInfo?
 		get() = breakInfos[0]
-		set(value) { breakInfos[0] = value }
+		set(value) {
+			breakInfos[0] = value
+		}
 
 	private var secondaryBreak: BreakInfo?
 		get() = breakInfos[1]
-		set(value) { breakInfos[1] = value }
+		set(value) {
+			breakInfos[1] = value
+		}
 
 	private val abandonedBreak
 		get() = breakInfos[1].let { secondary ->
@@ -237,7 +241,7 @@ object BreakManager : Manager<BreakRequest>(
 							if (info.type != RedundantSecondary &&
 								swapMode.isEnabled() &&
 								swapMode != BreakConfig.SwapMode.Start
-								) activeStack
+							) activeStack
 							else null
 						).toDouble()
 					}
@@ -837,21 +841,21 @@ object BreakManager : Manager<BreakRequest>(
 		pos: BlockPos,
 		item: ItemStack? = null
 	) = with(automatedSafeContext) {
-		val delta = calcItemBlockBreakingDelta( pos, item ?: player.mainHandStack)
+		val delta = calcItemBlockBreakingDelta(pos, item ?: player.mainHandStack)
 		//ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
-//        if (config.desyncFix) {
-//            val nextTickPrediction = buildPlayerPrediction().next()
-//            if (player.isOnGround && !nextTickPrediction.onGround) {
-//                delta /= 5.0f
-//            }
-//
-//            val affectedThisTick = player.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)
-//            val simulatedPlayer = nextTickPrediction.predictionEntity.player
-//            val affectedNextTick = simulatedPlayer.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(simulatedPlayer)
-//            if (!affectedThisTick && affectedNextTick) {
-//                delta /= 5.0f
-//            }
-//        }
+		//        if (config.desyncFix) {
+		//            val nextTickPrediction = buildPlayerPrediction().next()
+		//            if (player.isOnGround && !nextTickPrediction.onGround) {
+		//                delta /= 5.0f
+		//            }
+		//
+		//            val affectedThisTick = player.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)
+		//            val simulatedPlayer = nextTickPrediction.predictionEntity.player
+		//            val affectedNextTick = simulatedPlayer.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(simulatedPlayer)
+		//            if (!affectedThisTick && affectedNextTick) {
+		//                delta /= 5.0f
+		//            }
+		//        }
 		delta
 	}
 

@@ -37,25 +37,25 @@ class ColorSetting(defaultValue: Color) : SettingCore<Color>(
 	defaultValue,
 	TypeToken.get(Color::class.java).type
 ) {
-    context(setting: Setting<*, Color>)
+	context(setting: Setting<*, Color>)
 	override fun ImGuiBuilder.buildLayout() {
-        colorEdit(setting.name, ::value)
-        lambdaTooltip(setting.description)
-    }
+		colorEdit(setting.name, ::value)
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, Color>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("Red", 0, 255)) { red ->
-            required(integer("Green", 0, 255)) { green ->
-                required(integer("Blue", 0, 255)) { blue ->
-                    optional(integer("Alpha", 0, 255)) { alpha ->
-                        execute {
-                            val alphaValue = alpha?.let { it().value() } ?: 255
-                            setting.trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
-                        }
-                    }
-                }
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(integer("Red", 0, 255)) { red ->
+			required(integer("Green", 0, 255)) { green ->
+				required(integer("Blue", 0, 255)) { blue ->
+					optional(integer("Alpha", 0, 255)) { alpha ->
+						execute {
+							val alphaValue = alpha?.let { it().value() } ?: 255
+							setting.trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
+						}
+					}
+				}
+			}
+		}
+	}
 }

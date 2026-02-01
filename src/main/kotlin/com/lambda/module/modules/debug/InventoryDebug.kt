@@ -35,52 +35,52 @@ import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 
 object InventoryDebug : Module(
-    name = "InventoryDebug",
-    description = "Debugs the inventory",
-    tag = ModuleTag.DEBUG,
+	name = "InventoryDebug",
+	description = "Debugs the inventory",
+	tag = ModuleTag.DEBUG,
 ) {
-    init {
-        listen<InventoryEvent.Open> { event ->
-            info("Opened screen handler: ${event.screenHandler::class.simpleName}")
+	init {
+		listen<InventoryEvent.Open> { event ->
+			info("Opened screen handler: ${event.screenHandler::class.simpleName}")
 
-            LOG.info("\n" + event.screenHandler.slots.joinToString("\n") {
-                "${it.inventory::class.simpleName} ${it.index} ${it.x} ${it.y}"
-            })
-        }
+			LOG.info("\n" + event.screenHandler.slots.joinToString("\n") {
+				"${it.inventory::class.simpleName} ${it.index} ${it.x} ${it.y}"
+			})
+		}
 
-        listen<InventoryEvent.Close> {
-            info("Closed screen handler: ${it.screenHandler::class.simpleName}")
-        }
+		listen<InventoryEvent.Close> {
+			info("Closed screen handler: ${it.screenHandler::class.simpleName}")
+		}
 
-        listen<InventoryEvent.FullUpdate> {
-            info("Updated screen handler: ${it.revision}, ${it.stacks}, ${it.cursorStack}")
-        }
+		listen<InventoryEvent.FullUpdate> {
+			info("Updated screen handler: ${it.revision}, ${it.stacks}, ${it.cursorStack}")
+		}
 
-        listen<PacketEvent.Receive.Pre> {
-            when (it.packet) {
-                is UpdateSelectedSlotS2CPacket,
-                is InventoryS2CPacket,
-                    -> {
-                    LOG.info(it.packet.dynamicString())
-                }
-            }
-            when (val packet = it.packet) {
-                is UpdateSelectedSlotS2CPacket -> this@InventoryDebug.info("Updated selected slot: ${packet.slot}")
-                is InventoryS2CPacket -> this@InventoryDebug.info("Received inventory update: syncId: ${packet.syncId} | revision: ${packet.revision} | cursorStack ${packet.cursorStack}")
-            }
-        }
+		listen<PacketEvent.Receive.Pre> {
+			when (it.packet) {
+				is UpdateSelectedSlotS2CPacket,
+				is InventoryS2CPacket,
+					-> {
+					LOG.info(it.packet.dynamicString())
+				}
+			}
+			when (val packet = it.packet) {
+				is UpdateSelectedSlotS2CPacket -> this@InventoryDebug.info("Updated selected slot: ${packet.slot}")
+				is InventoryS2CPacket -> this@InventoryDebug.info("Received inventory update: syncId: ${packet.syncId} | revision: ${packet.revision} | cursorStack ${packet.cursorStack}")
+			}
+		}
 
-        listen<PacketEvent.Send.Pre> {
+		listen<PacketEvent.Send.Pre> {
 
-            when (it.packet) {
-                is SlotChangedStateC2SPacket,
-                is ClickSlotC2SPacket,
-                is CloseHandledScreenC2SPacket,
-                is CraftRequestC2SPacket,
-                is CreativeInventoryActionC2SPacket,
-                is UpdateSelectedSlotC2SPacket,
-                    -> LOG.info(System.currentTimeMillis().toString() + " " + it.packet.dynamicString())
-            }
-        }
-    }
+			when (it.packet) {
+				is SlotChangedStateC2SPacket,
+				is ClickSlotC2SPacket,
+				is CloseHandledScreenC2SPacket,
+				is CraftRequestC2SPacket,
+				is CreativeInventoryActionC2SPacket,
+				is UpdateSelectedSlotC2SPacket,
+					-> LOG.info(System.currentTimeMillis().toString() + " " + it.packet.dynamicString())
+			}
+		}
+	}
 }

@@ -23,16 +23,16 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import imgui.ImGui
 
-class ModuleEntry(val module: Module): Layout {
-    override fun ImGuiBuilder.buildLayout() {
-        selectable(module.name, selected = module.isEnabled) {
-            module.toggle()
-        }
-        lambdaTooltip(module.description)
+class ModuleEntry(val module: Module) : Layout {
+	override fun ImGuiBuilder.buildLayout() {
+		selectable(module.name, selected = module.isEnabled) {
+			module.toggle()
+		}
+		lambdaTooltip(module.description)
 
-        ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
-        popupContextItem("##ctx-${module.name}") {
-            buildConfigSettingsContext(module)
-        }
-    }
+		ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+		popupContextItem("##ctx-${module.name}") {
+			buildConfigSettingsContext(module)
+		}
+	}
 }

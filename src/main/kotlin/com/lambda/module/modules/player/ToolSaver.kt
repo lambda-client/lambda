@@ -98,6 +98,7 @@ object ToolSaver : Module(
 		}
 	}
 
-	private val ItemStack.isEndangered get() =
-		isDamageable && 1 - (damage.toFloat() / maxDamage) < minDurabilityPercentage.toFloat() / 100
+	private val ItemStack.isEndangered
+		get() =
+			isDamageable && 1 - (damage.toFloat() / maxDamage) < minDurabilityPercentage.toFloat() / 100
 }

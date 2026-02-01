@@ -28,19 +28,19 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
 object MainHandContainer : MaterialContainer(Rank.MainHand) {
-    context(safeContext: SafeContext)
-    override val slots: List<Slot>
-        get() = safeContext.player.mainHandSlots
-    override var stacks: List<ItemStack>
-        get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
-        set(_) {}
+	context(safeContext: SafeContext)
+	override val slots: List<Slot>
+		get() = safeContext.player.mainHandSlots
+	override var stacks: List<ItemStack>
+		get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
+		set(_) {}
 
-    override val swapMethodPriority = 10
+	override val swapMethodPriority = 10
 
-    override val description = buildText { literal("MainHand") }
+	override val description = buildText { literal("MainHand") }
 
-    context(safeContext: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
-        swap(toSlot.id, safeContext.player.inventory.selectedSlot)
-    }
+	context(safeContext: SafeContext)
+	override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+		swap(toSlot.id, safeContext.player.inventory.selectedSlot)
+	}
 }

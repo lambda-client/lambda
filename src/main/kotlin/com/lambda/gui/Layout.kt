@@ -20,5 +20,5 @@ package com.lambda.gui
 import com.lambda.gui.dsl.ImGuiBuilder
 
 interface Layout {
-    fun ImGuiBuilder.buildLayout()
+	fun ImGuiBuilder.buildLayout()
 }

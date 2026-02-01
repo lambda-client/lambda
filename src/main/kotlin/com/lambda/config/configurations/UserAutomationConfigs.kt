@@ -26,22 +26,22 @@ import com.lambda.util.FolderRegister
 import java.io.File
 
 object UserAutomationConfigs : Configuration() {
-    override val configName = "custom-automation"
-    override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
+	override val configName = "custom-automation"
+	override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
 
-    override fun internalTryLoad() {
-        primary.ifExists {
-            JsonParser.parseReader(it.reader()).asJsonObject.entrySet().forEach { (name, _) ->
-                if (configurables.any { config -> config.name == name }) return@forEach
-                UserAutomationConfig(name)
-            }
-        }
-        super.internalTryLoad()
-        configurables.forEach {
-            val config = it as? UserAutomationConfig ?: throw IllegalStateException("UserAutomationConfigs contains non-UserAutomationConfig")
-            config.linkedModules.value.forEach { moduleName ->
-                moduleNameMap[moduleName]?.automationConfig = config
-            }
-        }
-    }
+	override fun internalTryLoad() {
+		primary.ifExists {
+			JsonParser.parseReader(it.reader()).asJsonObject.entrySet().forEach { (name, _) ->
+				if (configurables.any { config -> config.name == name }) return@forEach
+				UserAutomationConfig(name)
+			}
+		}
+		super.internalTryLoad()
+		configurables.forEach {
+			val config = it as? UserAutomationConfig ?: throw IllegalStateException("UserAutomationConfigs contains non-UserAutomationConfig")
+			config.linkedModules.value.forEach { moduleName ->
+				moduleNameMap[moduleName]?.automationConfig = config
+			}
+		}
+	}
 }

@@ -27,12 +27,12 @@ import net.minecraft.util.math.BlockPos
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object AxisPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(state: BlockState, targetState: BlockState) =
-        Properties.AXIS in targetState
+	override fun acceptsState(state: BlockState, targetState: BlockState) =
+		Properties.AXIS in targetState
 
-    context(safeContext: SafeContext)
-    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
-        val axis = targetState.get(Properties.AXIS)
-        retainSides { side -> side.axis == axis }
-    }
+	context(safeContext: SafeContext)
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+		val axis = targetState.get(Properties.AXIS)
+		retainSides { side -> side.axis == axis }
+	}
 }

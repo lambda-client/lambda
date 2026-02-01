@@ -43,103 +43,103 @@ import net.minecraft.util.Hand
 import net.minecraft.world.GameMode
 
 object KillAura : Module(
-    name = "KillAura",
-    description = "Attacks entities",
-    tag = ModuleTag.COMBAT,
+	name = "KillAura",
+	description = "Attacks entities",
+	tag = ModuleTag.COMBAT,
 ) {
-    // Interact
-    private val rotate by setting("Rotate", true).group(Group.General)
-    private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
-    private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
-    private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
-    private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
-    private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
-    private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
+	// Interact
+	private val rotate by setting("Rotate", true).group(Group.General)
+	private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+	private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
+	private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
+	private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
+	private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
+	private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
 
-    // Targeting
-    private val targeting = Targeting.Combat(this, Group.Targeting)
+	// Targeting
+	private val targeting = Targeting.Combat(this, Group.Targeting)
 
-    val target: LivingEntity?
-        get() = targeting.target()
+	val target: LivingEntity?
+		get() = targeting.target()
 
-    private var prevEntity = target
-    private var validServerRot = false
+	private var prevEntity = target
+	private var validServerRot = false
 
-    private var lastAttackTime = 0L
-    private var hitDelay = 100.0
-    private var cooldownFromSwap = false
+	private var lastAttackTime = 0L
+	private var hitDelay = 100.0
+	private var cooldownFromSwap = false
 
-    enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Targeting("Targeting"),
-    }
+	enum class Group(override val displayName: String) : NamedEnum {
+		General("General"),
+		Targeting("Targeting"),
+	}
 
-    enum class AttackMode {
-        Cooldown,
-        Delay
-    }
+	enum class AttackMode {
+		Cooldown,
+		Delay
+	}
 
-    @Suppress("unused")
-    enum class DamageMode(override val displayName: String, val block: SafeContext.(ItemStack) -> Double) : NamedEnum {
-        DPS("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
-        Total("Hit Damage", { player.attackDamage(stack = it) })
-    }
+	@Suppress("unused")
+	enum class DamageMode(override val displayName: String, val block: SafeContext.(ItemStack) -> Double) : NamedEnum {
+		DPS("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
+		Total("Hit Damage", { player.attackDamage(stack = it) })
+	}
 
-    init {
-        setDefaultAutomationConfig {
-            applyEdits {
-                hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
-                buildConfig.apply {
-                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::blockReach)
-                }
-            }
-        }
+	init {
+		setDefaultAutomationConfig {
+			applyEdits {
+				hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
+				buildConfig.apply {
+					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::blockReach)
+				}
+			}
+		}
 
-        listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
+		listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
-        listen<TickEvent.Input.Post> {
-            target?.let { entity ->
-                // Wait until the rotation has a hit result on the entity
-                var rotated = true
-                if (rotate) runSafeAutomated {
-                    val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
-                    rotated = rotationRequest.done && entity === prevEntity && validServerRot
-                    prevEntity = entity
-                    validServerRot = rotationRequest.done
-                }
+		listen<TickEvent.Input.Post> {
+			target?.let { entity ->
+				// Wait until the rotation has a hit result on the entity
+				var rotated = true
+				if (rotate) runSafeAutomated {
+					val rotationRequest = lookAtEntity(entity)?.rotation?.let { rotationRequest { rotation(it) } }?.submit() ?: return@listen
+					rotated = rotationRequest.done && entity === prevEntity && validServerRot
+					prevEntity = entity
+					validServerRot = rotationRequest.done
+				}
 
-                if (swap) {
-                    val selection = selectStack().sortByDescending {
-                        damageMode.block(this, it)
-                    }
+				if (swap) {
+					val selection = selectStack().sortByDescending {
+						damageMode.block(this, it)
+					}
 
-                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
-                        val slotId = player.hotbarStacks.indexOf(bestStack)
-                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
-                    }
-                }
+					selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
+						val slotId = player.hotbarStacks.indexOf(bestStack)
+						if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
+					}
+				}
 
-                if (!rotated) return@listen
+				if (!rotated) return@listen
 
-                // Cooldown check
-                when (attackMode) {
-                    AttackMode.Cooldown -> if (player.getAttackCooldownProgress(0.5f) + (cooldownShrink / 20f) < 1.0f && !cooldownFromSwap) return@listen
-                    AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return@listen
-                }
+				// Cooldown check
+				when (attackMode) {
+					AttackMode.Cooldown -> if (player.getAttackCooldownProgress(0.5f) + (cooldownShrink / 20f) < 1.0f && !cooldownFromSwap) return@listen
+					AttackMode.Delay -> if (System.currentTimeMillis() - lastAttackTime < hitDelay) return@listen
+				}
 
-                cooldownFromSwap = false
+				cooldownFromSwap = false
 
-                // Attack
-                connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
-                if (interaction.gameMode != GameMode.SPECTATOR) {
-                    player.attack(target)
-                    player.resetTicksSince()
-                }
-                if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
+				// Attack
+				connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
+				if (interaction.gameMode != GameMode.SPECTATOR) {
+					player.attack(target)
+					player.resetTicksSince()
+				}
+				if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)
 
-                lastAttackTime = System.currentTimeMillis()
-                hitDelay = (hitDelay1..hitDelay2).random() * 50
-            }
-        }
-    }
+				lastAttackTime = System.currentTimeMillis()
+				hitDelay = (hitDelay1..hitDelay2).random() * 50
+			}
+		}
+	}
 }

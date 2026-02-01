@@ -38,7 +38,7 @@ import java.util.function.Predicate
  */
 @BrigadierDsl
 fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedBlockPosition> {
-    return BlockPredicateArgumentType.getBlockPredicate(context.assumeSourceNotUsed(), name)
+	return BlockPredicateArgumentType.getBlockPredicate(context.assumeSourceNotUsed(), name)
 }
 
 /**
@@ -49,7 +49,7 @@ fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedB
  */
 @BrigadierDsl
 fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
-    return BlockStateArgumentType.getBlockState(context.assumeSourceNotUsed(), name)
+	return BlockStateArgumentType.getBlockState(context.assumeSourceNotUsed(), name)
 }
 
 /**
@@ -60,10 +60,10 @@ fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
  */
 @BrigadierDsl
 fun <S> blockPredicate(
-    name: String,
-    registryAccess: CommandRegistryAccess,
+	name: String,
+	registryAccess: CommandRegistryAccess,
 ): DefaultArgumentConstructor<S, BlockPredicateArgumentType> {
-    return argument(name, BlockPredicateArgumentType.blockPredicate(registryAccess))
+	return argument(name, BlockPredicateArgumentType.blockPredicate(registryAccess))
 }
 
 /**
@@ -74,8 +74,8 @@ fun <S> blockPredicate(
  */
 @BrigadierDsl
 fun <S> blockState(
-    name: String,
-    registryAccess: CommandRegistryAccess,
+	name: String,
+	registryAccess: CommandRegistryAccess,
 ): DefaultArgumentConstructor<S, BlockStateArgumentType> {
-    return argument(name, BlockStateArgumentType.blockState(registryAccess))
+	return argument(name, BlockStateArgumentType.blockState(registryAccess))
 }

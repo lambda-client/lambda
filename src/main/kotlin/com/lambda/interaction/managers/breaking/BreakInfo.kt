@@ -136,7 +136,7 @@ data class BreakInfo(
 	fun getBreakThreshold() =
 		when (type) {
 			Primary,
-			Rebreak-> breakConfig.breakThreshold
+			Rebreak -> breakConfig.breakThreshold
 			else -> 1.0f
 		}
 

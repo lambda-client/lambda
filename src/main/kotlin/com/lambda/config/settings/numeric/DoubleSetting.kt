@@ -34,36 +34,36 @@ import kotlin.math.roundToInt
  * @see [com.lambda.config.Configurable]
  */
 class DoubleSetting(
-    defaultValue: Double,
-    override var range: ClosedRange<Double>,
-    override var step: Double,
+	defaultValue: Double,
+	override var range: ClosedRange<Double>,
+	override var step: Double,
 	unit: String
 ) : NumericSetting<Double>(
-    defaultValue,
-    range,
-    step,
+	defaultValue,
+	range,
+	step,
 	unit
 ) {
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
-        set(index) {
-            value = (range.start + index * step)
-	            .roundToStep(step)
-	            .coerceIn(range)
-        }
+	private var valueIndex: Int
+		get() = ((value - range.start) / step).roundToInt()
+		set(index) {
+			value = (range.start + index * step)
+				.roundToStep(step)
+				.coerceIn(range)
+		}
 
 	context(setting: Setting<*, Double>)
-    override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
-    }
+	override fun ImGuiBuilder.buildSlider() {
+		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+		slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
+	}
 
 	context(setting: Setting<*, Double>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(double(setting.name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(double(setting.name, range.start, range.endInclusive)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 }

@@ -21,8 +21,8 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object Capes : Module(
-    name = "Capes",
-    description = "Display custom capes",
-    tag = ModuleTag.CLIENT,
-    enabledByDefault = true,
+	name = "Capes",
+	description = "Display custom capes",
+	tag = ModuleTag.CLIENT,
+	enabledByDefault = true,
 )

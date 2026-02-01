@@ -28,5 +28,5 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @property cancelSignal The signal that indicates whether the event has been canceled.
  */
 open class Cancellable : ICancellable {
-    override val cancelSignal = AtomicBoolean(false)
+	override val cancelSignal = AtomicBoolean(false)
 }

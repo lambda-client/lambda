@@ -27,6 +27,7 @@ import com.lambda.event.events.TickEvent
  */
 interface HotbarConfig : ISettingGroup {
 	val swapMode: SwapMode
+
 	/**
 	 * The number of ticks to keep the current hotbar selection active.
 	 */

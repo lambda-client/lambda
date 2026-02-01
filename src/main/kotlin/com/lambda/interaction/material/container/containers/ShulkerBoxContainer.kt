@@ -37,40 +37,40 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 data class ShulkerBoxContainer(
-    override var stacks: List<ItemStack>,
-    val containedIn: MaterialContainer,
-    val shulkerSlot: Slot,
+	override var stacks: List<ItemStack>,
+	val containedIn: MaterialContainer,
+	val shulkerSlot: Slot,
 ) : MaterialContainer(Rank.ShulkerBox), ExternalContainer {
-    context(safeContext: SafeContext)
-    override val slots
-        get(): List<Slot> =
-            if (ContainerManager.lastInteractedBlockEntity is ShulkerBoxBlockEntity)
-                safeContext.player.currentScreenHandler.containerSlots
-            else emptyList()
+	context(safeContext: SafeContext)
+	override val slots
+		get(): List<Slot> =
+			if (ContainerManager.lastInteractedBlockEntity is ShulkerBoxBlockEntity)
+				safeContext.player.currentScreenHandler.containerSlots
+			else emptyList()
 
-    override val description =
-        buildText {
-            highlighted(shulkerSlot.stack.name.string)
-            literal(" in ")
-            highlighted(containedIn.name)
-            literal(" in slot ")
-            highlighted("${runSafe { slotInContainer }}")
-        }
+	override val description =
+		buildText {
+			highlighted(shulkerSlot.stack.name.string)
+			literal(" in ")
+			highlighted(containedIn.name)
+			literal(" in slot ")
+			highlighted("${runSafe { slotInContainer }}")
+		}
 
-    context(_: SafeContext)
-    private val slotInContainer: Int get() = containedIn.slots.indexOf(shulkerSlot)
+	context(_: SafeContext)
+	private val slotInContainer: Int get() = containedIn.slots.indexOf(shulkerSlot)
 
-    private var placePos = BlockPos.ORIGIN
+	private var placePos = BlockPos.ORIGIN
 
-    context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
-        PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
-            placePos = pos
-            OpenContainerTask(pos, automatedSafeContext).then {
-                taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-                    if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos)
-                    else null
-                }
-            }
-        }
+	context(automatedSafeContext: AutomatedSafeContext)
+	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
+		PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
+			placePos = pos
+			OpenContainerTask(pos, automatedSafeContext).then {
+				taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
+					if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos)
+					else null
+				}
+			}
+		}
 }

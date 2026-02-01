@@ -33,9 +33,9 @@ import io.ktor.http.*
  *  - token: OTk1MTU1NzcyMzYxMTQ2NDM4
  */
 suspend fun linkDiscord(discordToken: String) = runCatching {
-    LambdaHttp.post("${apiUrl}/api/$apiVersion/link/discord") {
-        setBody("""{ "token": "$discordToken" }""")
-        bearerAuth(NetworkManager.accessToken)
-        contentType(ContentType.Application.Json)
-    }.body<Authentication>()
+	LambdaHttp.post("${apiUrl}/api/$apiVersion/link/discord") {
+		setBody("""{ "token": "$discordToken" }""")
+		bearerAuth(NetworkManager.accessToken)
+		contentType(ContentType.Application.Json)
+	}.body<Authentication>()
 }

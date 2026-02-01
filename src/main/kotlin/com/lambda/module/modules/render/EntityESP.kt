@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
@@ -144,9 +143,9 @@ object EntityESP : Module(
 
 			if (tracers || nameTags) {
 				val tracerEsp = TransientRegionESP(
-						"EntityESP-Tracers",
-						depthTest = !throughWalls
-					)
+					"EntityESP-Tracers",
+					depthTest = !throughWalls
+				)
 				entitySearch<Entity>(range) { shouldRender(it) }.forEach { entity ->
 					val color = getEntityColor(entity)
 					val entityPos = getInterpolatedPos(entity, tickDelta)

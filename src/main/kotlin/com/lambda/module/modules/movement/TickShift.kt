@@ -35,125 +35,125 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 
 object TickShift : Module(
-    name = "TickShift",
-    description = "Smort tickshift for smort anticheats",
-    tag = ModuleTag.MOVEMENT,
+	name = "TickShift",
+	description = "Smort tickshift for smort anticheats",
+	tag = ModuleTag.MOVEMENT,
 ) {
-    val maxBalance by setting("Max Balance", 20, 3..400, 1)
-    private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)
-    private val slowdown by setting("Slowdown", 0.35, 0.01..0.9, 0.01)
-    private val delaySetting by setting("Delay", 0, 0..2000, 10)
-    private val grim by setting("Grim", true)
-    private val strictSetting by setting("Strict", true) { !grim }
-    private val shiftVelocity by setting("Shift velocity", true) { grim }
-    private val requiresAura by setting("Requires Aura", false)
+	val maxBalance by setting("Max Balance", 20, 3..400, 1)
+	private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)
+	private val slowdown by setting("Slowdown", 0.35, 0.01..0.9, 0.01)
+	private val delaySetting by setting("Delay", 0, 0..2000, 10)
+	private val grim by setting("Grim", true)
+	private val strictSetting by setting("Strict", true) { !grim }
+	private val shiftVelocity by setting("Shift velocity", true) { grim }
+	private val requiresAura by setting("Requires Aura", false)
 
-    private val strict get() = grim || strictSetting
+	private val strict get() = grim || strictSetting
 
-    val isActive: Boolean
-        get() {
-            if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
-            return System.currentTimeMillis() - lastBoost > delaySetting
-        }
+	val isActive: Boolean
+		get() {
+			if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
+			return System.currentTimeMillis() - lastBoost > delaySetting
+		}
 
-    private var pingPool = ArrayDeque<CommonPongC2SPacket>()
-    private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
+	private var pingPool = ArrayDeque<CommonPongC2SPacket>()
+	private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
 
-    var balance = 0
-    var boost = false
-    private var lastBoost = 0L
+	var balance = 0
+	var boost = false
+	private var lastBoost = 0L
 
-    init {
-        listen<TickEvent.Post> {
-            if (Blink.isEnabled) {
-                this@TickShift.info("TickShift is incompatible with blink")
-                disable()
-            }
+	init {
+		listen<TickEvent.Post> {
+			if (Blink.isEnabled) {
+				this@TickShift.info("TickShift is incompatible with blink")
+				disable()
+			}
 
-            if (strict) balance--
+			if (strict) balance--
 
-            if (balance <= 0) {
-                balance = 0
-                poolPackets()
+			if (balance <= 0) {
+				balance = 0
+				poolPackets()
 
-                if (boost) {
-                    boost = false
-                    lastBoost = System.currentTimeMillis()
-                }
-            }
-        }
+				if (boost) {
+					boost = false
+					lastBoost = System.currentTimeMillis()
+				}
+			}
+		}
 
-        listen<PacketEvent.Send.Pre> {
-            if (it.packet !is PlayerMoveC2SPacket) return@listen
-            if (!strict) balance--
-        }
+		listen<PacketEvent.Send.Pre> {
+			if (it.packet !is PlayerMoveC2SPacket) return@listen
+			if (!strict) balance--
+		}
 
-        runConcurrent {
-            while (true) {
-                delay(50)
+		runConcurrent {
+			while (true) {
+				delay(50)
 
-                if (isEnabled) {
-                    if (++balance >= maxBalance) {
-                        balance = maxBalance
-                        boost = isActive
-                    }
-                }
-            }
-        }
+				if (isEnabled) {
+					if (++balance >= maxBalance) {
+						balance = maxBalance
+						boost = isActive
+					}
+				}
+			}
+		}
 
-        listen<ClientEvent.TimerUpdate> {
-            if (!isActive) {
-                poolPackets()
-                return@listen
-            }
+		listen<ClientEvent.TimerUpdate> {
+			if (!isActive) {
+				poolPackets()
+				return@listen
+			}
 
-            it.speed = if (boost) boostAmount else slowdown
-        }
+			it.speed = if (boost) boostAmount else slowdown
+		}
 
-        listen<PacketEvent.Send.Pre> { event ->
-            if (!isActive || !grim || event.isCanceled()) return@listen
-            if (event.packet !is CommonPongC2SPacket) return@listen
+		listen<PacketEvent.Send.Pre> { event ->
+			if (!isActive || !grim || event.isCanceled()) return@listen
+			if (event.packet !is CommonPongC2SPacket) return@listen
 
-            pingPool.add(event.packet)
-            event.cancel()
-            return@listen
-        }
+			pingPool.add(event.packet)
+			event.cancel()
+			return@listen
+		}
 
-        listen<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listen
+		listen<PacketEvent.Receive.Pre> { event ->
+			if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listen
 
-            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
-            if (event.packet.entityId != player.id) return@listen
+			if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
+			if (event.packet.entityId != player.id) return@listen
 
-            lastVelocity = event.packet
-            event.cancel()
-            return@listen
-        }
+			lastVelocity = event.packet
+			event.cancel()
+			return@listen
+		}
 
-        onEnable {
-            balance = 0
-            boost = false
+		onEnable {
+			balance = 0
+			boost = false
 
-            pingPool.clear()
-            lastVelocity = null
-        }
+			pingPool.clear()
+			lastVelocity = null
+		}
 
-        onDisable {
-            balance = 0
-            boost = false
+		onDisable {
+			balance = 0
+			boost = false
 
-            poolPackets()
-        }
-    }
+			poolPackets()
+		}
+	}
 
-    private fun SafeContext.poolPackets() {
-        while (pingPool.isNotEmpty()) {
-            connection.sendPacketSilently(pingPool.removeFirst())
-        }
+	private fun SafeContext.poolPackets() {
+		while (pingPool.isNotEmpty()) {
+			connection.sendPacketSilently(pingPool.removeFirst())
+		}
 
-        lastVelocity?.let {
-            connection.handlePacketSilently(it)
-            lastVelocity = null
-        }
-    }
+		lastVelocity?.let {
+			connection.handlePacketSilently(it)
+			lastVelocity = null
+		}
+	}
 }

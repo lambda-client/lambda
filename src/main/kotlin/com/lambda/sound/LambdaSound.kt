@@ -22,16 +22,16 @@ import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 
 enum class LambdaSound(val id: Identifier) {
-    ButtonClick("button_click".asIdentifier),
+	ButtonClick("button_click".asIdentifier),
 
-    BooleanSettingOn("bool_on".asIdentifier),
-    BooleanSettingOff("bool_off".asIdentifier),
+	BooleanSettingOn("bool_on".asIdentifier),
+	BooleanSettingOff("bool_off".asIdentifier),
 
-    ModuleOn("module_on".asIdentifier),
-    ModuleOff("module_off".asIdentifier),
+	ModuleOn("module_on".asIdentifier),
+	ModuleOff("module_off".asIdentifier),
 
-    SettingsOpen("settings_open".asIdentifier),
-    SettingsClose("settings_close".asIdentifier);
+	SettingsOpen("settings_open".asIdentifier),
+	SettingsClose("settings_close".asIdentifier);
 
-    val event: SoundEvent = SoundEvent.of(id)
+	val event: SoundEvent = SoundEvent.of(id)
 }

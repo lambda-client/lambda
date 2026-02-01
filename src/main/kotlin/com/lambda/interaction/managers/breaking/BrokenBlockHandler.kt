@@ -103,7 +103,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 
 				if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
 					|| (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
-					) {
+				) {
 					destroyBlock(pending)
 				}
 				pending.internalOnBreak()

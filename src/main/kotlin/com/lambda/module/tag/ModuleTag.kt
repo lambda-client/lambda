@@ -33,31 +33,31 @@ import com.lambda.util.Nameable
  * @param name The name of the tag.
  */
 data class ModuleTag(override val name: String) : Nameable {
-    // Totally needs to be reworked
-    // ToDo: Add registry for tags
-    companion object {
-        val COMBAT = ModuleTag("Combat")
-        val MOVEMENT = ModuleTag("Movement")
-        val RENDER = ModuleTag("Render")
-        val PLAYER = ModuleTag("Player")
-        val CHAT = ModuleTag("Chat")
-        val CLIENT = ModuleTag("Client")
-        val NETWORK = ModuleTag("Network")
-        val DEBUG = ModuleTag("Debug")
-        val HUD = ModuleTag("Hud")
+	// Totally needs to be reworked
+	// ToDo: Add registry for tags
+	companion object {
+		val COMBAT = ModuleTag("Combat")
+		val MOVEMENT = ModuleTag("Movement")
+		val RENDER = ModuleTag("Render")
+		val PLAYER = ModuleTag("Player")
+		val CHAT = ModuleTag("Chat")
+		val CLIENT = ModuleTag("Client")
+		val NETWORK = ModuleTag("Network")
+		val DEBUG = ModuleTag("Debug")
+		val HUD = ModuleTag("Hud")
 
-        val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, CHAT, CLIENT, HUD)
+		val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, CHAT, CLIENT, HUD)
 
-        val shownTags = defaults.toMutableSet()
+		val shownTags = defaults.toMutableSet()
 
-        fun toggleTag(tag: ModuleTag) {
-            if (shownTags.contains(tag)) {
-                shownTags.remove(tag)
-            } else {
-                shownTags.add(tag)
-            }
-        }
+		fun toggleTag(tag: ModuleTag) {
+			if (shownTags.contains(tag)) {
+				shownTags.remove(tag)
+			} else {
+				shownTags.add(tag)
+			}
+		}
 
-        fun isTagShown(tag: ModuleTag) = shownTags.contains(tag)
-    }
+		fun isTagShown(tag: ModuleTag) = shownTags.contains(tag)
+	}
 }

@@ -33,68 +33,68 @@ import kotlin.math.max
 import kotlin.math.pow
 
 object RayCastUtils {
-    private val entityPredicate = { entity: Entity ->
-        !entity.isSpectator && entity.canHit() && entity !is ClientPlayerEntity
-    }
+	private val entityPredicate = { entity: Entity ->
+		!entity.isSpectator && entity.canHit() && entity !is ClientPlayerEntity
+	}
 
-    fun SafeContext.rayCast(
-        start: Vec3d,
-        direction: Vec3d,
-        reach: Double,
-        mask: InteractionMask,
-        fluids: Boolean = false,
-    ): HitResult? {
-        val vec = direction.multiply(reach)
-        val point = start.add(vec)
+	fun SafeContext.rayCast(
+		start: Vec3d,
+		direction: Vec3d,
+		reach: Double,
+		mask: InteractionMask,
+		fluids: Boolean = false,
+	): HitResult? {
+		val vec = direction.multiply(reach)
+		val point = start.add(vec)
 
-        val block = run {
-            if (!mask.block) return@run null
+		val block = run {
+			if (!mask.block) return@run null
 
-            val fluidHandling = if (fluids) RaycastContext.FluidHandling.ANY else RaycastContext.FluidHandling.NONE
-            val context = RaycastContext(start, point, RaycastContext.ShapeType.OUTLINE, fluidHandling, player)
-            val result = world.raycast(context)
+			val fluidHandling = if (fluids) RaycastContext.FluidHandling.ANY else RaycastContext.FluidHandling.NONE
+			val context = RaycastContext(start, point, RaycastContext.ShapeType.OUTLINE, fluidHandling, player)
+			val result = world.raycast(context)
 
-            result?.blockResult
-        }
+			result?.blockResult
+		}
 
-        val entity = run {
-            if (!mask.entity) return@run null
+		val entity = run {
+			if (!mask.entity) return@run null
 
-            val playerBox = player.boundingBox.stretch(vec).expand(1.0)
-            val result = ProjectileUtil.raycast(player, start, point, playerBox, entityPredicate, reach.pow(2))
+			val playerBox = player.boundingBox.stretch(vec).expand(1.0)
+			val result = ProjectileUtil.raycast(player, start, point, playerBox, entityPredicate, reach.pow(2))
 
-            result?.entityResult
-        }
+			result?.entityResult
+		}
 
-        return listOfNotNull(block, entity).minByOrNull { start distSq it.pos }
-    }
+		return listOfNotNull(block, entity).minByOrNull { start distSq it.pos }
+	}
 
-    // ToDo: Should rather move player hitbox down and check collision
-    fun SafeContext.distanceToGround(maxDist: Double = 100.0): Double {
-        val pos = player.pos.add(0.0, 0.1, 0.0)
-        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return maxDist
+	// ToDo: Should rather move player hitbox down and check collision
+	fun SafeContext.distanceToGround(maxDist: Double = 100.0): Double {
+		val pos = player.pos.add(0.0, 0.1, 0.0)
+		val cast = Rotation.DOWN.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return maxDist
 
-        return max(0.0, pos.y - cast.pos.y)
-    }
+		return max(0.0, pos.y - cast.pos.y)
+	}
 
-    val HitResult.entityResult: EntityHitResult?
-        get() {
-            if (type == HitResult.Type.MISS) return null
-            return this as? EntityHitResult
-        }
+	val HitResult.entityResult: EntityHitResult?
+		get() {
+			if (type == HitResult.Type.MISS) return null
+			return this as? EntityHitResult
+		}
 
-    val HitResult.blockResult: BlockHitResult?
-        get() {
-            if (type == HitResult.Type.MISS) return null
-            return this as? BlockHitResult
-        }
+	val HitResult.blockResult: BlockHitResult?
+		get() {
+			if (type == HitResult.Type.MISS) return null
+			return this as? BlockHitResult
+		}
 
-    fun HitResult.distanceTo(pos: Vec3d) = this.pos.distanceTo(pos)
+	fun HitResult.distanceTo(pos: Vec3d) = this.pos.distanceTo(pos)
 
-    val HitResult.orNull get() = entityResult ?: blockResult
+	val HitResult.orNull get() = entityResult ?: blockResult
 
-    val HitResult?.orMiss
-        get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
-            override fun getType() = Type.MISS
-        }
+	val HitResult?.orMiss
+		get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
+			override fun getType() = Type.MISS
+		}
 }

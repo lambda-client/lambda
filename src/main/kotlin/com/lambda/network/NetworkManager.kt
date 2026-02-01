@@ -28,36 +28,36 @@ import com.lambda.util.StringUtils.json
 import com.lambda.util.collections.updatableLazy
 
 object NetworkManager : Configurable(SecretsConfig), Loadable {
-    override val name = "network"
+	override val name = "network"
 
-    var accessToken by setting("access_token", "") { false }; private set
+	var accessToken by setting("access_token", "") { false }; private set
 
-    val isValid: Boolean
-        get() = mc.gameProfile.name == auth.value?.data?.name &&
-                mc.gameProfile.id == auth.value?.data?.uuid &&
-                System.currentTimeMillis() > (auth.value?.expirationDate ?: Long.MAX_VALUE)
+	val isValid: Boolean
+		get() = mc.gameProfile.name == auth.value?.data?.name &&
+				mc.gameProfile.id == auth.value?.data?.uuid &&
+				System.currentTimeMillis() > (auth.value?.expirationDate ?: Long.MAX_VALUE)
 
-    private val auth = updatableLazy {
-        val parts = accessToken.split(".")
-        if (parts.size != 3) return@updatableLazy null
+	private val auth = updatableLazy {
+		val parts = accessToken.split(".")
+		if (parts.size != 3) return@updatableLazy null
 
-        val payload = parts[1]
-        val data = payload.base64UrlDecode().json<Data>()
+		val payload = parts[1]
+		val data = payload.base64UrlDecode().json<Data>()
 
-        return@updatableLazy if (System.currentTimeMillis() < data.expirationDate) null
-        else data
-    }
+		return@updatableLazy if (System.currentTimeMillis() < data.expirationDate) null
+		else data
+	}
 
-    fun updateToken(resp: Authentication) {
-        accessToken = resp.accessToken
-        auth.update()
-    }
+	fun updateToken(resp: Authentication) {
+		accessToken = resp.accessToken
+		auth.update()
+	}
 
-    override fun load(): String {
-        auth.update()
+	override fun load(): String {
+		auth.update()
 
-        return auth.value
-            ?.let { "Logged you in as ${it.data.name} (${it.data.uuid})" }
-            ?: "NetworkManager: You are not authenticated"
-    }
+		return auth.value
+			?.let { "Logged you in as ${it.data.name} (${it.data.uuid})" }
+			?: "NetworkManager: You are not authenticated"
+	}
 }

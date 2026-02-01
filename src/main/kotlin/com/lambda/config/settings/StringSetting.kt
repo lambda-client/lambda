@@ -35,43 +35,43 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Configurable]
  */
 class StringSetting(
-    defaultValue: String,
-    var multiline: Boolean = false,
-    var flags: Int = ImGuiInputTextFlags.None,
+	defaultValue: String,
+	var multiline: Boolean = false,
+	var flags: Int = ImGuiInputTextFlags.None,
 ) : SettingCore<String>(
 	defaultValue,
 	TypeToken.get(String::class.java).type
 ) {
 	context(setting: Setting<*, String>)
-    override fun ImGuiBuilder.buildLayout() {
-        if (multiline) {
-            inputTextMultiline(setting.name, ::value, flags = flags)
-        } else {
-            inputText(setting.name, ::value, flags)
-        }
-        lambdaTooltip(setting.description)
-    }
+	override fun ImGuiBuilder.buildLayout() {
+		if (multiline) {
+			inputTextMultiline(setting.name, ::value, flags = flags)
+		} else {
+			inputText(setting.name, ::value, flags)
+		}
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, String>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(greedyString(setting.name)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(greedyString(setting.name)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 
-    companion object {
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
-            (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
-        }
+	companion object {
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
+			(settings as Collection<StringSetting>).forEach { it.multiline = multiline }
+		}
 
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
-            (settings as Collection<StringSetting>).forEach { it.flags = flags }
-        }
-    }
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
+			(settings as Collection<StringSetting>).forEach { it.flags = flags }
+		}
+	}
 }

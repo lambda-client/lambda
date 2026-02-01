@@ -35,7 +35,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 import kotlin.math.min
-import kotlin.math.sqrt
 
 /**
  * Shape builder for region-based rendering. All coordinates are automatically converted to

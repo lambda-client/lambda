@@ -33,6 +33,6 @@ import java.io.File
  * @property primary The primary file where the configuration is saved.
  */
 object ModuleConfigs : Configuration() {
-    override val configName get() = "modules"
-    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
+	override val configName get() = "modules"
+	override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
 }

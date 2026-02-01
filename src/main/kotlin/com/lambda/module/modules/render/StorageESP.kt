@@ -18,18 +18,18 @@
 package com.lambda.module.modules.render
 
 import com.lambda.context.SafeContext
+import com.lambda.event.events.onStaticRender
 import com.lambda.graphics.esp.ShapeScope
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.event.events.onStaticRender
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.blockEntitySearch
-import com.lambda.util.world.entitySearch
 import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.math.setAlpha
+import com.lambda.util.world.blockEntitySearch
+import com.lambda.util.world.entitySearch
 import net.minecraft.block.entity.BarrelBlockEntity
 import net.minecraft.block.entity.BlastFurnaceBlockEntity
 import net.minecraft.block.entity.BlockEntity
@@ -129,7 +129,7 @@ object StorageESP : Module(
 					it::class in entities
 				}
 			(mineCarts + itemFrames).forEach { entity ->
-				esp.shapes(entity.getX(), entity.getY(), entity.getZ()) {
+				esp.shapes(entity.x, entity.y, entity.z) {
 					build(entity, DirectionMask.ALL)
 				}
 			}

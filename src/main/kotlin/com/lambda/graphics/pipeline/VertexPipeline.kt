@@ -35,114 +35,114 @@ import org.lwjgl.opengl.GL32C.GL_ELEMENT_ARRAY_BUFFER
  * @see PersistentBuffer for buffer management
  */
 class VertexPipeline(
-    private val vertexMode: VertexMode,
-    private val attributes: VertexAttrib.Group
+	private val vertexMode: VertexMode,
+	private val attributes: VertexAttrib.Group
 ) {
-    private val vao = VertexArray(vertexMode, attributes)
+	private val vao = VertexArray(vertexMode, attributes)
 
-    private val vbo = PersistentBuffer(GL_ARRAY_BUFFER, attributes.stride)
-    private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, Int.SIZE_BYTES)
+	private val vbo = PersistentBuffer(GL_ARRAY_BUFFER, attributes.stride)
+	private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, Int.SIZE_BYTES)
 
-    init {
-        vao.linkVbo(vbo)
-    }
+	init {
+		vao.linkVbo(vbo)
+	}
 
-    /**
-     * Direct access to the vertex buffer's underlying byte storage
-     */
-    val vertices get() = vbo.byteBuffer
+	/**
+	 * Direct access to the vertex buffer's underlying byte storage
+	 */
+	val vertices get() = vbo.byteBuffer
 
-    /**
-     * Direct access to the index buffer's underlying byte storage
-     */
-    val indices get() = ibo.byteBuffer
+	/**
+	 * Direct access to the index buffer's underlying byte storage
+	 */
+	val indices get() = ibo.byteBuffer
 
-    /**
-     * Submits a draw call to the GPU using currently uploaded data
-     * Binds VAO and issues glDrawElementsBaseVertex command
-     */
-    fun render() = vao.renderIndices(ibo)
+	/**
+	 * Submits a draw call to the GPU using currently uploaded data
+	 * Binds VAO and issues glDrawElementsBaseVertex command
+	 */
+	fun render() = vao.renderIndices(ibo)
 
-    /**
-     * Builds and renders data constructed by [VertexBuilder]
-     *
-     * It is recommended to use this method for direct data transfer
-     * to avoid the overhead caused by [VertexBuilder]
-     *
-     * Uploads buffered data to GPU memory
-     *
-     * Note: only one vertex builder could be built and uploaded within 1 batch
-     */
-    fun immediate(block: VertexBuilder.() -> Unit) {
-        VertexBuilder(this).apply(block)
-        uploadInternal(); render(); clear()
-    }
+	/**
+	 * Builds and renders data constructed by [VertexBuilder]
+	 *
+	 * It is recommended to use this method for direct data transfer
+	 * to avoid the overhead caused by [VertexBuilder]
+	 *
+	 * Uploads buffered data to GPU memory
+	 *
+	 * Note: only one vertex builder could be built and uploaded within 1 batch
+	 */
+	fun immediate(block: VertexBuilder.() -> Unit) {
+		VertexBuilder(this).apply(block)
+		uploadInternal(); render(); clear()
+	}
 
-    /**
-     * Builds data constructed by [VertexBuilder]
-     *
-     * It is recommended to use this method for direct data transfer
-     * to avoid the overhead caused by [VertexBuilder]
-     *
-     * Uploads buffered data to GPU memory
-     *
-     * Note: only one vertex builder could be built and uploaded within 1 batch
-     */
-    fun upload(block: VertexBuilder.() -> Unit) {
-        VertexBuilder(this).apply(block)
-        uploadInternal()
-    }
+	/**
+	 * Builds data constructed by [VertexBuilder]
+	 *
+	 * It is recommended to use this method for direct data transfer
+	 * to avoid the overhead caused by [VertexBuilder]
+	 *
+	 * Uploads buffered data to GPU memory
+	 *
+	 * Note: only one vertex builder could be built and uploaded within 1 batch
+	 */
+	fun upload(block: VertexBuilder.() -> Unit) {
+		VertexBuilder(this).apply(block)
+		uploadInternal()
+	}
 
-    /**
-     * Builds data constructed by [VertexBuilder]
-     *
-     * Uploads buffered data to GPU memory
-     *
-     * Note: only one vertex builder could be built and uploaded within 1 batch
-     */
-    fun upload(builder: VertexBuilder) {
-        builder.uploadTo(this)
-        uploadInternal()
-    }
+	/**
+	 * Builds data constructed by [VertexBuilder]
+	 *
+	 * Uploads buffered data to GPU memory
+	 *
+	 * Note: only one vertex builder could be built and uploaded within 1 batch
+	 */
+	fun upload(builder: VertexBuilder) {
+		builder.uploadTo(this)
+		uploadInternal()
+	}
 
-    /**
-     * Creates a [VertexBuilder]
-     *
-     * Note: only one vertex builder could be built and uploaded within 1 batch
-     */
-    fun build(block: VertexBuilder.() -> Unit = {}) =
-        VertexBuilder().apply(block)
+	/**
+	 * Creates a [VertexBuilder]
+	 *
+	 * Note: only one vertex builder could be built and uploaded within 1 batch
+	 */
+	fun build(block: VertexBuilder.() -> Unit = {}) =
+		VertexBuilder().apply(block)
 
-    /**
-     * Uploads buffered data to GPU memory
-     */
-    private fun uploadInternal() {
-        vbo.upload()
-        ibo.upload()
-    }
+	/**
+	 * Uploads buffered data to GPU memory
+	 */
+	private fun uploadInternal() {
+		vbo.upload()
+		ibo.upload()
+	}
 
-    /**
-     * Finalizes the current draw batch and prepares for new data
-     */
-    fun end() {
-        vbo.end()
-        ibo.end()
-    }
+	/**
+	 * Finalizes the current draw batch and prepares for new data
+	 */
+	fun end() {
+		vbo.end()
+		ibo.end()
+	}
 
-    /**
-     * Synchronizes buffer states between frames
-     * Should be called at the end of each frame
-     */
-    fun sync() {
-        vbo.sync()
-        ibo.sync()
-    }
+	/**
+	 * Synchronizes buffer states between frames
+	 * Should be called at the end of each frame
+	 */
+	fun sync() {
+		vbo.sync()
+		ibo.sync()
+	}
 
-    /**
-     * Resets both vertex and index buffers
-     */
-    fun clear() {
-        vbo.clear()
-        ibo.clear()
-    }
+	/**
+	 * Resets both vertex and index buffers
+	 */
+	fun clear() {
+		vbo.clear()
+		ibo.clear()
+	}
 }

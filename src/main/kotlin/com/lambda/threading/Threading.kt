@@ -40,7 +40,7 @@ import java.util.concurrent.CompletableFuture
  * - [SafeContext.connection]
  */
 inline fun <T> runSafe(block: SafeContext.() -> T): T? =
-    SafeContext.create()?.run(block)
+	SafeContext.create()?.run(block)
 
 /**
  * Runs the [block] in an automated context.
@@ -50,7 +50,7 @@ inline fun <T> runSafe(block: SafeContext.() -> T): T? =
 @JvmName("runSafeAutomated0")
 context(safeContext: SafeContext)
 inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
-    AutomatedSafeContext(safeContext, automated).run(block)
+	AutomatedSafeContext(safeContext, automated).run(block)
 
 /**
  * Runs the [block] in an automated context.
@@ -59,7 +59,7 @@ inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: Au
  */
 @JvmName("runSafeAutomated1")
 inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
-    return AutomatedSafeContext(SafeContext.create() ?: return null, this).run(block)
+	return AutomatedSafeContext(SafeContext.create() ?: return null, this).run(block)
 }
 
 /**
@@ -68,19 +68,19 @@ inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): 
  * Writing to game data is discouraged as it may cause race conditions.
  */
 inline fun runConcurrent(scheduler: CoroutineDispatcher = Dispatchers.Default, crossinline block: suspend CoroutineScope.() -> Unit) =
-    EventFlow.lambdaScope.launch(scheduler) {
-        block()
-    }
+	EventFlow.lambdaScope.launch(scheduler) {
+		block()
+	}
 
 inline fun runIO(crossinline block: suspend CoroutineScope.() -> Unit) =
-    runConcurrent(Dispatchers.IO) {
-        block()
-    }
+	runConcurrent(Dispatchers.IO) {
+		block()
+	}
 
 inline fun taskContext(crossinline block: suspend CoroutineScope.() -> Unit) =
-    EventFlow.lambdaScope.launch {
-        block()
-    }
+	EventFlow.lambdaScope.launch {
+		block()
+	}
 
 /**
  * Runs the [block] within a safe context in a coroutine.
@@ -94,9 +94,9 @@ inline fun taskContext(crossinline block: suspend CoroutineScope.() -> Unit) =
  * Writing to game data is discouraged as it may cause race conditions.
  */
 inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) {
-    EventFlow.lambdaScope.launch {
-        runSafe { block() }
-    }
+	EventFlow.lambdaScope.launch {
+		runSafe { block() }
+	}
 }
 
 /**
@@ -106,19 +106,19 @@ inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) 
  * to OpenGL.
  */
 inline fun recordRenderCall(crossinline block: () -> Unit) {
-    mc.execute { block() }
+	mc.execute { block() }
 }
 
 /**
  * Schedules or executes the [block] on the main thread.
  */
 inline fun runGameScheduled(crossinline block: () -> Unit) {
-    if (isOnRenderThread()) {
-        block()
-        return
-    }
+	if (isOnRenderThread()) {
+		block()
+		return
+	}
 
-    mc.execute { block() }
+	mc.execute { block() }
 }
 
 /**
@@ -131,7 +131,7 @@ inline fun runGameScheduled(crossinline block: () -> Unit) {
  * - [SafeContext.connection]
  */
 inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
-    runGameScheduled { runSafe { block() } }
+	runGameScheduled { runSafe { block() } }
 }
 
 /**
@@ -147,4 +147,4 @@ inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
  * This function blocks until the task is completed.
  */
 suspend inline fun <T> awaitMainThread(noinline block: SafeContext.() -> T) =
-    CompletableFuture.supplyAsync({ runSafe { block() } }, mc).await() ?: throw IllegalStateException("Unsafe")
+	CompletableFuture.supplyAsync({ runSafe { block() } }, mc).await() ?: throw IllegalStateException("Unsafe")

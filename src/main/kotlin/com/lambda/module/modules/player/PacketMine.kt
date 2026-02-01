@@ -60,7 +60,7 @@ object PacketMine : Module(
 	private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.General)
 	private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once").group(Group.General)
 		.onValueChange { _, to -> if (!to) queuePositions.clear() }
-	private val queueOrder by  setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(Group.General)
+	private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }.group(Group.General)
 
 	private val renderRebreak by setting("Render Rebreak", true, "Displays what block is being checked for rebreak").group(Group.Renders)
 	private val rebreakColor by setting("Rebreak Color", Color.RED) { renderRebreak }.group(Group.Renders)
@@ -297,7 +297,7 @@ object PacketMine : Module(
 		Manual("Manual", "Re-break only when you trigger it explicitly."),
 		Auto("Auto", "Automatically re-break when it’s beneficial or required."),
 		//ToDo: Implement auto constant rebreak
-//        AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
+		//        AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
 	}
 
 	enum class QueueOrder(

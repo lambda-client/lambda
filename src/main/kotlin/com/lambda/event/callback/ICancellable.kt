@@ -29,17 +29,17 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @property cancelSignal The signal that indicates whether the event has been canceled.
  */
 interface ICancellable : CallbackEvent {
-    val cancelSignal: AtomicBoolean
+	val cancelSignal: AtomicBoolean
 
-    /**
-     * Cancels the event.
-     */
-    fun cancel() {
-        cancelSignal.set(true)
-    }
+	/**
+	 * Cancels the event.
+	 */
+	fun cancel() {
+		cancelSignal.set(true)
+	}
 
-    /**
-     * Checks whether the event has been canceled.
-     */
-    fun isCanceled() = cancelSignal.get()
+	/**
+	 * Checks whether the event has been canceled.
+	 */
+	fun isCanceled() = cancelSignal.get()
 }

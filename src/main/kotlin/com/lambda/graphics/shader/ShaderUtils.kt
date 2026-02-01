@@ -36,75 +36,75 @@ import org.lwjgl.opengl.GL30C.glLinkProgram
 import org.lwjgl.opengl.GL30C.glUniformMatrix4fv
 
 object ShaderUtils {
-    private val matrixBuffer = BufferUtils.createFloatBuffer(4 * 4)
-    private const val shaderInfoLogLength = 512
+	private val matrixBuffer = BufferUtils.createFloatBuffer(4 * 4)
+	private const val shaderInfoLogLength = 512
 
-    fun loadShader(type: ShaderType, text: String): Int {
-        // Create new shader object
-        val shader = glCreateShader(type.gl)
+	fun loadShader(type: ShaderType, text: String): Int {
+		// Create new shader object
+		val shader = glCreateShader(type.gl)
 
-        // Attach source code and compile it
-        GlStateManager.glShaderSource(shader, text)
-        val error = compileShader(shader)
+		// Attach source code and compile it
+		GlStateManager.glShaderSource(shader, text)
+		val error = compileShader(shader)
 
-        // Handle error
-        error?.let { err ->
-            val builder = StringBuilder()
-                .append("Failed to compile ${type.name} shader").appendLine()
-                .append("Compiler output:").appendLine()
-                .append(err)
-                .appendLine().appendLine("CODE:")
-                .append(text)
+		// Handle error
+		error?.let { err ->
+			val builder = StringBuilder()
+				.append("Failed to compile ${type.name} shader").appendLine()
+				.append("Compiler output:").appendLine()
+				.append(err)
+				.appendLine().appendLine("CODE:")
+				.append(text)
 
-            throw RuntimeException(builder.toString())
-        }
+			throw RuntimeException(builder.toString())
+		}
 
-        return shader
-    }
+		return shader
+	}
 
-    fun createShaderProgram(vararg shaders: Int): Int {
-        // Create new shader program
-        val program = glCreateProgram()
-        val error = linkProgram(program, shaders)
+	fun createShaderProgram(vararg shaders: Int): Int {
+		// Create new shader program
+		val program = glCreateProgram()
+		val error = linkProgram(program, shaders)
 
-        // Handle error
-        error?.let { err ->
-            val builder = StringBuilder()
-                .append("Failed to link shader program").appendLine()
-                .append("Output:").appendLine()
-                .append(err)
+		// Handle error
+		error?.let { err ->
+			val builder = StringBuilder()
+				.append("Failed to link shader program").appendLine()
+				.append("Output:").appendLine()
+				.append(err)
 
-            throw RuntimeException(builder.toString())
-        }
+			throw RuntimeException(builder.toString())
+		}
 
-        shaders.forEach(::glDeleteShader)
+		shaders.forEach(::glDeleteShader)
 
-        return program
-    }
+		return program
+	}
 
-    private fun compileShader(shader: Int): String? {
-        glCompileShader(shader)
-        val status = glGetShaderi(shader, GL_COMPILE_STATUS)
+	private fun compileShader(shader: Int): String? {
+		glCompileShader(shader)
+		val status = glGetShaderi(shader, GL_COMPILE_STATUS)
 
-        return if (status != GL_FALSE) null
-        else glGetShaderInfoLog(shader, shaderInfoLogLength)
-    }
+		return if (status != GL_FALSE) null
+		else glGetShaderInfoLog(shader, shaderInfoLogLength)
+	}
 
-    private fun linkProgram(program: Int, shaders: IntArray): String? {
-        shaders.forEach {
-            glAttachShader(program, it)
-        }
+	private fun linkProgram(program: Int, shaders: IntArray): String? {
+		shaders.forEach {
+			glAttachShader(program, it)
+		}
 
-        glLinkProgram(program)
+		glLinkProgram(program)
 
-        val status = glGetProgrami(program, GL_LINK_STATUS)
+		val status = glGetProgrami(program, GL_LINK_STATUS)
 
-        return if (status != GL_FALSE) null
-        else glGetProgramInfoLog(program, shaderInfoLogLength)
-    }
+		return if (status != GL_FALSE) null
+		else glGetProgramInfoLog(program, shaderInfoLogLength)
+	}
 
-    fun uniformMatrix(location: Int, v: Matrix4f) {
-        v.get(matrixBuffer)
-        glUniformMatrix4fv(location, false, matrixBuffer)
-    }
+	fun uniformMatrix(location: Int, v: Matrix4f) {
+		v.get(matrixBuffer)
+		glUniformMatrix4fv(location, false, matrixBuffer)
+	}
 }

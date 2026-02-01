@@ -32,26 +32,26 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object SlabPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(state: BlockState, targetState: BlockState) = targetState.block is SlabBlock
+	override fun acceptsState(state: BlockState, targetState: BlockState) = targetState.block is SlabBlock
 
-    context(safeContext: SafeContext)
-    override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
-        val slab = targetState.get(Properties.SLAB_TYPE) ?: return
+	context(safeContext: SafeContext)
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
+		val slab = targetState.get(Properties.SLAB_TYPE) ?: return
 
-        val surfaceScan = when (slab) {
-            SlabType.BOTTOM -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
-            SlabType.TOP -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
-            SlabType.DOUBLE -> {
-                if (state.block !is SlabBlock) {
-	                addIgnores(Properties.SLAB_TYPE)
+		val surfaceScan = when (slab) {
+			SlabType.BOTTOM -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
+			SlabType.TOP -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
+			SlabType.DOUBLE -> {
+				if (state.block !is SlabBlock) {
+					addIgnores(Properties.SLAB_TYPE)
 					SurfaceScan.DEFAULT
-                } else when (state.get(Properties.SLAB_TYPE)) {
-                    SlabType.BOTTOM -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
-                    else -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
-                }
-            }
-        }
+				} else when (state.get(Properties.SLAB_TYPE)) {
+					SlabType.BOTTOM -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
+					else -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)
+				}
+			}
+		}
 
-        offerSurfaceScan(surfaceScan)
-    }
+		offerSurfaceScan(surfaceScan)
+	}
 }

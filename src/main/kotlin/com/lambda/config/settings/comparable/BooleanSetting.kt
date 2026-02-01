@@ -35,18 +35,18 @@ class BooleanSetting(defaultValue: Boolean) : SettingCore<Boolean>(
 	defaultValue,
 	TypeToken.get(Boolean::class.java).type
 ) {
-    context(setting: Setting<*, Boolean>)
+	context(setting: Setting<*, Boolean>)
 	override fun ImGuiBuilder.buildLayout() {
-        checkbox(setting.name, ::value)
-        lambdaTooltip(setting.description)
-    }
+		checkbox(setting.name, ::value)
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, Boolean>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(boolean(setting.name)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(boolean(setting.name)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 }

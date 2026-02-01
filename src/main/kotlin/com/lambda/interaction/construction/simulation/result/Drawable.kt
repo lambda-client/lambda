@@ -23,5 +23,5 @@ import com.lambda.graphics.mc.TransientRegionESP
  * Represents a [BuildResult] that can be rendered in-game.
  */
 interface Drawable {
-    fun render(esp: TransientRegionESP)
+	fun render(esp: TransientRegionESP)
 }

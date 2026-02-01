@@ -49,7 +49,7 @@ object LiteralDescriptor : ArgumentDescriptor<ArgumentType<*>>
 @JvmName("valueTimeArg")
 @BrigadierDsl
 fun DefaultArgumentReader<TimeArgumentType>.value(): Int {
-    return IntegerArgumentType.getInteger(context, name)
+	return IntegerArgumentType.getInteger(context, name)
 } // TimeArgumentType does not provide an accessor, defaulting to int
 
 /**
@@ -61,7 +61,7 @@ fun DefaultArgumentReader<TimeArgumentType>.value(): Int {
 @JvmName("valueUuidArg")
 @BrigadierDsl
 fun DefaultArgumentReader<UuidArgumentType>.value(): UUID {
-    return UuidArgumentType.getUuid(context.assumeSourceNotUsed(), name)
+	return UuidArgumentType.getUuid(context.assumeSourceNotUsed(), name)
 }
 
 /**
@@ -71,10 +71,10 @@ fun DefaultArgumentReader<UuidArgumentType>.value(): UUID {
  */
 @BrigadierDsl
 fun <S> time(
-    name: String,
-    minimumTicks: Int = 0,
+	name: String,
+	minimumTicks: Int = 0,
 ): DefaultArgumentConstructor<S, TimeArgumentType> {
-    return argument(name, TimeArgumentType.time(minimumTicks))
+	return argument(name, TimeArgumentType.time(minimumTicks))
 }
 
 /**
@@ -82,9 +82,9 @@ fun <S> time(
  */
 @BrigadierDsl
 fun <S> uuid(
-    name: String,
+	name: String,
 ): RequiredArgumentConstructor<S, DefaultArgumentDescriptor<UuidArgumentType>> {
-    return argument(name, UuidArgumentType.uuid())
+	return argument(name, UuidArgumentType.uuid())
 }
 
 /**
@@ -97,7 +97,7 @@ fun <S> uuid(
  */
 @BrigadierDsl
 fun <S> literal(
-    name: String,
+	name: String,
 ): ArgumentConstructor<S, LiteralArgumentBuilder<S>, LiteralDescriptor> {
-    return ArgumentConstructor(LiteralArgumentBuilder.literal(name), name, LiteralDescriptor)
+	return ArgumentConstructor(LiteralArgumentBuilder.literal(name), name, LiteralDescriptor)
 }

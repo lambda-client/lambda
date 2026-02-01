@@ -45,8 +45,8 @@ suspend fun getCapes(vararg uuid: UUID) = getCapes(uuid.toList())
  *  - id: fdee323e-7f0c-4c15-8d1c-0f277442342a
  */
 suspend fun getCapes(uuids: List<UUID>) = runCatching {
-    LambdaHttp.get("$apiUrl/api/$apiVersion/capes") {
-        contentType(ContentType.Application.Json)
-        setBody("""{ "players": [${uuids.joinToString(prefix = "\"", postfix = "\"", separator = "\",\"")}] }""")
-    }.body<List<Cape>>()
+	LambdaHttp.get("$apiUrl/api/$apiVersion/capes") {
+		contentType(ContentType.Application.Json)
+		setBody("""{ "players": [${uuids.joinToString(prefix = "\"", postfix = "\"", separator = "\",\"")}] }""")
+	}.body<List<Cape>>()
 }

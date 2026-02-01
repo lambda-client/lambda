@@ -49,18 +49,18 @@ annotation class BlockMarker
  */
 @BlockMarker
 fun SafeContext.blockSearch(
-    range: Vec3i,
-    pos: BlockPos = player.blockPos,
-    step: Vec3i = Vec3i(1, 1, 1),
-    filter: (BlockPos, BlockState) -> Boolean = { _, _ -> true },
+	range: Vec3i,
+	pos: BlockPos = player.blockPos,
+	step: Vec3i = Vec3i(1, 1, 1),
+	filter: (BlockPos, BlockState) -> Boolean = { _, _ -> true },
 ) =
-    internalSearchBlocks(
-        pos.toFastVec(),
-        range.toFastVec(),
-        step.toFastVec()
-    ) { fastPos, state ->
-        filter(fastPos.toBlockPos(), state)
-    }.mapKeys { it.key.toBlockPos() }
+	internalSearchBlocks(
+		pos.toFastVec(),
+		range.toFastVec(),
+		step.toFastVec()
+	) { fastPos, state ->
+		filter(fastPos.toBlockPos(), state)
+	}.mapKeys { it.key.toBlockPos() }
 
 /**
  * Example:
@@ -76,10 +76,10 @@ fun SafeContext.blockSearch(
  */
 @BlockMarker
 fun SafeContext.blockSearch(
-    range: Int,
-    pos: BlockPos = player.blockPos,
-    step: Int = 1,
-    filter: (BlockPos, BlockState) -> Boolean = { _, _ -> true },
+	range: Int,
+	pos: BlockPos = player.blockPos,
+	step: Int = 1,
+	filter: (BlockPos, BlockState) -> Boolean = { _, _ -> true },
 ) = blockSearch(Vec3i(range, range, range), pos, Vec3i(step, step, step), filter)
 
 @DslMarker
@@ -95,9 +95,9 @@ annotation class BlockEntityMarker
  */
 @BlockEntityMarker
 inline fun <reified T : BlockEntity> SafeContext.blockEntitySearch(
-    range: Double = 64.0,
-    pos: BlockPos = player.blockPos,
-    noinline filter: (T) -> Boolean = { true },
+	range: Double = 64.0,
+	pos: BlockPos = player.blockPos,
+	noinline filter: (T) -> Boolean = { true },
 ) = internalGetBlockEntities<T>(pos.toFastVec(), range, predicate = filter).toSet()
 
 @DslMarker
@@ -113,12 +113,12 @@ annotation class EntityMarker
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.closestEntity(
-    range: Double = 64.0,
-    pos: BlockPos = player.blockPos,
-    noinline filter: (T) -> Boolean = { true },
+	range: Double = 64.0,
+	pos: BlockPos = player.blockPos,
+	noinline filter: (T) -> Boolean = { true },
 ): T? =
-    entitySearch<T>(range, pos, filter)
-        .minByOrNull { pos distSq it.pos }
+	entitySearch<T>(range, pos, filter)
+		.minByOrNull { pos distSq it.pos }
 
 /**
  * Example:
@@ -130,9 +130,9 @@ inline fun <reified T : Entity> SafeContext.closestEntity(
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.entitySearch(
-    range: Double,
-    pos: BlockPos = player.blockPos,
-    noinline filter: (T) -> Boolean = { true },
+	range: Double,
+	pos: BlockPos = player.blockPos,
+	noinline filter: (T) -> Boolean = { true },
 ) = internalGetEntities<T>(pos.toFastVec(), range, filter = filter)
 
 /**
@@ -146,9 +146,9 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
-    range: Double,
-    pos: BlockPos = player.blockPos,
-    noinline filter: (T) -> Boolean = { true },
+	range: Double,
+	pos: BlockPos = player.blockPos,
+	noinline filter: (T) -> Boolean = { true },
 ) = internalGetFastEntities<T>(pos.toFastVec(), range, filter = filter)
 
 @DslMarker
@@ -168,17 +168,17 @@ annotation class FluidMarker
  */
 @FluidMarker
 inline fun <reified T : Fluid> SafeContext.fluidSearch(
-    range: Vec3i,
-    pos: BlockPos = player.blockPos,
-    step: Vec3i = Vec3i(1, 1, 1),
-    noinline filter: (BlockPos, FluidState) -> Boolean = { _, _ -> true },
+	range: Vec3i,
+	pos: BlockPos = player.blockPos,
+	step: Vec3i = Vec3i(1, 1, 1),
+	noinline filter: (BlockPos, FluidState) -> Boolean = { _, _ -> true },
 ) =
-    internalSearchFluids<T>(
-        pos.toFastVec(),
-        range.toFastVec(),
-        step.toFastVec()
-    ) { pos, state -> filter(pos.toBlockPos(), state) }
-        .mapKeys { it.key.toBlockPos() }
+	internalSearchFluids<T>(
+		pos.toFastVec(),
+		range.toFastVec(),
+		step.toFastVec()
+	) { pos, state -> filter(pos.toBlockPos(), state) }
+		.mapKeys { it.key.toBlockPos() }
 
 /**
  * Example:
@@ -194,8 +194,8 @@ inline fun <reified T : Fluid> SafeContext.fluidSearch(
  */
 @FluidMarker
 inline fun <reified T : Fluid> SafeContext.fluidSearch(
-    range: Int,
-    step: Int = 1,
-    pos: BlockPos = player.blockPos,
-    noinline filter: (BlockPos, FluidState) -> Boolean,
+	range: Int,
+	step: Int = 1,
+	pos: BlockPos = player.blockPos,
+	noinline filter: (BlockPos, FluidState) -> Boolean,
 ) = fluidSearch<T>(Vec3i(range, range, range), pos, Vec3i(step, step, step), filter)

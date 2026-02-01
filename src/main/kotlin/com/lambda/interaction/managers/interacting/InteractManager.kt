@@ -134,7 +134,7 @@ object InteractManager : Manager<InteractRequest>(
 	 * @see populateFrom
 	 * @see interactBlock
 	 */
-	fun AutomatedSafeContext.processRequest(request: InteractRequest)  {
+	fun AutomatedSafeContext.processRequest(request: InteractRequest) {
 		if (request.fresh) populateFrom(request)
 
 		val iterator = potentialPlacements.iterator()
@@ -269,7 +269,7 @@ object InteractManager : Manager<InteractRequest>(
 		val blockPos = context.blockPos
 		return if (!player.abilities.allowModifyWorld &&
 			!itemStack.canPlaceOn(CachedBlockPosition(world, blockPos, false))
-			) {
+		) {
 			ActionResult.PASS
 		} else {
 			val item = itemStack.blockItem ?: return ActionResult.FAIL

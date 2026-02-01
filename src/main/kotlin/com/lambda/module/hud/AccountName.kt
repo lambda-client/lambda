@@ -23,11 +23,11 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 
 object AccountName : HudModule(
-    name = "AccountName",
-    description = "Displays the current accounts name",
-    tag = ModuleTag.HUD
+	name = "AccountName",
+	description = "Displays the current accounts name",
+	tag = ModuleTag.HUD
 ) {
-    override fun ImGuiBuilder.buildLayout() {
-        runSafe { text(player.name.string) }
-    }
+	override fun ImGuiBuilder.buildLayout() {
+		runSafe { text(player.name.string) }
+	}
 }

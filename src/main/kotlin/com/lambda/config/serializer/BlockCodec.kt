@@ -28,21 +28,21 @@ import net.minecraft.registry.Registries
 import java.lang.reflect.Type
 
 object BlockCodec : Codec<Block>, Stringifiable<Block> {
-    override fun serialize(
-        src: Block,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement =
-        Registries.BLOCK.codec.encodeStart(JsonOps.INSTANCE, src)
-            .orThrow
+	override fun serialize(
+		src: Block,
+		typeOfSrc: Type,
+		context: JsonSerializationContext,
+	): JsonElement =
+		Registries.BLOCK.codec.encodeStart(JsonOps.INSTANCE, src)
+			.orThrow
 
-    override fun deserialize(
-        json: JsonElement?,
-        typeOfT: Type?,
-        context: JsonDeserializationContext?,
-    ): Block =
-        Registries.BLOCK.codec.parse(JsonOps.INSTANCE, json)
-            .orThrow
+	override fun deserialize(
+		json: JsonElement?,
+		typeOfT: Type?,
+		context: JsonDeserializationContext?,
+	): Block =
+		Registries.BLOCK.codec.parse(JsonOps.INSTANCE, json)
+			.orThrow
 
-    override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
+	override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
 }

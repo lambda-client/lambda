@@ -61,16 +61,24 @@ object RotationManager : Manager<RotationRequest>(
 ) {
 	var pitchRequest
 		get() = requests[0] as? IRotationRequest.PitchRot
-		set(value) { requests[0] = value }
+		set(value) {
+			requests[0] = value
+		}
 	var yawRequest
 		get() = requests[1] as? IRotationRequest.YawRot
-		set(value) { requests[1] = value }
-	@JvmStatic val requests = mutableListOf<IRotationRequest?>(null, null)
+		set(value) {
+			requests[1] = value
+		}
+	@JvmStatic
+	val requests = mutableListOf<IRotationRequest?>(null, null)
 
 	private var usingBaritoneRotation = false
-	@JvmStatic var activeRotation = Rotation.ZERO
-	@JvmStatic var serverRotation = Rotation.ZERO
-	@JvmStatic var prevServerRotation = Rotation.ZERO
+	@JvmStatic
+	var activeRotation = Rotation.ZERO
+	@JvmStatic
+	var serverRotation = Rotation.ZERO
+	@JvmStatic
+	var prevServerRotation = Rotation.ZERO
 
 	private var changedThisTick = false
 
@@ -293,7 +301,8 @@ object RotationManager : Manager<RotationRequest>(
 	private fun multiplier(positive: Boolean, negative: Boolean) =
 		((if (positive) 1 else 0) - (if (negative) 1 else 0)).toFloat()
 
-	@JvmStatic fun onRotationSend() {
+	@JvmStatic
+	fun onRotationSend() {
 		prevServerRotation = serverRotation
 		serverRotation = activeRotation
 

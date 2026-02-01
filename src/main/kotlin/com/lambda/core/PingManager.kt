@@ -26,23 +26,23 @@ import net.minecraft.network.packet.s2c.query.PingResultS2CPacket
 import net.minecraft.util.Util
 
 object PingManager : Loadable {
-    private val pings: LimitedOrderedSet<Long> = LimitedOrderedSet(100)
-    private const val INTERVAL = 1
+	private val pings: LimitedOrderedSet<Long> = LimitedOrderedSet(100)
+	private const val INTERVAL = 1
 
-    override fun load() = "Loaded Ping Manager"
+	override fun load() = "Loaded Ping Manager"
 
-    val lastPing: Long
-        get() = pings.lastOrNull() ?: 0
+	val lastPing: Long
+		get() = pings.lastOrNull() ?: 0
 
-    init {
-        listen<TickEvent.Pre> {
-            connection.sendPacket(QueryPingC2SPacket(Util.getMeasuringTimeMs()))
-        }
+	init {
+		listen<TickEvent.Pre> {
+			connection.sendPacket(QueryPingC2SPacket(Util.getMeasuringTimeMs()))
+		}
 
-        listen<PacketEvent.Receive.Pre> { event ->
-            if (event.packet !is PingResultS2CPacket) return@listen
+		listen<PacketEvent.Receive.Pre> { event ->
+			if (event.packet !is PingResultS2CPacket) return@listen
 
-            pings.add(Util.getMeasuringTimeMs() - event.packet.startTime)
-        }
-    }
+			pings.add(Util.getMeasuringTimeMs() - event.packet.startTime)
+		}
+	}
 }

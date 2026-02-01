@@ -69,7 +69,7 @@ object VisibilityChecker {
 		preProcessing: PreProcessingData? = null,
 		allowInsideBox: Boolean = false,
 		verify: (CheckedHit.() -> Boolean)? = null
-	): CheckedHit? = with (automatedSafeContext) {
+	): CheckedHit? = with(automatedSafeContext) {
 		if (boundingBox.contains(pov)) {
 			val currentRotation = RotationManager.activeRotation
 			currentRotation.rayCast(reach, pov)?.let { hit ->
@@ -103,7 +103,7 @@ object VisibilityChecker {
 		preProcessing: PreProcessingData? = null,
 		allowInsideBox: Boolean = false,
 		verify: (CheckedHit.() -> Boolean)? = null
-	): CheckedHit? = with (automatedSafeContext) {
+	): CheckedHit? = with(automatedSafeContext) {
 		val shape = blockState(this@findRotation)
 			.getOutlineShape(world, this@findRotation)
 			.offset(this@findRotation)
@@ -243,7 +243,7 @@ object VisibilityChecker {
 		with(contract(DEFAULT.shrinkFactor)) {
 			if (preProcessing == null || preProcessing.info.surfaceScan.mode == ScanMode.Full) return Pair(this, emptySet())
 
-			val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X,  preProcessing.info.surfaceScan)
+			val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X, preProcessing.info.surfaceScan)
 			val (newYBounds, shrunkYSide) = toScanRange(minY, maxY, preProcessing.pos.y, Direction.Axis.Y, preProcessing.info.surfaceScan)
 			val (newZBounds, shrunkZSide) = toScanRange(minZ, maxZ, preProcessing.pos.z, Direction.Axis.Z, preProcessing.info.surfaceScan)
 

@@ -33,22 +33,22 @@ class Vec3dSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
 	defaultValue,
 	TypeToken.get(Vec3d::class.java).type
 ) {
-    context(setting: Setting<*, Vec3d>)
+	context(setting: Setting<*, Vec3d>)
 	override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
-        lambdaTooltip(setting.description)
-    }
+		inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, Vec3d>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(double("X", -30000000.0, 30000000.0)) { x ->
-            required(double("Y", -64.0, 255.0)) { y ->
-                required(double("Z", -30000000.0, 30000000.0)) { z ->
-                    execute {
-                        setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
-                    }
-                }
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(double("X", -30000000.0, 30000000.0)) { x ->
+			required(double("Y", -64.0, 255.0)) { y ->
+				required(double("Z", -30000000.0, 30000000.0)) { z ->
+					execute {
+						setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
+					}
+				}
+			}
+		}
+	}
 }

@@ -29,62 +29,62 @@ import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.world.GameMode
 
-const val FakePlayerId = -2024-4-20
+const val FakePlayerId = -2024 - 4 - 20
 
 val SafeContext.gamemode: GameMode
-    get() = interaction.currentGameMode
+	get() = interaction.currentGameMode
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
-    ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.lastPlayerInput, entity.isSprinting).apply {
-        setPos(entity.x, entity.y, entity.z)
-        setExperience(entity.experienceProgress, entity.totalExperience, entity.experienceLevel)
-        health = entity.health
-        absorptionAmount = entity.absorptionAmount
-        pitch = entity.pitch
-        yaw = entity.yaw
-        headYaw = entity.headYaw
-        bodyYaw = entity.bodyYaw
-        velocity = entity.velocity
-        movementSpeed = entity.movementSpeed
-        isSneaking = entity.isSneaking
-        isSprinting = entity.isSprinting
-        isSwimming = entity.isSwimming
-        isOnGround = entity.isOnGround
-    }
+	ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.lastPlayerInput, entity.isSprinting).apply {
+		setPos(entity.x, entity.y, entity.z)
+		setExperience(entity.experienceProgress, entity.totalExperience, entity.experienceLevel)
+		health = entity.health
+		absorptionAmount = entity.absorptionAmount
+		pitch = entity.pitch
+		yaw = entity.yaw
+		headYaw = entity.headYaw
+		bodyYaw = entity.bodyYaw
+		velocity = entity.velocity
+		movementSpeed = entity.movementSpeed
+		isSneaking = entity.isSneaking
+		isSprinting = entity.isSprinting
+		isSwimming = entity.isSwimming
+		isOnGround = entity.isOnGround
+	}
 
 fun SafeContext.spawnFakePlayer(
-    profile: GameProfile,
-    reference: PlayerEntity = player,
-    addToWorld: Boolean = true
+	profile: GameProfile,
+	reference: PlayerEntity = player,
+	addToWorld: Boolean = true
 ): OtherClientPlayerEntity {
-    val entity = OtherClientPlayerEntity(world, profile).apply {
-        copyFrom(reference)
+	val entity = OtherClientPlayerEntity(world, profile).apply {
+		copyFrom(reference)
 
-        playerListEntry = PlayerListEntry(profile, false)
-        id = FakePlayerId
-    }
+		playerListEntry = PlayerListEntry(profile, false)
+		id = FakePlayerId
+	}
 
-    if (addToWorld) world.addEntity(entity)
+	if (addToWorld) world.addEntity(entity)
 
-    return entity
+	return entity
 }
 
 fun SafeContext.swingHand(swingType: BuildConfig.SwingType, hand: Hand) =
-    when (swingType) {
-        BuildConfig.SwingType.Vanilla -> {
-            swingHandClient(hand)
-            connection.sendPacket(HandSwingC2SPacket(hand))
-        }
-        BuildConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(hand))
-        BuildConfig.SwingType.Client -> swingHandClient(hand)
-    }
+	when (swingType) {
+		BuildConfig.SwingType.Vanilla -> {
+			swingHandClient(hand)
+			connection.sendPacket(HandSwingC2SPacket(hand))
+		}
+		BuildConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(hand))
+		BuildConfig.SwingType.Client -> swingHandClient(hand)
+	}
 
 fun SafeContext.swingHandClient(hand: Hand) {
-    if (!player.handSwinging || player.handSwingTicks >= player.handSwingDuration / 2 || player.handSwingTicks < 0) {
-        player.handSwingTicks = -1
-        player.handSwinging = true
-        player.preferredHand = hand
-    }
+	if (!player.handSwinging || player.handSwingTicks >= player.handSwingDuration / 2 || player.handSwingTicks < 0) {
+		player.handSwingTicks = -1
+		player.handSwinging = true
+		player.preferredHand = hand
+	}
 }
 
 fun SafeContext.isItemOnCooldown(stack: ItemStack) = player.itemCooldownManager.isCoolingDown(stack)

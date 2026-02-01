@@ -41,59 +41,59 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 class PlaceContainerTask @Ta5kBuilder constructor(
-    val slot: Slot,
-    automated: Automated
+	val slot: Slot,
+	automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
-    override val name: String get() = "Placing container ${slot.stack.name.string}"
+	override val name: String get() = "Placing container ${slot.stack.name.string}"
 
-    override fun SafeContext.onStart() {
-        val results = runSafeAutomated {
-            BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
-                .map { it.blockPos }
-                .asSequence()
-                .filter { !ManagerUtils.isPosBlocked(it) }
-                .flatMap {
-                    it.toStructure(TargetState.Stack(slot.stack))
-                        .simulate()
-                }
-        }
+	override fun SafeContext.onStart() {
+		val results = runSafeAutomated {
+			BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
+				.map { it.blockPos }
+				.asSequence()
+				.filter { !ManagerUtils.isPosBlocked(it) }
+				.flatMap {
+					it.toStructure(TargetState.Stack(slot.stack))
+						.simulate()
+				}
+		}
 
-        val options = results.filterIsInstance<InteractResult.Interact>().filter {
-            canBeOpened(slot.stack, it.pos, it.context.hitResult.side)
-        } + results.filterIsInstance<GenericResult.WrongItemSelection>()
+		val options = results.filterIsInstance<InteractResult.Interact>().filter {
+			canBeOpened(slot.stack, it.pos, it.context.hitResult.side)
+		} + results.filterIsInstance<GenericResult.WrongItemSelection>()
 
-        val containerPosition = options.filter {
-            // ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
-            it.pos.y == player.blockPos.y
-        }.minByOrNull { it.pos distSq player.pos }?.pos ?: run {
-            failure("Couldn't find a valid container placement position for ${slot.stack.name.string}")
-            return@onStart
-        }
+		val containerPosition = options.filter {
+			// ToDo: Check based on if we can move the player close enough rather than y level once the custom pathfinder is merged
+			it.pos.y == player.blockPos.y
+		}.minByOrNull { it.pos distSq player.pos }?.pos ?: run {
+			failure("Couldn't find a valid container placement position for ${slot.stack.name.string}")
+			return@onStart
+		}
 
-        containerPosition
-            .toStructure(TargetState.Stack(slot.stack))
-            .toBlueprint()
-            .build(finishOnDone = true, collectDrops = false)
-            .finally { success(containerPosition) }
-            .execute(this@PlaceContainerTask)
-    }
+		containerPosition
+			.toStructure(TargetState.Stack(slot.stack))
+			.toBlueprint()
+			.build(finishOnDone = true, collectDrops = false)
+			.finally { success(containerPosition) }
+			.execute(this@PlaceContainerTask)
+	}
 
-    private fun SafeContext.canBeOpened(
-        itemStack: ItemStack,
-        blockPos: BlockPos,
-        direction: Direction,
-    ) = when (itemStack.item) {
-        Items.ENDER_CHEST -> {
-            !ChestBlock.isChestBlocked(world, blockPos)
-        }
-        in shulkerBoxes -> {
-            val box = ShulkerEntity
-                .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
-                .offset(blockPos)
-                .contract(1.0E-6)
+	private fun SafeContext.canBeOpened(
+		itemStack: ItemStack,
+		blockPos: BlockPos,
+		direction: Direction,
+	) = when (itemStack.item) {
+		Items.ENDER_CHEST -> {
+			!ChestBlock.isChestBlocked(world, blockPos)
+		}
+		in shulkerBoxes -> {
+			val box = ShulkerEntity
+				.calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
+				.offset(blockPos)
+				.contract(1.0E-6)
 
-            world.isSpaceEmpty(box)
-        }
-        else -> false
-    }
+			world.isSpaceEmpty(box)
+		}
+		else -> false
+	}
 }

@@ -24,6 +24,6 @@ import com.lambda.task.Task
  * Represents a [BuildResult] with a resolvable [Task]
  */
 interface Resolvable {
-    context(task: Task<*>, _: AutomatedSafeContext)
-    fun resolve()
+	context(task: Task<*>, _: AutomatedSafeContext)
+	fun resolve()
 }

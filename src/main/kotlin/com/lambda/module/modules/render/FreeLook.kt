@@ -29,55 +29,57 @@ import net.minecraft.client.option.Perspective
 
 
 object FreeLook : Module(
-    name = "FreeLook",
-    description = "Allows you to look around freely while moving",
-    tag = ModuleTag.PLAYER,
+	name = "FreeLook",
+	description = "Allows you to look around freely while moving",
+	tag = ModuleTag.PLAYER,
 ) {
-    @JvmStatic val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
-    @JvmStatic val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
-    val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
+	@JvmStatic
+	val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
+	@JvmStatic
+	val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
+	val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
-    var camera: Rotation = Rotation.ZERO
-    var previousPerspective: Perspective = Perspective.FIRST_PERSON
+	var camera: Rotation = Rotation.ZERO
+	var previousPerspective: Perspective = Perspective.FIRST_PERSON
 
-    /**
-     * @see net.minecraft.entity.Entity.changeLookDirection
-     */
-    private const val SENSITIVITY_FACTOR = 0.15
+	/**
+	 * @see net.minecraft.entity.Entity.changeLookDirection
+	 */
+	private const val SENSITIVITY_FACTOR = 0.15
 
-    @JvmStatic
-    fun updateCam() {
-        mc.gameRenderer.apply {
-            camera.setRotation(this@FreeLook.camera.yawF, this@FreeLook.camera.pitchF)
-        }
-    }
+	@JvmStatic
+	fun updateCam() {
+		mc.gameRenderer.apply {
+			camera.setRotation(this@FreeLook.camera.yawF, this@FreeLook.camera.pitchF)
+		}
+	}
 
-    init {
-        previousPerspective = mc.options.perspective
+	init {
+		previousPerspective = mc.options.perspective
 
-        onEnable {
-            camera = player.rotation
-            previousPerspective = mc.options.perspective
-            if (togglePerspective) mc.options.perspective = Perspective.THIRD_PERSON_BACK
-        }
+		onEnable {
+			camera = player.rotation
+			previousPerspective = mc.options.perspective
+			if (togglePerspective) mc.options.perspective = Perspective.THIRD_PERSON_BACK
+		}
 
-        onDisable {
-            updateCam()
-            mc.options.perspective = previousPerspective
-        }
+		onDisable {
+			updateCam()
+			mc.options.perspective = previousPerspective
+		}
 
-        listen<PlayerEvent.ChangeLookDirection> {
-            if (!isEnabled) return@listen
+		listen<PlayerEvent.ChangeLookDirection> {
+			if (!isEnabled) return@listen
 
-            camera = camera.withDelta(
-                it.deltaYaw * SENSITIVITY_FACTOR,
-                it.deltaPitch * SENSITIVITY_FACTOR
-            )
+			camera = camera.withDelta(
+				it.deltaYaw * SENSITIVITY_FACTOR,
+				it.deltaPitch * SENSITIVITY_FACTOR
+			)
 
-            if (enableYaw) RotationManager.setPlayerYaw(camera.yaw)
-            if (enablePitch) RotationManager.setPlayerPitch(camera.pitch)
+			if (enableYaw) RotationManager.setPlayerYaw(camera.yaw)
+			if (enablePitch) RotationManager.setPlayerPitch(camera.pitch)
 
-            it.cancel()
-        }
-    }
+			it.cancel()
+		}
+	}
 }

@@ -37,17 +37,18 @@ class CharSetting(defaultValue: Char) : SettingCore<Char>(
 	defaultValue,
 	TypeToken.get(Char::class.java).type
 ) {
-    context(setting: Setting<*, Char>)
-	override fun ImGuiBuilder.buildLayout() {}
+	context(setting: Setting<*, Char>)
+	override fun ImGuiBuilder.buildLayout() {
+	}
 
 	context(setting: Setting<*, Char>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(setting.name)) { parameter ->
-            executeWithResult {
-                val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
-                setting.trySetValue(char)
-                return@executeWithResult success()
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(word(setting.name)) { parameter ->
+			executeWithResult {
+				val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
+				setting.trySetValue(char)
+				return@executeWithResult success()
+			}
+		}
+	}
 }

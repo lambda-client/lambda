@@ -43,7 +43,7 @@ import com.mojang.brigadier.arguments.LongArgumentType
 @JvmName("valueBoolArg")
 @BrigadierDsl
 fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean {
-    return BoolArgumentType.getBool(context, name)
+	return BoolArgumentType.getBool(context, name)
 }
 
 /**
@@ -55,7 +55,7 @@ fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean {
 @JvmName("valueDoubleArg")
 @BrigadierDsl
 fun DefaultArgumentReader<DoubleArgumentType>.value(): Double {
-    return DoubleArgumentType.getDouble(context, name)
+	return DoubleArgumentType.getDouble(context, name)
 }
 
 /**
@@ -67,7 +67,7 @@ fun DefaultArgumentReader<DoubleArgumentType>.value(): Double {
 @JvmName("valueFloatArg")
 @BrigadierDsl
 fun DefaultArgumentReader<FloatArgumentType>.value(): Float {
-    return FloatArgumentType.getFloat(context, name)
+	return FloatArgumentType.getFloat(context, name)
 }
 
 /**
@@ -79,7 +79,7 @@ fun DefaultArgumentReader<FloatArgumentType>.value(): Float {
 @JvmName("valueIntArg")
 @BrigadierDsl
 fun DefaultArgumentReader<IntegerArgumentType>.value(): Int {
-    return IntegerArgumentType.getInteger(context, name)
+	return IntegerArgumentType.getInteger(context, name)
 }
 
 /**
@@ -91,7 +91,7 @@ fun DefaultArgumentReader<IntegerArgumentType>.value(): Int {
 @JvmName("valueLongArg")
 @BrigadierDsl
 fun DefaultArgumentReader<LongArgumentType>.value(): Long {
-    return LongArgumentType.getLong(context, name)
+	return LongArgumentType.getLong(context, name)
 }
 
 /**
@@ -99,9 +99,9 @@ fun DefaultArgumentReader<LongArgumentType>.value(): Long {
  */
 @BrigadierDsl
 fun <S> boolean(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, BoolArgumentType> {
-    return argument(name, BoolArgumentType.bool())
+	return argument(name, BoolArgumentType.bool())
 }
 
 /**
@@ -112,11 +112,11 @@ fun <S> boolean(
  */
 @BrigadierDsl
 fun <S> double(
-    name: String,
-    min: Double = -Double.MAX_VALUE,
-    max: Double = Double.MAX_VALUE,
+	name: String,
+	min: Double = -Double.MAX_VALUE,
+	max: Double = Double.MAX_VALUE,
 ): DefaultArgumentConstructor<S, DoubleArgumentType> {
-    return argument(name, DoubleArgumentType.doubleArg(min, max))
+	return argument(name, DoubleArgumentType.doubleArg(min, max))
 }
 
 /**
@@ -127,11 +127,11 @@ fun <S> double(
  */
 @BrigadierDsl
 fun <S> float(
-    name: String,
-    min: Float = -Float.MAX_VALUE,
-    max: Float = Float.MAX_VALUE,
+	name: String,
+	min: Float = -Float.MAX_VALUE,
+	max: Float = Float.MAX_VALUE,
 ): DefaultArgumentConstructor<S, FloatArgumentType> {
-    return argument(name, FloatArgumentType.floatArg(min, max))
+	return argument(name, FloatArgumentType.floatArg(min, max))
 }
 
 /**
@@ -142,11 +142,11 @@ fun <S> float(
  */
 @BrigadierDsl
 fun <S> integer(
-    name: String,
-    min: Int = -Int.MAX_VALUE,
-    max: Int = Int.MAX_VALUE,
+	name: String,
+	min: Int = -Int.MAX_VALUE,
+	max: Int = Int.MAX_VALUE,
 ): DefaultArgumentConstructor<S, IntegerArgumentType> {
-    return argument(name, IntegerArgumentType.integer(min, max))
+	return argument(name, IntegerArgumentType.integer(min, max))
 }
 
 /**
@@ -157,9 +157,9 @@ fun <S> integer(
  */
 @BrigadierDsl
 fun <S> long(
-    name: String,
-    min: Long = -Long.MAX_VALUE,
-    max: Long = Long.MAX_VALUE,
+	name: String,
+	min: Long = -Long.MAX_VALUE,
+	max: Long = Long.MAX_VALUE,
 ): DefaultArgumentConstructor<S, LongArgumentType> {
-    return argument(name, LongArgumentType.longArg(min, max))
+	return argument(name, LongArgumentType.longArg(min, max))
 }

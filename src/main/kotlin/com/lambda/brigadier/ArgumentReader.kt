@@ -36,9 +36,9 @@ typealias DefaultArgumentReader<T> = ArgumentReader<*, DefaultArgumentDescriptor
  * @property argumentDescriptor descriptor provided for the argument's declaration
  */
 class ArgumentReader<S, out D : ArgumentDescriptor<*>>(
-    val context: CommandContext<S>,
-    val name: String,
-    private val argumentDescriptor: D,
+	val context: CommandContext<S>,
+	val name: String,
+	private val argumentDescriptor: D,
 )
 
 /**
@@ -69,5 +69,5 @@ class DefaultArgumentDescriptor<T : ArgumentType<*>> : ArgumentDescriptor<T>
  */
 @Suppress("UNCHECKED_CAST")
 internal fun <S> CommandContext<*>.assumeSourceNotUsed(): CommandContext<S> {
-    return this as CommandContext<S>
+	return this as CommandContext<S>
 }

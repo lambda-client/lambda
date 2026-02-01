@@ -56,9 +56,9 @@ object ListEntityArgumentDescriptor : ArgumentDescriptor<EntityArgumentType>
  */
 @BrigadierDsl
 fun DefaultArgumentReader<EntityAnchorArgumentType>.value() =
-    EntityAnchorArgumentType.getEntityAnchor(
-        context.assumeSourceNotUsed(), name
-    )
+	EntityAnchorArgumentType.getEntityAnchor(
+		context.assumeSourceNotUsed(), name
+	)
 
 /**
  * Reads the collection of entities from the argument in
@@ -70,7 +70,7 @@ fun DefaultArgumentReader<EntityAnchorArgumentType>.value() =
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, ListEntityArgumentDescriptor>.required() =
-    EntityArgumentType.getEntities(context, name)
+	EntityArgumentType.getEntities(context, name)
 
 /**
  * Reads the collection of entities from the argument in
@@ -82,7 +82,7 @@ fun ArgumentReader<ServerCommandSource, ListEntityArgumentDescriptor>.required()
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, ListEntityArgumentDescriptor>.optional(): Collection<Entity> =
-    EntityArgumentType.getOptionalEntities(context, name)
+	EntityArgumentType.getOptionalEntities(context, name)
 
 /**
  * Reads the [Entity] value from the argument in
@@ -92,16 +92,16 @@ fun ArgumentReader<ServerCommandSource, ListEntityArgumentDescriptor>.optional()
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, SingleEntityArgumentDescriptor>.value(): Entity =
-    EntityArgumentType.getEntity(context, name)
+	EntityArgumentType.getEntity(context, name)
 
 /**
  * Creates an entity anchor argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> entityAnchor(
-    name: String,
+	name: String,
 ): DefaultArgumentConstructor<S, EntityAnchorArgumentType> {
-    return argument(name, EntityAnchorArgumentType.entityAnchor())
+	return argument(name, EntityAnchorArgumentType.entityAnchor())
 }
 
 /**
@@ -109,15 +109,15 @@ fun <S> entityAnchor(
  */
 @BrigadierDsl
 fun <S> entities(
-    name: String,
+	name: String,
 ): RequiredArgumentConstructor<S, ListEntityArgumentDescriptor> =
-    argument(name, EntityArgumentType.entities(), ListEntityArgumentDescriptor)
+	argument(name, EntityArgumentType.entities(), ListEntityArgumentDescriptor)
 
 /**
  * Creates an entity selector argument with [name] as the parameter name.
  */
 @BrigadierDsl
 fun <S> entity(
-    name: String,
+	name: String,
 ): RequiredArgumentConstructor<S, SingleEntityArgumentDescriptor> =
-    argument(name, EntityArgumentType.entity(), SingleEntityArgumentDescriptor)
+	argument(name, EntityArgumentType.entity(), SingleEntityArgumentDescriptor)

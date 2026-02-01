@@ -26,20 +26,20 @@ import com.lambda.command.LambdaCommand
 import com.lambda.util.extension.CommandBuilder
 
 object VClipCommand : LambdaCommand(
-    name = "vclip",
-    usage = "vclip <distance>",
-    description = "Teleports the player up a specified distance"
+	name = "vclip",
+	usage = "vclip <distance>",
+	description = "Teleports the player up a specified distance"
 ) {
-    override fun CommandBuilder.create() {
-        required(double("distance")) { distance ->
-            execute {
-                val player = mc.player ?: return@execute
-                val distance = distance().value()
-                player.vehicle?.let { vehicle ->
-                    vehicle.setPos(vehicle.x, vehicle.y + distance, vehicle.z)
-                }
-                player.setPos(player.x, player.y + distance, player.z)
-            }
-        }
-    }
+	override fun CommandBuilder.create() {
+		required(double("distance")) { distance ->
+			execute {
+				val player = mc.player ?: return@execute
+				val distance = distance().value()
+				player.vehicle?.let { vehicle ->
+					vehicle.setPos(vehicle.x, vehicle.y + distance, vehicle.z)
+				}
+				player.setPos(player.x, player.y + distance, player.z)
+			}
+		}
+	}
 }

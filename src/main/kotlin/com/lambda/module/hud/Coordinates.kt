@@ -48,10 +48,10 @@ object Coordinates : HudModule(
 			::timeFormat.edit { hide() }
 		}
 	}
-//	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
-//		::timeFormat.edit { hide() }
-//		::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
-//	}
+	//	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
+	//		::timeFormat.edit { hide() }
+	//		::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
+	//	}
 
 	override fun ImGuiBuilder.buildLayout() {
 		runSafe {

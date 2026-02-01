@@ -30,76 +30,76 @@ import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
 object ConfigCommand : LambdaCommand(
-    name = "config",
-    aliases = setOf("cfg", "settings", "setting"),
-    usage = "config <save | load | set> <configurable> <setting> <value>",
-    description = "Save or load configuration files, or set any settings value",
-    examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
+	name = "config",
+	aliases = setOf("cfg", "settings", "setting"),
+	usage = "config <save | load | set> <configurable> <setting> <value>",
+	description = "Save or load configuration files, or set any settings value",
+	examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
 ) {
-    override fun CommandBuilder.create() {
-        required(literal("save")) {
-            executeWithResult {
-                Configuration.configurations.forEach { config ->
-                    config.trySave(true)
-                }
-                this@ConfigCommand.info("Saved ${Configuration.configurations.size} configuration files.")
-                return@executeWithResult success()
-            }
-        }
-        required(literal("load")) {
-            executeWithResult {
-                Configuration.configurations.forEach { config ->
-                    config.tryLoad()
-                }
-                this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
-                return@executeWithResult success()
-            }
-        }
-        required(literal("reset")) {
-            required(string("config")) { config ->
-                suggests { _, builder ->
-                    Configuration.configurables.forEach {
-                        builder.suggest(it.commandName)
-                    }
-                    builder.buildFuture()
-                }
-                required(string("setting")) { setting ->
-                    suggests { ctx, builder ->
-                        val conf = config(ctx).value()
-                        Configuration.configurableByName(conf)?.let { configurable ->
-                            configurable.settings.forEach {
-                                builder.suggest(it.commandName)
-                            }
-                        }
-                        builder.buildFuture()
-                    }
-                    executeWithResult {
-                        val confName = config().value()
-                        val settingName = setting().value()
-                        val configurable = Configuration.configurableByCommandName(confName) ?: run {
-                            return@executeWithResult failure("$confName is not a valid configurable.")
-                        }
-                        val setting = Configuration.settingByCommandName(configurable, settingName) ?: run {
-                            return@executeWithResult failure("$settingName is not a valid setting for $confName.")
-                        }
-                        setting.reset()
-                        return@executeWithResult success()
-                    }
-                }
-            }
-        }
-        required(literal("set")) {
-            Configuration.configurables.forEach { configurable ->
-                required(literal(configurable.commandName)) {
-                    configurable.settings.forEach { setting ->
-                        required(literal(setting.commandName)) {
-                            with(setting) {
-                                buildCommand(registry)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+	override fun CommandBuilder.create() {
+		required(literal("save")) {
+			executeWithResult {
+				Configuration.configurations.forEach { config ->
+					config.trySave(true)
+				}
+				this@ConfigCommand.info("Saved ${Configuration.configurations.size} configuration files.")
+				return@executeWithResult success()
+			}
+		}
+		required(literal("load")) {
+			executeWithResult {
+				Configuration.configurations.forEach { config ->
+					config.tryLoad()
+				}
+				this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
+				return@executeWithResult success()
+			}
+		}
+		required(literal("reset")) {
+			required(string("config")) { config ->
+				suggests { _, builder ->
+					Configuration.configurables.forEach {
+						builder.suggest(it.commandName)
+					}
+					builder.buildFuture()
+				}
+				required(string("setting")) { setting ->
+					suggests { ctx, builder ->
+						val conf = config(ctx).value()
+						Configuration.configurableByName(conf)?.let { configurable ->
+							configurable.settings.forEach {
+								builder.suggest(it.commandName)
+							}
+						}
+						builder.buildFuture()
+					}
+					executeWithResult {
+						val confName = config().value()
+						val settingName = setting().value()
+						val configurable = Configuration.configurableByCommandName(confName) ?: run {
+							return@executeWithResult failure("$confName is not a valid configurable.")
+						}
+						val setting = Configuration.settingByCommandName(configurable, settingName) ?: run {
+							return@executeWithResult failure("$settingName is not a valid setting for $confName.")
+						}
+						setting.reset()
+						return@executeWithResult success()
+					}
+				}
+			}
+		}
+		required(literal("set")) {
+			Configuration.configurables.forEach { configurable ->
+				required(literal(configurable.commandName)) {
+					configurable.settings.forEach { setting ->
+						required(literal(setting.commandName)) {
+							with(setting) {
+								buildCommand(registry)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }

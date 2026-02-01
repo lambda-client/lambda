@@ -34,12 +34,17 @@ object Weather : Module(
 		End("End")
 	}
 
-	@JvmStatic val overworldMode by setting("Overworld Mode", WeatherMode.Clear).group(Group.Overworld)
-	@JvmStatic val overrideSnow by setting("Override Snow", false) { overworldMode == WeatherMode.Rain }.group(Group.Overworld)
-	@JvmStatic val netherMode by setting("Nether Mode", WeatherMode.Clear).group(Group.Nether)
-	@JvmStatic val endMode by setting("End Mode", WeatherMode.Clear).group(Group.End)
+	@JvmStatic
+	val overworldMode by setting("Overworld Mode", WeatherMode.Clear).group(Group.Overworld)
+	@JvmStatic
+	val overrideSnow by setting("Override Snow", false) { overworldMode == WeatherMode.Rain }.group(Group.Overworld)
+	@JvmStatic
+	val netherMode by setting("Nether Mode", WeatherMode.Clear).group(Group.Nether)
+	@JvmStatic
+	val endMode by setting("End Mode", WeatherMode.Clear).group(Group.End)
 
-	@JvmStatic fun getWeatherMode() =
+	@JvmStatic
+	fun getWeatherMode() =
 		runSafe {
 			val dimension = world.registryKey
 			when (dimension) {

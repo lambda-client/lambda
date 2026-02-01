@@ -48,9 +48,10 @@ object ChatTimestamp : Module(
 
 	val formatter = FormatterSettings(this).apply { applyEdits { hide(::localeEnum, ::sep, ::customSep, ::group, ::floatingPrecision); editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) } } }
 
-	private val currentTime get() =
-		ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())
-			.truncatedTo(ChronoUnit.SECONDS)
+	private val currentTime
+		get() =
+			ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())
+				.truncatedTo(ChronoUnit.SECONDS)
 
 	init {
 		listen<ChatEvent.Receive> {

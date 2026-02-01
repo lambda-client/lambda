@@ -31,5 +31,5 @@ package com.lambda.event
  * @property isMuted A flag indicating whether the object is currently muted.
  */
 interface Muteable {
-    val isMuted: Boolean
+	val isMuted: Boolean
 }

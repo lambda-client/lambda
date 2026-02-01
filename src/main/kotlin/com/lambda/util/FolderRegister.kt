@@ -19,11 +19,6 @@ package com.lambda.util
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
-import com.lambda.util.FolderRegister.config
-import com.lambda.util.FolderRegister.lambda
-import com.lambda.util.FolderRegister.minecraft
-import com.lambda.util.FolderRegister.packetLogs
-import com.lambda.util.FolderRegister.replay
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -33,27 +28,27 @@ import kotlin.io.path.notExists
  * The [FolderRegister] object is responsible for managing the directory structure of the application.
  */
 object FolderRegister : Loadable {
-    val minecraft: Path = mc.runDirectory.toPath()
-    val lambda: Path = minecraft.resolve("lambda")
-    val config: Path = lambda.resolve("config")
-    val packetLogs: Path = lambda.resolve("packet-log")
-    val replay: Path = lambda.resolve("replay")
-    val cache: Path = lambda.resolve("cache")
-    val capes: Path = cache.resolve("capes")
-    val structure: Path = lambda.resolve("structure")
-    val maps: Path = lambda.resolve("maps")
+	val minecraft: Path = mc.runDirectory.toPath()
+	val lambda: Path = minecraft.resolve("lambda")
+	val config: Path = lambda.resolve("config")
+	val packetLogs: Path = lambda.resolve("packet-log")
+	val replay: Path = lambda.resolve("replay")
+	val cache: Path = lambda.resolve("cache")
+	val capes: Path = cache.resolve("capes")
+	val structure: Path = lambda.resolve("structure")
+	val maps: Path = lambda.resolve("maps")
 
-    val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
+	val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
 
-    override fun load(): String {
-        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps)
-        val createdFolders = folders.mapNotNull {
-            if (it.notExists()) {
-                it.createDirectories()
-            } else null
-        }
-        return if (createdFolders.isNotEmpty()) {
-            "Created directories: ${createdFolders.joinToString { minecraft.parent.relativize(it).toString() }}"
-        } else "Loaded ${folders.size} directories"
-    }
+	override fun load(): String {
+		val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps)
+		val createdFolders = folders.mapNotNull {
+			if (it.notExists()) {
+				it.createDirectories()
+			} else null
+		}
+		return if (createdFolders.isNotEmpty()) {
+			"Created directories: ${createdFolders.joinToString { minecraft.parent.relativize(it).toString() }}"
+		} else "Loaded ${folders.size} directories"
+	}
 }

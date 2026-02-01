@@ -33,36 +33,36 @@ import kotlin.math.roundToInt
  * @see [com.lambda.config.Configurable]
  */
 class FloatSetting(
-    defaultValue: Float,
-    override var range: ClosedRange<Float>,
-    override var step: Float = 1f,
-    unit: String,
+	defaultValue: Float,
+	override var range: ClosedRange<Float>,
+	override var step: Float = 1f,
+	unit: String,
 ) : NumericSetting<Float>(
-    defaultValue,
-    range,
-    step,
-    unit
+	defaultValue,
+	range,
+	step,
+	unit
 ) {
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
-        set(index) {
-            value = (range.start + index * step)
-	            .roundToStep(step)
-	            .coerceIn(range)
-        }
+	private var valueIndex: Int
+		get() = ((value - range.start) / step).roundToInt()
+		set(index) {
+			value = (range.start + index * step)
+				.roundToStep(step)
+				.coerceIn(range)
+		}
 
 	context(setting: Setting<*, Float>)
-    override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
-    }
+	override fun ImGuiBuilder.buildSlider() {
+		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+		slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
+	}
 
 	context(setting: Setting<*, Float>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(float(setting.name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(float(setting.name, range.start, range.endInclusive)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 }

@@ -32,8 +32,8 @@ fun Any.onDynamicRender(block: SafeContext.(TransientRegionESP) -> Unit) =
 	listen<RenderEvent.Upload> { block(RenderMain.DynamicESP) }
 
 sealed class RenderEvent {
-    object Upload : Event
-    object Render : Event
+	object Upload : Event
+	object Render : Event
 
-    class UpdateTarget : ICancellable by Cancellable()
+	class UpdateTarget : ICancellable by Cancellable()
 }

@@ -34,67 +34,67 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 class OpenContainerTask @Ta5kBuilder constructor(
-    private val blockPos: BlockPos,
-    private val automated: Automated,
-    private val waitForSlotLoad: Boolean = true,
-    private val sides: Set<Direction> = Direction.entries.toSet()
+	private val blockPos: BlockPos,
+	private val automated: Automated,
+	private val waitForSlotLoad: Boolean = true,
+	private val sides: Set<Direction> = Direction.entries.toSet()
 ) : Task<ScreenHandler>(), Automated by automated {
-    override val name get() = "${containerState.description(inScope)} at ${blockPos.toShortString()}"
+	override val name get() = "${containerState.description(inScope)} at ${blockPos.toShortString()}"
 
-    private var screenHandler: ScreenHandler? = null
-    private var containerState = State.Scoping
-    private var inScope = 0
+	private var screenHandler: ScreenHandler? = null
+	private var containerState = State.Scoping
+	private var inScope = 0
 
-    enum class State {
-        Pathing, Scoping, Opening, SlotLoading;
+	enum class State {
+		Pathing, Scoping, Opening, SlotLoading;
 
-        fun description(inScope: Int) = when (this) {
-            Pathing -> "Pathing closer"
-            Scoping -> "Waiting for scope ($inScope)"
-            Opening -> "Opening container"
-            SlotLoading -> "Waiting for slots to load"
-        }
-    }
+		fun description(inScope: Int) = when (this) {
+			Pathing -> "Pathing closer"
+			Scoping -> "Waiting for scope ($inScope)"
+			Opening -> "Opening container"
+			SlotLoading -> "Waiting for slots to load"
+		}
+	}
 
-    init {
-        listen<InventoryEvent.Open> {
-            if (containerState != State.Opening) return@listen
+	init {
+		listen<InventoryEvent.Open> {
+			if (containerState != State.Opening) return@listen
 
-            screenHandler = it.screenHandler
-            containerState = State.SlotLoading
+			screenHandler = it.screenHandler
+			containerState = State.SlotLoading
 
-            if (!waitForSlotLoad) success(it.screenHandler)
-        }
+			if (!waitForSlotLoad) success(it.screenHandler)
+		}
 
-        listen<InventoryEvent.Close> {
-            if (screenHandler != it.screenHandler) return@listen
+		listen<InventoryEvent.Close> {
+			if (screenHandler != it.screenHandler) return@listen
 
-            containerState = State.Scoping
-            screenHandler = null
-        }
+			containerState = State.Scoping
+			screenHandler = null
+		}
 
-        listen<InventoryEvent.FullUpdate> {
-            if (containerState != State.SlotLoading) return@listen
+		listen<InventoryEvent.FullUpdate> {
+			if (containerState != State.SlotLoading) return@listen
 
-            screenHandler?.let {
-                success(it)
-            }
-        }
+			screenHandler?.let {
+				success(it)
+			}
+		}
 
-        listen<TickEvent.Pre> {
-            if (containerState != State.Scoping && containerState != State.Pathing) return@listen
+		listen<TickEvent.Pre> {
+			if (containerState != State.Scoping && containerState != State.Pathing) return@listen
 
-            val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) }
-                ?: run {
-                    containerState = State.Pathing
-                    if (!BaritoneManager.isActive) BaritoneManager.setGoalAndPath(GoalNear(blockPos, 3))
-                    return@listen
-                }
-            if (interactConfig.rotate && !rotationRequest { rotation(checkedHit.rotation) }.submit().done) return@listen
+			val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) }
+				?: run {
+					containerState = State.Pathing
+					if (!BaritoneManager.isActive) BaritoneManager.setGoalAndPath(GoalNear(blockPos, 3))
+					return@listen
+				}
+			if (interactConfig.rotate && !rotationRequest { rotation(checkedHit.rotation) }.submit().done) return@listen
 
-            interaction.interactBlock(player, Hand.MAIN_HAND, checkedHit.hit.blockResult ?: return@listen)
+			interaction.interactBlock(player, Hand.MAIN_HAND, checkedHit.hit.blockResult ?: return@listen)
 
-            containerState = State.Opening
-        }
-    }
+			containerState = State.Opening
+		}
+	}
 }

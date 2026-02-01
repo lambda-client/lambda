@@ -85,9 +85,10 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done get(): Boolean {
-			return abs(RotationManager.activeRotation.pitch - (pitch.value ?: return false)) <= 0.001
-		}
+		override val done
+			get(): Boolean {
+				return abs(RotationManager.activeRotation.pitch - (pitch.value ?: return false)) <= 0.001
+			}
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((pitch.value ?: return Double.MAX_VALUE) - rotation.pitch)
@@ -107,9 +108,10 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done get(): Boolean {
-			return RotationManager.activeRotation.dist(rotation.value ?: return false) <= 0.001
-		}
+		override val done
+			get(): Boolean {
+				return RotationManager.activeRotation.dist(rotation.value ?: return false) <= 0.001
+			}
 
 		override fun dist(rotation: Rotation) =
 			this.rotation.value?.let {
@@ -122,9 +124,17 @@ interface IRotationRequest : Automated {
 		override fun updateRotation() = rotation.update()
 	}
 
-	interface YawRot : IRotationRequest { val yaw: UpdatableLazy<Double?> }
-	interface PitchRot : IRotationRequest { val pitch: UpdatableLazy<Double?> }
-	interface FullRot : YawRot, PitchRot { val rotation: UpdatableLazy<Rotation?> }
+	interface YawRot : IRotationRequest {
+		val yaw: UpdatableLazy<Double?>
+	}
+
+	interface PitchRot : IRotationRequest {
+		val pitch: UpdatableLazy<Double?>
+	}
+
+	interface FullRot : YawRot, PitchRot {
+		val rotation: UpdatableLazy<Rotation?>
+	}
 
 	class RotationRequestBuilder {
 		var pitchBuilder: (SafeContext.() -> Double)? = null
@@ -133,43 +143,67 @@ interface IRotationRequest : Automated {
 
 		@JvmName("yawBuilder1")
 		@RotationRequestDsl
-		fun yaw(builder: SafeContext.() -> Double) { yawBuilder = builder }
+		fun yaw(builder: SafeContext.() -> Double) {
+			yawBuilder = builder
+		}
 
 		@JvmName("yawBuilder2")
 		@RotationRequestDsl
-		fun yaw(builder: SafeContext.() -> Float) { yawBuilder = { builder().toDouble() } }
+		fun yaw(builder: SafeContext.() -> Float) {
+			yawBuilder = { builder().toDouble() }
+		}
 
 		@RotationRequestDsl
-		fun yaw(yaw: Double) { yawBuilder = { yaw } }
+		fun yaw(yaw: Double) {
+			yawBuilder = { yaw }
+		}
 
 		@RotationRequestDsl
-		fun yaw(yaw: Float) { yawBuilder = { yaw.toDouble() } }
+		fun yaw(yaw: Float) {
+			yawBuilder = { yaw.toDouble() }
+		}
 
 		@JvmName("pitchBuilder1")
 		@RotationRequestDsl
-		fun pitch(builder: SafeContext.() -> Double) { pitchBuilder = builder }
+		fun pitch(builder: SafeContext.() -> Double) {
+			pitchBuilder = builder
+		}
 
 		@JvmName("pitchBuilder2")
 		@RotationRequestDsl
-		fun pitch(builder: SafeContext.() -> Float) { pitchBuilder = { builder().toDouble() } }
+		fun pitch(builder: SafeContext.() -> Float) {
+			pitchBuilder = { builder().toDouble() }
+		}
 
 		@RotationRequestDsl
-		fun pitch(pitch: Double) { pitchBuilder = { pitch } }
+		fun pitch(pitch: Double) {
+			pitchBuilder = { pitch }
+		}
 
 		@RotationRequestDsl
-		fun pitch(pitch: Float) { pitchBuilder = { pitch.toDouble() } }
+		fun pitch(pitch: Float) {
+			pitchBuilder = { pitch.toDouble() }
+		}
 
 		@RotationRequestDsl
-		fun rotation(builder: SafeContext.() -> Rotation) { rotationBuilder = builder }
+		fun rotation(builder: SafeContext.() -> Rotation) {
+			rotationBuilder = builder
+		}
 
 		@RotationRequestDsl
-		fun rotation(pitch: Double, yaw: Double) { rotationBuilder = { Rotation(pitch, yaw) } }
+		fun rotation(pitch: Double, yaw: Double) {
+			rotationBuilder = { Rotation(pitch, yaw) }
+		}
 
 		@RotationRequestDsl
-		fun rotation(pitch: Float, yaw: Float) { rotationBuilder = { Rotation(pitch, yaw) } }
+		fun rotation(pitch: Float, yaw: Float) {
+			rotationBuilder = { Rotation(pitch, yaw) }
+		}
 
 		@RotationRequestDsl
-		fun rotation(rotation: Rotation) { rotationBuilder = { rotation } }
+		fun rotation(rotation: Rotation) {
+			rotationBuilder = { rotation }
+		}
 	}
 
 	companion object {

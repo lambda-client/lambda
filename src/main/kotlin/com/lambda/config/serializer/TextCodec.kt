@@ -28,20 +28,20 @@ import java.lang.reflect.Type
 import kotlin.jvm.optionals.getOrElse
 
 object TextCodec : Codec<Text> {
-    override fun serialize(
-        src: Text,
-        typeOfSrc: Type,
-        context: JsonSerializationContext,
-    ): JsonElement =
-        TextCodecs.CODEC.encodeStart(JsonOps.INSTANCE, src)
-            .orThrow
+	override fun serialize(
+		src: Text,
+		typeOfSrc: Type,
+		context: JsonSerializationContext,
+	): JsonElement =
+		TextCodecs.CODEC.encodeStart(JsonOps.INSTANCE, src)
+			.orThrow
 
-    override fun deserialize(
-        json: JsonElement?,
-        typeOfT: Type?,
-        context: JsonDeserializationContext?,
-    ): Text =
-        TextCodecs.CODEC.parse(JsonOps.INSTANCE, json)
-            .result()
-            .getOrElse { Text.empty() }
+	override fun deserialize(
+		json: JsonElement?,
+		typeOfT: Type?,
+		context: JsonDeserializationContext?,
+	): Text =
+		TextCodecs.CODEC.parse(JsonOps.INSTANCE, json)
+			.result()
+			.getOrElse { Text.empty() }
 }

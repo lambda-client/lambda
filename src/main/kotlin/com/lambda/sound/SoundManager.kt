@@ -27,34 +27,34 @@ import net.minecraft.registry.SimpleRegistry
 import net.minecraft.sound.SoundEvent
 
 object SoundManager : Loadable {
-    fun playSound(event: SoundEvent, pitch: Double = 1.0) {
-        mc.soundManager.play(
-            PositionedSoundInstance.master(event, pitch.toFloat())
-        )
-    }
+	fun playSound(event: SoundEvent, pitch: Double = 1.0) {
+		mc.soundManager.play(
+			PositionedSoundInstance.master(event, pitch.toFloat())
+		)
+	}
 
-    fun playSoundRandomly(event: SoundEvent, pitch: Double = 1.0, pitchRange: Double = 0.05) {
-        val actualPitch = (pitch - pitchRange..pitch + pitchRange).random()
+	fun playSoundRandomly(event: SoundEvent, pitch: Double = 1.0, pitchRange: Double = 0.05) {
+		val actualPitch = (pitch - pitchRange..pitch + pitchRange).random()
 
-        mc.soundManager.play(
-            PositionedSoundInstance.master(event, actualPitch.toFloat())
-        )
-    }
+		mc.soundManager.play(
+			PositionedSoundInstance.master(event, actualPitch.toFloat())
+		)
+	}
 
-    fun LambdaSound.play() = playSoundRandomly(event)
+	fun LambdaSound.play() = playSoundRandomly(event)
 
-    override fun load(): String {
-        (Registries.SOUND_EVENT as SimpleRegistry)
-            .frozen = false // fuck you
+	override fun load(): String {
+		(Registries.SOUND_EVENT as SimpleRegistry)
+			.frozen = false // fuck you
 
-        LambdaSound.entries.forEach {
-            Registry.register(Registries.SOUND_EVENT, it.id, it.event)
-        }
+		LambdaSound.entries.forEach {
+			Registry.register(Registries.SOUND_EVENT, it.id, it.event)
+		}
 
-        (Registries.SOUND_EVENT as SimpleRegistry)
-            .frozen = true // fuck you
+		(Registries.SOUND_EVENT as SimpleRegistry)
+			.frozen = true // fuck you
 
 
-        return "Loaded ${LambdaSound.entries.size} sounds"
-    }
+		return "Loaded ${LambdaSound.entries.size} sounds"
+	}
 }

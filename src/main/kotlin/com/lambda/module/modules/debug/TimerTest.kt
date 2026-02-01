@@ -25,20 +25,20 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 
 object TimerTest : Module(
-    name = "TimerTest",
-    tag = ModuleTag.DEBUG,
+	name = "TimerTest",
+	tag = ModuleTag.DEBUG,
 ) {
-    private var last = 0L
+	private var last = 0L
 
-    init {
-        listen<ClientEvent.FixedTick> {
-            val now = System.currentTimeMillis()
-            info("${now - last} - Fixed Tick on game thread")
-            last = now
-        }
+	init {
+		listen<ClientEvent.FixedTick> {
+			val now = System.currentTimeMillis()
+			info("${now - last} - Fixed Tick on game thread")
+			last = now
+		}
 
-        listenConcurrently<ClientEvent.FixedTick> {
-//            info("${System.currentTimeMillis()} - Fixed Tick Concurrently (but not on mc game thread)")
-        }
-    }
+		listenConcurrently<ClientEvent.FixedTick> {
+			//            info("${System.currentTimeMillis()} - Fixed Tick Concurrently (but not on mc game thread)")
+		}
+	}
 }

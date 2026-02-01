@@ -20,18 +20,18 @@ package com.lambda.task
 import com.lambda.threading.runSafe
 
 object RootTask : Task<Unit>() {
-    override val name get() = "Root Task"
+	override val name get() = "Root Task"
 
-    @Ta5kBuilder
-    inline fun <reified T : Task<*>> T.run(): T {
-        execute(this@RootTask)
-        return this
-    }
+	@Ta5kBuilder
+	inline fun <reified T : Task<*>> T.run(): T {
+		execute(this@RootTask)
+		return this
+	}
 
-    @Ta5kBuilder
-    fun Task<*>.run(task: TaskGenerator<Unit>) {
-        runSafe {
-            task(Unit).execute(this@run)
-        }
-    }
+	@Ta5kBuilder
+	fun Task<*>.run(task: TaskGenerator<Unit>) {
+		runSafe {
+			task(Unit).execute(this@run)
+		}
+	}
 }

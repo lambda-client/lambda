@@ -32,15 +32,15 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 fun BlockPos.getHitVec(side: Direction): Vec3d =
-    side.hitVecOffset + this
+	side.hitVecOffset + this
 
 /* Direction */
 val Direction.hitVecOffset: Vec3d
-    get() =
-        CENTER + vector.vec3d * 0.5
+	get() =
+		CENTER + vector.vec3d * 0.5
 
 fun EightWayDirection.rotateClockwise(steps: Int) =
-    EightWayDirection.entries[(ordinal + steps) % 8]
+	EightWayDirection.entries[(ordinal + steps) % 8]
 
 /* Vec2f */
 operator fun Vec2f.component1() = x
@@ -50,7 +50,7 @@ infix fun Vec2f.dist(other: Vec2f): Float = sqrt(this distSq other)
 infix fun Vec2f.dist(other: Vec2d): Float = sqrt(this distSq other)
 infix fun Vec2f.distSq(other: Vec2f): Float = distanceSquared(other)
 infix fun Vec2f.distSq(other: Vec2d): Float =
-    sqrt((other.x - x).sq * (other.y - y).sq).toFloat()
+	sqrt((other.x - x).sq * (other.y - y).sq).toFloat()
 
 infix operator fun Vec2f.plus(other: Vec2f): Vec2f = add(other)
 infix operator fun Vec2f.plus(other: Vec2d): Vec2f = Vec2f((x + other.x).toFloat(), (y + other.y).toFloat())
@@ -81,7 +81,7 @@ operator fun Vec2f.unaryMinus(): Vec2f = negate()
 
 /* Chunk */
 val ChunkPos.center: ChunkPos
-    get() = ChunkPos(centerX, centerZ)
+	get() = ChunkPos(centerX, centerZ)
 
 infix fun ChunkPos.dist(other: Vec3i): Double = other dist this
 infix fun ChunkPos.dist(other: Vec3d): Double = other dist this
@@ -98,13 +98,13 @@ infix fun ChunkPos.distSqCenter(other: ChunkPos): Int = (other.centerX - centerX
 
 /* Vec3d */
 fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean =
-    (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
+	(subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
 
 val Vec3d.roundedBlockPos: BlockPos
-    get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
+	get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
 
 val Vec3d.flooredBlockPos: BlockPos
-    get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
+	get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
 
 val Entity.netherCoord: Vec3d get() = pos.multiply(0.125, 1.0, 0.125)
 val Entity.overworldCoord: Vec3d get() = pos.multiply(8.0, 1.0, 8.0)
@@ -149,21 +149,21 @@ infix operator fun Vec3d.div(other: Int): Vec3d = times(1.0 / other)
 
 infix operator fun ClosedRange<Double>.rangeTo(other: Double) = Vec3d(start, endInclusive, other)
 infix operator fun ClosedRange<Float>.rangeTo(other: Float) =
-    Vec3d(start.toDouble(), endInclusive.toDouble(), other.toDouble())
+	Vec3d(start.toDouble(), endInclusive.toDouble(), other.toDouble())
 
 infix operator fun ClosedRange<Int>.rangeTo(other: Int) =
-    Vec3d(start.toDouble(), endInclusive.toDouble(), other.toDouble())
+	Vec3d(start.toDouble(), endInclusive.toDouble(), other.toDouble())
 
 infix operator fun OpenEndRange<Double>.rangeTo(other: Double) = Vec3d(start, endExclusive, other)
 infix operator fun OpenEndRange<Float>.rangeTo(other: Float) =
-    Vec3d(start.toDouble(), endExclusive.toDouble(), other.toDouble())
+	Vec3d(start.toDouble(), endExclusive.toDouble(), other.toDouble())
 
 infix operator fun OpenEndRange<Int>.rangeTo(other: Int) = BlockPos.Mutable(start, endExclusive, other)
 
 /* Vec3i */
 val Vec3i.vec3d
-    get() =
-        Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
+	get() =
+		Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
 
 infix fun Vec3i.dist(other: Vec3d): Double = sqrt(this distSq other)
 infix fun Vec3i.dist(other: Vec3i): Double = sqrt((this distSq other).toDouble())

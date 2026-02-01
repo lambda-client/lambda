@@ -28,19 +28,19 @@ import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.hit.HitResult
 
 object RotationTest : Module(
-    name = "RotationTest",
-    tag = ModuleTag.DEBUG,
+	name = "RotationTest",
+	tag = ModuleTag.DEBUG,
 ) {
-    override val rotationConfig = RotationSettings(this, AutomationConfig.Group.Rotation)
-    var hitPos: HitResult? = null
-    
-    init {
-        onEnable {
-            hitPos = mc.crosshairTarget
-        }
+	override val rotationConfig = RotationSettings(this, AutomationConfig.Group.Rotation)
+	var hitPos: HitResult? = null
 
-        listen<TickEvent.Pre> {
-            hitPos?.let { rotationRequest { rotation(lookAt(it.pos)) }.submit() }
-        }
-    }
+	init {
+		onEnable {
+			hitPos = mc.crosshairTarget
+		}
+
+		listen<TickEvent.Pre> {
+			hitPos?.let { rotationRequest { rotation(lookAt(it.pos)) }.submit() }
+		}
+	}
 }

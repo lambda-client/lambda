@@ -25,25 +25,25 @@ import kotlin.system.measureTimeMillis
 import kotlin.time.Duration.Companion.milliseconds
 
 object Loader {
-    private val started = System.currentTimeMillis()
+	private val started = System.currentTimeMillis()
 
-    val runtime: String
-        get() = "${(System.currentTimeMillis() - started).milliseconds}"
+	val runtime: String
+		get() = "${(System.currentTimeMillis() - started).milliseconds}"
 
-    private val loadables = getInstances<Loadable>()
+	private val loadables = getInstances<Loadable>()
 
-    fun initialize(): Long {
-        ascii.split("\n").forEach { LOG.info(it) }
-        LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION} (${loadables.size} loaders)...")
+	fun initialize(): Long {
+		ascii.split("\n").forEach { LOG.info(it) }
+		LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION} (${loadables.size} loaders)...")
 
-        val initTime = measureTimeMillis {
-            loadables.sortedByDescending { it.priority }.forEach {
-                var response: String
-                val time = measureTimeMillis { response = it.load() }
-                if (response.isNotBlank()) LOG.info("$response ($time ms)")
-            }
-        }
+		val initTime = measureTimeMillis {
+			loadables.sortedByDescending { it.priority }.forEach {
+				var response: String
+				val time = measureTimeMillis { response = it.load() }
+				if (response.isNotBlank()) LOG.info("$response ($time ms)")
+			}
+		}
 
-        return initTime
-    }
+		return initTime
+	}
 }

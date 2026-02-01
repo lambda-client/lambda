@@ -27,19 +27,19 @@ import com.lambda.task.tasks.AcquireMaterialTask.Companion.acquire
 import net.minecraft.item.Items
 
 object ContainerTest : Module(
-    name = "ContainerTest",
-    description = "Test container",
-    tag = ModuleTag.DEBUG,
+	name = "ContainerTest",
+	description = "Test container",
+	tag = ModuleTag.DEBUG,
 ) {
-    init {
-        listen<TickEvent.Pre> {
-//            info(task.info)
-        }
+	init {
+		listen<TickEvent.Pre> {
+			//            info(task.info)
+		}
 
-        onEnable {
-            acquire {
-                Items.OBSIDIAN.select()
-            }.run()
-        }
-    }
+		onEnable {
+			acquire {
+				Items.OBSIDIAN.select()
+			}.run()
+		}
+	}
 }

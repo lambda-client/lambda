@@ -43,124 +43,124 @@ import java.util.*
  * Container object for [ClickEvent] builders.
  */
 object ClickEvents {
-    /**
-     * Builds a [ClickEvent] to open a [url].
-     *
-     * A URL (Uniform Resource Locator) is a specific type of URI (Uniform Resource Identifier)
-     * that provides the location of a resource on the internet, while a URI can identify a
-     * resource by name or location, including both URLs and URNs (Uniform Resource Names).
-     *
-     * @param url The url string to open
-     * @return The click event to open the target [url]
-     */
-    fun openUrl(url: String) = OpenUrl(URI.create(url))
+	/**
+	 * Builds a [ClickEvent] to open a [url].
+	 *
+	 * A URL (Uniform Resource Locator) is a specific type of URI (Uniform Resource Identifier)
+	 * that provides the location of a resource on the internet, while a URI can identify a
+	 * resource by name or location, including both URLs and URNs (Uniform Resource Names).
+	 *
+	 * @param url The url string to open
+	 * @return The click event to open the target [url]
+	 */
+	fun openUrl(url: String) = OpenUrl(URI.create(url))
 
-    /**
-     * Builds a [ClickEvent] to open a [uri].
-     *
-     * A URL (Uniform Resource Locator) is a specific type of URI (Uniform Resource Identifier)
-     * that provides the location of a resource on the internet, while a URI can identify a
-     * resource by name or location, including both URLs and URNs (Uniform Resource Names).
-     *
-     * @param uri The uri to open
-     * @return The click event to open the target [uri]
-     */
-    fun openUrl(uri: URI) = OpenUrl(uri)
+	/**
+	 * Builds a [ClickEvent] to open a [uri].
+	 *
+	 * A URL (Uniform Resource Locator) is a specific type of URI (Uniform Resource Identifier)
+	 * that provides the location of a resource on the internet, while a URI can identify a
+	 * resource by name or location, including both URLs and URNs (Uniform Resource Names).
+	 *
+	 * @param uri The uri to open
+	 * @return The click event to open the target [uri]
+	 */
+	fun openUrl(uri: URI) = OpenUrl(uri)
 
-    /**
-     * Builds a [ClickEvent] to open a file at a specified [path].
-     *
-     * @param path The path of the file to open
-     * @return The click event to open the target file
-     */
-    fun openFile(path: String) = OpenFile(path)
+	/**
+	 * Builds a [ClickEvent] to open a file at a specified [path].
+	 *
+	 * @param path The path of the file to open
+	 * @return The click event to open the target file
+	 */
+	fun openFile(path: String) = OpenFile(path)
 
-    /**
-     * Builds a [ClickEvent] to open a file at a specified [path].
-     *
-     * @param path The path of the file to open
-     * @return The click event to open the target file
-     */
-    fun openFile(path: Path) = OpenFile(path)
+	/**
+	 * Builds a [ClickEvent] to open a file at a specified [path].
+	 *
+	 * @param path The path of the file to open
+	 * @return The click event to open the target file
+	 */
+	fun openFile(path: Path) = OpenFile(path)
 
-    /**
-     * Builds a [ClickEvent] to open a [file].
-     *
-     * @param file The [file] to open
-     * @return The click event to open the target file
-     */
-    fun openFile(file: File) = OpenFile(file)
+	/**
+	 * Builds a [ClickEvent] to open a [file].
+	 *
+	 * @param file The [file] to open
+	 * @return The click event to open the target file
+	 */
+	fun openFile(file: File) = OpenFile(file)
 
-    /**
-     * Builds a [ClickEvent] run a given [command].
-     *
-     * @param command The command to suggest
-     * @return The click event to run the target [command]
-     */
-    fun runCommand(command: String) = RunCommand(command)
+	/**
+	 * Builds a [ClickEvent] run a given [command].
+	 *
+	 * @param command The command to suggest
+	 * @return The click event to run the target [command]
+	 */
+	fun runCommand(command: String) = RunCommand(command)
 
-    /**
-     * Builds a [ClickEvent] to suggest a [command].
-     *
-     * @param command The command to suggest
-     * @return The click event to suggest a given command
-     */
-    fun suggestCommand(command: String) = SuggestCommand(command)
+	/**
+	 * Builds a [ClickEvent] to suggest a [command].
+	 *
+	 * @param command The command to suggest
+	 * @return The click event to suggest a given command
+	 */
+	fun suggestCommand(command: String) = SuggestCommand(command)
 
-    /**
-     * Builds a [ClickEvent] to change a page to the given [page].
-     *
-     * @param page The page to change too
-     * @return The click event to change the page to the provided [page]
-     */
-    fun changePage(page: Int) = ChangePage(page)
+	/**
+	 * Builds a [ClickEvent] to change a page to the given [page].
+	 *
+	 * @param page The page to change too
+	 * @return The click event to change the page to the provided [page]
+	 */
+	fun changePage(page: Int) = ChangePage(page)
 
-    /**
-     * Builds a [ClickEvent] to copy [toCopy] to the clipboard.
-     *
-     * @param toCopy The text to copy
-     * @return The click event to copy the provided text
-     */
-    fun copyToClipboard(string: String) = CopyToClipboard(string)
+	/**
+	 * Builds a [ClickEvent] to copy [toCopy] to the clipboard.
+	 *
+	 * @param toCopy The text to copy
+	 * @return The click event to copy the provided text
+	 */
+	fun copyToClipboard(string: String) = CopyToClipboard(string)
 }
 
 /**
  * Container object for [HoverEvent] builders.
  */
 object HoverEvents {
-    /**
-     * Creates a [HoverEvent] showing the given [itemStack].
-     *
-     * @see HoverEvent.Action.SHOW_ITEM
-     */
-    fun showItem(itemStack: ItemStack) = ShowItem(itemStack)
+	/**
+	 * Creates a [HoverEvent] showing the given [itemStack].
+	 *
+	 * @see HoverEvent.Action.SHOW_ITEM
+	 */
+	fun showItem(itemStack: ItemStack) = ShowItem(itemStack)
 
-    /**
-     * Creates a [HoverEvent] showing an [ItemStack] created from the given [NBT Compound][nbt].
-     *
-     * @see HoverEvent.Action.SHOW_ITEM
-     */
-    fun showItem(nbt: NbtCompound): HoverEvent {
-        // ToDo: Might not work because of registries
-        val stack = ItemStack.CODEC.parse(NbtOps.INSTANCE, nbt)
-            .orThrow
+	/**
+	 * Creates a [HoverEvent] showing an [ItemStack] created from the given [NBT Compound][nbt].
+	 *
+	 * @see HoverEvent.Action.SHOW_ITEM
+	 */
+	fun showItem(nbt: NbtCompound): HoverEvent {
+		// ToDo: Might not work because of registries
+		val stack = ItemStack.CODEC.parse(NbtOps.INSTANCE, nbt)
+			.orThrow
 
-        return ShowItem(stack)
-    }
+		return ShowItem(stack)
+	}
 
-    /**
-     * Creates a [HoverEvent] showing an [Entity] of a specified [type][entityType]
-     * with the specified [uuid] and an optional [name].
-     *
-     * @see HoverEvent.Action.SHOW_ENTITY
-     */
-    fun showEntity(entityType: EntityType<*>, uuid: UUID, name: Text? = null) =
-        ShowEntity(HoverEvent.EntityContent(entityType, uuid, name))
+	/**
+	 * Creates a [HoverEvent] showing an [Entity] of a specified [type][entityType]
+	 * with the specified [uuid] and an optional [name].
+	 *
+	 * @see HoverEvent.Action.SHOW_ENTITY
+	 */
+	fun showEntity(entityType: EntityType<*>, uuid: UUID, name: Text? = null) =
+		ShowEntity(HoverEvent.EntityContent(entityType, uuid, name))
 
-    /**
-     * Creates a [HoverEvent] showing specified [text].
-     *
-     * @author NoComment1105
-     */
-    fun showText(text: Text) = ShowText(text)
+	/**
+	 * Creates a [HoverEvent] showing specified [text].
+	 *
+	 * @author NoComment1105
+	 */
+	fun showText(text: Text) = ShowText(text)
 }

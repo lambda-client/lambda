@@ -32,53 +32,53 @@ import kotlin.reflect.KClass
  * @property defaultListenerSet A [ConcurrentSkipListSet] of [Listener]s, sorted in reverse order.
  */
 class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Listener<out Event>>>() {
-    val defaultListenerSet: ConcurrentSkipListSet<Listener<out Event>>
-        get() = ConcurrentSkipListSet(Listener.comparator.reversed())
+	val defaultListenerSet: ConcurrentSkipListSet<Listener<out Event>>
+		get() = ConcurrentSkipListSet(Listener.comparator.reversed())
 
-    /** Allows a [Listener] to start receiving a specific type of [Event] */
-    inline fun <reified T : Event> subscribe(listener: Listener<T>) =
-        getOrPut(T::class) { defaultListenerSet }.add(listener)
+	/** Allows a [Listener] to start receiving a specific type of [Event] */
+	inline fun <reified T : Event> subscribe(listener: Listener<T>) =
+		getOrPut(T::class) { defaultListenerSet }.add(listener)
 
-    /**
-     * Allows a [Listener] to start receiving a specific type of [Event]'s [KClass implementation](KC).
-     *
-     * This should only be used in cases where the type of the event is erased.
-     */
-    fun <T : Event> subscribe(kClass: KClass<out T>, listener: Listener<T>) =
-        getOrPut(kClass) { defaultListenerSet }.add(listener)
+	/**
+	 * Allows a [Listener] to start receiving a specific type of [Event]'s [KClass implementation](KC).
+	 *
+	 * This should only be used in cases where the type of the event is erased.
+	 */
+	fun <T : Event> subscribe(kClass: KClass<out T>, listener: Listener<T>) =
+		getOrPut(kClass) { defaultListenerSet }.add(listener)
 
-    /** Allows a [Subscriber] to start receiving all [Event]s of another [Subscriber]. */
-    infix fun subscribe(subscriber: Subscriber) {
-        subscriber.forEach { (eventType, listeners) ->
-            getOrPut(eventType) { defaultListenerSet }.addAll(listeners)
-        }
-    }
+	/** Allows a [Subscriber] to start receiving all [Event]s of another [Subscriber]. */
+	infix fun subscribe(subscriber: Subscriber) {
+		subscriber.forEach { (eventType, listeners) ->
+			getOrPut(eventType) { defaultListenerSet }.addAll(listeners)
+		}
+	}
 
-    /** Forgets about every [Listener]'s association to [eventType] */
-    fun <T : Event> unsubscribe(eventType: KClass<T>) =
-        remove(eventType)
+	/** Forgets about every [Listener]'s association to [eventType] */
+	fun <T : Event> unsubscribe(eventType: KClass<T>) =
+		remove(eventType)
 
-    /** Allows a [Listener] to stop receiving a specific type of [Event] */
-    inline fun <reified T : Event> unsubscribe(listener: Listener<T>) =
-        getOrElse(T::class) { defaultListenerSet }.remove(listener)
+	/** Allows a [Listener] to stop receiving a specific type of [Event] */
+	inline fun <reified T : Event> unsubscribe(listener: Listener<T>) =
+		getOrElse(T::class) { defaultListenerSet }.remove(listener)
 
-    /**
-     * Unsubscribes all listeners associated with the current instance (the caller object).
-     *
-     * This method iterates over all values in the `Subscriber`'s map and removes listeners
-     * whose `owner` property matches the caller object.
-     *
-     * Use this method when you want to clean up listeners that were registered with the
-     * current instance, preventing further event notifications.
-     */
-    fun unsubscribe(owner: Any) {
-        values.forEach { it.removeAll { listener -> listener.owner == owner } }
-    }
+	/**
+	 * Unsubscribes all listeners associated with the current instance (the caller object).
+	 *
+	 * This method iterates over all values in the `Subscriber`'s map and removes listeners
+	 * whose `owner` property matches the caller object.
+	 *
+	 * Use this method when you want to clean up listeners that were registered with the
+	 * current instance, preventing further event notifications.
+	 */
+	fun unsubscribe(owner: Any) {
+		values.forEach { it.removeAll { listener -> listener.owner == owner } }
+	}
 
-    /** Allows a [Subscriber] to stop receiving all [Event]s of another [Subscriber] */
-    infix fun unsubscribe(subscriber: Subscriber) {
-        subscriber.forEach { (eventType, listeners) ->
-            getOrElse(eventType) { defaultListenerSet }.removeAll(listeners)
-        }
-    }
+	/** Allows a [Subscriber] to stop receiving all [Event]s of another [Subscriber] */
+	infix fun unsubscribe(subscriber: Subscriber) {
+		subscriber.forEach { (eventType, listeners) ->
+			getOrElse(eventType) { defaultListenerSet }.removeAll(listeners)
+		}
+	}
 }

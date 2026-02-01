@@ -21,7 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object PortalGui : Module(
-    name = "PortalGui",
-    description = "Allows you to open guis in portals",
-    tag = ModuleTag.PLAYER,
+	name = "PortalGui",
+	description = "Allows you to open guis in portals",
+	tag = ModuleTag.PLAYER,
 )

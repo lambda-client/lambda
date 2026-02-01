@@ -20,7 +20,7 @@ package com.lambda.util.extension
 import net.minecraft.client.MinecraftClient
 
 val MinecraftClient.partialTicks
-    get() = tickDelta.toDouble()
+	get() = tickDelta.toDouble()
 
 val MinecraftClient.tickDelta
-    get() = renderTickCounter.getTickProgress(true)
+	get() = renderTickCounter.getTickProgress(true)

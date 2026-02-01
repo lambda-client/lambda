@@ -41,80 +41,80 @@ import dev.cbyrne.kdiscordipc.data.activity.timestamps
 import kotlinx.coroutines.delay
 
 object Discord : Module(
-    name = "Discord",
-    description = "Discord Rich Presence configuration",
-    tag = ModuleTag.CLIENT,
-    enabledByDefault = true,
+	name = "Discord",
+	description = "Discord Rich Presence configuration",
+	tag = ModuleTag.CLIENT,
+	enabledByDefault = true,
 ) {
-    private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
-    private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
-    private val line1Left by setting("Line 1 Left", LineInfo.World)
-    private val line1Right by setting("Line 1 Right", LineInfo.Username)
-    private val line2Left by setting("Line 2 Left", LineInfo.Version)
-    private val line2Right by setting("Line 2 Right", LineInfo.Fps)
+	private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
+	private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
+	private val line1Left by setting("Line 1 Left", LineInfo.World)
+	private val line1Right by setting("Line 1 Right", LineInfo.Username)
+	private val line2Left by setting("Line 2 Left", LineInfo.Version)
+	private val line2Right by setting("Line 2 Right", LineInfo.Fps)
 
-    val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
+	val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
 
-    private var startup = System.currentTimeMillis()
+	private var startup = System.currentTimeMillis()
 
-    var discordAuth: AuthenticatePacket.Data? = null; private set
+	var discordAuth: AuthenticatePacket.Data? = null; private set
 
-    init {
-        // ts is fucked frfr
-        listenOnce<TickEvent.Pre> {
-            runConcurrent { handleLoop() }
+	init {
+		// ts is fucked frfr
+		listenOnce<TickEvent.Pre> {
+			runConcurrent { handleLoop() }
 
-            return@listenOnce true
-        }
+			return@listenOnce true
+		}
 
-        onEnable { runConcurrent { start(); handleLoop() } }
-        runConcurrent { start() }
-        onDisable { stop() }
-    }
+		onEnable { runConcurrent { start(); handleLoop() } }
+		runConcurrent { start() }
+		onDisable { stop() }
+	}
 
-    private suspend fun start() {
-        if (rpc.connected) return
+	private suspend fun start() {
+		if (rpc.connected) return
 
-        rpc.connect()
+		rpc.connect()
 
-        val auth = rpc.applicationManager.authenticate()
+		val auth = rpc.applicationManager.authenticate()
 
-        linkDiscord(discordToken = auth.accessToken)
-            .onSuccess { updateToken(it); discordAuth = auth }
-            .onFailure { LOG.error(it); warn("Failed to link your discord account") }
-    }
+		linkDiscord(discordToken = auth.accessToken)
+			.onSuccess { updateToken(it); discordAuth = auth }
+			.onFailure { LOG.error(it); warn("Failed to link your discord account") }
+	}
 
-    private fun stop() {
-        if (rpc.connected) rpc.disconnect()
-    }
+	private fun stop() {
+		if (rpc.connected) rpc.disconnect()
+	}
 
-    private suspend fun SafeContext.handleLoop() {
-        while (rpc.connected) {
-            update()
-            delay(delay)
-        }
-    }
+	private suspend fun SafeContext.handleLoop() {
+		while (rpc.connected) {
+			update()
+			delay(delay)
+		}
+	}
 
-    private suspend fun SafeContext.update() {
-        rpc.activityManager.setActivity {
-            details = "${line1Left.value(this@update)} | ${line1Right.value(this@update)}".take(128)
-            state = "${line2Left.value(this@update)} | ${line2Right.value(this@update)}".take(128)
+	private suspend fun SafeContext.update() {
+		rpc.activityManager.setActivity {
+			details = "${line1Left.value(this@update)} | ${line1Right.value(this@update)}".take(128)
+			state = "${line2Left.value(this@update)} | ${line2Right.value(this@update)}".take(128)
 
-            largeImage("lambda", Lambda.VERSION)
-            smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
-            //button("Download", "https://github.com/lambda-client/lambda")
+			largeImage("lambda", Lambda.VERSION)
+			smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
+			//button("Download", "https://github.com/lambda-client/lambda")
 
-            if (showTime) timestamps(startup)
-        }
-    }
+			if (showTime) timestamps(startup)
+		}
+	}
 
-    private enum class LineInfo(val value: SafeContext.() -> String) : Nameable {
-        Version({ Lambda.VERSION }),
-        World({ worldName }),
-        Username({ mc.session.username }),
-        Health({ "${player.fullHealth} HP" }),
-        Hunger({ "${player.hungerManager.foodLevel} Hunger" }),
-        Dimension({ world.dimensionName }),
-        Fps({ "${mc.currentFps} FPS" });
-    }
+	private enum class LineInfo(val value: SafeContext.() -> String) : Nameable {
+		Version({ Lambda.VERSION }),
+		World({ worldName }),
+		Username({ mc.session.username }),
+		Health({ "${player.fullHealth} HP" }),
+		Hunger({ "${player.hungerManager.foodLevel} Hunger" }),
+		Dimension({ world.dimensionName }),
+		Fps({ "${mc.currentFps} FPS" });
+	}
 }

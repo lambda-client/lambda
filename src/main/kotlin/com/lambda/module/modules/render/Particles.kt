@@ -53,168 +53,167 @@ import com.mojang.blaze3d.opengl.GlConst.GL_ONE
 import com.mojang.blaze3d.opengl.GlConst.GL_SRC_ALPHA
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
-import org.joml.Matrix4f
 import kotlin.math.sin
 
 // FixMe: Do not call render stuff in the initialization block
 object Particles : Module(
-    name = "Particles",
-    description = "Spawns fancy particles",
-    tag = ModuleTag.RENDER,
+	name = "Particles",
+	description = "Spawns fancy particles",
+	tag = ModuleTag.RENDER,
 ) {
-    // ToDo: resort, cleanup settings
-    private val duration by setting("Duration", 5.0, 1.0..500.0, 1.0)
-    private val fadeDuration by setting("Fade Ticks", 5.0, 1.0..30.0, 1.0)
-    private val spawnAmount by setting("Spawn Amount", 20, 3..500, 1)
-    private val sizeSetting by setting("Size", 2.0, 0.1..50.0, 0.1)
-    private val alphaSetting by setting("Alpha", 1.5, 0.01..2.0, 0.01)
-    private val speedH by setting("Speed H", 1.0, 0.0..10.0, 0.1)
-    private val speedV by setting("Speed V", 1.0, 0.0..10.0, 0.1)
-    private val inertia by setting("Inertia", 0.0, 0.0..1.0, 0.01)
-    private val gravity by setting("Gravity", 0.2, 0.0..1.0, 0.01)
-    private val onMove by setting("On Move", false)
+	// ToDo: resort, cleanup settings
+	private val duration by setting("Duration", 5.0, 1.0..500.0, 1.0)
+	private val fadeDuration by setting("Fade Ticks", 5.0, 1.0..30.0, 1.0)
+	private val spawnAmount by setting("Spawn Amount", 20, 3..500, 1)
+	private val sizeSetting by setting("Size", 2.0, 0.1..50.0, 0.1)
+	private val alphaSetting by setting("Alpha", 1.5, 0.01..2.0, 0.01)
+	private val speedH by setting("Speed H", 1.0, 0.0..10.0, 0.1)
+	private val speedV by setting("Speed V", 1.0, 0.0..10.0, 0.1)
+	private val inertia by setting("Inertia", 0.0, 0.0..1.0, 0.01)
+	private val gravity by setting("Gravity", 0.2, 0.0..1.0, 0.01)
+	private val onMove by setting("On Move", false)
 
-    private val environment by setting("Environment", true)
-    private val environmentSpawnAmount by setting("E Spawn Amount", 10, 3..100, 1) { environment }
-    private val environmentSize by setting("E Size", 2.0, 0.1..50.0, 0.1) { environment }
-    private val environmentRange by setting("E Spread", 5.0, 1.0..20.0, 0.1) { environment }
-    private val environmentSpeedH by setting("E Speed H", 0.0, 0.0..10.0, 0.1) { environment }
-    private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
+	private val environment by setting("Environment", true)
+	private val environmentSpawnAmount by setting("E Spawn Amount", 10, 3..100, 1) { environment }
+	private val environmentSize by setting("E Size", 2.0, 0.1..50.0, 0.1) { environment }
+	private val environmentRange by setting("E Spread", 5.0, 1.0..20.0, 0.1) { environment }
+	private val environmentSpeedH by setting("E Speed H", 0.0, 0.0..10.0, 0.1) { environment }
+	private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
-    private var particles = mutableListOf<Particle>()
-    private val pipeline = VertexPipeline(VertexMode.Triangles, VertexAttrib.Group.PARTICLE)
-    private val shader = Shader("shaders/vertex/particles.glsl", "shaders/fragment/particles.glsl")
+	private var particles = mutableListOf<Particle>()
+	private val pipeline = VertexPipeline(VertexMode.Triangles, VertexAttrib.Group.PARTICLE)
+	private val shader = Shader("shaders/vertex/particles.glsl", "shaders/fragment/particles.glsl")
 
-    init {
-        listen<TickEvent.Pre> {
-            if (environment) spawnForEnvironment()
-            particles.removeIf(Particle::update)
-        }
+	init {
+		listen<TickEvent.Pre> {
+			if (environment) spawnForEnvironment()
+			particles.removeIf(Particle::update)
+		}
 
-        listen<RenderEvent.Render> {
-            // Todo: interpolated tickbased upload?
-            val builder = pipeline.build()
-            particles.forEach { it.build(builder) }
+		listen<RenderEvent.Render> {
+			// Todo: interpolated tickbased upload?
+			val builder = pipeline.build()
+			particles.forEach { it.build(builder) }
 
-            withBlendFunc(GL_SRC_ALPHA, GL_ONE) {
-                shader.use()
-                pipeline.upload(builder)
-                withDepth(false, pipeline::render)
-                pipeline.clear()
-            }
-        }
+			withBlendFunc(GL_SRC_ALPHA, GL_ONE) {
+				shader.use()
+				pipeline.upload(builder)
+				withDepth(false, pipeline::render)
+				pipeline.clear()
+			}
+		}
 
-        listen<PlayerEvent.Attack.Entity> { event ->
-            spawnForEntity(event.entity)
-        }
+		listen<PlayerEvent.Attack.Entity> { event ->
+			spawnForEntity(event.entity)
+		}
 
-        listen<MovementEvent.Player.Post> {
-            if (!onMove || player.moveDelta < 0.05) return@listen
-            spawnForEntity(player)
-        }
-    }
+		listen<MovementEvent.Player.Post> {
+			if (!onMove || player.moveDelta < 0.05) return@listen
+			spawnForEntity(player)
+		}
+	}
 
-    private fun spawnForEntity(entity: Entity) {
-        repeat(spawnAmount) {
-            val i = (it + 1) / spawnAmount.toDouble()
+	private fun spawnForEntity(entity: Entity) {
+		repeat(spawnAmount) {
+			val i = (it + 1) / spawnAmount.toDouble()
 
-            val pos = entity.pos
-            val height = entity.boundingBox.lengthY
-            val spawnHeight = height * transform(i, 0.0, 1.0, 0.2, 0.8)
-            val particlePos = pos.add(0.0, spawnHeight, 0.0)
-            val particleMotion = Rotation(
-                random(-180.0, 180.0),
-                random(-90.0, 90.0)
-            ).vector * Vec3d(speedH, speedV, speedH) * 0.1
+			val pos = entity.pos
+			val height = entity.boundingBox.lengthY
+			val spawnHeight = height * transform(i, 0.0, 1.0, 0.2, 0.8)
+			val particlePos = pos.add(0.0, spawnHeight, 0.0)
+			val particleMotion = Rotation(
+				random(-180.0, 180.0),
+				random(-90.0, 90.0)
+			).vector * Vec3d(speedH, speedV, speedH) * 0.1
 
-            particles += Particle(particlePos, particleMotion, false)
-        }
-    }
+			particles += Particle(particlePos, particleMotion, false)
+		}
+	}
 
-    private fun SafeContext.spawnForEnvironment() {
-        if (mc.paused) return
-        repeat(environmentSpawnAmount) {
-            var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
+	private fun SafeContext.spawnForEnvironment() {
+		if (mc.paused) return
+		repeat(environmentSpawnAmount) {
+			var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.Block)?.pos?.let {
-                particlePos = it + UP * 0.03
-            } ?: return@repeat
+			Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.Block)?.pos?.let {
+				particlePos = it + UP * 0.03
+			} ?: return@repeat
 
-            val particleMotion = Rotation(
-                random(-180.0, 180.0),
-                random(-90.0, 90.0)
-            ).vector * Vec3d(environmentSpeedH, environmentSpeedV, environmentSpeedH) * 0.1
+			val particleMotion = Rotation(
+				random(-180.0, 180.0),
+				random(-90.0, 90.0)
+			).vector * Vec3d(environmentSpeedH, environmentSpeedV, environmentSpeedH) * 0.1
 
-            particles += Particle(particlePos, particleMotion, true)
-        }
-    }
+			particles += Particle(particlePos, particleMotion, true)
+		}
+	}
 
-    private class Particle(
-        initialPosition: Vec3d,
-        initialMotion: Vec3d,
-        val lay: Boolean,
-    ) {
-        private val fadeTicks = fadeDuration
+	private class Particle(
+		initialPosition: Vec3d,
+		initialMotion: Vec3d,
+		val lay: Boolean,
+	) {
+		private val fadeTicks = fadeDuration
 
-        private var age = 0
-        private val maxAge = (duration + random(0.0, 20.0)).toInt()
+		private var age = 0
+		private val maxAge = (duration + random(0.0, 20.0)).toInt()
 
-        private var prevPos = initialPosition
-        private var position = initialPosition
-        private var motion = initialMotion
+		private var prevPos = initialPosition
+		private var position = initialPosition
+		private var motion = initialMotion
 
-        private val projRotation = if (lay) Matrices.ProjRotationMode.Up else Matrices.ProjRotationMode.ToCamera
+		private val projRotation = if (lay) Matrices.ProjRotationMode.Up else Matrices.ProjRotationMode.ToCamera
 
-        fun update(): Boolean {
-            if (mc.paused) return false
-            age++
+		fun update(): Boolean {
+			if (mc.paused) return false
+			age++
 
-            prevPos = position
+			prevPos = position
 
-            if (!lay) motion += DOWN * gravity * 0.01
-            motion *= 0.9 + inertia * 0.1
+			if (!lay) motion += DOWN * gravity * 0.01
+			motion *= 0.9 + inertia * 0.1
 
-            position += motion
+			position += motion
 
-            return age > maxAge + fadeTicks * 2 + 5
-        }
+			return age > maxAge + fadeTicks * 2 + 5
+		}
 
-        fun build(builder: VertexBuilder) = builder.apply {
-            val smoothAge = age + mc.partialTicks
-            val colorTicks = smoothAge * 0.1 / ClickGuiLayout.colorSpeed
+		fun build(builder: VertexBuilder) = builder.apply {
+			val smoothAge = age + mc.partialTicks
+			val colorTicks = smoothAge * 0.1 / ClickGuiLayout.colorSpeed
 
-            val alpha = when {
-                smoothAge < fadeTicks -> smoothAge / fadeTicks
-                smoothAge in fadeTicks..fadeTicks + maxAge -> 1.0
-                else -> {
-                    val min = fadeTicks + maxAge
-                    val max = fadeTicks * 2 + maxAge
-                    transform(smoothAge, min, max, 1.0, 0.0)
-                }
-            }
+			val alpha = when {
+				smoothAge < fadeTicks -> smoothAge / fadeTicks
+				smoothAge in fadeTicks..fadeTicks + maxAge -> 1.0
+				else -> {
+					val min = fadeTicks + maxAge
+					val max = fadeTicks * 2 + maxAge
+					transform(smoothAge, min, max, 1.0, 0.0)
+				}
+			}
 
-            val (c1, c2) = ClickGuiLayout.primaryColor to ClickGuiLayout.secondaryColor
-            val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
+			val (c1, c2) = ClickGuiLayout.primaryColor to ClickGuiLayout.secondaryColor
+			val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
 
-            val position = lerp(mc.partialTicks, prevPos, position)
-            val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
+			val position = lerp(mc.partialTicks, prevPos, position)
+			val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
-            withVertexTransform(buildWorldProjection(position, size, projRotation)) {
-                buildQuad(
-                    vertex {
-                        vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color)
-                    },
-                    vertex {
-                        vec3m(-1.0, 1.0, 0.0).vec2(0.0, 1.0).color(color)
-                    },
-                    vertex {
-                        vec3m(1.0, 1.0, 0.0).vec2(1.0, 1.0).color(color)
-                    },
-                    vertex {
-                        vec3m(1.0, -1.0, 0.0).vec2(1.0, 0.0).color(color)
-                    }
-                )
-            }
-        }
-    }
+			withVertexTransform(buildWorldProjection(position, size, projRotation)) {
+				buildQuad(
+					vertex {
+						vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color)
+					},
+					vertex {
+						vec3m(-1.0, 1.0, 0.0).vec2(0.0, 1.0).color(color)
+					},
+					vertex {
+						vec3m(1.0, 1.0, 0.0).vec2(1.0, 1.0).color(color)
+					},
+					vertex {
+						vec3m(1.0, -1.0, 0.0).vec2(1.0, 0.0).color(color)
+					}
+				)
+			}
+		}
+	}
 }

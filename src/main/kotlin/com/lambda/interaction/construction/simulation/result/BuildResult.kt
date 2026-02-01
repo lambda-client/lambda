@@ -21,8 +21,8 @@ import com.lambda.util.Nameable
 import net.minecraft.util.math.BlockPos
 
 abstract class BuildResult : Nameable, ComparableResult<Rank> {
-    abstract val pos: BlockPos
-    override val compareBy = this
+	abstract val pos: BlockPos
+	override val compareBy = this
 
-    final override fun compareTo(other: ComparableResult<Rank>) = super.compareTo(other)
+	final override fun compareTo(other: ComparableResult<Rank>) = super.compareTo(other)
 }

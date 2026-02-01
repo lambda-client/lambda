@@ -23,28 +23,28 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.math.Box
 
 class DynamicAABB {
-    private var prev: Box? = null
-    private var curr: Box? = null
+	private var prev: Box? = null
+	private var curr: Box? = null
 
-    val pair get() = prev?.let { prev -> curr?.let { curr -> prev to curr } }
+	val pair get() = prev?.let { prev -> curr?.let { curr -> prev to curr } }
 
-    fun update(box: Box): DynamicAABB {
-        prev = curr ?: box
-        curr = box
+	fun update(box: Box): DynamicAABB {
+		prev = curr ?: box
+		curr = box
 
-        return this
-    }
+		return this
+	}
 
-    fun reset() {
-        prev = null
-        curr = null
-    }
+	fun reset() {
+		prev = null
+		curr = null
+	}
 
-    companion object {
-        val Entity.dynamicBox
-            get() = DynamicAABB().apply {
-                update(boundingBox.offset(prevPos - pos))
-                update(boundingBox)
-            }
-    }
+	companion object {
+		val Entity.dynamicBox
+			get() = DynamicAABB().apply {
+				update(boundingBox.offset(prevPos - pos))
+				update(boundingBox)
+			}
+	}
 }

@@ -36,44 +36,44 @@ import java.awt.Color
 //  We should find a better name.
 //  Also should pause baritone on lag.
 object Rubberband : Module(
-    name = "Rubberband",
-    description = "Info about rubberbands",
-    tag = ModuleTag.NETWORK,
+	name = "Rubberband",
+	description = "Info about rubberbands",
+	tag = ModuleTag.NETWORK,
 ) {
-    private val showLastPacketInfo by setting("Show Last Packet", true)
-    private val showConnectionState by setting("Show Connection State", true)
-    private val showRubberbandInfo by setting("Show Rubberband Info", true)
+	private val showLastPacketInfo by setting("Show Last Packet", true)
+	private val showConnectionState by setting("Show Connection State", true)
+	private val showRubberbandInfo by setting("Show Rubberband Info", true)
 
-    val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
+	val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
 
-    init {
-        listen<PacketEvent.Receive.Pre> { event ->
-            if (!showRubberbandInfo) return@listen
-            if (event.packet !is PlayerPositionLookS2CPacket) return@listen
+	init {
+		listen<PacketEvent.Receive.Pre> { event ->
+			if (!showRubberbandInfo) return@listen
+			if (event.packet !is PlayerPositionLookS2CPacket) return@listen
 
-            if (configurations.isEmpty()) {
-                this@Rubberband.warn("Position was reverted")
-                return@listen
-            }
+			if (configurations.isEmpty()) {
+				this@Rubberband.warn("Position was reverted")
+				return@listen
+			}
 
-            val newPos = event.packet.change.position
-            val last = configurations.minBy {
-                it.position distSq newPos
-            }
+			val newPos = event.packet.change.position
+			val last = configurations.minBy {
+				it.position distSq newPos
+			}
 
-            this@Rubberband.warn(buildText {
-                literal("Reverted position by ")
-                color(Color.YELLOW) {
-                    literal("${configurations.toList().asReversed().indexOf(last) + 1}")
-                }
-                literal(" ticks (deviation: ")
-                color(Color.YELLOW) {
-                    literal("%.3f".format(last.position dist newPos))
-                }
-                literal(")")
-            })
-        }
+			this@Rubberband.warn(buildText {
+				literal("Reverted position by ")
+				color(Color.YELLOW) {
+					literal("${configurations.toList().asReversed().indexOf(last) + 1}")
+				}
+				literal(" ticks (deviation: ")
+				color(Color.YELLOW) {
+					literal("%.3f".format(last.position dist newPos))
+				}
+				literal(")")
+			})
+		}
 
-        listen<PlayerPacketEvent.Pre> { configurations.add(it) }
-    }
+		listen<PlayerPacketEvent.Pre> { configurations.add(it) }
+	}
 }

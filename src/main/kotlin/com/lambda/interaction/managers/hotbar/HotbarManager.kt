@@ -45,15 +45,18 @@ object HotbarManager : Manager<HotbarRequest>(
 		if (activeRequest != null) {
 			setActiveSlot()
 		}
-			 },
+	},
 	onClose = { checkResetSwap() }
 ) {
 	private var activeRequest: HotbarRequest? = null
-	@JvmStatic var activeSlot: Int = -1
+	@JvmStatic
+	var activeSlot: Int = -1
 
-	val serverSlot get() = runSafe {
-		interaction.lastSelectedSlot
-	} ?: -1
+	val serverSlot
+		get() = runSafe {
+			interaction.lastSelectedSlot
+		} ?: -1
+
 	//ToDo: something to manage stacks so the hotbar manager is strictly index based
 	private var previousStack: ItemStack? = null
 	private var swappedTicks = 0

@@ -40,7 +40,7 @@ data object CreativeContainer : MaterialContainer(Rank.Creative) {
 
 	override val description = buildText { literal("Creative") }
 
-	context(safeContext : SafeContext)
+	context(safeContext: SafeContext)
 	override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
 		clickCreativeStack(fromHere.stack, toSlot.id)
 		safeContext.player.currentScreenHandler.slots[toSlot.id].stack = fromHere.stack

@@ -42,54 +42,55 @@ class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
 	defaultValue,
 	TypeToken.get(defaultValue.declaringJavaClass).type
 ) {
-    var index by Delegates.observable(value.ordinal) { _, _, to ->
-        value = value.enumValues[to % value.enumValues.size]
-    }
+	var index by Delegates.observable(value.ordinal) { _, _, to ->
+		value = value.enumValues[to % value.enumValues.size]
+	}
 
 	context(setting: Setting<*, T>)
-    override fun loadFromJson(serialized: JsonElement) {
-        super.loadFromJson(serialized)
-        index = value.ordinal // super bug fix for imgui
-    }
+	override fun loadFromJson(serialized: JsonElement) {
+		super.loadFromJson(serialized)
+		index = value.ordinal // super bug fix for imgui
+	}
 
 	context(setting: Setting<*, T>)
-    override fun ImGuiBuilder.buildLayout() {
-        val values = value.enumValues
-        val currentDisplay = value.displayValue
+	override fun ImGuiBuilder.buildLayout() {
+		val values = value.enumValues
+		val currentDisplay = value.displayValue
 
-        combo("##${setting.name}", preview = "${setting.name}: $currentDisplay") {
-            values.forEachIndexed { idx, v ->
-                val isSelected = idx == index
+		combo("##${setting.name}", preview = "${setting.name}: $currentDisplay") {
+			values.forEachIndexed { idx, v ->
+				val isSelected = idx == index
 
-                selectable(v.displayValue, isSelected) {
-                    if (!isSelected) index = idx
-                }
+				selectable(v.displayValue, isSelected) {
+					if (!isSelected) index = idx
+				}
 
-                (v as? Describable)?.let { lambdaTooltip(it.description) }
-            }
-        }
+				(v as? Describable)?.let { lambdaTooltip(it.description) }
+			}
+		}
 
-        lambdaTooltip(setting.description)
-    }
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, T>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(setting.name)) { parameter ->
-            suggests { _, builder ->
-                value.enumValues.forEach { builder.suggest(it.name.capitalize()) }
-                builder.buildFuture()
-            }
-            executeWithResult {
-                val newValue = value.enumValues.find { it.name.equals(parameter().value(), true) }
-                    ?: return@executeWithResult failure("Invalid value")
-                setting.trySetValue(newValue)
-                return@executeWithResult success()
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(word(setting.name)) { parameter ->
+			suggests { _, builder ->
+				value.enumValues.forEach { builder.suggest(it.name.capitalize()) }
+				builder.buildFuture()
+			}
+			executeWithResult {
+				val newValue = value.enumValues.find { it.name.equals(parameter().value(), true) }
+					?: return@executeWithResult failure("Invalid value")
+				setting.trySetValue(newValue)
+				return@executeWithResult success()
+			}
+		}
+	}
 
-    companion object {
-        val <T : Enum<T>> T.enumValues: Array<T> get() =
-            declaringJavaClass.enumConstants
-    }
+	companion object {
+		val <T : Enum<T>> T.enumValues: Array<T>
+			get() =
+				declaringJavaClass.enumConstants
+	}
 }

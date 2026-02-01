@@ -98,14 +98,14 @@ abstract class SettingCore<T>(
 	var defaultValue: T,
 	val type: Type
 ) {
-    open var value = defaultValue
-	    set(value) {
-		    val oldValue = field
-		    field = value
-		    listeners.forEach {
-			    if (it.requiresValueChange && oldValue == value) return@forEach
-			    it.execute(oldValue, value)
-		    }
+	open var value = defaultValue
+		set(value) {
+			val oldValue = field
+			field = value
+			listeners.forEach {
+				if (it.requiresValueChange && oldValue == value) return@forEach
+				it.execute(oldValue, value)
+			}
 		}
 	val listeners = mutableListOf<ValueListener<T>>()
 

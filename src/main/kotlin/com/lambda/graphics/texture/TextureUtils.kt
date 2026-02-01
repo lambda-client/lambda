@@ -39,57 +39,57 @@ import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 
 object TextureUtils {
-    val encoderPreset = PngEncoder()
-        .withCompressionLevel(-1)
-        .withMultiThreadedCompressionDisabled()
+	val encoderPreset = PngEncoder()
+		.withCompressionLevel(-1)
+		.withMultiThreadedCompressionDisabled()
 
-    fun bindTexture(id: Int, slot: Int = 0) {
-        glActiveTexture(GL_TEXTURE0 + slot)
-        glBindTexture(GL_TEXTURE_2D, id)
-    }
+	fun bindTexture(id: Int, slot: Int = 0) {
+		glActiveTexture(GL_TEXTURE0 + slot)
+		glBindTexture(GL_TEXTURE_2D, id)
+	}
 
-    fun setupTexture(minFilter: Int, magFilter: Int) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+	fun setupTexture(minFilter: Int, magFilter: Int) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
 
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
-        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
-        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
-    }
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+		glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
+		glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
+	}
 
-    fun readImage(
-        bytes: ByteArray,
-        format: NativeImage.Format = NativeImage.Format.RGBA,
-    ): NativeImage {
-        val buffer = BufferUtils
-            .createByteBuffer(bytes.size)
-            .put(bytes)
-            .flip()
+	fun readImage(
+		bytes: ByteArray,
+		format: NativeImage.Format = NativeImage.Format.RGBA,
+	): NativeImage {
+		val buffer = BufferUtils
+			.createByteBuffer(bytes.size)
+			.put(bytes)
+			.flip()
 
-        return NativeImage.read(format, buffer)
-    }
+		return NativeImage.read(format, buffer)
+	}
 
-    fun readImage(
-        bufferedImage: BufferedImage,
-        format: NativeImage.Format,
-    ): Long {
-        val bytes = encoderPreset
-            .withBufferedImage(bufferedImage)
-            .toBytes()
+	fun readImage(
+		bufferedImage: BufferedImage,
+		format: NativeImage.Format,
+	): Long {
+		val bytes = encoderPreset
+			.withBufferedImage(bufferedImage)
+			.toBytes()
 
-        val buffer = BufferUtils
-            .createByteBuffer(bytes.size)
-            .put(bytes)
-            .flip()
+		val buffer = BufferUtils
+			.createByteBuffer(bytes.size)
+			.put(bytes)
+			.flip()
 
-        return readImage(buffer, format)
-    }
+		return readImage(buffer, format)
+	}
 
-    fun readImage(
-        image: ByteBuffer,
-        format: NativeImage.Format,
-    ) = NativeImage.read(format, image).pointer
+	fun readImage(
+		image: ByteBuffer,
+		format: NativeImage.Format,
+	) = NativeImage.read(format, image).pointer
 }
