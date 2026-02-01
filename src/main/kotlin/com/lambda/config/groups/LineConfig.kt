@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config
+package com.lambda.config.groups
 
-interface ISettingGroup {
-	val settings: MutableList<Setting<*, *>>
-	val visibility: () -> Boolean
-}
+import com.lambda.graphics.mc.LineDashStyle
+import java.awt.Color
 
-abstract class SettingGroup(c: Configurable) : ISettingGroup {
-    override val settings = mutableListOf<Setting<*, *>>()
+interface LineConfig {
+	val startColor: Color
+	val endColor: Color
+	val width: Float
+	val dashEnabled: Boolean
+	val dashLength: Float
+	val gapLength: Float
+	val dashOffset: Float
+	val animated: Boolean
+	val animationSpeed: Float
 
-	init {
-		c.settingGroups.add(this)
-	}
-
-    fun <T : SettingCore<R>, R : Any> Setting<T, R>.index(): Setting<T, R> {
-        settings.add(this)
-        return this
-    }
+	/**
+	 * Get the dash style for rendering, or null if dashing is disabled.
+	 */
+	fun getDashStyle(): LineDashStyle? =
+		if (dashEnabled) LineDashStyle(dashLength, gapLength, dashOffset, animated, animationSpeed) else null
 }

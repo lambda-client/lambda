@@ -18,9 +18,12 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.ScreenTextSettings
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.RenderMain.worldToScreenNormalized
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
@@ -39,6 +42,7 @@ import com.lambda.util.extension.maxFullHealth
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
+import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
@@ -56,32 +60,41 @@ object Nametags : Module(
 	tag = ModuleTag.RENDER
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
-
+		General("General"),
+		Text("Text")
 	}
 
-	private val textScale by setting("Text Scale", 1.2f, 0.4f..5f, 0.01f)
-	private val itemScale by setting("Item Scale", 1.9f, 0.4f..5f, 0.01f)
-	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01)
-	private val spacing by setting("Spacing", 0, 0..10, 1)
-	private val color by setting("Color", Color.WHITE)
-	private val friendColor by setting("Friend Color", Color.BLUE)
-	private val self by setting("Self", false)
-	private val health by setting("Health", false)
-	private val ping by setting("Ping", true)
-	private val gear by setting("Gear", true)
-	private val mainItem by setting("Main Item", true) { gear }
-	private val itemName by setting("Item Name", true)
-	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f)
-	private val offhandItem by setting("Offhand Item", true) { gear }
-	private val durability by setting("Durability", true) { gear }
+	private enum class TextGroup(override val displayName: String): NamedEnum {
+		Friend("Friend"),
+		Other("Other")
+	}
+
+	private val entities by setting("Entities", setOf(EntityUtils.EntityGroup.Player), EntityUtils.EntityGroup.entries).group(Group.General)
+	private val itemScale by setting("Item Scale", 1.9f, 0.4f..5f, 0.01f).group(Group.General)
+	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01).group(Group.General)
+	private val spacing by setting("Spacing", 0, 0..10, 1).group(Group.General)
+	private val self by setting("Self", false).group(Group.General)
+	private val health by setting("Health", false).group(Group.General)
+	private val ping by setting("Ping", true).group(Group.General)
+	private val gear by setting("Gear", true).group(Group.General)
+	private val mainItem by setting("Main Item", true) { gear }.group(Group.General)
+	private val offhandItem by setting("Offhand Item", true) { gear }.group(Group.General)
+	private val itemName by setting("Item Name", true).group(Group.General)
+	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f).group(Group.General)
+	private val durability by setting("Durability", true) { gear }.group(Group.General)
 	//ToDo: Implement
 //	private val enchantments by setting("Enchantments", false) { gear }
-	private val entities by setting("Entities", setOf(EntityUtils.EntityGroup.Player), EntityUtils.EntityGroup.entries)
+
+	private val friendTextConfig = ScreenTextSettings("Friend ", this, Group.Text, TextGroup.Friend).apply {
+		applyEdits {
+			::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
+		}
+	}
+	private val otherTextConfig = ScreenTextSettings("Other ", this, Group.Text, TextGroup.Other)
 
 	val renderer = ImmediateRenderer("Nametags")
 
 	var heightWidthRatio = 0f
-	var trueTextScale = 0f
 	var trueItemScaleX = 0f
 	var trueItemScaleY = 0f
 	var trueSpacingX = 0f
@@ -91,7 +104,6 @@ object Nametags : Module(
 		listen<RenderEvent.Render> {
 			renderer.tick()
 			heightWidthRatio = mc.window.height / mc.window.width.toFloat()
-			trueTextScale = textScale * 0.01f
 			trueItemScaleY = itemScale * 0.01f
 			trueItemScaleX = trueItemScaleY * heightWidthRatio
 			trueSpacingY = spacing * 0.0005f
@@ -101,6 +113,9 @@ object Nametags : Module(
 				world.entities
 					.sortedByDescending { it distSq mc.gameRenderer.camera.pos }
 					.forEach { entity ->
+						val textConfig = if (entity is OtherClientPlayerEntity && entity.isFriend) friendTextConfig else otherTextConfig
+						val textStyle = textConfig.getSDFStyle()
+						val textSize = textConfig.size
 						if (!shouldRenderNametag(entity)) return@forEach
 						val nameText = entity.displayName?.string ?: return@forEach
 						val box = entity.interpolatedBox
@@ -110,42 +125,40 @@ object Nametags : Module(
 								?: return@forEach
 
 						if (entity !is LivingEntity) {
-							screenText(nameText, anchorX, anchorY + (trueTextScale / 2f), trueTextScale, centered = true)
+							screenText(nameText, anchorX, anchorY + (textSize / 2f), textSize, style = textStyle, centered = true)
 							return@forEach
 						}
 
 						if (itemName && !entity.mainHandStack.isEmpty) {
 							val itemNameText = entity.mainHandStack.name.string
-							val itemNameScale = trueTextScale * itemNameScale
+							val itemNameScale = textSize * itemNameScale
 							screenText(itemNameText, anchorX, anchorY - (itemNameScale * 1.1f) - trueSpacingY, itemNameScale, centered = true)
 						}
 
-						val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, trueTextScale)
+						val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, textSize)
 
 						val healthCount = if (health) entity.fullHealth else -1.0
 						val healthText = if (health) " ${healthCount.roundToStep(0.01)}" else ""
 						val healthWidth =
-							getDefaultFont().getStringWidthNormalized(healthText, trueTextScale)
+							getDefaultFont().getStringWidthNormalized(healthText, textSize)
 								.let { if (healthCount > 0) it + trueSpacingX else it }
 
 						val pingCount = if (ping && entity is PlayerEntity) connection.getPlayerListEntry(entity.uuid)?.latency ?: -1 else -1
 						val pingText = if (pingCount >= 0) " [$pingCount]" else ""
 						val pingWidth =
-							getDefaultFont().getStringWidthNormalized(pingText, trueTextScale)
+							getDefaultFont().getStringWidthNormalized(pingText, textSize)
 								.let { if (pingCount > 0 ) it + trueSpacingX else it }
 
 						var combinedWidth = nameWidth + healthWidth + pingWidth
 						val nameX = anchorX - (combinedWidth / 2)
-						screenText(nameText, nameX, anchorY, trueTextScale)
+						screenText(nameText, nameX, anchorY, textSize, style = textStyle)
 						if (healthCount >= 0) {
 							val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN).brighter()
-							val healthStyle = RenderBuilder.SDFStyle(healthColor)
-							screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, trueTextScale, style = healthStyle)
+							screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, textSize, style = textStyle.apply { color = healthColor })
 						}
 						if (pingCount >= 0) {
 							val pingColor = lerp(pingCount / 500.0, Color.GREEN, Color.RED).brighter()
-							val pingStyle = RenderBuilder.SDFStyle(pingColor)
-							screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, trueTextScale, style = pingStyle)
+							screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, textSize, style = textStyle.apply { color = pingColor })
 						}
 
 						if (!gear) return@forEach
@@ -155,7 +168,7 @@ object Nametags : Module(
 								renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX - (trueItemScaleX * 0.1f), anchorY)
 							if (offhandItem && !entity.offHandStack.isEmpty)
 								renderItem(entity.offHandStack, anchorX + (combinedWidth / 2) + trueSpacingX, anchorY)
-						} else drawArmorAndItems(entity, anchorX, anchorY + trueTextScale + trueSpacingY)
+						} else drawArmorAndItems(entity, anchorX, anchorY + textSize + trueSpacingY)
 					}
 			}
 
@@ -196,8 +209,7 @@ object Nametags : Module(
 			val dura = (1 - (stack.damage / stack.maxDamage.toDouble())).roundToStep(0.01) * 100
 			val duraText = "$dura%"
 			val textSize = getDefaultFont().getSizeForWidthNormalized(duraText, trueItemScaleX) * 0.9f
-			val textStyle = RenderBuilder.SDFStyle(lerp(dura / 100, Color.RED, Color.GREEN).brighter())
-			screenText(duraText, x, iteratorY, textSize, style = textStyle)
+			screenText(duraText, x, iteratorY, textSize, style = RenderBuilder.SDFStyle(color = lerp(dura / 100, Color.RED, Color.GREEN).brighter()))
 		}
 	}
 

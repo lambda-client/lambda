@@ -18,6 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
@@ -27,6 +29,7 @@ import com.lambda.graphics.util.DirectionMask.buildSideMesh
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.world.toBlockPos
@@ -35,28 +38,30 @@ import net.minecraft.client.render.model.BlockStateModel
 import net.minecraft.util.math.Box
 import java.awt.Color
 
-object BlockESP : Module(
-    name = "BlockESP",
-    description = "Render block ESP",
+object Search : Module(
+    name = "Search",
+    description = "Highlight blocks within the rendered world",
     tag = ModuleTag.RENDER,
 ) {
-    private val searchBlocks by setting("Search Blocks", true, "Search for blocks around the player")
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), description = "Render blocks") { searchBlocks }
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), description = "Render blocks")
         .onSelect { rebuildMesh(this, null, null) }
         .onDeselect { rebuildMesh(this, null, null) }
 
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { searchBlocks }.onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { searchBlocks }.onValueChange(::rebuildMesh)
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
 
-    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead") { searchBlocks }.onValueChange(::rebuildMesh)
-    private val blockColorAlpha by setting("Block Color Alpha", 0.3, 0.1..1.0, 0.05) { searchBlocks && useBlockColor }.onValueChange { _, _ -> ::rebuildMesh }
+    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead").onValueChange(::rebuildMesh)
+    private val blockColorAlpha by setting("Block Color Alpha", 0.3, 0.1..1.0, 0.05) { useBlockColor }.onValueChange(::rebuildMesh)
 
-    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { searchBlocks && drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
-    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { searchBlocks && drawOutlines && !useBlockColor }.onValueChange(::rebuildMesh)
-    private val outlineWidth by setting("Outline Width", 0.01f, 0.001f..1.0f, 0.001f) { searchBlocks && drawOutlines }.onValueChange(::rebuildMesh)
-
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { searchBlocks }.onValueChange(::rebuildMesh)
+    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode").onValueChange(::rebuildMesh)
+    private val lineColor by setting("Line Color", Color(100, 150, 255, 128)) { !useBlockColor }.onValueChange(::rebuildMesh)
+    private val lineConfig = WorldLineSettings("", this).apply {
+        applyEdits {
+            hide(::startColor, ::endColor)
+        }
+    }
 
     @JvmStatic
     val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
@@ -85,14 +90,15 @@ object BlockESP : Module(
             val pos = position.toBlockPos()
             val shape = state.getOutlineShape(world, pos)
             val worldBox = if (shape.isEmpty) Box(pos) else shape.boundingBox.offset(pos)
-            box(worldBox, outlineWidth) {
+            box(worldBox, lineConfig.width) {
                 val hiddenSides = sides.inv()
                 hideSides(hiddenSides)
                 if (drawFaces) fillColor(if (useBlockColor) finalColor else faceColor) else hideFill()
                 if (!drawOutlines) hideOutline()
                 else {
-                    outlineColor(if (useBlockColor) extractedColor else outlineColor)
-                    outlineMode(this@BlockESP.outlineMode)
+                    outlineColor(if (useBlockColor) extractedColor else lineColor)
+                    lineConfig.getDashStyle()?.let { lineDashStyle(it) }
+                    outlineMode(this@Search.outlineMode)
                 }
             }
         }

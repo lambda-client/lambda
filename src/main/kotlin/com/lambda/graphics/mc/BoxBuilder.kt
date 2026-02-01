@@ -222,6 +222,11 @@ class BoxBuilder(val lineWidth: Float) {
     }
 
     @RenderDsl
+    fun lineDashStyle(lineDashStyle: LineDashStyle) {
+        dashStyle = lineDashStyle
+    }
+
+    @RenderDsl
     fun showSides(vararg directions: Direction) {
         showFillSides(*directions)
         showOutlineSides(*directions)

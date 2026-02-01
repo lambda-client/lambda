@@ -53,13 +53,14 @@ abstract class Targeting(
     baseGroup: NamedEnum,
     private val defaultRange: Double,
     private val maxRange: Double,
+    override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), TargetingConfig {
 	/**
 	 * The range within which entities can be targeted. This value is configurable and constrained
 	 * between 1.0 and [maxRange].
 	 */
-	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05).group(baseGroup)
-    override val targets by c.setting("Targets", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries)
+	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05, visibility = visibility).group(baseGroup)
+    override val targets by c.setting("Targets", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries, visibility = visibility)
 
 	/**
 	 * Validates whether a given entity is targetable by the player based on current settings.
@@ -82,17 +83,18 @@ abstract class Targeting(
         baseGroup: NamedEnum,
         defaultRange: Double = 5.0,
         maxRange: Double = 16.0,
+        override val visibility: () -> Boolean = { true },
     ) : Targeting(c, baseGroup, defaultRange, maxRange) {
 
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by c.setting("FOV Limit", 180, 5..180, 1) { priority == Priority.Fov }.group(baseGroup)
+        val fov by c.setting("FOV Limit", 180, 5..180, 1) { visibility() && priority == Priority.Fov }.group(baseGroup)
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.Distance].
          */
-        val priority by c.setting("Priority", Priority.Distance).group(baseGroup)
+        val priority by c.setting("Priority", Priority.Distance, visibility = visibility).group(baseGroup)
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.

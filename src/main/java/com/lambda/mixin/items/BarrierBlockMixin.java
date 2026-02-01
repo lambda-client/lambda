@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.items;
 
-import com.lambda.module.modules.render.BlockESP;
+import com.lambda.module.modules.render.Search;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.block.BarrierBlock;
 import net.minecraft.block.BlockRenderType;
@@ -29,12 +29,12 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(BarrierBlock.class)
 public class BarrierBlockMixin {
     /**
-     * Modifies barrier block render type to {@link BlockRenderType#MODEL} when {@link BlockESP} is enabled and {@link BlockESP#getBarrier()} is true
+     * Modifies barrier block render type to {@link BlockRenderType#MODEL} when {@link Search} is enabled and {@link Search#getBarrier()} is true
      */
     @ModifyReturnValue(method = "getRenderType", at = @At("RETURN"))
     private BlockRenderType modifyGetRenderType(BlockRenderType original, BlockState state) {
-        if (BlockESP.INSTANCE.isEnabled()
-                && BlockESP.getBarrier()
+        if (Search.INSTANCE.isEnabled()
+                && Search.getBarrier()
                 && state.getBlock() == Blocks.BARRIER
         ) return BlockRenderType.MODEL;
         return original;

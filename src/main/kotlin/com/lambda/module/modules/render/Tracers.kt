@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.ScreenLineSettings
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -27,6 +29,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.EntityGroup
 import com.lambda.util.EntityUtils.entityGroup
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.dist
@@ -42,22 +45,39 @@ object Tracers : Module(
 	description = "Draws lines to entities within the world",
 	tag = ModuleTag.RENDER
 ) {
-	private val width by setting("Width", 1, 1..50, 1)
-	private val target by setting("Target", TracerMode.Feet)
-	private val stem by setting("Stem", true)
-	private val entities by setting("Entities", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries)
-	private val friendColor by setting("Friend Color", Color(80, 80, 255, 255))
-	private val playerDistanceGradient by setting("Player Distance Gradient", true) { EntityGroup.Player in entities }
-	private val playerDistanceColorFar by setting("Player Far Color", Color.GREEN) { EntityGroup.Player in entities && playerDistanceGradient }
-	private val playerDistanceColorClose by setting("Player Close Color", Color.RED) { EntityGroup.Player in entities && playerDistanceGradient }
-	private val playerColor by setting("Players", Color.RED) { EntityGroup.Player in entities && !playerDistanceGradient }
-	private val mobColor by setting("Mobs", Color(255, 80, 0, 255)) { EntityGroup.Mob in entities }
-	private val passiveColor by setting("Passives", Color.BLUE) { EntityGroup.Passive in entities }
-	private val projectileColor by setting("Projectiles", Color.LIGHT_GRAY) { EntityGroup.Projectile in entities }
-	private val vehicleColor by setting("Vehicles", Color.WHITE) { EntityGroup.Vehicle in entities }
-	private val decorationColor by setting("Decorations", Color.PINK) { EntityGroup.Decoration in entities }
-	private val bossColor by setting("Bosses", Color(255, 0, 255, 255)) { EntityGroup.Boss in entities }
-	private val miscColor by setting("Miscellaneous", Color.magenta) { EntityGroup.Misc in entities }
+	private enum class Group(override val displayName: String) : NamedEnum {
+		General("General"),
+		Color("Color"),
+		LineStyle("Line Style")
+	}
+
+	private enum class LineGroup(override val displayName: String) : NamedEnum {
+		Friend("Friend"),
+		Other("Other")
+	}
+
+	private val target by setting("Target", TracerMode.Feet).group(Group.General)
+	private val stem by setting("Stem", true).group(Group.General)
+	private val entities by setting("Entities", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries).group(Group.General)
+	private val friendColor by setting("Friend Color", Color(0, 255, 255, 255)).group(Group.Color)
+	private val playerDistanceGradient by setting("Player Distance Gradient", true) { EntityGroup.Player in entities }.group(Group.Color)
+	private val playerDistanceColorFar by setting("Player Far Color", Color.GREEN) { EntityGroup.Player in entities && playerDistanceGradient }.group(Group.Color)
+	private val playerDistanceColorClose by setting("Player Close Color", Color.RED) { EntityGroup.Player in entities && playerDistanceGradient }.group(Group.Color)
+	private val playerColor by setting("Players", Color.RED) { EntityGroup.Player in entities && !playerDistanceGradient }.group(Group.Color)
+	private val mobColor by setting("Mobs", Color(255, 80, 0, 255)) { EntityGroup.Mob in entities }.group(Group.Color)
+	private val passiveColor by setting("Passives", Color.BLUE) { EntityGroup.Passive in entities }.group(Group.Color)
+	private val projectileColor by setting("Projectiles", Color.LIGHT_GRAY) { EntityGroup.Projectile in entities }.group(Group.Color)
+	private val vehicleColor by setting("Vehicles", Color.WHITE) { EntityGroup.Vehicle in entities }.group(Group.Color)
+	private val decorationColor by setting("Decorations", Color.PINK) { EntityGroup.Decoration in entities }.group(Group.Color)
+	private val bossColor by setting("Bosses", Color(255, 0, 255, 255)) { EntityGroup.Boss in entities }.group(Group.Color)
+	private val miscColor by setting("Miscellaneous", Color.magenta) { EntityGroup.Misc in entities }.group(Group.Color)
+
+	private val friendLineConfig = ScreenLineSettings("Friend ", this, Group.LineStyle, LineGroup.Friend).apply {
+		applyEdits { hide(::startColor, ::endColor) }
+	}
+	private val otherLineConfig = ScreenLineSettings("Other ", this, Group.LineStyle, LineGroup.Other).apply {
+		applyEdits { hide(::startColor, ::endColor) }
+	}
 
 	val renderer = ImmediateRenderer("Tracers")
 
@@ -87,6 +107,7 @@ object Tracers : Module(
 						EntityGroup.Boss -> bossColor
 						else -> miscColor
 					}
+					val lineConfig = if (entity is OtherClientPlayerEntity && entity.isFriend) friendLineConfig else otherLineConfig
 					val lerpedPos = lerp(mc.tickDelta, entity.prevPos, entity.pos)
 					val lerpedEyePos = lerpedPos.add(0.0, entity.standingEyeHeight.toDouble(), 0.0)
 					val targetPos = when(target) {
@@ -95,7 +116,7 @@ object Tracers : Module(
 						TracerMode.Eyes -> lerpedEyePos
 					}
 					val (toX, toY) = worldToScreenNormalized(targetPos) ?: return@forEach
-					screenLine(0.5f, 0.5f, toX, toY, color, width * 0.0001f)
+					screenLine(0.5f, 0.5f, toX, toY, color, lineConfig.width, lineConfig.getDashStyle())
 					if (stem) {
 						val (lowerX, lowerY) =
 							if (target == TracerMode.Feet) Vector2f(toX, toY)
@@ -103,7 +124,7 @@ object Tracers : Module(
 						val (upperX, upperY) =
 							if (target == TracerMode.Eyes) Vector2f(toX, toY)
 							else worldToScreenNormalized(lerpedEyePos) ?: return@forEach
-						screenLine(lowerX, lowerY, upperX, upperY, color, width * 0.0001f)
+						screenLine(lowerX, lowerY, upperX, upperY, color, lineConfig.width, lineConfig.getDashStyle())
 					}
 				}
 			}

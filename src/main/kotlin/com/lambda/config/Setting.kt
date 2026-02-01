@@ -90,9 +90,7 @@ import kotlin.reflect.KProperty
  * ```
  *
  * @property defaultValue The default value of the setting.
- * @property description A description of the setting.
  * @property type The type reflection of the setting.
- * @property visibility A function that determines whether the setting is visible.
  */
 abstract class SettingCore<T>(
 	var defaultValue: T,
@@ -160,6 +158,7 @@ class Setting<T : SettingCore<R>, R>(
 	val originalCore = core
 	var disabled = { false }
 	var groups: MutableList<List<NamedEnum>> = mutableListOf()
+	var buttonMenu: NamedEnum? = null
 
 	var value by this
 
@@ -225,6 +224,10 @@ class Setting<T : SettingCore<R>, R>(
 
 	fun group(path: NamedEnum?) = apply {
 		path?.let { groups.add(listOf(it)) }
+	}
+
+	fun buttonMenu(menu: NamedEnum) = apply {
+		buttonMenu = menu
 	}
 
 	fun trySetValue(newValue: R) {

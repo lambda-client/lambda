@@ -77,8 +77,8 @@ void main() {
         
         // Calculate animated offset
         float animatedOffset = dashOffset;
-        if (animationSpeed > 0.0) {
-            animatedOffset += GameTime * animationSpeed * 1200.0;
+        if (animationSpeed != 0.0) {
+            animatedOffset -= GameTime * animationSpeed * 1200.0;
         }
         
         // Use UNCLAMPED projLength so dashes continue through endcaps

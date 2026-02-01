@@ -1252,7 +1252,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		// Angle in degrees: 0=right, 90=up, 180=left, 270=down (for screen text with Y-up)
 		// For world text, angle is applied in local text space before billboarding
 		val angle: Float = 135f, // Default: bottom-right (45° below horizontal)
-		val softness: Float = 0.15f // Shadow blur in SDF units
+		val softness: Float = 0f // Shadow blur in SDF units
 	) {
 		/** X offset computed from angle and distance */
 		val offsetX: Float get() = offset * kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat()
@@ -1262,7 +1262,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 	/** SDF style configuration for text and other SDF-rendered elements */
 	data class SDFStyle(
-		val color: Color = Color.WHITE,
+		var color: Color = Color.WHITE,
 		val outline: SDFOutline? = null,
 		val glow: SDFGlow? = null,
 		val shadow: SDFShadow? = SDFShadow() // Default shadow enabled

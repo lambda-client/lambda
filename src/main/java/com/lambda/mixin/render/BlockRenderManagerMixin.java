@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.render.BlockESP;
+import com.lambda.module.modules.render.Search;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.render.block.BlockRenderManager;
@@ -31,9 +31,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class BlockRenderManagerMixin {
     @Inject(method = "getModel", at = @At("HEAD"), cancellable = true)
     private void getModel(BlockState state, CallbackInfoReturnable<BlockStateModel> cir) {
-        if (BlockESP.INSTANCE.isEnabled()
-                && BlockESP.getBarrier()
+        if (Search.INSTANCE.isEnabled()
+                && Search.getBarrier()
                 && state.getBlock() == Blocks.BARRIER
-        ) cir.setReturnValue(BlockESP.getModel());
+        ) cir.setReturnValue(Search.getModel());
     }
 }
