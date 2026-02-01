@@ -18,15 +18,9 @@
 package com.lambda.config.settings
 
 import com.lambda.config.LayoutBuildable
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.button
-import com.lambda.module.Module
 import com.lambda.util.Describable
 import com.lambda.util.Nameable
-import imgui.ImGui
-import java.lang.reflect.Type
 
 class GuiButton(
 	override val name: String,

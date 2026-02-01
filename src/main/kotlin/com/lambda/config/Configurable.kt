@@ -64,237 +64,237 @@ import java.awt.Color
  * @property settings A set of [SettingCore]s that this configurable manages.
  */
 abstract class Configurable(
-    val configuration: Configuration,
+	val configuration: Configuration,
 ) : Jsonable, Nameable {
-    val settings = mutableListOf<Setting<*, *>>()
-    val otherElements = mutableListOf<LayoutBuildable>()
+	val settings = mutableListOf<Setting<*, *>>()
+	val otherElements = mutableListOf<LayoutBuildable>()
 	val settingGroups = mutableListOf<SettingGroup>()
 
-    init {
-        registerConfigurable()
-    }
+	init {
+		registerConfigurable()
+	}
 
-    private fun registerConfigurable() {
+	private fun registerConfigurable() {
 		if (configurables.any { it.name == name })
 			throw IllegalStateException("Configurable with name $name already exists")
 		configuration.configurables.add(this)
-    }
+	}
 
-    fun <T : SettingCore<R>, R : Any> Setting<T, R>.register() = apply {
-        if (settings.any { it.name == name })
-            throw IllegalStateException("Setting with name $name already exists for configurable: ${this@Configurable.name}")
-	    settings.add(this)
-    }
+	fun <T : SettingCore<R>, R : Any> Setting<T, R>.register() = apply {
+		if (settings.any { it.name == name })
+			throw IllegalStateException("Setting with name $name already exists for configurable: ${this@Configurable.name}")
+		settings.add(this)
+	}
 
-    fun LayoutBuildable.register() = apply {
-        otherElements.add(this)
-    }
+	fun LayoutBuildable.register() = apply {
+		otherElements.add(this)
+	}
 
-    override fun toJson() =
-        JsonObject().apply {
-            settings.forEach { setting ->
-                try {
-                    add(setting.name, setting.toJson())
-                } catch (e: Exception) {
-                    logError("Failed to serialize $setting in ${this::class.simpleName}", e)
-                }
-            }
-        }
+	override fun toJson() =
+		JsonObject().apply {
+			settings.forEach { setting ->
+				try {
+					add(setting.name, setting.toJson())
+				} catch (e: Exception) {
+					logError("Failed to serialize $setting in ${this::class.simpleName}", e)
+				}
+			}
+		}
 
-    override fun loadFromJson(serialized: JsonElement) {
-        serialized.asJsonObject.entrySet().forEach { (name, value) ->
-            settings.find { it.name == name }?.loadFromJson(value)
-                ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
-        }
-    }
+	override fun loadFromJson(serialized: JsonElement) {
+		serialized.asJsonObject.entrySet().forEach { (name, value) ->
+			settings.find { it.name == name }?.loadFromJson(value)
+				?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
+		}
+	}
 
-    fun button(
-        name: String,
-        description: String = "",
-        onPress: () -> Unit
-    ) = GuiButton(name, description, onPress).register()
+	fun button(
+		name: String,
+		description: String = "",
+		onPress: () -> Unit
+	) = GuiButton(name, description, onPress).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Boolean,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BooleanSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Boolean,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, BooleanSetting(defaultValue), this, visibility).register()
 
-    inline fun <reified T : Enum<T>> setting(
-        name: String,
-        defaultValue: T,
-        description: String = "",
-        noinline
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description,EnumSetting(defaultValue), this, visibility).register()
+	inline fun <reified T : Enum<T>> setting(
+		name: String,
+		defaultValue: T,
+		description: String = "",
+		noinline
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, EnumSetting(defaultValue), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Char,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, CharSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Char,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, CharSetting(defaultValue), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: String,
-        multiline: Boolean = false,
-        flags: Int = ImGuiInputTextFlags.None,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, StringSetting(defaultValue, multiline, flags), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: String,
+		multiline: Boolean = false,
+		flags: Int = ImGuiInputTextFlags.None,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, StringSetting(defaultValue, multiline, flags), this, visibility).register()
 
 	@JvmName("collectionSetting1")
-    fun setting(
-        name: String,
-        defaultValue: Collection<Block>,
-        immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Collection<Block>,
+		immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
 
 	@JvmName("collectionSetting2")
-    fun setting(
-        name: String,
-        defaultValue: Collection<Item>,
-        immutableCollection: Collection<Item> = Registries.ITEM.toList(),
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Collection<Item>,
+		immutableCollection: Collection<Item> = Registries.ITEM.toList(),
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
 
 	@JvmName("collectionSetting3")
-    inline fun <reified T : Any> setting(
-        name: String,
-        defaultValue: Collection<T>,
-        immutableList: Collection<T> = defaultValue,
-        description: String = "",
-        displayClassName: Boolean = false,
-        serialize: Boolean = false,
-        noinline visibility: () -> Boolean = { true },
-    ) = Setting(
-	    name,
-	    description,
-        if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
+	inline fun <reified T : Any> setting(
+		name: String,
+		defaultValue: Collection<T>,
+		immutableList: Collection<T> = defaultValue,
+		description: String = "",
+		displayClassName: Boolean = false,
+		serialize: Boolean = false,
+		noinline visibility: () -> Boolean = { true },
+	) = Setting(
+		name,
+		description,
+		if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
+		else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
 		this,
-	    visibility
-	).register()
-
-    // ToDo: Actually implement maps
-    inline fun <reified K : Any, reified V : Any> setting(
-        name: String,
-        defaultValue: Map<K, V>,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = Setting(
-	    name,
-	    description,
-	    MapSetting(
-		    defaultValue.toMutableMap(),
-		    TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type
-		),
-	    this,
 		visibility
 	).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Double,
-        range: ClosedRange<Double>,
-        step: Double = 1.0,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, DoubleSetting(defaultValue, range, step, unit), this, visibility).register()
+	// ToDo: Actually implement maps
+	inline fun <reified K : Any, reified V : Any> setting(
+		name: String,
+		defaultValue: Map<K, V>,
+		description: String = "",
+		noinline visibility: () -> Boolean = { true },
+	) = Setting(
+		name,
+		description,
+		MapSetting(
+			defaultValue.toMutableMap(),
+			TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type
+		),
+		this,
+		visibility
+	).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Float,
-        range: ClosedRange<Float>,
-        step: Float = 1f,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, FloatSetting(defaultValue, range, step, unit), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Double,
+		range: ClosedRange<Double>,
+		step: Double = 1.0,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, DoubleSetting(defaultValue, range, step, unit), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Int,
-        range: ClosedRange<Int>,
-        step: Int = 1,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, IntegerSetting(defaultValue, range, step, unit), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Float,
+		range: ClosedRange<Float>,
+		step: Float = 1f,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, FloatSetting(defaultValue, range, step, unit), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Long,
-        range: ClosedRange<Long>,
-        step: Long = 1,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, LongSetting(defaultValue, range, step, unit), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Int,
+		range: ClosedRange<Int>,
+		step: Int = 1,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, IntegerSetting(defaultValue, range, step, unit), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Bind,
-        description: String = "",
-        alwaysListening: Boolean = false,
-        screenCheck: Boolean = true,
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Long,
+		range: ClosedRange<Long>,
+		step: Long = 1,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, LongSetting(defaultValue, range, step, unit), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: KeyCode,
-        description: String = "",
-        alwaysListening: Boolean = false,
-        screenCheck: Boolean = true,
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Bind,
+		description: String = "",
+		alwaysListening: Boolean = false,
+		screenCheck: Boolean = true,
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Color,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ColorSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: KeyCode,
+		description: String = "",
+		alwaysListening: Boolean = false,
+		screenCheck: Boolean = true,
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Vec3d,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, Vec3dSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Color,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, ColorSetting(defaultValue), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: BlockPos.Mutable,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockPosSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Vec3d,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, Vec3dSetting(defaultValue), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: BlockPos,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockPosSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: BlockPos.Mutable,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, BlockPosSetting(defaultValue), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: Block,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: BlockPos,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, BlockPosSetting(defaultValue), this, visibility).register()
 
-    fun setting(
-        name: String,
-        defaultValue: () -> Unit,
-        description: String = "",
-        visibility: () -> Boolean = { true }
-    ) = Setting(name, description, FunctionSetting(defaultValue), this, visibility).register()
+	fun setting(
+		name: String,
+		defaultValue: Block,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = Setting(name, description, BlockSetting(defaultValue), this, visibility).register()
+
+	fun setting(
+		name: String,
+		defaultValue: () -> Unit,
+		description: String = "",
+		visibility: () -> Boolean = { true }
+	) = Setting(name, description, FunctionSetting(defaultValue), this, visibility).register()
 }
