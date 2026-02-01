@@ -23,6 +23,7 @@ import com.lambda.config.MutableAutomationConfig
 import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.config.settings.GuiButton
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
@@ -81,12 +82,15 @@ object SettingsWidget {
                 else -> emptySet()
             }
         val visibleSettings = config.settings.filter { it.visibility() } - toIgnoreSettings
-	    if (visibleSettings.isEmpty()) return
+	    if (visibleSettings.isEmpty() && config.otherElements.isEmpty()) return
 	    else separator()
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
 	    ungrouped.forEach {
             it.withDisabled { buildLayout() }
         }
+	    config.otherElements.forEach {
+			it.buildLayout()
+	    }
         renderGroup(grouped, emptyList(), config)
     }
 
