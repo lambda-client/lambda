@@ -355,7 +355,8 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
         get() = isBaritoneLoaded &&
                 (primary?.customGoalProcess?.isActive == true ||
                         primary?.pathingBehavior?.isPathing == true ||
-                        primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true)
+                        primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true ||
+                        primary?.elytraProcess?.isActive == true)
 
     /**
      * Sets the current Baritone goal and starts pathing
@@ -366,10 +367,24 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
     }
 
     /**
+     * Sets the current Baritone goal without starting pathing
+     */
+    fun setGoal(goal: Goal) {
+        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded == false) return
+	    primary?.customGoalProcess?.goal = goal
+    }
+
+    fun setGoalAndElytraPath(goal: Goal) {
+        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded == false) return
+        primary?.elytraProcess?.pathTo(goal)
+    }
+
+    /**
      * Force cancel Baritone
      */
     fun cancel() {
         if (!isBaritoneLoaded) return
         primary?.pathingBehavior?.cancelEverything()
+        primary?.elytraProcess?.resetState()
     }
 }
