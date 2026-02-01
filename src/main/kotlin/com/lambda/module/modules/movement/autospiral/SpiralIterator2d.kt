@@ -38,49 +38,49 @@ import kotlin.math.pow
  *
  */
 class SpiralIterator2d(maxDistance: Int) : MutableIterator<BlockPos?> {
-    private val maxDistance: Int
-    private val NUMBER_OF_POINTS: Int
-    private var di: Int
-    private var dj: Int
-    private var segment_length: Int
-    private var i: Int
-    private var j: Int
-    private var segment_passed: Int
-    private var k: Int
+    val maxDistance: Int
+    val totalPoints: Int
+    private var deltaX: Int
+    private var deltaZ: Int
+    private var segmentLength: Int
+    private var currentX: Int
+    private var currentZ: Int
+    private var stepsInCurrentSegment: Int
+    var pointsGenerated: Int
 
-    init {
+	init {
         this.maxDistance = maxDistance
-        this.NUMBER_OF_POINTS = floor(((floor(maxDistance.toDouble()) - 0.5) * 2).pow(2.0)).toInt()
-        this.di = 1
-        this.dj = 0
-        this.segment_length = 1
-        this.i = 0
-        this.j = 0
-        this.segment_passed = 0
-        this.k = 0
+        this.totalPoints = floor(((floor(maxDistance.toDouble()) - 0.5) * 2).pow(2.0)).toInt()
+        this.deltaX = 1
+        this.deltaZ = 0
+        this.segmentLength = 1
+        this.currentX = 0
+        this.currentZ = 0
+        this.stepsInCurrentSegment = 0
+        this.pointsGenerated = 0
     }
 
     override fun next(): BlockPos? {
-        if (this.k >= this.NUMBER_OF_POINTS) return null
-        val output = BlockPos(this.i, 0, this.j)
-        this.i += this.di
-        this.j += this.dj
-        this.segment_passed += 1
-        if (this.segment_passed == this.segment_length) {
-            this.segment_passed = 0
-            val buffer = this.di
-            this.di = -this.dj
-            this.dj = buffer
-            if (this.dj == 0) {
-                this.segment_length += 1
+        if (this.pointsGenerated >= this.totalPoints) return null
+        val output = BlockPos(this.currentX, 0, this.currentZ)
+        this.currentX += this.deltaX
+        this.currentZ += this.deltaZ
+        this.stepsInCurrentSegment += 1
+        if (this.stepsInCurrentSegment == this.segmentLength) {
+            this.stepsInCurrentSegment = 0
+            val buffer = this.deltaX
+            this.deltaX = -this.deltaZ
+            this.deltaZ = buffer
+            if (this.deltaZ == 0) {
+                this.segmentLength += 1
             }
         }
-        this.k += 1
+        this.pointsGenerated += 1
         return output
     }
 
     override fun hasNext(): Boolean {
-        return this.k < this.NUMBER_OF_POINTS
+        return this.pointsGenerated < this.totalPoints
     }
 
     override fun remove() {
