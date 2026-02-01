@@ -19,10 +19,7 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.MovementEvent;
-import com.lambda.event.events.PlayerEvent;
-import com.lambda.event.events.PlayerPacketEvent;
-import com.lambda.event.events.TickEvent;
+import com.lambda.event.events.*;
 import com.lambda.interaction.managers.rotating.Rotation;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
@@ -38,6 +35,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.authlib.GameProfile;
+import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -69,6 +67,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     public ClientPlayerEntityMixin(ClientWorld world, GameProfile profile) {
         super(world, profile);
+    }
+
+    @Inject(method = "openEditSignScreen", at = @At("HEAD"), cancellable = true)
+    private void onOpenEditSignScreen(SignBlockEntity sign, boolean front, CallbackInfo ci) {
+        if (EventFlow.post(new GuiEvent.SignEditorOpen(sign, front)).isCanceled()) {
+            ci.cancel();
+        }
     }
 
     @WrapOperation(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"))
