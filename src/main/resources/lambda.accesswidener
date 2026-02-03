@@ -155,3 +155,6 @@ transitive-accessible method net/minecraft/block/AbstractBlock getPickStack (Lne
 transitive-accessible field net/minecraft/client/gui/screen/ingame/HandledScreen focusedSlot Lnet/minecraft/screen/slot/Slot;
 transitive-accessible field net/minecraft/registry/SimpleRegistry frozen Z
 transitive-accessible field net/minecraft/client/gui/screen/ingame/AbstractSignEditScreen messages [Ljava/lang/String;
+
+# AutoMount
+accessible method net/minecraft/entity/Entity canAddPassenger (Lnet/minecraft/entity/Entity;)Z
