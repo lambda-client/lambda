@@ -822,9 +822,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		lighting: ItemLighting = ItemLighting.VANILLA,
 		overlay: ItemOverlay? = null
 	) {
-		val posVec = Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-		if (!isScreen) {
-			posVec.sub(cameraPos.x.toFloat(), cameraPos.y.toFloat(), cameraPos.z.toFloat())
+		val posVec = if (isScreen) {
+			Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+		} else {
+			Vector3f((pos.x - cameraPos.x).toFloat(), (pos.y - cameraPos.y).toFloat(), (pos.z - cameraPos.z).toFloat())
 		}
 
 		val lightDirs = Pair(Vector3f(lighting.light0), Vector3f(lighting.light1))
