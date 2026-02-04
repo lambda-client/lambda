@@ -27,6 +27,7 @@ import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.BlockPosIterators
 import com.lambda.util.extension.isNether
 import net.minecraft.util.math.BlockPos
 import kotlin.math.sqrt
@@ -36,7 +37,7 @@ object AutoSpiral : Module(
 	description = "Automatically flies in a spiral pattern. Uses Baritone elytra pathing in the Nether.",
 	tag = ModuleTag.MOVEMENT,
 ) {
-	var iterator: SpiralIterator2d? = null
+	var iterator: BlockPosIterators.SpiralIterator2d? = null
 	var currentWaypoint: BlockPos? = null
 	var center: BlockPos = BlockPos.ORIGIN
 
@@ -60,7 +61,7 @@ object AutoSpiral : Module(
 
 		onEnable {
 			if (iterator == null) {
-				iterator = SpiralIterator2d(10000);
+				iterator = BlockPosIterators.SpiralIterator2d(10000);
 				if (setCenterOnEnable) center = player.blockPos
 			}
 		}
