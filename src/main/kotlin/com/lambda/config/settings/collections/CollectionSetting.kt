@@ -66,7 +66,7 @@ open class CollectionSetting<R : Any>(
 
 	context(setting: Setting<*, MutableCollection<R>>)
 	override fun ImGuiBuilder.buildLayout() {
-		val popupName = "##${setting.name}-CollectionSettingPopup"
+		val popupName = "${setting.name}##${setting.name}-CollectionSettingPopup"
 
 		val childWidth = 350f
 		val childHeight = 500f
