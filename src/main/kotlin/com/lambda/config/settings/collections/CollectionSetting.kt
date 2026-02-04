@@ -27,10 +27,13 @@ import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
+import imgui.ImGui
 import imgui.ImGuiListClipper
 import imgui.callback.ImListClipperCallback
 import imgui.flag.ImGuiChildFlags
 import imgui.flag.ImGuiSelectableFlags.DontClosePopups
+import imgui.flag.ImGuiWindowFlags
+import imgui.type.ImBoolean
 import java.lang.reflect.Type
 
 /**
@@ -52,15 +55,143 @@ open class CollectionSetting<R : Any>(
 	defaultValue,
 	type
 ) {
-    private var searchFilter = ""
-    private val strListType =
-        TypeToken.getParameterized(Collection::class.java, String::class.java).type
+	private var searchFilter = ""
+	private val strListType =
+		TypeToken.getParameterized(Collection::class.java, String::class.java).type
 
-    val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
-    val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+
+	val modelSelected = mutableSetOf<R>()
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.toString() }
+	override fun ImGuiBuilder.buildLayout() {
+		val popupName = "##${setting.name}-CollectionSettingPopup"
+
+		val childWidth = 350f
+		val childHeight = 500f
+		val buttonColumnWidth = 60f
+		val totalWidth = (childWidth + 10f) * 2 + buttonColumnWidth + 20f
+		val totalHeight = childHeight + 190f
+
+		if (ImGui.button("Edit List##${setting.name}-Edit")) {
+			ImGui.openPopup(popupName)
+		}
+
+		ImGui.setNextWindowSize(totalWidth, totalHeight)
+		val pOpen = ImBoolean(true)
+		if (ImGui.beginPopupModal(popupName, pOpen, ImGuiWindowFlags.NoResize)) {
+			val availableItems = immutableCollection.filter { it !in value }
+			val selectedItems = value.toList()
+
+			inputText("##${setting.name}-SearchBox", ::searchFilter)
+			sameLine()
+			button("X##${setting.name}-ClearSearch") {
+				searchFilter = ""
+			}
+			sameLine()
+			button("Select All##${setting.name}-SelectAll") {
+				immutableCollection.filter { item ->
+					val q = searchFilter.trim()
+					if (q.isEmpty()) true
+					else item.toString().contains(q, ignoreCase = true)
+				}.forEach { item ->
+					modelSelected.add(item)
+				}
+			}
+
+			ImGui.columns(3, "##${setting.name}-Columns", false)
+			ImGui.setColumnWidth(0, childWidth + 10f)
+			ImGui.setColumnWidth(1, buttonColumnWidth)
+
+			// Linke Seite: Verfügbare Elemente
+			ImGui.text("Values")
+			child("##${setting.name}-AvailableChild", childWidth, childHeight, ImGuiChildFlags.Border) {
+				availableItems.filter { item ->
+					val q = searchFilter.trim()
+					if (q.isEmpty()) true
+					else item.toString().contains(q, ignoreCase = true)
+				}.forEach { item ->
+					val selected = item in modelSelected
+					selectable("$item##available", selected) {
+						modelSelected.add(item)
+					}
+				}
+			}
+
+			ImGui.nextColumn()
+
+			// Mittlere Spalte: Buttons
+			ImGui.dummy(0f, 300f)
+			val columnWidth = ImGui.getColumnWidth()
+			val buttonWidth = 40f
+			ImGui.setCursorPosX(ImGui.getCursorPosX() + (columnWidth - buttonWidth) / 2f)
+			if (ImGui.button(">>", buttonWidth, 0f)) {
+				modelSelected
+					.filter { item ->
+						val q = searchFilter.trim()
+						if (q.isEmpty()) true
+						else item.toString().contains(q, ignoreCase = true)
+					}
+					.forEach { item ->
+					if (item in value) return@forEach
+					value.add(item)
+					runSafe { selectListeners.forEach { listener -> listener(item) } }
+				}
+				modelSelected.clear()
+			}
+			ImGui.setCursorPosX(ImGui.getCursorPosX() + (columnWidth - buttonWidth) / 2f)
+			if (ImGui.button("<<", buttonWidth, 0f)) {
+				modelSelected
+					.filter { item ->
+						val q = searchFilter.trim()
+						if (q.isEmpty()) true
+						else item.toString().contains(q, ignoreCase = true)
+					}
+					.forEach { item ->
+					if (item !in value) return@forEach
+					value.remove(item)
+					runSafe { deselectListeners.forEach { listener -> listener(item) } }
+				}
+				modelSelected.clear()
+			}
+
+			ImGui.nextColumn()
+
+			// Rechte Seite: Ausgewählte Elemente
+			ImGui.text("Selected")
+			child("##${setting.name}-SelectedChild", childWidth, childHeight, ImGuiChildFlags.Border) {
+				selectedItems.filter { item ->
+					val q = searchFilter.trim()
+					if (q.isEmpty()) true
+					else item.toString().contains(q, ignoreCase = true)
+				}.forEach { item ->
+					val selected = item in modelSelected
+					if (ImGui.selectable("$item##selected", selected)) {
+						modelSelected.add(item)
+					}
+				}
+			}
+
+			ImGui.columns(1)
+
+			ImGui.separator()
+			val closeButtonWidth = 100f
+			val windowWidth = ImGui.getWindowWidth()
+			ImGui.setCursorPosX((windowWidth - closeButtonWidth) / 2f)
+			if (ImGui.button("Save", closeButtonWidth, 0f)) {
+				modelSelected.clear()
+				ImGui.closeCurrentPopup()
+			}
+
+			ImGui.endPopup()
+		}
+		if (!pOpen.get()) {
+			modelSelected.clear()
+		}
+
+		buildComboBox("item") { it.toString() }
+	}
 
 	context(setting: Setting<*, MutableCollection<R>>)
 	fun ImGuiBuilder.buildComboBox(itemName: String, toString: (R) -> String) {
@@ -106,11 +237,11 @@ open class CollectionSetting<R : Any>(
 	}
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun toJson(): JsonElement =
+	override fun toJson(): JsonElement =
 		gson.toJsonTree(value, type)
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun loadFromJson(serialized: JsonElement) {
+	override fun loadFromJson(serialized: JsonElement) {
 		val strList =
 			if (serialize) gson.fromJson(serialized, type)
 			else gson.fromJson<Collection<String>>(serialized, strListType)
@@ -129,10 +260,10 @@ open class CollectionSetting<R : Any>(
 			core.deselectListeners.add(block)
 		}
 
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
-        }
-    }
+		@SettingEditorDsl
+		@Suppress("unchecked_cast")
+		fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+			(settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
+		}
+	}
 }
