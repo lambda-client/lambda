@@ -26,16 +26,29 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
+import net.minecraft.client.font.TextRenderer
+import net.minecraft.client.render.OverlayTexture
 import net.minecraft.client.render.item.ItemRenderState
 import net.minecraft.client.render.command.OrderedRenderCommandQueue
 import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.RenderLayer
+import net.minecraft.client.render.command.ModelCommandRenderer
+import net.minecraft.client.render.entity.state.EntityRenderState
+import net.minecraft.client.render.model.BakedQuad
+import net.minecraft.client.render.model.BlockModelPart
+import net.minecraft.client.render.model.BlockStateModel
+import net.minecraft.client.render.state.CameraRenderState
+import net.minecraft.client.texture.Sprite
+import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import net.minecraft.item.ItemDisplayContext
 import net.minecraft.item.ItemStack
+import net.minecraft.text.OrderedText
+import net.minecraft.text.Text
+import net.minecraft.util.math.random.Random
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector3f
@@ -45,6 +58,7 @@ import java.awt.Color
 @DslMarker
 annotation class RenderDsl
 
+@Suppress("unused")
 @RenderDsl
 class RenderBuilder(private val cameraPos: Vec3d) {
 	val collector = RegionVertexCollector()
@@ -625,8 +639,6 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	// Model Rendering Methods (World Space)
 	// ============================================================================
 
-
-
 	/**
 	 * Render a 3D model in world space.
 	 *
@@ -642,13 +654,13 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	 * @param smartAA If true, uses shader-based analytic anti-aliasing (Pixel Art AA). Requires pixelPerfect=false (automatically handled).
 	 */
 	fun model(
-		model: net.minecraft.client.render.model.BlockModelPart,
+		model: BlockModelPart,
 		pos: Vec3d,
 		scale: Vec3d = Vec3d(1.0, 1.0, 1.0),
-		rotation: org.joml.Quaternionf? = null,
+		rotation: Quaternionf? = null,
 		color: Color = Color.WHITE,
 		light: Int = 0xF000F0,
-		overlay: Int = net.minecraft.client.render.OverlayTexture.DEFAULT_UV,
+		overlay: Int = OverlayTexture.DEFAULT_UV,
 		centered: Boolean = false,
 		pixelPerfect: Boolean = false,
 		smartAA: Boolean = false,
@@ -681,13 +693,13 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		
 		// Encode Overlay + AA flags into hasOverlay
 		// 0 = None, 1 = Overlay, 2 = AA, 3 = Overlay + AA
-		var overlayFlag = if (overlay != net.minecraft.client.render.OverlayTexture.DEFAULT_UV) 1.0f else 0.0f
+		var overlayFlag = if (overlay != OverlayTexture.DEFAULT_UV) 1.0f else 0.0f
 		if (smartAA) {
 			overlayFlag += 2.0f
 		}
 		
-		val random = net.minecraft.util.math.random.Random.create()
-		val quads = mutableListOf<net.minecraft.client.render.model.BakedQuad>()
+		val random = Random.create()
+		val quads = mutableListOf<BakedQuad>()
 		
 		// Collect quads for all directions and null direction
 		for (direction in net.minecraft.util.math.Direction.entries) {
@@ -764,8 +776,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		centered: Boolean = true,
 		flat: Boolean = true,
 		lighting: ItemLighting = ItemLighting.VANILLA,
-		overlay: ItemOverlay? = null,
-		glint: Boolean? = null
+		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
 		
@@ -773,7 +784,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		mc.itemModelManager.updateForNonLivingEntity(renderState, stack, ItemDisplayContext.GUI, mc.player ?: return)
 		
 		val rot = rotation?.let { eulerToQuaternion(it) }
-		renderItemState(renderState, pos, scale, rot, centered, isScreen = false, pixelPerfect = true, flat = flat, lighting = lighting, overlay = overlay, glint = glint)
+		renderItemState(renderState, pos, scale, rot, centered, isScreen = false, flat = flat, lighting = lighting, overlay = overlay)
 	}
 
 	fun screenGuiItem(
@@ -783,11 +794,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		rotation: Vec3d? = null,
 		centered: Boolean = true,
 		lighting: ItemLighting = ItemLighting.VANILLA,
-		overlay: ItemOverlay? = null,
-		glint: Boolean? = null
+		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
-		
+
 		val renderState = ItemRenderState()
 		mc.itemModelManager.updateForNonLivingEntity(renderState, stack, ItemDisplayContext.GUI, mc.player ?: return)
 		
@@ -798,7 +808,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		
 		val rot = rotation?.let { eulerToQuaternion(it) }
 		// Screen items are always flat (viewed straight-on)
-		renderItemState(renderState, Vec3d(pixelX.toDouble(), pixelY.toDouble(), nextLayer().toDouble()), pixelSize, rot, centered, isScreen = true, pixelPerfect = true, flat = true, lighting = lighting, overlay = overlay, glint = glint)
+		renderItemState(renderState, Vec3d(pixelX.toDouble(), pixelY.toDouble(), nextLayer().toDouble()), pixelSize, rot, centered, isScreen = true, flat = true, lighting = lighting, overlay = overlay)
 	}
 
 	private fun renderItemState(
@@ -808,11 +818,9 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		rotation: Quaternionf?,
 		centered: Boolean,
 		isScreen: Boolean,
-		pixelPerfect: Boolean,
 		flat: Boolean = false,
 		lighting: ItemLighting = ItemLighting.VANILLA,
-		overlay: ItemOverlay? = null,
-		glint: Boolean? = null
+		overlay: ItemOverlay? = null
 	) {
 		val posVec = Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
 		if (!isScreen) {
@@ -825,37 +833,41 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			posVec, Vector3f(scale), rotation, centered, flat, lighting, lightDirs, state.isSideLit
 		) { vertices, textureView ->
 			if (isScreen) {
-				collector.addScreenModelVertices(textureView, vertices, pixelPerfect)
+				collector.addScreenModelVertices(textureView, vertices, true)
 			} else {
-				collector.addModelVertices(textureView, vertices, pixelPerfect)
+				collector.addModelVertices(textureView, vertices, true)
 			}
 		}
 
-		val matrixStack = net.minecraft.client.util.math.MatrixStack()
+		val matrixStack = MatrixStack()
 		
 		for (i in 0 until state.layerCount) {
-			@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 			val layer = state.layers[i]
 			
 			// Refined Glint Logic:
-			// 1. If explicit override 'glint' is provided, use it.
-			// 2. If 'overlay' is provided (not null), force glint true.
-			// 3. Otherwise, base it on the item's own enchantment state (layer.glint != NONE).
-			queue.currentGlint = glint ?: (overlay != null || (layer.glint != ItemRenderState.Glint.NONE))
+			// - If overlay is ItemOverlay.DISABLED, force glint OFF.
+			// - If overlay is non-null (any other overlay), force glint ON.
+			// - If overlay is null, use the item's own enchantment state.
+			queue.currentGlint = when (overlay) {
+				ItemOverlay.DISABLED -> false
+				null -> layer.glint != ItemRenderState.Glint.NONE
+				else -> true
+			}
 			
 			matrixStack.push()
 			layer.transform.apply(state.displayContext.isLeftHand, matrixStack.peek())
-			
+
 			val specialModel = layer.specialModelType
-			val renderLayer = layer.renderLayer
+			
 			if (specialModel != null) {
-				@Suppress("UNCHECKED_CAST")
-				val renderer = specialModel as net.minecraft.client.render.item.model.special.SpecialModelRenderer<Any>
-				renderer.render(layer.data, state.displayContext, matrixStack, queue, 15728880, 0, queue.currentGlint, 0)
-			} else if (renderLayer != null) {
-				// We pass STANDARD if currentGlint is true, otherwise NONE to ensure our capture can correctly toggle it.
-				val captureGlint = if (queue.currentGlint) ItemRenderState.Glint.STANDARD else ItemRenderState.Glint.NONE
-				queue.submitItem(matrixStack, state.displayContext, 15728880, 0, 0, layer.tints, layer.quads, renderLayer, captureGlint)
+				specialModel.render(layer.data, state.displayContext, matrixStack, queue, 15728880, 0, queue.currentGlint, 0)
+			} else {
+				val renderLayer = layer.renderLayer
+				if (renderLayer != null) {
+					// We pass STANDARD if currentGlint is true, otherwise NONE to ensure our capture can correctly toggle it.
+					val captureGlint = if (queue.currentGlint) ItemRenderState.Glint.STANDARD else ItemRenderState.Glint.NONE
+					queue.submitItem(matrixStack, state.displayContext, 15728880, 0, 0, layer.tints, layer.quads, renderLayer, captureGlint)
+				}
 			}
 			
 			matrixStack.pop()
@@ -956,7 +968,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val ov = if (currentOverlay != 0) currentOverlay else baseOverlay
 			val lgt = if (currentLight != 0) currentLight else baseLight
 
-			quadBuffer.add(com.lambda.graphics.mc.RegionVertexCollector.ModelVertex(
+			quadBuffer.add(RegionVertexCollector.ModelVertex(
 				p.x, p.y, p.z,
 				u, v,
 				(color shr 16) and 0xFF, (color shr 8) and 0xFF, color and 0xFF, (color ushr 24) and 0xFF,
@@ -996,9 +1008,8 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		private val lighting: ItemLighting,
 		private val lightDirs: Pair<Vector3f, Vector3f>,
 		private val isSideLit: Boolean,
-		private val onSubmission: (List<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>, com.mojang.blaze3d.textures.GpuTextureView) -> Unit
+		private val onSubmission: (List<RegionVertexCollector.ModelVertex>, com.mojang.blaze3d.textures.GpuTextureView) -> Unit
 	) : OrderedRenderCommandQueue {
-		
 		var currentGlint: Boolean = false
 
 		private fun posTransform(v: Vector3f) {
@@ -1015,20 +1026,20 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		}
 
 		override fun submitItem(
-			matrices: net.minecraft.client.util.math.MatrixStack,
-			displayContext: net.minecraft.item.ItemDisplayContext,
+			matrices: MatrixStack,
+			displayContext: ItemDisplayContext,
 			light: Int,
 			overlay: Int,
 			outlineColors: Int,
 			tintLayers: IntArray,
-			quads: List<net.minecraft.client.render.model.BakedQuad>,
-			renderLayer: net.minecraft.client.render.RenderLayer,
-			glintType: net.minecraft.client.render.item.ItemRenderState.Glint
+			quads: List<BakedQuad>,
+			renderLayer: RenderLayer,
+			glintType: ItemRenderState.Glint
 		) {
 			val sprite = quads.firstOrNull()?.sprite ?: return
 			val textureView = mc.textureManager.getTexture(sprite.atlasId)?.glTextureView ?: return
 			
-			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 
 			// Transform lights by GUI layer matrix to match normal transformation
@@ -1064,12 +1075,12 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 					val g = if (tint != -1) (tint shr 8 and 0xFF) else 255
 					val b = if (tint != -1) (tint and 0xFF) else 255
 
-					vertices.add(com.lambda.graphics.mc.RegionVertexCollector.ModelVertex(
+					vertices.add(RegionVertexCollector.ModelVertex(
 						vp.x, vp.y, vp.z,
 						u, v,
 						r, g, b, 255,
 						(overlay and 0xFFFF).toFloat(), (overlay ushr 16).toFloat(),
-						if (glintType != net.minecraft.client.render.item.ItemRenderState.Glint.NONE) 4.0f else 0.0f,
+						if (glintType != ItemRenderState.Glint.NONE) 4.0f else 0.0f,
 						shadingAmount,
 						light,
 						l0.x, l0.y, l0.z,
@@ -1086,22 +1097,22 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		override fun <S : Any> submitModel(
 			model: net.minecraft.client.model.Model<in S>,
 			state: S,
-			matrices: net.minecraft.client.util.math.MatrixStack,
-			renderLayer: net.minecraft.client.render.RenderLayer,
+			matrices: MatrixStack,
+			renderLayer: RenderLayer,
 			light: Int,
 			overlay: Int,
 			tintedColor: Int,
-			sprite: net.minecraft.client.texture.Sprite?,
+			sprite: Sprite?,
 			outlineColor: Int,
-			crumblingOverlay: net.minecraft.client.render.command.ModelCommandRenderer.CrumblingOverlayCommand?
+			crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
 		) {
 			val textureView = if (sprite != null) {
 				mc.textureManager.getTexture(sprite.atlasId)?.glTextureView
 			} else {
-				mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)?.glTextureView
+				mc.textureManager.getTexture(Identifier.ofVanilla("textures/atlas/blocks.png"))?.glTextureView
 			} ?: return
 
-			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 			val consumer = CapturingConsumer(
 				vertices, ::posTransform, ::normalTransform,
@@ -1115,24 +1126,24 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 		override fun submitModelPart(
 			part: net.minecraft.client.model.ModelPart,
-			matrices: net.minecraft.client.util.math.MatrixStack,
-			renderLayer: net.minecraft.client.render.RenderLayer,
+			matrices: MatrixStack,
+			renderLayer: RenderLayer,
 			light: Int,
 			overlay: Int,
-			sprite: net.minecraft.client.texture.Sprite?,
+			sprite: Sprite?,
 			sheeted: Boolean,
 			hasGlint: Boolean,
 			tintedColor: Int,
-			crumblingOverlay: net.minecraft.client.render.command.ModelCommandRenderer.CrumblingOverlayCommand?,
+			crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?,
 			i: Int
 		) {
 			val textureView = if (sprite != null) {
 				mc.textureManager.getTexture(sprite.atlasId)?.glTextureView
 			} else {
-				mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)?.glTextureView
+				mc.textureManager.getTexture(Identifier.ofVanilla("textures/atlas/blocks.png"))?.glTextureView
 			} ?: return
 
-			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 			val consumer = CapturingConsumer(
 				vertices, ::posTransform, ::normalTransform,
@@ -1144,23 +1155,23 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		}
 
 		override fun getBatchingQueue(order: Int): net.minecraft.client.render.command.RenderCommandQueue = this
-		override fun submitShadowPieces(matrices: net.minecraft.client.util.math.MatrixStack, radius: Float, pieces: List<net.minecraft.client.render.entity.state.EntityRenderState.ShadowPiece>) {}
-		override fun submitLabel(matrices: net.minecraft.client.util.math.MatrixStack, pos: Vec3d?, y: Int, label: net.minecraft.text.Text, ns: Boolean, l: Int, dist: Double, cam: net.minecraft.client.render.state.CameraRenderState) {}
-		override fun submitText(matrices: net.minecraft.client.util.math.MatrixStack, x: Float, y: Float, text: net.minecraft.text.OrderedText, ds: Boolean, lt: net.minecraft.client.font.TextRenderer.TextLayerType, l: Int, c: Int, bc: Int, oc: Int) {}
-		override fun submitFire(matrices: net.minecraft.client.util.math.MatrixStack, state: net.minecraft.client.render.entity.state.EntityRenderState, rot: Quaternionf) {}
-		override fun submitLeash(matrices: net.minecraft.client.util.math.MatrixStack, data: net.minecraft.client.render.entity.state.EntityRenderState.LeashData) {}
-		override fun submitBlock(matrices: net.minecraft.client.util.math.MatrixStack, state: net.minecraft.block.BlockState, light: Int, overlay: Int, outlineColor: Int) {
+		override fun submitShadowPieces(matrices: MatrixStack, radius: Float, pieces: List<EntityRenderState.ShadowPiece>) {}
+		override fun submitLabel(matrices: MatrixStack, pos: Vec3d?, y: Int, label: Text, ns: Boolean, l: Int, dist: Double, cam: CameraRenderState) {}
+		override fun submitText(matrices: MatrixStack, x: Float, y: Float, text: OrderedText, ds: Boolean, lt: TextRenderer.TextLayerType, l: Int, c: Int, bc: Int, oc: Int) {}
+		override fun submitFire(matrices: MatrixStack, state: EntityRenderState, rot: Quaternionf) {}
+		override fun submitLeash(matrices: MatrixStack, data: EntityRenderState.LeashData) {}
+		override fun submitBlock(matrices: MatrixStack, state: BlockState, light: Int, overlay: Int, outlineColor: Int) {
 			val model = mc.blockRenderManager.getModel(state)
-			val textureView = mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)?.glTextureView ?: return
+			val textureView = mc.textureManager.getTexture(Identifier.ofVanilla("textures/atlas/blocks.png"))?.glTextureView ?: return
 			
-			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 			val consumer = CapturingConsumer(
 				vertices, ::posTransform, ::normalTransform,
 				flat, rotation, currentGlint, lightDirs, shadingAmount, light, overlay
 			)
 			
-			val random = net.minecraft.util.math.random.Random.create()
+			val random = Random.create()
 			val parts = model.getParts(random)
 			for (part in parts) {
 				for (direction in net.minecraft.util.math.Direction.entries) {
@@ -1176,11 +1187,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			onSubmission(vertices, textureView)
 		}
 
-		override fun submitMovingBlock(matrices: net.minecraft.client.util.math.MatrixStack, state: net.minecraft.client.render.block.MovingBlockRenderState) {
+		override fun submitMovingBlock(matrices: MatrixStack, state: net.minecraft.client.render.block.MovingBlockRenderState) {
 		}
-		override fun submitBlockStateModel(matrices: net.minecraft.client.util.math.MatrixStack, layer: RenderLayer, model: net.minecraft.client.render.model.BlockStateModel, r: Float, g: Float, b: Float, l: Int, o: Int, oc: Int) {}
-		override fun submitCustom(matrices: net.minecraft.client.util.math.MatrixStack, layer: RenderLayer, renderer: net.minecraft.client.render.command.OrderedRenderCommandQueue.Custom) {}
-		override fun submitCustom(renderer: net.minecraft.client.render.command.OrderedRenderCommandQueue.LayeredCustom) {}
+		override fun submitBlockStateModel(matrices: MatrixStack, layer: RenderLayer, model: BlockStateModel, r: Float, g: Float, b: Float, l: Int, o: Int, oc: Int) {}
+		override fun submitCustom(matrices: MatrixStack, layer: RenderLayer, renderer: OrderedRenderCommandQueue.Custom) {}
+		override fun submitCustom(renderer: OrderedRenderCommandQueue.LayeredCustom) {}
 	}
 
 	/**

@@ -58,5 +58,13 @@ data class ItemOverlay(
             angle = 10f,
             alpha = 0.5f
         )
+
+        /**
+         * Placeholder to explicitly disable glint.
+         */
+        val DISABLED = ItemOverlay(
+            texture = Identifier.of("minecraft", "textures/misc/unknown.png"),
+            alpha = 0f
+        )
     }
 }

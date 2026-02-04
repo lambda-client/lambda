@@ -178,7 +178,7 @@ object LambdaImageAtlas {
         if (missingEntry != null) return missingEntry
         
         val textureManager = mc.textureManager
-        val atlas = textureManager.getTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE) 
+        val atlas = textureManager.getTexture(Identifier.ofVanilla("textures/atlas/blocks.png")) 
             as? SpriteAtlasTexture ?: return null
         val sprite = atlas.getSprite(MissingSprite.getMissingSpriteId())
         
