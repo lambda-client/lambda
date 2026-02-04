@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.movement.autospiral
+package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalXZ
 import com.lambda.context.SafeContext
@@ -35,7 +35,7 @@ import kotlin.math.sqrt
 object AutoSpiral : Module(
 	name = "AutoSpiral",
 	description = "Automatically flies in a spiral pattern. Uses Baritone elytra pathing in the Nether.",
-	tag = ModuleTag.MOVEMENT,
+	tag = ModuleTag.Companion.MOVEMENT,
 ) {
 	var iterator: BlockPosIterators.SpiralIterator2d? = null
 	var currentWaypoint: BlockPos? = null
