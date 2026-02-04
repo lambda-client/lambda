@@ -21,6 +21,7 @@ import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.render.BufferBuilder
 import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.util.BufferAllocator
@@ -188,6 +189,7 @@ class RegionVertexCollector {
 		val r: Int, val g: Int, val b: Int, val a: Int,
 		val overlayU: Float, val overlayV: Float,
 		val hasOverlay: Float,
+		val diffuseAmount: Float,
 		val layer: Float
 	)
 
@@ -220,7 +222,51 @@ class RegionVertexCollector {
 		val scale: Float,
 		val billboardFlag: Float,
 		val overlayU: Float, val overlayV: Float,
-		val hasOverlay: Float
+		val hasOverlay: Float,
+		val diffuseAmount: Float
+	)
+
+	/**
+	 * Model vertex data for generic 3D models.
+	 * Uses WORLD_MODEL_FORMAT (position + color + UV0 + overlay + light + lightDir + light1Dir + normal + edgeData).
+	 *
+	 * @param x World X
+	 * @param y World Y
+	 * @param z World Z
+	 * @param u Texture U
+	 * @param v Texture V
+	 * @param r Red
+	 * @param g Green
+	 * @param b Blue
+	 * @param a Alpha
+	 * @param overlayU Overlay U
+	 * @param overlayV Overlay V
+	 * @param hasOverlay 1.0 if overlay active
+	 * @param diffuseAmount Amount of diffuse shading (0 = lightmap only, 1 = full diffuse)
+	 * @param light Packed lightmap coordinates
+	 * @param lx Primary light direction X (pre-transformed for ITEMS_FLAT)
+	 * @param ly Primary light direction Y
+	 * @param lz Primary light direction Z
+	 * @param l1x Secondary/fill light direction X
+	 * @param l1y Secondary/fill light direction Y
+	 * @param l1z Secondary/fill light direction Z
+	 * @param nx Normal X
+	 * @param ny Normal Y
+	 * @param nz Normal Z
+	 * @param edgeX Edge coordinate for AA
+	 * @param edgeY Edge coordinate for AA
+	 */
+	data class ModelVertex(
+		val x: Float, val y: Float, val z: Float,
+		val u: Float, val v: Float,
+		val r: Int, val g: Int, val b: Int, val a: Int,
+		val overlayU: Float, val overlayV: Float, val hasOverlay: Float,
+		val diffuseAmount: Float,
+		val light: Int,
+		val lx: Float, val ly: Float, val lz: Float,
+		val l1x: Float, val l1y: Float, val l1z: Float,
+		val nx: Float, val ny: Float, val nz: Float,
+		val edgeX: Float, val edgeY: Float
 	)
 
 	/**
@@ -236,6 +282,8 @@ class RegionVertexCollector {
 	// Each unique key gets its own list of vertices, rendered as separate draw calls
 	private val screenImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
 	private val worldImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>()
+	private val modelBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
+	private val screenModelBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
 
 	/**
 	 * Add screen image vertices for a specific texture.
@@ -257,6 +305,25 @@ class RegionVertexCollector {
 	fun addWorldImageVertices(texture: GpuTextureView, vertices: List<WorldImageVertex>, useNearestFilter: Boolean = false) {
 		val key = ImageBatchKey(texture, useNearestFilter)
 		worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+	}
+
+	/**
+	 * Add model vertices for a specific texture.
+	 * @param texture The GPU texture view
+	 * @param vertices The vertices to add
+	 * @param useNearestFilter If true, use NEAREST filtering
+	 */
+	fun addModelVertices(texture: GpuTextureView, vertices: List<ModelVertex>, useNearestFilter: Boolean = false) {
+		val key = ImageBatchKey(texture, useNearestFilter)
+		modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+	}
+
+	/**
+	 * Add screen model vertices for a specific texture.
+	 */
+	fun addScreenModelVertices(texture: GpuTextureView, vertices: List<ModelVertex>, useNearestFilter: Boolean = false) {
+		val key = ImageBatchKey(texture, useNearestFilter)
+		screenModelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 	}
 
 	/** Add a face vertex. */
@@ -398,7 +465,9 @@ class RegionVertexCollector {
 		val faces = uploadFaces()
 		val edges = uploadEdges()
 		val text = uploadText()
-		return UploadResult(faces, edges, text)
+		val models = uploadModelBatches()
+		val images = uploadWorldImageBatches()
+		return UploadResult(faces, edges, text, models, images)
 	}
 
 	private fun uploadFaces(): BufferResult {
@@ -718,7 +787,8 @@ class RegionVertexCollector {
 		val edges = uploadScreenEdges()
 		val text = uploadScreenText()
 		val images = uploadScreenImageBatches()
-		return ScreenUploadResult(faces, edges, text, images)
+		val models = uploadScreenModelBatches()
+		return ScreenUploadResult(faces, edges, text, images, models)
 	}
 
 	/**
@@ -754,12 +824,13 @@ class RegionVertexCollector {
 						.texture(v.u, v.v)
 						.color(v.r, v.g, v.b, v.a)
 
-					// Write overlay UV data (overlayU, overlayV, hasOverlay)
+					// Write overlay UV data (overlayU, overlayV, hasOverlay, diffuseAmount)
 					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
 					if (overlayPointer != -1L) {
 						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
 						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
 						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
+						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
 					}
 
 					// Write layer for draw order
@@ -823,12 +894,13 @@ class RegionVertexCollector {
 						MemoryUtil.memPutFloat(billboardPointer + 4L, v.billboardFlag)
 					}
 
-					// Write overlay UV data (overlayU, overlayV, hasOverlay)
+					// Write overlay UV data (overlayU, overlayV, hasOverlay, diffuseAmount)
 					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
 					if (overlayPointer != -1L) {
 						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
 						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
 						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
+						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
 					}
 				}
 
@@ -848,8 +920,160 @@ class RegionVertexCollector {
 		return results
 	}
 
+	fun uploadModelBatches(): List<TextureBatchResult> {
+		if (modelBatches.isEmpty()) return emptyList()
+
+		val results = mutableListOf<TextureBatchResult>()
+		
+		modelBatches.forEach { (batchKey, vertexDeque) ->
+			val vertices = vertexDeque.toList()
+			vertexDeque.clear()
+			if (vertices.isEmpty()) return@forEach
+			
+			// WORLD_MODEL_FORMAT: 12 + 4 + 8 + 16 + 4 + 12 + 12 + 12 + 8 = 88 bytes per vertex
+			BufferAllocator(vertices.size * 88).use { allocator ->
+				val builder = BufferBuilder(
+					allocator,
+					VertexFormat.DrawMode.QUADS,
+					LambdaVertexFormats.WORLD_MODEL_FORMAT
+				)
+
+				vertices.forEach { v ->
+					builder.vertex(v.x, v.y, v.z)
+						.color(v.r, v.g, v.b, v.a)
+						.texture(v.u, v.v)
+
+					// Write Overlay UV
+					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
+					if (overlayPointer != -1L) {
+						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
+						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
+						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
+						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
+					}
+
+					// Write Light (UV2) - 2 shorts
+					val lightPointer = builder.beginElement(VertexFormatElement.UV2)
+					if (lightPointer != -1L) {
+						MemoryUtil.memPutShort(lightPointer, (v.light and 0xFFFF).toShort())
+						MemoryUtil.memPutShort(lightPointer + 2L, ((v.light shr 16) and 0xFFFF).toShort())
+					}
+
+					// Write LightDir (primary light)
+					val lightDirPointer = builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT)
+					if (lightDirPointer != -1L) {
+						MemoryUtil.memPutFloat(lightDirPointer, v.lx)
+						MemoryUtil.memPutFloat(lightDirPointer + 4L, v.ly)
+						MemoryUtil.memPutFloat(lightDirPointer + 8L, v.lz)
+					}
+					
+					// Write Light1Dir (fill light)
+					val light1DirPointer = builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT)
+					if (light1DirPointer != -1L) {
+						MemoryUtil.memPutFloat(light1DirPointer, v.l1x)
+						MemoryUtil.memPutFloat(light1DirPointer + 4L, v.l1y)
+						MemoryUtil.memPutFloat(light1DirPointer + 8L, v.l1z)
+					}
+					
+					// Write Normal (Float)
+					val normalPointer = builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT)
+					if (normalPointer != -1L) {
+						MemoryUtil.memPutFloat(normalPointer, v.nx)
+						MemoryUtil.memPutFloat(normalPointer + 4L, v.ny)
+						MemoryUtil.memPutFloat(normalPointer + 8L, v.nz)
+					}
+					
+					// Write EdgeData (vec2)
+					val edgePointer = builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT)
+					if (edgePointer != -1L) {
+						MemoryUtil.memPutFloat(edgePointer, v.edgeX)
+						MemoryUtil.memPutFloat(edgePointer + 4L, v.edgeY)
+					}
+				}
+
+				builder.endNullable()?.let { built ->
+					val gpuDevice = RenderSystem.getDevice()
+					val buffer = gpuDevice.createBuffer(
+						{ "Lambda Model Buffer" },
+						GpuBuffer.USAGE_VERTEX,
+						built.buffer
+					)
+					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					built.close()
+				}
+			}
+		}
+		modelBatches.clear()
+		return results
+	}
+
+	private fun uploadScreenModelBatches(): List<TextureBatchResult> {
+		if (screenModelBatches.isEmpty()) return emptyList()
+		val results = mutableListOf<TextureBatchResult>()
+		screenModelBatches.forEach { (batchKey, vertexDeque) ->
+			val vertices = vertexDeque.toList()
+			vertexDeque.clear()
+			if (vertices.isEmpty()) return@forEach
+			// 88 bytes per vertex (added Light1Dir)
+			BufferAllocator(vertices.size * 88).use { allocator ->
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
+				vertices.forEach { v ->
+					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
+						if (p != -1L) {
+							MemoryUtil.memPutFloat(p, v.overlayU)
+							MemoryUtil.memPutFloat(p + 4, v.overlayV)
+							MemoryUtil.memPutFloat(p + 8, v.hasOverlay)
+							MemoryUtil.memPutFloat(p + 12, v.diffuseAmount)
+						}
+					}
+					builder.beginElement(VertexFormatElement.UV2).let { p ->
+						if (p != -1L) {
+							MemoryUtil.memPutShort(p, (v.light and 0xFFFF).toShort())
+							MemoryUtil.memPutShort(p + 2, ((v.light shr 16) and 0xFFFF).toShort())
+						}
+					}
+					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
+						if (p != -1L) {
+							MemoryUtil.memPutFloat(p, v.lx)
+							MemoryUtil.memPutFloat(p + 4, v.ly)
+							MemoryUtil.memPutFloat(p + 8, v.lz)
+						}
+					}
+					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
+						if (p != -1L) {
+							MemoryUtil.memPutFloat(p, v.l1x)
+							MemoryUtil.memPutFloat(p + 4, v.l1y)
+							MemoryUtil.memPutFloat(p + 8, v.l1z)
+						}
+					}
+					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
+						if (p != -1L) {
+							MemoryUtil.memPutFloat(p, v.nx)
+							MemoryUtil.memPutFloat(p + 4, v.ny)
+							MemoryUtil.memPutFloat(p + 8, v.nz)
+						}
+					}
+					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
+						if (p != -1L) {
+							MemoryUtil.memPutFloat(p, v.edgeX)
+							MemoryUtil.memPutFloat(p + 4, v.edgeY)
+						}
+					}
+				}
+				builder.endNullable()?.let { built ->
+					val buffer = RenderSystem.getDevice().createBuffer({ "Lambda Screen Model Buffer" }, GpuBuffer.USAGE_VERTEX, built.buffer)
+					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					built.close()
+				}
+			}
+		}
+		screenModelBatches.clear()
+		return results
+	}
+
 	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
-	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val images: List<TextureBatchResult> = emptyList())
-	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val images: List<TextureBatchResult> = emptyList())
+	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val models: List<TextureBatchResult> = emptyList(), val images: List<TextureBatchResult> = emptyList())
+	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val images: List<TextureBatchResult> = emptyList(), val models: List<TextureBatchResult> = emptyList())
 }
 

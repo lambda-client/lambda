@@ -79,10 +79,6 @@ class ChunkedRenderer(
 	// Font atlas from the default font handler
 	override val currentFontAtlas: SDFFontAtlas
 		get() = FontHandler.getDefaultFont()
-	
-	// ChunkedRenderer doesn't support deferred items (per-chunk geometry only)
-	override val deferredItems: List<RenderBuilder.ScreenItemRender>?
-		get() = null
 
 	private fun getChunkKey(chunkX: Int, chunkZ: Int): Long {
 		return (chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
@@ -140,7 +136,7 @@ class ChunkedRenderer(
 			val offsetY = (chunkData.originY - cameraPos.y).toFloat()
 			val offsetZ = (chunkData.originZ - cameraPos.z).toFloat()
 
-			val modelView = Matrix4f(modelViewMatrix).translate(offsetX, offsetY, offsetZ)
+			val modelView = Matrix4f(modelViewMatrix).m30(0f).m31(0f).m32(0f).translate(offsetX, offsetY, offsetZ)
 			val dynamicTransform = RenderSystem.getDynamicUniforms()
 				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), glintMatrix)
 

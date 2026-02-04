@@ -83,9 +83,8 @@ abstract class Targeting(
         baseGroup: NamedEnum,
         defaultRange: Double = 5.0,
         maxRange: Double = 16.0,
-        override val visibility: () -> Boolean = { true },
-    ) : Targeting(c, baseGroup, defaultRange, maxRange) {
-
+        visibility: () -> Boolean = { true },
+    ) : Targeting(c, baseGroup, defaultRange, maxRange, visibility) {
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */

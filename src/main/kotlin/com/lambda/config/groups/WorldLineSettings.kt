@@ -48,7 +48,7 @@ class WorldLineSettings(
     override val dashLength get() = dashLengthSetting * 0.01f
     val gapLengthSetting by c.setting("${prefix}Gap Length", 25, 1..200, 1, "Length of gaps between dashes") { visibility() && dashEnabled }.group(*baseGroup, Group.Dash).index()
     override val gapLength get() = gapLengthSetting * 0.01f
-    override val animated by c.setting("${prefix}Animated", false, "Animate the dash pattern") { visibility() && dashEnabled }.group(*baseGroup, Group.Dash).index()
+    override val animated by c.setting("${prefix}Animated", true, "Animate the dash pattern") { visibility() && dashEnabled }.group(*baseGroup, Group.Dash).index()
     val dashOffsetSetting by c.setting("${prefix}Dash Offset", 0, 0..100, 1, "Offset of the dash pattern") { visibility() && dashEnabled && !animated }.group(*baseGroup, Group.Dash).index()
     override val dashOffset get() = dashOffsetSetting * 0.01f
     val animationSpeedSetting by c.setting("${prefix}Animation Speed", 30, -100..100, 1, "Speed of dash animation (negative = reverse)") { visibility() && dashEnabled && animated }.group(*baseGroup, Group.Dash).index()

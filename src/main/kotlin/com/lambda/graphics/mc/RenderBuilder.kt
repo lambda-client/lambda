@@ -26,12 +26,18 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
-import net.minecraft.item.ItemStack
+import net.minecraft.client.render.item.ItemRenderState
+import net.minecraft.client.render.command.OrderedRenderCommandQueue
+import net.minecraft.client.render.VertexConsumer
+import net.minecraft.client.render.RenderLayer
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
+import net.minecraft.item.ItemDisplayContext
+import net.minecraft.item.ItemStack
 import org.joml.Matrix4f
+import org.joml.Quaternionf
 import org.joml.Vector3f
 import org.joml.Vector4f
 import java.awt.Color
@@ -55,24 +61,32 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	// Layer depth for screen-space ordering. Higher values render on top.
 	// Range: 0.0 to ~1.0, incrementing with each screen draw call.
 	
-	/** Current layer depth for screen-space ordering */
-	private var currentLayer = 0f
+	/** Current layer depth for screen-space ordering. 
+	 * Range: -1000 (far) to 1000 (near) in our orthographic projection.
+	 */
+	private var currentLayer = 800f
 	
-	/** Increment per screen draw call (~10,000 possible layers) */
-	private val layerIncrement = 0.0001f
+	/** Distance between screen layers. Each call moves slightly closer to viewer. */
+	private val layerIncrement = 1f
 	
-	/** Get and increment the current layer depth */
-	private fun nextLayer(): Float {
-		val layer = currentLayer
-		currentLayer += layerIncrement
-		return layer
+	// Vanilla's raw light directions
+	private val DEFAULT_LIGHT_DIR = Vector3f(0.2f, 1.0f, -0.7f).normalize()
+	private val DEFAULT_LIGHT1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
+
+	private fun eulerToQuaternion(rot: Vec3d): Quaternionf {
+		return Quaternionf().rotationYXZ(
+			Math.toRadians(rot.y).toFloat(),
+			Math.toRadians(rot.x).toFloat(),
+			Math.toRadians(rot.z).toFloat()
+		)
 	}
 
-	/**
-	 * Deferred ItemStack renders to be drawn via Minecraft's DrawContext.
-	 * These are rendered after Lambda's geometry for proper layering.
-	 */
-	val deferredItems = mutableListOf<ScreenItemRender>()
+	/** Get next layer depth for screen-space ordering. Later calls render on top. */
+	private fun nextLayer(): Float {
+		val layer = currentLayer
+		currentLayer -= layerIncrement
+		return layer
+	}
 
 	fun box(
 		box: Box,
@@ -537,22 +551,6 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		dashStyle: LineDashStyle? = null
 	) = screenLineGradient(x1, y1, color, x2, y2, color, width, dashStyle)
 
-	/**
-	 * Queue an ItemStack to be rendered on screen.
-	 * Items are rendered after Lambda's geometry using Minecraft's DrawContext.
-	 * This provides full-fidelity item rendering with 3D models, enchantment glint,
-	 * durability bars, and stack counts.
-	 *
-	 * @param stack The ItemStack to render
-	 * @param x X position (0-1, where 0 = left, 1 = right)
-	 * @param y Y position (0-1, where 0 = top, 1 = bottom)
-	 * @param size Normalized size using avg of screen dimensions (e.g., 0.03 = ~3%, default ~1.5%)
-	 */
-	fun screenItem(stack: ItemStack, x: Float, y: Float, size: Float = 0.015f) {
-		if (stack.isEmpty) return
-		deferredItems.add(ScreenItemRender(stack, x, y, size))
-	}
-
 	// ============================================================================
 	// Image Rendering Methods
 	// ============================================================================
@@ -605,22 +603,584 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val vertices = listOf(
 			RegionVertexCollector.ScreenImageVertex(
 				x0, y0, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
-				glintTime, aspectRatio, overlayFlag, layer
+				glintTime, aspectRatio, overlayFlag, 0f, layer
 			),
 			RegionVertexCollector.ScreenImageVertex(
 				x1, y0, u1, v1, tint.red, tint.green, tint.blue, tint.alpha,
-				glintTime, aspectRatio, overlayFlag, layer
+				glintTime, aspectRatio, overlayFlag, 0f, layer
 			),
 			RegionVertexCollector.ScreenImageVertex(
 				x1, y1, u1, v0, tint.red, tint.green, tint.blue, tint.alpha,
-				glintTime, aspectRatio, overlayFlag, layer
+				glintTime, aspectRatio, overlayFlag, 0f, layer
 			),
 			RegionVertexCollector.ScreenImageVertex(
 				x0, y1, u0, v0, tint.red, tint.green, tint.blue, tint.alpha,
-				glintTime, aspectRatio, overlayFlag, layer
+				glintTime, aspectRatio, overlayFlag, 0f, layer
 			)
 		)
 		collector.addScreenImageVertices(image.textureView, vertices, pixelPerfect)
+	}
+
+	// ============================================================================
+	// Model Rendering Methods (World Space)
+	// ============================================================================
+
+
+
+	/**
+	 * Render a 3D model in world space.
+	 *
+	 * @param model The BlockModelPart to render (replaces BakedModel in 1.21.11+)
+	 * @param pos World position to render at. If centered is true, this is the center of the model. If false, it's the 0,0,0 corner.
+	 * @param scale XML scale
+	 * @param rotation Rotation quaternion (around the center if centered=true, else around 0,0,0)
+	 * @param color Tint color
+	 * @param light Packed light
+	 * @param overlay Overlay UV
+	 * @param centered If true, shifts model vertices by -0.5 to rotate/scale around the center, then renders at pos.
+	 * @param pixelPerfect If true, use NEAREST filtering. If false (default), use LINEAR.
+	 * @param smartAA If true, uses shader-based analytic anti-aliasing (Pixel Art AA). Requires pixelPerfect=false (automatically handled).
+	 */
+	fun model(
+		model: net.minecraft.client.render.model.BlockModelPart,
+		pos: Vec3d,
+		scale: Vec3d = Vec3d(1.0, 1.0, 1.0),
+		rotation: org.joml.Quaternionf? = null,
+		color: Color = Color.WHITE,
+		light: Int = 0xF000F0,
+		overlay: Int = net.minecraft.client.render.OverlayTexture.DEFAULT_UV,
+		centered: Boolean = false,
+		pixelPerfect: Boolean = false,
+		smartAA: Boolean = false,
+		shadingAmount: Float = 0.0f
+	) {
+		val sprite = model.particleSprite() ?: return
+		val atlas = sprite.atlasId
+		// We need to resolve the texture view for the sprite's atlas
+		val textureView = mc.textureManager.getTexture(atlas)?.glTextureView ?: return
+
+		val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
+		
+		val scaleVec = Vector3f(scale.x.toFloat(), scale.y.toFloat(), scale.z.toFloat())
+		val posVec = Vector3f(
+			(pos.x - cameraPos.x).toFloat(),
+			(pos.y - cameraPos.y).toFloat(),
+			(pos.z - cameraPos.z).toFloat()
+		)
+		
+		val vertexPos = Vector3f()
+		val normalVec = Vector3f()
+
+		val tr = color.red
+		val tg = color.green
+		val tb = color.blue
+		val ta = color.alpha
+
+		val olU = (overlay and 0xFFFF).toFloat()
+		val olV = ((overlay shr 16) and 0xFFFF).toFloat()
+		
+		// Encode Overlay + AA flags into hasOverlay
+		// 0 = None, 1 = Overlay, 2 = AA, 3 = Overlay + AA
+		var overlayFlag = if (overlay != net.minecraft.client.render.OverlayTexture.DEFAULT_UV) 1.0f else 0.0f
+		if (smartAA) {
+			overlayFlag += 2.0f
+		}
+		
+		val random = net.minecraft.util.math.random.Random.create()
+		val quads = mutableListOf<net.minecraft.client.render.model.BakedQuad>()
+		
+		// Collect quads for all directions and null direction
+		for (direction in net.minecraft.util.math.Direction.entries) {
+			random.setSeed(42L)
+			quads.addAll(model.getQuads(direction))
+		}
+		random.setSeed(42L)
+		quads.addAll(model.getQuads(null))
+
+		for (quad in quads) {
+			// Use face normal for all vertices since BakedQuad doesn't have per-vertex normals easily accessible
+			val face = quad.face
+			val nx = face.offsetX.toFloat()
+			val ny = face.offsetY.toFloat()
+			val nz = face.offsetZ.toFloat()
+
+			// Iterate 4 vertices
+			for (i in 0 until 4) {
+				val posVecSrc = quad.getPosition(i)
+				
+				// Transform Position
+				vertexPos.set(posVecSrc.x(), posVecSrc.y(), posVecSrc.z())
+				
+				if (centered) {
+					// Shift to center (assuming 0..1 model block)
+					vertexPos.sub(0.5f, 0.5f, 0.5f)
+				}
+				
+				vertexPos.mul(scaleVec)
+				rotation?.transform(vertexPos)
+				vertexPos.add(posVec)
+				
+				// Transform Normal
+				normalVec.set(nx, ny, nz)
+				rotation?.transform(normalVec)
+				
+				// Extract UV - Vector2f.toLong packs X (U) in high 32 bits, Y (V) in low 32 bits
+				val packedUV = quad.getTexcoords(i)
+				val u = Float.fromBits((packedUV ushr 32).toInt())
+				val v = Float.fromBits((packedUV and 0xFFFFFFFFL).toInt())
+				
+				// Edge Data: Map vertex index to a quad corner (0,0 to 1,1)
+				// Standard quad winding: 0:0,0 | 1:0,1 | 2:1,1 | 3:1,0 (approx)
+				// Reverted to simple bounds without dilation
+				val edgeX = if (i == 1 || i == 2) 1.0f else 0.0f
+				val edgeY = if (i == 2 || i == 3) 1.0f else 0.0f
+
+				vertices.add(RegionVertexCollector.ModelVertex(
+					vertexPos.x, vertexPos.y, vertexPos.z,
+					u, v,
+					tr, tg, tb, ta,
+					olU, olV, overlayFlag, shadingAmount,
+					light,
+					DEFAULT_LIGHT_DIR.x, DEFAULT_LIGHT_DIR.y, DEFAULT_LIGHT_DIR.z,
+					DEFAULT_LIGHT1_DIR.x, DEFAULT_LIGHT1_DIR.y, DEFAULT_LIGHT1_DIR.z,
+					normalVec.x, normalVec.y, normalVec.z,
+					edgeX, edgeY
+				))
+			}
+		}
+		
+		if (vertices.isNotEmpty()) {
+			// Use Nearest filter only if requested AND Smart AA is NOT used (Smart AA handles sharpness in shader via Linear)
+			val useNearest = pixelPerfect && !smartAA
+			collector.addModelVertices(textureView, vertices, useNearest)
+		}
+	} // Default filter?
+
+	fun worldGuiItem(
+		stack: ItemStack,
+		pos: Vec3d,
+		scale: Float = 0.5f,
+		rotation: Vec3d? = null,
+		centered: Boolean = true,
+		flat: Boolean = true,
+		lighting: ItemLighting = ItemLighting.VANILLA,
+		overlay: ItemOverlay? = null,
+		glint: Boolean? = null
+	) {
+		if (stack.isEmpty) return
+		
+		val renderState = ItemRenderState()
+		mc.itemModelManager.updateForNonLivingEntity(renderState, stack, ItemDisplayContext.GUI, mc.player ?: return)
+		
+		val rot = rotation?.let { eulerToQuaternion(it) }
+		renderItemState(renderState, pos, scale, rot, centered, isScreen = false, pixelPerfect = true, flat = flat, lighting = lighting, overlay = overlay, glint = glint)
+	}
+
+	fun screenGuiItem(
+		stack: ItemStack,
+		x: Float, y: Float,
+		size: Float = 0.05f,
+		rotation: Vec3d? = null,
+		centered: Boolean = true,
+		lighting: ItemLighting = ItemLighting.VANILLA,
+		overlay: ItemOverlay? = null,
+		glint: Boolean? = null
+	) {
+		if (stack.isEmpty) return
+		
+		val renderState = ItemRenderState()
+		mc.itemModelManager.updateForNonLivingEntity(renderState, stack, ItemDisplayContext.GUI, mc.player ?: return)
+		
+		// Convert screen pos to camera-relative "pseudo-world" for the generic renderer
+		val pixelX = toPixelX(x)
+		val pixelY = toPixelY(y)
+		val pixelSize = toPixelSize(size)
+		
+		val rot = rotation?.let { eulerToQuaternion(it) }
+		// Screen items are always flat (viewed straight-on)
+		renderItemState(renderState, Vec3d(pixelX.toDouble(), pixelY.toDouble(), nextLayer().toDouble()), pixelSize, rot, centered, isScreen = true, pixelPerfect = true, flat = true, lighting = lighting, overlay = overlay, glint = glint)
+	}
+
+	private fun renderItemState(
+		state: ItemRenderState,
+		pos: Vec3d,
+		scale: Float,
+		rotation: Quaternionf?,
+		centered: Boolean,
+		isScreen: Boolean,
+		pixelPerfect: Boolean,
+		flat: Boolean = false,
+		lighting: ItemLighting = ItemLighting.VANILLA,
+		overlay: ItemOverlay? = null,
+		glint: Boolean? = null
+	) {
+		val posVec = Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+		if (!isScreen) {
+			posVec.sub(cameraPos.x.toFloat(), cameraPos.y.toFloat(), cameraPos.z.toFloat())
+		}
+
+		val lightDirs = Pair(Vector3f(lighting.light0), Vector3f(lighting.light1))
+		
+		val queue = CapturingQueue(
+			posVec, Vector3f(scale), rotation, centered, flat, lighting, lightDirs, state.isSideLit
+		) { vertices, textureView ->
+			if (isScreen) {
+				collector.addScreenModelVertices(textureView, vertices, pixelPerfect)
+			} else {
+				collector.addModelVertices(textureView, vertices, pixelPerfect)
+			}
+		}
+
+		val matrixStack = net.minecraft.client.util.math.MatrixStack()
+		
+		for (i in 0 until state.layerCount) {
+			@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+			val layer = state.layers[i]
+			
+			// Refined Glint Logic:
+			// 1. If explicit override 'glint' is provided, use it.
+			// 2. If 'overlay' is provided (not null), force glint true.
+			// 3. Otherwise, base it on the item's own enchantment state (layer.glint != NONE).
+			queue.currentGlint = glint ?: (overlay != null || (layer.glint != ItemRenderState.Glint.NONE))
+			
+			matrixStack.push()
+			layer.transform.apply(state.displayContext.isLeftHand, matrixStack.peek())
+			
+			val specialModel = layer.specialModelType
+			val renderLayer = layer.renderLayer
+			if (specialModel != null) {
+				@Suppress("UNCHECKED_CAST")
+				val renderer = specialModel as net.minecraft.client.render.item.model.special.SpecialModelRenderer<Any>
+				renderer.render(layer.data, state.displayContext, matrixStack, queue, 15728880, 0, queue.currentGlint, 0)
+			} else if (renderLayer != null) {
+				// We pass STANDARD if currentGlint is true, otherwise NONE to ensure our capture can correctly toggle it.
+				val captureGlint = if (queue.currentGlint) ItemRenderState.Glint.STANDARD else ItemRenderState.Glint.NONE
+				queue.submitItem(matrixStack, state.displayContext, 15728880, 0, 0, layer.tints, layer.quads, renderLayer, captureGlint)
+			}
+			
+			matrixStack.pop()
+		}
+	}
+
+	private class CapturingConsumer(
+		private val vertices: MutableList<RegionVertexCollector.ModelVertex>,
+		private val posTransform: (Vector3f) -> Unit,
+		private val normalTransform: (Vector3f) -> Unit,
+		private val flat: Boolean,
+		private val rotation: Quaternionf?,
+		private val glint: Boolean,
+		private val lightDirs: Pair<Vector3f, Vector3f>,
+		private val shadingAmount: Float,
+		private val baseLight: Int,
+		private val baseOverlay: Int
+	) : VertexConsumer {
+		private var x = 0f; private var y = 0f; private var z = 0f
+		private var color = -1
+		private var u = 0f; private var v = 0f
+		private var currentOverlay = 0
+		private var currentLight = 0
+		private var nx = 0f; private var ny = 0f; private var nz = 0f
+		private val quadBuffer = ArrayList<RegionVertexCollector.ModelVertex>(4)
+
+		override fun vertex(float1: Float, float2: Float, float3: Float): VertexConsumer {
+			this.x = float1; this.y = float2; this.z = float3
+			return this
+		}
+
+		override fun color(argb: Int): VertexConsumer {
+			this.color = argb
+			return this
+		}
+
+		override fun color(r: Int, g: Int, b: Int, a: Int): VertexConsumer {
+			this.color = (a shl 24) or (r shl 16) or (g shl 8) or b
+			return this
+		}
+
+		override fun texture(float1: Float, float2: Float): VertexConsumer {
+			this.u = float1; this.v = float2
+			return this
+		}
+
+		override fun overlay(int1: Int, int2: Int): VertexConsumer {
+			this.currentOverlay = (int2 shl 16) or int1
+			return this
+		}
+
+		override fun light(int1: Int, int2: Int): VertexConsumer {
+			this.currentLight = (int2 shl 16) or int1
+			return this
+		}
+
+		override fun lineWidth(width: Float): VertexConsumer = this
+
+		override fun normal(float1: Float, float2: Float, float3: Float): VertexConsumer {
+			this.nx = float1; this.ny = float2; this.nz = float3
+			commitVertex()
+			return this
+		}
+
+		override fun vertex(
+			x: Float, y: Float, z: Float,
+			color: Int, u: Float, v: Float,
+			overlay: Int, light: Int,
+			normalX: Float, normalY: Float, normalZ: Float
+		) {
+			this.x = x; this.y = y; this.z = z
+			this.color = color
+			this.u = u; this.v = v
+			this.currentOverlay = overlay
+			this.currentLight = light
+			this.nx = normalX; this.ny = normalY; this.nz = normalZ
+			commitVertex()
+		}
+
+		private fun commitVertex() {
+			// 1. Coordinates are already transformed by model parts into "Item Space"
+			val p = Vector3f(this.x, this.y, this.z)
+			
+			// 2. Apply Flattening in Item Space (before Lambda world/screen transforms)
+			if (flat) p.z = 0f
+			
+			// 3. Apply Lambda positioning (ESP world pos or GUI position)
+			posTransform(p)
+
+			// 4. Normal handling
+			val n = Vector3f(this.nx, this.ny, this.nz)
+			normalTransform(n)
+
+			val vIdx = quadBuffer.size
+			val qu = if (vIdx == 1 || vIdx == 2) 1f else 0f
+			val qv = if (vIdx == 2 || vIdx == 3) 1f else 0f
+
+			val ov = if (currentOverlay != 0) currentOverlay else baseOverlay
+			val lgt = if (currentLight != 0) currentLight else baseLight
+
+			quadBuffer.add(com.lambda.graphics.mc.RegionVertexCollector.ModelVertex(
+				p.x, p.y, p.z,
+				u, v,
+				(color shr 16) and 0xFF, (color shr 8) and 0xFF, color and 0xFF, (color ushr 24) and 0xFF,
+				(ov and 0xFFFF).toFloat(), (ov ushr 16).toFloat(),
+				if (glint) 4.0f else 0.0f,
+				shadingAmount,
+				lgt,
+				lightDirs.first.x, lightDirs.first.y, lightDirs.first.z,
+				lightDirs.second.x, lightDirs.second.y, lightDirs.second.z,
+				n.x, n.y, n.z,
+				qu, qv
+			))
+
+			if (quadBuffer.size == 4) {
+				if (flat) {
+					// Cull backfaces: The normal is already in Item Space. 
+					// Apply Lambda rotation to see if it faces the screen.
+					val testN = Vector3f(this.nx, this.ny, this.nz)
+					rotation?.transform(testN)
+					if (testN.z < 0f) {
+						quadBuffer.clear()
+						return
+					}
+				}
+				vertices.addAll(quadBuffer)
+				quadBuffer.clear()
+			}
+		}
+	}
+
+	private inner class CapturingQueue(
+		private val pos: Vector3f,
+		private val scale: Vector3f,
+		private val rotation: Quaternionf?,
+		private val centered: Boolean,
+		private val flat: Boolean,
+		private val lighting: ItemLighting,
+		private val lightDirs: Pair<Vector3f, Vector3f>,
+		private val isSideLit: Boolean,
+		private val onSubmission: (List<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>, com.mojang.blaze3d.textures.GpuTextureView) -> Unit
+	) : OrderedRenderCommandQueue {
+		
+		var currentGlint: Boolean = false
+
+		private fun posTransform(v: Vector3f) {
+			if (!centered) v.add(0.5f, 0.5f, 0.5f)
+			if (flat) v.z = 0f
+			v.mul(scale)
+			rotation?.transform(v)
+			v.add(pos)
+		}
+
+		private fun normalTransform(v: Vector3f) {
+			rotation?.transform(v)
+			v.normalize()
+		}
+
+		override fun submitItem(
+			matrices: net.minecraft.client.util.math.MatrixStack,
+			displayContext: net.minecraft.item.ItemDisplayContext,
+			light: Int,
+			overlay: Int,
+			outlineColors: Int,
+			tintLayers: IntArray,
+			quads: List<net.minecraft.client.render.model.BakedQuad>,
+			renderLayer: net.minecraft.client.render.RenderLayer,
+			glintType: net.minecraft.client.render.item.ItemRenderState.Glint
+		) {
+			val sprite = quads.firstOrNull()?.sprite ?: return
+			val textureView = mc.textureManager.getTexture(sprite.atlasId)?.glTextureView ?: return
+			
+			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
+
+			// Transform lights by GUI layer matrix to match normal transformation
+			val l0 = Vector3f(lightDirs.first).mulDirection(matrices.peek().positionMatrix)
+			val l1 = Vector3f(lightDirs.second).mulDirection(matrices.peek().positionMatrix)
+			l0.x = -l0.x; l1.x = -l1.x; l0.normalize(); l1.normalize()
+
+			for (quad in quads) {
+				val nx = quad.face.offsetX.toFloat()
+				val ny = quad.face.offsetY.toFloat()
+				val nz = quad.face.offsetZ.toFloat()
+
+				if (flat) {
+					val testN = Vector3f(nx, ny, nz).mulDirection(matrices.peek().positionMatrix)
+					rotation?.transform(testN)
+					if (testN.z < 0f) continue
+				}
+
+				for (vIdx in 0 until 4) {
+					val posSrc = quad.getPosition(vIdx)
+					val vp = matrices.peek().positionMatrix.transformPosition(posSrc.x(), posSrc.y(), posSrc.z(), Vector3f())
+					posTransform(vp)
+
+					val vn = matrices.peek().transformNormal(nx, ny, nz, Vector3f())
+					normalTransform(vn)
+
+					val packedUV = quad.getTexcoords(vIdx)
+					val u = java.lang.Float.intBitsToFloat((packedUV ushr 32).toInt())
+					val v = java.lang.Float.intBitsToFloat((packedUV and 0xFFFFFFFFL).toInt())
+					
+					val tint = if (quad.hasTint() && quad.tintIndex() < tintLayers.size) tintLayers[quad.tintIndex()] else -1
+					val r = if (tint != -1) (tint shr 16 and 0xFF) else 255
+					val g = if (tint != -1) (tint shr 8 and 0xFF) else 255
+					val b = if (tint != -1) (tint and 0xFF) else 255
+
+					vertices.add(com.lambda.graphics.mc.RegionVertexCollector.ModelVertex(
+						vp.x, vp.y, vp.z,
+						u, v,
+						r, g, b, 255,
+						(overlay and 0xFFFF).toFloat(), (overlay ushr 16).toFloat(),
+						if (glintType != net.minecraft.client.render.item.ItemRenderState.Glint.NONE) 4.0f else 0.0f,
+						shadingAmount,
+						light,
+						l0.x, l0.y, l0.z,
+						l1.x, l1.y, l1.z,
+						vn.x, vn.y, vn.z,
+						if (vIdx == 1 || vIdx == 2) 1f else 0f,
+						if (vIdx == 2 || vIdx == 3) 1f else 0f
+					))
+				}
+			}
+			onSubmission(vertices, textureView)
+		}
+
+		override fun <S : Any> submitModel(
+			model: net.minecraft.client.model.Model<in S>,
+			state: S,
+			matrices: net.minecraft.client.util.math.MatrixStack,
+			renderLayer: net.minecraft.client.render.RenderLayer,
+			light: Int,
+			overlay: Int,
+			tintedColor: Int,
+			sprite: net.minecraft.client.texture.Sprite?,
+			outlineColor: Int,
+			crumblingOverlay: net.minecraft.client.render.command.ModelCommandRenderer.CrumblingOverlayCommand?
+		) {
+			val textureView = if (sprite != null) {
+				mc.textureManager.getTexture(sprite.atlasId)?.glTextureView
+			} else {
+				mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)?.glTextureView
+			} ?: return
+
+			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
+			val consumer = CapturingConsumer(
+				vertices, ::posTransform, ::normalTransform,
+				flat, rotation, currentGlint, lightDirs, shadingAmount, light, overlay
+			)
+			val wrappedConsumer = sprite?.getTextureSpecificVertexConsumer(consumer) ?: consumer
+			model.setAngles(state)
+			model.render(matrices, wrappedConsumer, light, overlay, tintedColor)
+			onSubmission(vertices, textureView)
+		}
+
+		override fun submitModelPart(
+			part: net.minecraft.client.model.ModelPart,
+			matrices: net.minecraft.client.util.math.MatrixStack,
+			renderLayer: net.minecraft.client.render.RenderLayer,
+			light: Int,
+			overlay: Int,
+			sprite: net.minecraft.client.texture.Sprite?,
+			sheeted: Boolean,
+			hasGlint: Boolean,
+			tintedColor: Int,
+			crumblingOverlay: net.minecraft.client.render.command.ModelCommandRenderer.CrumblingOverlayCommand?,
+			i: Int
+		) {
+			val textureView = if (sprite != null) {
+				mc.textureManager.getTexture(sprite.atlasId)?.glTextureView
+			} else {
+				mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)?.glTextureView
+			} ?: return
+
+			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
+			val consumer = CapturingConsumer(
+				vertices, ::posTransform, ::normalTransform,
+				flat, rotation, hasGlint, lightDirs, shadingAmount, light, overlay
+			)
+			val wrappedConsumer = sprite?.getTextureSpecificVertexConsumer(consumer) ?: consumer
+			part.render(matrices, wrappedConsumer, light, overlay, tintedColor)
+			onSubmission(vertices, textureView)
+		}
+
+		override fun getBatchingQueue(order: Int): net.minecraft.client.render.command.RenderCommandQueue = this
+		override fun submitShadowPieces(matrices: net.minecraft.client.util.math.MatrixStack, radius: Float, pieces: List<net.minecraft.client.render.entity.state.EntityRenderState.ShadowPiece>) {}
+		override fun submitLabel(matrices: net.minecraft.client.util.math.MatrixStack, pos: Vec3d?, y: Int, label: net.minecraft.text.Text, ns: Boolean, l: Int, dist: Double, cam: net.minecraft.client.render.state.CameraRenderState) {}
+		override fun submitText(matrices: net.minecraft.client.util.math.MatrixStack, x: Float, y: Float, text: net.minecraft.text.OrderedText, ds: Boolean, lt: net.minecraft.client.font.TextRenderer.TextLayerType, l: Int, c: Int, bc: Int, oc: Int) {}
+		override fun submitFire(matrices: net.minecraft.client.util.math.MatrixStack, state: net.minecraft.client.render.entity.state.EntityRenderState, rot: Quaternionf) {}
+		override fun submitLeash(matrices: net.minecraft.client.util.math.MatrixStack, data: net.minecraft.client.render.entity.state.EntityRenderState.LeashData) {}
+		override fun submitBlock(matrices: net.minecraft.client.util.math.MatrixStack, state: net.minecraft.block.BlockState, light: Int, overlay: Int, outlineColor: Int) {
+			val model = mc.blockRenderManager.getModel(state)
+			val textureView = mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)?.glTextureView ?: return
+			
+			val vertices = ArrayList<com.lambda.graphics.mc.RegionVertexCollector.ModelVertex>()
+			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
+			val consumer = CapturingConsumer(
+				vertices, ::posTransform, ::normalTransform,
+				flat, rotation, currentGlint, lightDirs, shadingAmount, light, overlay
+			)
+			
+			val random = net.minecraft.util.math.random.Random.create()
+			val parts = model.getParts(random)
+			for (part in parts) {
+				for (direction in net.minecraft.util.math.Direction.entries) {
+					for (quad in part.getQuads(direction)) {
+						consumer.quad(matrices.peek(), quad, 1f, 1f, 1f, 1f, light, overlay)
+					}
+				}
+				for (quad in part.getQuads(null)) {
+					consumer.quad(matrices.peek(), quad, 1f, 1f, 1f, 1f, light, overlay)
+				}
+			}
+			
+			onSubmission(vertices, textureView)
+		}
+
+		override fun submitMovingBlock(matrices: net.minecraft.client.util.math.MatrixStack, state: net.minecraft.client.render.block.MovingBlockRenderState) {
+		}
+		override fun submitBlockStateModel(matrices: net.minecraft.client.util.math.MatrixStack, layer: RenderLayer, model: net.minecraft.client.render.model.BlockStateModel, r: Float, g: Float, b: Float, l: Int, o: Int, oc: Int) {}
+		override fun submitCustom(matrices: net.minecraft.client.util.math.MatrixStack, layer: RenderLayer, renderer: net.minecraft.client.render.command.OrderedRenderCommandQueue.Custom) {}
+		override fun submitCustom(renderer: net.minecraft.client.render.command.OrderedRenderCommandQueue.LayeredCustom) {}
 	}
 
 	/**
@@ -664,14 +1224,11 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val overlayFlag = if (hasOverlay) 1f else 0f
 		val billboardFlag = if (rotation == null) 0f else 1f
 		
-		// Calculate animation time for glint effect
-		// Use Util.getMeasuringTimeMs() for consistent timing matching Minecraft's system
-		val glintTime = if (hasOverlay) {
-			(net.minecraft.util.Util.getMeasuringTimeMs() / 1000.0f) % 1000f  // Seconds, 0-1000 loop
-		} else 0f
-		
-		// Calculate aspect ratio for square glint tiling
-		val glintAspectRatio = if (hasOverlay) ratio else 1f
+		// Quad relative glint UVs (0-1 range)
+		val gx0 = 0f
+		val gx1 = 1f
+		val gy0 = 0f  // 0 at y0 (bottom)
+		val gy1 = 1f  // 1 at y1 (top)
 		
 		// Quad offsets (local space, scaled in shader)
 		val x0 = -halfWidth / size
@@ -685,22 +1242,22 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				RegionVertexCollector.WorldImageVertex(
 					x0, y0, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx0, gy0, overlayFlag, 0f
 				),
 				RegionVertexCollector.WorldImageVertex(
 					x1, y0, u1, v1, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx1, gy0, overlayFlag, 0f
 				),
 				RegionVertexCollector.WorldImageVertex(
 					x1, y1, u1, v0, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx1, gy1, overlayFlag, 0f
 				),
 				RegionVertexCollector.WorldImageVertex(
 					x0, y1, u0, v0, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx0, gy1, overlayFlag, 0f
 				)
 			)
 		} else {
@@ -710,31 +1267,31 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				.rotateX(Math.toRadians(rotation.x).toFloat())
 				.rotateZ(Math.toRadians(rotation.z).toFloat())
 			
-			val p0 = transformPoint(rotationMatrix, x0, -y0, 0f)
-			val p1 = transformPoint(rotationMatrix, x1, -y0, 0f)
-			val p2 = transformPoint(rotationMatrix, x1, -y1, 0f)
-			val p3 = transformPoint(rotationMatrix, x0, -y1, 0f)
+			val p0 = transformPoint(rotationMatrix, x0, y0, 0f)
+			val p1 = transformPoint(rotationMatrix, x1, y0, 0f)
+			val p2 = transformPoint(rotationMatrix, x1, y1, 0f)
+			val p3 = transformPoint(rotationMatrix, x0, y1, 0f)
 			
 			listOf(
 				RegionVertexCollector.WorldImageVertex(
 					p0.x, p0.y, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx0, gy0, overlayFlag, 0f
 				),
 				RegionVertexCollector.WorldImageVertex(
 					p1.x, p1.y, u1, v1, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx1, gy0, overlayFlag, 0f
 				),
 				RegionVertexCollector.WorldImageVertex(
 					p2.x, p2.y, u1, v0, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx1, gy1, overlayFlag, 0f
 				),
 				RegionVertexCollector.WorldImageVertex(
 					p3.x, p3.y, u0, v0, tint.red, tint.green, tint.blue, tint.alpha,
 					anchorX, anchorY, anchorZ, size, billboardFlag,
-					glintTime, glintAspectRatio, overlayFlag
+					gx0, gy1, overlayFlag, 0f
 				)
 			)
 		}
@@ -1266,13 +1823,5 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val outline: SDFOutline? = null,
 		val glow: SDFGlow? = null,
 		val shadow: SDFShadow? = SDFShadow() // Default shadow enabled
-	)
-
-	/** Data class for deferred screen-space item rendering. */
-	data class ScreenItemRender(
-		val stack: ItemStack,
-		val x: Float,      // Normalized 0-1
-		val y: Float,      // Normalized 0-1
-		val size: Float    // Normalized size (e.g., 0.05 = 5% of screen height)
 	)
 }

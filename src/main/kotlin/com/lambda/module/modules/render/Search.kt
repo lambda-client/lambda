@@ -43,9 +43,9 @@ object Search : Module(
     description = "Highlight blocks within the rendered world",
     tag = ModuleTag.RENDER,
 ) {
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), description = "Render blocks")
-        .onSelect { rebuildMesh(this, null, null) }
-        .onDeselect { rebuildMesh(this, null, null) }
+    private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME), description = "Render blocks")
+        .onSelect { rebuildMesh(this) }
+        .onDeselect { rebuildMesh(this) }
 
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawOutlines = true }
     private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) drawFaces = true }
@@ -55,8 +55,8 @@ object Search : Module(
     private val blockColorAlpha by setting("Block Color Alpha", 0.3, 0.1..1.0, 0.05) { useBlockColor }.onValueChange(::rebuildMesh)
 
     private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { drawFaces && !useBlockColor }.onValueChange(::rebuildMesh)
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode").onValueChange(::rebuildMesh)
     private val lineColor by setting("Line Color", Color(100, 150, 255, 128)) { !useBlockColor }.onValueChange(::rebuildMesh)
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.And, "Outline mode").onValueChange(::rebuildMesh)
     private val lineConfig = WorldLineSettings("", this).apply {
         applyEdits {
             hide(::startColor, ::endColor)
@@ -109,5 +109,5 @@ object Search : Module(
         onDisable { esp.close() }
     }
 
-    private fun rebuildMesh(ctx: SafeContext, from: Any?, to: Any?): Unit = esp.rebuild()
+    private fun rebuildMesh(ctx: SafeContext, from: Any? = null, to: Any? = null): Unit = esp.rebuild()
 }

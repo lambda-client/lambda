@@ -341,5 +341,83 @@ object LambdaRenderPipelines : Loadable {
 				)
 				.build()
 		)
+
+	/**
+	 * Pipeline for world-space 3D model rendering.
+	 * Supports Position, Color, UV0 (Atlas), OverlayUV (Overlay), UV2 (Lightmap), Normal.
+	 */
+	val WORLD_MODEL: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/world_model"))
+				.withVertexShader(Identifier.of("lambda", "core/world_model"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_model"))
+				.withSampler("Sampler0") // Atlas
+				.withSampler("Sampler1") // Overlay
+				.withSampler("Sampler2") // Lightmap
+				.withSampler("Sampler3") // Glint
+				.withUniform("GlintTransforms", UniformType.UNIFORM_BUFFER)
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(true)
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.WORLD_MODEL_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for screen-space 3D model rendering.
+	 * Same as WORLD_MODEL but without lightmap sampler (Sampler2).
+	 * Includes culling to prevent backfaces from clipping with front faces.
+	 */
+	val SCREEN_MODEL: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/screen_model"))
+				.withVertexShader(Identifier.of("lambda", "core/world_model"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_model"))
+				.withSampler("Sampler0") // Atlas
+				.withSampler("Sampler1") // Overlay
+				.withSampler("Sampler2") // Lightmap (White/Neutral in screen space)
+				.withSampler("Sampler3") // Glint
+				.withUniform("GlintTransforms", UniformType.UNIFORM_BUFFER)
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(true)
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.WORLD_MODEL_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for world-space 3D model rendering that renders through walls.
+	 */
+	val WORLD_MODEL_THROUGH: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/world_model_through"))
+				.withVertexShader(Identifier.of("lambda", "core/world_model"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_model"))
+				.withSampler("Sampler0")
+				.withSampler("Sampler1")
+				.withSampler("Sampler2")
+				.withSampler("Sampler3") // Glint
+				.withUniform("GlintTransforms", UniformType.UNIFORM_BUFFER)
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.WORLD_MODEL_FORMAT,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
 }
 

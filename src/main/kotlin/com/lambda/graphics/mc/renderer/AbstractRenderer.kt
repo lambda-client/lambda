@@ -22,6 +22,7 @@ import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
+import kotlin.collections.isNotEmpty
 
 /**
  * Abstract base class for ESP renderers.
@@ -54,9 +55,6 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 	
 	/** Current font atlas for text rendering (may be null if no text) */
 	protected abstract val currentFontAtlas: SDFFontAtlas?
-	
-	/** Deferred items for screen rendering (may be null) */
-	protected abstract val deferredItems: List<RenderBuilder.ScreenItemRender>?
 
 	/**
 	 * Render world-space geometry (faces, edges, text).
@@ -133,6 +131,34 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 				}
 			}
 		}
+
+		// Render World Models
+		val modelChunks = chunks.filter { (renderer, _) -> renderer.hasModelData() }
+		if (modelChunks.isNotEmpty()) {
+			RendererUtils.ensureGlintTextureLoaded()
+			
+			// Create dedicated glint uniform slice (scale 8.0 for vanilla atlas parity)
+			val glintUniform = RendererUtils.createGlintUniform(8.0f)
+			
+			RegionRenderer.createRenderPass("$name World Models", depthTest)?.use { pass ->
+				pass.setPipeline(RendererUtils.getModelPipeline(depthTest))
+				RenderSystem.bindDefaultUniforms(pass)
+				
+				// Bind overlay, lightmap, and glint textures
+				RendererUtils.bindOverlayTexture(pass, "Sampler1")
+				RendererUtils.bindLightmapTexture(pass, "Sampler2")
+				RendererUtils.bindGlintTexture(pass, "Sampler3")
+				
+				// Set the global glint animation matrix for this pass
+				pass.setUniform("GlintTransforms", glintUniform)
+				
+				// Use original chunk transforms for correct geometry position
+				modelChunks.forEach { (renderer, transform) ->
+					pass.setUniform("DynamicTransforms", transform)
+					renderer.renderModels(pass)
+				}
+			}
+		}
 	}
 
 	/**
@@ -141,9 +167,6 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 	 */
 	fun renderScreen() {
 		val renderers = getScreenRenderers()
-		val hasDeferredItems = deferredItems?.isNotEmpty() == true
-		
-		if (renderers.isEmpty() && !hasDeferredItems) return
 
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
@@ -203,12 +226,32 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 					imageRenderers.forEach { it.renderScreenImages(pass) }
 				}
 			}
-		}
-		
-		// Render deferred items last (uses Minecraft's DrawContext pipeline)
-		deferredItems?.let { items ->
-			if (items.isNotEmpty()) {
-				RendererUtils.renderDeferredItems(items)
+
+			// Render Screen Models
+			val modelRenderers = renderers.filter { it.hasScreenModelData() }
+			if (modelRenderers.isNotEmpty()) {
+				RendererUtils.ensureGlintTextureLoaded()
+				
+				// Create dedicated glint uniform slice (scale 8.0 for vanilla GUI parity)
+				val glintUniform = RendererUtils.createGlintUniform(8.0f)
+				
+				RegionRenderer.createScreenRenderPass("$name Screen Models")?.use { pass ->
+					pass.setPipeline(RendererUtils.getModelPipeline(depthTest = false))
+					RenderSystem.bindDefaultUniforms(pass)
+					
+					// Use global screen dynamic transform for geometry position
+					pass.setUniform("DynamicTransforms", dynamicTransform)
+					// Use dedicated glint uniform for animation
+					pass.setUniform("GlintTransforms", glintUniform)
+					
+					// Bind overlay and lightmap textures for item effects
+					RendererUtils.bindOverlayTexture(pass, "Sampler1")
+					RendererUtils.bindLightmapTexture(pass, "Sampler2")
+					// Bind glint texture for enchantment shimmer
+					RendererUtils.bindGlintTexture(pass, "Sampler3")
+					
+					modelRenderers.forEach { it.renderScreenModels(pass) }
+				}
 			}
 		}
 	}

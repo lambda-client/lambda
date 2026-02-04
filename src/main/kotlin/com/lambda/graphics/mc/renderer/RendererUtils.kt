@@ -20,6 +20,7 @@ package com.lambda.graphics.mc.renderer
 import com.lambda.Lambda.mc
 import com.lambda.event.events.HudRenderEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.text.SDFFontAtlas
@@ -42,6 +43,11 @@ object RendererUtils {
 	// Shared projection matrix for screen-space rendering
 	// invertY=false means Y=0 at bottom, Y=height at top (OpenGL/math convention)
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, false)
+	
+	// Vanilla inventory lighting vectors (Studio Lighting)
+	// These are from net.minecraft.client.render.DiffuseLighting and flipped to be "towards light"
+	val INVENTORY_LIGHT_0 = Vector3f(-0.2f, 1.0f, -1.0f).normalize()
+	val INVENTORY_LIGHT_1 = Vector3f(0.2f, 1.0f, 0.0f).normalize()
 
 
 
@@ -60,10 +66,9 @@ object RendererUtils {
 	}
 
 	/**
-	 * Create a dynamic transform with glint texture matrix for animated enchantment effect.
-	 * Used for screen image rendering with overlay support.
-	 * Note: We use a smaller scale (0.25) compared to vanilla (8.0) because our UVs are 
-	 * normalized 0-1, not model-based coordinates.
+	 * Create a dynamic transform with glint texture matrix for screen-space IMAGE rendering.
+	 * Note: We use a smaller scale (0.125) compared to vanilla (8.0) because images use 
+	 * normalized 0-1 UVs. 0.125 results in the same ~1/8 visual density.
 	 */
 	fun createScreenDynamicTransformWithGlint(): GpuBufferSlice {
 		val identityMatrix = Matrix4f()
@@ -72,7 +77,22 @@ object RendererUtils {
 				identityMatrix,
 				Vector4f(1f, 1f, 1f, 1f),
 				Vector3f(0f, 0f, 0f),
-				createGlintTransform(0.25f)  // Smaller scale for screen-space (larger pattern)
+				createGlintTransform(0.125f)  // Normalized scale for [0, 1] UV parity
+			)
+	}
+
+	/**
+	 * Create a dynamic transform with glint texture matrix for screen-space MODEL rendering.
+	 * Uses vanilla's 8.0 scale since model UVs are texture-based, not normalized.
+	 */
+	fun createScreenModelDynamicTransformWithGlint(): GpuBufferSlice {
+		val identityMatrix = Matrix4f()
+		return RenderSystem.getDynamicUniforms()
+			.write(
+				identityMatrix,
+				Vector4f(1f, 1f, 1f, 1f),
+				Vector3f(0f, 0f, 0f),
+				createGlintTransform(8.0f)  // Vanilla glint scale parity
 			)
 	}
 
@@ -84,35 +104,80 @@ object RendererUtils {
 	 */
 	fun createGlintTransform(scale: Float): Matrix4f {
 		// Exactly replicate Minecraft's TextureTransform.getGlintTransformation()
-		val glintSpeed = mc.options?.glintSpeed?.value ?: 0.5  // Default to 0.5 if options not available
+		val glintSpeed = mc.options?.glintSpeed?.value ?: 0.5
 		val time = (net.minecraft.util.Util.getMeasuringTimeMs() * glintSpeed * 8.0).toLong()
 		
 		// Calculate scroll offsets (0-1 range)
-		val scrollX = (time % 110000L) / 110000.0f  // X cycle: 110 seconds
-		val scrollY = (time % 30000L) / 30000.0f    // Y cycle: 30 seconds
+		val scrollX = (time % 110000L) / 110000.0f    // 110s
+		val scrollY = (time % 30000L) / 30000.0f     // 30s
 		
-		// Build matrix: translation(-f, g, 0) -> rotateZ(π/18) -> scale
+		// Build matrix: Translation -> Rotation -> Scale (T * R * S)
+		// This order ensures the translation/scrolling is NOT multiplied by the scale
 		val matrix = Matrix4f()
 		matrix.translation(-scrollX, scrollY, 0f)
-		matrix.rotateZ((Math.PI / 18.0).toFloat())  // 10 degrees
+		matrix.rotateZ((Math.PI / 18.0).toFloat()) // 10 degrees (Vanilla)
 		matrix.scale(scale)
 		
 		return matrix
 	}
 
 	/**
-	 * Create a dynamic transform with glint texture matrix for world-space image rendering.
-	 * Uses the current model-view matrix from RenderSystem for proper camera alignment.
-	 * Note: We use a smaller scale (0.25) compared to vanilla because our UVs are 
-	 * normalized 0-1, not model-based coordinates.
+	 * Create a dynamic uniform slice containing two glint transformation matrices.
+	 * Pack Mat2 into the ModelView slot and Mat1 into the GlintMat slot of the GlintTransforms block.
+	 */
+	fun createGlintUniform(scale: Float): GpuBufferSlice {
+		val glintSpeed = mc.options?.glintSpeed?.value ?: 0.5
+		val time = (net.minecraft.util.Util.getMeasuringTimeMs() * glintSpeed * 8.0).toLong()
+		
+		// Up-Left (Vanilla parity in Y-up space)
+		val scroll1X = (time % 110000L) / 110000.0f
+		val scroll1Y = (time % 30000L) / 30000.0f
+		val mat1 = Matrix4f().translation(-scroll1X, scroll1Y, 0f)
+			.rotateZ((Math.PI / 18.0).toFloat()) // Exactly 10 deg (Vanilla)
+			.scale(scale)
+
+		return RenderSystem.getDynamicUniforms()
+			.write(
+				Matrix4f(),              // ModelView slot (Identity)
+				Vector4f(1f, 1f, 1f, 1f), // Color
+				Vector3f(0f, 0f, 0f),      // Offset
+				mat1                     // GlintMat slot
+			)
+	}
+
+	/**
+	 * Create a dynamic transform with glint texture matrix for world-space MODEL rendering.
+	 * Uses RenderMain.modelViewMatrix with translation zeroed for correct camera-relative positioning.
+	 * Uses vanilla's 8.0 scale since model UVs are texture-based, not normalized.
 	 */
 	fun createWorldDynamicTransformWithGlint(): GpuBufferSlice {
+		// Use modelViewMatrix with translation zeroed out (same pattern as ImmediateRenderer)
+		val modelViewMatrix = RenderMain.modelViewMatrix
+		val modelView = Matrix4f(modelViewMatrix).m30(0f).m31(0f).m32(0f)
+		
+		return RenderSystem.getDynamicUniforms()
+			.write(
+				modelView,
+				Vector4f(1f, 1f, 1f, 1f),
+				Vector3f(0f, 0f, 0f),
+				createGlintTransform(8.0f)  // Vanilla glint scale parity
+			)
+	}
+
+	/**
+	 * Create a dynamic transform for a specific chunk position with glint texture matrix.
+	 * Used for world-space model rendering where items need enchantment glint animation.
+	 * Uses vanilla's 8.0 scale since model UVs are texture-based, not normalized.
+	 *
+	 * @param chunkOffset The chunk's position offset (usually cameraRelative)
+	 */
+	fun createChunkTransformWithGlint(chunkOffset: Vector3f): GpuBufferSlice {
 		return RenderSystem.getDynamicUniforms()
 			.write(
 				RenderSystem.getModelViewMatrix(),
 				Vector4f(1f, 1f, 1f, 1f),
-				Vector3f(0f, 0f, 0f),
-				createGlintTransform(0.25f)  // Smaller scale for normalized UVs (larger pattern)
+				chunkOffset,
+				createGlintTransform(8.0f)  // Vanilla glint scale parity
 			)
 	}
 
@@ -188,6 +253,13 @@ object RendererUtils {
 	 */
 	fun getWorldImagePipeline(depthTest: Boolean): RenderPipeline = LambdaRenderPipelines.WORLD_IMAGE
 
+	/**
+	 * Get the world-space model pipeline.
+	 * Always uses depth testing for proper self-ordering.
+	 */
+	fun getModelPipeline(depthTest: Boolean): RenderPipeline = 
+		if (depthTest) LambdaRenderPipelines.WORLD_MODEL else LambdaRenderPipelines.SCREEN_MODEL
+
 	// Cached glint texture view and sampler
 	private var glintTextureView: com.mojang.blaze3d.textures.GpuTextureView? = null
 	private var glintSampler: net.minecraft.client.gl.GpuSampler? = null
@@ -207,9 +279,11 @@ object RendererUtils {
 			val glintId = net.minecraft.util.Identifier.ofVanilla("textures/misc/enchanted_glint_item.png")
 			val texture = textureManager.getTexture(glintId)
 			glintTextureView = texture?.glTextureView
-			glintSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
 			glintTextureLoaded = true
 		}
+		
+		// Always ensure sampler is using REPEAT mode
+		glintSampler = RenderSystem.getSamplerCache().getRepeated(com.mojang.blaze3d.textures.FilterMode.LINEAR)
 	}
 
 	/**
@@ -222,6 +296,28 @@ object RendererUtils {
 	fun bindGlintTexture(pass: com.mojang.blaze3d.systems.RenderPass, samplerName: String) {
 		val view = glintTextureView ?: return
 		val sampler = glintSampler ?: return
+		pass.bindTexture(samplerName, view, sampler)
+	}
+
+	/**
+	 * Bind the generic Overlay texture (white/hurt flash) to a sampler slot.
+	 */
+	fun bindOverlayTexture(pass: com.mojang.blaze3d.systems.RenderPass, samplerName: String) {
+		val overlay = mc.gameRenderer.overlayTexture ?: return
+		val view = overlay.textureView ?: return
+		// Overlay texture usually uses LINEAR filtering
+		val sampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		pass.bindTexture(samplerName, view, sampler)
+	}
+
+	/**
+	 * Bind the Lightmap texture to a sampler slot.
+	 */
+	fun bindLightmapTexture(pass: com.mojang.blaze3d.systems.RenderPass, samplerName: String) {
+		val lightmap = mc.gameRenderer.lightmapTextureManager ?: return
+		val view = lightmap.glTextureView ?: return
+		// Lightmap uses LINEAR filtering
+		val sampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
 		pass.bindTexture(samplerName, view, sampler)
 	}
 
@@ -293,82 +389,6 @@ object RendererUtils {
 				depthView,
 				java.util.OptionalDouble.of(1.0) // Clear depth to 1.0 (far)
 			)?.close() // Immediately close to execute the clear
-	}
-
-	// ============================================================================
-	// Deferred Item Rendering
-	// ============================================================================
-
-	/**
-	 * Global queue of items to render during the next HUD render pass.
-	 * Items are added via renderDeferredItems() and rendered when HudRenderEvent fires.
-	 */
-	private val pendingItems = mutableListOf<com.lambda.graphics.mc.RenderBuilder.ScreenItemRender>()
-
-	/**
-	 * Queue deferred ItemStack renders to be drawn during the HUD render pass.
-	 * Items are rendered when Minecraft's HUD rendering occurs via HudRenderEvent.
-	 *
-	 * @param items List of ScreenItemRender to draw
-	 */
-	fun renderDeferredItems(items: List<com.lambda.graphics.mc.RenderBuilder.ScreenItemRender>) {
-		if (items.isEmpty()) return
-		pendingItems.addAll(items)
-	}
-
-	/**
-	 * Render pending items using the provided DrawContext.
-	 * Called by HudRenderEvent listener when Minecraft's HUD is being rendered.
-	 *
-	 * @param context The DrawContext from Minecraft's HUD rendering
-	 */
-	fun renderPendingItems(context: DrawContext) {
-		if (pendingItems.isEmpty()) return
-		
-		val window = mc.window ?: return
-		val textRenderer = mc.textRenderer ?: return
-		
-		val scaledWidth = window.scaledWidth
-		val scaledHeight = window.scaledHeight
-		
-		// Standard Minecraft item size is 16x16 pixels
-		val standardItemSize = 16f
-		
-		pendingItems.forEach { item ->
-			// Use floating point for smooth sub-pixel positioning (prevents jitter from integer truncation)
-			val pixelX = item.x * scaledWidth
-			
-			// Calculate scale based on normalized size using height-only (matches toPixelSize)
-			// Size of 0.05 means 5% of screen height, so pixelSize = size * height
-			val targetPixelSize = item.size * scaledHeight
-			val scale = targetPixelSize / standardItemSize
-			
-			// Flip Y: our normalized coords use Y=0 at bottom, but DrawContext uses Y=0 at top
-			// Also offset by item height so items grow UPWARD from the specified position
-			// (DrawContext draws from top-left extending down, we want bottom-left extending up)
-			val itemHeight = standardItemSize * scale
-			val pixelY = (1f - item.y) * scaledHeight - itemHeight
-			
-			// Always use matrix translation for smooth sub-pixel positioning
-			context.matrices.pushMatrix()
-			context.matrices.translate(pixelX, pixelY)
-			if (scale != 1f) {
-				context.matrices.scale(scale, scale)
-			}
-			context.drawItem(item.stack, 0, 0)
-			context.drawStackOverlay(textRenderer, item.stack, 0, 0)
-			context.matrices.popMatrix()
-		}
-		
-		// Clear the queue after rendering
-		pendingItems.clear()
-	}
-
-	// Initialize HudRenderEvent listener
-	init {
-		listenUnsafe<HudRenderEvent> { event ->
-			renderPendingItems(event.context)
-		}
 	}
 }
 

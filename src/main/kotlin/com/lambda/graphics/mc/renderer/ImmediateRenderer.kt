@@ -46,9 +46,6 @@ class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRend
 	// Font atlas used for current text rendering
 	private var _currentFontAtlas: SDFFontAtlas? = null
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
-	
-	override val deferredItems: List<RenderBuilder.ScreenItemRender>?
-		get() = renderBuilder?.deferredItems
 
 	/**
 	 * Get the current camera position for building camera-relative shapes.
@@ -97,12 +94,13 @@ class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRend
 		if (!renderer.hasData()) return emptyList()
 		
 		val modelViewMatrix = RenderMain.modelViewMatrix
+		val modelView = Matrix4f(modelViewMatrix).m30(0f).m31(0f).m32(0f)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(
-				modelViewMatrix,
+				modelView,
 				Vector4f(1f, 1f, 1f, 1f),
 				Vector3f(0f, 0f, 0f),
-				RendererUtils.createGlintTransform(0.25f)  // Fresh glint matrix for world images
+				RendererUtils.createGlintTransform(0.125f)  // Calibrated glint scale for world images
 			)
 		
 		return listOf(renderer to dynamicTransform)

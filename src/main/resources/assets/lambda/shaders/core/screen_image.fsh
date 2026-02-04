@@ -11,7 +11,7 @@ uniform sampler2D Sampler1;
 // Inputs from vertex shader
 in vec2 v_TexCoord;
 in vec4 v_Color;
-in vec3 v_OverlayUV;  // (overlayU, overlayV, hasOverlay)
+in vec4 v_OverlayUV;  // (overlayU, overlayV, hasOverlay, diffuseAmount)
 in float v_Layer;
 
 out vec4 fragColor;
@@ -46,8 +46,9 @@ void main() {
         // Sample glint texture using transformed coordinates
         vec4 glint = texture(Sampler1, fract(transformedUV.xy));
         
-        // Apply with additive blending
-        color.rgb += glint.rgb * glint.a * 0.4;
+        // Apply with squared additive blending (matching 1.21 model parity)
+        vec3 layer = glint.rgb * glint.a * 0.75; // GLINT_ALPHA = 0.75
+        color.rgb += (layer * layer);
     }
     
     fragColor = color;

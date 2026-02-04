@@ -47,9 +47,6 @@ class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRendere
 	// Font atlas used for current text rendering
 	private var _currentFontAtlas: SDFFontAtlas? = null
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
-	
-	override val deferredItems: List<RenderBuilder.ScreenItemRender>?
-		get() = renderBuilder?.deferredItems
 
 	/** Get the current shape scope for drawing. Geometry stored relative to tick camera. */
 	fun shapes(block: RenderBuilder.() -> Unit) {
@@ -102,7 +99,7 @@ class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRendere
 		val deltaY = (tickCamera.y - currentCameraPos.y).toFloat()
 		val deltaZ = (tickCamera.z - currentCameraPos.z).toFloat()
 
-		val modelView = Matrix4f(modelViewMatrix).translate(deltaX, deltaY, deltaZ)
+		val modelView = Matrix4f(modelViewMatrix).m30(0f).m31(0f).m32(0f).translate(deltaX, deltaY, deltaZ)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), RendererUtils.createGlintTransform(0.25f))
 		

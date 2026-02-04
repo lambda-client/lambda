@@ -45,6 +45,8 @@ class RegionRenderer {
 	// Image batches (texture -> buffer) for screen and world space
 	private var screenImageBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
 	private var worldImageBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
+	private var modelBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
+	private var screenModelBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
 
 	// Index counts for world-space draw calls
 	private var faceIndexCount = 0
@@ -103,13 +105,17 @@ class RegionRenderer {
 		// Clean up old image batches
 		screenImageBatches.forEach { it.buffer.close() }
 		worldImageBatches.forEach { it.buffer.close() }
+		modelBatches.forEach { it.buffer.close() }
+		screenModelBatches.forEach { it.buffer.close() }
 
-		// Store new image batches
+		// Store new batches
 		screenImageBatches = screenResult.images
-		worldImageBatches = collector.uploadWorldImageBatches()
+		worldImageBatches = result.images
+		modelBatches = result.models
+		screenModelBatches = screenResult.models
 
-		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty()
-		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty()
+		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty()
+		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty() || screenModelBatches.isNotEmpty()
 	}
 
 	/**
@@ -245,15 +251,50 @@ class RegionRenderer {
 		for (batch in screenImageBatches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
 			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			
 			renderPass.setVertexBuffer(0, batch.buffer)
 			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
 			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			
 			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
 		}
 	}
 
+	/**
+	 * Render screen-space models using the given render pass.
+	 */
+	fun renderScreenModels(renderPass: RenderPass) {
+		if (screenModelBatches.isEmpty()) return
+		
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		
+		// Get glint texture for enchantment shimmer
+		val glintTexture = mc.textureManager.getTexture(net.minecraft.client.render.item.ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
+		
+		for (batch in screenModelBatches) {
+			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
+			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			
+			// Bind glint texture to Sampler3
+			if (glintTexture != null) {
+				renderPass.bindTexture("Sampler3", glintTexture, linearSampler)
+			}
+			
+			renderPass.setVertexBuffer(0, batch.buffer)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			
+			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
+		}
+	}
+	
 	/** Check if this renderer has screen-space image data. */
 	fun hasScreenImageData(): Boolean = screenImageBatches.isNotEmpty()
+
+	/** Check if this renderer has screen-space model data. */
+	fun hasScreenModelData(): Boolean = screenModelBatches.isNotEmpty()
 
 	/**
 	 * Render world-space images using the given render pass.
@@ -280,6 +321,41 @@ class RegionRenderer {
 
 	/** Check if this renderer has world-space image data. */
 	fun hasWorldImageData(): Boolean = worldImageBatches.isNotEmpty()
+
+	/**
+	 * Render 3D models using the given render pass.
+	 * Each texture batch is rendered separately with its texture bound.
+	 *
+	 * @param renderPass The active RenderPass to record commands into
+	 */
+	fun renderModels(renderPass: RenderPass) {
+		if (modelBatches.isEmpty()) return
+		
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		
+		// Get glint texture for enchantment shimmer
+		val glintTexture = mc.textureManager.getTexture(net.minecraft.client.render.item.ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
+		
+		for (batch in modelBatches) {
+			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
+			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			
+			// Bind glint texture to Sampler3
+			if (glintTexture != null) {
+				renderPass.bindTexture("Sampler3", glintTexture, linearSampler)
+			}
+			
+			renderPass.setVertexBuffer(0, batch.buffer)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
+		}
+	}
+
+	/** Check if this renderer has model data. */
+	fun hasModelData(): Boolean = modelBatches.isNotEmpty()
 
 	/** Check if this renderer has any screen-space data to render. */
 	fun hasScreenData(): Boolean = hasScreenData
@@ -312,8 +388,10 @@ class RegionRenderer {
 		// Clear image batches
 		screenImageBatches.forEach { it.buffer.close() }
 		worldImageBatches.forEach { it.buffer.close() }
+		modelBatches.forEach { it.buffer.close() }
 		screenImageBatches = emptyList()
 		worldImageBatches = emptyList()
+		modelBatches = emptyList()
 
 		hasScreenData = false
 	}

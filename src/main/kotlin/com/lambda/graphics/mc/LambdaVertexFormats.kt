@@ -257,26 +257,26 @@ object LambdaVertexFormats {
 
     /**
      * Overlay UV element for image rendering with overlay textures (e.g., enchantment glint).
-     * Contains: overlayU, overlayV, hasOverlay (as vec3 of floats)
+     * Contains: overlayU, overlayV, hasOverlay, diffuseAmount (as vec4 of floats)
      */
     val OVERLAY_UV_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         25, // ID (unique, in valid range [0, 32))
         0,  // index
         VertexFormatElement.Type.FLOAT,
         VertexFormatElement.Usage.GENERIC,
-        3   // count (overlayU, overlayV, hasOverlay)
+        4   // count (overlayU, overlayV, hasOverlay, diffuseAmount)
     )
 
     /**
      * Screen-space image format with overlay support and layer for draw order.
      * Layout: Position (vec3), UV0 (vec2), Color (vec4), OverlayUV (vec3), Layer (float)
      *
-     * Total size: 12 + 8 + 4 + 12 + 4 = 40 bytes
+     * Total size: 12 + 8 + 4 + 16 + 4 = 44 bytes
      *
      * - Position: Screen-space position (x, y, z=0) (3 floats = 12 bytes)
      * - UV0: Main texture coordinates (2 floats = 8 bytes)
      * - Color: RGBA tint color (4 bytes)
-     * - OverlayUV: vec3(overlayU, overlayV, hasOverlay) for glint effect (3 floats = 12 bytes)
+     * - OverlayUV: vec4(overlayU, overlayV, hasOverlay, diffuseAmount) (4 floats = 16 bytes)
      * - Layer: Depth for layering (1 float = 4 bytes)
      */
     val SCREEN_IMAGE_FORMAT: VertexFormat = VertexFormat.builder()
@@ -291,14 +291,14 @@ object LambdaVertexFormats {
      * World-space image format with anchor for billboarding and overlay support.
      * Layout: Position (vec3), UV0 (vec2), Color (vec4), Anchor (vec3), BillboardData (vec2), OverlayUV (vec3)
      *
-     * Total size: 12 + 8 + 4 + 12 + 8 + 12 = 56 bytes
+     * Total size: 12 + 8 + 4 + 12 + 8 + 16 = 60 bytes
      *
      * - Position: Local offset (x, y) with z unused (3 floats = 12 bytes)
      * - UV0: Main texture coordinates (2 floats = 8 bytes)
      * - Color: RGBA tint color (4 bytes)
      * - Anchor: Camera-relative world position (3 floats = 12 bytes)
      * - BillboardData: vec2(scale, billboardFlag) (2 floats = 8 bytes)
-     * - OverlayUV: vec3(overlayU, overlayV, hasOverlay) (3 floats = 12 bytes)
+     * - OverlayUV: vec4(overlayU, overlayV, hasOverlay, diffuseAmount) (4 floats = 16 bytes)
      */
     val WORLD_IMAGE_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
@@ -307,6 +307,69 @@ object LambdaVertexFormats {
         .add("Anchor", ANCHOR_ELEMENT)
         .add("BillboardData", BILLBOARD_DATA_ELEMENT)
         .add("OverlayUV", OVERLAY_UV_ELEMENT)
+        .build()
+    /**
+     * Edge data element for analytic geometry anti-aliasing.
+     * Contains face-relative coordinates (0.0 to 1.0) for edge distance calculation.
+     */
+    val EDGE_DATA_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        26, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        2   // count (faceX, faceY)
+    )
+
+    /**
+     * Custom light direction element for per-item shading (primary light).
+     * Contains the world-space light direction vector.
+     */
+    val LIGHT_DIR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        27, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        3   // count (x, y, z light direction)
+    )
+
+    /**
+     * Secondary light direction element for vanilla's two-light shading.
+     * Contains the fill light direction vector.
+     */
+    val LIGHT1_DIR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+        28, // ID (unique, in valid range [0, 32))
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.GENERIC,
+        3   // count (x, y, z light direction)
+    )
+
+    /**
+     * World-space model format with overlay, lightmap, normals, edge data, and custom lighting.
+     * Layout: Position (vec3), Color (vec4), UV0 (vec2), OverlayUV (vec4), Light (vec2), LightDir (vec3), Light1Dir (vec3), Normal (vec3), EdgeData (vec2)
+     *
+     * Total size: 12 + 4 + 8 + 16 + 4 + 12 + 12 + 12 + 8 = 88 bytes
+     *
+     * - Position: World-space position (3 floats = 12 bytes)
+     * - Color: RGBA tint color (4 bytes)
+     * - UV0: Main texture coordinates (2 floats = 8 bytes)
+     * - OverlayUV: vec4(overlayU, overlayV, hasOverlay, diffuseAmount) (4 floats = 16 bytes)
+     * - Light: Lightmap coordinates (2 shorts = 4 bytes)
+     * - LightDir: Primary light direction (3 floats = 12 bytes)
+     * - Light1Dir: Fill light direction (3 floats = 12 bytes)
+     * - Normal: Normal vector as floats (3 floats = 12 bytes)
+     * - EdgeData: Face-relative coordinates for AA (2 floats = 8 bytes)
+     */
+    val WORLD_MODEL_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", VertexFormatElement.POSITION)
+        .add("Color", VertexFormatElement.COLOR)
+        .add("UV0", VertexFormatElement.UV0)
+        .add("OverlayUV", OVERLAY_UV_ELEMENT)
+        .add("Light", VertexFormatElement.UV2)
+        .add("LightDir", LIGHT_DIR_ELEMENT)
+        .add("Light1Dir", LIGHT1_DIR_ELEMENT)
+        .add("Normal", NORMAL_FLOAT)
+        .add("EdgeData", EDGE_DATA_ELEMENT)
         .build()
 }
 

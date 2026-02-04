@@ -25,6 +25,7 @@ import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.RenderMain.worldToScreenNormalized
+import com.lambda.graphics.mc.ItemOverlay
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.graphics.text.FontHandler.getDefaultFont
@@ -43,6 +44,7 @@ import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
 import net.minecraft.client.network.OtherClientPlayerEntity
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
@@ -202,7 +204,7 @@ object Nametags : Module(
 	}
 
 	private fun RenderBuilder.renderItem(stack: ItemStack, x: Float, y: Float) {
-		screenImage(LambdaImageAtlas.getItemSprite(stack) ?: return, x, y, trueItemScaleX, trueItemScaleY, hasOverlay = stack.hasEnchantments, pixelPerfect = true)
+		screenGuiItem(stack, x, y, trueItemScaleY, centered = false)
 		var iteratorY = y
 		iteratorY += trueItemScaleY
 		if (durability && stack.isDamageable) {

@@ -21,6 +21,8 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.ItemLighting
+import com.lambda.graphics.mc.ItemOverlay
 import com.lambda.graphics.mc.LineDashStyle.Companion.marchingAnts
 import com.lambda.graphics.mc.LineDashStyle.Companion.screenMarchingAnts
 import com.lambda.graphics.mc.RenderBuilder.SDFGlow
@@ -37,10 +39,14 @@ import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.toBlockPos
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.random.Random
+import org.joml.Quaternionf
 import java.awt.Color
 
 /**
@@ -120,15 +126,6 @@ object ChunkedRendererTest : Module(
 				centered = true
 			)
 
-			// ========== Item Rendering Tests ==========
-			// Test screen items at various positions and sizes
-			// Size is normalized (e.g., 0.03 = 3% of screen height)
-			screenItem(Items.DIAMOND_SWORD.defaultStack, 0.02f, 0.40f)  // Default size ~1.5%
-			screenItem(Items.NETHERITE_CHESTPLATE.defaultStack, 0.06f, 0.40f)
-			screenItem(Items.ENCHANTED_GOLDEN_APPLE.defaultStack, 0.10f, 0.40f)
-			// Test larger item (5% of screen height)
-			screenItem(Items.DIAMOND.defaultStack, 0.14f, 0.40f, size = 0.05f)
-
 			// ========== Image Rendering Tests ==========
 			// Test screen image using simple Identifier-based API
 			//				screenImage(
@@ -163,6 +160,21 @@ object ChunkedRendererTest : Module(
 				tint = Color.WHITE,
 				hasOverlay = true
 			)
+
+			// Test 3D Model (Chunked - Static)
+			// Render a Stone Block
+			val stoneState = net.minecraft.block.Blocks.STONE.defaultState
+			val stoneModel = mc.bakedModelManager.blockModels.getModel(stoneState)
+			val stoneRandom = net.minecraft.util.math.random.Random.create()
+			val stoneParts = stoneModel.getParts(stoneRandom)
+			
+			stoneParts.forEach { part ->
+				model(
+					part,
+					pos = startPos.offset(Direction.WEST, 2.0).add(0.0, 1.0, 0.0),
+					scale = Vec3d(1.0, 1.0, 1.0)
+				)
+			}
 			changedAlready = true
 		}
 	}
@@ -266,15 +278,6 @@ object TickedRendererTest : Module(
 					centered = true
 				)
 
-				// ========== Item Rendering Tests ==========
-				// Test screen items at various positions and sizes
-				// Size is normalized (e.g., 0.03 = 3% of screen height)
-				screenItem(Items.DIAMOND_SWORD.defaultStack, 0.02f, 0.40f)  // Default size ~1.5%
-				screenItem(Items.NETHERITE_CHESTPLATE.defaultStack, 0.06f, 0.40f)
-				screenItem(Items.ENCHANTED_GOLDEN_APPLE.defaultStack, 0.10f, 0.40f)
-				// Test larger item (5% of screen height)
-				screenItem(Items.DIAMOND.defaultStack, 0.14f, 0.40f, size = 0.05f)
-
 				// ========== Image Rendering Tests ==========
 				// Test screen image using simple Identifier-based API
 				//				screenImage(
@@ -309,6 +312,21 @@ object TickedRendererTest : Module(
 					tint = Color.WHITE,
 					hasOverlay = true
 				)
+
+				// Test 3D Model (Ticked - Interpolated)
+				// Render a Gold Block
+				val goldState = net.minecraft.block.Blocks.GOLD_BLOCK.defaultState
+				val goldModel = mc.bakedModelManager.blockModels.getModel(goldState)
+				val goldRandom = net.minecraft.util.math.random.Random.create()
+				val goldParts = goldModel.getParts(goldRandom)
+				
+				goldParts.forEach { part ->
+					model(
+						part,
+						pos = startPos.offset(Direction.WEST, 3.0).add(0.0, 1.0, 0.0),
+						scale = Vec3d(1.0, 1.0, 1.0)
+					)
+				}
 			}
 			
 			renderer.upload()
@@ -398,15 +416,6 @@ object ImmediateRendererTest : Module(
 					centered = true
 				)
 
-				// ========== Item Rendering Tests ==========
-				// Test screen items at various positions and sizes
-				// Size is normalized (e.g., 0.03 = 3% of screen height)
-				screenItem(Items.DIAMOND_SWORD.defaultStack, 0.02f, 0.40f)  // Default size ~1.5%
-				screenItem(Items.NETHERITE_CHESTPLATE.defaultStack, 0.06f, 0.40f)
-				screenItem(Items.ENCHANTED_GOLDEN_APPLE.defaultStack, 0.10f, 0.40f)
-				// Test larger item (5% of screen height)
-				screenItem(Items.DIAMOND.defaultStack, 0.14f, 0.40f, size = 0.05f)
-
 				// ========== Image Rendering Tests ==========
 				// Test screen image using simple Identifier-based API
 //				screenImage(
@@ -440,6 +449,79 @@ object ImmediateRendererTest : Module(
 					size = 0.8f,
 					tint = Color.WHITE,
 					hasOverlay = true
+				)
+
+				// Test 3D Model (Immediate - Rotating)
+				// Render a Diamond Block
+				val diamondState = net.minecraft.block.Blocks.DIAMOND_BLOCK.defaultState
+				val diamondModel = mc.bakedModelManager.blockModels.getModel(diamondState)
+				val diamondRandom = Random.create()
+				val diamondParts = diamondModel.getParts(diamondRandom)
+				
+				val time = System.currentTimeMillis() % 2000L / 2000f
+				val rotation = Quaternionf().rotateY(time * Math.PI.toFloat() * 2f)
+				
+				diamondParts.forEach { part ->
+					model(
+						part,
+						pos = startPos.offset(Direction.WEST, 4.0).add(0.0, 1.0, 0.0),
+						scale = Vec3d(0.7, 0.7, 0.7),
+						rotation = rotation,
+						centered = true,
+						pixelPerfect = true,
+						smartAA = true
+					)
+				}
+
+				// ========== High-Fidelity GUI Item Rendering Tests ==========
+				// 1. World-space GUI Item (Netherite Sword)
+				worldGuiItem(
+					stack = ItemStack(Items.NETHERITE_SWORD),
+					pos = startPos.offset(Direction.NORTH, 2.0).add(0.0, 1.5, 0.0),
+					scale = 0.5f,
+				)
+
+				// 2. World-space GUI Block (Grass Block)
+				worldGuiItem(
+					stack = ItemStack(Items.GRASS_BLOCK),
+					pos = startPos.offset(Direction.NORTH, 2.0).offset(Direction.WEST, 1.0).add(0.0, 1.5, 0.0),
+					scale = 0.5f,
+					overlay = ItemOverlay.ENCHANT_GLINT,
+				)
+
+				// 3. Screen-space GUI Item
+				screenGuiItem(
+					stack = ItemStack(Items.DIAMOND_PICKAXE),
+					x = 0.5f, y = 0.4f,
+					size = 0.08f,
+				)
+
+				// ========== New: Flat & Shaded GUI Items ==========
+				val lightTime = (System.currentTimeMillis() % 4000L / 4000f) * 360f
+				
+				// 4. Flat World Block (Grass Block)
+				worldGuiItem(
+					stack = ItemStack(Items.GRASS_BLOCK),
+					pos = startPos.offset(Direction.NORTH, 3.0),
+					scale = 0.5f,
+					flat = true,
+					overlay = ItemOverlay.ENCHANT_GLINT
+				)
+
+				// 5. Custom Shading World Item (Golden Apple)
+				worldGuiItem(
+					stack = ItemStack(Items.GOLDEN_APPLE),
+					pos = startPos.offset(Direction.NORTH, 3.0).offset(Direction.EAST, 1.0),
+					scale = 0.5f,
+				)
+
+				// 6. Flat Screen Item (Enchanted Book)
+				screenGuiItem(
+					stack = ItemStack(Items.GRASS_BLOCK),
+					x = 0.6f, y = 0.4f,
+					size = 0.08f,
+					rotation = Vec3d(0.0, 0.0, lightTime.toDouble()), // Spinning on screen
+					lighting = ItemLighting.NONE
 				)
 			}
 			
