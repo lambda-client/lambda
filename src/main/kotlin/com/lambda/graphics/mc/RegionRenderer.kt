@@ -459,6 +459,29 @@ class RegionRenderer {
 		}
 
 		/**
+		 * Helper to create a render pass for screen-space rendering WITH depth testing.
+		 * Enables unified layering across all screen element types (models, faces, text, etc.).
+		 * Uses the xray depth buffer for self-ordering without affecting MC's world depth.
+		 * 
+		 * @param label Debug label for the render pass
+		 * @param clearDepth If true, clear the depth buffer to 1.0 (call this on the first screen pass)
+		 */
+		fun createScreenRenderPassWithDepth(label: String, clearDepth: Boolean = false): RenderPass? {
+			val framebuffer = mc.framebuffer ?: return null
+			val depthView = RendererUtils.getXrayDepthView()
+			
+			return RenderSystem.getDevice()
+				.createCommandEncoder()
+				.createRenderPass(
+					{ label },
+					framebuffer.colorAttachmentView,
+					OptionalInt.empty(),
+					depthView,
+					if (clearDepth) OptionalDouble.of(1.0) else OptionalDouble.empty()
+				)
+		}
+
+		/**
 		 * Render a custom vertex buffer using quads mode.
 		 * Used for styled text rendering where each style has its own buffer.
 		 *

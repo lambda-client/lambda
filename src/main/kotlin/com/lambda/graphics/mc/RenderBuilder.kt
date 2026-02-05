@@ -72,13 +72,15 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	// ============================================================================
 	// Screen-Space Layer Tracking
 	// ============================================================================
-	// Layer depth for screen-space ordering. Higher values render on top.
-	// Range: 0.0 to ~1.0, incrementing with each screen draw call.
+	// Layer depth for screen-space ordering.
+	// With orthographic projection (near=-1000, far=1000) and LEQUAL depth test:
+	// - Higher Z = lower depth = closer to viewer = renders ON TOP
+	// - Start at -800 and increment, so later calls have higher Z (on top)
 	
 	/** Current layer depth for screen-space ordering. 
 	 * Range: -1000 (far) to 1000 (near) in our orthographic projection.
 	 */
-	private var currentLayer = 800f
+	private var currentLayer = -800f
 	
 	/** Distance between screen layers. Each call moves slightly closer to viewer. */
 	private val layerIncrement = 1f
@@ -98,7 +100,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	/** Get next layer depth for screen-space ordering. Later calls render on top. */
 	private fun nextLayer(): Float {
 		val layer = currentLayer
-		currentLayer -= layerIncrement
+		currentLayer += layerIncrement
 		return layer
 	}
 

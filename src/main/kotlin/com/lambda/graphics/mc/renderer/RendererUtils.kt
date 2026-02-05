@@ -235,17 +235,26 @@ object RendererUtils {
 	 */
 	fun getTextPipeline(depthTest: Boolean): RenderPipeline = LambdaRenderPipelines.SDF_TEXT
 
-	/** Screen-space faces pipeline (with layer-based depth for draw order). */
+	/** Get the screen-space faces pipeline. */
+	fun getScreenFacesPipeline(depthTest: Boolean = true): RenderPipeline = LambdaRenderPipelines.SCREEN_FACES
+	
+	/** Screen-space faces pipeline (legacy, use getScreenFacesPipeline instead). */
 	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_FACES
 
-	/** Screen-space edges pipeline. */
+	/** Get the screen-space edges pipeline. */
+	fun getScreenEdgesPipeline(depthTest: Boolean = true): RenderPipeline = LambdaRenderPipelines.SCREEN_LINES
+	
+	/** Screen-space edges pipeline (legacy, use getScreenEdgesPipeline instead). */
 	val screenEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_LINES
 
-	/** Screen-space text pipeline. */
+	/** Get the screen-space text pipeline. */
+	fun getScreenTextPipeline(depthTest: Boolean = true): RenderPipeline = LambdaRenderPipelines.SCREEN_TEXT
+	
+	/** Screen-space text pipeline (legacy, use getScreenTextPipeline instead). */
 	val screenTextPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_TEXT
 
 	/** Get the screen-space image pipeline. */
-	fun getScreenImagePipeline(): RenderPipeline = LambdaRenderPipelines.SCREEN_IMAGE
+	fun getScreenImagePipeline(depthTest: Boolean = true): RenderPipeline = LambdaRenderPipelines.SCREEN_IMAGE
 
 	/**
 	 * Get the world-space image pipeline.

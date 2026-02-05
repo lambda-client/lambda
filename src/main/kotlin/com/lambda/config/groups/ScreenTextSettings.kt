@@ -35,7 +35,7 @@ class ScreenTextSettings(
     }
 
     override val textColor by c.setting("${prefix}Text Color", Color.WHITE, "The main text color", visibility = visibility).group(*baseGroup).index()
-    val sizeSetting by c.setting("${prefix}Text Size", 12, 1..50, 1, visibility = visibility).group(*baseGroup).index()
+    val sizeSetting by c.setting("${prefix}Text Size", 18, 1..50, 1, visibility = visibility).group(*baseGroup).index()
     override val size get() = sizeSetting * 0.001f
 
     override val outlineEnabled by c.setting("${prefix}Outline", false, "Enable text outline", visibility = visibility).group(*baseGroup, Group.Outline).index()

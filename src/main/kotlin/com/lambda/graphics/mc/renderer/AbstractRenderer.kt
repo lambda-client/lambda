@@ -21,6 +21,7 @@ import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
 import com.mojang.blaze3d.buffers.GpuBufferSlice
+import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
 import kotlin.collections.isNotEmpty
 
@@ -163,6 +164,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 
 	/**
 	 * Render screen-space geometry. Uses orthographic projection for 2D rendering.
+	 * Uses depth testing with xray depth buffer for unified call-order layering.
 	 * This should be called after world-space render() for proper layering.
 	 */
 	fun renderScreen() {
@@ -170,18 +172,55 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
+			
+			// Track if we've cleared the depth buffer yet
+			var depthCleared = false
+			
+			// Helper to get the right render pass (clear depth on first call)
+			fun getScreenPass(label: String): RenderPass? {
+				val pass = RegionRenderer.createScreenRenderPassWithDepth(label, clearDepth = !depthCleared)
+				depthCleared = true
+				return pass
+			}
 
-			// Render Screen Faces (no depth test - painter's algorithm)
-			RegionRenderer.createScreenRenderPass("$name Screen Faces")?.use { pass ->
-				pass.setPipeline(RendererUtils.screenFacesPipeline)
+			// Render Screen Models
+			val modelRenderers = renderers.filter { it.hasScreenModelData() }
+			if (modelRenderers.isNotEmpty()) {
+				RendererUtils.ensureGlintTextureLoaded()
+				
+				// Create dedicated glint uniform slice (scale 8.0 for vanilla GUI parity)
+				val glintUniform = RendererUtils.createGlintUniform(8.0f)
+				
+				getScreenPass("$name Screen Models")?.use { pass ->
+					pass.setPipeline(RendererUtils.getModelPipeline(depthTest = true))
+					RenderSystem.bindDefaultUniforms(pass)
+					
+					// Use global screen dynamic transform for geometry position
+					pass.setUniform("DynamicTransforms", dynamicTransform)
+					// Use dedicated glint uniform for animation
+					pass.setUniform("GlintTransforms", glintUniform)
+					
+					// Bind overlay and lightmap textures for item effects
+					RendererUtils.bindOverlayTexture(pass, "Sampler1")
+					RendererUtils.bindLightmapTexture(pass, "Sampler2")
+					// Bind glint texture for enchantment shimmer
+					RendererUtils.bindGlintTexture(pass, "Sampler3")
+					
+					modelRenderers.forEach { it.renderScreenModels(pass) }
+				}
+			}
+
+			// Render Screen Faces
+			getScreenPass("$name Screen Faces")?.use { pass ->
+				pass.setPipeline(RendererUtils.getScreenFacesPipeline(depthTest = true))
 				RenderSystem.bindDefaultUniforms(pass)
 				pass.setUniform("DynamicTransforms", dynamicTransform)
 				renderers.forEach { it.renderScreenFaces(pass) }
 			}
 
 			// Render Screen Edges
-			RegionRenderer.createScreenRenderPass("$name Screen Edges")?.use { pass ->
-				pass.setPipeline(RendererUtils.screenEdgesPipeline)
+			getScreenPass("$name Screen Edges")?.use { pass ->
+				pass.setPipeline(RendererUtils.getScreenEdgesPipeline(depthTest = true))
 				RenderSystem.bindDefaultUniforms(pass)
 				pass.setUniform("DynamicTransforms", dynamicTransform)
 				renderers.forEach { it.renderScreenEdges(pass) }
@@ -195,8 +234,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 				val textureView = atlas.textureView
 				val sampler = atlas.sampler
 				if (textureView != null && sampler != null) {
-					RegionRenderer.createScreenRenderPass("$name Screen Text")?.use { pass ->
-						pass.setPipeline(RendererUtils.screenTextPipeline)
+					getScreenPass("$name Screen Text")?.use { pass ->
+						pass.setPipeline(RendererUtils.getScreenTextPipeline(depthTest = true))
 						RenderSystem.bindDefaultUniforms(pass)
 						pass.setUniform("DynamicTransforms", dynamicTransform)
 						pass.bindTexture("Sampler0", textureView, sampler)
@@ -214,8 +253,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 				// Create a fresh dynamic transform with glint matrix calculated NOW (not at build time)
 				val glintTransform = RendererUtils.createScreenDynamicTransformWithGlint()
 				
-				RegionRenderer.createScreenRenderPass("$name Screen Images")?.use { pass ->
-					pass.setPipeline(RendererUtils.getScreenImagePipeline())
+				getScreenPass("$name Screen Images")?.use { pass ->
+					pass.setPipeline(RendererUtils.getScreenImagePipeline(depthTest = true))
 					RenderSystem.bindDefaultUniforms(pass)
 					pass.setUniform("DynamicTransforms", glintTransform)
 					
@@ -224,33 +263,6 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 					
 					// Each renderer handles its own texture batches
 					imageRenderers.forEach { it.renderScreenImages(pass) }
-				}
-			}
-
-			// Render Screen Models
-			val modelRenderers = renderers.filter { it.hasScreenModelData() }
-			if (modelRenderers.isNotEmpty()) {
-				RendererUtils.ensureGlintTextureLoaded()
-				
-				// Create dedicated glint uniform slice (scale 8.0 for vanilla GUI parity)
-				val glintUniform = RendererUtils.createGlintUniform(8.0f)
-				
-				RegionRenderer.createScreenRenderPass("$name Screen Models")?.use { pass ->
-					pass.setPipeline(RendererUtils.getModelPipeline(depthTest = false))
-					RenderSystem.bindDefaultUniforms(pass)
-					
-					// Use global screen dynamic transform for geometry position
-					pass.setUniform("DynamicTransforms", dynamicTransform)
-					// Use dedicated glint uniform for animation
-					pass.setUniform("GlintTransforms", glintUniform)
-					
-					// Bind overlay and lightmap textures for item effects
-					RendererUtils.bindOverlayTexture(pass, "Sampler1")
-					RendererUtils.bindLightmapTexture(pass, "Sampler2")
-					// Bind glint texture for enchantment shimmer
-					RendererUtils.bindGlintTexture(pass, "Sampler3")
-					
-					modelRenderers.forEach { it.renderScreenModels(pass) }
 				}
 			}
 		}

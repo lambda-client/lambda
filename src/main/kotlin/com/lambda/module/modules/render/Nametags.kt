@@ -40,6 +40,7 @@ import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.maxFullHealth
+import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
@@ -50,6 +51,7 @@ import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.predicate.item.DamagePredicate.durability
 import net.minecraft.util.math.Vec3d
 import org.joml.component1
 import org.joml.component2
@@ -72,7 +74,7 @@ object Nametags : Module(
 	}
 
 	private val entities by setting("Entities", setOf(EntityUtils.EntityGroup.Player), EntityUtils.EntityGroup.entries).group(Group.General)
-	private val itemScale by setting("Item Scale", 1.9f, 0.4f..5f, 0.01f).group(Group.General)
+	private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f).group(Group.General)
 	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01).group(Group.General)
 	private val spacing by setting("Spacing", 0, 0..10, 1).group(Group.General)
 	private val self by setting("Self", false).group(Group.General)
@@ -82,8 +84,9 @@ object Nametags : Module(
 	private val mainItem by setting("Main Item", true) { gear }.group(Group.General)
 	private val offhandItem by setting("Offhand Item", true) { gear }.group(Group.General)
 	private val itemName by setting("Item Name", true).group(Group.General)
-	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f).group(Group.General)
-	private val durability by setting("Durability", true) { gear }.group(Group.General)
+	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }.group(Group.General)
+	private val itemCount by setting("Item Count", true).group(Group.General)
+	private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }.group(Group.General)
 	//ToDo: Implement
 //	private val enchantments by setting("Enchantments", false) { gear }
 
@@ -122,7 +125,7 @@ object Nametags : Module(
 						val nameText = entity.displayName?.string ?: return@forEach
 						val box = entity.interpolatedBox
 						val boxCenter = box.center
-						val (anchorX, anchorY) =
+						var (anchorX, anchorY) =
 							worldToScreenNormalized(Vec3d(boxCenter.x, box.maxY + yOffset, boxCenter.z))
 								?: return@forEach
 
@@ -134,7 +137,8 @@ object Nametags : Module(
 						if (itemName && !entity.mainHandStack.isEmpty) {
 							val itemNameText = entity.mainHandStack.name.string
 							val itemNameScale = textSize * itemNameScale
-							screenText(itemNameText, anchorX, anchorY - (itemNameScale * 1.1f) - trueSpacingY, itemNameScale, centered = true)
+							screenText(itemNameText, anchorX, anchorY, itemNameScale, centered = true)
+							anchorY += (itemNameScale * 1.1f) + trueSpacingY
 						}
 
 						val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, textSize)
@@ -149,7 +153,7 @@ object Nametags : Module(
 						val pingText = if (pingCount >= 0) " [$pingCount]" else ""
 						val pingWidth =
 							getDefaultFont().getStringWidthNormalized(pingText, textSize)
-								.let { if (pingCount > 0 ) it + trueSpacingX else it }
+								.let { if (pingCount >= 0) it + trueSpacingX else it }
 
 						var combinedWidth = nameWidth + healthWidth + pingWidth
 						val nameX = anchorX - (combinedWidth / 2)
@@ -186,7 +190,7 @@ object Nametags : Module(
 	private fun RenderBuilder.drawArmorAndItems(entity: LivingEntity, x: Float, y: Float) {
 		val stepAmount = trueItemScaleX + trueSpacingX
 		var iteratorX = x - (stepAmount * 3) + (trueSpacingX / 2)
-		if (mainItem && !entity.mainHandStack.isEmpty) renderItem(entity.mainHandStack, iteratorX - (trueItemScaleX * 0.1f), y)
+		if (mainItem && !entity.mainHandStack.isEmpty) renderItem(entity.mainHandStack, iteratorX, y)
 		iteratorX += stepAmount
 		val headStack = entity.getEquippedStack(EquipmentSlot.HEAD)
 		val chestStack = entity.getEquippedStack(EquipmentSlot.CHEST)
@@ -207,15 +211,37 @@ object Nametags : Module(
 		screenGuiItem(stack, x, y, trueItemScaleY, centered = false)
 		var iteratorY = y
 		iteratorY += trueItemScaleY
-		if (durability && stack.isDamageable) {
-			val dura = (1 - (stack.damage / stack.maxDamage.toDouble())).roundToStep(0.01) * 100
-			val duraText = "$dura%"
-			val textSize = getDefaultFont().getSizeForWidthNormalized(duraText, trueItemScaleX) * 0.9f
-			screenText(duraText, x, iteratorY, textSize, style = RenderBuilder.SDFStyle(color = lerp(dura / 100, Color.RED, Color.GREEN).brighter()))
+		if (durabilityMode != DurabilityMode.None && stack.isDamageable) {
+			val dura = (1 - (stack.damage / stack.maxDamage.toDouble()))
+			if (durabilityMode.bar) {
+				val yOffset = trueItemScaleY / 16
+				val xOffset = trueItemScaleX / 16
+				val maxWidth = xOffset * 14
+				screenRect(x + xOffset, y + yOffset, maxWidth, yOffset * 2, Color.BLACK)
+				screenRect(x + xOffset, y + (yOffset * 2), maxWidth * dura.toFloat(), yOffset, lerp(dura, Color.RED, Color.GREEN).brighter())
+			}
+			if (durabilityMode.text) {
+				val duraText = "${(dura * 100).toInt()}%"
+				val textSize = getDefaultFont().getSizeForWidthNormalized(duraText, trueItemScaleX) * 0.9f
+				screenText(duraText, x + (trueItemScaleX / 2), iteratorY, textSize.coerceAtMost(trueItemScaleY * 0.33f), centered = true, style = RenderBuilder.SDFStyle(color = lerp(dura, Color.RED, Color.GREEN).brighter()))
+			}
+		}
+		if (itemCount && stack.isStackable && stack.count > 1) {
+			val countText = "${stack.count}"
+			val textSize = trueItemScaleY / 2
+			val textWidth = getDefaultFont().getStringWidthNormalized(countText, textSize)
+			screenText(countText, x - (textWidth - trueItemScaleX), y, textSize)
 		}
 	}
 
 	@JvmStatic
 	fun shouldRenderNametag(entity: Entity) =
 		entity.entityGroup in entities && (self || entity !== mc.player) && (entity !is LivingEntity || entity.isAlive)
+
+	private enum class DurabilityMode(val text: Boolean, val bar: Boolean) {
+		None(false, false),
+		Text(true, false),
+		Bar(false, true),
+		Both(true, true)
+	}
 }
