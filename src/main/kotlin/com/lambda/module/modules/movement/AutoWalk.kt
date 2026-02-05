@@ -23,7 +23,10 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Timer
+import com.lambda.util.player.MovementUtils.forward
+import com.lambda.util.player.MovementUtils.strafe
 import com.lambda.util.player.MovementUtils.update
+import net.minecraft.util.math.Vec2f
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -33,47 +36,14 @@ class AutoWalk : Module(
 	tag = ModuleTag.MOVEMENT,
 ) {
 	val pause by setting("Enable Pause", false)
-	val pauseTime by setting("Pause Time", 0, 0..200, 5, unit = "ms") { pause }
-	val pauseInterval by setting("Pause Interval", 0, 0..5000, 100, unit = "ms") { pause }
 
-	var pauseTimer = Timer()
-	val pauseIntervalTimer = Timer()
-
-	var state = State.Walking
+	val limitSpeed by setting("Limit Speed", false)
+	val speed by setting("Speed", 0.5, 0.1..1.0, 0.05) { limitSpeed }
 
 	init {
-		listen<TickEvent.Pre> {
-			if (!pause) return@listen
-			when (state) {
-				State.Walking -> {
-					if (!pauseIntervalTimer.timePassed(pauseInterval.toDuration(DurationUnit.MILLISECONDS))) return@listen
-					pauseIntervalTimer.reset()
-					pauseTimer.reset()
-					state = State.Pausing
-				}
-				State.Pausing -> {
-					if (!pauseTimer.timePassed(pauseTime.toDuration(DurationUnit.MILLISECONDS))) return@listen
-					pauseTimer.reset()
-					pauseIntervalTimer.reset()
-					state = State.Walking
-				}
-			}
-		}
-
-		onEnable {
-			pauseTimer.reset()
-			pauseIntervalTimer.reset()
-			state = State.Walking
-		}
-
 		listen<MovementEvent.InputUpdate> { event ->
-			if (pause && state == State.Pausing) return@listen
 			event.input.update(forward = 1.0)
+			if (limitSpeed) event.input.movementVector = Vec2f(event.input.strafe, event.input.forward).normalize().multiply(speed.toFloat())
 		}
-	}
-
-	enum class State {
-		Walking,
-		Pausing
 	}
 }
