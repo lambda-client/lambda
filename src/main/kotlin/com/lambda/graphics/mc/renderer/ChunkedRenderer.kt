@@ -107,7 +107,8 @@ class ChunkedRenderer(
 			repeat(polls) { uploadQueue.poll()?.invoke() }
 		}
 
-		owner.listen<RenderEvent.Render> { render() }
+		owner.listen<RenderEvent.RenderWorld> { render() }
+		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	private fun getChunkKey(chunkX: Int, chunkZ: Int) =

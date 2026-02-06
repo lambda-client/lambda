@@ -50,13 +50,13 @@ class ImmediateRenderer(
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
 	init {
-		owner.listen<RenderEvent.Render> {
+		owner.listen<RenderEvent.RenderWorld> {
 			renderer.clearData()
 			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos).also { it.update(SafeContext.create() ?: return@listen) }
 			upload(renderBuilder)
 			render()
-			renderScreen()
 		}
+		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	/** Upload collected geometry to GPU. Must be called on main thread. */

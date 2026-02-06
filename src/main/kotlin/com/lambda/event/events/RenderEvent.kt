@@ -22,7 +22,8 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 
 sealed class RenderEvent {
-    object Render : Event
+    object RenderWorld : Event
+    object RenderScreen : Event
 
     class UpdateTarget : ICancellable by Cancellable()
 }

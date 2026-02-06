@@ -24,66 +24,54 @@ void main() {
     vec3 lineDir = normalize(v_Normal);
     float halfLength = v_SegmentLength / 2.0;
     
-    // Compute line start and end from center (which IS consistent)
+    // Compute line start and end from center
     vec3 lineStart = v_LineCenter - lineDir * halfLength;
     vec3 lineEnd = v_LineCenter + lineDir * halfLength;
     
-    float radius = v_LineWidth / 2.0;
-    
     // ===== CAPSULE SDF =====
-    // Project fragment position onto line to find closest point
     vec3 toFragment = v_ExpandedPos - lineStart;
     float projLength = dot(toFragment, lineDir);
     
-    // Perpendicular distance - stable for AA calculation along the line body
+    // Perpendicular distance
     vec3 perpVec = toFragment - lineDir * projLength;
     float perpDist = length(perpVec);
     
-    // Clamp to segment bounds [0, segmentLength] for capsule behavior
-    float clampedProj = clamp(projLength, 0.0, v_SegmentLength);
+    // Calculate stable pixel size from screen-space position derivatives
+    // This is more reliable than fwidth(sdf) which can be unstable at edges
+    vec3 dPos_dx = dFdx(v_ExpandedPos);
+    vec3 dPos_dy = dFdy(v_ExpandedPos);
+    float pixelSize = (length(dPos_dx) + length(dPos_dy)) * 0.5;
     
-    // For end caps, we need the actual distance to the endpoint
+    // For end caps, compute actual distance to endpoints
     float dist3D;
     if (projLength < 0.0) {
-        // Before start - distance to start point
         dist3D = length(v_ExpandedPos - lineStart);
     } else if (projLength > v_SegmentLength) {
-        // After end - distance to end point
         dist3D = length(v_ExpandedPos - lineEnd);
     } else {
-        // Along the line - use perpendicular distance
         dist3D = perpDist;
     }
     
-    // SDF: distance to capsule surface (positive = outside, negative = inside)
-    float sdf = dist3D - radius;
+    // Calculate screen line width in pixels
+    float screenLineWidth = v_LineWidth / max(pixelSize, 0.0001);
     
-    // Use fwidth(sdf) for AA - this measures how fast the SDF changes per pixel,
-    // which is stable regardless of viewing angle. When looking down the line,
-    // the SDF change per pixel remains consistent because we care about the
-    // perpendicular distance to the capsule surface, not world-space position.
-    float sdfGrad = fwidth(sdf);
+    // Minimum 1-pixel rendering width - thinner lines scale alpha instead of getting gaps
+    float minWidth = pixelSize;  // 1 pixel
+    float effectiveRadius = max(v_LineWidth * 0.5, minWidth * 0.5);
     
-    // Calculate screen-space line width in pixels (diameter)
-    float screenLineWidth = (radius * 2.0) / max(sdfGrad, 0.0001);
+    // Alpha scaling: lines < 1px get proportionally reduced opacity
+    float alphaScale = min(screenLineWidth, 1.0);
     
-    // For sub-pixel lines: fade alpha based on line width
-    // This allows lines to naturally disappear at distance
-    float coverageFactor = clamp(screenLineWidth, 0.0, 1.0);
+    // SDF: distance to capsule surface
+    float sdf = dist3D - effectiveRadius;
     
-    // Adaptive AA using consistent sdfGrad units:
-    // - Thick lines (>4px): crisp edges with 0.5px AA on each side
-    // - Thin lines (<2px): soft edges with 1.5px AA on each side
-    // All in screen-space for consistency
-    float thinness = clamp(1.0 - (screenLineWidth - 2.0) / 2.0, 0.0, 1.0);
-    float aaWidth = mix(sdfGrad * 0.5, sdfGrad * 1.5, thinness);
-    
+    // AA: 1 pixel transition for crisp edges
+    float aaWidth = pixelSize;
     float alpha = 1.0 - smoothstep(-aaWidth, aaWidth, sdf);
     
-    // Apply coverage factor to fade sub-pixel lines
-    alpha *= coverageFactor;
+    // Apply alpha scaling for sub-pixel lines
+    alpha *= alphaScale;
     
-    // Skip fragments outside the line
     if (alpha < 0.004) {
         discard;
     }

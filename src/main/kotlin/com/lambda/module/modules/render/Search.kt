@@ -75,6 +75,7 @@ object Search : Module(
     private val worldLineConfig = WorldLineSettings("Outline ", this) { outline }.apply {
         applyEdits {
             hide(::startColor, ::endColor)
+            settings.forEach { it.onValueChange(::rebuildMesh) }
         }
     }
     private val screenLineConfig = ScreenLineSettings("Tracer ", this)
@@ -135,7 +136,7 @@ object Search : Module(
                 else {
                     outlineColor(lineColor)
                     worldLineConfig.getDashStyle()?.let { lineDashStyle(it) }
-                    outlineMode(this@Search.blockOutlineMode)
+                    outlineMode(blockOutlineMode)
                 }
             }
         }

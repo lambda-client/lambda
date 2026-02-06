@@ -9,52 +9,43 @@
 in vec3 Position;
 in vec4 Color;
 in vec3 Normal;      // Direction vector to other endpoint (length = segment length)
-in float LineWidth;  // Line width in WORLD UNITS
+in float LineWidth;  // Line width: positive = world units, negative = screen-space fraction
 in vec4 Dash;        // Dash parameters
 
-// Outputs to fragment shader - ALL are debugging-friendly
+// Outputs to fragment shader
 out vec4 v_Color;
-out vec3 v_WorldPos;                 // Original unexpanded position
-out vec3 v_ExpandedPos;              // Expanded world position
-flat out vec3 v_Normal;              // Raw Normal input (same for all vertices)
-flat out vec3 v_LineCenter;          // Line center (computed consistently for all vertices)
-flat out float v_LineWidth;          // Line width
-flat out float v_SegmentLength;      // Computed segment length
-flat out float v_IsStart;            // 1.0 if start vertex, 0.0 if end
+out vec3 v_WorldPos;
+out vec3 v_ExpandedPos;
+flat out vec3 v_Normal;
+flat out vec3 v_LineCenter;
+flat out float v_LineWidth;          // Always positive (actual width in world units)
+flat out float v_SegmentLength;
+flat out float v_IsStart;
 flat out vec4 v_Dash;
 out float sphericalVertexDistance;
 out float cylindricalVertexDistance;
 
 void main() {
-    // Determine which corner of the quad this vertex is
     int vertexIndex = gl_VertexID % 4;
     bool isStart = (vertexIndex < 2);
     float side = (vertexIndex == 0 || vertexIndex == 3) ? -1.0 : 1.0;
     
-    // Normal is the same for all vertices - use it directly
     float segmentLength = length(Normal);
     vec3 lineDir = Normal / segmentLength;
     
-    // Line center (computed consistently for all vertices)
     vec3 lineCenter = isStart ? (Position + Normal * 0.5) : (Position - Normal * 0.5);
     
-    // Reconstruct endpoints from center
     vec3 lineStart = lineCenter - lineDir * (segmentLength * 0.5);
     vec3 lineEnd = lineCenter + lineDir * (segmentLength * 0.5);
     vec3 thisPoint = isStart ? lineStart : lineEnd;
     
-    // Billboard direction: compute vector from line center to camera POSITION
-    // Extract camera position from ModelViewMat:
-    // For a view matrix, camera pos = inverse(rotation) * -translation
-    // The rotation part is the upper-left 3x3, translation is column 3
-    mat3 rotationInv = transpose(mat3(ModelViewMat));  // inverse of rotation = transpose
+    // Extract camera position from ModelViewMat
+    mat3 rotationInv = transpose(mat3(ModelViewMat));
     vec3 translation = vec3(ModelViewMat[3]);
     vec3 cameraPos = rotationInv * (-translation);
     
-    // Now compute vector from line center to camera position
     vec3 toCamera = normalize(cameraPos - lineCenter);
     
-    // Compute perpendicular direction using cross product
     vec3 perpDir = cross(lineDir, toCamera);
     if (length(perpDir) < 0.001) {
         perpDir = cross(lineDir, vec3(0.0, 1.0, 0.0));
@@ -64,28 +55,43 @@ void main() {
     }
     perpDir = normalize(perpDir);
     
+    // Calculate actual line width in world units
+    float actualLineWidth;
+    if (LineWidth < 0.0) {
+        // Distance-scaled mode: negative value = screen-space fraction
+        // Convert screen fraction to world units at this distance
+        float screenFraction = -LineWidth;
+        float distToCamera = length(cameraPos - lineCenter);
+        
+        // Extract tan(fov/2) from projection matrix: ProjMat[1][1] = 1/tan(fov/2)
+        float tanHalfFov = 1.0 / ProjMat[1][1];
+        
+        // At distance d, visible height = 2 * d * tan(fov/2)
+        // world width = screenFraction * visible height
+        actualLineWidth = screenFraction * 2.0 * distToCamera * tanHalfFov;
+    } else {
+        actualLineWidth = LineWidth;
+    }
+    
     // Expand for AA
-    float halfWidth = LineWidth / 2.0;
-    float aaPadding = LineWidth * 0.3;
+    float halfWidth = actualLineWidth / 2.0;
+    float aaPadding = actualLineWidth * 0.3;
     float halfWidthPadded = halfWidth + aaPadding;
     
-    // Expand vertex
     vec3 perpOffset = perpDir * side * halfWidthPadded;
     float longitudinal = isStart ? -1.0 : 1.0;
     vec3 longOffset = lineDir * longitudinal * halfWidthPadded;
     
     vec3 expandedPos = thisPoint + perpOffset + longOffset;
     
-    // Transform to clip space
     gl_Position = ProjMat * ModelViewMat * vec4(expandedPos, 1.0);
     
-    // Pass ALL debug data
     v_Color = Color;
-    v_WorldPos = thisPoint;          // Position BEFORE expansion
-    v_ExpandedPos = expandedPos;     // Position AFTER expansion
-    v_Normal = Normal;               // Raw Normal (flat - same for all)
-    v_LineCenter = lineCenter;       // Line center (flat - same for all)
-    v_LineWidth = LineWidth;
+    v_WorldPos = thisPoint;
+    v_ExpandedPos = expandedPos;
+    v_Normal = Normal;
+    v_LineCenter = lineCenter;
+    v_LineWidth = actualLineWidth;  // Pass the computed world-unit width
     v_SegmentLength = segmentLength;
     v_IsStart = isStart ? 1.0 : 0.0;
     v_Dash = Dash;

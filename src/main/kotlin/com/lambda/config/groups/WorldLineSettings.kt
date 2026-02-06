@@ -23,8 +23,8 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 
 /**
- * SettingGroup for line configuration.
- * Provides individual settings for line colors, width, and dash patterns.
+ * SettingGroup for world-space line configuration.
+ * Provides settings for line colors, width, dash patterns, and distance scaling.
  */
 class WorldLineSettings(
     prefix: String,
@@ -37,8 +37,12 @@ class WorldLineSettings(
         Dash("Dash")
     }
 
-    val widthSetting by c.setting("${prefix}Line Width", 5, 1..50, 1, "The width of the line", visibility = visibility).group(*baseGroup).index()
-    override val width get() = widthSetting * 0.001f
+    val distanceScaling by c.setting("${prefix}Distance Scaling", true, "Line width stays constant on screen regardless of distance", visibility = visibility).group(*baseGroup).index()
+    val worldWidthSetting by c.setting("${prefix}Line Width", 5, 1..50, 1, "Line width in world units (blocks)") { visibility() && !distanceScaling }.group(*baseGroup).index()
+    val screenWidthSetting by c.setting("${prefix}Screen Width", 10, 1..100, 1, "Line width in screen-space (stays constant size)") { visibility() && distanceScaling }.group(*baseGroup).index()
+
+    override val width: Float get() = if (distanceScaling) -screenWidthSetting * 0.00005f  // Negative = screen-space mode
+    else worldWidthSetting * 0.001f  // Positive = world units
 
     override val startColor by c.setting("${prefix}Start Color", Color.WHITE, "The color at the start of the line", visibility = visibility).group(*baseGroup, Group.Color).index()
     override val endColor by c.setting("${prefix}End Color", Color.WHITE, "The color at the end of the line", visibility = visibility).group(*baseGroup, Group.Color).index()

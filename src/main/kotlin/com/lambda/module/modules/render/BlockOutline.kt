@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.WorldLineSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -38,14 +40,18 @@ object BlockOutline : Module(
 	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill }
 	private val outline by setting("Outline", true)
 	private val outlineColor by setting("Outline Color", Color(255, 255, 255, 120)) { outline }
-	private val lineWidth by setting("Line Width", 5, 1..50, 1) { outline }
+	private val lineConfig = WorldLineSettings("Outline ", this) { outline }.apply {
+		applyEdits {
+			hide(::startColor, ::endColor)
+		}
+	}
 	private val interpolate by setting("Interpolate", true)
-	private val throughWalls by setting("ESP", true)
+	private val esp by setting("ESP", true)
 
 	var previous: List<Box>? = null
 
 	init {
-		immediateRenderer("BlockOutline Immediate Renderer") { safeContext ->
+		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { esp }) { safeContext ->
 			with(safeContext) {
 				val hitResult = mc.crosshairTarget?.blockResult ?: return@immediateRenderer
 				val pos = hitResult.blockPos
@@ -65,7 +71,7 @@ object BlockOutline : Module(
 					}
 
 				boxes.forEach { box ->
-					box(box, lineWidth * 0.001f) {
+					box(box, lineConfig.width) {
 						colors(fillColor, outlineColor)
 						if (!fill) hideFill()
 						if (!outline) hideOutline()

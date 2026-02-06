@@ -108,7 +108,7 @@ object RenderMain {
     }
 
     @JvmStatic
-    fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
+    fun render(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
         resetMatrices(positionMatrix)
         projectionMatrix.set(projMatrix)
         
@@ -116,6 +116,7 @@ object RenderMain {
         // All world-space renderers share this depth state for proper inter-renderer occlusion.
         RendererUtils.clearXrayDepthBuffer()
         
-        RenderEvent.Render.post()
+        RenderEvent.RenderWorld.post()
+        RenderEvent.RenderScreen.post()
     }
 }

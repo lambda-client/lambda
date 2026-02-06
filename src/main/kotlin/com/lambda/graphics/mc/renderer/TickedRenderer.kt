@@ -66,10 +66,8 @@ class TickedRenderer(
 			upload(renderBuilder)
 		}
 
-		owner.listen<RenderEvent.Render> {
-			render()
-			renderScreen()
-		}
+		owner.listen<RenderEvent.RenderWorld> { render() }
+		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	/** Clear all current builders. Call this at the end of every tick. */
