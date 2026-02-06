@@ -17,25 +17,18 @@
 
 package com.lambda.graphics.mc.renderer
 
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
-import com.lambda.module.Module
-import com.lambda.util.world.FastVector
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.util.math.Vec3d
-import net.minecraft.world.World
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
-
 
 /**
  * Interpolated ESP system for smooth entity rendering.

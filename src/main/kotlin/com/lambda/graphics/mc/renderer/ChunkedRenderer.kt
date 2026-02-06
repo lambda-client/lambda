@@ -29,7 +29,6 @@ import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
-import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.runSafe
 import com.lambda.util.world.FastVector
