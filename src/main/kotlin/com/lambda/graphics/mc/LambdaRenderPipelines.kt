@@ -238,7 +238,7 @@ object LambdaRenderPipelines : Loadable {
 				.withFragmentShader(Identifier.of("lambda", "core/screen_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(true)  // Enable depth write for layer ordering
-				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)  // Enable depth test
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)  // Depth test for layer ordering
 				.withCull(false)
 				.withVertexFormat(
 					LambdaVertexFormats.SCREEN_LINE_FORMAT,

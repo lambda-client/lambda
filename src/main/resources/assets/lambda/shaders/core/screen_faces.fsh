@@ -19,6 +19,6 @@ void main() {
     
     fragColor = color;
     
-    // Use layer as fragment depth for draw order
-    gl_FragDepth = v_Layer;
+    // Map layer to depth: higher layer = smaller depth = renders on top (LEQUAL)
+    gl_FragDepth = (1000.0 - v_Layer) / 2000.0;
 }

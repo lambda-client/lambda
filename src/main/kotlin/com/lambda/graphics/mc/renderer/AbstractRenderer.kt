@@ -60,18 +60,16 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 	/**
 	 * Render world-space geometry (faces, edges, text).
 	 * Iterates over all renderer/transform pairs from getRendererTransforms().
+	 * 
+	 * All world-space renderers share the same xray depth buffer (cleared once per frame in RenderMain).
+	 * - depthTest = true: Uses MC's depth buffer (respects world geometry)
+	 * - depthTest = false: Uses Lambda's xray depth buffer (ignores world, self-ordering only)
 	 */
 	fun SafeContext.render() {
 		val chunks = getRendererTransforms()
 		if (chunks.isEmpty()) return
 
-		// When using xray mode (depthTest=false), clear our custom depth buffer
-		// This gives us correct self-ordering while showing through MC's world
 		val depth = depthTest()
-
-		if (!depth) {
-			RendererUtils.clearXrayDepthBuffer()
-		}
 
 		// Render Faces
 		RegionRenderer.createRenderPass("$name Faces", depth)?.use { pass ->
@@ -166,8 +164,11 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 
 	/**
 	 * Render screen-space geometry. Uses orthographic projection for 2D rendering.
-	 * Uses depth testing with xray depth buffer for unified call-order layering.
+	 * Uses a SEPARATE screen depth buffer for complete isolation from world-space.
 	 * This should be called after world-space render() for proper layering.
+	 * 
+	 * Each renderer clears the screen depth buffer at the start to ensure
+	 * complete isolation from other renderers.
 	 */
 	fun renderScreen() {
 		val renderers = getScreenRenderers()
@@ -175,14 +176,13 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
 			
-			// Track if we've cleared the depth buffer yet
-			var depthCleared = false
+			// Clear the SCREEN depth buffer (separate from world xray depth)
+			// This ensures complete isolation between renderers
+			RendererUtils.clearScreenDepthBuffer()
 			
-			// Helper to get the right render pass (clear depth on first call)
+			// Helper to get the right render pass (depth already cleared at start)
 			fun getScreenPass(label: String): RenderPass? {
-				val pass = RegionRenderer.createScreenRenderPassWithDepth(label, clearDepth = !depthCleared)
-				depthCleared = true
-				return pass
+				return RegionRenderer.createScreenRenderPassWithDepth(label, clearDepth = false)
 			}
 
 			// Render Screen Models

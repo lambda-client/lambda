@@ -399,5 +399,72 @@ object RendererUtils {
 				java.util.OptionalDouble.of(1.0) // Clear depth to 1.0 (far)
 			)?.close() // Immediately close to execute the clear
 	}
+
+	// ============================================================================
+	// Separate Screen-Space Depth Buffer
+	// ============================================================================
+
+	// A completely separate depth buffer for screen-space rendering.
+	// This ensures screen elements don't depth-fight with world-space elements.
+	private var screenDepthTexture: com.mojang.blaze3d.textures.GpuTexture? = null
+	private var screenDepthView: com.mojang.blaze3d.textures.GpuTextureView? = null
+	private var screenDepthWidth = 0
+	private var screenDepthHeight = 0
+
+	/**
+	 * Get the screen-space depth buffer view, creating/resizing if necessary.
+	 * This depth buffer is separate from both MC's depth and the xray depth buffer,
+	 * ensuring screen-space elements are completely isolated.
+	 *
+	 * @return The screen depth buffer view, or null if framebuffer is not available
+	 */
+	fun getScreenDepthView(): com.mojang.blaze3d.textures.GpuTextureView? {
+		val framebuffer = mc.framebuffer ?: return null
+		val width = framebuffer.textureWidth
+		val height = framebuffer.textureHeight
+
+		// Recreate if size changed or doesn't exist
+		if (screenDepthTexture == null || screenDepthWidth != width || screenDepthHeight != height) {
+			// Clean up old resources
+			screenDepthView?.close()
+			screenDepthTexture?.close()
+
+			// Create new depth texture matching framebuffer size
+			val gpuDevice = RenderSystem.getDevice()
+			screenDepthTexture = gpuDevice.createTexture(
+				{ "Lambda Screen Depth Buffer" },
+				15, // Usage flags (same as MC's depth buffers)
+				com.mojang.blaze3d.textures.TextureFormat.DEPTH32,
+				width,
+				height,
+				1, // Layers
+				1  // Mip levels
+			)
+			screenDepthView = gpuDevice.createTextureView(screenDepthTexture)
+			screenDepthWidth = width
+			screenDepthHeight = height
+		}
+
+		return screenDepthView
+	}
+
+	/**
+	 * Clear the screen depth buffer to prepare for a new screen render sequence.
+	 * Should be called at the start of each renderer's screen rendering.
+	 */
+	fun clearScreenDepthBuffer() {
+		val depthView = getScreenDepthView() ?: return
+		val framebuffer = mc.framebuffer ?: return
+
+		RenderSystem.getDevice()
+			.createCommandEncoder()
+			.createRenderPass(
+				{ "Lambda Clear Screen Depth" },
+				framebuffer.colorAttachmentView,
+				java.util.OptionalInt.empty(),
+				depthView,
+				java.util.OptionalDouble.of(1.0)
+			)?.close()
+	}
 }
 

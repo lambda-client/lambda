@@ -456,14 +456,14 @@ class RegionRenderer {
 		/**
 		 * Helper to create a render pass for screen-space rendering WITH depth testing.
 		 * Enables unified layering across all screen element types (models, faces, text, etc.).
-		 * Uses the xray depth buffer for self-ordering without affecting MC's world depth.
+		 * Uses a SEPARATE screen depth buffer to ensure complete isolation from world-space.
 		 * 
 		 * @param label Debug label for the render pass
 		 * @param clearDepth If true, clear the depth buffer to 1.0 (call this on the first screen pass)
 		 */
 		fun createScreenRenderPassWithDepth(label: String, clearDepth: Boolean = false): RenderPass? {
 			val framebuffer = mc.framebuffer ?: return null
-			val depthView = RendererUtils.getXrayDepthView()
+			val depthView = RendererUtils.getScreenDepthView()  // Use separate screen depth buffer
 			
 			return RenderSystem.getDevice()
 				.createCommandEncoder()

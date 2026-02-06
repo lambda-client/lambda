@@ -22,6 +22,7 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
+import com.lambda.graphics.mc.renderer.RendererUtils
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector2f
@@ -110,6 +111,11 @@ object RenderMain {
     fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
         resetMatrices(positionMatrix)
         projectionMatrix.set(projMatrix)
+        
+        // Clear xray depth buffer once per frame before any renderer runs.
+        // All world-space renderers share this depth state for proper inter-renderer occlusion.
+        RendererUtils.clearXrayDepthBuffer()
+        
         RenderEvent.Render.post()
     }
 }
