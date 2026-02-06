@@ -106,7 +106,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 	fun box(
 		box: Box,
-		lineWidth: Float,
+		lineWidth: Float = 0.005f,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) {
 		val boxBuilder = BoxBuilder(lineWidth).apply { builder?.invoke(this) }
@@ -118,7 +118,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	fun boxes(
 		pos: BlockPos,
 		state: BlockState,
-		lineWidth: Float,
+		lineWidth: Float = 0.005f,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = with(safeContext) {
 		val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
@@ -131,14 +131,14 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 
 	fun box(
 		pos: BlockPos,
-		lineWidth: Float,
+		lineWidth: Float = 0.005f,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = box(Box(pos), lineWidth, builder)
 
 	context(safeContext: SafeContext)
 	fun boxes(
 		pos: BlockPos,
-		lineWidth: Float,
+		lineWidth: Float = 0.005f,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = boxes(pos, safeContext.blockState(pos), lineWidth, builder)
 

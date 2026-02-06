@@ -25,6 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.RenderMain.worldToScreenNormalized
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.EntityGroup
@@ -79,12 +80,9 @@ object Tracers : Module(
 		applyEdits { hide(::startColor, ::endColor) }
 	}
 
-	val renderer = ImmediateRenderer("Tracers")
-
 	init {
-		listen<RenderEvent.Render> {
-			renderer.tick()
-			renderer.shapes {
+		immediateRenderer("Tracers Immediate Renderer") { safeContext ->
+			with(safeContext) {
 				world.entities.forEach { entity ->
 					if (entity === player) return@forEach
 					val entityGroup = entity.entityGroup
@@ -128,12 +126,6 @@ object Tracers : Module(
 					}
 				}
 			}
-			renderer.upload()
-			renderer.render()
-		}
-		
-		listen<ScreenRenderEvent> {
-			renderer.renderScreen()
 		}
 	}
 

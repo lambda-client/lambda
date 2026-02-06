@@ -17,12 +17,13 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -111,22 +112,6 @@ object BackTrack : Module(
             poolPackets()
         }
 
-        onDynamicRender { esp ->
-            val target = target ?: return@onDynamicRender
-
-            val c1 = ClickGuiLayout.primaryColor
-            val c2 = Color.RED
-            val p = target.hurtTime / 10.0
-            val c = lerp(p, c1, c2)
-
-            esp.shapes {
-                box(box.box(mc.tickDelta) ?: return@shapes, 0f) {
-                    hideOutline()
-                    gradientY(c.multAlpha(0.3), c.multAlpha(0.8))
-                }
-            }
-        }
-
         listen<PacketEvent.Send.Pre> { event ->
             if (!outbound || target == null) return@listen
             sendPool.add(event.packet to currentTime)
@@ -181,6 +166,20 @@ object BackTrack : Module(
 
         onDisable {
             poolPackets(true)
+        }
+
+        immediateRenderer("BackTrack Immediate Renderer") {
+            val target = target ?: return@immediateRenderer
+
+            val c1 = ClickGuiLayout.primaryColor
+            val c2 = Color.RED
+            val p = target.hurtTime / 10.0
+            val c = lerp(p, c1, c2)
+
+            box(box.box(mc.tickDelta) ?: return@immediateRenderer, 0f) {
+                hideOutline()
+                gradientY(c.multAlpha(0.3), c.multAlpha(0.8))
+            }
         }
     }
 

@@ -17,11 +17,12 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.event.events.onDynamicRender
-import com.lambda.event.events.onStaticRender
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.graphics.util.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
@@ -45,22 +46,20 @@ object RenderTest : Module(
     private val filledColor = outlineColor.setAlpha(0.2)
 
     init {
-        onDynamicRender { esp ->
-            entitySearch<LivingEntity>(8.0)
-                .forEach { entity ->
-                    esp.shapes {
-                        box(entity.dynamicBox.box(mc.tickDelta) ?: return@shapes, 1.5f) {
+        immediateRenderer("RenderTest Immediate Renderer") { safeContext ->
+            with(safeContext) {
+                entitySearch<LivingEntity>(8.0)
+                    .forEach { entity ->
+                        box(entity.dynamicBox.box(mc.tickDelta) ?: return@forEach, 1.5f) {
                             colors(filledColor, outlineColor)
                         }
                     }
-                }
+            }
         }
 
-        onStaticRender { esp ->
-            esp.shapes {
-                box(Box.of(player.pos, 0.3, 0.3, 0.3), 1.5f) {
-                    colors(filledColor, outlineColor)
-                }
+        tickedRenderer("RenderTest Ticked Renderer") { safeContext ->
+            box(Box.of(safeContext.player.pos, 0.3, 0.3, 0.3), 1.5f) {
+                colors(filledColor, outlineColor)
             }
         }
     }

@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -46,17 +47,15 @@ data class InteractContext(
 
     override val sorter get() = interactConfig.sorter
 
-    override fun render(esp: TickedRenderer) {
-        esp.shapes {
-            val box = with(hitResult.pos) {
-                Box(
-                    x - 0.05, y - 0.05, z - 0.05,
-                    x + 0.05, y + 0.05, z + 0.05,
-                ).offset(hitResult.side.doubleVector.multiply(0.05))
-            }
-            box(box, 1.5f) {
-                colors(baseColor, sideColor)
-            }
+    override fun RenderBuilder.render() {
+        val box = with(hitResult.pos) {
+            Box(
+                x - 0.05, y - 0.05, z - 0.05,
+                x + 0.05, y + 0.05, z + 0.05,
+            ).offset(hitResult.side.doubleVector.multiply(0.05))
+        }
+        box(box) {
+            colors(baseColor, sideColor)
         }
     }
 

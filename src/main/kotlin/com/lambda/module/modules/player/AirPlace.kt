@@ -24,8 +24,8 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
@@ -48,6 +48,7 @@ import net.minecraft.world.RaycastContext
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.invoke
 
 object AirPlace : Module(
 	name = "AirPlace",
@@ -107,15 +108,13 @@ object AirPlace : Module(
 		listen<PlayerEvent.Interact.Block> { if (airPlace()) it.cancel() }
 		listen<PlayerEvent.Interact.Item> { if (airPlace()) it.cancel() }
 
-		onStaticRender { esp ->
+		tickedRenderer("Air Place Ticked Renderer") { safeContext ->
 			placementPos?.let { pos ->
-				val boxes = placementState?.getOutlineShape(world, pos)?.boundingBoxes
+				val boxes = placementState?.getOutlineShape(safeContext.world, pos)?.boundingBoxes
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
-				esp.shapes {
-					boxes.forEach { box ->
-						box(box, outlineWidth) {
-							hideFill()
-						}
+				boxes.forEach { box ->
+					box(box, outlineWidth) {
+						hideFill()
 					}
 				}
 			}

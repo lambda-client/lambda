@@ -17,24 +17,11 @@
 
 package com.lambda.event.events
 
-import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.RenderMain
-import com.lambda.graphics.mc.renderer.ImmediateRenderer
-import com.lambda.graphics.mc.renderer.TickedRenderer
-
-fun Any.onStaticRender(block: SafeContext.(TickedRenderer) -> Unit) =
-	listen<RenderEvent.UploadStatic> { block(RenderMain.staticESP) }
-
-fun Any.onDynamicRender(block: SafeContext.(ImmediateRenderer) -> Unit) =
-	listen<RenderEvent.UploadDynamic> { block(RenderMain.dynamicESP) }
 
 sealed class RenderEvent {
-    object UploadStatic : Event
-	object UploadDynamic: Event
     object Render : Event
 
     class UpdateTarget : ICancellable by Cancellable()

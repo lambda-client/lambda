@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
@@ -59,11 +60,9 @@ data class BreakContext(
 
     override val sorter get() = breakConfig.sorter
 
-    override fun render(esp: TickedRenderer) {
-        esp.shapes {
-            box(blockPos, 1.5f) {
-                colors(baseColor, sideColor)
-            }
+    override fun RenderBuilder.render() {
+        box(blockPos) {
+            colors(baseColor, sideColor)
         }
     }
 }

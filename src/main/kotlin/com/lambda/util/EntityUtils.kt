@@ -21,12 +21,14 @@ import com.lambda.util.DynamicReflectionSerializer.remappedName
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
+import io.github.classgraph.ClassInfoList
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
+import kotlin.jvm.java
 
 object EntityUtils {
-    val entities = scanResult
+    val entities: Collection<ClassInfo> = scanResult
         .getSubclasses(Entity::class.java)
         .filter { !it.isAbstract && it.name.startsWith("net.minecraft") }
 
@@ -52,11 +54,13 @@ object EntityUtils {
         Block(createBlockEntityNameMap())
     }
 
-    val Entity.entityGroup: EntityGroup
-        get() {
-            val simpleName = javaClass.simpleName
-            return EntityGroup.entries.first { simpleName in it.nameToDisplayNameMap }
-        }
+    val Entity.entityGroup get() = entityGroup()
+    val BlockEntity.entityGroup: EntityGroup get() = entityGroup()
+
+    private fun Any.entityGroup(): EntityGroup {
+        val simpleName = javaClass.simpleName
+        return EntityGroup.entries.first { simpleName in it.nameToDisplayNameMap }
+    }
 
     fun Entity.getPositionsWithinHitboxXZ(minY: Int, maxY: Int): Set<BlockPos> {
         val hitbox = boundingBox

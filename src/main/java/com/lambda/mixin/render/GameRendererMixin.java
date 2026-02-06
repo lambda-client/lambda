@@ -74,17 +74,6 @@ public class GameRendererMixin {
         return original / Zoom.getLerpedZoom();
     }
 
-    /**
-     * Inject screen rendering after InGameHud.render() but before overlays/screens.
-     * This makes Lambda's screen renders appear:
-     * - Above: hotbar, held items, health bars
-     * - Below: inventory GUI, chat, escape menu
-     */
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/client/render/RenderTickCounter;)V", shift = At.Shift.AFTER))
-    private void onHudRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
-        RenderMain.renderScreen();
-    }
-
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
     private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
         DearImGui.INSTANCE.render();

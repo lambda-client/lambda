@@ -22,8 +22,8 @@ import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
@@ -174,28 +174,26 @@ object PacketMine : Module(
 			}
 		}
 
-		onStaticRender { esp ->
+		tickedRenderer("PacketMine Ticked Renderer") { safeContext ->
 			if (renderRebreak) {
 				rebreakPos?.let { pos ->
-					esp.shapes {
-						box(pos, outlineWidth) {
-							hideFill()
-							outlineColor(rebreakColor)
-						}
+					box(pos, outlineWidth) {
+						hideFill()
+						outlineColor(rebreakColor)
 					}
 				}
 			}
-			if (!renderQueue) return@onStaticRender
-			queueSorted.forEachIndexed { index, positions ->
-				positions.forEach { pos ->
-					val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)
-					else staticColor
-					val boxes = when (renderMode) {
-						RenderMode.State -> blockState(pos).getOutlineShape(world, pos).boundingBoxes
-						RenderMode.Box -> listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
-					}.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
+			if (!renderQueue) return@tickedRenderer
+			with(safeContext) {
+				queueSorted.forEachIndexed { index, positions ->
+					positions.forEach { pos ->
+						val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)
+						else staticColor
+						val boxes = when (renderMode) {
+							RenderMode.State -> blockState(pos).getOutlineShape(world, pos).boundingBoxes
+							RenderMode.Box -> listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
+						}.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
-					esp.shapes {
 						boxes.forEach { box ->
 							box(box, outlineWidth) {
 								colors(color, color.setAlpha(1.0))

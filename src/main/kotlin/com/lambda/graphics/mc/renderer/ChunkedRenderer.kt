@@ -18,6 +18,7 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
@@ -59,12 +60,11 @@ import java.util.concurrent.ConcurrentLinkedDeque
  * @param update The update function called for each block position
  */
 class ChunkedRenderer(
-	owner: Module,
+	owner: Any,
 	name: String,
-	depthTest: Boolean = false,
+	depthTest: SafeContext.() -> Boolean,
 	private val update: RenderBuilder.(World, FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
-	
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
 	private val WorldChunk.chunkKey: Long
@@ -80,9 +80,39 @@ class ChunkedRenderer(
 	override val currentFontAtlas: SDFFontAtlas
 		get() = FontHandler.getDefaultFont()
 
-	private fun getChunkKey(chunkX: Int, chunkZ: Int): Long {
-		return (chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
+	init {
+		owner.listen<WorldEvent.BlockUpdate.Client> { event ->
+			val pos = event.pos
+			world.getWorldChunk(pos)?.chunkData?.markDirty()
+
+			val xInChunk = pos.x and 15
+			val zInChunk = pos.z and 15
+
+			if (xInChunk == 0) world.getWorldChunk(pos.west())?.chunkData?.markDirty()
+			if (xInChunk == 15) world.getWorldChunk(pos.east())?.chunkData?.markDirty()
+			if (zInChunk == 0) world.getWorldChunk(pos.north())?.chunkData?.markDirty()
+			if (zInChunk == 15) world.getWorldChunk(pos.south())?.chunkData?.markDirty()
+		}
+
+		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
+		owner.listen<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
+
+		owner.listenConcurrently<TickEvent.Pre> {
+			val queueSize = rebuildQueue.size
+			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
+			repeat(polls) { rebuildQueue.poll()?.rebuild() }
+		}
+
+		owner.listen<TickEvent.Pre> {
+			val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
+			repeat(polls) { uploadQueue.poll()?.invoke() }
+		}
+
+		owner.listen<RenderEvent.Render> { render() }
 	}
+
+	private fun getChunkKey(chunkX: Int, chunkZ: Int) =
+		(chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
 
 	/** Mark all tracked chunks for rebuild. */
 	fun rebuild() {
@@ -104,14 +134,10 @@ class ChunkedRenderer(
 	}
 
 	fun clear() {
-		chunkMap.values.forEach { it.close() }
+		chunkMap.values.forEach { it.clearData() }
 		chunkMap.clear()
 		rebuildQueue.clear()
 		uploadQueue.clear()
-	}
-
-	fun close() {
-		clear()
 	}
 
 	/**
@@ -148,55 +174,10 @@ class ChunkedRenderer(
 	 * Get renderers for screen-space rendering.
 	 * Returns all chunk renderers that have screen data.
 	 */
-	override fun getScreenRenderers(): List<RegionRenderer> {
-		return chunkMap.values
+	override fun getScreenRenderers() =
+		chunkMap.values
 			.filter { it.renderer.hasScreenData() }
 			.map { it.renderer }
-	}
-
-	companion object {
-		fun Module.chunkedEsp(
-			name: String,
-			depthTest: Boolean = false,
-			update: RenderBuilder.(World, FastVector) -> Unit
-		): ChunkedRenderer {
-			return ChunkedRenderer(this, name, depthTest, update)
-		}
-	}
-
-	init {
-		owner.listen<WorldEvent.BlockUpdate.Client> { event ->
-			val pos = event.pos
-			world.getWorldChunk(pos)?.chunkData?.markDirty()
-
-			val xInChunk = pos.x and 15
-			val zInChunk = pos.z and 15
-
-			if (xInChunk == 0) world.getWorldChunk(pos.west())?.chunkData?.markDirty()
-			if (xInChunk == 15) world.getWorldChunk(pos.east())?.chunkData?.markDirty()
-			if (zInChunk == 0) world.getWorldChunk(pos.north())?.chunkData?.markDirty()
-			if (zInChunk == 15) world.getWorldChunk(pos.south())?.chunkData?.markDirty()
-		}
-
-		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
-
-		owner.listen<WorldEvent.ChunkEvent.Unload> {
-			chunkMap.remove(it.chunk.chunkKey)?.close()
-		}
-
-		owner.listenConcurrently<TickEvent.Pre> {
-			val queueSize = rebuildQueue.size
-			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
-			repeat(polls) { rebuildQueue.poll()?.rebuild() }
-		}
-
-		owner.listen<TickEvent.Pre> {
-			val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
-			repeat(polls) { uploadQueue.poll()?.invoke() }
-		}
-
-		owner.listen<RenderEvent.Render> { render() }
-	}
 
 	/** Per-chunk data with its own renderer and origin. */
 	private inner class ChunkData(val chunk: WorldChunk) {
@@ -207,14 +188,9 @@ class ChunkedRenderer(
 
 		// This chunk's own renderer
 		val renderer = RegionRenderer()
-		
-		private var isDirty = false
 
 		fun markDirty() {
-			isDirty = true
-			if (!rebuildQueue.contains(this)) {
-				rebuildQueue.add(this)
-			}
+			if (!rebuildQueue.contains(this)) rebuildQueue.add(this)
 		}
 
 		/**
@@ -222,8 +198,6 @@ class ChunkedRenderer(
 		 * Coordinates are stored as (worldPos - chunkOrigin).toFloat()
 		 */
 		fun rebuild() {
-			if (!isDirty) return
-
 			// Use chunk origin as the "camera" position for relative coords
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
 			val scope = RenderBuilder(chunkOriginVec)
@@ -236,17 +210,17 @@ class ChunkedRenderer(
 				}
 			}
 
-			// Capture collector for upload on main thread
-			val collector = scope.collector
-
-			uploadQueue.add {
-				renderer.upload(collector)
-				isDirty = false
-			}
+			uploadQueue.add { renderer.upload(scope.collector) }
 		}
 
-		fun close() {
-			renderer.close()
-		}
+		fun clearData() = renderer.clearData()
+	}
+
+	companion object {
+		fun Any.chunkedRenderer(
+			name: String,
+			depthTest: SafeContext.() -> Boolean = { false },
+			update: RenderBuilder.(World, FastVector) -> Unit
+		) = ChunkedRenderer(this, name, depthTest, update)
 	}
 }

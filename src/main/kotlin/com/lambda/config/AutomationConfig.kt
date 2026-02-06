@@ -26,7 +26,7 @@ import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
-import com.lambda.event.events.onStaticRender
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
@@ -85,10 +85,9 @@ open class AutomationConfig(
             var drawables = listOf<Drawable>()
 
             init {
-                onStaticRender { esp ->
-					if (renders)
-						drawables.forEach { it.render(esp) }
-                }
+				tickedRenderer("Ticked Automation Config Renderer") {
+					if (renders) drawables.forEach { with(it) { render() } }
+				}
             }
         }
     }

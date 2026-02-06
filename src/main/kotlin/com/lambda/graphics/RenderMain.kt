@@ -20,25 +20,15 @@ package com.lambda.graphics
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.ScreenRenderEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
-import com.lambda.graphics.mc.renderer.ImmediateRenderer
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
+import kotlin.math.abs
 
 object RenderMain {
-    @JvmStatic
-    val staticESP = TickedRenderer("Static")
-
-    @JvmStatic
-    val dynamicESP = ImmediateRenderer("Dynamic")
-
     val projectionMatrix = Matrix4f()
     val modelViewMatrix
         get() = Matrices.peek()
@@ -69,7 +59,7 @@ object RenderMain {
         projModel.transform(vec)
 
         val isBehind = vec.w < 0
-        val w = if (kotlin.math.abs(vec.w) < 0.001f) 0.001f else kotlin.math.abs(vec.w)
+        val w = if (abs(vec.w) < 0.001f) 0.001f else abs(vec.w)
 
         // Perspective divide to get NDC (-1 to 1)
         var ndcX = vec.x / w
@@ -120,40 +110,6 @@ object RenderMain {
     fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
         resetMatrices(positionMatrix)
         projectionMatrix.set(projMatrix)
-
-        staticESP.render()
-
         RenderEvent.Render.post()
-        dynamicESP.render()
-    }
-
-    /**
-     * Render all screen-space elements.
-     * Called after Minecraft's InGameHud.render() but before overlays/screens.
-     * Lambda screen elements appear:
-     * - Above: hotbar, held items, health bars
-     * - Below: inventory GUI, chat, escape menu
-     */
-    @JvmStatic
-    fun renderScreen() {
-        // Render screen-space elements from the main renderers
-        staticESP.renderScreen()
-        dynamicESP.renderScreen()
-        
-        // Post event for modules with custom renderers
-        ScreenRenderEvent.post()
-    }
-
-    init {
-        listen<TickEvent.Post> {
-            staticESP.clear()
-            RenderEvent.UploadStatic.post()
-            staticESP.upload()
-        }
-        listen<RenderEvent.Render> {
-            dynamicESP.clear()
-            RenderEvent.UploadDynamic.post()
-            dynamicESP.upload()
-        }
     }
 }

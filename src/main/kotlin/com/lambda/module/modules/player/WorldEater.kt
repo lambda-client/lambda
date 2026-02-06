@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.event.events.onStaticRender
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
@@ -65,12 +65,10 @@ object WorldEater : Module(
             BaritoneManager.cancel()
         }
 
-        onStaticRender { esp ->
-            esp.shapes {
-                box(Box.enclosing(pos1, pos2), 1.5f) {
-                    hideFill()
-                    outlineColor(Color.BLUE)
-                }
+        tickedRenderer("WorldEater Ticked Renderer") {
+            box(Box.enclosing(pos1, pos2), 1.5f) {
+                hideFill()
+                outlineColor(Color.BLUE)
             }
         }
     }

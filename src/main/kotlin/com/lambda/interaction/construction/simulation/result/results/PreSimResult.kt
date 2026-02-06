@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -55,11 +56,9 @@ sealed class PreSimResult : BuildResult() {
 
         override val goal = GoalBlock(pos)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                box(pos, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
 
@@ -81,11 +80,9 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.BreakRestricted
         private val color = Color(255, 0, 0, 100)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                box(pos, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
     }
@@ -103,11 +100,9 @@ sealed class PreSimResult : BuildResult() {
         override val rank get() = Rank.BreakNoPermission
         private val color = Color(255, 0, 0, 100)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                box(pos, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
     }
@@ -123,11 +118,9 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.OutOfWorld
         private val color = Color(3, 148, 252, 100)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                box(pos, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
     }
@@ -145,11 +138,9 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.Unbreakable
         private val color = Color(11, 11, 11, 100)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                box(pos, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
     }

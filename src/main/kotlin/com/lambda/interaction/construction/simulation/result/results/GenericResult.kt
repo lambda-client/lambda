@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.AutomatedSafeContext
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -53,17 +54,15 @@ sealed class GenericResult : BuildResult() {
         override val rank = Rank.NotVisible
         private val color = Color(46, 0, 0, 80)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                val box = with(pos) {
-                    Box(
-                        x - 0.05, y - 0.05, z - 0.05,
-                        x + 0.05, y + 0.05, z + 0.05,
-                    ).offset(pos)
-                }
-                box(box, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            val box = with(pos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(pos)
+            }
+            box(box) {
+                allColors(color)
             }
         }
 
@@ -104,16 +103,14 @@ sealed class GenericResult : BuildResult() {
             neededSelection.transferByTask(HotbarContainer)?.execute(task)
         }
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                val center = pos.toCenterPos()
-                val box = Box(
-                    center.x - 0.1, center.y - 0.1, center.z - 0.1,
-                    center.x + 0.1, center.y + 0.1, center.z + 0.1
-                )
-                box(box, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box) {
+                allColors(color)
             }
         }
     }
@@ -139,16 +136,14 @@ sealed class GenericResult : BuildResult() {
 
         override val goal = GoalNear(pos, 3)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                val center = pos.toCenterPos()
-                val box = Box(
-                    center.x - 0.1, center.y - 0.1, center.z - 0.1,
-                    center.x + 0.1, center.y + 0.1, center.z + 0.1
-                )
-                box(box, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box) {
+                allColors(color)
             }
         }
 

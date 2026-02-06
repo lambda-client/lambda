@@ -48,8 +48,8 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/esp_lines"))
-				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
-				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/world_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false) // No depth write for proper transparency blending
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
@@ -66,8 +66,8 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/esp_lines_through"))
-				.withVertexShader(Identifier.of("lambda", "core/advanced_lines"))
-				.withFragmentShader(Identifier.of("lambda", "core/advanced_lines"))
+				.withVertexShader(Identifier.of("lambda", "core/world_lines"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_lines"))
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
@@ -167,8 +167,8 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/sdf_text"))
-				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
-				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
+				.withVertexShader(Identifier.of("lambda", "core/world_sdf_text"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_sdf_text"))
 				.withSampler("Sampler0")
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false) // No depth write for proper transparency blending
@@ -186,8 +186,8 @@ object LambdaRenderPipelines : Loadable {
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/sdf_text_through"))
-				.withVertexShader(Identifier.of("lambda", "core/sdf_text"))
-				.withFragmentShader(Identifier.of("lambda", "core/sdf_text"))
+				.withVertexShader(Identifier.of("lambda", "core/world_sdf_text"))
+				.withFragmentShader(Identifier.of("lambda", "core/world_sdf_text"))
 				.withSampler("Sampler0")
 				.withBlend(BlendFunction.TRANSLUCENT)
 				.withDepthWrite(false)

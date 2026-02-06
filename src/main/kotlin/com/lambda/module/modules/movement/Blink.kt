@@ -17,11 +17,12 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.graphics.util.DynamicAABB
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
@@ -59,21 +60,19 @@ object Blink : Module(
     private var lastBox = Box(BlockPos.ORIGIN)
 
     init {
-        listen<RenderEvent.UploadStatic> {
+        tickedRenderer("Blink Ticked Renderer") { safeContext ->
             val time = System.currentTimeMillis()
 
-            if (isActive && time - lastUpdate < delay) return@listen
+            if (isActive && time - lastUpdate < delay) return@tickedRenderer
             lastUpdate = time
 
-            poolPackets()
+            with(safeContext) { poolPackets() }
         }
 
-        onDynamicRender { esp ->
+        immediateRenderer("Blink Immediate Renderer") {
             val color = ClickGuiLayout.primaryColor
-            esp.shapes {
-                box(box.update(lastBox).box(mc.tickDelta) ?: return@shapes, 1.5f) {
-                    colors(color.setAlpha(0.3), color)
-                }
+            box(box.update(lastBox).box(mc.tickDelta) ?: return@immediateRenderer, 1.5f) {
+                colors(color.setAlpha(0.3), color)
             }
         }
 

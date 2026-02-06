@@ -23,9 +23,9 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.events.onDynamicRender
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
@@ -76,6 +76,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
@@ -217,70 +218,70 @@ object BreakManager : Manager<BreakRequest>(
 				?.internalOnItemDrop(it.entity)
 		}
 
-		onDynamicRender { esp ->
-			val activeStack = breakInfos
-				.filterNotNull()
-				.firstOrNull()?.swapStack ?: return@onDynamicRender
-
-			breakInfos
-				.filterNotNull()
-				.forEach { info ->
-					if (!info.breaking) return@forEach
-
-					val config = info.breakConfig
-					if (!config.renders) return@onDynamicRender
-					val swapMode = info.breakConfig.swapMode
-					val breakDelta = info.request.runSafeAutomated {
-						info.context.cachedState.calcBreakDelta(
-							info.context.blockPos,
-							if (info.type != RedundantSecondary &&
-								swapMode.isEnabled() &&
-								swapMode != BreakConfig.SwapMode.Start
-								) activeStack
-							else null
-						).toDouble()
-					}
-					val currentDelta = info.breakingTicks * breakDelta
-
-					val threshold = if (info.type == Primary) info.breakConfig.breakThreshold else 1f
-					val adjustedThreshold = threshold + (breakDelta * config.fudgeFactor)
-
-					val currentProgress = currentDelta / adjustedThreshold
-					val nextTicksProgress = (currentDelta + breakDelta) / adjustedThreshold
-					val interpolatedProgress = lerp(mc.tickDelta, currentProgress, nextTicksProgress)
-
-					val fillColor = if (config.dynamicFillColor) lerp(
-						interpolatedProgress,
-						config.startFillColor,
-						config.endFillColor
-					)
-					else config.staticFillColor
-					val outlineColor = if (config.dynamicOutlineColor) lerp(
-						interpolatedProgress,
-						config.startOutlineColor,
-						config.endOutlineColor
-					)
-					else config.staticOutlineColor
-
-	                val pos = info.context.blockPos
-	                esp.shapes {
-		                info.context.cachedState.getOutlineShape(world, pos).boundingBoxes.map {
-			                it.offset(pos)
-		                }.forEach boxes@{ box ->
-			                val animationMode = info.breakConfig.animation
-			                val interpolatedBox = interpolateBox(box, interpolatedProgress, animationMode)
-			                box(interpolatedBox, info.breakConfig.outlineWidth) {
-				                colors(fillColor, outlineColor)
-			                }
-		                }
-	                }
-				}
-		}
-
 		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
 			primaryBreak = null
 			secondaryBreak = null
 			breakCooldown = 0
+		}
+
+		immediateRenderer("BreakManager Immediate Renderer") { safeContext ->
+			with(safeContext) {
+				val activeStack = breakInfos
+					.filterNotNull()
+					.firstOrNull()?.swapStack ?: return@immediateRenderer
+
+				breakInfos
+					.filterNotNull()
+					.forEach { info ->
+						if (!info.breaking) return@forEach
+
+						val config = info.breakConfig
+						if (!config.renders) return@immediateRenderer
+						val swapMode = info.breakConfig.swapMode
+						val breakDelta = info.request.runSafeAutomated {
+							info.context.cachedState.calcBreakDelta(
+								info.context.blockPos,
+								if (info.type != RedundantSecondary &&
+									swapMode.isEnabled() &&
+									swapMode != BreakConfig.SwapMode.Start
+								) activeStack
+								else null
+							).toDouble()
+						}
+						val currentDelta = info.breakingTicks * breakDelta
+
+						val threshold = if (info.type == Primary) info.breakConfig.breakThreshold else 1f
+						val adjustedThreshold = threshold + (breakDelta * config.fudgeFactor)
+
+						val currentProgress = currentDelta / adjustedThreshold
+						val nextTicksProgress = (currentDelta + breakDelta) / adjustedThreshold
+						val interpolatedProgress = lerp(mc.tickDelta, currentProgress, nextTicksProgress)
+
+						val fillColor = if (config.dynamicFillColor) lerp(
+							interpolatedProgress,
+							config.startFillColor,
+							config.endFillColor
+						)
+						else config.staticFillColor
+						val outlineColor = if (config.dynamicOutlineColor) lerp(
+							interpolatedProgress,
+							config.startOutlineColor,
+							config.endOutlineColor
+						)
+						else config.staticOutlineColor
+
+						val pos = info.context.blockPos
+						info.context.cachedState.getOutlineShape(world, pos).boundingBoxes.map {
+							it.offset(pos)
+						}.forEach { box ->
+							val animationMode = info.breakConfig.animation
+							val interpolatedBox = interpolateBox(box, interpolatedProgress, animationMode)
+							box(interpolatedBox, info.breakConfig.outlineWidth) {
+								colors(fillColor, outlineColor)
+							}
+						}
+					}
+			}
 		}
 
 		return "Loaded Break Manager"

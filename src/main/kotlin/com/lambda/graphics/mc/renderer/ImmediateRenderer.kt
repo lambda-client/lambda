@@ -18,13 +18,20 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
+import com.lambda.module.Module
+import com.lambda.util.world.FastVector
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.World
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
@@ -37,53 +44,32 @@ import org.joml.Vector4f
  * Callers are responsible for providing interpolated positions (e.g., using entity.prevX/x 
  * with tickDelta). The tick() method clears builders to allow smooth transitions between frames.
  */
-class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRenderer(name, depthTest) {
+class ImmediateRenderer(
+	owner: Any,
+	name: String,
+	depthTest: SafeContext.() -> Boolean,
+	update: RenderBuilder.(SafeContext) -> Unit
+) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
-
-	// Current frame builder (being populated this frame)
-	private var renderBuilder: RenderBuilder? = null
 
 	// Font atlas used for current text rendering
 	private var _currentFontAtlas: SDFFontAtlas? = null
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
-	/**
-	 * Get the current camera position for building camera-relative shapes.
-	 * Returns null if camera is not available.
-	 */
-	private fun getCameraPos(): Vec3d? = mc.gameRenderer?.camera?.pos
-
-	/** Get or create a ShapeScope for drawing with camera-relative coordinates. */
-	fun shapes(block: RenderBuilder.() -> Unit) {
-		val s = renderBuilder ?: RenderBuilder(getCameraPos() ?: return).also { renderBuilder = it }
-		s.apply(block)
-	}
-
-	/** Clear all geometry data. */
-	fun clear() {
-		renderBuilder = null
-	}
-
-	/** Called each tick to reset for next frame. */
-	fun tick() {
-		renderBuilder = null
-	}
-
-	/** Upload collected geometry to GPU. Must be called on main thread. */
-	fun upload() {
-		renderBuilder?.let { s ->
-			renderer.upload(s.collector)
-			_currentFontAtlas = s.fontAtlas
-		} ?: run {
+	init {
+		owner.listen<RenderEvent.Render> {
 			renderer.clearData()
-			_currentFontAtlas = null
+			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos).also { it.update(SafeContext.create() ?: return@listen) }
+			upload(renderBuilder)
+			render()
+			renderScreen()
 		}
 	}
 
-	/** Close and release all GPU resources. */
-	fun close() {
-		renderer.close()
-		clear()
+	/** Upload collected geometry to GPU. Must be called on main thread. */
+	fun upload(renderBuilder: RenderBuilder) {
+		renderer.upload(renderBuilder.collector)
+		_currentFontAtlas = renderBuilder.fontAtlas
 	}
 
 	/**
@@ -109,7 +95,13 @@ class ImmediateRenderer(name: String, depthTest: Boolean = false) : AbstractRend
 	/**
 	 * Get renderers for screen-space rendering.
 	 */
-	override fun getScreenRenderers(): List<RegionRenderer> {
-		return if (renderer.hasScreenData()) listOf(renderer) else emptyList()
+	override fun getScreenRenderers() = if (renderer.hasScreenData()) listOf(renderer) else emptyList()
+
+	companion object {
+		fun Any.immediateRenderer(
+			name: String,
+			depthTest: SafeContext.() -> Boolean = { false },
+			update: RenderBuilder.(SafeContext) -> Unit
+		) = ImmediateRenderer(this, name, depthTest, update)
 	}
 }

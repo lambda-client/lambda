@@ -399,11 +399,6 @@ class RegionRenderer {
 	/** Check if this renderer has any data to render. */
 	fun hasData(): Boolean = hasData
 
-	/** Clean up all resources. */
-	fun close() {
-		clearData()
-	}
-
 	companion object {
 		/** Helper to create a render pass targeting the main framebuffer with MC's depth. */
 		fun createRenderPass(label: String): RenderPass? {

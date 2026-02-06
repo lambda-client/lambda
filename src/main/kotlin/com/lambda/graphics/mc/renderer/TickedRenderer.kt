@@ -18,6 +18,10 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
@@ -37,9 +41,13 @@ import org.joml.Vector4f
  * Geometry is stored relative to the camera position at tick time. At render time, we compute
  * the delta between tick-camera and current-camera to ensure smooth motion without jitter.
  */
-class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRenderer(name, depthTest) {
+class TickedRenderer(
+	owner: Any,
+	name: String,
+	depthTest: SafeContext.() -> Boolean,
+	update: RenderBuilder.(SafeContext) -> Unit
+) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
-	private var renderBuilder: RenderBuilder? = null
 	
 	// Camera position captured at tick time (when shapes are built)
 	private var tickCameraPos: Vec3d? = null
@@ -48,37 +56,32 @@ class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRendere
 	private var _currentFontAtlas: SDFFontAtlas? = null
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
-	/** Get the current shape scope for drawing. Geometry stored relative to tick camera. */
-	fun shapes(block: RenderBuilder.() -> Unit) {
-		val cameraPos = mc.gameRenderer?.camera?.pos ?: return
-		if (renderBuilder == null) {
-			tickCameraPos = cameraPos
-			renderBuilder = RenderBuilder(cameraPos)
+	init {
+		owner.listen<TickEvent.Pre> {
+			clear()
+			tickCameraPos = mc.gameRenderer.camera.pos
+			val renderBuilder = RenderBuilder(tickCameraPos ?: return@listen).also {
+				it.update(SafeContext.create() ?: return@listen)
+			}
+			upload(renderBuilder)
 		}
-		renderBuilder?.apply(block)
+
+		owner.listen<RenderEvent.Render> {
+			render()
+			renderScreen()
+		}
 	}
 
 	/** Clear all current builders. Call this at the end of every tick. */
 	fun clear() {
-		renderBuilder = null
+		renderer.clearData()
 		tickCameraPos = null
 	}
 
 	/** Upload collected geometry to GPU. Must be called on main thread. */
-	fun upload() {
-		renderBuilder?.let { s ->
-			renderer.upload(s.collector)
-			_currentFontAtlas = s.fontAtlas
-		} ?: run {
-			renderer.clearData()
-			_currentFontAtlas = null
-		}
-	}
-
-	/** Close and release all GPU resources. */
-	fun close() {
-		renderer.close()
-		clear()
+	fun upload(renderBuilder: RenderBuilder) {
+		renderer.upload(renderBuilder.collector)
+		_currentFontAtlas = renderBuilder.fontAtlas
 	}
 
 	/**
@@ -109,7 +112,13 @@ class TickedRenderer(name: String, depthTest: Boolean = false) : AbstractRendere
 	/**
 	 * Get renderers for screen-space rendering.
 	 */
-	override fun getScreenRenderers(): List<RegionRenderer> {
-		return if (renderer.hasScreenData()) listOf(renderer) else emptyList()
+	override fun getScreenRenderers() = if (renderer.hasScreenData()) listOf(renderer) else emptyList()
+
+	companion object {
+		fun Any.tickedRenderer(
+			name: String,
+			depthTest: SafeContext.() -> Boolean = { false },
+			update: RenderBuilder.(SafeContext) -> Unit
+		) = TickedRenderer(this, name, depthTest, update)
 	}
 }

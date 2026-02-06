@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -57,8 +58,8 @@ sealed class InteractResult : BuildResult() {
     ) : Contextual, Drawable, InteractResult() {
         override val rank = Rank.PlaceSuccess
 
-        override fun render(esp: TickedRenderer) {
-            context.render(esp)
+        override fun RenderBuilder.render() {
+            with(context) { render() }
         }
     }
 
@@ -82,17 +83,15 @@ sealed class InteractResult : BuildResult() {
         override val rank = Rank.PlaceNoIntegrity
         private val color = Color(252, 3, 3, 100)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                val box = with(simulated.hitPos) {
-                    Box(
-                        x - 0.05, y - 0.05, z - 0.05,
-                        x + 0.05, y + 0.05, z + 0.05,
-                    ).offset(simulated.side.doubleVector.multiply(0.05))
-                }
-                box(box, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            val box = with(simulated.hitPos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(simulated.side.doubleVector.multiply(0.05))
+            }
+            box(box) {
+                allColors(color)
             }
         }
     }
@@ -123,17 +122,15 @@ sealed class InteractResult : BuildResult() {
         override val rank = Rank.PlaceBlockedByEntity
         private val color = Color(252, 3, 3, 100)
 
-        override fun render(esp: TickedRenderer) {
-            esp.shapes {
-                val box = with(hitPos) {
-                    Box(
-                        x - 0.05, y - 0.05, z - 0.05,
-                        x + 0.05, y + 0.05, z + 0.05,
-                    ).offset(side.doubleVector.multiply(0.05))
-                }
-                box(box, 1.5f) {
-                    allColors(color)
-                }
+        override fun RenderBuilder.render() {
+            val box = with(hitPos) {
+                Box(
+                    x - 0.05, y - 0.05, z - 0.05,
+                    x + 0.05, y + 0.05, z + 0.05,
+                ).offset(side.doubleVector.multiply(0.05))
+            }
+            box(box) {
+                allColors(color)
             }
         }
     }

@@ -17,6 +17,7 @@
 
 package com.lambda.graphics.mc.renderer
 
+import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.SDFFontAtlas
@@ -38,8 +39,7 @@ import kotlin.collections.isNotEmpty
  * @param name Debug name for render passes
  * @param depthTest Whether to use depth testing (true = through walls disabled)
  */
-abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false) {
-	
+abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() -> Boolean) {
 	/**
 	 * Get all renderer/transform pairs to render.
 	 * Each pair contains a RegionRenderer and its associated dynamic transform.
@@ -61,19 +61,21 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 	 * Render world-space geometry (faces, edges, text).
 	 * Iterates over all renderer/transform pairs from getRendererTransforms().
 	 */
-	fun render() {
+	fun SafeContext.render() {
 		val chunks = getRendererTransforms()
 		if (chunks.isEmpty()) return
 
 		// When using xray mode (depthTest=false), clear our custom depth buffer
 		// This gives us correct self-ordering while showing through MC's world
-		if (!depthTest) {
+		val depth = depthTest()
+
+		if (!depth) {
 			RendererUtils.clearXrayDepthBuffer()
 		}
 
 		// Render Faces
-		RegionRenderer.createRenderPass("$name Faces", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getFacesPipeline(depthTest))
+		RegionRenderer.createRenderPass("$name Faces", depth)?.use { pass ->
+			pass.setPipeline(RendererUtils.getFacesPipeline(depth))
 			RenderSystem.bindDefaultUniforms(pass)
 			chunks.forEach { (renderer, transform) ->
 				pass.setUniform("DynamicTransforms", transform)
@@ -82,8 +84,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 		}
 
 		// Render Edges
-		RegionRenderer.createRenderPass("$name Edges", depthTest)?.use { pass ->
-			pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest))
+		RegionRenderer.createRenderPass("$name Edges", depth)?.use { pass ->
+			pass.setPipeline(RendererUtils.getEdgesPipeline(depth))
 			RenderSystem.bindDefaultUniforms(pass)
 			chunks.forEach { (renderer, transform) ->
 				pass.setUniform("DynamicTransforms", transform)
@@ -99,8 +101,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 			val textureView = atlas.textureView
 			val sampler = atlas.sampler
 			if (textureView != null && sampler != null) {
-				RegionRenderer.createRenderPass("$name Text", depthTest)?.use { pass ->
-					pass.setPipeline(RendererUtils.getTextPipeline(depthTest))
+				RegionRenderer.createRenderPass("$name Text", depth)?.use { pass ->
+					pass.setPipeline(RendererUtils.getTextPipeline(depth))
 					RenderSystem.bindDefaultUniforms(pass)
 					pass.bindTexture("Sampler0", textureView, sampler)
 					textChunks.forEach { (renderer, transform) ->
@@ -117,8 +119,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 			// Pre-load glint texture before creating render pass
 			RendererUtils.ensureGlintTextureLoaded()
 			
-			RegionRenderer.createRenderPass("$name World Images", depthTest)?.use { pass ->
-				pass.setPipeline(RendererUtils.getWorldImagePipeline(depthTest))
+			RegionRenderer.createRenderPass("$name World Images", depth)?.use { pass ->
+				pass.setPipeline(RendererUtils.getWorldImagePipeline(depth))
 				RenderSystem.bindDefaultUniforms(pass)
 				
 				// Bind enchantment glint texture for overlay support
@@ -141,8 +143,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: Boolean = false
 			// Create dedicated glint uniform slice (scale 8.0 for vanilla atlas parity)
 			val glintUniform = RendererUtils.createGlintUniform(8.0f)
 			
-			RegionRenderer.createRenderPass("$name World Models", depthTest)?.use { pass ->
-				pass.setPipeline(RendererUtils.getModelPipeline(depthTest))
+			RegionRenderer.createRenderPass("$name World Models", depth)?.use { pass ->
+				pass.setPipeline(RendererUtils.getModelPipeline(depth))
 				RenderSystem.bindDefaultUniforms(pass)
 				
 				// Bind overlay, lightmap, and glint textures

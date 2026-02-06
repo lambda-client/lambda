@@ -20,38 +20,28 @@ package com.lambda.module.modules.render
 import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ScreenTextSettings
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.ScreenRenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.RenderMain.worldToScreenNormalized
-import com.lambda.graphics.mc.ItemOverlay
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.ImmediateRenderer
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.text.FontHandler.getDefaultFont
-import com.lambda.graphics.texture.LambdaImageAtlas
-import com.lambda.graphics.texture.TextureOwner.texture
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.EnchantmentUtils.hasEnchantments
 import com.lambda.util.EntityUtils
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.maxFullHealth
-import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
 import net.minecraft.client.network.OtherClientPlayerEntity
-import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.predicate.item.DamagePredicate.durability
 import net.minecraft.util.math.Vec3d
 import org.joml.component1
 import org.joml.component2
@@ -97,8 +87,6 @@ object Nametags : Module(
 	}
 	private val otherTextConfig = ScreenTextSettings("Other ", this, Group.Text, TextGroup.Other)
 
-	val renderer = ImmediateRenderer("Nametags")
-
 	var heightWidthRatio = 0f
 	var trueItemScaleX = 0f
 	var trueItemScaleY = 0f
@@ -106,15 +94,14 @@ object Nametags : Module(
 	var trueSpacingY = 0f
 
 	init {
-		listen<RenderEvent.Render> {
-			renderer.tick()
-			heightWidthRatio = mc.window.height / mc.window.width.toFloat()
-			trueItemScaleY = itemScale * 0.01f
-			trueItemScaleX = trueItemScaleY * heightWidthRatio
-			trueSpacingY = spacing * 0.0005f
-			trueSpacingX = trueSpacingY * heightWidthRatio
+		immediateRenderer("Nametags Immediate Renderer") { safeContext ->
+			with(safeContext) {
+				heightWidthRatio = mc.window.height / mc.window.width.toFloat()
+				trueItemScaleY = itemScale * 0.01f
+				trueItemScaleX = trueItemScaleY * heightWidthRatio
+				trueSpacingY = spacing * 0.0005f
+				trueSpacingX = trueSpacingY * heightWidthRatio
 
-			renderer.shapes {
 				world.entities
 					.sortedByDescending { it distSq mc.gameRenderer.camera.pos }
 					.forEach { entity ->
@@ -177,13 +164,6 @@ object Nametags : Module(
 						} else drawArmorAndItems(entity, anchorX, anchorY + textSize + trueSpacingY)
 					}
 			}
-
-			renderer.upload()
-			renderer.render()
-		}
-
-		listen<ScreenRenderEvent> {
-			renderer.renderScreen()
 		}
 	}
 
