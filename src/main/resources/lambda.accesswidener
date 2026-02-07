@@ -144,3 +144,8 @@ transitive-accessible field net/minecraft/client/render/item/ItemRenderState$Lay
 transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState specialModelType Lnet/minecraft/client/render/item/model/special/SpecialModelRenderer;
 transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState renderLayer Lnet/minecraft/client/render/RenderLayer;
 transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState data Ljava/lang/Object;
+
+# Entity Renderer
+transitive-accessible method net/minecraft/client/render/entity/ProjectileEntityRenderer getTexture (Lnet/minecraft/client/render/entity/state/ProjectileEntityRenderState;)Lnet/minecraft/util/Identifier;
+transitive-accessible field net/minecraft/client/render/entity/BoatEntityRenderer texture Lnet/minecraft/util/Identifier;
+transitive-accessible field net/minecraft/client/render/entity/EndCrystalEntityRenderer TEXTURE Lnet/minecraft/util/Identifier;

@@ -153,7 +153,7 @@ class Setting<T : SettingCore<R>, R>(
 	override val description: String,
 	var core: T,
 	val configurable: Configurable,
-	val visibility: () -> Boolean,
+	var visibility: () -> Boolean,
 ) : Nameable, Describable {
 	val originalCore = core
 	var disabled = { false }

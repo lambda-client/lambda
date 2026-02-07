@@ -20,6 +20,9 @@ package com.lambda.util.math
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
+fun Color.setAlpha(value: Int) =
+    Color(red, green, blue, value.coerceIn(0, 255))
+
 fun Color.setAlpha(value: Double) =
     Color(red, green, blue, (value * 255.0).coerceIn(0.0, 255.0).toInt())
 
