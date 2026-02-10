@@ -57,6 +57,9 @@ class RegionRenderer {
 	private var screenFaceIndexCount = 0
 	private var screenEdgeIndexCount = 0
 	private var screenTextIndexCount = 0
+	
+	// Entity IDs requested for outlines
+	private var outlinedEntities: Set<Int> = emptySet()
 
 	// State tracking
 	private var hasData = false
@@ -113,10 +116,17 @@ class RegionRenderer {
 		worldImageBatches = result.images
 		modelBatches = result.models
 		screenModelBatches = screenResult.models
+		
+		outlinedEntities = collector.outlinedEntities.toSet()
 
-		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty()
+		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty() || outlinedEntities.isNotEmpty()
 		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty() || screenModelBatches.isNotEmpty()
 	}
+	
+	/**
+	 * Get the set of entity IDs requested for outlines during the build phase.
+	 */
+	fun getOutlinedEntities(): Set<Int> = outlinedEntities
 
 	/**
 	 * Render faces using the given render pass.
@@ -392,6 +402,7 @@ class RegionRenderer {
 		screenImageBatches = emptyList()
 		worldImageBatches = emptyList()
 		modelBatches = emptyList()
+		outlinedEntities = emptySet()
 
 		hasScreenData = false
 	}

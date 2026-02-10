@@ -371,5 +371,26 @@ object LambdaVertexFormats {
         .add("Normal", NORMAL_FLOAT)
         .add("EdgeData", EDGE_DATA_ELEMENT)
         .build()
+
+    /**
+     * Custom vertex format element for 4D homogeneous Clip Space coordinates.
+     */
+    val POSITION_H: VertexFormatElement = VertexFormatElement.register(
+        19, // ID
+        0,  // index
+        VertexFormatElement.Type.FLOAT,
+        VertexFormatElement.Usage.POSITION,
+        4   // count (x, y, z, w)
+    )
+
+    /**
+     * Specialized format for the Outline ID pass using Clip Space coordinates.
+     * Total size: 16 (pos) + 8 (uv) + 4 (color) = 28 bytes
+     */
+    val OUTLINE_ID_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", POSITION_H)
+        .add("UV0", VertexFormatElement.UV0)
+        .add("Color", VertexFormatElement.COLOR)
+        .build()
 }
 

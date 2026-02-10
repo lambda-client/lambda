@@ -369,33 +369,6 @@ object LambdaRenderPipelines : Loadable {
 		)
 
 	/**
-	 * Pipeline for screen-space 3D model rendering.
-	 * Same as WORLD_MODEL but without lightmap sampler (Sampler2).
-	 * Includes culling to prevent backfaces from clipping with front faces.
-	 */
-	val SCREEN_MODEL: RenderPipeline =
-		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
-				.withLocation(Identifier.of("lambda", "pipeline/screen_model"))
-				.withVertexShader(Identifier.of("lambda", "core/world_model"))
-				.withFragmentShader(Identifier.of("lambda", "core/world_model"))
-				.withSampler("Sampler0") // Atlas
-				.withSampler("Sampler1") // Overlay
-				.withSampler("Sampler2") // Lightmap (White/Neutral in screen space)
-				.withSampler("Sampler3") // Glint
-				.withUniform("GlintTransforms", UniformType.UNIFORM_BUFFER)
-				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(true)
-				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-				.withCull(false)
-				.withVertexFormat(
-					LambdaVertexFormats.WORLD_MODEL_FORMAT,
-					VertexFormat.DrawMode.QUADS
-				)
-				.build()
-		)
-
-	/**
 	 * Pipeline for world-space 3D model rendering that renders through walls.
 	 */
 	val WORLD_MODEL_THROUGH: RenderPipeline =
@@ -419,5 +392,95 @@ object LambdaRenderPipelines : Loadable {
 				)
 				.build()
 		)
-}
 
+	// ============================================================================
+	// Outline Rendering Pipelines (FBO-based silhouette + edge detection)
+	// ============================================================================
+
+	/**
+	 * Pipeline for rendering entity silhouettes to the outline FBO.
+	 * Uses flat color output for edge detection.
+	 */
+	val OUTLINE_SILHOUETTE: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/outline_silhouette"))
+				.withVertexShader(Identifier.of("lambda", "core/outline_silhouette"))
+				.withFragmentShader(Identifier.of("lambda", "core/outline_silhouette"))
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false) // Don't need depth for silhouette
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST) // No self-occlusion
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_COLOR,
+					VertexFormat.DrawMode.TRIANGLES
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for Sobel edge detection on silhouette FBO.
+	 * Renders fullscreen quad with edge detection shader.
+	 */
+	val OUTLINE_SOBEL: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/outline_sobel"))
+				.withVertexShader(Identifier.of("lambda", "core/outline_sobel"))
+				.withFragmentShader(Identifier.of("lambda", "core/outline_sobel"))
+				.withSampler("Sampler0") // Silhouette texture
+				.withBlend(BlendFunction.TRANSLUCENT)
+				.withDepthWrite(false)
+				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					VertexFormats.POSITION_TEXTURE,
+					VertexFormat.DrawMode.QUADS
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for rendering entity IDs and ESP colors to the ID buffer.
+	 * Uses POSITION_TEXTURE_COLOR format to separate UVs (for alpha testing)
+	 * from the actual displayed ESP color.
+	 */
+	val OUTLINE_ID: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/outline_id"))
+				.withVertexShader(Identifier.of("lambda", "core/outline_id"))
+				.withFragmentShader(Identifier.of("lambda", "core/outline_id"))
+				.withSampler("Sampler0")
+				.withoutBlend() // No blending - exact ID values
+				.withDepthWrite(true)
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.OUTLINE_ID_FORMAT,
+					VertexFormat.DrawMode.TRIANGLES
+				)
+				.build()
+		)
+
+	/**
+	 * Pipeline for rendering entity IDs through walls.
+	 */
+	val OUTLINE_ID_THROUGH: RenderPipeline =
+		RenderPipelines.register(
+			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+				.withLocation(Identifier.of("lambda", "pipeline/outline_id_through"))
+				.withVertexShader(Identifier.of("lambda", "core/outline_id"))
+				.withFragmentShader(Identifier.of("lambda", "core/outline_id"))
+				.withSampler("Sampler0")
+				.withoutBlend()
+				.withDepthWrite(true)
+				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
+				.withCull(false)
+				.withVertexFormat(
+					LambdaVertexFormats.OUTLINE_ID_FORMAT,
+					VertexFormat.DrawMode.TRIANGLES
+				)
+				.build()
+		)
+}

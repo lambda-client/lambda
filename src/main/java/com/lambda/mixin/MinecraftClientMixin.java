@@ -74,6 +74,7 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "render")
     void onLoopTick(boolean tick, Operation<Void> original) {
+        com.lambda.graphics.RenderMain.preRender();
         EventFlow.post(TickEvent.Render.Pre.INSTANCE);
         original.call(tick);
         EventFlow.post(TickEvent.Render.Post.INSTANCE);
@@ -120,11 +121,13 @@ public class MinecraftClientMixin {
 
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")
     private void onShutdown(CallbackInfo ci) {
+        com.lambda.graphics.outline.OutlineRenderer.INSTANCE.cleanup();
         EventFlow.post(new ClientEvent.Shutdown());
     }
 
     /**
-     * Inject after the thread field is set so that {@link ThreadExecutor#getThread} is available
+     * Inject after the thread field is set so that {@link ThreadExecutor#getThread}
+     * is available
      */
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0, opcode = Opcodes.PUTFIELD), method = "run")
     private void onStartup(CallbackInfo ci) {
@@ -133,7 +136,8 @@ public class MinecraftClientMixin {
 
     @Inject(method = "setScreen", at = @At("HEAD"))
     private void onScreenOpen(@Nullable Screen screen, CallbackInfo ci) {
-        if (screen == null) return;
+        if (screen == null)
+            return;
         if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new InventoryEvent.Open(handledScreen.getScreenHandler()));
         }
@@ -141,7 +145,8 @@ public class MinecraftClientMixin {
 
     @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.AFTER))
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
-        if (currentScreen == null) return;
+        if (currentScreen == null)
+            return;
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new InventoryEvent.Close(handledScreen.getScreenHandler()));
         }
@@ -162,19 +167,22 @@ public class MinecraftClientMixin {
 
     @WrapWithCondition(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
     private boolean redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
-        if (this.crosshairTarget == null) return false;
+        if (this.crosshairTarget == null)
+            return false;
         return this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled();
     }
 
     @ModifyExpressionValue(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
     boolean redirectMultiActon(boolean original) {
-        if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction()) return false;
+        if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction())
+            return false;
         return original;
     }
 
     @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z"))
     void injectFastPlace(CallbackInfo ci) {
-        if (!Interact.INSTANCE.isEnabled()) return;
+        if (!Interact.INSTANCE.isEnabled())
+            return;
 
         itemUseCooldown = Interact.getPlaceDelay();
     }
@@ -203,7 +211,8 @@ public class MinecraftClientMixin {
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)
     void updateWindowTitle(CallbackInfo ci) {
-        if (!ClickGuiLayout.getSetLambdaWindowTitle()) return;
+        if (!ClickGuiLayout.getSetLambdaWindowTitle())
+            return;
         WindowUtils.setLambdaTitle();
         ci.cancel();
     }

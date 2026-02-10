@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.event.events
+package com.lambda.mixin.render;
 
-import com.lambda.event.Event
-import com.lambda.event.callback.Cancellable
-import com.lambda.event.callback.ICancellable
+import com.lambda.graphics.outline.IEntityRenderState;
+import net.minecraft.client.render.entity.state.EntityRenderState;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 
-sealed class RenderEvent {
-    object PreRenderWorld : Event
-    object RenderWorld : Event
-    object RenderScreen : Event
+@Mixin(EntityRenderState.class)
+public class EntityRenderStateMixin implements IEntityRenderState {
+    @Unique
+    private int lambda$entityId = -1;
 
-    class UpdateTarget : ICancellable by Cancellable()
+    @Override
+    public int lambda$getEntityId() {
+        return lambda$entityId;
+    }
+
+    @Override
+    public void lambda$setEntityId(int id) {
+        this.lambda$entityId = id;
+    }
 }

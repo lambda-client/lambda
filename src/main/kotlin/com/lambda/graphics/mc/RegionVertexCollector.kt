@@ -39,6 +39,9 @@ class RegionVertexCollector {
 	val faceVertices = ConcurrentLinkedDeque<FaceVertex>()
 	val edgeVertices = ConcurrentLinkedDeque<EdgeVertex>()
 	val textVertices = ConcurrentLinkedDeque<TextVertex>()
+	
+	// Entities requested for outlines during the build phase
+	val outlinedEntities = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
 
 	// Screen-space vertex collections
 	val screenFaceVertices = ConcurrentLinkedDeque<ScreenFaceVertex>()
@@ -274,7 +277,7 @@ class RegionVertexCollector {
 	 * Batches with the same texture but different filter modes are separate.
 	 */
 	data class ImageBatchKey(
-		val textureView: com.mojang.blaze3d.textures.GpuTextureView,
+		val textureView: GpuTextureView,
 		val useNearestFilter: Boolean
 	)
 

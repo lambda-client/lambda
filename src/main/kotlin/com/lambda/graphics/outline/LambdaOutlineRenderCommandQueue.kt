@@ -1,0 +1,237 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.graphics.outline
+
+import net.minecraft.block.BlockState
+import net.minecraft.client.model.Model
+import net.minecraft.client.model.ModelPart
+import net.minecraft.client.render.RenderLayer
+import net.minecraft.client.render.block.MovingBlockRenderState
+import net.minecraft.client.render.command.BatchingRenderCommandQueue
+import net.minecraft.client.render.command.ModelCommandRenderer
+import net.minecraft.client.render.command.OrderedRenderCommandQueue
+import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl
+import net.minecraft.client.render.entity.state.EntityRenderState
+import net.minecraft.client.render.item.ItemRenderState
+import net.minecraft.client.render.model.BakedQuad
+import net.minecraft.client.render.model.BlockStateModel
+import net.minecraft.client.render.state.CameraRenderState
+import net.minecraft.client.texture.Sprite
+import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.item.ItemDisplayContext
+import net.minecraft.text.OrderedText
+import net.minecraft.text.Text
+import net.minecraft.util.math.Vec3d
+import org.joml.Quaternionf
+import java.awt.Color
+
+/**
+ * Render command queue that overrides entity colors for outline rendering.
+ * 
+ * Filters out non-essential elements (shadows, labels, fire) and applies
+ * custom colors to model and item submissions.
+ */
+class LambdaOutlineRenderCommandQueue : OrderedRenderCommandQueueImpl() {
+    
+    private var currentColor: Int = 0xFFFFFFFF.toInt()
+    private var tintCache: IntArray? = null
+    
+    /**
+     * Set the color to use for subsequent render commands.
+     */
+    fun setColor(color: Int) {
+        this.currentColor = color
+    }
+    
+    /**
+     * Set the color using a java.awt.Color.
+     */
+    fun setColor(color: Color) {
+        this.currentColor = color.rgb
+    }
+    
+    override fun getBatchingQueue(order: Int): BatchingRenderCommandQueue {
+        return batchingQueues.computeIfAbsent(order) { OutlineBatchingQueue(this) }
+    }
+    
+    /**
+     * Custom batching queue that filters and colorizes render commands.
+     */
+    private inner class OutlineBatchingQueue(
+        orderedQueue: OrderedRenderCommandQueueImpl
+    ) : BatchingRenderCommandQueue(orderedQueue) {
+        
+        // Skip shadows
+        override fun submitShadowPieces(
+            matrices: MatrixStack,
+            shadowRadius: Float,
+            shadowPieces: List<EntityRenderState.ShadowPiece>
+        ) {
+            // No-op: don't render shadows in outline pass
+        }
+        
+        // Skip labels
+        override fun submitLabel(
+            matrices: MatrixStack,
+            nameLabelPos: Vec3d?,
+            y: Int,
+            label: Text,
+            notSneaking: Boolean,
+            light: Int,
+            squaredDistanceToCamera: Double,
+            cameraState: CameraRenderState
+        ) {
+            // No-op: don't render labels in outline pass
+        }
+        
+        // Skip text
+        override fun submitText(
+            matrices: MatrixStack,
+            x: Float,
+            y: Float,
+            text: OrderedText,
+            dropShadow: Boolean,
+            layerType: net.minecraft.client.font.TextRenderer.TextLayerType,
+            light: Int,
+            color: Int,
+            backgroundColor: Int,
+            outlineColor: Int
+        ) {
+            // No-op: don't render text in outline pass
+        }
+        
+        // Skip fire
+        override fun submitFire(
+            matrices: MatrixStack,
+            renderState: EntityRenderState,
+            rotation: Quaternionf
+        ) {
+            // No-op: don't render fire in outline pass
+        }
+        
+        // Skip leash
+        override fun submitLeash(
+            matrices: MatrixStack,
+            leashData: EntityRenderState.LeashData
+        ) {
+            // No-op: don't render leash in outline pass
+        }
+        
+        // Model submission - apply custom color
+        override fun <S : Any> submitModel(
+            model: Model<in S>,
+            state: S,
+            matrices: MatrixStack,
+            renderLayer: RenderLayer,
+            light: Int,
+            overlay: Int,
+            tintedColor: Int,
+            sprite: Sprite?,
+            outlineColor: Int,
+            crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
+        ) {
+            super.submitModel(model, state, matrices, renderLayer, light, overlay, currentColor, sprite, 0, crumblingOverlay)
+        }
+        
+        // Model part submission - apply custom color
+        override fun submitModelPart(
+            part: ModelPart,
+            matrices: MatrixStack,
+            renderLayer: RenderLayer,
+            light: Int,
+            overlay: Int,
+            sprite: Sprite?,
+            sheeted: Boolean,
+            hasGlint: Boolean,
+            tintedColor: Int,
+            crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?,
+            i: Int
+        ) {
+            super.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, currentColor, crumblingOverlay, i)
+        }
+        
+        // Skip blocks
+        override fun submitBlock(
+            matrices: MatrixStack,
+            state: BlockState,
+            light: Int,
+            overlay: Int,
+            outlineColor: Int
+        ) {
+            // No-op: don't render blocks in entity outline pass
+        }
+        
+        // Skip moving blocks
+        override fun submitMovingBlock(
+            matrices: MatrixStack,
+            state: MovingBlockRenderState
+        ) {
+            // No-op
+        }
+        
+        // Block state model - apply custom color
+        override fun submitBlockStateModel(
+            matrices: MatrixStack,
+            renderLayer: RenderLayer,
+            model: BlockStateModel,
+            r: Float,
+            g: Float,
+            b: Float,
+            light: Int,
+            overlay: Int,
+            outlineColor: Int
+        ) {
+            val newR = ((currentColor shr 16) and 0xFF) / 255f
+            val newG = ((currentColor shr 8) and 0xFF) / 255f
+            val newB = (currentColor and 0xFF) / 255f
+            super.submitBlockStateModel(matrices, renderLayer, model, newR, newG, newB, light, overlay, outlineColor)
+        }
+        
+        // Item submission - apply custom tint colors
+        override fun submitItem(
+            matrices: MatrixStack,
+            displayContext: ItemDisplayContext,
+            light: Int,
+            overlay: Int,
+            outlineColors: Int,
+            tintLayers: IntArray,
+            quads: List<BakedQuad>,
+            renderLayer: RenderLayer,
+            glintType: ItemRenderState.Glint
+        ) {
+            // Create/update tint cache with current color
+            if (tintCache == null || tintCache!![0] != currentColor) {
+                tintCache = intArrayOf(currentColor, currentColor, currentColor, currentColor)
+            }
+            super.submitItem(matrices, displayContext, light, overlay, outlineColors, tintCache!!, quads, renderLayer, glintType)
+        }
+        
+        // Skip custom renderers
+        override fun submitCustom(
+            matrices: MatrixStack,
+            renderLayer: RenderLayer,
+            customRenderer: OrderedRenderCommandQueue.Custom
+        ) {
+            // No-op
+        }
+        
+        override fun submitCustom(customRenderer: OrderedRenderCommandQueue.LayeredCustom) {
+            // No-op
+        }
+    }
+}

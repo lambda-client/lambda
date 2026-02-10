@@ -42,6 +42,8 @@
         "render.DrawContextMixin",
         "render.ElytraFeatureRendererMixin",
         "render.EntityRendererMixin",
+        "render.EntityRenderManagerMixin",
+        "render.EntityRenderStateMixin",
         "render.FluidRendererMixin",
         "render.FogRendererMixin",
         "render.GameRendererMixin",

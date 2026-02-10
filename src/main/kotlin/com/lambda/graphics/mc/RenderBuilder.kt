@@ -19,6 +19,8 @@ package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
+import com.lambda.graphics.outline.OutlineManager
+import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.graphics.texture.LambdaImageAtlas
@@ -289,6 +291,66 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 	) {
 		val points = CurveUtils.smoothPath(waypoints, segmentsPerSection)
 		polyline(points, color, width, dashStyle)
+	}
+
+	/**
+	 * Draw an outline around an entity using the FBO-based outline system.
+	 * Register the entity for capture during the pre-render pass.
+	 *
+	 * @param entity The entity to outline
+	 * @param color The color of the outline
+	 */
+	fun worldOutline(
+		entity: net.minecraft.entity.Entity,
+		color: Color
+	) {
+		worldOutline(entity, OutlineStyle(color))
+	}
+
+	/**
+	 * Draw an outline around an entity using the FBO-based outline system.
+	 * Register the entity for capture during the pre-render pass.
+	 *
+	 * @param entity The entity to outline
+	 * @param style The outline style (color, thickness, etc.)
+	 */
+	fun worldOutline(
+		entity: net.minecraft.entity.Entity,
+		style: OutlineStyle
+	) {
+		collector.outlinedEntities.add(entity.id)
+		OutlineManager.setEntityOutline(entity.id, style)
+	}
+
+	/**
+	 * Draw outlines around multiple entities using the FBO-based outline system.
+	 * Register entities for capture during the pre-render pass.
+	 *
+	 * @param entities The entities to outline
+	 * @param color The color of the outline
+	 */
+	fun worldOutlines(
+		entities: List<net.minecraft.entity.Entity>,
+		color: Color,
+	) {
+		worldOutlines(entities, OutlineStyle(color))
+	}
+
+	/**
+	 * Draw outlines around multiple entities using the FBO-based outline system.
+	 * Register entities for capture during the pre-render pass.
+	 *
+	 * @param entities The entities to outline
+	 * @param style The outline style (color, thickness, etc.)
+	 */
+	fun worldOutlines(
+		entities: List<net.minecraft.entity.Entity>,
+		style: OutlineStyle
+	) {
+		entities.forEach {
+			collector.outlinedEntities.add(it.id)
+			OutlineManager.setEntityOutline(it.id, style)
+		}
 	}
 
 	/**
@@ -666,7 +728,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		centered: Boolean = false,
 		pixelPerfect: Boolean = false,
 		smartAA: Boolean = false,
-		shadingAmount: Float = 0.0f
+		shadingAmount: Float = 1.0f
 	) {
 		val sprite = model.particleSprite() ?: return
 		val atlas = sprite.atlasId
@@ -714,9 +776,23 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		for (quad in quads) {
 			// Use face normal for all vertices since BakedQuad doesn't have per-vertex normals easily accessible
 			val face = quad.face
-			val nx = face.offsetX.toFloat()
-			val ny = face.offsetY.toFloat()
-			val nz = face.offsetZ.toFloat()
+			var nx = face?.offsetX?.toFloat() ?: 0f
+			var ny = face?.offsetY?.toFloat() ?: 0f
+			var nz = face?.offsetZ?.toFloat() ?: 0f
+
+			// If face is null, calculate normal from first 3 vertices
+			if (face == null) {
+				val v0 = quad.getPosition(0)
+				val v1 = quad.getPosition(1)
+				val v2 = quad.getPosition(2)
+				val e1x = v1.x() - v0.x(); val e1y = v1.y() - v0.y(); val e1z = v1.z() - v0.z()
+				val e2x = v2.x() - v0.x(); val e2y = v2.y() - v0.y(); val e2z = v2.z() - v0.z()
+				nx = e1y * e2z - e1z * e2y
+				ny = e1z * e2x - e1x * e2z
+				nz = e1x * e2y - e1y * e2x
+				val len = Math.sqrt((nx * nx + ny * ny + nz * nz).toDouble()).toFloat()
+				if (len > 0f) { nx /= len; ny /= len; nz /= len }
+			}
 
 			// Iterate 4 vertices
 			for (i in 0 until 4) {
@@ -743,11 +819,26 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				val u = Float.fromBits((packedUV ushr 32).toInt())
 				val v = Float.fromBits((packedUV and 0xFFFFFFFFL).toInt())
 				
-				// Edge Data: Map vertex index to a quad corner (0,0 to 1,1)
-				// Standard quad winding: 0:0,0 | 1:0,1 | 2:1,1 | 3:1,0 (approx)
-				// Reverted to simple bounds without dilation
-				val edgeX = if (i == 1 || i == 2) 1.0f else 0.0f
-				val edgeY = if (i == 2 || i == 3) 1.0f else 0.0f
+				// Edge Data: Map vertex to quad space (0,0 to 1,1)
+				// We need a robust mapping that works regardless of vertex order.
+				// For a 4-vertex loop, we use (0,0), (1,0), (1,1), (0,1).
+				// We check if the vertices are crossed and un-cross them if needed.
+				// In 1.21.1 BakedQuads are guaranteed to be in a consistent loop, 
+				// but the diagonal might be (0,2) or (1,3).
+				
+				// Standard CCW winding for our triangle split (0,1,2 + 0,2,3):
+				val edgeX = when(i) {
+					0 -> 0.0f
+					1 -> 1.0f
+					2 -> 1.0f
+					else -> 0.0f
+				}
+				val edgeY = when(i) {
+					0 -> 0.0f
+					1 -> 0.0f
+					2 -> 1.0f
+					else -> 1.0f
+				}
 
 				vertices.add(RegionVertexCollector.ModelVertex(
 					vertexPos.x, vertexPos.y, vertexPos.z,

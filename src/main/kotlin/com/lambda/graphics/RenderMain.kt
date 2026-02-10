@@ -30,11 +30,14 @@ import org.joml.Vector4f
 import kotlin.math.abs
 
 object RenderMain {
-    val projectionMatrix = Matrix4f()
+    val worldProjectionMatrix = Matrix4f()
+    val baseProjectionMatrix = Matrix4f()
+    val cameraRotationMatrix = Matrix4f()
+    
     val modelViewMatrix
         get() = Matrices.peek()
     val projModel: Matrix4f
-        get() = Matrix4f(projectionMatrix).mul(modelViewMatrix)
+        get() = Matrix4f(worldProjectionMatrix).mul(cameraRotationMatrix).mul(modelViewMatrix)
 
     /**
      * Project a world position to normalized screen coordinates (0-1 range).
@@ -107,16 +110,39 @@ object RenderMain {
         return pos.x in 0f..1f && pos.y in 0f..1f
     }
 
+    /**
+     * Called at the start of world rendering to clear per-frame data.
+     */
     @JvmStatic
-    fun render(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
-        resetMatrices(positionMatrix)
-        projectionMatrix.set(projMatrix)
-        
+    fun preRender() {
+        com.lambda.graphics.outline.OutlineManager.clear()
+        com.lambda.graphics.outline.VertexCapture.clear()
+        com.lambda.graphics.outline.OutlineRenderManager.clearFramebuffer()
+        com.lambda.graphics.outline.OutlineIdBuffer.beginFrame()
+    }
+
+    @JvmStatic
+    fun updateState(camRotMatrix: Matrix4f, basicProjMatrix: Matrix4f, projMatrix: Matrix4f) {
+        resetMatrices(Matrix4f())
+        cameraRotationMatrix.set(camRotMatrix)
+        // Minecraft 1.21.1: basicProjMatrix is Bobbed, projMatrix is Unbobbed
+        worldProjectionMatrix.set(basicProjMatrix)
+        baseProjectionMatrix.set(projMatrix)
+    }
+
+    @JvmStatic
+    fun render() {
         // Clear xray depth buffer once per frame before any renderer runs.
         // All world-space renderers share this depth state for proper inter-renderer occlusion.
         RendererUtils.clearXrayDepthBuffer()
         
+        // Post world render event - Modules build geometry and call AbstractRenderer.render()
+        // which now includes the Outline ID pass.
         RenderEvent.RenderWorld.post()
+        
+        // Finalize entity outlines for all modules by performing edge detection on the shared ID buffer
+        com.lambda.graphics.outline.OutlineRenderer.renderEdges()
+        
         RenderEvent.RenderScreen.post()
     }
 }

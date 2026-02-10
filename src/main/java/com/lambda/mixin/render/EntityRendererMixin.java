@@ -34,12 +34,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EntityRenderer.class)
 public class EntityRendererMixin {
     @Inject(method = "shouldRender(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/render/Frustum;DDD)Z", at = @At("HEAD"), cancellable = true)
-    private void injectShouldRender(Entity entity, Frustum frustum, double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
-        if (NoRender.shouldOmitEntity(entity)) cir.cancel();
+    private void injectShouldRender(Entity entity, Frustum frustum, double x, double y, double z,
+            CallbackInfoReturnable<Boolean> cir) {
+        if (NoRender.shouldOmitEntity(entity))
+            cir.cancel();
     }
 
     @Inject(method = "renderLabelIfPresent", at = @At("HEAD"), cancellable = true)
-    private void injectRenderLabelIfPresent(EntityRenderState state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoNametags()) ci.cancel();
+    private void injectRenderLabelIfPresent(EntityRenderState state, MatrixStack matrices,
+            OrderedRenderCommandQueue queue, CameraRenderState cameraRenderState, CallbackInfo ci) {
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoNametags())
+            ci.cancel();
     }
 }

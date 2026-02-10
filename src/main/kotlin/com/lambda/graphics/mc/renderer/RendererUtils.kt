@@ -218,22 +218,21 @@ object RendererUtils {
 
 	/**
 	 * Get the face/quad pipeline.
-	 * Always uses depth testing. Xray effect is achieved by using Lambda's
-	 * custom depth buffer (which doesn't contain MC world geometry).
 	 */
-	fun getFacesPipeline(depthTest: Boolean): RenderPipeline = LambdaRenderPipelines.ESP_QUADS
+	fun getFacesPipeline(depthTest: Boolean): RenderPipeline = 
+		if (depthTest) LambdaRenderPipelines.ESP_QUADS else LambdaRenderPipelines.ESP_QUADS_THROUGH
 
 	/**
 	 * Get the edge/line pipeline.
-	 * Always uses depth testing for proper self-ordering.
 	 */
-	fun getEdgesPipeline(depthTest: Boolean): RenderPipeline = LambdaRenderPipelines.ESP_LINES
+	fun getEdgesPipeline(depthTest: Boolean): RenderPipeline = 
+		if (depthTest) LambdaRenderPipelines.ESP_LINES else LambdaRenderPipelines.ESP_LINES_THROUGH
 
 	/**
 	 * Get the SDF text pipeline.
-	 * Always uses depth testing for proper self-ordering.
 	 */
-	fun getTextPipeline(depthTest: Boolean): RenderPipeline = LambdaRenderPipelines.SDF_TEXT
+	fun getTextPipeline(depthTest: Boolean): RenderPipeline = 
+		if (depthTest) LambdaRenderPipelines.SDF_TEXT else LambdaRenderPipelines.SDF_TEXT_THROUGH
 
 	/** Get the screen-space faces pipeline. */
 	fun getScreenFacesPipeline(depthTest: Boolean = true): RenderPipeline = LambdaRenderPipelines.SCREEN_FACES
@@ -258,16 +257,15 @@ object RendererUtils {
 
 	/**
 	 * Get the world-space image pipeline.
-	 * Always uses depth testing for proper self-ordering.
 	 */
-	fun getWorldImagePipeline(depthTest: Boolean): RenderPipeline = LambdaRenderPipelines.WORLD_IMAGE
+	fun getWorldImagePipeline(depthTest: Boolean): RenderPipeline = 
+		if (depthTest) LambdaRenderPipelines.WORLD_IMAGE else LambdaRenderPipelines.WORLD_IMAGE_THROUGH
 
 	/**
 	 * Get the world-space model pipeline.
-	 * Always uses depth testing for proper self-ordering.
 	 */
 	fun getModelPipeline(depthTest: Boolean): RenderPipeline = 
-		if (depthTest) LambdaRenderPipelines.WORLD_MODEL else LambdaRenderPipelines.SCREEN_MODEL
+		if (depthTest) LambdaRenderPipelines.WORLD_MODEL else LambdaRenderPipelines.WORLD_MODEL_THROUGH
 
 	// Cached glint texture view and sampler
 	private var glintTextureView: com.mojang.blaze3d.textures.GpuTextureView? = null

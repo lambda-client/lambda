@@ -16,9 +16,11 @@ in vec4 Dash;        // Dash parameters
 out vec4 v_Color;
 out vec3 v_WorldPos;
 out vec3 v_ExpandedPos;
-flat out vec3 v_Normal;
+out vec3 v_Normal;
+out vec2 v_LocalPos;              // Local quad coordinates (world units)
 flat out vec3 v_LineCenter;
-flat out float v_LineWidth;          // Always positive (actual width in world units)
+out float v_LineWidth;          // Interpolated world-unit width
+out float v_WorldPixelSize;     // Analytical world units per pixel
 flat out float v_SegmentLength;
 flat out float v_IsStart;
 flat out vec4 v_Dash;
@@ -44,7 +46,8 @@ void main() {
     vec3 translation = vec3(ModelViewMat[3]);
     vec3 cameraPos = rotationInv * (-translation);
     
-    vec3 toCamera = normalize(cameraPos - lineCenter);
+    // Use per-vertex camera direction for better billboarding on long segments
+    vec3 toCamera = normalize(cameraPos - thisPoint);
     
     vec3 perpDir = cross(lineDir, toCamera);
     if (length(perpDir) < 0.001) {
@@ -55,27 +58,33 @@ void main() {
     }
     perpDir = normalize(perpDir);
     
-    // Calculate actual line width in world units
+    // Calculate view-space depth for exact planar scaling
+    vec4 viewPos = ModelViewMat * vec4(thisPoint, 1.0);
+    float viewDepth = -viewPos.z;
+    
+    // Extract tan(fov/2) from projection matrix: ProjMat[1][1] = 1/tan(fov/2)
+    float tanHalfFov = 1.0 / ProjMat[1][1];
+    
+    // Calculate actual line width in world units per vertex
     float actualLineWidth;
     if (LineWidth < 0.0) {
         // Distance-scaled mode: negative value = screen-space fraction
-        // Convert screen fraction to world units at this distance
         float screenFraction = -LineWidth;
-        float distToCamera = length(cameraPos - lineCenter);
-        
-        // Extract tan(fov/2) from projection matrix: ProjMat[1][1] = 1/tan(fov/2)
-        float tanHalfFov = 1.0 / ProjMat[1][1];
         
         // At distance d, visible height = 2 * d * tan(fov/2)
         // world width = screenFraction * visible height
-        actualLineWidth = screenFraction * 2.0 * distToCamera * tanHalfFov;
+        actualLineWidth = screenFraction * 2.0 * viewDepth * tanHalfFov;
     } else {
         actualLineWidth = LineWidth;
     }
     
-    // Expand for AA
-    float halfWidth = actualLineWidth / 2.0;
-    float aaPadding = actualLineWidth * 0.3;
+    // Calculate world-unit size of 1 pixel at this depth for AA padding
+    float worldPixelSize = (viewDepth * tanHalfFov * 2.0) / ScreenSize.y;
+    
+    // Expand for AA (match screen_lines behavior)
+    // Ensure we always expand by enough to cover the 2-pixel AA gradient (plus safety margin)
+    float halfWidth = actualLineWidth * 0.5;
+    float aaPadding = max(halfWidth, worldPixelSize * 3.0); 
     float halfWidthPadded = halfWidth + aaPadding;
     
     vec3 perpOffset = perpDir * side * halfWidthPadded;
@@ -90,8 +99,10 @@ void main() {
     v_WorldPos = thisPoint;
     v_ExpandedPos = expandedPos;
     v_Normal = Normal;
+    v_LocalPos = vec2(side * halfWidthPadded, (isStart ? -halfWidthPadded : segmentLength + halfWidthPadded));
     v_LineCenter = lineCenter;
-    v_LineWidth = actualLineWidth;  // Pass the computed world-unit width
+    v_LineWidth = actualLineWidth;  // Pass the interpolated world-unit width
+    v_WorldPixelSize = worldPixelSize; // Pass analytical pixel size
     v_SegmentLength = segmentLength;
     v_IsStart = isStart ? 1.0 : 0.0;
     v_Dash = Dash;

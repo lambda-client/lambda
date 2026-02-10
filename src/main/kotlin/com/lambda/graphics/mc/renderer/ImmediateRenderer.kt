@@ -50,12 +50,15 @@ class ImmediateRenderer(
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
 	init {
-		owner.listen<RenderEvent.RenderWorld> {
-			renderer.clearData()
-			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos).also { it.update(SafeContext.create() ?: return@listen) }
+		owner.listen<RenderEvent.PreRenderWorld> {
+			val context = SafeContext.create() ?: return@listen
+			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos).also {
+				it.update(context)
+			}
 			upload(renderBuilder)
-			render()
 		}
+
+		owner.listen<RenderEvent.RenderWorld> { render() }
 		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
@@ -72,8 +75,7 @@ class ImmediateRenderer(
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		if (!renderer.hasData()) return emptyList()
 		
-		val modelViewMatrix = RenderMain.modelViewMatrix
-		val modelView = Matrix4f(modelViewMatrix).m30(0f).m31(0f).m32(0f)
+		val modelView = Matrix4f(RenderMain.cameraRotationMatrix).mul(RenderMain.modelViewMatrix).m30(0f).m31(0f).m32(0f)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(
 				modelView,

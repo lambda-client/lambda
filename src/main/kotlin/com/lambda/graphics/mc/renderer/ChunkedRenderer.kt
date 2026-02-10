@@ -35,8 +35,8 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.client.world.ClientWorld
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.World
 import net.minecraft.world.chunk.WorldChunk
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -62,7 +62,7 @@ class ChunkedRenderer(
 	owner: Any,
 	name: String,
 	depthTest: SafeContext.() -> Boolean,
-	private val update: RenderBuilder.(World, FastVector) -> Unit
+	private val update: RenderBuilder.(ClientWorld, FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
@@ -153,16 +153,14 @@ class ChunkedRenderer(
 
 		val modelViewMatrix = RenderMain.modelViewMatrix
 		
-		// Pre-compute the glint matrix once for all chunks (same animation for all)
 		val glintMatrix = RendererUtils.createGlintTransform(0.25f)
 
 		return activeChunks.map { chunkData ->
-			// Compute chunk-to-camera offset in double precision
 			val offsetX = (chunkData.originX - cameraPos.x).toFloat()
 			val offsetY = (chunkData.originY - cameraPos.y).toFloat()
 			val offsetZ = (chunkData.originZ - cameraPos.z).toFloat()
 
-			val modelView = Matrix4f(modelViewMatrix).m30(0f).m31(0f).m32(0f).translate(offsetX, offsetY, offsetZ)
+			val modelView = Matrix4f(RenderMain.cameraRotationMatrix).mul(modelViewMatrix).m30(0f).m31(0f).m32(0f).translate(offsetX, offsetY, offsetZ)
 			val dynamicTransform = RenderSystem.getDynamicUniforms()
 				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), glintMatrix)
 
@@ -201,11 +199,11 @@ class ChunkedRenderer(
 			// Use chunk origin as the "camera" position for relative coords
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
 			val scope = RenderBuilder(chunkOriginVec)
-
+			
 			for (x in chunk.pos.startX..chunk.pos.endX) {
 				for (z in chunk.pos.startZ..chunk.pos.endZ) {
 					for (y in chunk.bottomY..chunk.height) {
-						update(scope, chunk.world, fastVectorOf(x, y, z))
+						update(scope, chunk.world as? ClientWorld ?: continue, fastVectorOf(x, y, z))
 					}
 				}
 			}
@@ -220,7 +218,7 @@ class ChunkedRenderer(
 		fun Any.chunkedRenderer(
 			name: String,
 			depthTest: SafeContext.() -> Boolean = { false },
-			update: RenderBuilder.(World, FastVector) -> Unit
+			update: RenderBuilder.(ClientWorld, FastVector) -> Unit
 		) = ChunkedRenderer(this, name, depthTest, update)
 	}
 }

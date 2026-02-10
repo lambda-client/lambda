@@ -17,6 +17,9 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.event.EventFlow
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.ItemLighting
 import com.lambda.graphics.mc.ItemOverlay
 import com.lambda.graphics.mc.LineDashStyle.Companion.marchingAnts
@@ -28,6 +31,9 @@ import com.lambda.graphics.mc.RenderBuilder.SDFStyle
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
+import com.lambda.graphics.outline.OutlineManager
+import com.lambda.graphics.outline.OutlineStyle
+import com.lambda.graphics.outline.VertexCapture
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -35,6 +41,9 @@ import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.toBlockPos
+import net.minecraft.entity.mob.HostileEntity
+import net.minecraft.entity.passive.PassiveEntity
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.util.Identifier
@@ -55,6 +64,17 @@ object ChunkedRendererTest : Module(
 	tag = ModuleTag.DEBUG,
 ) {
 	init {
+		listen<TickEvent.Render.Pre> {
+			runSafe {
+				val playerPos = player.pos
+				mc.world?.entities?.forEach { entity ->
+					if (entity != player && entity.squaredDistanceTo(playerPos) < 400.0) {
+						OutlineManager.setEntityOutline(entity.id, OutlineStyle.HOSTILE)
+					}
+				}
+			}
+		}
+
 		chunkedRenderer("ChunkedRendererTest", depthTest = { false }) { world, pos ->
 			runSafe {
 				if (player.chunkPos != ChunkPos(pos.toBlockPos())) return@chunkedRenderer
@@ -161,6 +181,10 @@ object ChunkedRendererTest : Module(
 						scale = Vec3d(1.0, 1.0, 1.0)
 					)
 				}
+
+				// ========== Outline Render Test ==========
+				// Draw outlines using captured entity geometry
+				worldOutlines(world.entities.toList(), OutlineStyle.HOSTILE)
 			}
 		}
 	}
@@ -178,6 +202,16 @@ object TickedRendererTest : Module(
 	private val throughWalls by setting("Through Walls", true)
 
 	init {
+		listen<TickEvent.Render.Pre> {
+			runSafe {
+				mc.world?.entities?.forEach { entity ->
+					if (entity != player) {
+						OutlineManager.setEntityOutline(entity.id, OutlineStyle.PASSIVE)
+					}
+				}
+			}
+		}
+
 		tickedRenderer("TickedRendererTest", depthTest = { !throughWalls }) { safeContext ->
 			with(safeContext) {
 				val startPos = lerp(mc.tickDelta, player.prevPos, player.pos)
@@ -282,6 +316,10 @@ object TickedRendererTest : Module(
 						scale = Vec3d(1.0, 1.0, 1.0)
 					)
 				}
+
+				// ========== Outline Render Test ==========
+				// Draw outlines using captured entity geometry
+				worldOutlines(world.entities.toList(), OutlineStyle.HOSTILE)
 			}
 		}
 	}
@@ -460,7 +498,69 @@ object ImmediateRendererTest : Module(
 					rotation = Vec3d(0.0, 0.0, lightTime.toDouble()), // Spinning on screen
 					lighting = ItemLighting.NONE
 				)
+
+				// ========== Outline Render Test ==========
+				// Draw outlines using captured entity geometry
+				worldOutlines(world.entities.toList(), OutlineStyle.HOSTILE)
 			}
+		}
+	}
+}
+
+/**
+ * Test module for Outline Vertex Capture - registers entities for outline capture
+ * and logs captured vertex data each frame.
+ */
+object OutlineCaptureTest : Module(
+	name = "OutlineCaptureTest",
+	description = "Test module for outline vertex capture - captures entity vertices during MC render",
+	tag = ModuleTag.DEBUG,
+) {
+	private val outlineHostile by setting("Outline Hostile", true)
+	private val outlinePassive by setting("Outline Passive", true)
+	private val outlinePlayers by setting("Outline Players", false)
+	private val debugLog by setting("Debug Log", false)
+
+	init {
+		// Register for tick event to set up outlines BEFORE MC renders
+		listen<TickEvent.Render.Pre> {
+			// Clear previous frame's outlines
+			OutlineManager.clear()
+			
+			val world = mc.world ?: return@listen
+			val player = mc.player ?: return@listen
+			
+			// Register entities for outline capture
+			world.entities.forEach { entity ->
+				if (entity == player) return@forEach
+				if (entity.squaredDistanceTo(player) > 64 * 64) return@forEach
+				
+				val style = when {
+					outlineHostile && entity is HostileEntity -> OutlineStyle.HOSTILE
+					outlinePassive && entity is PassiveEntity -> OutlineStyle.PASSIVE
+					outlinePlayers && entity is PlayerEntity -> OutlineStyle.PLAYER
+					else -> null
+				}
+				
+				style?.let { OutlineManager.setEntityOutline(entity.id, it) }
+			}
+		}
+		
+		// Debug: log how many vertices were captured AFTER MC renders
+		listen<TickEvent.Render.Post> {
+			val capturedIds = VertexCapture.getCapturedEntityIds()
+			
+			if (debugLog && capturedIds.isNotEmpty()) {
+				println("[OutlineCaptureTest] Captured vertices for ${capturedIds.size} entities")
+				capturedIds.forEach { id ->
+					val geometries = VertexCapture.getEntityGeometries(id)
+					val totalVerts = geometries.sumOf { it.size() }
+					println("  Entity $id: $totalVerts vertices (${geometries.size} geometries)")
+				}
+			}
+			
+			// Clear captured data for next frame
+			VertexCapture.clear()
 		}
 	}
 }

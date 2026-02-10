@@ -8,9 +8,11 @@
 in vec4 v_Color;
 in vec3 v_WorldPos;                  // Position before expansion (interpolated along line)
 in vec3 v_ExpandedPos;               // Position after expansion (interpolated - fragment position)
-flat in vec3 v_Normal;               // Raw Normal input (line direction * length)
+in vec3 v_Normal;                    // Line direction * length
+in vec2 v_LocalPos;                  // Local quad coordinates (world units)
 flat in vec3 v_LineCenter;           // Line center (same for all vertices)
-flat in float v_LineWidth;           // Line width
+in float v_LineWidth;                // Line width (interpolated)
+in float v_WorldPixelSize;           // Analytical world units per pixel
 flat in float v_SegmentLength;       // Segment length
 flat in float v_IsStart;             // 1.0 if from start vertex
 flat in vec4 v_Dash;                 // x = dashLength, y = gapLength, z = dashOffset, w = animationSpeed
@@ -20,52 +22,61 @@ in float cylindricalVertexDistance;
 out vec4 fragColor;
 
 void main() {
-    // Reconstruct line geometry from flat varyings
-    vec3 lineDir = normalize(v_Normal);
-    float halfLength = v_SegmentLength / 2.0;
+    // ===== CAPSULE SDF (Local Coordinates) =====
+    float projLength = v_LocalPos.y;
+    float perpDist = abs(v_LocalPos.x);
     
-    // Compute line start and end from center
-    vec3 lineStart = v_LineCenter - lineDir * halfLength;
-    vec3 lineEnd = v_LineCenter + lineDir * halfLength;
-    
-    // ===== CAPSULE SDF =====
-    vec3 toFragment = v_ExpandedPos - lineStart;
-    float projLength = dot(toFragment, lineDir);
-    
-    // Perpendicular distance
-    vec3 perpVec = toFragment - lineDir * projLength;
-    float perpDist = length(perpVec);
-    
-    // Calculate stable pixel size from screen-space position derivatives
-    // This is more reliable than fwidth(sdf) which can be unstable at edges
-    vec3 dPos_dx = dFdx(v_ExpandedPos);
-    vec3 dPos_dy = dFdy(v_ExpandedPos);
-    float pixelSize = (length(dPos_dx) + length(dPos_dy)) * 0.5;
-    
-    // For end caps, compute actual distance to endpoints
+    // For end caps, compute actual distance to local endpoints (origin and 0,v_SegmentLength)
     float dist3D;
     if (projLength < 0.0) {
-        dist3D = length(v_ExpandedPos - lineStart);
+        dist3D = length(v_LocalPos);
     } else if (projLength > v_SegmentLength) {
-        dist3D = length(v_ExpandedPos - lineEnd);
+        dist3D = length(v_LocalPos - vec2(0.0, v_SegmentLength));
     } else {
         dist3D = perpDist;
     }
     
-    // Calculate screen line width in pixels
-    float screenLineWidth = v_LineWidth / max(pixelSize, 0.0001);
+    // === DIRECTIONAL ANTI-ALIASING ===
+    // We need to know how many world units are in one screen pixel in the direction
+    // of the edge we are currently rendering. Isotropic averaging (fwidth) causes
+    // blurriness when looking down a line because it includes the massive longitudinal 
+    // recession at a distance.
     
-    // Minimum 1-pixel rendering width - thinner lines scale alpha instead of getting gaps
-    float minWidth = pixelSize;  // 1 pixel
+    // 1. Derivatives of local coordinates (the Jacobian)
+    vec2 dL_dx = dFdx(v_LocalPos);
+    vec2 dL_dy = dFdy(v_LocalPos);
+    
+    // 2. Local gradient direction of the capsule SDF
+    vec2 localGrad;
+    if (projLength < 0.0) {
+        localGrad = normalize(v_LocalPos);
+    } else if (projLength > v_SegmentLength) {
+        localGrad = normalize(v_LocalPos - vec2(0.0, v_SegmentLength));
+    } else {
+        localGrad = vec2(sign(v_LocalPos.x), 0.0);
+    }
+    
+    // 3. Project derivatives onto the gradient to find pixel size in that direction
+    // This gives the exact world-units-per-pixel facing the edge
+    float pixelSize = length(localGrad.x * vec2(dL_dx.x, dL_dy.x) + localGrad.y * vec2(dL_dx.y, dL_dy.y));
+    
+    // For general thickness/scaling, we use the stable perpendicular pixel size
+    float perpPixelSize = length(vec2(dL_dx.x, dL_dy.x));
+    
+    // Calculate screen line width in pixels (using perpendicular scale)
+    float screenLineWidth = v_LineWidth / max(perpPixelSize, 0.0001);
+    
+    // Minimum 1-pixel rendering width (exactly matching screen_lines)
+    float minWidth = perpPixelSize;  // 1 pixel in world units
     float effectiveRadius = max(v_LineWidth * 0.5, minWidth * 0.5);
     
     // Alpha scaling: lines < 1px get proportionally reduced opacity
     float alphaScale = min(screenLineWidth, 1.0);
     
-    // SDF: distance to capsule surface
+    // SDF: distance to capsule surface (using expanded radius for sub-pixel lines)
     float sdf = dist3D - effectiveRadius;
     
-    // AA: 1 pixel transition for crisp edges
+    // AA: 2 pixel transition (exactly matching screen lines)
     float aaWidth = pixelSize;
     float alpha = 1.0 - smoothstep(-aaWidth, aaWidth, sdf);
     
@@ -76,11 +87,14 @@ void main() {
         discard;
     }
     
-    // ===== DASH PATTERN =====
+    // === DASH PATTERN ===
     float dashLength = v_Dash.x;
     float gapLength = v_Dash.y;
     float dashOffset = v_Dash.z;
     float animationSpeed = v_Dash.w;
+    
+    // For dash edges, we use the longitudinal pixel size
+    float longPixelSize = length(vec2(dL_dx.y, dL_dy.y));
     
     // Only apply dash if dashLength > 0 (0 = solid line)
     if (dashLength > 0.0) {
@@ -109,9 +123,8 @@ void main() {
             dashSdf = -min(distToDashEnd, distFromDashStart);
         }
         
-        // Apply anti-aliasing at dash edges (use fwidth of SDF for consistent AA with capsule)
-        float dashAaWidth = fwidth(dashSdf);
-        float dashAlpha = 1.0 - smoothstep(-dashAaWidth, dashAaWidth, dashSdf);
+        // Apply anti-aliasing at dash edges (directional for stability)
+        float dashAlpha = 1.0 - smoothstep(-longPixelSize, longPixelSize, dashSdf);
         
         if (dashAlpha <= 0.0) {
             discard;

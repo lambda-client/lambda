@@ -72,12 +72,29 @@ transitive-accessible field net/minecraft/client/texture/SpriteContents image Ln
 transitive-accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
 transitive-accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer indexBuffer Lcom/mojang/blaze3d/buffers/GpuBuffer;
 transitive-accessible field net/minecraft/client/gl/GlGpuBuffer id I
-
-# BufferBuilder - Custom vertex element support
+accessible field net/minecraft/client/MinecraftClient entityRenderManager Lnet/minecraft/client/render/entity/EntityRenderManager;
+transitive-accessible field net/minecraft/client/render/RenderLayer renderSetup Lnet/minecraft/client/render/RenderSetup;
+transitive-accessible field net/minecraft/client/render/RenderSetup layeringTransform Lnet/minecraft/client/render/LayeringTransform;
+transitive-accessible field net/minecraft/client/render/LayeringTransform transform Ljava/util/function/Consumer;
+transitive-accessible method net/minecraft/client/render/entity/ProjectileEntityRenderer getTexture (Lnet/minecraft/client/render/entity/state/ProjectileEntityRenderState;)Lnet/minecraft/util/Identifier;
+transitive-accessible field net/minecraft/client/render/entity/BoatEntityRenderer texture Lnet/minecraft/util/Identifier;
+transitive-accessible field net/minecraft/client/render/entity/EndCrystalEntityRenderer TEXTURE Lnet/minecraft/util/Identifier;
 transitive-accessible method net/minecraft/client/render/BufferBuilder beginElement (Lcom/mojang/blaze3d/vertex/VertexFormatElement;)J
 transitive-accessible field net/minecraft/client/render/BufferBuilder offsetsByElementId [I
 transitive-accessible field net/minecraft/client/render/BufferBuilder vertexPointer J
 transitive-accessible field net/minecraft/client/render/BufferBuilder currentMask I
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState layers [Lnet/minecraft/client/render/item/ItemRenderState$LayerRenderState;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState layerCount I
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState displayContext Lnet/minecraft/item/ItemDisplayContext;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState quads Ljava/util/List;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState useLight Z
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState particle Lnet/minecraft/client/texture/Sprite;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState transform Lnet/minecraft/client/render/model/json/Transformation;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState tints [I
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState glint Lnet/minecraft/client/render/item/ItemRenderState$Glint;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState specialModelType Lnet/minecraft/client/render/item/model/special/SpecialModelRenderer;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState renderLayer Lnet/minecraft/client/render/RenderLayer;
+transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState data Ljava/lang/Object;
 
 # Text
 transitive-accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
@@ -130,22 +147,3 @@ transitive-accessible method net/minecraft/item/BlockItem getPlacementState (Lne
 transitive-accessible method net/minecraft/block/AbstractBlock getPickStack (Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/item/ItemStack;
 transitive-accessible field net/minecraft/client/gui/screen/ingame/HandledScreen focusedSlot Lnet/minecraft/screen/slot/Slot;
 transitive-accessible field net/minecraft/registry/SimpleRegistry frozen Z
-
-# Render Item
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState layers [Lnet/minecraft/client/render/item/ItemRenderState$LayerRenderState;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState layerCount I
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState displayContext Lnet/minecraft/item/ItemDisplayContext;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState quads Ljava/util/List;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState useLight Z
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState particle Lnet/minecraft/client/texture/Sprite;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState transform Lnet/minecraft/client/render/model/json/Transformation;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState tints [I
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState glint Lnet/minecraft/client/render/item/ItemRenderState$Glint;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState specialModelType Lnet/minecraft/client/render/item/model/special/SpecialModelRenderer;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState renderLayer Lnet/minecraft/client/render/RenderLayer;
-transitive-accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState data Ljava/lang/Object;
-
-# Entity Renderer
-transitive-accessible method net/minecraft/client/render/entity/ProjectileEntityRenderer getTexture (Lnet/minecraft/client/render/entity/state/ProjectileEntityRenderState;)Lnet/minecraft/util/Identifier;
-transitive-accessible field net/minecraft/client/render/entity/BoatEntityRenderer texture Lnet/minecraft/util/Identifier;
-transitive-accessible field net/minecraft/client/render/entity/EndCrystalEntityRenderer TEXTURE Lnet/minecraft/util/Identifier;

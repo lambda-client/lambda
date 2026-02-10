@@ -17,24 +17,101 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.event.EventFlow;
+import com.lambda.event.events.RenderEvent;
+import com.lambda.graphics.RenderMain;
+import com.lambda.graphics.outline.OutlineRenderManager;
+import com.lambda.graphics.outline.IWorldRenderer;
 import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.WorldRenderer;
+import it.unimi.dsi.fastutil.Stack;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.render.*;
+import net.minecraft.client.render.command.OrderedRenderCommandQueue;
+import net.minecraft.client.render.state.WorldRenderState;
+import net.minecraft.client.util.Handle;
+import net.minecraft.client.util.ObjectAllocator;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import org.joml.Matrix4f;
+import org.joml.Vector4f;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(WorldRenderer.class)
-public class WorldRendererMixin {
+public abstract class WorldRendererMixin implements IWorldRenderer {
+
+    @Shadow
+    private Framebuffer entityOutlineFramebuffer;
+
+    @Shadow
+    @Final
+    private DefaultFramebufferSet framebufferSet;
+
+    @Unique
+    private Stack<Framebuffer> framebufferStack;
+
+    @Unique
+    private Stack<Handle<Framebuffer>> framebufferHandleStack;
+
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void onInit(CallbackInfo info) {
+        framebufferStack = new ObjectArrayList<>();
+        framebufferHandleStack = new ObjectArrayList<>();
+    }
+
+    // === IWorldRenderer implementation ===
+
+    @Override
+    public void lambda$pushEntityOutlineFramebuffer(Framebuffer framebuffer) {
+        framebufferStack.push(this.entityOutlineFramebuffer);
+        this.entityOutlineFramebuffer = framebuffer;
+
+        framebufferHandleStack.push(this.framebufferSet.entityOutlineFramebuffer);
+        this.framebufferSet.entityOutlineFramebuffer = () -> framebuffer;
+    }
+
+    @Override
+    public void lambda$popEntityOutlineFramebuffer() {
+        this.entityOutlineFramebuffer = framebufferStack.pop();
+        this.framebufferSet.entityOutlineFramebuffer = framebufferHandleStack.pop();
+    }
+
+    @Inject(method = "render", at = @At("HEAD"))
+    private void onRender(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline,
+            Camera camera, Matrix4f positionMatrix, Matrix4f basicProjectionMatrix, Matrix4f projectionMatrix,
+            GpuBufferSlice fogBuffer, Vector4f fogColor, boolean renderSky, CallbackInfo ci) {
+        RenderMain.updateState(positionMatrix, basicProjectionMatrix, projectionMatrix);
+        EventFlow.post(RenderEvent.PreRenderWorld.INSTANCE);
+    }
+
+    // === Outline entity render hook ===
+
+    @Inject(method = "pushEntityRenders", at = @At("TAIL"))
+    private void onPushEntityRenders(MatrixStack matrices, WorldRenderState worldState, OrderedRenderCommandQueue queue,
+            CallbackInfo info) {
+        // Obsolete: We now use VertexCapture + ID Pass instead of re-rendering to a
+        // custom FB
+        // OutlineRenderManager.onPushEntityRenders(matrices, worldState,
+        // (WorldRenderer) (Object) this);
+    }
+
+    // === Existing hooks ===
+
     @Inject(method = "hasBlindnessOrDarkness(Lnet/minecraft/client/render/Camera;)Z", at = @At(value = "HEAD"), cancellable = true)
     private void modifyEffectCheck(Camera camera, CallbackInfoReturnable<Boolean> cir) {
         Entity entity = camera.getFocusedEntity();

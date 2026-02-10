@@ -160,6 +160,16 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 				}
 			}
 		}
+
+		// Render Outlines for this renderer using its current depth setting
+		val outlinedEntities = mutableSetOf<Int>()
+		chunks.forEach { (renderer, _) -> 
+			outlinedEntities.addAll(renderer.getOutlinedEntities()) 
+		}
+		
+		if (outlinedEntities.isNotEmpty()) {
+			com.lambda.graphics.outline.OutlineRenderer.renderIDPass(outlinedEntities, depth)
+		}
 	}
 
 	/**

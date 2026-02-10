@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.event.events
+package com.lambda.graphics.outline;
 
-import com.lambda.event.Event
-import com.lambda.event.callback.Cancellable
-import com.lambda.event.callback.ICancellable
+/**
+ * Duck interface for EntityRenderState to store and retrieve entity ID.
+ */
+public interface IEntityRenderState {
+    int lambda$getEntityId();
 
-sealed class RenderEvent {
-    object PreRenderWorld : Event
-    object RenderWorld : Event
-    object RenderScreen : Event
-
-    class UpdateTarget : ICancellable by Cancellable()
+    void lambda$setEntityId(int id);
 }

@@ -52,7 +52,7 @@ data class ItemOverlay(
          * Entity glint (used on enchanted armor).
          */
         val ENTITY_GLINT = ItemOverlay(
-            texture = Identifier.of("minecraft", "textures/misc/enchanted_glint_entity.png"),
+            texture = Identifier.of("minecraft", "textures/misc/enchanted_glint_armor.png"),
             scale = 8.0f,
             speed = 1.0f,
             angle = 10f,
