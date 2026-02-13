@@ -48,7 +48,7 @@ class TickedRenderer(
 	update: RenderBuilder.(SafeContext) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
-	
+
 	// Camera position captured at tick time (when shapes are built)
 	private var tickCameraPos: Vec3d? = null
 
@@ -58,8 +58,10 @@ class TickedRenderer(
 
 	init {
 		owner.listen<TickEvent.Pre> {
+			val depth = depthTest()
 			clear()
-			val renderBuilder = RenderBuilder(tickCameraPos ?: return@listen).also {
+			tickCameraPos = mc.gameRenderer.camera.pos
+			val renderBuilder = RenderBuilder(tickCameraPos ?: return@listen, depthTest = depth).also {
 				it.update(this)
 			}
 			upload(renderBuilder)

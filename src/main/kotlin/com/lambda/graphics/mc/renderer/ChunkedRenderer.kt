@@ -97,9 +97,10 @@ class ChunkedRenderer(
 		owner.listen<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
 
 		owner.listenConcurrently<TickEvent.Pre> {
+			val depth = depthTest()
 			val queueSize = rebuildQueue.size
 			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
-			repeat(polls) { rebuildQueue.poll()?.rebuild() }
+			repeat(polls) { rebuildQueue.poll()?.rebuild(depth) }
 		}
 
 		owner.listen<TickEvent.Pre> {
@@ -150,8 +151,6 @@ class ChunkedRenderer(
 
 		val activeChunks = chunkMap.values.filter { it.renderer.hasData() }
 		if (activeChunks.isEmpty()) return emptyList()
-
-		val modelViewMatrix = RenderMain.modelViewMatrix
 		
 		val glintMatrix = RendererUtils.createGlintTransform(0.25f)
 
@@ -160,9 +159,13 @@ class ChunkedRenderer(
 			val offsetY = (chunkData.originY - cameraPos.y).toFloat()
 			val offsetZ = (chunkData.originZ - cameraPos.z).toFloat()
 
-			val modelView = Matrix4f(RenderMain.cameraRotationMatrix).mul(modelViewMatrix).m30(0f).m31(0f).m32(0f).translate(offsetX, offsetY, offsetZ)
 			val dynamicTransform = RenderSystem.getDynamicUniforms()
-				.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), glintMatrix)
+				.write(
+					RenderMain.cameraRotationMatrix,
+					Vector4f(1f, 1f, 1f, 1f),
+					Vector3f(offsetX, offsetY, offsetZ),
+					glintMatrix
+				)
 
 			chunkData.renderer to dynamicTransform
 		}
@@ -195,10 +198,10 @@ class ChunkedRenderer(
 		 * Rebuild geometry relative to chunk origin.
 		 * Coordinates are stored as (worldPos - chunkOrigin).toFloat()
 		 */
-		fun rebuild() {
+		fun rebuild(depthTest: Boolean) {
 			// Use chunk origin as the "camera" position for relative coords
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
-			val scope = RenderBuilder(chunkOriginVec)
+			val scope = RenderBuilder(chunkOriginVec, depthTest = depthTest)
 			
 			for (x in chunk.pos.startX..chunk.pos.endX) {
 				for (z in chunk.pos.startZ..chunk.pos.endZ) {

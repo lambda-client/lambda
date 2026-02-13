@@ -16,13 +16,15 @@ out vec2 texCoord0;
 out vec4 vertexColor;
 out vec4 sdfStyleParams;
 out float v_Layer;   // Layer depth for draw order
+flat out int v_LayerType;
 
 void main() {
     // Screen-space position - already in screen coordinates
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    gl_Position = ProjMat * ModelViewMat * vec4(Position.xy, 0.0, 1.0);
     
     texCoord0 = UV0;
     vertexColor = Color;
     sdfStyleParams = SDFStyle;
     v_Layer = Layer;
+    v_LayerType = int(Position.z + 0.5);
 }

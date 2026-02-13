@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.graphics.outline.OutlineManager;
 import com.lambda.module.modules.render.NoRender;
 import net.minecraft.client.render.Frustum;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
@@ -38,6 +39,8 @@ public class EntityRendererMixin {
             CallbackInfoReturnable<Boolean> cir) {
         if (NoRender.shouldOmitEntity(entity))
             cir.cancel();
+        else if (OutlineManager.shouldCapture(entity.getId()))
+            cir.setReturnValue(true);
     }
 
     @Inject(method = "renderLabelIfPresent", at = @At("HEAD"), cancellable = true)

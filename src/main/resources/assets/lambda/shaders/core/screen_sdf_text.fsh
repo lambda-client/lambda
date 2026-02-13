@@ -10,6 +10,7 @@ in vec4 vertexColor;
 // SDF style params from vertex shader: (outlineWidth, glowRadius, shadowSoftness, threshold)
 in vec4 sdfStyleParams;
 in float v_Layer;    // Layer depth for draw order
+flat in int v_LayerType;
 
 out vec4 fragColor;
 
@@ -27,22 +28,22 @@ void main() {
     // Screen-space anti-aliasing
     float smoothing = fwidth(sdfValue) * 0.5;
 
-    // Decode layer type from vertex alpha
-    int layerType = int(vertexColor.a * 255.0 + 0.5);
+    // Layer selection
+    int layerType = v_LayerType;
 
     float alpha;
 
-    if (layerType >= 200) {
+    if (layerType == 3) {
         // Main text layer - sharp edge at threshold
         alpha = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
-    } else if (layerType >= 100) {
+    } else if (layerType == 2) {
         // Outline layer - uses OutlineWidth
         float outlineEdge = SDFThreshold - OutlineWidth;
         alpha = smoothstep(outlineEdge - smoothing, outlineEdge + smoothing, sdfValue);
         // Mask out the main text area
         float textMask = smoothstep(SDFThreshold - smoothing, SDFThreshold + smoothing, sdfValue);
         alpha = alpha * (1.0 - textMask);
-    } else if (layerType >= 50) {
+    } else if (layerType == 1) {
         // Glow layer - starts from outline edge (if outline enabled) or text edge
         // Only expand past outline if OutlineWidth is actually set
         float glowEdge = (OutlineWidth > 0.001) ? (SDFThreshold - OutlineWidth) : SDFThreshold;

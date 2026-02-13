@@ -17,6 +17,7 @@
 
 package com.lambda.graphics.mc
 
+import com.lambda.graphics.outline.CapturedGeometry
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
@@ -40,10 +41,15 @@ class RegionVertexCollector {
 	val edgeVertices = ConcurrentLinkedDeque<EdgeVertex>()
 	val textVertices = ConcurrentLinkedDeque<TextVertex>()
 	
-	// Entities requested for outlines during the build phase
-	val outlinedEntities = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
+	// Outlined versions of the world-space collections
+	// We use a Map to group vertices by outline ID for efficient layered rendering
+	val faceVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<FaceVertex>>()
+	val edgeVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<EdgeVertex>>()
+	val textVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<TextVertex>>()
+	val modelVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>>()
+	val worldImageVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>>()
 
-	// Screen-space vertex collections
+	// Screen-space vertex collections (No outline support yet as screen-space is already layered)
 	val screenFaceVertices = ConcurrentLinkedDeque<ScreenFaceVertex>()
 	val screenEdgeVertices = ConcurrentLinkedDeque<ScreenEdgeVertex>()
 	val screenTextVertices = ConcurrentLinkedDeque<ScreenTextVertex>()
@@ -77,7 +83,7 @@ class RegionVertexCollector {
 	 * @param threshold SDF edge threshold (default 0.5)
 	 */
 	data class TextVertex(
-		val localX: Float, val localY: Float,
+		val localX: Float, val localY: Float, val layerType: Int,
 		val u: Float, val v: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int,
 		val anchorX: Float, val anchorY: Float, val anchorZ: Float,
@@ -154,7 +160,7 @@ class RegionVertexCollector {
 	 * @param layer Depth for layering (higher = on top)
 	 */
 	data class ScreenTextVertex(
-		val x: Float, val y: Float,
+		val x: Float, val y: Float, val layerType: Int,
 		val u: Float, val v: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int,
 		// SDF style params (replaces SDFParams uniform)
@@ -304,10 +310,21 @@ class RegionVertexCollector {
 	 * @param texture The GPU texture view
 	 * @param vertices The vertices to add
 	 * @param useNearestFilter If true, use NEAREST filtering for pixel-perfect rendering
+	 * @param outlineId Optional ID if these vertices should be rendered in the outline layer
 	 */
-	fun addWorldImageVertices(texture: GpuTextureView, vertices: List<WorldImageVertex>, useNearestFilter: Boolean = false) {
+	fun addWorldImageVertices(
+		texture: GpuTextureView, 
+		vertices: List<WorldImageVertex>, 
+		useNearestFilter: Boolean = false,
+		outlineId: Int? = null
+	) {
 		val key = ImageBatchKey(texture, useNearestFilter)
-		worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		if (outlineId == null) {
+			worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		} else {
+			val idMap = worldImageVerticesOutlined.getOrPut(outlineId) { java.util.concurrent.ConcurrentHashMap() }
+			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		}
 	}
 
 	/**
@@ -315,10 +332,21 @@ class RegionVertexCollector {
 	 * @param texture The GPU texture view
 	 * @param vertices The vertices to add
 	 * @param useNearestFilter If true, use NEAREST filtering
+	 * @param outlineId Optional ID if these vertices should be rendered in the outline layer
 	 */
-	fun addModelVertices(texture: GpuTextureView, vertices: List<ModelVertex>, useNearestFilter: Boolean = false) {
+	fun addModelVertices(
+		texture: GpuTextureView, 
+		vertices: List<ModelVertex>, 
+		useNearestFilter: Boolean = false,
+		outlineId: Int? = null
+	) {
 		val key = ImageBatchKey(texture, useNearestFilter)
-		modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		if (outlineId == null) {
+			modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		} else {
+			val idMap = modelVerticesOutlined.getOrPut(outlineId) { java.util.concurrent.ConcurrentHashMap() }
+			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		}
 	}
 
 	/**
@@ -330,8 +358,13 @@ class RegionVertexCollector {
 	}
 
 	/** Add a face vertex. */
-	fun addFaceVertex(x: Float, y: Float, z: Float, color: Color) {
-		faceVertices.add(FaceVertex(x, y, z, color.red, color.green, color.blue, color.alpha))
+	fun addFaceVertex(x: Float, y: Float, z: Float, color: Color, outlineId: Int? = null) {
+		val v = FaceVertex(x, y, z, color.red, color.green, color.blue, color.alpha)
+		if (outlineId == null) {
+			faceVertices.add(v)
+		} else {
+			faceVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
+		}
 	}
 
 	/** Add an edge vertex (solid line). */
@@ -343,11 +376,15 @@ class RegionVertexCollector {
 		nx: Float,
 		ny: Float,
 		nz: Float,
-		lineWidth: Float
+		lineWidth: Float,
+		outlineId: Int? = null
 	) {
-		edgeVertices.add(
-			EdgeVertex(x, y, z, color.red, color.green, color.blue, color.alpha, nx, ny, nz, lineWidth)
-		)
+		val v = EdgeVertex(x, y, z, color.red, color.green, color.blue, color.alpha, nx, ny, nz, lineWidth)
+		if (outlineId == null) {
+			edgeVertices.add(v)
+		} else {
+			edgeVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
+		}
 	}
 
 	/** Add an edge vertex with dash style. */
@@ -360,23 +397,27 @@ class RegionVertexCollector {
 		ny: Float,
 		nz: Float,
 		lineWidth: Float,
-		dashStyle: LineDashStyle?
+		dashStyle: LineDashStyle?,
+		outlineId: Int? = null
 	) {
 		if (dashStyle == null) {
-			addEdgeVertex(x, y, z, color, nx, ny, nz, lineWidth)
+			addEdgeVertex(x, y, z, color, nx, ny, nz, lineWidth, outlineId)
 		} else {
-			edgeVertices.add(
-				EdgeVertex(
-					x, y, z,
-					color.red, color.green, color.blue, color.alpha,
-					nx, ny, nz,
-					lineWidth,
-					dashStyle.dashLength,
-					dashStyle.gapLength,
-					dashStyle.offset,
-					if (dashStyle.animated) dashStyle.animationSpeed else 0f
-				)
+			val v = EdgeVertex(
+				x, y, z,
+				color.red, color.green, color.blue, color.alpha,
+				nx, ny, nz,
+				lineWidth,
+				dashStyle.dashLength,
+				dashStyle.gapLength,
+				dashStyle.offset,
+				if (dashStyle.animated) dashStyle.animationSpeed else 0f
 			)
+			if (outlineId == null) {
+				edgeVertices.add(v)
+			} else {
+				edgeVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
+			}
 		}
 	}
 
@@ -397,19 +438,31 @@ class RegionVertexCollector {
 	 * @param scale Text scale
 	 * @param billboard True = auto-billboard towards camera, False = fixed rotation (offset already transformed)
 	 */
+	/**
+	 * Add a billboard text vertex.
+	 */
 	fun addTextVertex(
-		localX: Float, localY: Float,
-		u: Float, v: Float,
+		localX: Float, localY: Float, u: Float, v: Float,
 		r: Int, g: Int, b: Int, a: Int,
 		anchorX: Float, anchorY: Float, anchorZ: Float,
-		scale: Float,
-		billboard: Boolean
+		scale: Float, billboard: Boolean,
+		outlineWidth: Float = 0f,
+		glowRadius: Float = 0f,
+		shadowSoftness: Float = 0f,
+		threshold: Float = 0.5f,
+		outlineId: Int? = null,
+		layerType: Int = 3 // Default to main text
 	) {
-		textVertices.add(TextVertex(
-			localX, localY, u, v, r, g, b, a,
-			anchorX, anchorY, anchorZ, scale,
-			if (billboard) 0f else 1f
-		))
+		val vertex = TextVertex(
+			localX, localY, layerType, u, v, r, g, b, a,
+			anchorX, anchorY, anchorZ, scale, if (billboard) 0f else 1f,
+			outlineWidth, glowRadius, shadowSoftness, threshold
+		)
+		if (outlineId == null) {
+			textVertices.add(vertex)
+		} else {
+			textVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(vertex)
+		}
 	}
 
 	// ============================================================================
@@ -455,359 +508,253 @@ class RegionVertexCollector {
 	}
 
 	/** Add a screen-space text vertex with layer for draw order. */
-	fun addScreenTextVertex(x: Float, y: Float, u: Float, v: Float, r: Int, g: Int, b: Int, a: Int, layer: Float) {
-		screenTextVertices.add(ScreenTextVertex(x, y, u, v, r, g, b, a, layer = layer))
+	fun addScreenTextVertex(
+		x: Float, y: Float, u: Float, v: Float,
+		r: Int, g: Int, b: Int, a: Int,
+		layer: Float,
+		layerType: Int = 3,
+		outlineWidth: Float = 0f,
+		glowRadius: Float = 0f,
+		shadowSoftness: Float = 0f,
+		threshold: Float = 0.5f
+	) {
+		screenTextVertices.add(ScreenTextVertex(x, y, layerType, u, v, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 	}
+
 
 	/**
-	 * Upload collected data to GPU buffers. Must be called on the main/render thread.
-	 *
-	 * @return UploadResult containing face, edge, and text buffers with index counts
+	 * Build collected data into ByteBuffers. Must be called on the main/render thread.
+	 * 
+	 * @return BuildResult containing raw ByteBuffers with index counts
 	 */
-	fun upload(): UploadResult {
-		val faces = uploadFaces()
-		val edges = uploadEdges()
-		val text = uploadText()
-		val models = uploadModelBatches()
-		val images = uploadWorldImageBatches()
-		return UploadResult(faces, edges, text, models, images)
+	fun build(): BuildResult {
+		val faces = buildFaces()
+		val edges = buildEdges()
+		val text = buildText()
+		val models = buildModelBatches()
+		val images = buildWorldImageBatches()
+		
+		val outlineIds = faceVerticesOutlined.keys + edgeVerticesOutlined.keys + textVerticesOutlined.keys + modelVerticesOutlined.keys + worldImageVerticesOutlined.keys
+		val outlinedResults = outlineIds.associateWith { id ->
+			OutlinedBuildResult(
+				faces = buildOutlinedFaces(id),
+				edges = buildOutlinedEdges(id),
+				text = buildOutlinedText(id),
+				models = buildOutlinedModelBatches(id),
+				images = buildOutlinedWorldImageBatches(id)
+			)
+		}
+
+		return BuildResult(faces, edges, text, models, images, outlinedResults)
 	}
 
-	private fun uploadFaces(): BufferResult {
-		if (faceVertices.isEmpty()) return BufferResult(null, 0)
 
+
+	private fun buildFaces(): BuiltBatch? {
+		if (faceVertices.isEmpty()) return null
 		val vertices = faceVertices.toList()
 		faceVertices.clear()
 
-		var result: BufferResult? = null
+		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 16).use { allocator ->
-			val builder =
-				BufferBuilder(
-					allocator,
-					VertexFormat.DrawMode.QUADS,
-					VertexFormats.POSITION_COLOR
-				)
-
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
 			vertices.forEach { v -> builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a) }
-
 			builder.endNullable()?.let { built ->
-				val gpuDevice = RenderSystem.getDevice()
-				val buffer =
-					gpuDevice.createBuffer(
-						{ "Lambda ESP Face Buffer" },
-						GpuBuffer.USAGE_VERTEX,
-						built.buffer
-					)
-				result = BufferResult(buffer, built.drawParameters.indexCount())
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
 				built.close()
 			}
 		}
-		return result ?: BufferResult(null, 0)
+		return result
 	}
 
-	private fun uploadEdges(): BufferResult {
-		if (edgeVertices.isEmpty()) return BufferResult(null, 0)
-
+	private fun buildEdges(): BuiltBatch? {
+		if (edgeVertices.isEmpty()) return null
 		val vertices = edgeVertices.toList()
 		edgeVertices.clear()
 
-		var result: BufferResult? = null
-		// Increased buffer size to accommodate the new dash vec3 (3 floats = 12 bytes extra)
+		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 48).use { allocator ->
-			val builder =
-				BufferBuilder(
-					allocator,
-					VertexFormat.DrawMode.QUADS,
-					LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH
-				)
-
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH)
 			vertices.forEach { v ->
-				builder.vertex(v.x, v.y, v.z)
-					.color(v.r, v.g, v.b, v.a)
-				
-				// Write Normal as 3 floats (NOT using .normal() which writes bytes)
-				val normalPointer = builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT)
-				if (normalPointer != -1L) {
-					MemoryUtil.memPutFloat(normalPointer, v.nx)
-					MemoryUtil.memPutFloat(normalPointer + 4L, v.ny)
-					MemoryUtil.memPutFloat(normalPointer + 8L, v.nz)
+				builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a)
+				builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz)
+					}
 				}
-				
-				// Write LineWidth as float
-				val widthPointer = builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT)
-				if (widthPointer != -1L) {
-					MemoryUtil.memPutFloat(widthPointer, v.lineWidth)
+				builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT).let { p ->
+					if (p != -1L) MemoryUtil.memPutFloat(p, v.lineWidth)
 				}
-				
-				// Write dash data using access-widened beginElement (vec4)
-				val dashPointer = builder.beginElement(LambdaVertexFormats.DASH_ELEMENT)
-				if (dashPointer != -1L) {
-					MemoryUtil.memPutFloat(dashPointer, v.dashLength)
-					MemoryUtil.memPutFloat(dashPointer + 4L, v.gapLength)
-					MemoryUtil.memPutFloat(dashPointer + 8L, v.dashOffset)
-					MemoryUtil.memPutFloat(dashPointer + 12L, v.animationSpeed)
+				builder.beginElement(LambdaVertexFormats.DASH_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.dashLength); MemoryUtil.memPutFloat(p + 4, v.gapLength); MemoryUtil.memPutFloat(p + 8, v.dashOffset); MemoryUtil.memPutFloat(p + 12, v.animationSpeed)
+					}
 				}
 			}
-
 			builder.endNullable()?.let { built ->
-				val gpuDevice = RenderSystem.getDevice()
-				val buffer =
-					gpuDevice.createBuffer(
-						{ "Lambda ESP Edge Buffer" },
-						GpuBuffer.USAGE_VERTEX,
-						built.buffer
-					)
-				result = BufferResult(buffer, built.drawParameters.indexCount())
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
 				built.close()
 			}
 		}
-		return result ?: BufferResult(null, 0)
+		return result
 	}
 
-	private fun uploadText(): BufferResult {
-		if (textVertices.isEmpty()) return BufferResult(null, 0)
-
+	private fun buildText(): BuiltBatch? {
+		if (textVertices.isEmpty()) return null
 		val vertices = textVertices.toList()
 		textVertices.clear()
 
-		var result: BufferResult? = null
-		// POSITION_TEXTURE_COLOR_ANCHOR_SDF: 12 + 8 + 4 + 12 + 8 + 16 = 60 bytes per vertex
+		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 64).use { allocator ->
-			val builder = BufferBuilder(
-				allocator,
-				VertexFormat.DrawMode.QUADS,
-				LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF
-			)
-
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF)
 			vertices.forEach { v ->
-				// Position stores local glyph offset (z unused, set to 0)
-				builder.vertex(v.localX, v.localY, 0f)
-					.texture(v.u, v.v)
-					.color(v.r, v.g, v.b, v.a)
-				
-				// Write Anchor position (camera-relative world pos)
-				val anchorPointer = builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT)
-				if (anchorPointer != -1L) {
-					MemoryUtil.memPutFloat(anchorPointer, v.anchorX)
-					MemoryUtil.memPutFloat(anchorPointer + 4L, v.anchorY)
-					MemoryUtil.memPutFloat(anchorPointer + 8L, v.anchorZ)
+				builder.vertex(v.localX, v.localY, v.layerType.toFloat()).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
+				builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ)
+					}
 				}
-				
-				// Write Billboard data (scale, billboardFlag)
-				val billboardPointer = builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT)
-				if (billboardPointer != -1L) {
-					MemoryUtil.memPutFloat(billboardPointer, v.scale)
-					MemoryUtil.memPutFloat(billboardPointer + 4L, v.billboardFlag)
+				builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag)
+					}
 				}
-				
-				// Write SDF style params (outlineWidth, glowRadius, shadowSoftness, threshold)
-				val sdfPointer = builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT)
-				if (sdfPointer != -1L) {
-					MemoryUtil.memPutFloat(sdfPointer, v.outlineWidth)
-					MemoryUtil.memPutFloat(sdfPointer + 4L, v.glowRadius)
-					MemoryUtil.memPutFloat(sdfPointer + 8L, v.shadowSoftness)
-					MemoryUtil.memPutFloat(sdfPointer + 12L, v.threshold)
+				builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.outlineWidth); MemoryUtil.memPutFloat(p + 4, v.glowRadius); MemoryUtil.memPutFloat(p + 8, v.shadowSoftness); MemoryUtil.memPutFloat(p + 12, v.threshold)
+					}
 				}
 			}
-
 			builder.endNullable()?.let { built ->
-				val gpuDevice = RenderSystem.getDevice()
-				val buffer = gpuDevice.createBuffer(
-					{ "Lambda ESP Text Buffer" },
-					GpuBuffer.USAGE_VERTEX,
-					built.buffer
-				)
-				result = BufferResult(buffer, built.drawParameters.indexCount())
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
 				built.close()
 			}
 		}
-		return result ?: BufferResult(null, 0)
+		return result
 	}
 
 	// ============================================================================
 	// Screen-Space Upload Methods
 	// ============================================================================
 
-	private fun uploadScreenFaces(): BufferResult {
-		if (screenFaceVertices.isEmpty()) return BufferResult(null, 0)
-
+	private fun buildScreenFaces(): BuiltBatch? {
+		if (screenFaceVertices.isEmpty()) return null
 		val vertices = screenFaceVertices.toList()
 		screenFaceVertices.clear()
 
-		var result: BufferResult? = null
-		// SCREEN_FACE_FORMAT: 12 + 4 + 4 = 20 bytes per vertex
+		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 24).use { allocator ->
-			val builder = BufferBuilder(
-				allocator,
-				VertexFormat.DrawMode.QUADS,
-				LambdaVertexFormats.SCREEN_FACE_FORMAT
-			)
-
-			// For screen-space: use x, y, with z = 0, plus layer
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.SCREEN_FACE_FORMAT)
 			vertices.forEach { v -> 
 				builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a)
-				
-				// Write layer for draw order
-				val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
-				if (layerPointer != -1L) {
-					MemoryUtil.memPutFloat(layerPointer, v.layer)
+				builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT).let { p ->
+					if (p != -1L) MemoryUtil.memPutFloat(p, v.layer)
 				}
 			}
-
 			builder.endNullable()?.let { built ->
-				val gpuDevice = RenderSystem.getDevice()
-				val buffer = gpuDevice.createBuffer(
-					{ "Lambda Screen Face Buffer" },
-					GpuBuffer.USAGE_VERTEX,
-					built.buffer
-				)
-				result = BufferResult(buffer, built.drawParameters.indexCount())
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
 				built.close()
 			}
 		}
-		return result ?: BufferResult(null, 0)
+		return result
 	}
 
-	private fun uploadScreenEdges(): BufferResult {
-		if (screenEdgeVertices.isEmpty()) return BufferResult(null, 0)
-
+	private fun buildScreenEdges(): BuiltBatch? {
+		if (screenEdgeVertices.isEmpty()) return null
 		val vertices = screenEdgeVertices.toList()
 		screenEdgeVertices.clear()
 
-		var result: BufferResult? = null
-		// Position (12) + Color (4) + Direction (8) + Width (4) + Dash (16) + Layer (4) = 48 bytes
+		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 52).use { allocator ->
-			val builder = BufferBuilder(
-				allocator,
-				VertexFormat.DrawMode.QUADS,
-				LambdaVertexFormats.SCREEN_LINE_FORMAT
-			)
-
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.SCREEN_LINE_FORMAT)
 			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a)
-
-				// Write direction (for calculating perpendicular offset in shader)
-				val dirPointer = builder.beginElement(LambdaVertexFormats.DIRECTION_2D_ELEMENT)
-				if (dirPointer != -1L) {
-					MemoryUtil.memPutFloat(dirPointer, v.dx)
-					MemoryUtil.memPutFloat(dirPointer + 4L, v.dy)
+				builder.beginElement(LambdaVertexFormats.DIRECTION_2D_ELEMENT).let { p ->
+					if (p != -1L) { MemoryUtil.memPutFloat(p, v.dx); MemoryUtil.memPutFloat(p + 4, v.dy) }
 				}
-
-				// Write line width
-				val widthPointer = builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT)
-				if (widthPointer != -1L) {
-					MemoryUtil.memPutFloat(widthPointer, v.lineWidth)
+				builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT).let { p ->
+					if (p != -1L) MemoryUtil.memPutFloat(p, v.lineWidth)
 				}
-
-				// Write dash data
-				val dashPointer = builder.beginElement(LambdaVertexFormats.DASH_ELEMENT)
-				if (dashPointer != -1L) {
-					MemoryUtil.memPutFloat(dashPointer, v.dashLength)
-					MemoryUtil.memPutFloat(dashPointer + 4L, v.gapLength)
-					MemoryUtil.memPutFloat(dashPointer + 8L, v.dashOffset)
-					MemoryUtil.memPutFloat(dashPointer + 12L, v.animationSpeed)
+				builder.beginElement(LambdaVertexFormats.DASH_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.dashLength); MemoryUtil.memPutFloat(p + 4, v.gapLength); MemoryUtil.memPutFloat(p + 8, v.dashOffset); MemoryUtil.memPutFloat(p + 12, v.animationSpeed)
+					}
 				}
-
-				// Write layer for draw order
-				val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
-				if (layerPointer != -1L) {
-					MemoryUtil.memPutFloat(layerPointer, v.layer)
+				builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT).let { p ->
+					if (p != -1L) MemoryUtil.memPutFloat(p, v.layer)
 				}
 			}
-
 			builder.endNullable()?.let { built ->
-				val gpuDevice = RenderSystem.getDevice()
-				val buffer = gpuDevice.createBuffer(
-					{ "Lambda Screen Edge Buffer" },
-					GpuBuffer.USAGE_VERTEX,
-					built.buffer
-				)
-				result = BufferResult(buffer, built.drawParameters.indexCount())
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
 				built.close()
 			}
 		}
-		return result ?: BufferResult(null, 0)
+		return result
 	}
 
-	private fun uploadScreenText(): BufferResult {
-		if (screenTextVertices.isEmpty()) return BufferResult(null, 0)
-
+	private fun buildScreenText(): BuiltBatch? {
+		if (screenTextVertices.isEmpty()) return null
 		val vertices = screenTextVertices.toList()
 		screenTextVertices.clear()
 
-		var result: BufferResult? = null
-		// SCREEN_TEXT_SDF_FORMAT: 12 + 8 + 4 + 16 + 4 = 44 bytes per vertex
+		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 48).use { allocator ->
-			val builder = BufferBuilder(
-				allocator,
-				VertexFormat.DrawMode.QUADS,
-				LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT
-			)
-
-			// Screen text: position is already final screen coordinates
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT)
 			vertices.forEach { v ->
-				builder.vertex(v.x, v.y, 0f)
-					.texture(v.u, v.v)
-					.color(v.r, v.g, v.b, v.a)
-				
-				// Write SDF style params (outlineWidth, glowRadius, shadowSoftness, threshold)
-				val sdfPointer = builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT)
-				if (sdfPointer != -1L) {
-					MemoryUtil.memPutFloat(sdfPointer, v.outlineWidth)
-					MemoryUtil.memPutFloat(sdfPointer + 4L, v.glowRadius)
-					MemoryUtil.memPutFloat(sdfPointer + 8L, v.shadowSoftness)
-					MemoryUtil.memPutFloat(sdfPointer + 12L, v.threshold)
+				builder.vertex(v.x, v.y, v.layerType.toFloat()).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
+				builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.outlineWidth); MemoryUtil.memPutFloat(p + 4, v.glowRadius); MemoryUtil.memPutFloat(p + 8, v.shadowSoftness); MemoryUtil.memPutFloat(p + 12, v.threshold)
+					}
 				}
-
-				// Write layer for draw order
-				val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
-				if (layerPointer != -1L) {
-					MemoryUtil.memPutFloat(layerPointer, v.layer)
+				builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT).let { p ->
+					if (p != -1L) MemoryUtil.memPutFloat(p, v.layer)
 				}
 			}
-
 			builder.endNullable()?.let { built ->
-				val gpuDevice = RenderSystem.getDevice()
-				val buffer = gpuDevice.createBuffer(
-					{ "Lambda Screen Text Buffer" },
-					GpuBuffer.USAGE_VERTEX,
-					built.buffer
-				)
-				result = BufferResult(buffer, built.drawParameters.indexCount())
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
 				built.close()
 			}
 		}
-		return result ?: BufferResult(null, 0)
+		return result
 	}
 
 	/**
-	 * Upload screen-space data to GPU buffers.
+	 * Build screen-space data into ByteBuffers.
 	 *
-	 * @return ScreenUploadResult containing screen-space face, edge, text, and image buffers
+	 * @return ScreenBuildResult containing ByteBuffers
 	 */
-	fun uploadScreen(): ScreenUploadResult {
-		val faces = uploadScreenFaces()
-		val edges = uploadScreenEdges()
-		val text = uploadScreenText()
-		val images = uploadScreenImageBatches()
-		val models = uploadScreenModelBatches()
-		return ScreenUploadResult(faces, edges, text, images, models)
+	fun buildScreen(): ScreenBuildResult {
+		val faces = buildScreenFaces()
+		val edges = buildScreenEdges()
+		val text = buildScreenText()
+		val images = buildScreenImageBatches()
+		val models = buildScreenModelBatches()
+		return ScreenBuildResult(faces, edges, text, images, models)
 	}
 
-	/**
-	 * Result for a single texture batch - buffer, index count, and filter mode.
-	 */
-	data class TextureBatchResult(
-		val textureView: com.mojang.blaze3d.textures.GpuTextureView,
-		val buffer: GpuBuffer,
-		val indexCount: Int,
-		val useNearestFilter: Boolean = false
-	)
-
-	private fun uploadScreenImageBatches(): List<TextureBatchResult> {
+	private fun buildScreenImageBatches(): List<TextureBuildBatch> {
 		if (screenImageBatches.isEmpty()) return emptyList()
 
-		val results = mutableListOf<TextureBatchResult>()
+		val results = mutableListOf<TextureBuildBatch>()
 		
 		screenImageBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
@@ -844,13 +791,10 @@ class RegionVertexCollector {
 				}
 
 				builder.endNullable()?.let { built ->
-					val gpuDevice = RenderSystem.getDevice()
-					val buffer = gpuDevice.createBuffer(
-						{ "Lambda Screen Image Buffer" },
-						GpuBuffer.USAGE_VERTEX,
-						built.buffer
-					)
-					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+					copy.put(built.buffer)
+					copy.flip()
+					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -859,62 +803,33 @@ class RegionVertexCollector {
 		return results
 	}
 
-	fun uploadWorldImageBatches(): List<TextureBatchResult> {
+	fun buildWorldImageBatches(): List<TextureBuildBatch> {
 		if (worldImageBatches.isEmpty()) return emptyList()
-
-		val results = mutableListOf<TextureBatchResult>()
-		
+		val results = mutableListOf<TextureBuildBatch>()
 		worldImageBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
 			
-			// WORLD_IMAGE_FORMAT: 12 + 8 + 4 + 12 + 8 + 12 = 56 bytes per vertex
-			BufferAllocator(vertices.size * 60).use { allocator ->
-				val builder = BufferBuilder(
-					allocator,
-					VertexFormat.DrawMode.QUADS,
-					LambdaVertexFormats.WORLD_IMAGE_FORMAT
-				)
-
+			BufferAllocator(vertices.size * 64).use { allocator ->
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_IMAGE_FORMAT)
 				vertices.forEach { v ->
-					builder.vertex(v.localX, v.localY, 0f)
-						.texture(v.u, v.v)
-						.color(v.r, v.g, v.b, v.a)
-
-					// Write Anchor position (camera-relative world pos)
-					val anchorPointer = builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT)
-					if (anchorPointer != -1L) {
-						MemoryUtil.memPutFloat(anchorPointer, v.anchorX)
-						MemoryUtil.memPutFloat(anchorPointer + 4L, v.anchorY)
-						MemoryUtil.memPutFloat(anchorPointer + 8L, v.anchorZ)
+					builder.vertex(v.localX, v.localY, 0f).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
+					builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ) }
 					}
-
-					// Write Billboard data (scale, billboardFlag)
-					val billboardPointer = builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT)
-					if (billboardPointer != -1L) {
-						MemoryUtil.memPutFloat(billboardPointer, v.scale)
-						MemoryUtil.memPutFloat(billboardPointer + 4L, v.billboardFlag)
+					builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag) }
 					}
-
-					// Write overlay UV data (overlayU, overlayV, hasOverlay, diffuseAmount)
-					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
-					if (overlayPointer != -1L) {
-						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
-						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
-						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
-						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 				}
-
 				builder.endNullable()?.let { built ->
-					val gpuDevice = RenderSystem.getDevice()
-					val buffer = gpuDevice.createBuffer(
-						{ "Lambda World Image Buffer" },
-						GpuBuffer.USAGE_VERTEX,
-						built.buffer
-					)
-					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+					copy.put(built.buffer)
+					copy.flip()
+					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -923,85 +838,41 @@ class RegionVertexCollector {
 		return results
 	}
 
-	fun uploadModelBatches(): List<TextureBatchResult> {
+	fun buildModelBatches(): List<TextureBuildBatch> {
 		if (modelBatches.isEmpty()) return emptyList()
-
-		val results = mutableListOf<TextureBatchResult>()
-		
+		val results = mutableListOf<TextureBuildBatch>()
 		modelBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
-			
-			// WORLD_MODEL_FORMAT: 12 + 4 + 8 + 16 + 4 + 12 + 12 + 12 + 8 = 88 bytes per vertex
 			BufferAllocator(vertices.size * 88).use { allocator ->
-				val builder = BufferBuilder(
-					allocator,
-					VertexFormat.DrawMode.QUADS,
-					LambdaVertexFormats.WORLD_MODEL_FORMAT
-				)
-
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
 				vertices.forEach { v ->
-					builder.vertex(v.x, v.y, v.z)
-						.color(v.r, v.g, v.b, v.a)
-						.texture(v.u, v.v)
-
-					// Write Overlay UV
-					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
-					if (overlayPointer != -1L) {
-						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
-						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
-						MemoryUtil.memPutFloat(overlayPointer + 8L, v.hasOverlay)
-						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
+					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
-
-					// Write Light (UV2) - 2 shorts
-					val lightPointer = builder.beginElement(VertexFormatElement.UV2)
-					if (lightPointer != -1L) {
-						MemoryUtil.memPutShort(lightPointer, (v.light and 0xFFFF).toShort())
-						MemoryUtil.memPutShort(lightPointer + 2L, ((v.light shr 16) and 0xFFFF).toShort())
+					builder.beginElement(VertexFormatElement.UV2).let { p ->
+						if (p != -1L) { MemoryUtil.memPutShort(p, (v.light and 0xFFFF).toShort()); MemoryUtil.memPutShort(p + 2, ((v.light shr 16) and 0xFFFF).toShort()) }
 					}
-
-					// Write LightDir (primary light)
-					val lightDirPointer = builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT)
-					if (lightDirPointer != -1L) {
-						MemoryUtil.memPutFloat(lightDirPointer, v.lx)
-						MemoryUtil.memPutFloat(lightDirPointer + 4L, v.ly)
-						MemoryUtil.memPutFloat(lightDirPointer + 8L, v.lz)
+					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					
-					// Write Light1Dir (fill light)
-					val light1DirPointer = builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT)
-					if (light1DirPointer != -1L) {
-						MemoryUtil.memPutFloat(light1DirPointer, v.l1x)
-						MemoryUtil.memPutFloat(light1DirPointer + 4L, v.l1y)
-						MemoryUtil.memPutFloat(light1DirPointer + 8L, v.l1z)
+					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
-					
-					// Write Normal (Float)
-					val normalPointer = builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT)
-					if (normalPointer != -1L) {
-						MemoryUtil.memPutFloat(normalPointer, v.nx)
-						MemoryUtil.memPutFloat(normalPointer + 4L, v.ny)
-						MemoryUtil.memPutFloat(normalPointer + 8L, v.nz)
+					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
 					}
-					
-					// Write EdgeData (vec2)
-					val edgePointer = builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT)
-					if (edgePointer != -1L) {
-						MemoryUtil.memPutFloat(edgePointer, v.edgeX)
-						MemoryUtil.memPutFloat(edgePointer + 4L, v.edgeY)
+					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.edgeX); MemoryUtil.memPutFloat(p + 4, v.edgeY) }
 					}
 				}
-
 				builder.endNullable()?.let { built ->
-					val gpuDevice = RenderSystem.getDevice()
-					val buffer = gpuDevice.createBuffer(
-						{ "Lambda Model Buffer" },
-						GpuBuffer.USAGE_VERTEX,
-						built.buffer
-					)
-					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+					copy.put(built.buffer)
+					copy.flip()
+					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -1010,63 +881,41 @@ class RegionVertexCollector {
 		return results
 	}
 
-	private fun uploadScreenModelBatches(): List<TextureBatchResult> {
+	private fun buildScreenModelBatches(): List<TextureBuildBatch> {
 		if (screenModelBatches.isEmpty()) return emptyList()
-		val results = mutableListOf<TextureBatchResult>()
+		val results = mutableListOf<TextureBuildBatch>()
 		screenModelBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
-			// 88 bytes per vertex (added Light1Dir)
 			BufferAllocator(vertices.size * 88).use { allocator ->
 				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
 				vertices.forEach { v ->
 					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
 					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
-						if (p != -1L) {
-							MemoryUtil.memPutFloat(p, v.overlayU)
-							MemoryUtil.memPutFloat(p + 4, v.overlayV)
-							MemoryUtil.memPutFloat(p + 8, v.hasOverlay)
-							MemoryUtil.memPutFloat(p + 12, v.diffuseAmount)
-						}
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 					builder.beginElement(VertexFormatElement.UV2).let { p ->
-						if (p != -1L) {
-							MemoryUtil.memPutShort(p, (v.light and 0xFFFF).toShort())
-							MemoryUtil.memPutShort(p + 2, ((v.light shr 16) and 0xFFFF).toShort())
-						}
+						if (p != -1L) { MemoryUtil.memPutShort(p, (v.light and 0xFFFF).toShort()); MemoryUtil.memPutShort(p + 2, ((v.light shr 16) and 0xFFFF).toShort()) }
 					}
 					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
-						if (p != -1L) {
-							MemoryUtil.memPutFloat(p, v.lx)
-							MemoryUtil.memPutFloat(p + 4, v.ly)
-							MemoryUtil.memPutFloat(p + 8, v.lz)
-						}
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
 					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
-						if (p != -1L) {
-							MemoryUtil.memPutFloat(p, v.l1x)
-							MemoryUtil.memPutFloat(p + 4, v.l1y)
-							MemoryUtil.memPutFloat(p + 8, v.l1z)
-						}
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
 					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
-						if (p != -1L) {
-							MemoryUtil.memPutFloat(p, v.nx)
-							MemoryUtil.memPutFloat(p + 4, v.ny)
-							MemoryUtil.memPutFloat(p + 8, v.nz)
-						}
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
 					}
 					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
-						if (p != -1L) {
-							MemoryUtil.memPutFloat(p, v.edgeX)
-							MemoryUtil.memPutFloat(p + 4, v.edgeY)
-						}
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.edgeX); MemoryUtil.memPutFloat(p + 4, v.edgeY) }
 					}
 				}
 				builder.endNullable()?.let { built ->
-					val buffer = RenderSystem.getDevice().createBuffer({ "Lambda Screen Model Buffer" }, GpuBuffer.USAGE_VERTEX, built.buffer)
-					results.add(TextureBatchResult(batchKey.textureView, buffer, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+					copy.put(built.buffer)
+					copy.flip()
+					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -1075,8 +924,195 @@ class RegionVertexCollector {
 		return results
 	}
 
-	data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
-	data class UploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val models: List<TextureBatchResult> = emptyList(), val images: List<TextureBatchResult> = emptyList())
-	data class ScreenUploadResult(val faces: BufferResult?, val edges: BufferResult?, val text: BufferResult? = null, val images: List<TextureBatchResult> = emptyList(), val models: List<TextureBatchResult> = emptyList())
+	private fun buildOutlinedFaces(id: Int): BuiltBatch? {
+		val vertices = faceVerticesOutlined[id] ?: return null
+		if (vertices.isEmpty()) return null
+		faceVerticesOutlined.remove(id)
+
+		var result: BuiltBatch? = null
+		BufferAllocator(vertices.size * 16).use { allocator ->
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR)
+			vertices.forEach { v -> builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a) }
+			builder.endNullable()?.let { built ->
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result
+	}
+
+	private fun buildOutlinedEdges(id: Int): BuiltBatch? {
+		val vertices = edgeVerticesOutlined[id] ?: return null
+		if (vertices.isEmpty()) return null
+		edgeVerticesOutlined.remove(id)
+
+		var result: BuiltBatch? = null
+		BufferAllocator(vertices.size * 48).use { allocator ->
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH)
+			vertices.forEach { v ->
+				builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a)
+				builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
+					if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
+				}
+				builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT).let { p ->
+					if (p != -1L) MemoryUtil.memPutFloat(p, v.lineWidth)
+				}
+				builder.beginElement(LambdaVertexFormats.DASH_ELEMENT).let { p ->
+					if (p != -1L) {
+						MemoryUtil.memPutFloat(p, v.dashLength); MemoryUtil.memPutFloat(p + 4, v.gapLength); MemoryUtil.memPutFloat(p + 8, v.dashOffset); MemoryUtil.memPutFloat(p + 12, v.animationSpeed)
+					}
+				}
+			}
+			builder.endNullable()?.let { built ->
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result
+	}
+
+	private fun buildOutlinedText(id: Int): BuiltBatch? {
+		val vertices = textVerticesOutlined[id] ?: return null
+		if (vertices.isEmpty()) return null
+		textVerticesOutlined.remove(id)
+
+		var result: BuiltBatch? = null
+		BufferAllocator(vertices.size * 64).use { allocator ->
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF)
+			vertices.forEach { v ->
+				builder.vertex(v.localX, v.localY, v.layerType.toFloat()).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
+				builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
+					if (p != -1L) { MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ) }
+				}
+				builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
+					if (p != -1L) { MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag) }
+				}
+				builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT).let { p ->
+					if (p != -1L) { MemoryUtil.memPutFloat(p, v.outlineWidth); MemoryUtil.memPutFloat(p + 4, v.glowRadius); MemoryUtil.memPutFloat(p + 8, v.shadowSoftness); MemoryUtil.memPutFloat(p + 12, v.threshold) }
+				}
+			}
+			builder.endNullable()?.let { built ->
+				val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+				copy.put(built.buffer)
+				copy.flip()
+				result = BuiltBatch(copy, built.drawParameters.indexCount())
+				built.close()
+			}
+		}
+		return result
+	}
+
+	private fun buildOutlinedModelBatches(id: Int): List<TextureBuildBatch> {
+		val modelBatches = modelVerticesOutlined[id] ?: return emptyList()
+		if (modelBatches.isEmpty()) return emptyList()
+
+		val results = mutableListOf<TextureBuildBatch>()
+		modelBatches.forEach { (batchKey, vertexDeque) ->
+			val vertices = vertexDeque.toList()
+			vertexDeque.clear()
+			if (vertices.isEmpty()) return@forEach
+
+			BufferAllocator(vertices.size * 88).use { allocator ->
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
+				vertices.forEach { v ->
+					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
+					}
+					builder.beginElement(VertexFormatElement.UV2).let { p ->
+						if (p != -1L) { val l = v.light; MemoryUtil.memPutShort(p, (l and 0xFFFF).toShort()); MemoryUtil.memPutShort(p + 2, (l shr 16 and 0xFFFF).toShort()) }
+					}
+					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
+					}
+					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
+					}
+					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
+					}
+					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.edgeX); MemoryUtil.memPutFloat(p + 4, v.edgeY) }
+					}
+				}
+				builder.endNullable()?.let { built ->
+					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+					copy.put(built.buffer)
+					copy.flip()
+					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					built.close()
+				}
+			}
+		}
+		modelVerticesOutlined.remove(id)
+		return results
+	}
+
+	private fun buildOutlinedWorldImageBatches(id: Int): List<TextureBuildBatch> {
+		val imageBatches = worldImageVerticesOutlined[id] ?: return emptyList()
+		if (imageBatches.isEmpty()) return emptyList()
+
+		val results = mutableListOf<TextureBuildBatch>()
+		imageBatches.forEach { (batchKey, vertexDeque) ->
+			val vertices = vertexDeque.toList()
+			vertexDeque.clear()
+			if (vertices.isEmpty()) return@forEach
+
+			BufferAllocator(vertices.size * 60).use { allocator ->
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_IMAGE_FORMAT)
+				vertices.forEach { v ->
+					builder.vertex(v.localX, v.localY, 0f).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
+					builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ) }
+					}
+					builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag) }
+					}
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
+						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
+					}
+				}
+				builder.endNullable()?.let { built ->
+					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
+					copy.put(built.buffer)
+					copy.flip()
+					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					built.close()
+				}
+			}
+		}
+		worldImageVerticesOutlined.remove(id)
+		return results
+	}
+
 }
+
+data class BuiltBatch(val buffer: java.nio.ByteBuffer, val indexCount: Int)
+data class TextureBuildBatch(val textureView: com.mojang.blaze3d.textures.GpuTextureView, val buffer: java.nio.ByteBuffer, val indexCount: Int, val useNearestFilter: Boolean = false)
+data class OutlinedBuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<TextureBuildBatch>, val images: List<TextureBuildBatch>)
+data class BuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<TextureBuildBatch>, val images: List<TextureBuildBatch>, val outlined: Map<Int, OutlinedBuildResult>)
+data class ScreenBuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val images: List<TextureBuildBatch>, val models: List<TextureBuildBatch>)
+
+data class TextureBatchResult(
+	val textureView: com.mojang.blaze3d.textures.GpuTextureView,
+	val buffer: com.mojang.blaze3d.buffers.GpuBuffer,
+	val indexCount: Int,
+	val useNearestFilter: Boolean = false
+)
+
+data class OutlinedBatchResult(
+	val faces: BufferResult,
+	val edges: BufferResult,
+	val text: BufferResult,
+	val models: List<TextureBatchResult>,
+	val images: List<TextureBatchResult>
+)
+
+data class BufferResult(val buffer: com.mojang.blaze3d.buffers.GpuBuffer?, val indexCount: Int)
 

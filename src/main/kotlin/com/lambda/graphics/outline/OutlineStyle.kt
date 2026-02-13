@@ -32,8 +32,10 @@ data class OutlineStyle(
     val thickness: Float = 2f,
     val glowIntensity: Float = 0.5f,
     val glowRadius: Float = 2f,
-    /** If true, outline respects world geometry (hidden behind walls). If false, renders through walls. */
-    val depthTest: Boolean = true
+    /** Whether to fill the entity silhouette with color. */
+    val fill: Boolean = true,
+    /** Opacity of the fill (0.0 to 1.0). */
+    val fillOpacity: Float = 0.4f
 ) {
     /**
      * Get the color as an ARGB int for Minecraft's outline system.

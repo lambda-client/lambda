@@ -19,10 +19,15 @@ package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.mc.renderer.RendererUtils
+import com.lambda.graphics.outline.CapturedGeometry
+import com.lambda.graphics.RenderMain
+import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexFormat
+import org.lwjgl.system.MemoryUtil
 import java.util.*
 
 /**
@@ -43,10 +48,10 @@ class RegionRenderer {
 	private var screenTextVertexBuffer: GpuBuffer? = null
 
 	// Image batches (texture -> buffer) for screen and world space
-	private var screenImageBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
-	private var worldImageBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
-	private var modelBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
-	private var screenModelBatches: List<RegionVertexCollector.TextureBatchResult> = emptyList()
+	private var screenImageBatches: List<TextureBatchResult> = emptyList()
+	private var worldImageBatches: List<TextureBatchResult> = emptyList()
+	private var modelBatches: List<TextureBatchResult> = emptyList()
+	private var screenModelBatches: List<TextureBatchResult> = emptyList()
 
 	// Index counts for world-space draw calls
 	private var faceIndexCount = 0
@@ -58,8 +63,8 @@ class RegionRenderer {
 	private var screenEdgeIndexCount = 0
 	private var screenTextIndexCount = 0
 	
-	// Entity IDs requested for outlines
-	private var outlinedEntities: Set<Int> = emptySet()
+	// Outlined batches (id -> buffers)
+	private var outlinedBatches: Map<Int, OutlinedBatchResult> = emptyMap()
 
 	// State tracking
 	private var hasData = false
@@ -72,61 +77,180 @@ class RegionRenderer {
 	 * @param collector The collector containing the geometry to upload
 	 */
 	fun upload(collector: RegionVertexCollector) {
-		val result = collector.upload()
-		val screenResult = collector.uploadScreen()
+		val result = collector.build()
+		val screenResult = collector.buildScreen()
 
-		// Cleanup old world-space buffers
-		faceVertexBuffer?.close()
-		edgeVertexBuffer?.close()
-		textVertexBuffer?.close()
 
-		// Cleanup old screen-space buffers
-		screenFaceVertexBuffer?.close()
-		screenEdgeVertexBuffer?.close()
-		screenTextVertexBuffer?.close()
+		// Helper to upload a built batch
+		fun uploadBatch(batch: BuiltBatch?, label: String, oldBuffer: GpuBuffer?): BufferResult {
+			oldBuffer?.close()
+			if (batch == null) return BufferResult(null, 0)
+			
+			val buffer = RenderSystem.getDevice().createBuffer({ label }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, batch.buffer.remaining().toLong())
+			buffer.upload(batch.buffer)
+			MemoryUtil.memFree(batch.buffer)
+			return BufferResult(buffer, batch.indexCount)
+		}
 
-		// Assign new world-space buffers and counts
-		faceVertexBuffer = result.faces?.buffer
-		faceIndexCount = result.faces?.indexCount ?: 0
+		// Helper to upload texture batches
+		fun uploadTextureBatches(batches: List<TextureBuildBatch>, label: String, oldBatches: List<TextureBatchResult>): List<TextureBatchResult> {
+			oldBatches.forEach { it.buffer.close() }
+			
+			return batches.map { batch ->
+				val buffer = RenderSystem.getDevice().createBuffer({ label }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, batch.buffer.remaining().toLong())
+				buffer.upload(batch.buffer)
+				MemoryUtil.memFree(batch.buffer)
+				TextureBatchResult(batch.textureView, buffer, batch.indexCount, batch.useNearestFilter)
+			}
+		}
 
-		edgeVertexBuffer = result.edges?.buffer
-		edgeIndexCount = result.edges?.indexCount ?: 0
+		// World-space
+		val faceRes = uploadBatch(result.faces, "Lambda ESP Face Buffer", faceVertexBuffer)
+		faceVertexBuffer = faceRes.buffer
+		faceIndexCount = faceRes.indexCount
 
-		textVertexBuffer = result.text?.buffer
-		textIndexCount = result.text?.indexCount ?: 0
+		val edgeRes = uploadBatch(result.edges, "Lambda ESP Edge Buffer", edgeVertexBuffer)
+		edgeVertexBuffer = edgeRes.buffer
+		edgeIndexCount = edgeRes.indexCount
 
-		// Assign new screen-space buffers and counts
-		screenFaceVertexBuffer = screenResult.faces?.buffer
-		screenFaceIndexCount = screenResult.faces?.indexCount ?: 0
+		val textRes = uploadBatch(result.text, "Lambda ESP Text Buffer", textVertexBuffer)
+		textVertexBuffer = textRes.buffer
+		textIndexCount = textRes.indexCount
 
-		screenEdgeVertexBuffer = screenResult.edges?.buffer
-		screenEdgeIndexCount = screenResult.edges?.indexCount ?: 0
+		// Screen-space
+		val sFaceRes = uploadBatch(screenResult.faces, "Lambda Screen Face Buffer", screenFaceVertexBuffer)
+		screenFaceVertexBuffer = sFaceRes.buffer
+		screenFaceIndexCount = sFaceRes.indexCount
 
-		screenTextVertexBuffer = screenResult.text?.buffer
-		screenTextIndexCount = screenResult.text?.indexCount ?: 0
+		val sEdgeRes = uploadBatch(screenResult.edges, "Lambda Screen Edge Buffer", screenEdgeVertexBuffer)
+		screenEdgeVertexBuffer = sEdgeRes.buffer
+		screenEdgeIndexCount = sEdgeRes.indexCount
 
-		// Clean up old image batches
-		screenImageBatches.forEach { it.buffer.close() }
-		worldImageBatches.forEach { it.buffer.close() }
-		modelBatches.forEach { it.buffer.close() }
-		screenModelBatches.forEach { it.buffer.close() }
+		val sTextRes = uploadBatch(screenResult.text, "Lambda Screen Text Buffer", screenTextVertexBuffer)
+		screenTextVertexBuffer = sTextRes.buffer
+		screenTextIndexCount = sTextRes.indexCount
 
-		// Store new batches
-		screenImageBatches = screenResult.images
-		worldImageBatches = result.images
-		modelBatches = result.models
-		screenModelBatches = screenResult.models
+		// Batches
+		screenImageBatches = uploadTextureBatches(screenResult.images, "Lambda Screen Image Buffer", screenImageBatches)
+		worldImageBatches = uploadTextureBatches(result.images, "Lambda World Image Buffer", worldImageBatches)
+		modelBatches = uploadTextureBatches(result.models, "Lambda Model Buffer", modelBatches)
+		screenModelBatches = uploadTextureBatches(screenResult.models, "Lambda Screen Model Buffer", screenModelBatches)
+
+		// Outlines
+		val oldOutlined = outlinedBatches
+		outlinedBatches = result.outlined.mapValues { (id, out) ->
+			val old = oldOutlined[id]
+			OutlinedBatchResult(
+				faces = uploadBatch(out.faces, "Lambda Outlined Face Buffer ($id)", old?.faces?.buffer),
+				edges = uploadBatch(out.edges, "Lambda Outlined Edge Buffer ($id)", old?.edges?.buffer),
+				text = uploadBatch(out.text, "Lambda Outlined Text Buffer ($id)", old?.text?.buffer),
+				models = uploadTextureBatches(out.models, "Lambda Outlined Model Buffer ($id)", old?.models ?: emptyList()),
+				images = uploadTextureBatches(out.images, "Lambda Outlined Image Buffer ($id)", old?.images ?: emptyList())
+			)
+		}
 		
-		outlinedEntities = collector.outlinedEntities.toSet()
+		// Close remaining old outlined batches that weren't updated
+		oldOutlined.forEach { (id, old) ->
+			if (!outlinedBatches.containsKey(id)) {
+				old.faces.buffer?.close()
+				old.edges.buffer?.close()
+				old.text.buffer?.close()
+				old.models.forEach { it.buffer.close() }
+				old.images.forEach { it.buffer.close() }
+			}
+		}
 
-		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty() || outlinedEntities.isNotEmpty()
+		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty() || outlinedBatches.isNotEmpty()
 		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty() || screenModelBatches.isNotEmpty()
 	}
 	
 	/**
-	 * Get the set of entity IDs requested for outlines during the build phase.
+	 * Get IDs of active outlines in this renderer.
 	 */
-	fun getOutlinedEntities(): Set<Int> = outlinedEntities
+	fun getOutlineIds(): Set<Int> = outlinedBatches.keys
+
+	/**
+	 * Check if there is outlined geometry for a specific ID.
+	 */
+	fun hasOutlinedData(id: Int): Boolean = outlinedBatches.containsKey(id)
+
+	/**
+	 * Render outlined faces for a specific ID.
+	 */
+	fun renderOutlinedFaces(renderPass: RenderPass, id: Int) {
+		val batch = outlinedBatches[id] ?: return
+		val vb = batch.faces.buffer ?: return
+		if (batch.faces.indexCount == 0) return
+		renderQuadBuffer(renderPass, vb, batch.faces.indexCount)
+	}
+
+	/**
+	 * Render outlined edges for a specific ID.
+	 */
+	fun renderOutlinedEdges(renderPass: RenderPass, id: Int) {
+		val batch = outlinedBatches[id] ?: return
+		val vb = batch.edges.buffer ?: return
+		if (batch.edges.indexCount == 0) return
+		renderQuadBuffer(renderPass, vb, batch.edges.indexCount)
+	}
+
+	/**
+	 * Render outlined text for a specific ID.
+	 */
+	fun renderOutlinedText(renderPass: RenderPass, id: Int) {
+		val batch = outlinedBatches[id] ?: return
+		val vb = batch.text.buffer ?: return
+		if (batch.text.indexCount == 0) return
+		renderQuadBuffer(renderPass, vb, batch.text.indexCount)
+	}
+
+	/**
+	 * Render outlined models for a specific ID.
+	 */
+	fun renderOutlinedModels(renderPass: RenderPass, id: Int) {
+		val batch = outlinedBatches[id] ?: return
+		if (batch.models.isEmpty()) return
+		renderModelBatches(renderPass, batch.models)
+	}
+
+	/**
+	 * Render outlined images for a specific ID.
+	 */
+	fun renderOutlinedImages(renderPass: RenderPass, id: Int) {
+		val batch = outlinedBatches[id] ?: return
+		if (batch.images.isEmpty()) return
+		renderImageBatches(renderPass, batch.images)
+	}
+
+	private fun renderImageBatches(renderPass: RenderPass, batches: List<TextureBatchResult>) {
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		for (batch in batches) {
+			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
+			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			renderPass.setVertexBuffer(0, batch.buffer)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
+		}
+	}
+
+	private fun renderModelBatches(renderPass: RenderPass, batches: List<TextureBatchResult>) {
+		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		val glintTexture = mc.textureManager.getTexture(net.minecraft.client.render.item.ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
+		for (batch in batches) {
+			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
+			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
+			if (glintTexture != null) renderPass.bindTexture("Sampler3", glintTexture, linearSampler)
+			renderPass.setVertexBuffer(0, batch.buffer)
+			val indexBuffer = shapeIndexBuffer.getIndexBuffer(batch.indexCount)
+			renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+			renderPass.drawIndexed(0, 0, batch.indexCount, 1)
+		}
+	}
 
 	/**
 	 * Render faces using the given render pass.
@@ -370,12 +494,9 @@ class RegionRenderer {
 	/** Check if this renderer has any screen-space data to render. */
 	fun hasScreenData(): Boolean = hasScreenData
 
-	/** Clear all geometry data and release GPU resources. */
+	/** Clear all geometry data. Note: buffers are managed by GpuBufferPool. */
 	fun clearData() {
-		// Clear world-space buffers
-		faceVertexBuffer?.close()
-		edgeVertexBuffer?.close()
-		textVertexBuffer?.close()
+		// Just clear references and counts - GpuBufferPool handles the actual buffers
 		faceVertexBuffer = null
 		edgeVertexBuffer = null
 		textVertexBuffer = null
@@ -384,10 +505,6 @@ class RegionRenderer {
 		textIndexCount = 0
 		hasData = false
 
-		// Clear screen-space buffers
-		screenFaceVertexBuffer?.close()
-		screenEdgeVertexBuffer?.close()
-		screenTextVertexBuffer?.close()
 		screenFaceVertexBuffer = null
 		screenEdgeVertexBuffer = null
 		screenTextVertexBuffer = null
@@ -395,14 +512,11 @@ class RegionRenderer {
 		screenEdgeIndexCount = 0
 		screenTextIndexCount = 0
 
-		// Clear image batches
-		screenImageBatches.forEach { it.buffer.close() }
-		worldImageBatches.forEach { it.buffer.close() }
-		modelBatches.forEach { it.buffer.close() }
+		outlinedBatches = emptyMap()
 		screenImageBatches = emptyList()
 		worldImageBatches = emptyList()
 		modelBatches = emptyList()
-		outlinedEntities = emptySet()
+		screenModelBatches = emptyList()
 
 		hasScreenData = false
 	}

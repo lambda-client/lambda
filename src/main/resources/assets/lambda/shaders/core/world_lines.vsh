@@ -14,6 +14,7 @@ in vec4 Dash;        // Dash parameters
 
 // Outputs to fragment shader
 out vec4 v_Color;
+out vec2 v_TexCoord;
 out vec3 v_WorldPos;
 out vec3 v_ExpandedPos;
 out vec3 v_Normal;
@@ -35,7 +36,8 @@ void main() {
     float segmentLength = length(Normal);
     vec3 lineDir = Normal / segmentLength;
     
-    vec3 lineCenter = isStart ? (Position + Normal * 0.5) : (Position - Normal * 0.5);
+    vec3 pos = Position + ModelOffset;
+    vec3 lineCenter = isStart ? (pos + Normal * 0.5) : (pos - Normal * 0.5);
     
     vec3 lineStart = lineCenter - lineDir * (segmentLength * 0.5);
     vec3 lineEnd = lineCenter + lineDir * (segmentLength * 0.5);
@@ -106,7 +108,8 @@ void main() {
     v_SegmentLength = segmentLength;
     v_IsStart = isStart ? 1.0 : 0.0;
     v_Dash = Dash;
+    v_TexCoord = vec2(0.0);
     
-    sphericalVertexDistance = fog_spherical_distance(Position);
-    cylindricalVertexDistance = fog_cylindrical_distance(Position);
+    sphericalVertexDistance = fog_spherical_distance(viewPos.xyz);
+    cylindricalVertexDistance = fog_cylindrical_distance(viewPos.xyz);
 }

@@ -52,7 +52,8 @@ class ImmediateRenderer(
 	init {
 		owner.listen<RenderEvent.PreRenderWorld> {
 			val context = SafeContext.create() ?: return@listen
-			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos).also {
+			val depth = depthTest(context)
+			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos, depthTest = depth).also {
 				it.update(context)
 			}
 			upload(renderBuilder)
@@ -75,10 +76,9 @@ class ImmediateRenderer(
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		if (!renderer.hasData()) return emptyList()
 		
-		val modelView = Matrix4f(RenderMain.cameraRotationMatrix).mul(RenderMain.modelViewMatrix).m30(0f).m31(0f).m32(0f)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(
-				modelView,
+				RenderMain.cameraRotationMatrix,
 				Vector4f(1f, 1f, 1f, 1f),
 				Vector3f(0f, 0f, 0f),
 				RendererUtils.createGlintTransform(0.125f)  // Calibrated glint scale for world images

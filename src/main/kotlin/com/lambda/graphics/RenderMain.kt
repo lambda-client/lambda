@@ -123,7 +123,6 @@ object RenderMain {
 
     @JvmStatic
     fun updateState(camRotMatrix: Matrix4f, basicProjMatrix: Matrix4f, projMatrix: Matrix4f) {
-        resetMatrices(Matrix4f())
         cameraRotationMatrix.set(camRotMatrix)
         // Minecraft 1.21.1: basicProjMatrix is Bobbed, projMatrix is Unbobbed
         worldProjectionMatrix.set(basicProjMatrix)
@@ -141,6 +140,7 @@ object RenderMain {
         RenderEvent.RenderWorld.post()
         
         // Finalize entity outlines for all modules by performing edge detection on the shared ID buffer
+        com.lambda.graphics.outline.OutlineRenderer.renderAllIDPasses()
         com.lambda.graphics.outline.OutlineRenderer.renderEdges()
         
         RenderEvent.RenderScreen.post()

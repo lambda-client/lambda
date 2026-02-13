@@ -50,8 +50,16 @@ object OutlineIdBuffer {
     private var idTexture: GpuTexture? = null
     private var idTextureView: GpuTextureView? = null
     
+    // Depth texture - stores un-occluded entity depth for Sobel occlusion
+    private var depthTexture: GpuTexture? = null
+    private var depthTextureView: GpuTextureView? = null
+    
     private var bufferWidth = 0
     private var bufferHeight = 0
+    
+    /** Whether any geometry has been rendered into the ID buffer this frame. */
+    var hasData = false
+        private set
     
     /**
      * Ensure ID buffer exists and matches framebuffer size.
@@ -80,6 +88,18 @@ object OutlineIdBuffer {
             )
             idTextureView = gpuDevice.createTextureView(idTexture)
             
+            // Create DEPTH32 texture for entity silhouettes (un-occluded depth)
+            depthTexture = gpuDevice.createTexture(
+                { "Lambda Entity ID Depth Buffer" },
+                15, // Usage: TRANSFER_SRC | TRANSFER_DST | TEXTURE | RENDER_ATTACHMENT
+                TextureFormat.DEPTH32,
+                width,
+                height,
+                1,
+                1
+            )
+            depthTextureView = gpuDevice.createTextureView(depthTexture)
+            
             bufferWidth = width
             bufferHeight = height
         }
@@ -96,6 +116,7 @@ object OutlineIdBuffer {
      */
     fun beginFrame() {
         if (!ensureBuffer()) return
+        hasData = false
         
         // Clear only the ID buffer to 0 (no entity)
         // We create a render pass without depth attachment to clear just the color
@@ -105,9 +126,16 @@ object OutlineIdBuffer {
                 { "Lambda Clear Entity ID Buffer" },
                 idTextureView,
                 OptionalInt.of(0x00000000), // Clear to transparent black (entity ID = 0)
-                null, // No depth attachment - we use shared depth buffers
-                OptionalDouble.empty()
+                depthTextureView,
+                OptionalDouble.of(1.0) // Clear depth to 1.0 (far plane)
             )?.close()
+    }
+    
+    /**
+     * Mark that geometry has been rendered into the ID buffer.
+     */
+    fun markHasData() {
+        hasData = true
     }
     
     /**
@@ -118,7 +146,12 @@ object OutlineIdBuffer {
     /**
      * Get the Lambda Xray depth buffer view.
      */
-    fun getDepthView(): GpuTextureView? = com.lambda.graphics.mc.renderer.RendererUtils.getXrayDepthView()
+    fun getDepthView(): GpuTextureView? = depthTextureView
+    
+    /**
+     * Get the silhouette depth view.
+     */
+    fun getSilhouetteDepthView(): GpuTextureView? = depthTextureView
     
     /**
      * Get the ID texture view for sampling in post-processing.
@@ -142,9 +175,13 @@ object OutlineIdBuffer {
     fun cleanup() {
         idTextureView?.close()
         idTexture?.close()
+        depthTextureView?.close()
+        depthTexture?.close()
         
         idTextureView = null
         idTexture = null
+        depthTextureView = null
+        depthTexture = null
         bufferWidth = 0
         bufferHeight = 0
     }

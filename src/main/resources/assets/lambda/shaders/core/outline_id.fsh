@@ -1,5 +1,7 @@
 #version 330
 
+#moj_import <minecraft:dynamictransforms.glsl>
+
 // Simplified ID shader using real UVs and ESP colors
 uniform sampler2D Sampler0; // Block Atlas
 
@@ -15,7 +17,9 @@ void main() {
         discard;
     }
     
-    // Output solid ESP color from the vertex
+    // Output solid ESP color from the vertex (or override)
     // Alpha is set to 1.0 to ensure solid silhouette for Sobel edge detection
-    fragColor = vec4(v_Color.rgb, 1.0);
+    // IsOverride is passed via ModelOffset.x
+    vec4 baseColor = (ModelOffset.x > 0.5) ? ColorModulator : v_Color;
+    fragColor = vec4(baseColor.rgb, baseColor.a);
 }

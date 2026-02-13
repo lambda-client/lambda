@@ -25,7 +25,7 @@ out vec3 v_LightDir;  // Primary light
 out vec3 v_Light1Dir; // Fill light
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    gl_Position = ProjMat * ModelViewMat * vec4(Position + ModelOffset, 1.0);
     
     v_Color = Color;
     v_TexCoord = UV0;

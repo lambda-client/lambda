@@ -23,11 +23,14 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.ScreenRenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.tickDeltaF
 import imgui.ImGui
+import net.caffeinemc.mods.sodium.client.render.chunk.ExtendedBlockEntityType.shouldRender
 import net.minecraft.entity.Entity
 import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.LivingEntity
@@ -77,6 +80,16 @@ object EntityESP : Module(
 	private val vehicleColor by setting("Vehicle Color", Color(150, 100, 50), "Color for vehicles")
 	private val crystalColor by setting("Crystal Color", Color(255, 0, 255), "Color for end crystals")
 	private val otherColor by setting("Other Color", Color(200, 200, 200), "Color for other entities")
+
+	init {
+		immediateRenderer("EntityESP Immediate Renderer", depthTest = { !throughWalls }) { safeContext ->
+			safeContext.world.entities.forEach { entity ->
+				if (safeContext.shouldRender(entity)) {
+					worldOutline(entity, OutlineStyle(getEntityColor(entity)))
+				}
+			}
+		}
+	}
 
 	private fun SafeContext.shouldRender(entity: Entity): Boolean {
 		if (entity == player && !self) return false

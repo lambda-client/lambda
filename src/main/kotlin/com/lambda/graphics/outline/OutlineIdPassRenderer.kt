@@ -20,9 +20,11 @@ package com.lambda.graphics.outline
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.render.VertexFormats
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.system.MemoryUtil
@@ -63,34 +65,80 @@ object OutlineIdPassRenderer {
         
         val colorView = OutlineIdBuffer.getTextureView() ?: return
         
-        val allOutlines = OutlineManager.getEntityOutlines()
-        val outlines = allOutlines.filter { (id, _) -> id in entityIds }
-        if (outlines.isEmpty()) return
+        val outlines = if (useMcDepth) OutlineManager.getDepthTestedStyles() else OutlineManager.getXrayStyles()
+        val filteredOutlines = outlines.filter { (id, _) -> id in entityIds }
         
-        // Render entities using the specified depth mode
-        buildVertexBuffer(outlines, isDepthTested = useMcDepth)
+        if (filteredOutlines.isNotEmpty()) {
+            buildVertexBuffer(filteredOutlines, isDepthTested = useMcDepth)
+        } else {
+            if (useMcDepth) depthTestedBatches.clear() else xrayBatches.clear()
+        }
+        
         val vbo = if (useMcDepth) depthTestedVertexBuffer else xrayVertexBuffer
         val batches = if (useMcDepth) depthTestedBatches else xrayBatches
         
         if (vbo != null && batches.isNotEmpty()) {
-            renderPass(colorView, vbo, batches, useMcDepth = useMcDepth)
+            OutlineIdBuffer.markHasData()
+            // We ALWAYS use our internal silhouette depth for the ID pass to get a full silhouette.
+            // Distinguishing between depth-tested and xray happens via the alpha bit-pack.
+            renderPass(colorView, vbo, batches)
+        }
+    }
+
+    /**
+     * Render custom geometries (from RenderBuilder) to the ID buffer.
+     */
+    fun renderCustom(customGeometries: Map<Int, List<CapturedGeometry>>, useMcDepth: Boolean) {
+        if (customGeometries.isEmpty() || !OutlineIdBuffer.ensureBuffer()) return
+        
+        val colorView = OutlineIdBuffer.getTextureView() ?: return
+        
+        buildCustomVertexBuffer(customGeometries, isDepthTested = useMcDepth)
+        val vbo = if (useMcDepth) depthTestedVertexBuffer else xrayVertexBuffer
+        val batches = if (useMcDepth) depthTestedBatches else xrayBatches
+        
+        if (vbo != null && batches.isNotEmpty()) {
+            renderPass(colorView, vbo, batches)
         }
     }
     
     /**
-     * Build the vertex buffer for the ID pass.
-     * Converts captured quads into triangles for the render pass.
+     * Build the vertex buffer for the ID pass using entity geometry from VertexCapture.
      */
     fun buildVertexBuffer(entities: Map<Int, OutlineStyle>, isDepthTested: Boolean) {
+        val geometries = entities.mapValues { (id, _) -> VertexCapture.getEntityGeometries(id) }
+        buildVertexBufferInternal(geometries, styles = entities, isDepthTested = isDepthTested, transform = null)
+    }
+
+    /**
+     * Build the vertex buffer for the ID pass using custom geometry.
+     */
+    private fun buildCustomVertexBuffer(customGeometries: Map<Int, List<CapturedGeometry>>, isDepthTested: Boolean) {
+        val styles = customGeometries.keys.mapNotNull { id -> 
+            OutlineManager.getOutlineStyle(id)?.let { id to it }
+        }.toMap()
+        
+        // Custom geometry is captured in camera-relative world space.
+        // Transform to clip space using the current projection and camera rotation.
+        val transform = org.joml.Matrix4f(com.lambda.graphics.RenderMain.worldProjectionMatrix).mul(com.lambda.graphics.RenderMain.cameraRotationMatrix)
+        buildVertexBufferInternal(customGeometries, styles, isDepthTested, transform)
+    }
+
+    private fun buildVertexBufferInternal(
+        allGeometries: Map<Int, List<CapturedGeometry>>,
+        styles: Map<Int, OutlineStyle>,
+        isDepthTested: Boolean,
+        transform: org.joml.Matrix4f? = null
+    ) {
         val targetBatches = if (isDepthTested) depthTestedBatches else xrayBatches
         targetBatches.clear()
 
-        // 1. Group all geometries from all entities by texture
+        // 1. Group all geometries from all sources by texture
         val textureGroups = mutableMapOf<com.mojang.blaze3d.textures.GpuTextureView?, MutableList<Pair<CapturedGeometry, OutlineStyle>>>()
         var totalTriVertices = 0
         
-        for ((entityId, style) in entities) {
-            val geometries = VertexCapture.getEntityGeometries(entityId)
+        for ((id, geometries) in allGeometries) {
+            val style = styles[id] ?: continue
             for (geometry in geometries) {
                 if (!geometry.isEmpty()) {
                     textureGroups.getOrPut(geometry.textureView) { mutableListOf() }.add(geometry to style)
@@ -103,6 +151,8 @@ object OutlineIdPassRenderer {
 
         // 2. Build one large buffer and record batches
         val buffer = MemoryUtil.memAlloc(totalTriVertices * vertexSize).order(ByteOrder.nativeOrder())
+        val posVec = org.joml.Vector4f()
+        
         try {
             var currentVertexOffset = 0
             
@@ -113,16 +163,54 @@ object OutlineIdPassRenderer {
                 for ((geometry, style) in group) {
                     val capturedVerts = geometry.getVertices()
                     val color = style.color
-                    // Pack as (A << 24 | B << 16 | G << 8 | R)
-                    val packedColor = (255 shl 24) or (color.blue and 0xFF shl 16) or (color.green and 0xFF shl 8) or (color.red and 0xFF)
+                    // Alpha packing (8-bit):
+                    // Bits 0-6: Fill/Presence
+                    //   0: No entity
+                    //   1: Entity present, no fill
+                    //   2-127: Entity present, fill opacity (mapped from 0.0-1.0 to 2-127)
+                    // Bit 7 (128): Depth Test Flag
+                    //   0: Xray (render through walls)
+                    //   1: Depth Tested (occlude by world)
+                    
+                    var alpha = if (style.fill) {
+                        (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
+                    } else {
+                        1
+                    }
+                    
+                    if (isDepthTested) {
+                        alpha = alpha or 128
+                    }
+                    
+                    val packedColor = (alpha shl 24) or
+                                     ((color.blue and 0xFF) shl 16) or
+                                     ((color.green and 0xFF) shl 8) or
+                                     (color.red and 0xFF)
 
                     val quadCount = capturedVerts.size / 4
                     for (q in 0 until quadCount) {
                         val baseIdx = q * 4
-                        val v0 = capturedVerts[baseIdx]
-                        val v1 = capturedVerts[baseIdx + 1]
-                        val v2 = capturedVerts[baseIdx + 2]
-                        val v3 = capturedVerts[baseIdx + 3]
+                        val quadVerts = arrayOf(
+                            capturedVerts[baseIdx],
+                            capturedVerts[baseIdx + 1],
+                            capturedVerts[baseIdx + 2],
+                            capturedVerts[baseIdx + 3]
+                        )
+                        
+                        // Transform vertices if a transform matrix is provided (for custom geometry)
+                        val transformed = if (transform != null) {
+                            quadVerts.map { v ->
+                                transform.transform(v.x, v.y, v.z, v.w, posVec)
+                                CapturedVertex(posVec.x, posVec.y, posVec.z, posVec.w, v.nx, v.ny, v.nz, v.u, v.v)
+                            }
+                        } else {
+                            quadVerts.toList()
+                        }
+
+                        val v0 = transformed[0]
+                        val v1 = transformed[1]
+                        val v2 = transformed[2]
+                        val v3 = transformed[3]
                         
                         // Tri 1
                         buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putFloat(v0.w).putFloat(v0.u).putFloat(v0.v).putInt(packedColor)
@@ -147,31 +235,30 @@ object OutlineIdPassRenderer {
             buffer.flip()
             if (isDepthTested) {
                 depthTestedVertexBuffer?.close()
-                depthTestedVertexBuffer = RenderSystem.getDevice().createBuffer({ "Lambda Outline ID (Depth)" }, GpuBuffer.USAGE_VERTEX, buffer)
+                val vbo = RenderSystem.getDevice().createBuffer({ "Lambda Outline ID (Depth)" }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, buffer.remaining().toLong())
+                vbo.upload(buffer)
+                depthTestedVertexBuffer = vbo
             } else {
                 xrayVertexBuffer?.close()
-                xrayVertexBuffer = RenderSystem.getDevice().createBuffer({ "Lambda Outline ID (Xray)" }, GpuBuffer.USAGE_VERTEX, buffer)
+                val vbo = RenderSystem.getDevice().createBuffer({ "Lambda Outline ID (Xray)" }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, buffer.remaining().toLong())
+                vbo.upload(buffer)
+                xrayVertexBuffer = vbo
             }
         } finally {
             MemoryUtil.memFree(buffer)
         }
     }
 
-    /**
-     * Execute a render pass with the specified depth buffer.
-     */
     private fun renderPass(
         colorView: com.mojang.blaze3d.textures.GpuTextureView,
         vertexBuffer: GpuBuffer,
-        batches: List<DrawBatch>,
-        useMcDepth: Boolean
+        batches: List<DrawBatch>
     ) {
-        val depthView = if (useMcDepth) OutlineIdBuffer.getMcDepthView() else OutlineIdBuffer.getDepthView()
-        if (depthView == null || batches.isEmpty()) return
+        val depthView = OutlineIdBuffer.getSilhouetteDepthView() ?: return
+        if (batches.isEmpty()) return
         
         // Camera alignment:
         // Vertices are already in Clip Space (including projection, bobbing, and rotation).
-        // AlignMatrix and ProjectionMatrix are both Identity.
         val alignMatrix = org.joml.Matrix4f()
         val identityProj = org.joml.Matrix4f()
             
@@ -186,13 +273,11 @@ object OutlineIdPassRenderer {
         val blockAtlas = mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
         val whiteTexture = blockAtlas.glTextureView
         val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
-        val pipeline = if (useMcDepth) LambdaRenderPipelines.OUTLINE_ID else LambdaRenderPipelines.OUTLINE_ID_THROUGH
-        val label = if (useMcDepth) "Lambda Outline ID Pass (Depth Tested)" else "Lambda Outline ID Pass (Xray)"
         
         val renderPass = RenderSystem.getDevice()
             .createCommandEncoder()
             .createRenderPass(
-                { label },
+                { "Lambda Outline ID Pass (Internal Silhouette)" },
                 colorView,
                 OptionalInt.empty(), // Always preserve previous IDs in the color buffer
                 depthView,
@@ -200,8 +285,17 @@ object OutlineIdPassRenderer {
             ) ?: return
         
         try {
-            renderPass.setPipeline(pipeline)
-            renderPass.setUniform("DynamicTransforms", dynamicTransform)
+            renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_ID)
+            
+            // Explicitly set IsOverride=0 (ModelOffset.x=0) for entity outlines
+            val idUniform = com.mojang.blaze3d.systems.RenderSystem.getDynamicUniforms().write(
+                Matrix4f(), 
+                Vector4f(1f, 1f, 1f, 1f), 
+                Vector3f(0f, 0f, 0f), // x=0.0 for IsOverride=false
+                Matrix4f()
+            )
+            renderPass.setUniform("DynamicTransforms", idUniform)
+            
             renderPass.setVertexBuffer(0, vertexBuffer)
             
             for (batch in batches) {
@@ -215,7 +309,7 @@ object OutlineIdPassRenderer {
     }
     
     /**
-     * Release all GPU resources.
+     * Release references to GPU resources. Note: buffers are managed by GpuBufferPool.
      */
     fun cleanup() {
         depthTestedVertexBuffer?.close()

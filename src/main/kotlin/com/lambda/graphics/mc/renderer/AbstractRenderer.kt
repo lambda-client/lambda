@@ -18,12 +18,19 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.context.SafeContext
+import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.outline.OutlineManager
+import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.text.SDFFontAtlas
+import com.lambda.graphics.texture.TextureOwner.upload
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
+import org.joml.Matrix4f
+import org.joml.Vector3f
+import org.joml.Vector4f
 import kotlin.collections.isNotEmpty
 
 /**
@@ -161,15 +168,101 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			}
 		}
 
-		// Render Outlines for this renderer using its current depth setting
-		val outlinedEntities = mutableSetOf<Int>()
-		chunks.forEach { (renderer, _) -> 
-			outlinedEntities.addAll(renderer.getOutlinedEntities()) 
-		}
-		
-		if (outlinedEntities.isNotEmpty()) {
-			com.lambda.graphics.outline.OutlineRenderer.renderIDPass(outlinedEntities, depth)
-		}
+			// ============================================================================
+			// Isolated Outline Groups Pass (Iterative Actual + Silhouette + Sobel)
+			// ============================================================================
+			val outlinedIds = chunks.flatMap { it.first.getOutlineIds() }.toSet()
+			if (outlinedIds.isNotEmpty()) {
+				val framebuffer = mc.framebuffer ?: return
+				val nearestSampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+
+				// Pre-load glint texture once before iterative passes to avoid IllegalStateException
+				com.lambda.graphics.mc.renderer.RendererUtils.ensureGlintTextureLoaded()
+				val glintUniformL = com.lambda.graphics.mc.renderer.RendererUtils.createGlintUniform(8.0f)
+
+				outlinedIds.forEach { id ->
+					val style = OutlineManager.getOutlineStyle(id) ?: OutlineStyle.DEFAULT
+					val depthView = if (depthTest()) framebuffer.depthAttachmentView else RendererUtils.getXrayDepthView()
+					if (depthView == null) return@forEach
+
+					// 1. Prepare isolated Group FBO
+					com.lambda.graphics.outline.OutlineRenderer.beginGroupPass("$name Group $id", depthView)
+					val groupTarget = com.lambda.graphics.outline.OutlineRenderer.getGroupView() ?: return@forEach
+
+					// 2. Render ACTUAL geometry using REGULAR pipelines into the group FBO
+					com.mojang.blaze3d.systems.RenderSystem.getDevice()
+						.createCommandEncoder()
+						.createRenderPass(
+							{ "$name Outline Group $id - Draw" },
+							groupTarget,
+							java.util.OptionalInt.empty(), // Already cleared in beginGroupPass
+							depthView,
+							java.util.OptionalDouble.empty()
+						)?.use { pass ->
+							// Faces
+							pass.setPipeline(RendererUtils.getFacesPipeline(depthTest()))
+							com.mojang.blaze3d.systems.RenderSystem.bindDefaultUniforms(pass)
+							chunks.forEach { (renderer, transform) ->
+								if (renderer.hasOutlinedData(id)) {
+									pass.setUniform("DynamicTransforms", transform)
+									renderer.renderOutlinedFaces(pass, id)
+								}
+							}
+
+							// Edges
+							pass.setPipeline(RendererUtils.getEdgesPipeline(depthTest()))
+							com.mojang.blaze3d.systems.RenderSystem.bindDefaultUniforms(pass)
+							chunks.forEach { (renderer, transform) ->
+								if (renderer.hasOutlinedData(id)) {
+									pass.setUniform("DynamicTransforms", transform)
+									renderer.renderOutlinedEdges(pass, id)
+								}
+							}
+
+							// Text
+							val atlasT = currentFontAtlas
+							if (atlasT != null && atlasT.textureView != null) {
+								pass.setPipeline(RendererUtils.getTextPipeline(depthTest()))
+								com.mojang.blaze3d.systems.RenderSystem.bindDefaultUniforms(pass)
+								pass.bindTexture("Sampler0", atlasT.textureView!!, atlasT.sampler ?: nearestSampler)
+								chunks.forEach { (renderer, transform) ->
+									if (renderer.hasOutlinedData(id)) {
+										pass.setUniform("DynamicTransforms", transform)
+										renderer.renderOutlinedText(pass, id)
+									}
+								}
+							}
+
+							pass.setPipeline(RendererUtils.getWorldImagePipeline(depthTest()))
+							com.mojang.blaze3d.systems.RenderSystem.bindDefaultUniforms(pass)
+							RendererUtils.bindGlintTexture(pass, "Sampler1")
+							chunks.forEach { (renderer, transform) ->
+								if (renderer.hasOutlinedData(id)) {
+									pass.setUniform("DynamicTransforms", transform)
+									renderer.renderOutlinedImages(pass, id)
+								}
+							}
+
+							pass.setPipeline(RendererUtils.getModelPipeline(depthTest()))
+							com.mojang.blaze3d.systems.RenderSystem.bindDefaultUniforms(pass)
+							RendererUtils.bindOverlayTexture(pass, "Sampler1")
+							RendererUtils.bindLightmapTexture(pass, "Sampler2")
+							RendererUtils.bindGlintTexture(pass, "Sampler3")
+							pass.setUniform("GlintTransforms", glintUniformL)
+							chunks.forEach { (renderer, transform) ->
+								if (renderer.hasOutlinedData(id)) {
+									pass.setUniform("DynamicTransforms", transform)
+									renderer.renderOutlinedModels(pass, id)
+								}
+							}
+						}
+
+					// 3. Apply Sobel and composite back to main framebuffer
+					com.lambda.graphics.outline.OutlineRenderer.endGroupPass(style)
+				}
+			}
+
+		// Entity outlines are now consolidated and triggered from RenderMain after all modules have registered.
 	}
 
 	/**

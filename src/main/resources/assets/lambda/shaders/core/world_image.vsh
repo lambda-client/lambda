@@ -20,17 +20,17 @@ void main() {
     float scale = BillboardData.x;
     float billboardFlag = BillboardData.y;
     
+    vec3 anchor = Anchor + ModelOffset;
     vec4 mvPos;
     if (billboardFlag < 0.5) {
         // Billboard mode: face the camera perfectly
         // 1. Transform anchor to camera space
-        mvPos = ModelViewMat * vec4(Anchor, 1.0);
+        mvPos = ModelViewMat * vec4(anchor, 1.0);
         // 2. Apply local offset in camera-aligned XY plane
         mvPos.xy += Position.xy * scale;
     } else {
         // Fixed rotation mode: everything is pre-calculated/transformed
-        // worldPos = Anchor + Position * scale
-        mvPos = ModelViewMat * vec4(Anchor + Position * scale, 1.0);
+        mvPos = ModelViewMat * vec4(anchor + Position * scale, 1.0);
     }
     
     gl_Position = ProjMat * mvPos;

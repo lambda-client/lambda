@@ -640,8 +640,8 @@ class SDFFontAtlas(
 			for (x in 0 until atlasSize) {
 				val sdfValue = data[y * atlasSize + x].toInt() and 0xFF
 				// ABGR format: alpha=sdfValue, blue=255, green=255, red=255
-				// SDF in alpha allows proper transparency blending
-				val abgr = (sdfValue shl 24) or (255 shl 16) or (255 shl 8) or 255
+				// In ABGR, it's (A << 24 | B << 16 | G << 8 | R)
+				val abgr = (sdfValue shl 24) or 0x00FFFFFF
 				nativeImage.setColor(x, y, abgr)
 			}
 		}

@@ -27,6 +27,7 @@ import com.lambda.graphics.texture.LambdaImageAtlas
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
+import fi.dy.masa.malilib.render.RenderUtils.depthTest
 import net.minecraft.block.BlockState
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.render.OverlayTexture
@@ -62,7 +63,7 @@ annotation class RenderDsl
 
 @Suppress("unused")
 @RenderDsl
-class RenderBuilder(private val cameraPos: Vec3d) {
+class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false) {
 	val collector = RegionVertexCollector()
 
 	/** Track font atlas for this builder (for rendering) */
@@ -104,6 +105,23 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val layer = currentLayer
 		currentLayer += layerIncrement
 		return layer
+	}
+
+	/** ID for the currently active outline group (null if none) */
+	private var activeOutlineId: Int? = null
+
+	/** 
+	 * Apply an outline to all geometry rendered within the given block.
+	 * Initially limited to world-space rendering. 
+	 */
+	fun withOutline(style: OutlineStyle, block: RenderBuilder.() -> Unit) {
+		val previousId = activeOutlineId
+		activeOutlineId = OutlineManager.registerCustomOutline(style, depthTest = depthTest)
+		try {
+			block()
+		} finally {
+			activeOutlineId = previousId
+		}
 	}
 
 	fun box(
@@ -318,8 +336,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		entity: net.minecraft.entity.Entity,
 		style: OutlineStyle
 	) {
-		collector.outlinedEntities.add(entity.id)
-		OutlineManager.setEntityOutline(entity.id, style)
+		OutlineManager.setEntityOutline(entity.id, style, depthTest = depthTest)
 	}
 
 	/**
@@ -348,8 +365,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		style: OutlineStyle
 	) {
 		entities.forEach {
-			collector.outlinedEntities.add(it.id)
-			OutlineManager.setEntityOutline(it.id, style)
+			OutlineManager.setEntityOutline(it.id, style, depthTest = depthTest)
 		}
 	}
 
@@ -431,39 +447,39 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		} else null
 
 		// Render layers in order: shadow -> glow -> outline -> main text
-		// Alpha encodes layer type for shader: <50 = shadow, 50-99 = glow, 100-199 = outline, >=200 = main
+		// Layer type is passed in Position.z: 0=shadow, 1=glow, 2=outline, 3=text
 
-		// Shadow layer (alpha < 50 signals shadow)
+		// Shadow layer (layerType 0)
 		if (style.shadow != null) {
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX
 			val offsetY = style.shadow.offsetY
 			buildTextQuads(atlas, text, startX + offsetX, offsetY, 
-				shadowColor.red, shadowColor.green, shadowColor.blue, 25,
-				anchorX, anchorY, anchorZ, size, rotationMatrix, style)
+				shadowColor.red, shadowColor.green, shadowColor.blue, shadowColor.alpha,
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 0)
 		}
 
-		// Glow layer (alpha 50-99 signals glow)
+		// Glow layer (layerType 1)
 		if (style.glow != null) {
 			val glowColor = style.glow.color
 			buildTextQuads(atlas, text, startX, 0f, 
-				glowColor.red, glowColor.green, glowColor.blue, 75,
-				anchorX, anchorY, anchorZ, size, rotationMatrix, style)
+				glowColor.red, glowColor.green, glowColor.blue, glowColor.alpha,
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 1)
 		}
 
-		// Outline layer (alpha 100-199 signals outline)
+		// Outline layer (layerType 2)
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
 			buildTextQuads(atlas, text, startX, 0f, 
-				outlineColor.red, outlineColor.green, outlineColor.blue, 150,
-				anchorX, anchorY, anchorZ, size, rotationMatrix, style)
+				outlineColor.red, outlineColor.green, outlineColor.blue, outlineColor.alpha,
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 2)
 		}
 
-		// Main text layer (alpha >= 200 signals main text)
+		// Main text layer (layerType 3)
 		val mainColor = style.color
 		buildTextQuads(atlas, text, startX, 0f, 
 			mainColor.red, mainColor.green, mainColor.blue, 255,
-			anchorX, anchorY, anchorZ, size, rotationMatrix, style)
+			anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId)
 	}
 
 	// ============================================================================
@@ -857,9 +873,9 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		if (vertices.isNotEmpty()) {
 			// Use Nearest filter only if requested AND Smart AA is NOT used (Smart AA handles sharpness in shader via Linear)
 			val useNearest = pixelPerfect && !smartAA
-			collector.addModelVertices(textureView, vertices, useNearest)
+			collector.addModelVertices(textureView, vertices, useNearest, activeOutlineId)
 		}
-	} // Default filter?
+	}
 
 	fun worldGuiItem(
 		stack: ItemStack,
@@ -929,7 +945,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			if (isScreen) {
 				collector.addScreenModelVertices(textureView, vertices, true)
 			} else {
-				collector.addModelVertices(textureView, vertices, true)
+				collector.addModelVertices(textureView, vertices, true, activeOutlineId)
 			}
 		}
 
@@ -1400,7 +1416,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				)
 			)
 		}
-		collector.addWorldImageVertices(image.textureView, vertices, pixelPerfect)
+		collector.addWorldImageVertices(image.textureView, vertices, pixelPerfect, activeOutlineId)
 	}
 
 	// ============================================================================
@@ -1509,6 +1525,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		// Alpha encodes layer type for shader
 
 		// Shadow layer
+		// Shadow layer (layerType 0)
 		if (style.shadow != null) {
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX * pixelSize
@@ -1516,34 +1533,34 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			val offsetY = -style.shadow.offsetY * pixelSize
 			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX + offsetX, offsetY,
-				shadowColor.red, shadowColor.green, shadowColor.blue, 25,
-				pixelX, pixelY, pixelSize, style, layer)
+				shadowColor.red, shadowColor.green, shadowColor.blue, shadowColor.alpha,
+				pixelX, pixelY, pixelSize, style, layer, 0)
 		}
 
-		// Glow layer
+		// Glow layer (layerType 1)
 		if (style.glow != null) {
 			val glowColor = style.glow.color
 			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX, 0f,
-				glowColor.red, glowColor.green, glowColor.blue, 75,
-				pixelX, pixelY, pixelSize, style, layer)
+				glowColor.red, glowColor.green, glowColor.blue, glowColor.alpha,
+				pixelX, pixelY, pixelSize, style, layer, 1)
 		}
 
-		// Outline layer
+		// Outline layer (layerType 2)
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
 			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX, 0f,
-				outlineColor.red, outlineColor.green, outlineColor.blue, 150,
-				pixelX, pixelY, pixelSize, style, layer)
+				outlineColor.red, outlineColor.green, outlineColor.blue, outlineColor.alpha,
+				pixelX, pixelY, pixelSize, style, layer, 2)
 		}
 
-		// Main text layer
+		// Main text layer (layerType 3)
 		val mainColor = style.color
 		val mainLayer = nextLayer()
 		buildScreenTextQuads(atlas, text, startX, 0f,
-			mainColor.red, mainColor.green, mainColor.blue, 255,
-			pixelX, pixelY, pixelSize, style, mainLayer)
+			mainColor.red, mainColor.green, mainColor.blue, mainColor.alpha,
+			pixelX, pixelY, pixelSize, style, mainLayer, 3)
 	}
 
 	/**
@@ -1559,7 +1576,8 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		anchorX: Float, anchorY: Float,
 		pixelSize: Float,  // Final text size in pixels
 		style: SDFStyle,
-		layer: Float  // Layer depth for draw order
+		layer: Float,  // Layer depth for draw order
+		layerType: Int = 3
 	) {
 		// Extract SDF style params from SDFStyle object
 		val outlineWidth = style.outline?.width ?: 0f
@@ -1594,13 +1612,13 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			// Screen-space text uses simple 2D quads - add directly to collector with style params
 			// Quad winding: bottom-left, bottom-right, top-right, top-left (CCW for Y-up)
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x0, y0, glyph.u0, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
+				x0, y0, layerType, glyph.u0, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x1, y0, glyph.u1, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
+				x1, y0, layerType, glyph.u1, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x1, y1, glyph.u1, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
+				x1, y1, layerType, glyph.u1, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
-				x0, y1, glyph.u0, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
+				x0, y1, layerType, glyph.u0, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 
 			// advance is already normalized, just add it
 			penX += glyph.advance
@@ -1634,7 +1652,9 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		anchorX: Float, anchorY: Float, anchorZ: Float,
 		scale: Float,
 		rotationMatrix: Matrix4f?,
-		style: SDFStyle
+		style: SDFStyle,
+		outlineId: Int? = null,
+		layerType: Int = 3
 	) {
 		// Extract SDF style params from SDFStyle object
 		val outlineWidth = style.outline?.width ?: 0f
@@ -1654,18 +1674,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 			if (rotationMatrix == null) {
 				// Billboard mode: pass local offsets directly, shader handles billboard
 				// Bottom-left, Bottom-right, Top-right, Top-left
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 0f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.addTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
+				collector.addTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
+				collector.addTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
+				collector.addTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 			} else {
 				// Fixed rotation mode: pre-transform offsets with rotation matrix
 				// Scale is applied in shader, so we just apply rotation here
@@ -1674,18 +1686,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 				val p2 = transformPoint(rotationMatrix, x1, -y0, 0f)
 				val p3 = transformPoint(rotationMatrix, x0, -y0, 0f)
 				
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
-				collector.textVertices.add(RegionVertexCollector.TextVertex(
-					p3.x, p3.y, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, 1f,
-					outlineWidth, glowRadius, shadowSoftness, threshold))
+				collector.addTextVertex(p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
+				collector.addTextVertex(p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
+				collector.addTextVertex(p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
+				collector.addTextVertex(p3.x, p3.y, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 			}
 
 			penX += glyph.advance
@@ -1874,10 +1878,10 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val dz = rz2 - rz1
 
 		// Quad-based lines need 4 vertices per segment
-		collector.addEdgeVertex(rx1, ry1, rz1, color1, dx, dy, dz, width, dashStyle)
-		collector.addEdgeVertex(rx1, ry1, rz1, color1, dx, dy, dz, width, dashStyle)
-		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle)
-		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle)
+		collector.addEdgeVertex(rx1, ry1, rz1, color1, dx, dy, dz, width, dashStyle, activeOutlineId)
+		collector.addEdgeVertex(rx1, ry1, rz1, color1, dx, dy, dz, width, dashStyle, activeOutlineId)
+		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle, activeOutlineId)
+		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle, activeOutlineId)
 	}
 
 	/** Helper to transform a point by a matrix */
@@ -1892,7 +1896,7 @@ class RenderBuilder(private val cameraPos: Vec3d) {
 		val rx = (x - cameraPos.x).toFloat()
 		val ry = (y - cameraPos.y).toFloat()
 		val rz = (z - cameraPos.z).toFloat()
-		collector.addFaceVertex(rx, ry, rz, color)
+		collector.addFaceVertex(rx, ry, rz, color, activeOutlineId)
 	}
 
 	/** SDF outline effect configuration */

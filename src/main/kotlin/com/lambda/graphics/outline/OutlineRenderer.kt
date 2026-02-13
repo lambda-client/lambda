@@ -20,6 +20,7 @@ package com.lambda.graphics.outline
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTexture
@@ -69,8 +70,73 @@ object OutlineRenderer {
     private var fullscreenQuadBuffer: GpuBuffer? = null
 
     /**
-     * Ensure silhouette FBO exists and matches framebuffer size.
+     * Get the current group texture view for rendering.
      */
+    fun getGroupView(): GpuTextureView? = silhouetteView
+
+    /**
+     * Get the current group depth view for rendering.
+     */
+    fun getGroupDepthView(): GpuTextureView? = silhouetteDepthView
+
+    /**
+     * Prepare the group FBO for a new isolated render pass.
+     * Clears the color to transparent and depth to 1.0.
+     */
+    fun beginGroupPass(name: String, depthView: GpuTextureView) {
+        if (!ensureSilhouetteFBO()) return
+        val colorView = silhouetteView ?: return
+        
+        RenderSystem.getDevice()
+            .createCommandEncoder()
+            .createRenderPass(
+                { "Lambda Begin Group Pass: $name" },
+                colorView,
+                java.util.OptionalInt.of(0), // Clear to transparent
+                depthView,
+                java.util.OptionalDouble.of(1.0) // Clear depth
+            )?.close()
+    }
+
+    /**
+     * Finish the group pass by applying the outline and merging back to the main framebuffer.
+     */
+    fun endGroupPass(style: OutlineStyle) {
+        val groupView = silhouetteView ?: return
+        val framebuffer = mc.framebuffer ?: return
+
+        ensureFullscreenQuad()
+        val quadBuffer = fullscreenQuadBuffer ?: return
+
+        val outlineColor = Vector4f(style.color.red / 255f, style.color.green / 255f, style.color.blue / 255f, 1.0f)
+        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
+            Matrix4f(),
+            outlineColor,
+            Vector3f(1f, 0f, 0f), // x=1.0 for IsOverride=true
+            Matrix4f()
+        )
+
+        RenderSystem.getDevice()
+            .createCommandEncoder()
+            .createRenderPass(
+                { "Lambda End Group Pass" },
+                framebuffer.colorAttachmentView,
+                java.util.OptionalInt.empty(),
+                null,
+                java.util.OptionalDouble.empty()
+            )?.use { pass ->
+                pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
+                val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+                pass.bindTexture("Sampler0", groupView, nearestSampler)
+                pass.setUniform("DynamicTransforms", dynamicTransform)
+                pass.setVertexBuffer(0, quadBuffer)
+                
+                val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+                val indexBuffer = shapeIndexBuffer.getIndexBuffer(4)
+                pass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+                pass.drawIndexed(0, 0, 6, 1)
+            }
+    }
     private fun ensureSilhouetteFBO(): Boolean {
         val framebuffer = mc.framebuffer ?: return false
         val width = framebuffer.textureWidth
@@ -117,9 +183,6 @@ object OutlineRenderer {
         return true
     }
 
-    /**
-     * Ensure fullscreen quad buffer exists for post-processing.
-     */
     private fun ensureFullscreenQuad() {
         if (fullscreenQuadBuffer != null) return
 
@@ -154,26 +217,31 @@ object OutlineRenderer {
     }
 
     /**
-     * Begin a new outline rendering frame.
-     * Clears the silhouette FBO and prepares for rendering.
+     * Clear the silhouette FBO.
      */
-    fun beginFrame() {
+    fun clearSilhouette() {
         if (!ensureSilhouetteFBO()) return
-
         val colorView = silhouetteView ?: return
         val depthView = silhouetteDepthView ?: return
 
-        // Clear silhouette FBO to transparent black
         RenderSystem.getDevice()
             .createCommandEncoder()
             .createRenderPass(
                 { "Lambda Clear Outline Silhouette" },
                 colorView,
-                OptionalInt.of(0x00000000), // Clear to transparent
+                OptionalInt.of(0x00000000),
                 depthView,
-                OptionalDouble.of(1.0)       // Clear depth to far
+                OptionalDouble.of(1.0)
             )?.close()
     }
+
+    /**
+     * Begin a new outline rendering frame.
+     */
+    fun beginFrame() {
+        clearSilhouette()
+    }
+
 
     /**
      * Render captured entity geometry to the silhouette FBO.
@@ -210,7 +278,8 @@ object OutlineRenderer {
         val buffer = MemoryUtil.memAlloc(totalVertices * vertexSize).order(ByteOrder.nativeOrder())
         try {
             // Fill buffer with triangle data
-            for ((entityId, style) in outlines) {
+            for ((entityId, pair) in outlines) {
+                val style = pair.first
                 val geometries = VertexCapture.getEntityGeometries(entityId)
                 for (geometry in geometries) {
                     val capturedVerts = geometry.getVertices()
@@ -218,7 +287,16 @@ object OutlineRenderer {
 
                     // Convert to ABGR packed int (MC format)
                     val color = style.color
-                    val packedColor = ((color.alpha and 0xFF) shl 24) or
+                    // Alpha packing:
+                    // 0 = No entity
+                    // 1 = Entity present, NO FILL (outline only)
+                    // 2-255 = Entity present, FILL with this alpha
+                    val fillAlpha = if (style.fill) {
+                        (style.fillOpacity * 255f).toInt().coerceIn(2, 255)
+                    } else {
+                        1
+                    }
+                    val packedColor = (fillAlpha shl 24) or
                                      ((color.blue and 0xFF) shl 16) or
                                      ((color.green and 0xFF) shl 8) or
                                      (color.red and 0xFF)
@@ -236,8 +314,7 @@ object OutlineRenderer {
                         buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putInt(packedColor)
                         buffer.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putInt(packedColor)
                         buffer.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putInt(packedColor)
-
-                        // Triangle 2: v0, v2, v3
+        // Triangle 2: v0, v2, v3
                         buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putInt(packedColor)
                         buffer.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putInt(packedColor)
                         buffer.putFloat(v3.x).putFloat(v3.y).putFloat(v3.z).putInt(packedColor)
@@ -245,16 +322,12 @@ object OutlineRenderer {
                 }
             }
             buffer.flip()
-
-            // Clean up old buffer
-            silhouetteVertexBuffer?.close()
             
-            // Create new GPU buffer
-            silhouetteVertexBuffer = RenderSystem.getDevice().createBuffer(
-                { "Lambda Outline Silhouette Vertices" },
-                GpuBuffer.USAGE_VERTEX,
-                buffer
-            )
+            // Create GPU buffer
+            silhouetteVertexBuffer?.close()
+            val vbo = RenderSystem.getDevice().createBuffer({ "Lambda Outline Silhouette Vertices" }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, buffer.remaining().toLong())
+            vbo.upload(buffer)
+            silhouetteVertexBuffer = vbo
             silhouetteVertexCount = totalVertices
         } finally {
             MemoryUtil.memFree(buffer)
@@ -311,65 +384,26 @@ object OutlineRenderer {
         }
     }
 
+
     /**
-     * Apply Sobel edge detection and composite to main framebuffer.
-     * Samples the entity ID buffer and outputs edges with per-entity coloring.
+     * Render entity IDs to the ID buffer for all registered outlines.
+     * Consolidity into a single pass per frame to avoid redundant re-renders.
      */
-    fun applyEdgeDetection() {
-        val framebuffer = mc.framebuffer ?: return
-        val idBufferView = OutlineIdBuffer.getTextureView() ?: return
-        
-        ensureFullscreenQuad()
-        val quadBuffer = fullscreenQuadBuffer ?: return
+    fun renderAllIDPasses() {
+        val depthTested = OutlineManager.getDepthTestedEntityIds()
+        val xray = OutlineManager.getXrayEntityIds()
 
-        // Create dynamic transform (identity for fullscreen quad) BEFORE render pass
-        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
-            Matrix4f(),
-            Vector4f(1f, 1f, 1f, 1f),
-            Vector3f(0f, 0f, 0f),
-            Matrix4f()
-        )
-
-        // Create render pass targeting main framebuffer
-        val renderPass = RenderSystem.getDevice()
-            .createCommandEncoder()
-            .createRenderPass(
-                { "Lambda Outline Sobel Pass" },
-                framebuffer.colorAttachmentView,
-                OptionalInt.empty(),
-                null, // No depth
-                OptionalDouble.empty()
-            ) ?: return
-
-        try {
-            renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
-            
-            // Bind entity ID buffer texture (use NEAREST for exact ID values)
-            val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
-            renderPass.bindTexture("Sampler0", idBufferView, nearestSampler)
-            
-            // Set uniforms
-            // Note: These require uniform buffers in MC 1.21.11 new pipeline
-            // For now we'll handle this via the shader's default values
-            renderPass.setUniform("DynamicTransforms", dynamicTransform)
-            
-            // Draw fullscreen quad
-            renderPass.setVertexBuffer(0, quadBuffer)
-            
-            // Use sequential index buffer for quads
-            // 4 vertices = 1 quad = 2 triangles = 6 indices
-            val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-            val indexBuffer = shapeIndexBuffer.getIndexBuffer(4)
-            renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
-            renderPass.drawIndexed(0, 0, 6, 1)
-        } finally {
-            renderPass.close()
+        if (depthTested.isNotEmpty()) {
+            OutlineIdPassRenderer.render(depthTested, useMcDepth = true)
+        }
+        if (xray.isNotEmpty()) {
+            OutlineIdPassRenderer.render(xray, useMcDepth = false)
         }
     }
 
     /**
      * Render entity IDs to the ID buffer for a specific set of entities.
-     * This should be called by each renderer that wants to contribute outlines.
+     * @deprecated Use [renderAllIDPasses] for better performance.
      */
     fun renderIDPass(entityIds: Set<Int>, depthTest: Boolean) {
         if (entityIds.isEmpty()) return
@@ -377,12 +411,61 @@ object OutlineRenderer {
     }
 
     /**
-     * Final step of outline rendering: apply edge detection to the shared ID buffer
-     * and composite the resulting outlines onto the main framebuffer.
+     * Final step of outline rendering for entities.
+     * Apply edge detection to the shared ID buffer and composite outlines.
      */
     fun renderEdges() {
-        if (!OutlineIdBuffer.isReady()) return
-        applyEdgeDetection()
+        if (OutlineIdBuffer.hasData || OutlineLayerBuffer.hasData) {
+            applyEdgeDetection()
+        }
+    }
+
+
+    /**
+     * Apply Sobel edge detection and composite results.
+     */
+    private fun applyEdgeDetection() {
+        val idBufferView = OutlineIdBuffer.getTextureView() ?: return
+        applySobel(idBufferView, "Lambda Global Outline Sobel Pass")
+    }
+
+    private fun applySobel(textureView: GpuTextureView, label: String) {
+        val framebuffer = mc.framebuffer ?: return
+        
+        ensureFullscreenQuad()
+        val quadBuffer = fullscreenQuadBuffer ?: return
+
+        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
+            Matrix4f(), Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f()
+        )
+
+        RenderSystem.getDevice()
+            .createCommandEncoder()
+            .createRenderPass(
+                { label },
+                framebuffer.colorAttachmentView,
+                OptionalInt.empty(),
+                null,
+                OptionalDouble.empty()
+            )?.use { pass ->
+                pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
+                val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+                pass.bindTexture("Sampler0", textureView, nearestSampler)
+                
+                // Bind silhouettes depth for occlusion logic
+                val silDepth = OutlineIdBuffer.getSilhouetteDepthView()
+                if (silDepth != null) pass.bindTexture("Sampler1", silDepth, nearestSampler)
+                
+                // Bind world depth for occlusion logic
+                val worldDepth = OutlineIdBuffer.getMcDepthView()
+                if (worldDepth != null) pass.bindTexture("Sampler2", worldDepth, nearestSampler)
+                pass.setUniform("DynamicTransforms", dynamicTransform)
+                pass.setVertexBuffer(0, quadBuffer)
+                val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
+                val indexBuffer = shapeIndexBuffer.getIndexBuffer(4)
+                pass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
+                pass.drawIndexed(0, 0, 6, 1)
+            }
     }
     
     /**
@@ -398,7 +481,7 @@ object OutlineRenderer {
         val dynamicTransform = RenderSystem.getDynamicUniforms().write(
             Matrix4f(),
             Vector4f(1f, 1f, 1f, 1f),
-            Vector3f(0f, 0f, 0f),
+            Vector3f(0f, 0f, 0f), // x=0.0 for IsOverride=false
             Matrix4f()
         )
 
@@ -436,18 +519,12 @@ object OutlineRenderer {
         }
     }
 
-    /**
-     * Check if there are any outlines to render.
-     */
-    fun hasOutlines(): Boolean {
-        return OutlineManager.hasEntityOutlines()
-    }
 
     /**
      * Release all GPU resources.
      */
     fun cleanup() {
-        // Clean up old silhouette resources (deprecated but still present)
+        // Clean up silhouette resources
         silhouetteView?.close()
         silhouetteTexture?.close()
         silhouetteDepthView?.close()
@@ -463,6 +540,9 @@ object OutlineRenderer {
         fullscreenQuadBuffer = null
         silhouetteWidth = 0
         silhouetteHeight = 0
+        
+        // Clean up outline layer buffer
+        OutlineLayerBuffer.cleanup()
         
         // Clean up new ID buffer resources
         OutlineIdBuffer.cleanup()

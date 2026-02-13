@@ -41,45 +41,106 @@ import net.minecraft.util.math.BlockPos
  */
 object OutlineManager {
     // Entity outlines by entity ID
-    private val entityOutlines = mutableMapOf<Int, OutlineStyle>()
+    private val depthTestedEntityOutlines = mutableMapOf<Int, OutlineStyle>()
+    private val xrayEntityOutlines = mutableMapOf<Int, OutlineStyle>()
     
     // Block positions to outline (Phase 3)
     private val blockOutlines = mutableMapOf<BlockPos, OutlineStyle>()
     
+    // Custom outlines for non-entity geometry (e.g. RenderBuilder)
+    private val depthTestedCustomOutlines = mutableMapOf<Int, OutlineStyle>()
+    private val xrayCustomOutlines = mutableMapOf<Int, OutlineStyle>()
+    private var nextCustomId = 1_000_000
+
     /**
      * Set an outline for an entity by its ID.
-     * Pass null to remove the outline.
+     * @param depthTest If true, outline respects world geometry. If false (xray), it renders through walls.
      */
-    fun setEntityOutline(entityId: Int, style: OutlineStyle?) {
+    fun setEntityOutline(entityId: Int, style: OutlineStyle?, depthTest: Boolean = true) {
         if (style != null) {
-            entityOutlines[entityId] = style
+            if (depthTest) {
+                depthTestedEntityOutlines[entityId] = style
+                xrayEntityOutlines.remove(entityId)
+            } else {
+                xrayEntityOutlines[entityId] = style
+                depthTestedEntityOutlines.remove(entityId)
+            }
         } else {
-            entityOutlines.remove(entityId)
+            depthTestedEntityOutlines.remove(entityId)
+            xrayEntityOutlines.remove(entityId)
         }
     }
     
     /**
+     * Register a custom outline style and get a unique ID for it.
+     * Used for non-entity geometry (e.g. RenderBuilder).
+     */
+    fun registerCustomOutline(style: OutlineStyle, depthTest: Boolean = true): Int {
+        val id = nextCustomId++
+        if (depthTest) {
+            depthTestedCustomOutlines[id] = style
+        } else {
+            xrayCustomOutlines[id] = style
+        }
+        return id
+    }
+
+    /**
+     * Get the outline style for any ID (entity or custom).
+     */
+    fun getOutlineStyle(id: Int): OutlineStyle? {
+        return depthTestedEntityOutlines[id] ?: xrayEntityOutlines[id] ?: 
+               depthTestedCustomOutlines[id] ?: xrayCustomOutlines[id]
+    }
+
+    /**
      * Get the outline style for an entity, or null if not outlined.
      */
-    fun getEntityOutline(entityId: Int): OutlineStyle? = entityOutlines[entityId]
+    fun getEntityOutline(entityId: Int): OutlineStyle? = 
+        depthTestedEntityOutlines[entityId] ?: xrayEntityOutlines[entityId]
     
     /**
      * Check if any entity outlines are registered.
      */
-    fun hasEntityOutlines(): Boolean = entityOutlines.isNotEmpty()
+    fun hasEntityOutlines(): Boolean = depthTestedEntityOutlines.isNotEmpty() || xrayEntityOutlines.isNotEmpty()
     
     /**
      * Check if an entity's vertices should be captured.
      * Called from EntityRenderManagerMixin during MC's render pass.
      */
     @JvmStatic
-    fun shouldCapture(entityId: Int): Boolean = entityOutlines.containsKey(entityId)
+    fun shouldCapture(entityId: Int): Boolean = 
+        depthTestedEntityOutlines.containsKey(entityId) || xrayEntityOutlines.containsKey(entityId)
     
     /**
-     * Get all entity outlines (for iteration during rendering).
+     * Get all entity outlines with their depth test setting.
      */
-    fun getEntityOutlines(): Map<Int, OutlineStyle> = entityOutlines
+    fun getEntityOutlines(): Map<Int, Pair<OutlineStyle, Boolean>> {
+        val all = mutableMapOf<Int, Pair<OutlineStyle, Boolean>>()
+        depthTestedEntityOutlines.forEach { (id, style) -> all[id] = style to true }
+        xrayEntityOutlines.forEach { (id, style) -> all[id] = style to false }
+        return all
+    }
+
+    fun getDepthTestedEntityIds(): Set<Int> = depthTestedEntityOutlines.keys
+    fun getXrayEntityIds(): Set<Int> = xrayEntityOutlines.keys
     
+    fun getDepthTestedStyles(): Map<Int, OutlineStyle> = depthTestedEntityOutlines
+    fun getXrayStyles(): Map<Int, OutlineStyle> = xrayEntityOutlines
+
+    /**
+     * Get all custom outlines.
+     */
+    fun getCustomOutlines(): Map<Int, Pair<OutlineStyle, Boolean>> {
+        val all = mutableMapOf<Int, Pair<OutlineStyle, Boolean>>()
+        depthTestedCustomOutlines.forEach { (id, style) -> all[id] = style to true }
+        xrayCustomOutlines.forEach { (id, style) -> all[id] = style to false }
+        return all
+    }
+
+    fun getDepthTestedCustomStyles(): Map<Int, OutlineStyle> = depthTestedCustomOutlines
+    fun getXrayCustomStyles(): Map<Int, OutlineStyle> = xrayCustomOutlines
+
     /**
      * Set an outline for a block position.
      * Pass null to remove the outline.
@@ -112,15 +173,19 @@ object OutlineManager {
      * Should be called at the start of each frame before modules register their outlines.
      */
     fun clear() {
-        entityOutlines.clear()
+        depthTestedEntityOutlines.clear()
+        xrayEntityOutlines.clear()
         blockOutlines.clear()
+        depthTestedCustomOutlines.clear()
+        xrayCustomOutlines.clear()
     }
     
     /**
      * Clear only entity outlines (useful for partial updates).
      */
     fun clearEntities() {
-        entityOutlines.clear()
+        depthTestedEntityOutlines.clear()
+        xrayEntityOutlines.clear()
     }
     
     /**

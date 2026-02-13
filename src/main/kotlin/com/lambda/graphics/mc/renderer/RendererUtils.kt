@@ -466,3 +466,11 @@ object RendererUtils {
 	}
 }
 
+
+/**
+ * Extension function to upload ByteBuffer data to a GpuBuffer.
+ * Replaces missing native upload method in MC 1.21.1.
+ */
+fun com.mojang.blaze3d.buffers.GpuBuffer.upload(data: java.nio.ByteBuffer) {
+    com.mojang.blaze3d.systems.RenderSystem.getDevice().createCommandEncoder().writeToBuffer(this.slice(), data)
+}
