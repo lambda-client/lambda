@@ -329,7 +329,9 @@ object RotationManager : Manager<RotationRequest>(
 			}
 		}
 
-		activeRotation = Rotation(newYaw, newPitch)
+		if (!newYaw.isNaN() && !newPitch.isNaN()) {
+			activeRotation = Rotation(newYaw, newPitch)
+		}
 	}
 
 	private fun reset(rotation: Rotation) {

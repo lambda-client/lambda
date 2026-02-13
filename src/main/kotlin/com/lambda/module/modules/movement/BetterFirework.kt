@@ -170,8 +170,7 @@ object BetterFirework : Module(
 	 * Use a firework from the hotbar or inventory if possible.
 	 * Return true if a firework has been used
 	 */
-	@JvmStatic
-	fun SafeContext.startFirework(silent: Boolean) {
+	fun SafeContext.startFirework(inventory: Boolean) {
 		val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
 
 		stack.bestItemMatch(player.hotbarStacks)
@@ -185,7 +184,7 @@ object BetterFirework : Module(
 				return
 			}
 
-		if (!silent) return
+		if (!inventory) return
 
 		stack.bestItemMatch(player.hotbarAndInventoryStacks)
 			?.let {
