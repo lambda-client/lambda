@@ -19,11 +19,13 @@ package com.lambda.util.player
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
+import com.lambda.util.world.fastEntitySearch
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
@@ -33,6 +35,10 @@ const val FakePlayerId = -2024-4-20
 
 val SafeContext.gamemode: GameMode
     get() = interaction.currentGameMode
+
+context(safeContext: SafeContext)
+val ClientPlayerEntity.hasFirework: Boolean
+    get() = safeContext.fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == this }.any()
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
     ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.lastPlayerInput, entity.isSprinting).apply {

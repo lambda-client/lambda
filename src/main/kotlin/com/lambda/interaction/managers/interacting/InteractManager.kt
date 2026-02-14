@@ -30,6 +30,7 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
+import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
 import com.lambda.interaction.managers.interacting.InteractManager.maxPlacementsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
@@ -147,8 +148,23 @@ object InteractManager : Manager<InteractRequest>(
 			if (!player.validSneak) return
 			if (tickStage !in interactConfig.tickStageMask) return
 
-			val actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
-			else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
+			lateinit var actionResult: ActionResult
+			fun doAction() {
+				val hand = if (interactConfig.airPlace == AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
+				actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
+				else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
+			}
+
+			//ToDo: Once we add 30bps placements we will need to move the air place bypass logic out of the loop to avoid excess packet spam
+			if (interactConfig.airPlace == AirPlaceMode.Grim) {
+				val inventoryRequest = inventoryRequest {
+					swapHands()
+					action { doAction() }
+					swapHands()
+				}.submit(queueIfMismatchedStage = false)
+				if (!inventoryRequest.done) actionResult = ActionResult.PASS
+			} else doAction()
+
 			if (actionResult.isAccepted && interactConfig.swing) {
 				swingHand(interactConfig.swingType, Hand.MAIN_HAND)
 
@@ -224,7 +240,7 @@ object InteractManager : Manager<InteractRequest>(
 			}
 		}
 
-		val stack = player.mainHandStack
+		val stack = player.getStackInHand(hand)
 
 		if (!stack.isEmpty && !isItemOnCooldown(stack)) {
 			val itemUsageContext = ItemUsageContext(player, hand, hitResult)
@@ -280,17 +296,7 @@ object InteractManager : Manager<InteractRequest>(
 		val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
 		val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
 
-		if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) {
-			val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
-			val inventoryRequest = inventoryRequest {
-				swapHands()
-				action { sendInteractPacket(placeHand, hitResult) }
-				swapHands()
-			}.submit(queueIfMismatchedStage = false)
-			if (!inventoryRequest.done) return ActionResult.FAIL
-		} else {
-			sendInteractPacket(hand, hitResult)
-		}
+		sendInteractPacket(hand, hitResult)
 
 		if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
 			InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()

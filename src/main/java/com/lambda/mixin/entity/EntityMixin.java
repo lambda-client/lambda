@@ -178,8 +178,7 @@ public abstract class EntityMixin {
         var player = getMc().player;
         if ((Object) this != getMc().player) return original;
 
-        if (ElytraFly.INSTANCE.isDisabled() ||
-                ElytraFly.getMode() != ElytraFly.FlyMode.Bounce || !player.isGliding()) return original;
+        if (ElytraFly.INSTANCE.isDisabled() || ElytraFly.getMode() != ElytraFly.FlyMode.Bounce || !player.isGliding()) return original;
 
         return EntityPose.GLIDING;
     }
