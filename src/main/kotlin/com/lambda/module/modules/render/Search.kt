@@ -67,7 +67,7 @@ object Search : Module(
     private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
 
-    private val useNaturalColor by setting("Use Natural Color", false, "Use the color of the block instead").onValueChange(::rebuildMesh)
+    private val useNaturalColor by setting("Use Natural Color", true, "Use the color of the block instead").onValueChange(::rebuildMesh)
     private val naturalColorAlpha by setting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
     private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
     private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
