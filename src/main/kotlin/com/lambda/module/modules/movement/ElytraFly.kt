@@ -138,7 +138,7 @@ object ElytraFly : Module(
         if (mc.options.rightKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 90f))
         if (mc.options.jumpKey.isPressed) vec = vec.add(Vec3d(0.0, 1.0, 0.0))
         if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
-        if (vec.lengthSquared() < 1e-4 && player.hasFirework) {
+        if (vec === Vec3d.ZERO && player.hasFirework) {
             if (flipFlop) {
                 flipFlop = false
                 rotationRequest { rotation(0f, 0f) }

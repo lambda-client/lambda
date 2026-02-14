@@ -61,7 +61,7 @@ data class InteractContext(
     fun requestDependencies(request: InteractRequest): Boolean {
         val hotbarRequest = HotbarRequest(hotbarIndex, this).submit(queueIfMismatchedStage = false)
         val validRotation = if (request.interactConfig.rotate) {
-            rotationRequest.submit(queueIfMismatchedStage = false).done && currentDirIsValid
+            (rotationRequest.submit(queueIfMismatchedStage = false).done || interactConfig.airPlace.isEnabled) && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
     }
