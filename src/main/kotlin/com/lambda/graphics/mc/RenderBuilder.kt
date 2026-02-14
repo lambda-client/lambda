@@ -1,19 +1,4 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+
 
 package com.lambda.graphics.mc
 
@@ -27,7 +12,6 @@ import com.lambda.graphics.texture.LambdaImageAtlas
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
-import fi.dy.masa.malilib.render.RenderUtils.depthTest
 import net.minecraft.block.BlockState
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.render.OverlayTexture
@@ -57,6 +41,8 @@ import org.joml.Quaternionf
 import org.joml.Vector3f
 import org.joml.Vector4f
 import java.awt.Color
+import kotlin.math.cos
+import kotlin.math.sin
 
 @DslMarker
 annotation class RenderDsl
@@ -66,29 +52,13 @@ annotation class RenderDsl
 class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false) {
 	val collector = RegionVertexCollector()
 
-	/** Track font atlas for this builder (for rendering) */
 	var fontAtlas: SDFFontAtlas? = null
 		private set
 
-	// Style grouping maps removed - style is now embedded in each text vertex
-
-	// ============================================================================
-	// Screen-Space Layer Tracking
-	// ============================================================================
-	// Layer depth for screen-space ordering.
-	// With orthographic projection (near=-1000, far=1000) and LEQUAL depth test:
-	// - Higher Z = lower depth = closer to viewer = renders ON TOP
-	// - Start at -800 and increment, so later calls have higher Z (on top)
-	
-	/** Current layer depth for screen-space ordering. 
-	 * Range: -1000 (far) to 1000 (near) in our orthographic projection.
-	 */
 	private var currentLayer = -800f
 	
-	/** Distance between screen layers. Each call moves slightly closer to viewer. */
 	private val layerIncrement = 1f
 	
-	// Vanilla's raw light directions
 	private val DEFAULT_LIGHT_DIR = Vector3f(0.2f, 1.0f, -0.7f).normalize()
 	private val DEFAULT_LIGHT1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
 
@@ -100,20 +70,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		)
 	}
 
-	/** Get next layer depth for screen-space ordering. Later calls render on top. */
 	private fun nextLayer(): Float {
 		val layer = currentLayer
 		currentLayer += layerIncrement
 		return layer
 	}
 
-	/** ID for the currently active outline group (null if none) */
 	private var activeOutlineId: Int? = null
 
-	/** 
-	 * Apply an outline to all geometry rendered within the given block.
-	 * Initially limited to world-space rendering. 
-	 */
 	fun withOutline(style: OutlineStyle, block: RenderBuilder.() -> Unit) {
 		val previousId = activeOutlineId
 		activeOutlineId = OutlineManager.registerCustomOutline(style, depthTest = depthTest)
@@ -206,7 +170,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		dashStyle: LineDashStyle? = null
 	) = line(x1, y1, z1, x2, y2, z2, c1, c2, width, dashStyle)
 
-	/** Draw a line between two world positions. */
 	fun line(
 		start: Vec3d,
 		end: Vec3d,
@@ -215,7 +178,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		dashStyle: LineDashStyle? = null
 	) = line(start.x, start.y, start.z, end.x, end.y, end.z, color, color, width, dashStyle)
 
-	/** Draw a polyline through a list of points. */
 	fun polyline(
 		points: List<Vec3d>,
 		color: Color,
@@ -228,15 +190,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 	}
 
-	/**
-	 * Draw a quadratic Bezier curve.
-	 *
-	 * @param p0 Start point
-	 * @param p1 Control point
-	 * @param p2 End point
-	 * @param color Line color
-	 * @param segments Number of line segments (higher = smoother)
-	 */
 	fun quadraticBezierLine(
 		p0: Vec3d,
 		p1: Vec3d,
@@ -250,16 +203,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		polyline(points, color, width, dashStyle)
 	}
 
-	/**
-	 * Draw a cubic Bezier curve.
-	 *
-	 * @param p0 Start point
-	 * @param p1 First control point
-	 * @param p2 Second control point
-	 * @param p3 End point
-	 * @param color Line color
-	 * @param segments Number of line segments (higher = smoother)
-	 */
 	fun cubicBezierLine(
 		p0: Vec3d,
 		p1: Vec3d,
@@ -274,13 +217,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		polyline(points, color, width, dashStyle)
 	}
 
-	/**
-	 * Draw a Catmull-Rom spline that passes through all control points.
-	 *
-	 * @param controlPoints List of points the spline should pass through (minimum 4)
-	 * @param color Line color
-	 * @param segmentsPerSection Segments between each pair of control points
-	 */
 	fun catmullRomSplineLine(
 		controlPoints: List<Vec3d>,
 		color: Color,
@@ -292,14 +228,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		polyline(points, color, width, dashStyle)
 	}
 
-	/**
-	 * Draw a smooth path through waypoints using Catmull-Rom splines. Handles endpoints
-	 * naturally by mirroring.
-	 *
-	 * @param waypoints List of points to pass through (minimum 2)
-	 * @param color Line color
-	 * @param segmentsPerSection Smoothness (higher = smoother)
-	 */
 	fun smoothLine(
 		waypoints: List<Vec3d>,
 		color: Color,
@@ -311,13 +239,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		polyline(points, color, width, dashStyle)
 	}
 
-	/**
-	 * Draw an outline around an entity using the FBO-based outline system.
-	 * Register the entity for capture during the pre-render pass.
-	 *
-	 * @param entity The entity to outline
-	 * @param color The color of the outline
-	 */
 	fun worldOutline(
 		entity: net.minecraft.entity.Entity,
 		color: Color
@@ -325,13 +246,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		worldOutline(entity, OutlineStyle(color))
 	}
 
-	/**
-	 * Draw an outline around an entity using the FBO-based outline system.
-	 * Register the entity for capture during the pre-render pass.
-	 *
-	 * @param entity The entity to outline
-	 * @param style The outline style (color, thickness, etc.)
-	 */
 	fun worldOutline(
 		entity: net.minecraft.entity.Entity,
 		style: OutlineStyle
@@ -339,13 +253,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		OutlineManager.setEntityOutline(entity.id, style, depthTest = depthTest)
 	}
 
-	/**
-	 * Draw outlines around multiple entities using the FBO-based outline system.
-	 * Register entities for capture during the pre-render pass.
-	 *
-	 * @param entities The entities to outline
-	 * @param color The color of the outline
-	 */
 	fun worldOutlines(
 		entities: List<net.minecraft.entity.Entity>,
 		color: Color,
@@ -353,13 +260,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		worldOutlines(entities, OutlineStyle(color))
 	}
 
-	/**
-	 * Draw outlines around multiple entities using the FBO-based outline system.
-	 * Register entities for capture during the pre-render pass.
-	 *
-	 * @param entities The entities to outline
-	 * @param style The outline style (color, thickness, etc.)
-	 */
 	fun worldOutlines(
 		entities: List<net.minecraft.entity.Entity>,
 		style: OutlineStyle
@@ -369,15 +269,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 	}
 
-	/**
-	 * Draw a circle in a plane.
-	 *
-	 * @param center Center of the circle
-	 * @param radius Radius of the circle
-	 * @param normal Normal vector of the plane (determines orientation)
-	 * @param color Line color
-	 * @param segments Number of segments
-	 */
 	fun circleLine(
 		center: Vec3d,
 		radius: Double,
@@ -387,7 +278,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		width: Float,
 		dashStyle: LineDashStyle? = null
 	) {
-		// Create basis vectors perpendicular to normal
 		val up =
 			if (kotlin.math.abs(normal.y) < 0.99) Vec3d(0.0, 1.0, 0.0)
 			else Vec3d(1.0, 0.0, 0.0)
@@ -397,26 +287,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val points =
 			(0..segments).map { i ->
 				val angle = 2.0 * Math.PI * i / segments
-				val x = kotlin.math.cos(angle) * radius
-				val y = kotlin.math.sin(angle) * radius
+				val x = cos(angle) * radius
+				val y = sin(angle) * radius
 				center.add(u.multiply(x)).add(v.multiply(y))
 			}
 
 		polyline(points, color, width, dashStyle)
 	}
 
-	/**
-	 * Draw billboard text at a world position.
-	 * The text will face the camera by default, or use a custom rotation.
-	 *
-	 * @param text Text to render
-	 * @param pos World position for the text
-	 * @param size Size in world units
-	 * @param font Font atlas to use (null = default font)
-	 * @param style Text style with color and effects (shadow, glow, outline)
-	 * @param centered Center text horizontally
-	 * @param rotation Custom rotation as Euler angles in degrees (x=pitch, y=yaw, z=roll), null = billboard towards camera
-	 */
 	fun worldText(
 		text: String,
 		pos: Vec3d,
@@ -429,16 +307,13 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val atlas = font ?: FontHandler.getDefaultFont()
 		fontAtlas = atlas
 
-		// Camera-relative anchor position
 		val anchorX = (pos.x - cameraPos.x).toFloat()
 		val anchorY = (pos.y - cameraPos.y).toFloat()
 		val anchorZ = (pos.z - cameraPos.z).toFloat()
 
-		// Calculate text width for centering (using normalized width which works directly with glyph advances)
 		val textWidth = if (centered) atlas.getStringWidthNormalized(text, 1f) else 0f
 		val startX = -textWidth / 2f
 
-		// For fixed rotation, we need to build a rotation matrix to pre-transform offsets
 		val rotationMatrix: Matrix4f? = if (rotation != null) {
 			Matrix4f()
 				.rotateY(Math.toRadians(rotation.y).toFloat())
@@ -446,10 +321,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				.rotateZ(Math.toRadians(rotation.z).toFloat())
 		} else null
 
-		// Render layers in order: shadow -> glow -> outline -> main text
-		// Layer type is passed in Position.z: 0=shadow, 1=glow, 2=outline, 3=text
-
-		// Shadow layer (layerType 0)
 		if (style.shadow != null) {
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX
@@ -459,7 +330,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 0)
 		}
 
-		// Glow layer (layerType 1)
 		if (style.glow != null) {
 			val glowColor = style.glow.color
 			buildTextQuads(atlas, text, startX, 0f, 
@@ -467,7 +337,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 1)
 		}
 
-		// Outline layer (layerType 2)
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
 			buildTextQuads(atlas, text, startX, 0f, 
@@ -475,52 +344,22 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 2)
 		}
 
-		// Main text layer (layerType 3)
 		val mainColor = style.color
 		buildTextQuads(atlas, text, startX, 0f, 
 			mainColor.red, mainColor.green, mainColor.blue, 255,
 			anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId)
 	}
 
-	// ============================================================================
-	// Screen-Space Rendering Methods (Normalized Coordinates)
-	// ============================================================================
-	// All coordinates use normalized 0-1 range:
-	// - (0, 0) = bottom-left corner
-	// - (1, 1) = top-right corner
-	// - Sizes are also normalized (e.g., 0.1 = 10% of screen dimension)
+	private val screenWidth get() = mc.window?.scaledWidth?.toFloat() ?: 1920f
+	private val screenHeight get() = mc.window?.scaledHeight?.toFloat() ?: 1080f
 
-	/** Get screen width in pixels (uses MC's scaled width). */
-	private val screenWidth: Float
-		get() = mc.window?.scaledWidth?.toFloat() ?: 1920f
-
-	/** Get screen height in pixels (uses MC's scaled height). */
-	private val screenHeight: Float
-		get() = mc.window?.scaledHeight?.toFloat() ?: 1080f
-
-	/** Convert normalized X coordinate (0-1) to pixel coordinate. */
 	private fun toPixelX(normalizedX: Float): Float = normalizedX * screenWidth
 
-	/** Convert normalized Y coordinate (0-1) to pixel coordinate. */
 	private fun toPixelY(normalizedY: Float): Float = normalizedY * screenHeight
 
-	/**
-	 * Convert normalized size to pixel size.
-	 * Uses height-only scaling to maintain consistent visual size regardless of aspect ratio.
-	 * This matches how world-space elements behave when projected to screen.
-	 */
 	private fun toPixelSize(normalizedSize: Float): Float = 
 		normalizedSize * screenHeight
 
-	/**
-	 * Draw a filled quad on screen with gradient colors.
-	 * All coordinates use normalized 0-1 range.
-	 *
-	 * @param x1, y1 First corner position (0-1) and color
-	 * @param x2, y2 Second corner position (0-1) and color
-	 * @param x3, y3 Third corner position (0-1) and color
-	 * @param x4, y4 Fourth corner position (0-1) and color
-	 */
 	fun screenQuadGradient(
 		x1: Float, y1: Float, c1: Color,
 		x2: Float, y2: Float, c2: Color,
@@ -534,10 +373,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		collector.addScreenFaceVertex(toPixelX(x4), toPixelY(y4), c4, layer)
 	}
 
-	/**
-	 * Draw a filled quad on screen with a single color.
-	 * All coordinates use normalized 0-1 range.
-	 */
 	fun screenQuad(
 		x1: Float, y1: Float,
 		x2: Float, y2: Float,
@@ -546,35 +381,12 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		color: Color
 	) = screenQuadGradient(x1, y1, color, x2, y2, color, x3, y3, color, x4, y4, color)
 
-	/**
-	 * Draw a filled rectangle on screen.
-	 * All values use normalized 0-1 range.
-	 *
-	 * @param x Left edge (0-1, where 0 = left, 1 = right)
-	 * @param y Bottom edge (0-1, where 0 = bottom, 1 = top)
-	 * @param width Rectangle width (0-1, where 1 = full screen width)
-	 * @param height Rectangle height (0-1, where 1 = full screen height)
-	 * @param color Fill color
-	 */
 	fun screenRect(x: Float, y: Float, width: Float, height: Float, color: Color) {
 		val x2 = x + width
 		val y2 = y + height
 		screenQuad(x, y, x2, y, x2, y2, x, y2, color)
 	}
 
-	/**
-	 * Draw a filled rectangle on screen with gradient colors.
-	 * All values use normalized 0-1 range.
-	 *
-	 * @param x Left edge (0-1)
-	 * @param y Bottom edge (0-1, where 0 = bottom, 1 = top)
-	 * @param width Rectangle width (0-1)
-	 * @param height Rectangle height (0-1)
-	 * @param topLeft Color at top-left corner
-	 * @param topRight Color at top-right corner
-	 * @param bottomRight Color at bottom-right corner
-	 * @param bottomLeft Color at bottom-left corner
-	 */
 	fun screenRectGradient(
 		x: Float, y: Float, width: Float, height: Float,
 		topLeft: Color, topRight: Color, bottomRight: Color, bottomLeft: Color
@@ -584,35 +396,21 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		screenQuadGradient(x, y, topLeft, x2, y, topRight, x2, y2, bottomRight, x, y2, bottomLeft)
 	}
 
-	/**
-	 * Draw a line on screen with gradient colors.
-	 * All coordinates use normalized 0-1 range.
-	 *
-	 * @param x1, y1 Start position (0-1)
-	 * @param x2, y2 End position (0-1)
-	 * @param startColor Color at start
-	 * @param endColor Color at end
-	 * @param width Line width (normalized, e.g., 0.005 = 0.5% of screen)
-	 * @param dashStyle Optional dash style for dashed lines
-	 */
 	fun screenLineGradient(
 		x1: Float, y1: Float, startColor: Color,
 		x2: Float, y2: Float, endColor: Color,
 		width: Float,
 		dashStyle: LineDashStyle? = null
 	) {
-		// Convert to pixels
 		val px1 = toPixelX(x1)
 		val py1 = toPixelY(y1)
 		val px2 = toPixelX(x2)
 		val py2 = toPixelY(y2)
 		val pixelWidth = toPixelSize(width)
 
-		// Calculate line direction in pixel space
 		val dx = px2 - px1
 		val dy = py2 - py1
 
-		// Convert dash style lengths to pixels if present
 		val pixelDashStyle = dashStyle?.let {
 			LineDashStyle(
 				dashLength = toPixelSize(it.dashLength),
@@ -623,20 +421,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 
-		// Get layer for draw order
 		val layer = nextLayer()
 
-		// 4 vertices for screen-space line quad
 		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle, layer)
 		collector.addScreenEdgeVertex(px1, py1, startColor, dx, dy, pixelWidth, pixelDashStyle, layer)
 		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle, layer)
 		collector.addScreenEdgeVertex(px2, py2, endColor, dx, dy, pixelWidth, pixelDashStyle, layer)
 	}
 
-	/**
-	 * Draw a line on screen with a single color.
-	 * All coordinates use normalized 0-1 range.
-	 */
 	fun screenLine(
 		x1: Float, y1: Float,
 		x2: Float, y2: Float,
@@ -645,23 +437,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		dashStyle: LineDashStyle? = null
 	) = screenLineGradient(x1, y1, color, x2, y2, color, width, dashStyle)
 
-	// ============================================================================
-	// Image Rendering Methods
-	// ============================================================================
-
-	/**
-	 * Draw an image on screen at a specific position.
-	 * Uses Lambda's custom image rendering pipeline for direct GPU rendering.
-	 *
-	 * @param image The ImageEntry from LambdaImageAtlas
-	 * @param x X position (0-1, normalized screen coordinates)
-	 * @param y Y position (0-1, normalized screen coordinates)
-	 * @param width Width (0-1, normalized)
-	 * @param height Height (0-1, normalized)
-	 * @param tint Tint color (default white = no tint)
-	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
-	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: false)
-	 */
 	fun screenImage(
 		image: LambdaImageAtlas.ImageEntry,
 		x: Float, y: Float,
@@ -681,19 +456,13 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val v0 = image.v0
 		val u1 = image.u1
 		val v1 = image.v1
-		
-		// Calculate animation time for glint effect
-		// Use Util.getMeasuringTimeMs() for consistent timing matching Minecraft's system
+
 		val glintTime = if (hasOverlay) {
-			(net.minecraft.util.Util.getMeasuringTimeMs() / 1000.0f) % 1000f  // Seconds, 0-1000 loop
+			(net.minecraft.util.Util.getMeasuringTimeMs() / 1000.0f) % 1000f
 		} else 0f
-		
-		// Calculate aspect ratio for square glint tiling
-		// overlayV carries width/height ratio so shader can correct UVs
+
 		val aspectRatio = if (hasOverlay && height != 0f) width / height else 1f
-		
-		// Build quad: bottom-left, bottom-right, top-right, top-left (CCW for Y-up)
-		// overlayU = animation time, overlayV = aspect ratio
+
 		val vertices = listOf(
 			RegionVertexCollector.ScreenImageVertex(
 				x0, y0, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
@@ -715,24 +484,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		collector.addScreenImageVertices(image.textureView, vertices, pixelPerfect)
 	}
 
-	// ============================================================================
-	// Model Rendering Methods (World Space)
-	// ============================================================================
-
-	/**
-	 * Render a 3D model in world space.
-	 *
-	 * @param model The BlockModelPart to render (replaces BakedModel in 1.21.11+)
-	 * @param pos World position to render at. If centered is true, this is the center of the model. If false, it's the 0,0,0 corner.
-	 * @param scale XML scale
-	 * @param rotation Rotation quaternion (around the center if centered=true, else around 0,0,0)
-	 * @param color Tint color
-	 * @param light Packed light
-	 * @param overlay Overlay UV
-	 * @param centered If true, shifts model vertices by -0.5 to rotate/scale around the center, then renders at pos.
-	 * @param pixelPerfect If true, use NEAREST filtering. If false (default), use LINEAR.
-	 * @param smartAA If true, uses shader-based analytic anti-aliasing (Pixel Art AA). Requires pixelPerfect=false (automatically handled).
-	 */
 	fun model(
 		model: BlockModelPart,
 		pos: Vec3d,
@@ -748,7 +499,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	) {
 		val sprite = model.particleSprite() ?: return
 		val atlas = sprite.atlasId
-		// We need to resolve the texture view for the sprite's atlas
+
 		val textureView = mc.textureManager.getTexture(atlas)?.glTextureView ?: return
 
 		val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
@@ -770,9 +521,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 		val olU = (overlay and 0xFFFF).toFloat()
 		val olV = ((overlay shr 16) and 0xFFFF).toFloat()
-		
-		// Encode Overlay + AA flags into hasOverlay
-		// 0 = None, 1 = Overlay, 2 = AA, 3 = Overlay + AA
+
 		var overlayFlag = if (overlay != OverlayTexture.DEFAULT_UV) 1.0f else 0.0f
 		if (smartAA) {
 			overlayFlag += 2.0f
@@ -780,8 +529,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		
 		val random = Random.create()
 		val quads = mutableListOf<BakedQuad>()
-		
-		// Collect quads for all directions and null direction
+
 		for (direction in net.minecraft.util.math.Direction.entries) {
 			random.setSeed(42L)
 			quads.addAll(model.getQuads(direction))
@@ -790,13 +538,11 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		quads.addAll(model.getQuads(null))
 
 		for (quad in quads) {
-			// Use face normal for all vertices since BakedQuad doesn't have per-vertex normals easily accessible
 			val face = quad.face
 			var nx = face?.offsetX?.toFloat() ?: 0f
 			var ny = face?.offsetY?.toFloat() ?: 0f
 			var nz = face?.offsetZ?.toFloat() ?: 0f
 
-			// If face is null, calculate normal from first 3 vertices
 			if (face == null) {
 				val v0 = quad.getPosition(0)
 				val v1 = quad.getPosition(1)
@@ -810,39 +556,24 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				if (len > 0f) { nx /= len; ny /= len; nz /= len }
 			}
 
-			// Iterate 4 vertices
 			for (i in 0 until 4) {
 				val posVecSrc = quad.getPosition(i)
-				
-				// Transform Position
+
 				vertexPos.set(posVecSrc.x(), posVecSrc.y(), posVecSrc.z())
 				
-				if (centered) {
-					// Shift to center (assuming 0..1 model block)
-					vertexPos.sub(0.5f, 0.5f, 0.5f)
-				}
+				if (centered) vertexPos.sub(0.5f, 0.5f, 0.5f)
 				
 				vertexPos.mul(scaleVec)
 				rotation?.transform(vertexPos)
 				vertexPos.add(posVec)
-				
-				// Transform Normal
+
 				normalVec.set(nx, ny, nz)
 				rotation?.transform(normalVec)
-				
-				// Extract UV - Vector2f.toLong packs X (U) in high 32 bits, Y (V) in low 32 bits
+
 				val packedUV = quad.getTexcoords(i)
 				val u = Float.fromBits((packedUV ushr 32).toInt())
 				val v = Float.fromBits((packedUV and 0xFFFFFFFFL).toInt())
-				
-				// Edge Data: Map vertex to quad space (0,0 to 1,1)
-				// We need a robust mapping that works regardless of vertex order.
-				// For a 4-vertex loop, we use (0,0), (1,0), (1,1), (0,1).
-				// We check if the vertices are crossed and un-cross them if needed.
-				// In 1.21.1 BakedQuads are guaranteed to be in a consistent loop, 
-				// but the diagonal might be (0,2) or (1,3).
-				
-				// Standard CCW winding for our triangle split (0,1,2 + 0,2,3):
+
 				val edgeX = when(i) {
 					0 -> 0.0f
 					1 -> 1.0f
@@ -871,7 +602,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 		
 		if (vertices.isNotEmpty()) {
-			// Use Nearest filter only if requested AND Smart AA is NOT used (Smart AA handles sharpness in shader via Linear)
 			val useNearest = pixelPerfect && !smartAA
 			collector.addModelVertices(textureView, vertices, useNearest, activeOutlineId)
 		}
@@ -909,14 +639,13 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 		val renderState = ItemRenderState()
 		mc.itemModelManager.updateForNonLivingEntity(renderState, stack, ItemDisplayContext.GUI, mc.player ?: return)
-		
-		// Convert screen pos to camera-relative "pseudo-world" for the generic renderer
+
 		val pixelX = toPixelX(x)
 		val pixelY = toPixelY(y)
 		val pixelSize = toPixelSize(size)
 		
 		val rot = rotation?.let { eulerToQuaternion(it) }
-		// Screen items are always flat (viewed straight-on)
+
 		renderItemState(renderState, Vec3d(pixelX.toDouble(), pixelY.toDouble(), nextLayer().toDouble()), pixelSize, rot, centered, isScreen = true, flat = true, lighting = lighting, overlay = overlay)
 	}
 
@@ -953,11 +682,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		
 		for (i in 0 until state.layerCount) {
 			val layer = state.layers[i]
-			
-			// Refined Glint Logic:
-			// - If overlay is ItemOverlay.DISABLED, force glint OFF.
-			// - If overlay is non-null (any other overlay), force glint ON.
-			// - If overlay is null, use the item's own enchantment state.
+
 			queue.currentGlint = when (overlay) {
 				ItemOverlay.DISABLED -> false
 				null -> layer.glint != ItemRenderState.Glint.NONE
@@ -974,7 +699,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			} else {
 				val renderLayer = layer.renderLayer
 				if (renderLayer != null) {
-					// We pass STANDARD if currentGlint is true, otherwise NONE to ensure our capture can correctly toggle it.
 					val captureGlint = if (queue.currentGlint) ItemRenderState.Glint.STANDARD else ItemRenderState.Glint.NONE
 					queue.submitItem(matrixStack, state.displayContext, 15728880, 0, 0, layer.tints, layer.quads, renderLayer, captureGlint)
 				}
@@ -1058,16 +782,12 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 
 		private fun commitVertex() {
-			// 1. Coordinates are already transformed by model parts into "Item Space"
 			val p = Vector3f(this.x, this.y, this.z)
-			
-			// 2. Apply Flattening in Item Space (before Lambda world/screen transforms)
+
 			if (flat) p.z = 0f
-			
-			// 3. Apply Lambda positioning (ESP world pos or GUI position)
+
 			posTransform(p)
 
-			// 4. Normal handling
 			val n = Vector3f(this.nx, this.ny, this.nz)
 			normalTransform(n)
 
@@ -1094,8 +814,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 			if (quadBuffer.size == 4) {
 				if (flat) {
-					// Cull backfaces: The normal is already in Item Space. 
-					// Apply Lambda rotation to see if it faces the screen.
 					val testN = Vector3f(this.nx, this.ny, this.nz)
 					rotation?.transform(testN)
 					if (testN.z < 0f) {
@@ -1152,7 +870,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 
-			// Transform lights by GUI layer matrix to match normal transformation
 			val l0 = Vector3f(lightDirs.first).mulDirection(matrices.peek().positionMatrix)
 			val l1 = Vector3f(lightDirs.second).mulDirection(matrices.peek().positionMatrix)
 			l0.x = -l0.x; l1.x = -l1.x; l0.normalize(); l1.normalize()
@@ -1179,7 +896,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 					val packedUV = quad.getTexcoords(vIdx)
 					val u = java.lang.Float.intBitsToFloat((packedUV ushr 32).toInt())
 					val v = java.lang.Float.intBitsToFloat((packedUV and 0xFFFFFFFFL).toInt())
-					
+
 					val tint = if (quad.hasTint() && quad.tintIndex() < tintLayers.size) tintLayers[quad.tintIndex()] else -1
 					val r = if (tint != -1) (tint shr 16 and 0xFF) else 255
 					val g = if (tint != -1) (tint shr 8 and 0xFF) else 255
@@ -1304,19 +1021,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		override fun submitCustom(renderer: OrderedRenderCommandQueue.LayeredCustom) {}
 	}
 
-	/**
-	 * Draw a billboard image at a world position.
-	 * The image will face the camera by default, or use a custom rotation.
-	 *
-	 * @param image The ImageEntry from LambdaImageAtlas
-	 * @param pos World position for the image
-	 * @param size Size in world units
-	 * @param tint Tint color (default white = no tint)
-	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
-	 * @param aspectRatio Width/height ratio (auto-calculated from image if not specified)
-	 * @param rotation Custom rotation as Euler angles in degrees (x=pitch, y=yaw, z=roll), null = billboard towards camera
-	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: false)
-	 */
+
 	fun worldImage(
 		image: LambdaImageAtlas.ImageEntry,
 		pos: Vec3d,
@@ -1332,33 +1037,28 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val v0 = image.v0
 		val u1 = image.u1
 		val v1 = image.v1
-		
-		// Camera-relative anchor position
+
 		val anchorX = (pos.x - cameraPos.x).toFloat()
 		val anchorY = (pos.y - cameraPos.y).toFloat()
 		val anchorZ = (pos.z - cameraPos.z).toFloat()
-		
-		// Calculate quad corners (centered on anchor)
+
 		val halfWidth = size * ratio / 2f
 		val halfHeight = size / 2f
 		
 		val overlayFlag = if (hasOverlay) 1f else 0f
 		val billboardFlag = if (rotation == null) 0f else 1f
-		
-		// Quad relative glint UVs (0-1 range)
+
 		val gx0 = 0f
 		val gx1 = 1f
-		val gy0 = 0f  // 0 at y0 (bottom)
-		val gy1 = 1f  // 1 at y1 (top)
-		
-		// Quad offsets (local space, scaled in shader)
+		val gy0 = 0f
+		val gy1 = 1f
+
 		val x0 = -halfWidth / size
 		val x1 = halfWidth / size
 		val y0 = -halfHeight / size
 		val y1 = halfHeight / size
 		
 		val vertices = if (rotation == null) {
-			// Billboard mode: pass local offsets directly, shader handles billboard
 			listOf(
 				RegionVertexCollector.WorldImageVertex(
 					x0, y0, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
@@ -1382,7 +1082,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				)
 			)
 		} else {
-			// Fixed rotation mode: pre-transform offsets with rotation matrix
 			val rotationMatrix = Matrix4f()
 				.rotateY(Math.toRadians(rotation.y).toFloat())
 				.rotateX(Math.toRadians(rotation.x).toFloat())
@@ -1419,23 +1118,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		collector.addWorldImageVertices(image.textureView, vertices, pixelPerfect, activeOutlineId)
 	}
 
-	// ============================================================================
-	// Simplified Image API (Identifier-based)
-	// ============================================================================
-
-	/**
-	 * Draw a Minecraft texture on screen at a specific position.
-	 * The texture is loaded automatically - no UV coordinates needed.
-	 *
-	 * @param texture Identifier of the texture (e.g., Identifier.ofVanilla("textures/item/diamond.png"))
-	 * @param x X position (0-1, normalized screen coordinates)
-	 * @param y Y position (0-1, normalized screen coordinates)
-	 * @param width Width (0-1, normalized)
-	 * @param height Height (0-1, normalized)
-	 * @param tint Tint color (default white = no tint)
-	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
-	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: true for MC textures)
-	 */
 	fun screenImage(
 		texture: Identifier,
 		x: Float, y: Float,
@@ -1444,24 +1126,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		hasOverlay: Boolean = false,
 		pixelPerfect: Boolean = true
 	) {
-		// Load the texture via LambdaImageAtlas
 		val imageEntry = LambdaImageAtlas.loadMCTexture(texture) ?: return
 		screenImage(imageEntry, x, y, width, height, tint, hasOverlay, pixelPerfect)
 	}
 
-	/**
-	 * Draw a Minecraft texture as a billboard at a world position.
-	 * The texture is loaded automatically - no UV coordinates needed.
-	 *
-	 * @param texture Identifier of the texture
-	 * @param pos World position for the image
-	 * @param size Size in world units
-	 * @param tint Tint color (default white = no tint)
-	 * @param hasOverlay Whether to render an overlay (e.g., enchantment glint)
-	 * @param aspectRatio Width/height ratio (for non-square images)
-	 * @param rotation Custom rotation, null = billboard towards camera
-	 * @param pixelPerfect If true, use NEAREST filtering for crisp pixel art (default: true for MC textures)
-	 */
 	fun worldImage(
 		texture: Identifier,
 		pos: Vec3d,
@@ -1472,24 +1140,11 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		rotation: Vec3d? = null,
 		pixelPerfect: Boolean = true
 	) {
-		// Load the texture via LambdaImageAtlas
 		val imageEntry = LambdaImageAtlas.loadMCTexture(texture) ?: return
 		val ratio = aspectRatio ?: imageEntry.aspectRatio
 		worldImage(imageEntry, pos, size, tint, hasOverlay, ratio, rotation, pixelPerfect)
 	}
 
-	/**
-	 * Draw text on screen at a specific position.
-	 * Position uses normalized 0-1 range, size is normalized.
-	 *
-	 * @param text Text to render
-	 * @param x X position (0-1, where 0 = left, 1 = right)
-	 * @param y Y position (0-1, where 0 = bottom, 1 = top)
-	 * @param size Text size (normalized, e.g., 0.02 = 2% of screen height)
-	 * @param font Font atlas to use (null = default font)
-	 * @param style Text style with color and effects
-	 * @param centered Center text horizontally at the given position
-	 */
 	fun screenText(
 		text: String,
 		x: Float,
@@ -1502,34 +1157,20 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val atlas = font ?: FontHandler.getDefaultFont()
 		fontAtlas = atlas
 
-		// Convert to pixel coordinates
 		val pixelX = toPixelX(x)
 		val pixelY = toPixelY(y)
-		
-		// Convert normalized size to target pixel height
+
 		val targetPixelHeight = toPixelSize(size)
-		
-		// Adjust font size so that text ASCENT (height of capital letters) matches the target pixel height
-		// getAscent(fontSize) = ascent / baseSize * fontSize
-		// We want: ascent / baseSize * adjustedFontSize = targetPixelHeight
-		// So: adjustedFontSize = targetPixelHeight * baseSize / ascent
+
 		val pixelSize = targetPixelHeight * atlas.baseSize / atlas.ascent
 
-		// Calculate text width for centering (normalized width converted to pixels)
 		val normalizedTextWidth = if (centered) atlas.getStringWidthNormalized(text, size) else 0f
 		val textWidth = normalizedTextWidth * screenWidth
 		val startX = -textWidth / 2f
 
-		// Render layers in order: shadow -> glow -> outline -> main text
-		// Each layer gets its own draw depth so they render in correct order
-		// Alpha encodes layer type for shader
-
-		// Shadow layer
-		// Shadow layer (layerType 0)
 		if (style.shadow != null) {
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX * pixelSize
-			// Negate offsetY for Y-up coordinate system (shadow should appear below text)
 			val offsetY = -style.shadow.offsetY * pixelSize
 			val layer = nextLayer()
 			buildScreenTextQuads(atlas, text, startX + offsetX, offsetY,
@@ -1537,7 +1178,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				pixelX, pixelY, pixelSize, style, layer, 0)
 		}
 
-		// Glow layer (layerType 1)
 		if (style.glow != null) {
 			val glowColor = style.glow.color
 			val layer = nextLayer()
@@ -1546,7 +1186,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				pixelX, pixelY, pixelSize, style, layer, 1)
 		}
 
-		// Outline layer (layerType 2)
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
 			val layer = nextLayer()
@@ -1555,7 +1194,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				pixelX, pixelY, pixelSize, style, layer, 2)
 		}
 
-		// Main text layer (layerType 3)
 		val mainColor = style.color
 		val mainLayer = nextLayer()
 		buildScreenTextQuads(atlas, text, startX, 0f,
@@ -1563,54 +1201,39 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			pixelX, pixelY, pixelSize, style, mainLayer, 3)
 	}
 
-	/**
-	 * Build screen-space text quad vertices for a layer.
-	 * Internal method - uses pixel coordinates. Adds vertices directly to collector.
-	 */
 	private fun buildScreenTextQuads(
 		atlas: SDFFontAtlas,
 		text: String,
-		startX: Float,  // Offset in SCALED pixels (for centering)
-		startY: Float,  // Offset in SCALED pixels
+		startX: Float,
+		startY: Float,
 		r: Int, g: Int, b: Int, a: Int,
 		anchorX: Float, anchorY: Float,
-		pixelSize: Float,  // Final text size in pixels
+		pixelSize: Float,
 		style: SDFStyle,
-		layer: Float,  // Layer depth for draw order
+		layer: Float,
 		layerType: Int = 3
 	) {
-		// Extract SDF style params from SDFStyle object
 		val outlineWidth = style.outline?.width ?: 0f
 		val glowRadius = style.glow?.radius ?: 0f
 		val shadowSoftness = style.shadow?.softness ?: 0f
-		val threshold = 0.5f  // Default SDF threshold
-		
-		// Glyph metrics (advance, bearingX, bearingY) are ALREADY normalized by baseSize in SDFFontAtlas
-		// Glyph width/height are in PIXELS and need to be normalized
-		var penX = 0f  // Pen position in normalized units
+		val threshold = 0.5f
+
+		var penX = 0f
 
 		for (char in text) {
 			val glyph = atlas.getGlyph(char.code) ?: continue
 
-			// bearingX/Y are already normalized, just multiply by pixelSize
-			// bearingY is the distance from baseline to glyph top, so with Y-up:
-			// - glyph top is at baseline + bearingY
-			// - glyph bottom is at baseline + bearingY - height
 			val localX0 = penX + glyph.bearingX
-			val localY1 = glyph.bearingY  // Top of glyph (Y-up)
-			
-			// width/height are in pixels, need normalization
-			val localX1 = localX0 + glyph.width / atlas.baseSize
-			val localY0 = localY1 - glyph.height / atlas.baseSize  // Bottom of glyph
+			val localY1 = glyph.bearingY
 
-			// Scale to final pixels and add anchor + offsets
+			val localX1 = localX0 + glyph.width / atlas.baseSize
+			val localY0 = localY1 - glyph.height / atlas.baseSize
+
 			val x0 = anchorX + startX + localX0 * pixelSize
 			val y0 = anchorY + startY + localY0 * pixelSize
 			val x1 = anchorX + startX + localX1 * pixelSize
 			val y1 = anchorY + startY + localY1 * pixelSize
 
-			// Screen-space text uses simple 2D quads - add directly to collector with style params
-			// Quad winding: bottom-left, bottom-right, top-right, top-left (CCW for Y-up)
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
 				x0, y0, layerType, glyph.u0, glyph.v1, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
@@ -1620,29 +1243,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			collector.screenTextVertices.add(RegionVertexCollector.ScreenTextVertex(
 				x0, y1, layerType, glyph.u0, glyph.v0, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
 
-			// advance is already normalized, just add it
 			penX += glyph.advance
 		}
 	}
 
-	/**
-	 * Build text quad vertices for a layer with specified color and alpha.
-	 * Adds vertices directly to collector with embedded SDF style params.
-	 * 
-	 * @param atlas Font atlas
-	 * @param text Text string
-	 * @param startX Starting X offset for text
-	 * @param startY Starting Y offset for text
-	 * @param r Red color component
-	 * @param g Green color component
-	 * @param b Blue color component
-	 * @param a Alpha component (encodes layer type)
-	 * @param anchorX Camera-relative anchor X position
-	 * @param anchorY Camera-relative anchor Y position
-	 * @param anchorZ Camera-relative anchor Z position
-	 * @param scale Text scale
-	 * @param rotationMatrix Optional rotation matrix for fixed rotation mode
-	 */
 	private fun buildTextQuads(
 		atlas: SDFFontAtlas,
 		text: String,
@@ -1656,11 +1260,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		outlineId: Int? = null,
 		layerType: Int = 3
 	) {
-		// Extract SDF style params from SDFStyle object
 		val outlineWidth = style.outline?.width ?: 0f
 		val glowRadius = style.glow?.radius ?: 0f
 		val shadowSoftness = style.shadow?.softness ?: 0f
-		val threshold = 0.5f  // Default SDF threshold
+		val threshold = 0.5f
 		
 		var penX = startX
 		for (char in text) {
@@ -1672,16 +1275,12 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val y1 = y0 + glyph.height / atlas.baseSize
 
 			if (rotationMatrix == null) {
-				// Billboard mode: pass local offsets directly, shader handles billboard
-				// Bottom-left, Bottom-right, Top-right, Top-left
 				collector.addTextVertex(x0, y1, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 				collector.addTextVertex(x1, y1, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 				collector.addTextVertex(x1, y0, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 				collector.addTextVertex(x0, y0, glyph.u0, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, true, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 			} else {
-				// Fixed rotation mode: pre-transform offsets with rotation matrix
-				// Scale is applied in shader, so we just apply rotation here
-				val p0 = transformPoint(rotationMatrix, x0, -y1, 0f)  // Negate Y for flip
+				val p0 = transformPoint(rotationMatrix, x0, -y1, 0f)
 				val p1 = transformPoint(rotationMatrix, x1, -y1, 0f)
 				val p2 = transformPoint(rotationMatrix, x1, -y0, 0f)
 				val p3 = transformPoint(rotationMatrix, x0, -y0, 0f)
@@ -1697,11 +1296,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	}
 
 	private fun BoxBuilder.boxFaces(box: Box) {
-		// We need to call the internal methods, so we'll use filled() with interpolated colors
-		// For per-vertex colors on faces, we need direct access to the collector
-
 		if (fillSides.hasDirection(DirectionMask.EAST)) {
-			// East face (+X): uses NE and SE corners
 			filledQuadGradient(
 				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
 				box.maxX, box.maxY, box.minZ, fillTopNorthEast,
@@ -1710,7 +1305,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 		if (fillSides.hasDirection(DirectionMask.WEST)) {
-			// West face (-X): uses NW and SW corners
 			filledQuadGradient(
 				box.minX, box.minY, box.minZ, fillBottomNorthWest,
 				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
@@ -1719,7 +1313,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 		if (fillSides.hasDirection(DirectionMask.UP)) {
-			// Top face (+Y): uses all top corners
 			filledQuadGradient(
 				box.minX, box.maxY, box.minZ, fillTopNorthWest,
 				box.minX, box.maxY, box.maxZ, fillTopSouthWest,
@@ -1728,7 +1321,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 		if (fillSides.hasDirection(DirectionMask.DOWN)) {
-			// Bottom face (-Y): uses all bottom corners
 			filledQuadGradient(
 				box.minX, box.minY, box.minZ, fillBottomNorthWest,
 				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
@@ -1737,7 +1329,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 		if (fillSides.hasDirection(DirectionMask.SOUTH)) {
-			// South face (+Z): uses SW and SE corners
 			filledQuadGradient(
 				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
 				box.maxX, box.minY, box.maxZ, fillBottomSouthEast,
@@ -1746,7 +1337,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 		if (fillSides.hasDirection(DirectionMask.NORTH)) {
-			// North face (-Z): uses NW and NE corners
 			filledQuadGradient(
 				box.minX, box.minY, box.minZ, fillBottomNorthWest,
 				box.minX, box.maxY, box.minZ, fillTopNorthWest,
@@ -1764,7 +1354,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val hasSouth = outlineSides.hasDirection(DirectionMask.SOUTH)
 		val hasNorth = outlineSides.hasDirection(DirectionMask.NORTH)
 
-		// Top edges (all use top vertex colors)
 		if (outlineMode.check(hasUp, hasNorth)) {
 			lineGradient(
 				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
@@ -1794,7 +1383,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 
-		// Bottom edges (all use bottom vertex colors)
 		if (outlineMode.check(hasDown, hasNorth)) {
 			lineGradient(
 				box.minX, box.minY, box.minZ, outlineBottomNorthWest,
@@ -1824,7 +1412,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			)
 		}
 
-		// Vertical edges (gradient from top to bottom)
 		if (outlineMode.check(hasWest, hasNorth)) {
 			lineGradient(
 				box.minX, box.maxY, box.minZ, outlineTopNorthWest,
@@ -1855,7 +1442,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 	}
 
-	/** Draw a line with world coordinates - handles relative conversion internally */
 	private fun line(
 		x1: Double, y1: Double, z1: Double,
 		x2: Double, y2: Double, z2: Double,
@@ -1864,7 +1450,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		width: Float,
 		dashStyle: LineDashStyle? = null
 	) {
-		// Convert to camera-relative coordinates
 		val rx1 = (x1 - cameraPos.x).toFloat()
 		val ry1 = (y1 - cameraPos.y).toFloat()
 		val rz1 = (z1 - cameraPos.z).toFloat()
@@ -1872,26 +1457,22 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val ry2 = (y2 - cameraPos.y).toFloat()
 		val rz2 = (z2 - cameraPos.z).toFloat()
 
-		// Calculate segment vector
 		val dx = rx2 - rx1
 		val dy = ry2 - ry1
 		val dz = rz2 - rz1
 
-		// Quad-based lines need 4 vertices per segment
 		collector.addEdgeVertex(rx1, ry1, rz1, color1, dx, dy, dz, width, dashStyle, activeOutlineId)
 		collector.addEdgeVertex(rx1, ry1, rz1, color1, dx, dy, dz, width, dashStyle, activeOutlineId)
 		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle, activeOutlineId)
 		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle, activeOutlineId)
 	}
 
-	/** Helper to transform a point by a matrix */
 	private fun transformPoint(matrix: Matrix4f, x: Float, y: Float, z: Float): Vector3f {
 		val result = Vector4f(x, y, z, 1f)
 		matrix.transform(result)
 		return Vector3f(result.x, result.y, result.z)
 	}
 
-	/** Add a face vertex with world coordinates - handles relative conversion internally */
 	private fun faceVertex(x: Double, y: Double, z: Double, color: Color) {
 		val rx = (x - cameraPos.x).toFloat()
 		val ry = (y - cameraPos.y).toFloat()
@@ -1899,38 +1480,30 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		collector.addFaceVertex(rx, ry, rz, color, activeOutlineId)
 	}
 
-	/** SDF outline effect configuration */
 	data class SDFOutline(
 		val color: Color = Color.BLACK,
-		val width: Float = 0.1f // 0.0 - 0.3 in SDF units (distance from edge)
+		val width: Float = 0.1f
 	)
 
-	/** SDF glow effect configuration */
 	data class SDFGlow(
 		val color: Color = Color(0, 200, 255, 180),
-		val radius: Float = 0.2f // Glow spread in SDF units
+		val radius: Float = 0.2f
 	)
 
-	/** SDF shadow effect configuration */
 	data class SDFShadow(
 		val color: Color = Color(0, 0, 0, 180),
-		val offset: Float = 0.05f, // Distance in text units
-		// Angle in degrees: 0=right, 90=up, 180=left, 270=down (for screen text with Y-up)
-		// For world text, angle is applied in local text space before billboarding
-		val angle: Float = 135f, // Default: bottom-right (45° below horizontal)
-		val softness: Float = 0f // Shadow blur in SDF units
+		val offset: Float = 0.05f,
+		val angle: Float = 135f,
+		val softness: Float = 0f
 	) {
-		/** X offset computed from angle and distance */
-		val offsetX: Float get() = offset * kotlin.math.cos(Math.toRadians(angle.toDouble())).toFloat()
-		/** Y offset computed from angle and distance */
-		val offsetY: Float get() = offset * kotlin.math.sin(Math.toRadians(angle.toDouble())).toFloat()
+		val offsetX: Float get() = offset * cos(Math.toRadians(angle.toDouble())).toFloat()
+		val offsetY: Float get() = offset * sin(Math.toRadians(angle.toDouble())).toFloat()
 	}
 
-	/** SDF style configuration for text and other SDF-rendered elements */
 	data class SDFStyle(
 		var color: Color = Color.WHITE,
 		val outline: SDFOutline? = null,
 		val glow: SDFGlow? = null,
-		val shadow: SDFShadow? = SDFShadow() // Default shadow enabled
+		val shadow: SDFShadow? = SDFShadow()
 	)
 }

@@ -3,42 +3,27 @@
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:globals.glsl>
 
-// Sampler for main texture
 uniform sampler2D Sampler0;
-// Sampler for overlay texture (e.g., enchantment glint)
 uniform sampler2D Sampler1;
 
-// Inputs from vertex shader
 in vec2 v_TexCoord;
 in vec4 v_Color;
-in vec4 v_OverlayUV;  // (time, unused, hasOverlay, diffuseAmount)
+in vec4 v_OverlayUV;
 
 out vec4 fragColor;
 
 void main() {
-    // Sample main texture
     vec4 texColor = texture(Sampler0, v_TexCoord);
     
-    // Apply tint color
     vec4 color = texColor * v_Color * ColorModulator;
     
-    // Discard nearly transparent fragments
-    if (color.a < 0.004) {
-        discard;
-    }
+    if (color.a < 0.004) discard;
     
-    // Apply overlay (enchantment glint) if present
-    // v_OverlayUV.y = aspect ratio (width/height) for square tiling
-    // v_OverlayUV.z = hasOverlay flag (1.0 = enabled)
     if (v_OverlayUV.z > 0.5) {
-        // Use v_TexCoord (Atlas UVs) for parity with model glint logic
         vec4 transformedUV = TextureMat * vec4(v_TexCoord, 0.0, 1.0);
-        
-        // Sample glint texture using transformed coordinates
         vec4 glint = texture(Sampler1, fract(transformedUV.xy));
         
-        // Apply with squared additive blending (matching 1.21 model parity)
-        vec3 layer = glint.rgb * glint.a * 0.75; // GLINT_ALPHA = 0.75
+        vec3 layer = glint.rgb * glint.a * 0.75;
         color.rgb += (layer * layer);
     }
     

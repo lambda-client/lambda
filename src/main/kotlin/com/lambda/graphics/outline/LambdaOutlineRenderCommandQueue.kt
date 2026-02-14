@@ -40,99 +40,31 @@ import net.minecraft.util.math.Vec3d
 import org.joml.Quaternionf
 import java.awt.Color
 
-/**
- * Render command queue that overrides entity colors for outline rendering.
- * 
- * Filters out non-essential elements (shadows, labels, fire) and applies
- * custom colors to model and item submissions.
- */
 class LambdaOutlineRenderCommandQueue : OrderedRenderCommandQueueImpl() {
-    
     private var currentColor: Int = 0xFFFFFFFF.toInt()
     private var tintCache: IntArray? = null
     
-    /**
-     * Set the color to use for subsequent render commands.
-     */
     fun setColor(color: Int) {
         this.currentColor = color
     }
     
-    /**
-     * Set the color using a java.awt.Color.
-     */
     fun setColor(color: Color) {
         this.currentColor = color.rgb
     }
     
-    override fun getBatchingQueue(order: Int): BatchingRenderCommandQueue {
-        return batchingQueues.computeIfAbsent(order) { OutlineBatchingQueue(this) }
-    }
+    override fun getBatchingQueue(order: Int): BatchingRenderCommandQueue =
+        batchingQueues.computeIfAbsent(order) { OutlineBatchingQueue(this) }
     
-    /**
-     * Custom batching queue that filters and colorizes render commands.
-     */
     private inner class OutlineBatchingQueue(
         orderedQueue: OrderedRenderCommandQueueImpl
     ) : BatchingRenderCommandQueue(orderedQueue) {
+        override fun submitShadowPieces(matrices: MatrixStack, shadowRadius: Float, shadowPieces: List<EntityRenderState.ShadowPiece>) {}
+        override fun submitLabel(matrices: MatrixStack, nameLabelPos: Vec3d?, y: Int, label: Text, notSneaking: Boolean, light: Int, squaredDistanceToCamera: Double, cameraState: CameraRenderState) {}
+        override fun submitText(matrices: MatrixStack, x: Float, y: Float, text: OrderedText, dropShadow: Boolean, layerType: net.minecraft.client.font.TextRenderer.TextLayerType, light: Int, color: Int, backgroundColor: Int, outlineColor: Int) {}
+        override fun submitFire(matrices: MatrixStack, renderState: EntityRenderState, rotation: Quaternionf) {}
+        override fun submitLeash(matrices: MatrixStack, leashData: EntityRenderState.LeashData) {}
         
-        // Skip shadows
-        override fun submitShadowPieces(
-            matrices: MatrixStack,
-            shadowRadius: Float,
-            shadowPieces: List<EntityRenderState.ShadowPiece>
-        ) {
-            // No-op: don't render shadows in outline pass
-        }
-        
-        // Skip labels
-        override fun submitLabel(
-            matrices: MatrixStack,
-            nameLabelPos: Vec3d?,
-            y: Int,
-            label: Text,
-            notSneaking: Boolean,
-            light: Int,
-            squaredDistanceToCamera: Double,
-            cameraState: CameraRenderState
-        ) {
-            // No-op: don't render labels in outline pass
-        }
-        
-        // Skip text
-        override fun submitText(
-            matrices: MatrixStack,
-            x: Float,
-            y: Float,
-            text: OrderedText,
-            dropShadow: Boolean,
-            layerType: net.minecraft.client.font.TextRenderer.TextLayerType,
-            light: Int,
-            color: Int,
-            backgroundColor: Int,
-            outlineColor: Int
-        ) {
-            // No-op: don't render text in outline pass
-        }
-        
-        // Skip fire
-        override fun submitFire(
-            matrices: MatrixStack,
-            renderState: EntityRenderState,
-            rotation: Quaternionf
-        ) {
-            // No-op: don't render fire in outline pass
-        }
-        
-        // Skip leash
-        override fun submitLeash(
-            matrices: MatrixStack,
-            leashData: EntityRenderState.LeashData
-        ) {
-            // No-op: don't render leash in outline pass
-        }
-        
-        // Model submission - apply custom color
+
         override fun <S : Any> submitModel(
             model: Model<in S>,
             state: S,
@@ -144,11 +76,9 @@ class LambdaOutlineRenderCommandQueue : OrderedRenderCommandQueueImpl() {
             sprite: Sprite?,
             outlineColor: Int,
             crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
-        ) {
-            super.submitModel(model, state, matrices, renderLayer, light, overlay, currentColor, sprite, 0, crumblingOverlay)
-        }
+        ) = super.submitModel(model, state, matrices, renderLayer, light, overlay, currentColor, sprite, 0, crumblingOverlay)
         
-        // Model part submission - apply custom color
+
         override fun submitModelPart(
             part: ModelPart,
             matrices: MatrixStack,
@@ -161,30 +91,11 @@ class LambdaOutlineRenderCommandQueue : OrderedRenderCommandQueueImpl() {
             tintedColor: Int,
             crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?,
             i: Int
-        ) {
-            super.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, currentColor, crumblingOverlay, i)
-        }
-        
-        // Skip blocks
-        override fun submitBlock(
-            matrices: MatrixStack,
-            state: BlockState,
-            light: Int,
-            overlay: Int,
-            outlineColor: Int
-        ) {
-            // No-op: don't render blocks in entity outline pass
-        }
-        
-        // Skip moving blocks
-        override fun submitMovingBlock(
-            matrices: MatrixStack,
-            state: MovingBlockRenderState
-        ) {
-            // No-op
-        }
-        
-        // Block state model - apply custom color
+        ) = super.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, currentColor, crumblingOverlay, i)
+
+        override fun submitBlock(matrices: MatrixStack, state: BlockState, light: Int, overlay: Int, outlineColor: Int) { }
+        override fun submitMovingBlock(matrices: MatrixStack, state: MovingBlockRenderState) {}
+
         override fun submitBlockStateModel(
             matrices: MatrixStack,
             renderLayer: RenderLayer,
@@ -202,7 +113,7 @@ class LambdaOutlineRenderCommandQueue : OrderedRenderCommandQueueImpl() {
             super.submitBlockStateModel(matrices, renderLayer, model, newR, newG, newB, light, overlay, outlineColor)
         }
         
-        // Item submission - apply custom tint colors
+
         override fun submitItem(
             matrices: MatrixStack,
             displayContext: ItemDisplayContext,
@@ -214,24 +125,13 @@ class LambdaOutlineRenderCommandQueue : OrderedRenderCommandQueueImpl() {
             renderLayer: RenderLayer,
             glintType: ItemRenderState.Glint
         ) {
-            // Create/update tint cache with current color
             if (tintCache == null || tintCache!![0] != currentColor) {
                 tintCache = intArrayOf(currentColor, currentColor, currentColor, currentColor)
             }
             super.submitItem(matrices, displayContext, light, overlay, outlineColors, tintCache!!, quads, renderLayer, glintType)
         }
-        
-        // Skip custom renderers
-        override fun submitCustom(
-            matrices: MatrixStack,
-            renderLayer: RenderLayer,
-            customRenderer: OrderedRenderCommandQueue.Custom
-        ) {
-            // No-op
-        }
-        
-        override fun submitCustom(customRenderer: OrderedRenderCommandQueue.LayeredCustom) {
-            // No-op
-        }
+
+        override fun submitCustom(matrices: MatrixStack, renderLayer: RenderLayer, customRenderer: OrderedRenderCommandQueue.Custom) {}
+        override fun submitCustom(customRenderer: OrderedRenderCommandQueue.LayeredCustom) {}
     }
 }

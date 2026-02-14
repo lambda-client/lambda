@@ -22,42 +22,22 @@ import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.VertexConsumerProvider
 import net.minecraft.client.util.BufferAllocator
 
-/**
- * Custom VertexConsumerProvider that collects entity rendering to outline RenderLayers.
- * 
- * Uses MC's built-in outline mechanism via [RenderLayer.getAffectedOutline] which
- * automatically handles textures and alpha testing correctly.
- */
 class LambdaOutlineVertexConsumerProvider : VertexConsumerProvider {
-    
     private val immediate = VertexConsumerProvider.immediate(BufferAllocator(1536))
     
     override fun getBuffer(layer: RenderLayer): VertexConsumer {
-        // If the layer is already an outline layer, wrap it
-        if (layer.isOutline) {
-            return OutlineVertexConsumer(immediate.getBuffer(layer))
-        }
-        
-        // Try to get the outline variant of this layer
+        if (layer.isOutline) return OutlineVertexConsumer(immediate.getBuffer(layer))
+
         val outlineLayer = layer.affectedOutline
-        if (outlineLayer.isPresent) {
-            return OutlineVertexConsumer(immediate.getBuffer(outlineLayer.get()))
-        }
-        
-        // No outline variant - return a no-op consumer
+        if (outlineLayer.isPresent) return OutlineVertexConsumer(immediate.getBuffer(outlineLayer.get()))
+
         return NoopVertexConsumer
     }
     
-    /**
-     * Draw all collected outline geometry.
-     */
     fun draw() {
         immediate.draw()
     }
     
-    /**
-     * Wrapper that passes through vertex data to the actual consumer.
-     */
     private class OutlineVertexConsumer(
         private val consumer: VertexConsumer
     ) : VertexConsumer {
@@ -102,9 +82,6 @@ class LambdaOutlineVertexConsumerProvider : VertexConsumerProvider {
         }
     }
     
-    /**
-     * No-op vertex consumer for layers without outline variants.
-     */
     private object NoopVertexConsumer : VertexConsumer {
         override fun vertex(x: Float, y: Float, z: Float): VertexConsumer = this
         override fun color(red: Int, green: Int, blue: Int, alpha: Int): VertexConsumer = this

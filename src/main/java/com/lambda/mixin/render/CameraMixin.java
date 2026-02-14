@@ -55,19 +55,18 @@ public abstract class CameraMixin {
 
     @Inject(method = "update", at = @At("TAIL"))
     private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
-        if (!Freecam.INSTANCE.isEnabled()) return;
-
-        Freecam.updateCam();
+        if (Freecam.INSTANCE.isEnabled()) Freecam.updateCam();
     }
 
     /**
      * Sets the lock rotation to the active rotation
+     * 
      * <pre>{@code
      * this.setPos(
-     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevX, focusedEntity.getX()),
-     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevY, focusedEntity.getY()) + (double)MathHelper.lerp(tickDelta, this.lastCameraY, this.cameraY),
-     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevZ, focusedEntity.getZ())
-     *     );
+     *         MathHelper.lerp((double) tickDelta, focusedEntity.prevX, focusedEntity.getX()),
+     *         MathHelper.lerp((double) tickDelta, focusedEntity.prevY, focusedEntity.getY())
+     *                 + (double) MathHelper.lerp(tickDelta, this.lastCameraY, this.cameraY),
+     *         MathHelper.lerp((double) tickDelta, focusedEntity.prevZ, focusedEntity.getZ()));
      * }</pre>
      */
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
@@ -95,13 +94,14 @@ public abstract class CameraMixin {
 
     /**
      * Modifies the third person camera distance
+     * 
      * <pre>{@code
      * if (thirdPerson) {
-     *         if (inverseView) {
-     *             this.setRotation(this.yaw + 180.0F, -this.pitch);
-     *         }
+     *     if (inverseView) {
+     *         this.setRotation(this.yaw + 180.0F, -this.pitch);
+     *     }
      *
-     *         this.moveBy(-this.clipToSpace(4.0), 0.0, 0.0);
+     *     this.moveBy(-this.clipToSpace(4.0), 0.0, 0.0);
      * }
      * }</pre>
      */
@@ -117,21 +117,35 @@ public abstract class CameraMixin {
     /**
      * Modifies the arguments for setting the camera rotation.
      * Mixes into 4 arguments:
-     * <p>Experimental Minecart Controller:</p>
+     * <p>
+     * Experimental Minecart Controller:
+     * </p>
+     * 
      * <pre>
      * if (experimentalMinecartController.hasCurrentLerpSteps()) {
-     *     Vec3d vec3d = minecartEntity.getPassengerRidingPos(focusedEntity).subtract(minecartEntity.getPos()).subtract(focusedEntity.getVehicleAttachmentPos(minecartEntity)).add(new Vec3d(0.0, (double)MathHelper.lerp(tickProgress, this.lastCameraY, this.cameraY), 0.0));
+     *     Vec3d vec3d = minecartEntity.getPassengerRidingPos(focusedEntity).subtract(minecartEntity.getPos())
+     *             .subtract(focusedEntity.getVehicleAttachmentPos(minecartEntity))
+     *             .add(new Vec3d(0.0, (double) MathHelper.lerp(tickProgress, this.lastCameraY, this.cameraY), 0.0));
      *     this.setRotation(focusedEntity.getYaw(tickProgress), focusedEntity.getPitch(tickProgress));
      *     this.setPos(experimentalMinecartController.getLerpedPosition(tickProgress).add(vec3d));
      *     break label39;
      * }
      * </pre>
-     * <p>Default Camera:</p>
+     * <p>
+     * Default Camera:
+     * </p>
+     * 
      * <pre>
      * this.setRotation(focusedEntity.getYaw(tickProgress), focusedEntity.getPitch(tickProgress));
-     * this.setPos(MathHelper.lerp((double)tickProgress, focusedEntity.lastX, focusedEntity.getX()), MathHelper.lerp((double)tickProgress, focusedEntity.lastY, focusedEntity.getY()) + (double)MathHelper.lerp(tickProgress, this.lastCameraY, this.cameraY), MathHelper.lerp((double)tickProgress, focusedEntity.lastZ, focusedEntity.getZ()));
+     * this.setPos(MathHelper.lerp((double) tickProgress, focusedEntity.lastX, focusedEntity.getX()),
+     *         MathHelper.lerp((double) tickProgress, focusedEntity.lastY, focusedEntity.getY())
+     *                 + (double) MathHelper.lerp(tickProgress, this.lastCameraY, this.cameraY),
+     *         MathHelper.lerp((double) tickProgress, focusedEntity.lastZ, focusedEntity.getZ()));
      * </pre>
-     * <p>Third person camera:</p>
+     * <p>
+     * Third person camera:
+     * </p>
+     * 
      * <pre>
      * if (thirdPerson) {
      *     if (inverseView) {
@@ -140,9 +154,12 @@ public abstract class CameraMixin {
      *     // ...
      * }
      * </pre>
-     * <p>When the player is focused on another Living Entity:</p>
+     * <p>
+     * When the player is focused on another Living Entity:
+     * </p>
+     * 
      * <pre>
-     * Direction direction = ((LivingEntity)focusedEntity).getSleepingDirection();
+     * Direction direction = ((LivingEntity) focusedEntity).getSleepingDirection();
      * this.setRotation(direction != null ? direction.getPositiveHorizontalDegrees() - 180.0F : 0.0F, 0.0F);
      * this.moveBy(0.0F, 0.3F, 0.0F);
      * </pre>

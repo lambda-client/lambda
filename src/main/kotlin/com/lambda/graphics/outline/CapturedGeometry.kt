@@ -17,10 +17,6 @@
 
 package com.lambda.graphics.outline
 
-/**
- * Captured vertex data from entity/model rendering.
- * Stores position, normal, and UV for silhouette rendering with texture alpha.
- */
 import com.mojang.blaze3d.textures.GpuTextureView
 
 data class CapturedVertex(
@@ -35,27 +31,19 @@ data class CapturedVertex(
     val v: Float = 0f
 )
 
-/**
- * A group of captured quads for an entity with a specific texture.
- */
 class CapturedGeometry(val textureView: GpuTextureView?) {
     private val vertices = ArrayList<CapturedVertex>()
     
-    /** Add a vertex to the geometry with UV coordinates for texture alpha sampling. */
     fun addVertex(x: Float, y: Float, z: Float, w: Float, nx: Float, ny: Float, nz: Float, u: Float = 0f, v: Float = 0f) {
         vertices.add(CapturedVertex(x, y, z, w, nx, ny, nz, u, v))
     }
     
-    /** Get all captured vertices. */
     fun getVertices(): List<CapturedVertex> = vertices
     
-    /** Check if any geometry was captured. */
     fun isEmpty(): Boolean = vertices.isEmpty()
     
-    /** Get vertex count. */
     fun size(): Int = vertices.size
     
-    /** Clear all vertices. */
     fun clear() {
         vertices.clear()
     }

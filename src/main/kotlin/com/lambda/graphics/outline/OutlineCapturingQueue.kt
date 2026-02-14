@@ -40,13 +40,6 @@ import net.minecraft.text.OrderedText
 import net.minecraft.text.Text
 import org.joml.Quaternionf
 
-/**
- * Command queue wrapper that captures vertex data for outline rendering.
- * 
- * In 1.21.1+, GameRenderer expects an OrderedRenderCommandQueueImpl (class).
- * This wrapper extends that implementation while delegating to the original
- * to ensure all submitted commands are correctly stored and rendered.
- */
 class OutlineCapturingQueue(
     private val delegate: OrderedRenderCommandQueueImpl,
     private val entityId: Int
@@ -60,10 +53,6 @@ class OutlineCapturingQueue(
     override fun onNextFrame() = delegate.onNextFrame()
     override fun getBatchingQueues() = delegate.batchingQueues
 
-    /**
-     * Proxies a specific batching queue to capture vertices while
-     * passing through commands to the original data lists.
-     */
     private inner class OutlineCapturingBatchingQueue(
         private val batchedDelegate: BatchingRenderCommandQueue,
         parent: OrderedRenderCommandQueueImpl
@@ -77,11 +66,9 @@ class OutlineCapturingQueue(
         }
 
         private fun getClipTransform(renderLayer: RenderLayer): Matrix4f {
-            val proj = if (entityId == -1) {
-                RenderMain.baseProjectionMatrix
-            } else {
-                RenderMain.worldProjectionMatrix
-            }
+            val proj =
+                if (entityId == -1) RenderMain.baseProjectionMatrix
+                else RenderMain.worldProjectionMatrix
             val camRot = RenderMain.cameraRotationMatrix
             val result = Matrix4f(proj).mul(camRot)
             
@@ -205,7 +192,6 @@ class OutlineCapturingQueue(
         override fun submitCustom(renderer: OrderedRenderCommandQueue.LayeredCustom) =
             batchedDelegate.submitCustom(renderer)
 
-        // Delegate all getter/state methods to the real queue so that WorldRenderer can find the commands
         override fun getShadowPiecesCommands() = batchedDelegate.shadowPiecesCommands
         override fun getFireCommands() = batchedDelegate.fireCommands
         override fun getLabelCommands() = batchedDelegate.labelCommands

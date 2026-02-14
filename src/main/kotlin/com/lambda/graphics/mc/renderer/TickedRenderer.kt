@@ -1,19 +1,4 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+
 
 package com.lambda.graphics.mc.renderer
 
@@ -34,13 +19,6 @@ import org.joml.Vector3f
 import org.joml.Vector4f
 
 
-/**
- * Modern replacement for the legacy Treed system. Handles geometry that is cleared and rebuilt
- * every tick.
- * 
- * Geometry is stored relative to the camera position at tick time. At render time, we compute
- * the delta between tick-camera and current-camera to ensure smooth motion without jitter.
- */
 class TickedRenderer(
 	owner: Any,
 	name: String,
@@ -49,10 +27,8 @@ class TickedRenderer(
 ) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
 
-	// Camera position captured at tick time (when shapes are built)
 	private var tickCameraPos: Vec3d? = null
 
-	// Font atlas used for current text rendering
 	private var _currentFontAtlas: SDFFontAtlas? = null
 	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
@@ -71,23 +47,16 @@ class TickedRenderer(
 		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
-	/** Clear all current builders. Call this at the end of every tick. */
 	fun clear() {
 		renderer.clearData()
 		tickCameraPos = null
 	}
 
-	/** Upload collected geometry to GPU. Must be called on main thread. */
 	fun upload(renderBuilder: RenderBuilder) {
 		renderer.upload(renderBuilder.collector)
 		_currentFontAtlas = renderBuilder.fontAtlas
 	}
 
-	/**
-	 * Get renderer/transform pairs for world-space rendering.
-	 * Computes delta between tick-camera and current-camera for smooth interpolation.
-	 * Includes fresh glint TextureMat for world image animation.
-	 */
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		val currentCameraPos = mc.gameRenderer?.camera?.pos ?: return emptyList()
 		val tickCamera = tickCameraPos ?: return emptyList()
@@ -106,9 +75,6 @@ class TickedRenderer(
 		return listOf(renderer to dynamicTransform)
 	}
 
-	/**
-	 * Get renderers for screen-space rendering.
-	 */
 	override fun getScreenRenderers() = if (renderer.hasScreenData()) listOf(renderer) else emptyList()
 
 	companion object {

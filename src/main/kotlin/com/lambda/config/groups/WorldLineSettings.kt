@@ -22,10 +22,6 @@ import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
-/**
- * SettingGroup for world-space line configuration.
- * Provides settings for line colors, width, dash patterns, and distance scaling.
- */
 class WorldLineSettings(
     prefix: String,
     c: Configurable,

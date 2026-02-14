@@ -54,13 +54,9 @@ import net.minecraft.util.math.random.Random
 import org.joml.Quaternionf
 import java.awt.Color
 
-/**
- * Test module for ChunkedRenderer - renders blocks around the player using chunk-based caching.
- * Geometry is cached per-chunk and only rebuilt when chunks change.
- */
 object ChunkedRendererTest : Module(
 	name = "ChunkedRendererTest",
-	description = "Test module for ChunkedRenderer - cached chunk-based rendering",
+	description = "Test module for ChunkedRenderer",
 	tag = ModuleTag.DEBUG,
 ) {
 	var updated = false
@@ -91,28 +87,22 @@ object ChunkedRendererTest : Module(
 					)
 				)
 
-				// Screen-space test renders (normalized 0-1 coordinates)
-				// Test screen rect with gradient
 				screenRectGradient(
-					0.02f, 0.1f, 0.15f, 0.05f,  // x, y, width, height (0-1)
+					0.02f, 0.1f, 0.15f, 0.05f,
 					Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW
 				)
 
-				// Test screen rect with solid color
 				screenRect(0.02f, 0.17f, 0.1f, 0.03f, Color(50, 50, 200, 180))
 
-				// Test screen line
 				screenLine(0.02f, 0.22f, 0.17f, 0.25f, Color.CYAN, 0.003f, dashStyle = screenMarchingAnts())
 
-				// Test screen line with gradient
 				screenLineGradient(0.02f, 0.27f, Color.MAGENTA, 0.17f, 0.27f, Color.ORANGE, 0.004f)
 
-				// Test screen text
 				screenText(
 					"Screen Space Text!",
 					0.02f,
 					0.30f,
-					size = 0.025f,  // 2.5% of screen
+					size = 0.025f,
 					style = SDFStyle(
 						color = Color.WHITE,
 						outline = SDFOutline(),
@@ -120,12 +110,11 @@ object ChunkedRendererTest : Module(
 					)
 				)
 
-				// Test centered screen text
 				screenText(
 					"Centered Screen Text",
-					0.5f,  // 50% from left = center
-					0.05f, // 5% from top
-					size = 0.03f,  // 3% of screen
+					0.5f,
+					0.05f,
+					size = 0.03f,
 					style = SDFStyle(
 						color = Color.YELLOW,
 						glow = SDFGlow(Color(255, 200, 0, 150)),
@@ -134,15 +123,13 @@ object ChunkedRendererTest : Module(
 					centered = true
 				)
 
-				// Test screen image with tint
 				screenImage(
 					texture = Identifier.ofVanilla("textures/item/netherite_sword.png"),
 					x = 0.08f, y = 0.48f,
 					width = 0.1f, height = 0.1f * mc.window.width / mc.window.height.toFloat(),
-					hasOverlay = true              // With glint
+					hasOverlay = true
 				)
 
-				// Test world image - billboard facing the camera
 				val worldImagePos = startPos.offset(Direction.NORTH, 3.0).add(0.0, 1.5, 0.0)
 				worldImage(
 					texture = Identifier.ofVanilla("textures/item/diamond.png"),
@@ -151,7 +138,6 @@ object ChunkedRendererTest : Module(
 					tint = Color.WHITE
 				)
 
-				// Test world image with glint
 				worldImage(
 					texture = Identifier.ofVanilla("textures/item/netherite_sword.png"),
 					pos = worldImagePos.offset(Direction.EAST, 2.0),
@@ -160,8 +146,6 @@ object ChunkedRendererTest : Module(
 					hasOverlay = true
 				)
 
-				// Test 3D Model (Chunked - Static)
-				// Render a Stone Block
 				val stoneState = net.minecraft.block.Blocks.STONE.defaultState
 				val stoneModel = mc.bakedModelManager.blockModels.getModel(stoneState)
 				val stoneRandom = Random.create()
@@ -184,13 +168,9 @@ object ChunkedRendererTest : Module(
 	}
 }
 
-/**
- * Test module for TickedRenderer - rebuilds geometry every tick.
- * Uses tick-camera relative coordinates with render-time delta interpolation.
- */
 object TickedRendererTest : Module(
 	name = "TickedRendererTest",
-	description = "Test module for TickedRenderer - tick-based rendering",
+	description = "Test module for TickedRenderer",
 	tag = ModuleTag.DEBUG,
 ) {
 	private val throughWalls by setting("Through Walls", true)
@@ -217,28 +197,22 @@ object TickedRendererTest : Module(
 					)
 				)
 
-				// Screen-space test renders (normalized 0-1 coordinates)
-				// Test screen rect with gradient
 				screenRectGradient(
-					0.02f, 0.1f, 0.15f, 0.05f,  // x, y, width, height (0-1)
+					0.02f, 0.1f, 0.15f, 0.05f,
 					Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW
 				)
 
-				// Test screen rect with solid color
 				screenRect(0.02f, 0.17f, 0.1f, 0.03f, Color(50, 50, 200, 180))
 
-				// Test screen line
 				screenLine(0.02f, 0.22f, 0.17f, 0.25f, Color.CYAN, 0.003f, dashStyle = screenMarchingAnts())
 
-				// Test screen line with gradient
 				screenLineGradient(0.02f, 0.27f, Color.MAGENTA, 0.17f, 0.27f, Color.ORANGE, 0.004f)
 
-				// Test screen text
 				screenText(
 					"Screen Space Text!",
 					0.02f,
 					0.30f,
-					size = 0.025f,  // 2.5% of screen
+					size = 0.025f,
 					style = SDFStyle(
 						color = Color.WHITE,
 						outline = SDFOutline(),
@@ -246,12 +220,11 @@ object TickedRendererTest : Module(
 					)
 				)
 
-				// Test centered screen text
 				screenText(
 					"Centered Screen Text",
-					0.5f,  // 50% from left = center
-					0.05f, // 5% from top
-					size = 0.03f,  // 3% of screen
+					0.5f,
+					0.05f,
+					size = 0.03f,
 					style = SDFStyle(
 						color = Color.YELLOW,
 						glow = SDFGlow(Color(255, 200, 0, 150)),
@@ -260,15 +233,13 @@ object TickedRendererTest : Module(
 					centered = true
 				)
 
-				// Test screen image with tint
 				screenImage(
 					texture = Identifier.ofVanilla("textures/item/netherite_sword.png"),
 					x = 0.08f, y = 0.48f,
 					width = 0.1f, height = 0.1f * mc.window.width / mc.window.height.toFloat(),
-					hasOverlay = true              // With glint
+					hasOverlay = true
 				)
 
-				// Test world image - billboard facing the camera
 				val worldImagePos = startPos.offset(Direction.NORTH, 3.0).add(0.0, 1.5, 0.0)
 				worldImage(
 					texture = Identifier.ofVanilla("textures/item/diamond.png"),
@@ -277,7 +248,6 @@ object TickedRendererTest : Module(
 					tint = Color.WHITE
 				)
 
-				// Test world image with glint
 				worldImage(
 					texture = Identifier.ofVanilla("textures/item/netherite_sword.png"),
 					pos = worldImagePos.offset(Direction.EAST, 2.0),
@@ -286,11 +256,9 @@ object TickedRendererTest : Module(
 					hasOverlay = true
 				)
 
-				// Test 3D Model (Ticked - Interpolated)
-				// Render a Gold Block
 				val goldState = net.minecraft.block.Blocks.GOLD_BLOCK.defaultState
 				val goldModel = mc.bakedModelManager.blockModels.getModel(goldState)
-				val goldRandom = net.minecraft.util.math.random.Random.create()
+				val goldRandom = Random.create()
 				val goldParts = goldModel.getParts(goldRandom)
 
 				goldParts.forEach { part ->
@@ -306,13 +274,9 @@ object TickedRendererTest : Module(
 	}
 }
 
-/**
- * Test module for ImmediateRenderer - rebuilds geometry every frame.
- * Uses render-camera relative coordinates for smooth interpolated rendering.
- */
 object ImmediateRendererTest : Module(
 	name = "ImmediateRendererTest",
-	description = "Test module for ImmediateRenderer - frame-based interpolated rendering",
+	description = "Test module for ImmediateRenderer",
 	tag = ModuleTag.DEBUG,
 ) {
 	private val throughWalls by setting("Through Walls", true)
@@ -339,23 +303,17 @@ object ImmediateRendererTest : Module(
 					)
 				)
 
-				// Screen-space test renders (normalized 0-1 coordinates)
-				// Test screen rect with gradient
 				screenRectGradient(
-					0.02f, 0.1f, 0.15f, 0.05f,  // x, y, width, height (0-1)
+					0.02f, 0.1f, 0.15f, 0.05f,
 					Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW
 				)
 
-				// Test screen rect with solid color
 				screenRect(0.02f, 0.17f, 0.1f, 0.03f, Color(50, 50, 200, 180))
 
-				// Test screen line
 				screenLine(0.02f, 0.22f, 0.17f, 0.25f, Color.CYAN, 0.003f, dashStyle = screenMarchingAnts())
 
-				// Test screen line with gradient
 				screenLineGradient(0.02f, 0.27f, Color.MAGENTA, 0.17f, 0.27f, Color.ORANGE, 0.004f)
 
-				// Test screen text
 				screenText(
 					"Screen Space Text!",
 					0.02f,
@@ -368,12 +326,11 @@ object ImmediateRendererTest : Module(
 					)
 				)
 
-				// Test centered screen text
 				screenText(
 					"Centered Screen Text",
-					0.5f,  // 50% from left = center
-					0.05f, // 5% from top
-					size = 0.03f,  // 3% of screen
+					0.5f,
+					0.05f,
+					size = 0.03f,
 					style = SDFStyle(
 						color = Color.YELLOW,
 						glow = SDFGlow(Color(255, 200, 0, 150)),
@@ -382,7 +339,6 @@ object ImmediateRendererTest : Module(
 					centered = true
 				)
 
-				// Test screen image with tint
 				screenImage(
 					texture = Identifier.ofVanilla("textures/item/netherite_sword.png"),
 					x = 0.08f, y = 0.48f,
@@ -390,7 +346,6 @@ object ImmediateRendererTest : Module(
 					hasOverlay = true              // With glint
 				)
 
-				// Test world image - billboard facing the camera
 				val worldImagePos = startPos.offset(Direction.NORTH, 3.0).add(0.0, 1.5, 0.0)
 				worldImage(
 					texture = Identifier.ofVanilla("textures/item/diamond.png"),
@@ -399,7 +354,6 @@ object ImmediateRendererTest : Module(
 					tint = Color.WHITE
 				)
 
-				// Test world image with glint
 				worldImage(
 					texture = Identifier.ofVanilla("textures/item/netherite_sword.png"),
 					pos = worldImagePos.offset(Direction.EAST, 2.0),
@@ -408,8 +362,6 @@ object ImmediateRendererTest : Module(
 					hasOverlay = true
 				)
 
-				// Test 3D Model (Immediate - Rotating)
-				// Render a Diamond Block
 				val diamondState = net.minecraft.block.Blocks.DIAMOND_BLOCK.defaultState
 				val diamondModel = mc.bakedModelManager.blockModels.getModel(diamondState)
 				val diamondParts = diamondModel.getParts(Random.create())
@@ -429,15 +381,12 @@ object ImmediateRendererTest : Module(
 					)
 				}
 
-				// ========== High-Fidelity GUI Item Rendering Tests ==========
-				// 1. World-space GUI Item (Netherite Sword)
 				worldGuiItem(
 					stack = ItemStack(Items.NETHERITE_SWORD),
 					pos = startPos.offset(Direction.NORTH, 2.0).add(0.0, 1.5, 0.0),
 					scale = 0.5f,
 				)
 
-				// 2. World-space GUI Block (Grass Block)
 				worldGuiItem(
 					stack = ItemStack(Items.GRASS_BLOCK),
 					pos = startPos.offset(Direction.NORTH, 2.0).offset(Direction.WEST, 1.0).add(0.0, 1.5, 0.0),
@@ -445,17 +394,14 @@ object ImmediateRendererTest : Module(
 					overlay = ItemOverlay.ENCHANT_GLINT,
 				)
 
-				// 3. Screen-space GUI Item
 				screenGuiItem(
 					stack = ItemStack(Items.DIAMOND_PICKAXE),
 					x = 0.5f, y = 0.4f,
 					size = 0.08f,
 				)
 
-				// ========== New: Flat & Shaded GUI Items ==========
 				val lightTime = (System.currentTimeMillis() % 4000L / 4000f) * 360f
 
-				// 4. Flat World Block (Grass Block)
 				worldGuiItem(
 					stack = ItemStack(Items.GRASS_BLOCK),
 					pos = startPos.offset(Direction.NORTH, 3.0),
@@ -464,14 +410,12 @@ object ImmediateRendererTest : Module(
 					overlay = ItemOverlay.ENCHANT_GLINT
 				)
 
-				// 5. Custom Shading World Item (Golden Apple)
 				worldGuiItem(
 					stack = ItemStack(Items.GOLDEN_APPLE),
 					pos = startPos.offset(Direction.NORTH, 3.0).offset(Direction.EAST, 1.0),
 					scale = 0.5f,
 				)
 
-				// 6. Flat Screen Item (Enchanted Book)
 				screenGuiItem(
 					stack = ItemStack(Items.GRASS_BLOCK),
 					x = 0.6f, y = 0.4f,
@@ -480,7 +424,6 @@ object ImmediateRendererTest : Module(
 					lighting = ItemLighting.NONE
 				)
 
-				// ========== Custom withOutline Test ==========
 				withOutline(OutlineStyle(Color.CYAN)) {
 					box(
 						Box(startPos.add(3.0, 1.0, 3.0), startPos.add(4.0, 2.0, 4.0)),
@@ -498,9 +441,7 @@ object ImmediateRendererTest : Module(
 					)
 				}
 
-				// ========== Outline Render Test ==========
-				// Draw outlines using captured entity geometry
-				worldOutlines(world.entities.toList(), OutlineStyle.HOSTILE)
+				worldOutlines(world.entities.toList(), OutlineStyle(Color.RED))
 			}
 		}
 	}

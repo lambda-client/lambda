@@ -25,13 +25,6 @@ import com.mojang.blaze3d.textures.TextureFormat
 import java.util.OptionalDouble
 import java.util.OptionalInt
 
-/**
- * Manages a separate buffer for layered outline rendering.
- * 
- * Outlined objects are rendered once to this buffer instead of the main framebuffer.
- * This allows applying post-processing (outlines, glow) to the isolated geometry
- * before compositing it back into the scene.
- */
 object OutlineLayerBuffer {
     
     private var colorTexture: GpuTexture? = null
@@ -40,13 +33,9 @@ object OutlineLayerBuffer {
     private var bufferWidth = 0
     private var bufferHeight = 0
     
-    /** Whether any geometry has been rendered into the layer buffer this frame. */
     var hasData = false
         private set
     
-    /**
-     * Ensure buffer exists and matches framebuffer size.
-     */
     fun ensureBuffer(): Boolean {
         val framebuffer = mc.framebuffer ?: return false
         val width = framebuffer.textureWidth
@@ -57,10 +46,9 @@ object OutlineLayerBuffer {
             
             val gpuDevice = RenderSystem.getDevice()
             
-            // Create RGBA8 texture for layered geometry
             colorTexture = gpuDevice.createTexture(
                 { "Lambda Outline Layer Buffer" },
-                15, // Usage: TRANSFER_SRC | TRANSFER_DST | TEXTURE | RENDER_ATTACHMENT
+                15,
                 TextureFormat.RGBA8,
                 width,
                 height,
@@ -75,10 +63,6 @@ object OutlineLayerBuffer {
         return true
     }
     
-    /**
-     * Clear the color buffer and return true if ready.
-     * Shares the main depth buffer for correct occlusion.
-     */
     fun beginFrame(): Boolean {
         if (!ensureBuffer()) return false
         hasData = false
@@ -88,8 +72,8 @@ object OutlineLayerBuffer {
             .createRenderPass(
                 { "Lambda Clear Outline Layer Buffer" },
                 colorTextureView,
-                OptionalInt.of(0x00000000), // Clear to transparent
-                null, // No depth clear here - we share with main
+                OptionalInt.of(0x00000000),
+                null,
                 OptionalDouble.empty()
             )?.close()
             
@@ -98,9 +82,6 @@ object OutlineLayerBuffer {
     
     fun getTextureView(): GpuTextureView? = colorTextureView
     
-    /**
-     * Mark that geometry has been rendered into the layer buffer.
-     */
     fun markHasData() {
         hasData = true
     }

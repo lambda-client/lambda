@@ -68,7 +68,7 @@ object Nametags : Module(
 	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01).group(Group.General)
 	private val spacing by setting("Spacing", 0, 0..10, 1).group(Group.General)
 	private val self by setting("Self", false).group(Group.General)
-	private val health by setting("Health", false).group(Group.General)
+	private val health by setting("Health", true).group(Group.General)
 	private val ping by setting("Ping", true).group(Group.General)
 	private val gear by setting("Gear", true).group(Group.General)
 	private val mainItem by setting("Main Item", true) { gear }.group(Group.General)

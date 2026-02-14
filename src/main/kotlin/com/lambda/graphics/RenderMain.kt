@@ -21,8 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.graphics.gl.Matrices
-import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.mc.renderer.RendererUtils
+import com.lambda.graphics.outline.OutlineRenderer
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.joml.Vector2f
@@ -39,66 +39,41 @@ object RenderMain {
     val projModel: Matrix4f
         get() = Matrix4f(worldProjectionMatrix).mul(cameraRotationMatrix).mul(modelViewMatrix)
 
-    /**
-     * Project a world position to normalized screen coordinates (0-1 range).
-     * This is the format used by RenderBuilder's screen methods (screenText, screenRect, etc).
-     * 
-     * Always returns coordinates, even if off-screen or behind camera.
-     * For behind-camera positions, the direction is preserved (useful for tracers).
-     *
-     * @param worldPos The world position to project
-     * @return Normalized screen coordinates (x, y)
-     */
     fun worldToScreenNormalized(worldPos: Vec3d): Vector2f? {
         val camera = mc.gameRenderer?.camera ?: return null
         val cameraPos = camera.pos
 
-        // Camera-relative position
         val relX = (worldPos.x - cameraPos.x).toFloat()
         val relY = (worldPos.y - cameraPos.y).toFloat()
         val relZ = (worldPos.z - cameraPos.z).toFloat()
 
-        // Apply projection * modelview matrix
         val vec = Vector4f(relX, relY, relZ, 1f)
         projModel.transform(vec)
 
         val isBehind = vec.w < 0
         val w = if (abs(vec.w) < 0.001f) 0.001f else abs(vec.w)
 
-        // Perspective divide to get NDC (-1 to 1)
         var ndcX = vec.x / w
         var ndcY = vec.y / w
 
-        // When behind camera, extend the direction past the screen edge
-        // so tracers go off-screen rather than landing on-screen
         if (isBehind) {
-            // Normalize the direction and extend to a fixed off-screen distance
             val len = kotlin.math.sqrt(ndcX * ndcX + ndcY * ndcY)
             if (len > 0.0001f) {
-                // Extend to 3.0 in NDC space (well past the -1 to 1 range)
                 ndcX = (ndcX / len) * 3f
                 ndcY = (ndcY / len) * 3f
-            } else {
-                // If almost directly behind, push down (arbitrary direction)
-                // With Y-up, negative Y means down
-                ndcY = -3f
-            }
+            } else ndcY = -3f
         }
 
-        // NDC to normalized 0-1 coordinates 
-        // Y-up convention: 0 = bottom, 1 = top (matches screen rendering)
         val normalizedX = (ndcX + 1f) * 0.5f
-        val normalizedY = (ndcY + 1f) * 0.5f  // No flip for Y-up
+        val normalizedY = (ndcY + 1f) * 0.5f
 
         return Vector2f(normalizedX, normalizedY)
     }
 
-    /** Check if a world position is visible on screen (within 0-1 bounds and in front of camera). */
     fun isOnScreen(worldPos: Vec3d): Boolean {
         val camera = mc.gameRenderer?.camera ?: return false
         val cameraPos = camera.pos
-        
-        // Check if in front of camera first
+
         val relX = (worldPos.x - cameraPos.x).toFloat()
         val relY = (worldPos.y - cameraPos.y).toFloat()
         val relZ = (worldPos.z - cameraPos.z).toFloat()
@@ -110,9 +85,6 @@ object RenderMain {
         return pos.x in 0f..1f && pos.y in 0f..1f
     }
 
-    /**
-     * Called at the start of world rendering to clear per-frame data.
-     */
     @JvmStatic
     fun preRender() {
         com.lambda.graphics.outline.OutlineManager.clear()
@@ -124,24 +96,18 @@ object RenderMain {
     @JvmStatic
     fun updateState(camRotMatrix: Matrix4f, basicProjMatrix: Matrix4f, projMatrix: Matrix4f) {
         cameraRotationMatrix.set(camRotMatrix)
-        // Minecraft 1.21.1: basicProjMatrix is Bobbed, projMatrix is Unbobbed
         worldProjectionMatrix.set(basicProjMatrix)
         baseProjectionMatrix.set(projMatrix)
     }
 
     @JvmStatic
     fun render() {
-        // Clear xray depth buffer once per frame before any renderer runs.
-        // All world-space renderers share this depth state for proper inter-renderer occlusion.
         RendererUtils.clearXrayDepthBuffer()
-        
-        // Post world render event - Modules build geometry and call AbstractRenderer.render()
-        // which now includes the Outline ID pass.
+
         RenderEvent.RenderWorld.post()
-        
-        // Finalize entity outlines for all modules by performing edge detection on the shared ID buffer
-        com.lambda.graphics.outline.OutlineRenderer.renderAllIDPasses()
-        com.lambda.graphics.outline.OutlineRenderer.renderEdges()
+
+        OutlineRenderer.renderAllIDPasses()
+        OutlineRenderer.renderEdges()
         
         RenderEvent.RenderScreen.post()
     }

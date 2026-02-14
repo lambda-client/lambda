@@ -1,19 +1,4 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+
 
 package com.lambda.graphics.mc.renderer
 
@@ -38,26 +23,11 @@ import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.chunk.WorldChunk
-import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
-
-/**
- * Chunked ESP system using chunk-origin relative coordinates.
- *
- * This system:
- * - Stores geometry relative to chunk origin (stable, small floats)
- * - Only rebuilds when chunks are modified
- * - At render time, translates from chunk origin to camera-relative position
- *
- * @param owner The module that owns this ESP system
- * @param name The name of the ESP system
- * @param depthTest Whether to use depth testing
- * @param update The update function called for each block position
- */
 class ChunkedRenderer(
 	owner: Any,
 	name: String,
@@ -75,7 +45,6 @@ class ChunkedRenderer(
 	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 
-	// Font atlas from the default font handler
 	override val currentFontAtlas: SDFFontAtlas
 		get() = FontHandler.getDefaultFont()
 
@@ -115,16 +84,11 @@ class ChunkedRenderer(
 	private fun getChunkKey(chunkX: Int, chunkZ: Int) =
 		(chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
 
-	/** Mark all tracked chunks for rebuild. */
 	fun rebuild() {
 		rebuildQueue.clear()
 		rebuildQueue.addAll(chunkMap.values)
 	}
 
-	/**
-	 * Load all currently loaded world chunks and mark them for rebuild. Call this when the module
-	 * is enabled to populate initial chunks.
-	 */
 	fun rebuildAll() {
 		runSafe {
 			val chunksArray = world.chunkManager.chunks.chunks
@@ -141,11 +105,6 @@ class ChunkedRenderer(
 		uploadQueue.clear()
 	}
 
-	/**
-	 * Get renderer/transform pairs for all active chunks.
-	 * Each chunk has its own renderer and per-chunk transform (chunk-origin to camera).
-	 * Includes fresh glint TextureMat for world image animation.
-	 */
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {
 		val cameraPos = mc.gameRenderer?.camera?.pos ?: return emptyList()
 
@@ -171,35 +130,23 @@ class ChunkedRenderer(
 		}
 	}
 
-	/**
-	 * Get renderers for screen-space rendering.
-	 * Returns all chunk renderers that have screen data.
-	 */
 	override fun getScreenRenderers() =
 		chunkMap.values
 			.filter { it.renderer.hasScreenData() }
 			.map { it.renderer }
 
-	/** Per-chunk data with its own renderer and origin. */
 	private inner class ChunkData(val chunk: WorldChunk) {
-		// Chunk origin in world coordinates
 		val originX: Double = (chunk.pos.x shl 4).toDouble()
 		val originY: Double = chunk.bottomY.toDouble()
 		val originZ: Double = (chunk.pos.z shl 4).toDouble()
 
-		// This chunk's own renderer
 		val renderer = RegionRenderer()
 
 		fun markDirty() {
 			if (!rebuildQueue.contains(this)) rebuildQueue.add(this)
 		}
 
-		/**
-		 * Rebuild geometry relative to chunk origin.
-		 * Coordinates are stored as (worldPos - chunkOrigin).toFloat()
-		 */
 		fun rebuild(depthTest: Boolean) {
-			// Use chunk origin as the "camera" position for relative coords
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
 			val scope = RenderBuilder(chunkOriginVec, depthTest = depthTest)
 			

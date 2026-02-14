@@ -19,43 +19,17 @@ package com.lambda.graphics.outline
 
 import java.awt.Color
 
-/**
- * Style configuration for an outline effect.
- *
- * @property color The outline color (ARGB)
- * @property thickness Line thickness in pixels (1-5 range recommended)
- * @property glowIntensity How much blur/glow to apply (0 = sharp edge, 1 = max glow)
- * @property glowRadius Blur spread radius for the glow effect
- */
 data class OutlineStyle(
     val color: Color,
     val thickness: Float = 2f,
     val glowIntensity: Float = 0.5f,
     val glowRadius: Float = 2f,
-    /** Whether to fill the entity silhouette with color. */
     val fill: Boolean = true,
-    /** Opacity of the fill (0.0 to 1.0). */
     val fillOpacity: Float = 0.4f
 ) {
-    /**
-     * Get the color as an ARGB int for Minecraft's outline system.
-     */
     fun toArgb(): Int = color.rgb
     
     companion object {
-        /** Default red outline for hostile entities */
-        val HOSTILE = OutlineStyle(Color.RED)
-        
-        /** Default blue outline for players */
-        val PLAYER = OutlineStyle(Color(0x5555FF))
-        
-        /** Default green outline for passive entities */
-        val PASSIVE = OutlineStyle(Color.GREEN)
-        
-        /** Default yellow outline for items */
-        val ITEM = OutlineStyle(Color.YELLOW)
-        
-        /** Default white outline */
         val DEFAULT = OutlineStyle(Color.WHITE)
     }
 }

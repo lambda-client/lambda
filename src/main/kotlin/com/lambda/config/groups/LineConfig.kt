@@ -31,9 +31,6 @@ interface LineConfig {
 	val animated: Boolean
 	val animationSpeed: Float
 
-	/**
-	 * Get the dash style for rendering, or null if dashing is disabled.
-	 */
 	fun getDashStyle(): LineDashStyle? =
 		if (dashEnabled) LineDashStyle(dashLength, gapLength, dashOffset, animated, animationSpeed) else null
 }

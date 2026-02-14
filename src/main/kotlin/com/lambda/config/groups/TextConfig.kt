@@ -38,9 +38,6 @@ interface TextConfig {
 	val shadowAngle: Float
 	val shadowSoftness: Float
 
-	/**
-	 * Get the SDF style for text rendering.
-	 */
 	fun getSDFStyle(): RenderBuilder.SDFStyle {
 		val outline = if (outlineEnabled) RenderBuilder.SDFOutline(outlineColor, outlineWidth) else null
 		val glow = if (glowEnabled) RenderBuilder.SDFGlow(glowColor, glowRadius) else null

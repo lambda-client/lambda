@@ -1,25 +1,7 @@
-/*
- * Copyright 2025 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+
 
 package com.lambda.graphics.mc
 
-import com.lambda.graphics.outline.CapturedGeometry
-import com.mojang.blaze3d.buffers.GpuBuffer
-import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexFormatElement
@@ -30,58 +12,26 @@ import org.lwjgl.system.MemoryUtil
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
 
-/**
- * Thread-safe vertex collector for region-based rendering.
- *
- * Collects vertex data on background threads using thread-safe collections, then writes to MC's
- * BufferBuilder and uploads on the main thread.
- */
 class RegionVertexCollector {
 	val faceVertices = ConcurrentLinkedDeque<FaceVertex>()
 	val edgeVertices = ConcurrentLinkedDeque<EdgeVertex>()
 	val textVertices = ConcurrentLinkedDeque<TextVertex>()
-	
-	// Outlined versions of the world-space collections
-	// We use a Map to group vertices by outline ID for efficient layered rendering
+
 	val faceVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<FaceVertex>>()
 	val edgeVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<EdgeVertex>>()
 	val textVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<TextVertex>>()
 	val modelVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>>()
 	val worldImageVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>>()
 
-	// Screen-space vertex collections (No outline support yet as screen-space is already layered)
 	val screenFaceVertices = ConcurrentLinkedDeque<ScreenFaceVertex>()
 	val screenEdgeVertices = ConcurrentLinkedDeque<ScreenEdgeVertex>()
 	val screenTextVertices = ConcurrentLinkedDeque<ScreenTextVertex>()
 
-	/** Face vertex data (position + color). */
 	data class FaceVertex(
 		val x: Float, val y: Float, val z: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int
 	)
 
-	/**
-	 * Text vertex data for SDF billboard text rendering.
-	 * Uses POSITION_TEXTURE_COLOR_ANCHOR_SDF format for GPU-based billboarding with embedded style.
-	 * 
-	 * @param localX Local glyph offset X (before billboard transform)
-	 * @param localY Local glyph offset Y (before billboard transform)
-	 * @param u Texture U coordinate
-	 * @param v Texture V coordinate
-	 * @param r Red color component
-	 * @param g Green color component
-	 * @param b Blue color component
-	 * @param a Alpha component (encodes layer type)
-	 * @param anchorX Camera-relative anchor position X
-	 * @param anchorY Camera-relative anchor position Y
-	 * @param anchorZ Camera-relative anchor position Z
-	 * @param scale Text scale
-	 * @param billboardFlag 0 = billboard towards camera, non-zero = fixed rotation already applied
-	 * @param outlineWidth SDF outline width (0 = no outline)
-	 * @param glowRadius SDF glow radius (0 = no glow)
-	 * @param shadowSoftness SDF shadow softness (0 = no shadow)
-	 * @param threshold SDF edge threshold (default 0.5)
-	 */
 	data class TextVertex(
 		val localX: Float, val localY: Float, val layerType: Int,
 		val u: Float, val v: Float,
@@ -89,14 +39,12 @@ class RegionVertexCollector {
 		val anchorX: Float, val anchorY: Float, val anchorZ: Float,
 		val scale: Float,
 		val billboardFlag: Float,
-		// SDF style params (replaces SDFParams uniform)
 		val outlineWidth: Float = 0f,
 		val glowRadius: Float = 0f,
 		val shadowSoftness: Float = 0f,
 		val threshold: Float = 0.5f
 	)
 
-	/** Edge vertex data (position + color + normal + line width + dash style). */
 	data class EdgeVertex(
 		val x: Float,
 		val y: Float,
@@ -109,31 +57,23 @@ class RegionVertexCollector {
 		val ny: Float,
 		val nz: Float,
 		val lineWidth: Float,
-		// Dash style parameters (0 = solid line)
 		val dashLength: Float = 0f,
 		val gapLength: Float = 0f,
 		val dashOffset: Float = 0f,
-		val animationSpeed: Float = 0f  // 0 = no animation
+		val animationSpeed: Float = 0f
 	)
 
-	// ============================================================================
-	// Screen-Space Vertex Types
-	// ============================================================================
-
-	/** Screen-space face vertex data (2D position + color + layer). */
 	data class ScreenFaceVertex(
 		val x: Float, val y: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int,
-		val layer: Float  // Depth for layering (higher = on top)
+		val layer: Float
 	)
 
-	/** Screen-space edge vertex data (2D position + color + direction + width + dash + layer). */
 	data class ScreenEdgeVertex(
 		val x: Float, val y: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int,
 		val dx: Float, val dy: Float,
 		val lineWidth: Float,
-		// Dash style parameters (0 = solid line)
 		val dashLength: Float = 0f,
 		val gapLength: Float = 0f,
 		val dashOffset: Float = 0f,
@@ -141,57 +81,17 @@ class RegionVertexCollector {
 		val layer: Float = 0f  // Depth for layering (higher = on top)
 	)
 
-	/**
-	 * Screen-space text vertex data with SDF style params and layer.
-	 * Uses SCREEN_TEXT_SDF_FORMAT (position + UV + color + style + layer).
-	 * 
-	 * @param x Screen-space X position
-	 * @param y Screen-space Y position
-	 * @param u Texture U coordinate
-	 * @param v Texture V coordinate
-	 * @param r Red color component
-	 * @param g Green color component
-	 * @param b Blue color component
-	 * @param a Alpha component (encodes layer type)
-	 * @param outlineWidth SDF outline width (0 = no outline)
-	 * @param glowRadius SDF glow radius (0 = no glow)
-	 * @param shadowSoftness SDF shadow softness (0 = no shadow)
-	 * @param threshold SDF edge threshold (default 0.5)
-	 * @param layer Depth for layering (higher = on top)
-	 */
 	data class ScreenTextVertex(
 		val x: Float, val y: Float, val layerType: Int,
 		val u: Float, val v: Float,
 		val r: Int, val g: Int, val b: Int, val a: Int,
-		// SDF style params (replaces SDFParams uniform)
 		val outlineWidth: Float = 0f,
 		val glowRadius: Float = 0f,
 		val shadowSoftness: Float = 0f,
 		val threshold: Float = 0.5f,
-		val layer: Float = 0f  // Depth for layering (higher = on top)
+		val layer: Float = 0f
 	)
 
-	// ============================================================================
-	// Image Vertex Types
-	// ============================================================================
-
-	/**
-	 * Screen-space image vertex data with overlay support.
-	 * Uses SCREEN_IMAGE_FORMAT (position + UV + color + overlayUV + layer).
-	 *
-	 * @param x Screen-space X position
-	 * @param y Screen-space Y position
-	 * @param u Main texture U coordinate
-	 * @param v Main texture V coordinate
-	 * @param r Red tint component
-	 * @param g Green tint component
-	 * @param b Blue tint component
-	 * @param a Alpha component
-	 * @param overlayU Overlay texture U coordinate
-	 * @param overlayV Overlay texture V coordinate
-	 * @param hasOverlay 1.0 if overlay should be rendered, 0.0 otherwise
-	 * @param layer Depth for layering (higher = on top)
-	 */
 	data class ScreenImageVertex(
 		val x: Float, val y: Float,
 		val u: Float, val v: Float,
@@ -202,27 +102,6 @@ class RegionVertexCollector {
 		val layer: Float
 	)
 
-	/**
-	 * World-space image vertex data with billboard support and overlay.
-	 * Uses WORLD_IMAGE_FORMAT (position + UV + color + anchor + billboard + overlayUV).
-	 *
-	 * @param localX Local offset X (before billboard transform)
-	 * @param localY Local offset Y (before billboard transform)
-	 * @param u Main texture U coordinate
-	 * @param v Main texture V coordinate
-	 * @param r Red tint component
-	 * @param g Green tint component
-	 * @param b Blue tint component
-	 * @param a Alpha component
-	 * @param anchorX Camera-relative anchor X
-	 * @param anchorY Camera-relative anchor Y
-	 * @param anchorZ Camera-relative anchor Z
-	 * @param scale Image scale
-	 * @param billboardFlag 0 = billboard towards camera, non-zero = fixed rotation
-	 * @param overlayU Overlay texture U coordinate
-	 * @param overlayV Overlay texture V coordinate
-	 * @param hasOverlay 1.0 if overlay should be rendered, 0.0 otherwise
-	 */
 	data class WorldImageVertex(
 		val localX: Float, val localY: Float,
 		val u: Float, val v: Float,
@@ -235,36 +114,6 @@ class RegionVertexCollector {
 		val diffuseAmount: Float
 	)
 
-	/**
-	 * Model vertex data for generic 3D models.
-	 * Uses WORLD_MODEL_FORMAT (position + color + UV0 + overlay + light + lightDir + light1Dir + normal + edgeData).
-	 *
-	 * @param x World X
-	 * @param y World Y
-	 * @param z World Z
-	 * @param u Texture U
-	 * @param v Texture V
-	 * @param r Red
-	 * @param g Green
-	 * @param b Blue
-	 * @param a Alpha
-	 * @param overlayU Overlay U
-	 * @param overlayV Overlay V
-	 * @param hasOverlay 1.0 if overlay active
-	 * @param diffuseAmount Amount of diffuse shading (0 = lightmap only, 1 = full diffuse)
-	 * @param light Packed lightmap coordinates
-	 * @param lx Primary light direction X (pre-transformed for ITEMS_FLAT)
-	 * @param ly Primary light direction Y
-	 * @param lz Primary light direction Z
-	 * @param l1x Secondary/fill light direction X
-	 * @param l1y Secondary/fill light direction Y
-	 * @param l1z Secondary/fill light direction Z
-	 * @param nx Normal X
-	 * @param ny Normal Y
-	 * @param nz Normal Z
-	 * @param edgeX Edge coordinate for AA
-	 * @param edgeY Edge coordinate for AA
-	 */
 	data class ModelVertex(
 		val x: Float, val y: Float, val z: Float,
 		val u: Float, val v: Float,
@@ -278,40 +127,21 @@ class RegionVertexCollector {
 		val edgeX: Float, val edgeY: Float
 	)
 
-	/**
-	 * Key for image batches - combines texture and filter mode.
-	 * Batches with the same texture but different filter modes are separate.
-	 */
 	data class ImageBatchKey(
 		val textureView: GpuTextureView,
 		val useNearestFilter: Boolean
 	)
 
-	// Image vertex collections - keyed by texture + filter mode for batching
-	// Each unique key gets its own list of vertices, rendered as separate draw calls
 	private val screenImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
 	private val worldImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>()
 	private val modelBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
 	private val screenModelBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
 
-	/**
-	 * Add screen image vertices for a specific texture.
-	 * @param texture The GPU texture view
-	 * @param vertices The vertices to add
-	 * @param useNearestFilter If true, use NEAREST filtering for pixel-perfect rendering
-	 */
 	fun addScreenImageVertices(texture: GpuTextureView, vertices: List<ScreenImageVertex>, useNearestFilter: Boolean = false) {
 		val key = ImageBatchKey(texture, useNearestFilter)
 		screenImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 	}
 
-	/**
-	 * Add world image vertices for a specific texture.
-	 * @param texture The GPU texture view
-	 * @param vertices The vertices to add
-	 * @param useNearestFilter If true, use NEAREST filtering for pixel-perfect rendering
-	 * @param outlineId Optional ID if these vertices should be rendered in the outline layer
-	 */
 	fun addWorldImageVertices(
 		texture: GpuTextureView, 
 		vertices: List<WorldImageVertex>, 
@@ -319,21 +149,13 @@ class RegionVertexCollector {
 		outlineId: Int? = null
 	) {
 		val key = ImageBatchKey(texture, useNearestFilter)
-		if (outlineId == null) {
-			worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
-		} else {
+		if (outlineId == null) worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		else {
 			val idMap = worldImageVerticesOutlined.getOrPut(outlineId) { java.util.concurrent.ConcurrentHashMap() }
 			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		}
 	}
 
-	/**
-	 * Add model vertices for a specific texture.
-	 * @param texture The GPU texture view
-	 * @param vertices The vertices to add
-	 * @param useNearestFilter If true, use NEAREST filtering
-	 * @param outlineId Optional ID if these vertices should be rendered in the outline layer
-	 */
 	fun addModelVertices(
 		texture: GpuTextureView, 
 		vertices: List<ModelVertex>, 
@@ -341,33 +163,24 @@ class RegionVertexCollector {
 		outlineId: Int? = null
 	) {
 		val key = ImageBatchKey(texture, useNearestFilter)
-		if (outlineId == null) {
-			modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
-		} else {
+		if (outlineId == null) modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		else {
 			val idMap = modelVerticesOutlined.getOrPut(outlineId) { java.util.concurrent.ConcurrentHashMap() }
 			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		}
 	}
 
-	/**
-	 * Add screen model vertices for a specific texture.
-	 */
 	fun addScreenModelVertices(texture: GpuTextureView, vertices: List<ModelVertex>, useNearestFilter: Boolean = false) {
 		val key = ImageBatchKey(texture, useNearestFilter)
 		screenModelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 	}
 
-	/** Add a face vertex. */
 	fun addFaceVertex(x: Float, y: Float, z: Float, color: Color, outlineId: Int? = null) {
 		val v = FaceVertex(x, y, z, color.red, color.green, color.blue, color.alpha)
-		if (outlineId == null) {
-			faceVertices.add(v)
-		} else {
-			faceVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
-		}
+		if (outlineId == null) faceVertices.add(v)
+		else faceVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
 	}
 
-	/** Add an edge vertex (solid line). */
 	fun addEdgeVertex(
 		x: Float,
 		y: Float,
@@ -380,14 +193,10 @@ class RegionVertexCollector {
 		outlineId: Int? = null
 	) {
 		val v = EdgeVertex(x, y, z, color.red, color.green, color.blue, color.alpha, nx, ny, nz, lineWidth)
-		if (outlineId == null) {
-			edgeVertices.add(v)
-		} else {
-			edgeVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
-		}
+		if (outlineId == null) edgeVertices.add(v)
+		else edgeVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
 	}
 
-	/** Add an edge vertex with dash style. */
 	fun addEdgeVertex(
 		x: Float,
 		y: Float,
@@ -400,9 +209,8 @@ class RegionVertexCollector {
 		dashStyle: LineDashStyle?,
 		outlineId: Int? = null
 	) {
-		if (dashStyle == null) {
-			addEdgeVertex(x, y, z, color, nx, ny, nz, lineWidth, outlineId)
-		} else {
+		if (dashStyle == null) addEdgeVertex(x, y, z, color, nx, ny, nz, lineWidth, outlineId)
+		else {
 			val v = EdgeVertex(
 				x, y, z,
 				color.red, color.green, color.blue, color.alpha,
@@ -413,34 +221,13 @@ class RegionVertexCollector {
 				dashStyle.offset,
 				if (dashStyle.animated) dashStyle.animationSpeed else 0f
 			)
-			if (outlineId == null) {
-				edgeVertices.add(v)
-			} else {
-				edgeVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
-			}
+			if (outlineId == null) edgeVertices.add(v)
+			else edgeVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(v)
 		}
 	}
 
-	/**
-	 * Add a billboard text vertex.
-	 * 
-	 * @param localX Local glyph offset X (before billboard transform)
-	 * @param localY Local glyph offset Y (before billboard transform)
-	 * @param u Texture U coordinate
-	 * @param v Texture V coordinate
-	 * @param r Red color component
-	 * @param g Green color component
-	 * @param b Blue color component
-	 * @param a Alpha component (encodes layer type)
-	 * @param anchorX Camera-relative anchor X
-	 * @param anchorY Camera-relative anchor Y
-	 * @param anchorZ Camera-relative anchor Z
-	 * @param scale Text scale
-	 * @param billboard True = auto-billboard towards camera, False = fixed rotation (offset already transformed)
-	 */
-	/**
-	 * Add a billboard text vertex.
-	 */
+
+
 	fun addTextVertex(
 		localX: Float, localY: Float, u: Float, v: Float,
 		r: Int, g: Int, b: Int, a: Int,
@@ -451,35 +238,27 @@ class RegionVertexCollector {
 		shadowSoftness: Float = 0f,
 		threshold: Float = 0.5f,
 		outlineId: Int? = null,
-		layerType: Int = 3 // Default to main text
+		layerType: Int = 3
 	) {
 		val vertex = TextVertex(
 			localX, localY, layerType, u, v, r, g, b, a,
 			anchorX, anchorY, anchorZ, scale, if (billboard) 0f else 1f,
 			outlineWidth, glowRadius, shadowSoftness, threshold
 		)
-		if (outlineId == null) {
-			textVertices.add(vertex)
-		} else {
-			textVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(vertex)
-		}
+		if (outlineId == null) textVertices.add(vertex)
+		else textVerticesOutlined.getOrPut(outlineId) { ConcurrentLinkedDeque() }.add(vertex)
 	}
 
-	// ============================================================================
-	// Screen-Space Vertex Add Methods
-	// ============================================================================
-
-	/** Add a screen-space face vertex with layer for draw order. */
 	fun addScreenFaceVertex(x: Float, y: Float, color: Color, layer: Float) {
 		screenFaceVertices.add(ScreenFaceVertex(x, y, color.red, color.green, color.blue, color.alpha, layer))
 	}
 
-	/** Add a screen-space edge vertex (solid line) with layer for draw order. */
+
 	fun addScreenEdgeVertex(x: Float, y: Float, color: Color, dx: Float, dy: Float, lineWidth: Float, layer: Float) {
 		screenEdgeVertices.add(ScreenEdgeVertex(x, y, color.red, color.green, color.blue, color.alpha, dx, dy, lineWidth, layer = layer))
 	}
 
-	/** Add a screen-space edge vertex with dash style and layer for draw order. */
+
 	fun addScreenEdgeVertex(
 		x: Float, y: Float,
 		color: Color,
@@ -488,9 +267,8 @@ class RegionVertexCollector {
 		dashStyle: LineDashStyle?,
 		layer: Float
 	) {
-		if (dashStyle == null) {
-			addScreenEdgeVertex(x, y, color, dx, dy, lineWidth, layer)
-		} else {
+		if (dashStyle == null) addScreenEdgeVertex(x, y, color, dx, dy, lineWidth, layer)
+		else {
 			screenEdgeVertices.add(
 				ScreenEdgeVertex(
 					x, y,
@@ -507,7 +285,7 @@ class RegionVertexCollector {
 		}
 	}
 
-	/** Add a screen-space text vertex with layer for draw order. */
+
 	fun addScreenTextVertex(
 		x: Float, y: Float, u: Float, v: Float,
 		r: Int, g: Int, b: Int, a: Int,
@@ -517,16 +295,10 @@ class RegionVertexCollector {
 		glowRadius: Float = 0f,
 		shadowSoftness: Float = 0f,
 		threshold: Float = 0.5f
-	) {
-		screenTextVertices.add(ScreenTextVertex(x, y, layerType, u, v, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer))
-	}
+	) { screenTextVertices.add(ScreenTextVertex(x, y, layerType, u, v, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer)) }
 
 
-	/**
-	 * Build collected data into ByteBuffers. Must be called on the main/render thread.
-	 * 
-	 * @return BuildResult containing raw ByteBuffers with index counts
-	 */
+
 	fun build(): BuildResult {
 		val faces = buildFaces()
 		val edges = buildEdges()
@@ -642,10 +414,6 @@ class RegionVertexCollector {
 		return result
 	}
 
-	// ============================================================================
-	// Screen-Space Upload Methods
-	// ============================================================================
-
 	private fun buildScreenFaces(): BuiltBatch? {
 		if (screenFaceVertices.isEmpty()) return null
 		val vertices = screenFaceVertices.toList()
@@ -737,11 +505,6 @@ class RegionVertexCollector {
 		return result
 	}
 
-	/**
-	 * Build screen-space data into ByteBuffers.
-	 *
-	 * @return ScreenBuildResult containing ByteBuffers
-	 */
 	fun buildScreen(): ScreenBuildResult {
 		val faces = buildScreenFaces()
 		val edges = buildScreenEdges()
@@ -760,8 +523,7 @@ class RegionVertexCollector {
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
-			
-			// SCREEN_IMAGE_FORMAT: 12 + 8 + 4 + 12 + 4 = 40 bytes per vertex
+
 			BufferAllocator(vertices.size * 44).use { allocator ->
 				val builder = BufferBuilder(
 					allocator,
@@ -774,7 +536,6 @@ class RegionVertexCollector {
 						.texture(v.u, v.v)
 						.color(v.r, v.g, v.b, v.a)
 
-					// Write overlay UV data (overlayU, overlayV, hasOverlay, diffuseAmount)
 					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
 					if (overlayPointer != -1L) {
 						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
@@ -783,7 +544,6 @@ class RegionVertexCollector {
 						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
 					}
 
-					// Write layer for draw order
 					val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
 					if (layerPointer != -1L) {
 						MemoryUtil.memPutFloat(layerPointer, v.layer)
@@ -1094,13 +854,13 @@ class RegionVertexCollector {
 }
 
 data class BuiltBatch(val buffer: java.nio.ByteBuffer, val indexCount: Int)
-data class TextureBuildBatch(val textureView: com.mojang.blaze3d.textures.GpuTextureView, val buffer: java.nio.ByteBuffer, val indexCount: Int, val useNearestFilter: Boolean = false)
+data class TextureBuildBatch(val textureView: GpuTextureView, val buffer: java.nio.ByteBuffer, val indexCount: Int, val useNearestFilter: Boolean = false)
 data class OutlinedBuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<TextureBuildBatch>, val images: List<TextureBuildBatch>)
 data class BuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<TextureBuildBatch>, val images: List<TextureBuildBatch>, val outlined: Map<Int, OutlinedBuildResult>)
 data class ScreenBuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val images: List<TextureBuildBatch>, val models: List<TextureBuildBatch>)
 
 data class TextureBatchResult(
-	val textureView: com.mojang.blaze3d.textures.GpuTextureView,
+	val textureView: GpuTextureView,
 	val buffer: com.mojang.blaze3d.buffers.GpuBuffer,
 	val indexCount: Int,
 	val useNearestFilter: Boolean = false
