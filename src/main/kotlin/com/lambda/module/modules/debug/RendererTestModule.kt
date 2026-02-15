@@ -441,7 +441,7 @@ object ImmediateRendererTest : Module(
 					)
 				}
 
-				worldOutlines(world.entities.toList(), OutlineStyle(Color.RED))
+				worldOutlines(world.entities, OutlineStyle(Color.RED))
 			}
 		}
 	}

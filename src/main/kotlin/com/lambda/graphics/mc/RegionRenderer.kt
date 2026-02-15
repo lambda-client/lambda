@@ -407,20 +407,6 @@ class RegionRenderer {
 				)
 		}
 
-		fun createScreenRenderPass(label: String): RenderPass? {
-			val framebuffer = mc.framebuffer ?: return null
-
-			return RenderSystem.getDevice()
-				.createCommandEncoder()
-				.createRenderPass(
-					{ label },
-					framebuffer.colorAttachmentView,
-					OptionalInt.empty(),
-					null,
-					OptionalDouble.empty()
-				)
-		}
-
 		fun createScreenRenderPassWithDepth(label: String, clearDepth: Boolean = false): RenderPass? {
 			val framebuffer = mc.framebuffer ?: return null
 			val depthView = RendererUtils.getScreenDepthView()

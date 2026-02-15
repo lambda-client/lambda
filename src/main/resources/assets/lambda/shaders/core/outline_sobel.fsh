@@ -8,14 +8,23 @@ uniform sampler2D Sampler2;
 in vec2 v_TexCoord;
 out vec4 fragColor;
 
-bool isVisible(float alpha, vec2 coord) {
-    if (alpha <= 0.0) return false;
-    if (alpha < 0.5) return true;
-    
+bool depthTestVisible(vec2 coord) {
     float silDepth = texture(Sampler1, coord).r;
     float worldDepth = texture(Sampler2, coord).r;
-    
     return silDepth <= worldDepth + 0.00001;
+}
+
+bool isVisible(float alpha, vec2 coord) {
+    if (alpha <= 0.0) return false;
+
+    if (ModelOffset.x > 0.5) {
+        if (ModelOffset.y > 0.5) return depthTestVisible(coord);
+        return true;
+    }
+
+    // Entity ID mode: depth test flag encoded in alpha
+    if (alpha < 0.5) return true;
+    return depthTestVisible(coord);
 }
 
 void main() {

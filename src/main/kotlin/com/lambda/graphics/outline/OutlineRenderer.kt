@@ -53,9 +53,10 @@ object OutlineRenderer {
 
     fun getGroupDepthView(): GpuTextureView? = silhouetteDepthView
 
-    fun beginGroupPass(name: String, depthView: GpuTextureView) {
+    fun beginGroupPass(name: String) {
         if (!ensureSilhouetteFBO()) return
         val colorView = silhouetteView ?: return
+        val depthView = silhouetteDepthView ?: return
         
         RenderSystem.getDevice()
             .createCommandEncoder()
@@ -68,7 +69,7 @@ object OutlineRenderer {
             )?.close()
     }
 
-    fun endGroupPass(style: OutlineStyle) {
+    fun endGroupPass(style: OutlineStyle, depthTest: Boolean = false) {
         val groupView = silhouetteView ?: return
         val framebuffer = mc.framebuffer ?: return
 
@@ -79,7 +80,7 @@ object OutlineRenderer {
         val dynamicTransform = RenderSystem.getDynamicUniforms().write(
             Matrix4f(),
             outlineColor,
-            Vector3f(1f, 0f, 0f),
+            Vector3f(1f, if (depthTest) 1f else 0f, 0f),
             Matrix4f()
         )
 
@@ -95,6 +96,13 @@ object OutlineRenderer {
                 pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
                 val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
                 pass.bindTexture("Sampler0", groupView, nearestSampler)
+
+                val silDepth = silhouetteDepthView
+                if (silDepth != null) pass.bindTexture("Sampler1", silDepth, nearestSampler)
+
+                val worldDepth = framebuffer.depthAttachmentView
+                if (worldDepth != null) pass.bindTexture("Sampler2", worldDepth, nearestSampler)
+
                 pass.setUniform("DynamicTransforms", dynamicTransform)
                 pass.setVertexBuffer(0, quadBuffer)
                 

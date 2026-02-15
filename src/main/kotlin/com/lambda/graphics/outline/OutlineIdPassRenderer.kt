@@ -220,7 +220,14 @@ object OutlineIdPassRenderer {
         val blockAtlas = mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
         val whiteTexture = blockAtlas.glTextureView
         val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
-        
+
+        val idUniform = RenderSystem.getDynamicUniforms().write(
+            Matrix4f(),
+            Vector4f(1f, 1f, 1f, 1f),
+            Vector3f(0f, 0f, 0f),
+            Matrix4f()
+        )
+
         val renderPass = RenderSystem.getDevice()
             .createCommandEncoder()
             .createRenderPass(
@@ -234,12 +241,6 @@ object OutlineIdPassRenderer {
 	    renderPass.use { renderPass ->
 		    renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_ID)
 
-		    val idUniform = RenderSystem.getDynamicUniforms().write(
-			    Matrix4f(),
-			    Vector4f(1f, 1f, 1f, 1f),
-			    Vector3f(0f, 0f, 0f),
-			    Matrix4f()
-		    )
 		    renderPass.setUniform("DynamicTransforms", idUniform)
 
 		    renderPass.setVertexBuffer(0, vertexBuffer)

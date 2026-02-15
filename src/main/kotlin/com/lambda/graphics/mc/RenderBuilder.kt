@@ -27,6 +27,7 @@ import net.minecraft.client.render.model.BlockStateModel
 import net.minecraft.client.render.state.CameraRenderState
 import net.minecraft.client.texture.Sprite
 import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.entity.Entity
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -240,33 +241,15 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	}
 
 	fun worldOutline(
-		entity: net.minecraft.entity.Entity,
-		color: Color
-	) {
-		worldOutline(entity, OutlineStyle(color))
-	}
-
-	fun worldOutline(
-		entity: net.minecraft.entity.Entity,
+		entity: Entity,
 		style: OutlineStyle
-	) {
-		OutlineManager.setEntityOutline(entity.id, style, depthTest = depthTest)
-	}
+	) = OutlineManager.setEntityOutline(entity.id, style, depthTest = depthTest)
 
 	fun worldOutlines(
-		entities: List<net.minecraft.entity.Entity>,
-		color: Color,
-	) {
-		worldOutlines(entities, OutlineStyle(color))
-	}
-
-	fun worldOutlines(
-		entities: List<net.minecraft.entity.Entity>,
+		entities: Iterable<Entity>,
 		style: OutlineStyle
-	) {
-		entities.forEach {
-			OutlineManager.setEntityOutline(it.id, style, depthTest = depthTest)
-		}
+	) = entities.forEach {
+		OutlineManager.setEntityOutline(it.id, style, depthTest = depthTest)
 	}
 
 	fun circleLine(
