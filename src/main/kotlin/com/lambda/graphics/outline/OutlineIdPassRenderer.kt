@@ -33,8 +33,7 @@ import java.util.OptionalDouble
 import java.util.OptionalInt
 
 object OutlineIdPassRenderer {
-
-    private val vertexSize = 28 // POSITION_TEXTURE_COLOR with 4D pos: 4f + 2f + 1i
+    private val vertexSize = 28
 
     private class DrawBatch(val textureView: com.mojang.blaze3d.textures.GpuTextureView?, val vertexCount: Int, val vertexOffset: Int)
     
@@ -66,36 +65,10 @@ object OutlineIdPassRenderer {
             renderPass(colorView, vbo, batches)
         }
     }
-
-    fun renderCustom(customGeometries: Map<Int, List<CapturedGeometry>>, useMcDepth: Boolean) {
-        if (customGeometries.isEmpty() || !OutlineIdBuffer.ensureBuffer()) return
-        
-        val colorView = OutlineIdBuffer.getTextureView() ?: return
-        
-        buildCustomVertexBuffer(customGeometries, isDepthTested = useMcDepth)
-        val vbo = if (useMcDepth) depthTestedVertexBuffer else xrayVertexBuffer
-        val batches = if (useMcDepth) depthTestedBatches else xrayBatches
-        
-        if (vbo != null && batches.isNotEmpty()) {
-            renderPass(colorView, vbo, batches)
-        }
-    }
     
     fun buildVertexBuffer(entities: Map<Int, OutlineStyle>, isDepthTested: Boolean) {
         val geometries = entities.mapValues { (id, _) -> VertexCapture.getEntityGeometries(id) }
         buildVertexBufferInternal(geometries, styles = entities, isDepthTested = isDepthTested, transform = null)
-    }
-
-    /**
-     * Build the vertex buffer for the ID pass using custom geometry.
-     */
-    private fun buildCustomVertexBuffer(customGeometries: Map<Int, List<CapturedGeometry>>, isDepthTested: Boolean) {
-        val styles = customGeometries.keys.mapNotNull { id -> 
-            OutlineManager.getOutlineStyle(id)?.let { id to it }
-        }.toMap()
-
-        val transform = Matrix4f(RenderMain.worldProjectionMatrix).mul(RenderMain.cameraRotationMatrix)
-        buildVertexBufferInternal(customGeometries, styles, isDepthTested, transform)
     }
 
     private fun buildVertexBufferInternal(
@@ -135,20 +108,16 @@ object OutlineIdPassRenderer {
                 for ((geometry, style) in group) {
                     val capturedVerts = geometry.getVertices()
                     val color = style.color
-                    var alpha = if (style.fill) {
-                        (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
-                    } else {
-                        1
-                    }
+                    var alpha =
+                        if (style.fill) (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
+                        else 1
                     
-                    if (isDepthTested) {
-                        alpha = alpha or 128
-                    }
+                    if (isDepthTested) alpha = alpha or 128
                     
                     val packedColor = (alpha shl 24) or
-                                     ((color.blue and 0xFF) shl 16) or
-                                     ((color.green and 0xFF) shl 8) or
-                                     (color.red and 0xFF)
+                            ((color.blue and 0xFF) shl 16) or
+                            ((color.green and 0xFF) shl 8) or
+                            (color.red and 0xFF)
 
                     val quadCount = capturedVerts.size / 4
                     for (q in 0 until quadCount) {
@@ -165,9 +134,7 @@ object OutlineIdPassRenderer {
                                 transform.transform(v.x, v.y, v.z, v.w, posVec)
                                 CapturedVertex(posVec.x, posVec.y, posVec.z, posVec.w, v.nx, v.ny, v.nz, v.u, v.v)
                             }
-                        } else {
-                            quadVerts.toList()
-                        }
+                        } else quadVerts.toList()
 
                         val v0 = transformed[0]
                         val v1 = transformed[1]
@@ -217,7 +184,7 @@ object OutlineIdPassRenderer {
         val depthView = OutlineIdBuffer.getSilhouetteDepthView() ?: return
         if (batches.isEmpty()) return
 
-        val blockAtlas = mc.textureManager.getTexture(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE)
+        val blockAtlas = mc.textureManager.getTexture(net.minecraft.util.Identifier.ofVanilla("textures/atlas/blocks.png"))
         val whiteTexture = blockAtlas.glTextureView
         val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
 

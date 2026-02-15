@@ -27,8 +27,6 @@ data class OutlineStyle(
     val fill: Boolean = true,
     val fillOpacity: Float = 0.4f
 ) {
-    fun toArgb(): Int = color.rgb
-    
     companion object {
         val DEFAULT = OutlineStyle(Color.WHITE)
     }

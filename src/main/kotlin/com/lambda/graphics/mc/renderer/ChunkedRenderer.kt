@@ -89,15 +89,6 @@ class ChunkedRenderer(
 		rebuildQueue.addAll(chunkMap.values)
 	}
 
-	fun rebuildAll() {
-		runSafe {
-			val chunksArray = world.chunkManager.chunks.chunks
-			(0 until chunksArray.length()).forEach { i ->
-				chunksArray.get(i)?.chunkData?.markDirty()
-			}
-		}
-	}
-
 	fun clear() {
 		chunkMap.values.forEach { it.clearData() }
 		chunkMap.clear()

@@ -10,6 +10,7 @@ import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.util.BufferAllocator
 import org.lwjgl.system.MemoryUtil
 import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class RegionVertexCollector {
@@ -17,11 +18,11 @@ class RegionVertexCollector {
 	val edgeVertices = ConcurrentLinkedDeque<EdgeVertex>()
 	val textVertices = ConcurrentLinkedDeque<TextVertex>()
 
-	val faceVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<FaceVertex>>()
-	val edgeVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<EdgeVertex>>()
-	val textVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, ConcurrentLinkedDeque<TextVertex>>()
-	val modelVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>>()
-	val worldImageVerticesOutlined = java.util.concurrent.ConcurrentHashMap<Int, java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>>()
+	val faceVerticesOutlined = ConcurrentHashMap<Int, ConcurrentLinkedDeque<FaceVertex>>()
+	val edgeVerticesOutlined = ConcurrentHashMap<Int, ConcurrentLinkedDeque<EdgeVertex>>()
+	val textVerticesOutlined = ConcurrentHashMap<Int, ConcurrentLinkedDeque<TextVertex>>()
+	val modelVerticesOutlined = ConcurrentHashMap<Int, ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>>()
+	val worldImageVerticesOutlined = ConcurrentHashMap<Int, ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>>()
 
 	val screenFaceVertices = ConcurrentLinkedDeque<ScreenFaceVertex>()
 	val screenEdgeVertices = ConcurrentLinkedDeque<ScreenEdgeVertex>()
@@ -78,7 +79,7 @@ class RegionVertexCollector {
 		val gapLength: Float = 0f,
 		val dashOffset: Float = 0f,
 		val animationSpeed: Float = 0f,
-		val layer: Float = 0f  // Depth for layering (higher = on top)
+		val layer: Float = 0f
 	)
 
 	data class ScreenTextVertex(
@@ -132,10 +133,10 @@ class RegionVertexCollector {
 		val useNearestFilter: Boolean
 	)
 
-	private val screenImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
-	private val worldImageBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>()
-	private val modelBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
-	private val screenModelBatches = java.util.concurrent.ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
+	private val screenImageBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
+	private val worldImageBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>()
+	private val modelBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
+	private val screenModelBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
 
 	fun addScreenImageVertices(texture: GpuTextureView, vertices: List<ScreenImageVertex>, useNearestFilter: Boolean = false) {
 		val key = ImageBatchKey(texture, useNearestFilter)
@@ -151,7 +152,7 @@ class RegionVertexCollector {
 		val key = ImageBatchKey(texture, useNearestFilter)
 		if (outlineId == null) worldImageBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		else {
-			val idMap = worldImageVerticesOutlined.getOrPut(outlineId) { java.util.concurrent.ConcurrentHashMap() }
+			val idMap = worldImageVerticesOutlined.getOrPut(outlineId) { ConcurrentHashMap() }
 			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		}
 	}
@@ -165,7 +166,7 @@ class RegionVertexCollector {
 		val key = ImageBatchKey(texture, useNearestFilter)
 		if (outlineId == null) modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		else {
-			val idMap = modelVerticesOutlined.getOrPut(outlineId) { java.util.concurrent.ConcurrentHashMap() }
+			val idMap = modelVerticesOutlined.getOrPut(outlineId) { ConcurrentHashMap() }
 			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		}
 	}
@@ -226,8 +227,6 @@ class RegionVertexCollector {
 		}
 	}
 
-
-
 	fun addTextVertex(
 		localX: Float, localY: Float, u: Float, v: Float,
 		r: Int, g: Int, b: Int, a: Int,
@@ -253,11 +252,9 @@ class RegionVertexCollector {
 		screenFaceVertices.add(ScreenFaceVertex(x, y, color.red, color.green, color.blue, color.alpha, layer))
 	}
 
-
 	fun addScreenEdgeVertex(x: Float, y: Float, color: Color, dx: Float, dy: Float, lineWidth: Float, layer: Float) {
 		screenEdgeVertices.add(ScreenEdgeVertex(x, y, color.red, color.green, color.blue, color.alpha, dx, dy, lineWidth, layer = layer))
 	}
-
 
 	fun addScreenEdgeVertex(
 		x: Float, y: Float,
@@ -285,7 +282,6 @@ class RegionVertexCollector {
 		}
 	}
 
-
 	fun addScreenTextVertex(
 		x: Float, y: Float, u: Float, v: Float,
 		r: Int, g: Int, b: Int, a: Int,
@@ -296,8 +292,6 @@ class RegionVertexCollector {
 		shadowSoftness: Float = 0f,
 		threshold: Float = 0.5f
 	) { screenTextVertices.add(ScreenTextVertex(x, y, layerType, u, v, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer)) }
-
-
 
 	fun build(): BuildResult {
 		val faces = buildFaces()
@@ -319,8 +313,6 @@ class RegionVertexCollector {
 
 		return BuildResult(faces, edges, text, models, images, outlinedResults)
 	}
-
-
 
 	private fun buildFaces(): BuiltBatch? {
 		if (faceVertices.isEmpty()) return null
@@ -850,7 +842,6 @@ class RegionVertexCollector {
 		worldImageVerticesOutlined.remove(id)
 		return results
 	}
-
 }
 
 data class BuiltBatch(val buffer: java.nio.ByteBuffer, val indexCount: Int)

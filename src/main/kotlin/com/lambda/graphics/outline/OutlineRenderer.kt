@@ -45,7 +45,6 @@ object OutlineRenderer {
     private var silhouetteHeight = 0
 
     private var silhouetteVertexBuffer: GpuBuffer? = null
-    private var silhouetteVertexCount = 0
 
     private var fullscreenQuadBuffer: GpuBuffer? = null
 
@@ -176,126 +175,6 @@ object OutlineRenderer {
         }
     }
 
-    fun clearSilhouette() {
-        if (!ensureSilhouetteFBO()) return
-        val colorView = silhouetteView ?: return
-        val depthView = silhouetteDepthView ?: return
-
-        RenderSystem.getDevice()
-            .createCommandEncoder()
-            .createRenderPass(
-                { "Lambda Clear Outline Silhouette" },
-                colorView,
-                OptionalInt.of(0x00000000),
-                depthView,
-                OptionalDouble.of(1.0)
-            )?.close()
-    }
-
-    fun beginFrame() {
-        clearSilhouette()
-    }
-
-    fun renderSilhouettes() {
-        if (!ensureSilhouetteFBO()) return
-        
-        val colorView = silhouetteView ?: return
-        val depthView = silhouetteDepthView ?: return
-
-        val outlines = OutlineManager.getEntityOutlines()
-        if (outlines.isEmpty()) return
-
-        val vertexSize = VertexFormats.POSITION_COLOR.vertexSize
-        var totalVertices = 0
-
-        for ((entityId, _) in outlines) {
-            val geometries = VertexCapture.getEntityGeometries(entityId)
-            for (geometry in geometries) {
-                val capturedVerts = geometry.getVertices()
-                totalVertices += (capturedVerts.size / 4) * 6
-            }
-        }
-        
-        if (totalVertices == 0) return
-
-        val buffer = MemoryUtil.memAlloc(totalVertices * vertexSize).order(ByteOrder.nativeOrder())
-        try {
-            for ((entityId, pair) in outlines) {
-                val style = pair.first
-                val geometries = VertexCapture.getEntityGeometries(entityId)
-                for (geometry in geometries) {
-                    val capturedVerts = geometry.getVertices()
-                    if (capturedVerts.isEmpty()) continue
-
-                    val color = style.color
-                    val fillAlpha = if (style.fill) {
-                        (style.fillOpacity * 255f).toInt().coerceIn(2, 255)
-                    } else {
-                        1
-                    }
-                    val packedColor = (fillAlpha shl 24) or
-                                     ((color.blue and 0xFF) shl 16) or
-                                     ((color.green and 0xFF) shl 8) or
-                                     (color.red and 0xFF)
-
-                    val quadCount = capturedVerts.size / 4
-                    for (q in 0 until quadCount) {
-                        val baseIdx = q * 4
-                        val v0 = capturedVerts[baseIdx]
-                        val v1 = capturedVerts[baseIdx + 1]
-                        val v2 = capturedVerts[baseIdx + 2]
-                        val v3 = capturedVerts[baseIdx + 3]
-
-                        buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putInt(packedColor)
-                        buffer.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putInt(packedColor)
-                        buffer.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putInt(packedColor)
-                        buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putInt(packedColor)
-                        buffer.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putInt(packedColor)
-                        buffer.putFloat(v3.x).putFloat(v3.y).putFloat(v3.z).putInt(packedColor)
-                    }
-                }
-            }
-            buffer.flip()
-            
-
-            silhouetteVertexBuffer?.close()
-            val vbo = RenderSystem.getDevice().createBuffer({ "Lambda Outline Silhouette Vertices" }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, buffer.remaining().toLong())
-            vbo.upload(buffer)
-            silhouetteVertexBuffer = vbo
-            silhouetteVertexCount = totalVertices
-        } finally {
-            MemoryUtil.memFree(buffer)
-        }
-
-        val vertexBuffer = silhouetteVertexBuffer ?: return
-        
-        val origProj = RenderMain.worldProjectionMatrix
-        
-        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
-            RenderMain.modelViewMatrix,
-            Vector4f(1f, 1f, 1f, 1f),
-            Vector3f(0f, 0f, 0f),
-            origProj
-        )
-
-        val renderPass = RenderSystem.getDevice()
-            .createCommandEncoder()
-            .createRenderPass(
-                { "Lambda Outline Silhouette Pass" },
-                colorView,
-                OptionalInt.empty(),
-                depthView,
-                OptionalDouble.empty()
-            ) ?: return
-
-	    renderPass.use { renderPass ->
-		    renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_SILHOUETTE)
-		    renderPass.setUniform("DynamicTransforms", dynamicTransform)
-		    renderPass.setVertexBuffer(0, vertexBuffer)
-		    renderPass.draw(0, silhouetteVertexCount)
-	    }
-    }
-
     fun renderAllIDPasses() {
         val depthTested = OutlineManager.getDepthTestedEntityIds()
         val xray = OutlineManager.getXrayEntityIds()
@@ -308,15 +187,8 @@ object OutlineRenderer {
         }
     }
 
-    fun renderIDPass(entityIds: Set<Int>, depthTest: Boolean) {
-        if (entityIds.isEmpty()) return
-        OutlineIdPassRenderer.render(entityIds, useMcDepth = depthTest)
-    }
-
     fun renderEdges() {
-        if (OutlineIdBuffer.hasData || OutlineLayerBuffer.hasData) {
-            applyEdgeDetection()
-        }
+        if (OutlineIdBuffer.hasData) applyEdgeDetection()
     }
 
     private fun applyEdgeDetection() {
@@ -360,49 +232,6 @@ object OutlineRenderer {
                 pass.drawIndexed(0, 0, 6, 1)
             }
     }
-    
-    private fun applyEdgeDetectionNative(outlineFb: net.minecraft.client.gl.SimpleFramebuffer) {
-        val framebuffer = mc.framebuffer ?: return
-        
-        ensureFullscreenQuad()
-        val quadBuffer = fullscreenQuadBuffer ?: return
-
-        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
-            Matrix4f(),
-            Vector4f(1f, 1f, 1f, 1f),
-            Vector3f(0f, 0f, 0f),
-            Matrix4f()
-        )
-
-        val renderPass = RenderSystem.getDevice()
-            .createCommandEncoder()
-            .createRenderPass(
-                { "Lambda Outline Sobel Pass" },
-                framebuffer.colorAttachmentView,
-                OptionalInt.empty(),
-                null,
-                OptionalDouble.empty()
-            ) ?: return
-
-        try {
-            renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
-
-            val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
-            renderPass.bindTexture("Sampler0", outlineFb.colorAttachmentView, nearestSampler)
-
-            renderPass.setUniform("DynamicTransforms", dynamicTransform)
-
-            renderPass.setVertexBuffer(0, quadBuffer)
-
-            val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-            val indexBuffer = shapeIndexBuffer.getIndexBuffer(4)
-            renderPass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
-            renderPass.drawIndexed(0, 0, 6, 1)
-        } finally {
-            renderPass.close()
-        }
-    }
-
 
     fun cleanup() {
         silhouetteView?.close()
@@ -420,8 +249,6 @@ object OutlineRenderer {
         fullscreenQuadBuffer = null
         silhouetteWidth = 0
         silhouetteHeight = 0
-
-        OutlineLayerBuffer.cleanup()
 
         OutlineIdBuffer.cleanup()
         OutlineIdPassRenderer.cleanup()

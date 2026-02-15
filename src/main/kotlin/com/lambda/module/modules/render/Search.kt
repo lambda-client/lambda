@@ -29,6 +29,7 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.buildSideMesh
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
@@ -156,7 +157,7 @@ object Search : Module(
     }
 
     private fun RenderBuilder.tracer(pair: Pair<Vec3d, Pair<Color, Color>>) {
-        val endPoint = RenderMain.worldToScreenNormalized(pair.first) ?: return
+        val endPoint = worldToScreenNormalized(pair.first) ?: return
         val startColor = if (useNaturalColor) pair.second.first else tracerConfig.startColor
         val endColor = if (useNaturalColor) pair.second.second else tracerConfig.endColor
         screenLineGradient(

@@ -105,7 +105,6 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 
 		val outlinedIds = chunks.flatMap { it.first.getOutlineIds() }.toSet()
 		if (outlinedIds.isNotEmpty()) {
-			val framebuffer = mc.framebuffer ?: return
 			val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
 
 			RendererUtils.ensureGlintTextureLoaded()

@@ -19,13 +19,9 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.ScreenRenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager.isFriend
-import com.lambda.graphics.RenderMain.worldToScreenNormalized
-import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.EntityGroup

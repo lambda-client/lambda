@@ -47,7 +47,6 @@
         "render.FluidRendererMixin",
         "render.FogRendererMixin",
         "render.GameRendererMixin",
-        "render.GlStateManagerMixin",
         "render.HandledScreenMixin",
         "render.HeadFeatureRendererMixin",
         "render.HeldItemRendererMixin",

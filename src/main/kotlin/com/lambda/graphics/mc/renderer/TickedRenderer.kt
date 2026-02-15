@@ -62,13 +62,11 @@ class TickedRenderer(
 		val tickCamera = tickCameraPos ?: return emptyList()
 		if (!renderer.hasData()) return emptyList()
 
-		val modelViewMatrix = RenderMain.modelViewMatrix
-
 		val deltaX = (tickCamera.x - currentCameraPos.x).toFloat()
 		val deltaY = (tickCamera.y - currentCameraPos.y).toFloat()
 		val deltaZ = (tickCamera.z - currentCameraPos.z).toFloat()
 
-		val modelView = Matrix4f(RenderMain.cameraRotationMatrix).mul(modelViewMatrix).m30(0f).m31(0f).m32(0f).translate(deltaX, deltaY, deltaZ)
+		val modelView = Matrix4f(RenderMain.cameraRotationMatrix).m30(0f).m31(0f).m32(0f).translate(deltaX, deltaY, deltaZ)
 		val dynamicTransform = RenderSystem.getDynamicUniforms()
 			.write(modelView, Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), RendererUtils.createGlintTransform(0.25f))
 		

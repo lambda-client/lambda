@@ -21,9 +21,9 @@ import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ScreenTextSettings
 import com.lambda.friend.FriendManager.isFriend
-import com.lambda.graphics.RenderMain.worldToScreenNormalized
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.graphics.text.FontHandler.getDefaultFont
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module

@@ -18,6 +18,7 @@
 package com.lambda.graphics.outline
 
 import com.mojang.blaze3d.textures.GpuTextureView
+import kotlin.collections.find
 
 object VertexCapture {
     private val entityGeometries = mutableMapOf<Int, MutableList<CapturedGeometry>>()
@@ -55,9 +56,7 @@ object VertexCapture {
     fun endCapture() {
         val entityId = capturingEntityId ?: return
         entityGeometries[entityId]?.removeAll { it.isEmpty() }
-        if (entityGeometries[entityId]?.isEmpty() == true) {
-            entityGeometries.remove(entityId)
-        }
+        if (entityGeometries[entityId]?.isEmpty() == true) entityGeometries.remove(entityId)
 
         capturingEntityId = null
         currentTextureView = null
@@ -81,5 +80,35 @@ object VertexCapture {
         capturingEntityId = null
         currentTextureView = null
         currentGeometry = null
+    }
+}
+
+data class CapturedVertex(
+    val x: Float,
+    val y: Float,
+    val z: Float,
+    val w: Float = 1.0f,
+    val nx: Float = 0f,
+    val ny: Float = 0f,
+    val nz: Float = 1f,
+    val u: Float = 0f,
+    val v: Float = 0f
+)
+
+class CapturedGeometry(val textureView: GpuTextureView?) {
+    private val vertices = ArrayList<CapturedVertex>()
+
+    fun addVertex(x: Float, y: Float, z: Float, w: Float, nx: Float, ny: Float, nz: Float, u: Float = 0f, v: Float = 0f) {
+        vertices.add(CapturedVertex(x, y, z, w, nx, ny, nz, u, v))
+    }
+
+    fun getVertices(): List<CapturedVertex> = vertices
+
+    fun isEmpty(): Boolean = vertices.isEmpty()
+
+    fun size(): Int = vertices.size
+
+    fun clear() {
+        vertices.clear()
     }
 }

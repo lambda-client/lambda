@@ -182,23 +182,6 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	val OUTLINE_SILHOUETTE: RenderPipeline =
-		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
-				.withLocation(Identifier.of("lambda", "pipeline/outline_silhouette"))
-				.withVertexShader(Identifier.of("lambda", "core/outline_silhouette"))
-				.withFragmentShader(Identifier.of("lambda", "core/outline_silhouette"))
-				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
-				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-				.withCull(false)
-				.withVertexFormat(
-					VertexFormats.POSITION_COLOR,
-					VertexFormat.DrawMode.TRIANGLES
-				)
-				.build()
-		)
-
 	val OUTLINE_SOBEL: RenderPipeline =
 		RenderPipelines.register(
 			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
