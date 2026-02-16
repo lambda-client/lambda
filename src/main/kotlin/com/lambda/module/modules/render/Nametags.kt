@@ -46,6 +46,7 @@ import net.minecraft.util.math.Vec3d
 import org.joml.component1
 import org.joml.component2
 import java.awt.Color
+import kotlin.math.max
 
 //ToDo: implement all settings
 object Nametags : Module(
@@ -55,6 +56,7 @@ object Nametags : Module(
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
+		Background("Background"),
 		Text("Text")
 	}
 
@@ -66,6 +68,9 @@ object Nametags : Module(
 	private val entities by setting("Entities", setOf(EntityUtils.EntityGroup.Player), EntityUtils.EntityGroup.entries).group(Group.General)
 	private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f).group(Group.General)
 	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01).group(Group.General)
+	private val background by setting("Background", true).group(Group.Background)
+	private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }.group(Group.Background)
+	private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }.group(Group.Background)
 	private val spacing by setting("Spacing", 0, 0..10, 1).group(Group.General)
 	private val self by setting("Self", false).group(Group.General)
 	private val health by setting("Health", true).group(Group.General)
@@ -92,6 +97,8 @@ object Nametags : Module(
 	var trueItemScaleY = 0f
 	var trueSpacingX = 0f
 	var trueSpacingY = 0f
+	var trueBGSizeX = 0f
+	var trueBGSizeY = 0f
 
 	init {
 		immediateRenderer("Nametags Immediate Renderer") { safeContext ->
@@ -101,34 +108,35 @@ object Nametags : Module(
 				trueItemScaleX = trueItemScaleY * heightWidthRatio
 				trueSpacingY = spacing * 0.0005f
 				trueSpacingX = trueSpacingY * heightWidthRatio
+				trueBGSizeY = (backgroundSize * 0.005f) * 0.5f
+				trueBGSizeX = trueBGSizeY * heightWidthRatio
 
 				world.entities
 					.sortedByDescending { it distSq mc.gameRenderer.camera.pos }
 					.forEach { entity ->
-						val textConfig = if (entity is OtherClientPlayerEntity && entity.isFriend) friendTextConfig else otherTextConfig
+						val textConfig =
+							if (entity is OtherClientPlayerEntity && entity.isFriend) friendTextConfig
+							else otherTextConfig
 						val textStyle = textConfig.getSDFStyle()
 						val textSize = textConfig.size
 						if (!shouldRenderNametag(entity)) return@forEach
 						val nameText = entity.displayName?.string ?: return@forEach
+						val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, textSize)
 						val box = entity.interpolatedBox
 						val boxCenter = box.center
 						var (anchorX, anchorY) =
 							worldToScreenNormalized(Vec3d(boxCenter.x, box.maxY + yOffset, boxCenter.z))
 								?: return@forEach
 
+						val halfNameWidth = nameWidth / 2
+
 						if (entity !is LivingEntity) {
+							if (background) {
+								screenRect(anchorX - halfNameWidth - trueBGSizeX, anchorY - trueBGSizeY, nameWidth + (trueBGSizeX * 2), textSize + (trueBGSizeY * 2), backgroundColor)
+							}
 							screenText(nameText, anchorX, anchorY + (textSize / 2f), textSize, style = textStyle, centered = true)
 							return@forEach
 						}
-
-						if (itemName && !entity.mainHandStack.isEmpty) {
-							val itemNameText = entity.mainHandStack.name.string
-							val itemNameScale = textSize * itemNameScale
-							screenText(itemNameText, anchorX, anchorY, itemNameScale, centered = true)
-							anchorY += (itemNameScale * 1.1f) + trueSpacingY
-						}
-
-						val nameWidth = getDefaultFont().getStringWidthNormalized(nameText, textSize)
 
 						val healthCount = if (health) entity.fullHealth else -1.0
 						val healthText = if (health) " ${healthCount.roundToStep(0.01)}" else ""
@@ -143,7 +151,23 @@ object Nametags : Module(
 								.let { if (pingCount >= 0) it + trueSpacingX else it }
 
 						var combinedWidth = nameWidth + healthWidth + pingWidth
-						val nameX = anchorX - (combinedWidth / 2)
+						val nameX = anchorX - (combinedWidth * 0.5f)
+
+						val itemNameText = if (itemName) entity.mainHandStack.name.string else ""
+						val itemNameSize = if (itemName) textSize * itemNameScale else 0f
+
+						if (background) {
+							anchorY += trueBGSizeY
+							val maxWidth =
+								if (itemName) max(getDefaultFont().getStringWidthNormalized(itemNameText, itemNameSize), combinedWidth)
+								else nameWidth
+							screenRect(nameX - trueBGSizeX, anchorY - trueBGSizeY, maxWidth + (trueBGSizeX * 2), textSize + itemNameSize + trueSpacingY + (trueBGSizeY * 2), backgroundColor)
+						}
+
+						if (itemName && !entity.mainHandStack.isEmpty) {
+							screenText(itemNameText, anchorX, anchorY, itemNameSize, centered = true)
+							anchorY += (itemNameSize * 1.1f) + trueSpacingY
+						}
 						screenText(nameText, nameX, anchorY, textSize, style = textStyle)
 						if (healthCount >= 0) {
 							val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN).brighter()
@@ -156,11 +180,13 @@ object Nametags : Module(
 
 						if (!gear) return@forEach
 
+						if (background) anchorY += trueBGSizeY
+
 						if (EquipmentSlot.entries.none { it.index in 1..4 && !entity.getEquippedStack(it).isEmpty }) {
 							if (mainItem && !entity.mainHandStack.isEmpty)
 								renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX - (trueItemScaleX * 0.1f), anchorY)
 							if (offhandItem && !entity.offHandStack.isEmpty)
-								renderItem(entity.offHandStack, anchorX + (combinedWidth / 2) + trueSpacingX, anchorY)
+								renderItem(entity.offHandStack, anchorX + (combinedWidth * 0.5f) + trueSpacingX, anchorY)
 						} else drawArmorAndItems(entity, anchorX, anchorY + textSize + trueSpacingY)
 					}
 			}
@@ -169,7 +195,7 @@ object Nametags : Module(
 
 	private fun RenderBuilder.drawArmorAndItems(entity: LivingEntity, x: Float, y: Float) {
 		val stepAmount = trueItemScaleX + trueSpacingX
-		var iteratorX = x - (stepAmount * 3) + (trueSpacingX / 2)
+		var iteratorX = x - (stepAmount * 3) + (trueSpacingX * 0.5f)
 		if (mainItem && !entity.mainHandStack.isEmpty) renderItem(entity.mainHandStack, iteratorX, y)
 		iteratorX += stepAmount
 		val headStack = entity.getEquippedStack(EquipmentSlot.HEAD)
@@ -203,12 +229,12 @@ object Nametags : Module(
 			if (durabilityMode.text) {
 				val duraText = "${(dura * 100).toInt()}%"
 				val textSize = getDefaultFont().getSizeForWidthNormalized(duraText, trueItemScaleX) * 0.9f
-				screenText(duraText, x + (trueItemScaleX / 2), iteratorY, textSize.coerceAtMost(trueItemScaleY * 0.33f), centered = true, style = RenderBuilder.SDFStyle(color = lerp(dura, Color.RED, Color.GREEN).brighter()))
+				screenText(duraText, x + (trueItemScaleX * 0.5f), iteratorY, textSize.coerceAtMost(trueItemScaleY * 0.33f), centered = true, style = RenderBuilder.SDFStyle(color = lerp(dura, Color.RED, Color.GREEN).brighter()))
 			}
 		}
 		if (itemCount && stack.isStackable && stack.count > 1) {
 			val countText = "${stack.count}"
-			val textSize = trueItemScaleY / 2
+			val textSize = trueItemScaleY * 0.5f
 			val textWidth = getDefaultFont().getStringWidthNormalized(countText, textSize)
 			screenText(countText, x - (textWidth - trueItemScaleX), y, textSize)
 		}
