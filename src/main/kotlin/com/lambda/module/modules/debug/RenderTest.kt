@@ -50,7 +50,7 @@ object RenderTest : Module(
             with(safeContext) {
                 entitySearch<LivingEntity>(8.0)
                     .forEach { entity ->
-                        box(entity.dynamicBox.box(mc.tickDelta) ?: return@forEach, 1.5f) {
+                        box(entity.dynamicBox.box(mc.tickDelta) ?: return@forEach) {
                             colors(filledColor, outlineColor)
                         }
                     }
@@ -58,7 +58,7 @@ object RenderTest : Module(
         }
 
         tickedRenderer("RenderTest Ticked Renderer") { safeContext ->
-            box(Box.of(safeContext.player.pos, 0.3, 0.3, 0.3), 1.5f) {
+            box(Box.of(safeContext.player.pos, 0.3, 0.3, 0.3)) {
                 colors(filledColor, outlineColor)
             }
         }

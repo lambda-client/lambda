@@ -425,10 +425,7 @@ object ImmediateRendererTest : Module(
 				)
 
 				withOutline(OutlineStyle(Color.CYAN)) {
-					box(
-						Box(startPos.add(3.0, 1.0, 3.0), startPos.add(4.0, 2.0, 4.0)),
-						lineWidth = 0.05f
-					) {
+					box(Box(startPos.add(3.0, 1.0, 3.0), startPos.add(4.0, 2.0, 4.0))) {
 						fillColor(Color(255, 255, 255, 60))
 						hideOutline()
 					}

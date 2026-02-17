@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,15 @@
 
 package com.lambda.config.groups
 
-interface TargetingConfig {
-    val targetingRange: Double
-    val targets: EntitySelectionConfig
+interface EntitySelectionConfig {
+	val self: Boolean
+	val playerEntities: Collection<String>
+	val bossEntities: Collection<String>
+	val decorationEntities: Collection<String>
+	val mobEntities: Collection<String>
+	val passiveEntities: Collection<String>
+	val projectileEntities: Collection<String>
+	val vehicleEntities: Collection<String>
+	val miscEntities: Collection<String>
+	val blockEntities: Collection<String>
 }

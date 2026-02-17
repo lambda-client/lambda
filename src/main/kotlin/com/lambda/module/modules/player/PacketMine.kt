@@ -35,6 +35,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.ChatUtils.colors
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
@@ -177,7 +178,7 @@ object PacketMine : Module(
 		tickedRenderer("PacketMine Ticked Renderer") { safeContext ->
 			if (renderRebreak) {
 				rebreakPos?.let { pos ->
-					box(pos, outlineWidth) {
+					box(pos) {
 						hideFill()
 						outlineColor(rebreakColor)
 					}
@@ -195,7 +196,7 @@ object PacketMine : Module(
 						}.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
 
 						boxes.forEach { box ->
-							box(box, outlineWidth) {
+							box(box) {
 								colors(color, color.setAlpha(1.0))
 							}
 						}

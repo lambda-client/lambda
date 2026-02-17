@@ -1,38 +1,55 @@
-
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package com.lambda.graphics.mc
 
+import com.lambda.config.groups.LineConfig
 import com.lambda.graphics.util.DirectionMask
 import net.minecraft.util.math.Direction
 import java.awt.Color
 
-class BoxBuilder(val lineWidth: Float) {
+class BoxBuilder(lineConfig: LineConfig?) {
     var outlineSides: Int = DirectionMask.ALL
     var fillSides: Int = DirectionMask.ALL
 
     var outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
+    var lineWidth = lineConfig?.width ?: 0.005f
 
-    var dashStyle: LineDashStyle? = null
+    var dashStyle: LineDashStyle? = lineConfig?.getDashStyle()
 
-    var fillBottomNorthWest: Color = Color.WHITE
-    var fillBottomNorthEast: Color = Color.WHITE
-    var fillBottomSouthWest: Color = Color.WHITE
-    var fillBottomSouthEast: Color = Color.WHITE
+    var fillBottomNorthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var fillBottomNorthEast: Color = lineConfig?.startColor ?: Color.WHITE
+    var fillBottomSouthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var fillBottomSouthEast: Color = lineConfig?.startColor ?: Color.WHITE
 
-    var fillTopNorthWest: Color = Color.WHITE
-    var fillTopNorthEast: Color = Color.WHITE
-    var fillTopSouthWest: Color = Color.WHITE
-    var fillTopSouthEast: Color = Color.WHITE
+    var fillTopNorthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var fillTopNorthEast: Color = lineConfig?.startColor ?: Color.WHITE
+    var fillTopSouthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var fillTopSouthEast: Color = lineConfig?.startColor ?: Color.WHITE
 
-    var outlineBottomNorthWest: Color = Color.WHITE
-    var outlineBottomNorthEast: Color = Color.WHITE
-    var outlineBottomSouthWest: Color = Color.WHITE
-    var outlineBottomSouthEast: Color = Color.WHITE
+    var outlineBottomNorthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var outlineBottomNorthEast: Color = lineConfig?.startColor ?: Color.WHITE
+    var outlineBottomSouthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var outlineBottomSouthEast: Color = lineConfig?.startColor ?: Color.WHITE
 
-    var outlineTopNorthWest: Color = Color.WHITE
-    var outlineTopNorthEast: Color = Color.WHITE
-    var outlineTopSouthWest: Color = Color.WHITE
-    var outlineTopSouthEast: Color = Color.WHITE
+    var outlineTopNorthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var outlineTopNorthEast: Color = lineConfig?.startColor ?: Color.WHITE
+    var outlineTopSouthWest: Color = lineConfig?.startColor ?: Color.WHITE
+    var outlineTopSouthEast: Color = lineConfig?.startColor ?: Color.WHITE
 
     @RenderDsl
     fun allColors(color: Color) {
@@ -158,6 +175,11 @@ class BoxBuilder(val lineWidth: Float) {
         outlineBottomSouthEast = south
         outlineTopSouthWest = south
         outlineTopSouthEast = south
+    }
+
+    @RenderDsl
+    fun lineWidth(lineWidth: Float) {
+        this.lineWidth = lineWidth
     }
 
     @RenderDsl

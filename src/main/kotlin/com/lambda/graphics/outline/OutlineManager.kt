@@ -91,7 +91,7 @@ object OutlineManager {
     fun getDepthTestedCustomStyles(): Map<Int, OutlineStyle> = depthTestedCustomOutlines
     fun getXrayCustomStyles(): Map<Int, OutlineStyle> = xrayCustomOutlines
 
-    fun setBlockOutline(pos: BlockPos, style: OutlineStyle?) {
+    fun setBlockOutline(pos: BlockPos, style: OutlineStyle?, depthTest: Boolean = true) {
         if (style != null) {
             blockOutlines[pos] = style
         } else {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,23 @@
 
 package com.lambda.config.groups
 
-interface TargetingConfig {
-    val targetingRange: Double
-    val targets: EntitySelectionConfig
+import com.lambda.module.modules.render.ESP.Group
+import java.awt.Color
+
+interface EntityColorsConfig {
+	val useNaturalColors: Boolean
+	val playerColor: Color
+	val playerDistanceGradient: Boolean
+	val playerDistanceColorFar: Color
+	val playerDistanceColorClose: Color
+	val separateFriendColor: Boolean
+	val friendColor: Color
+	val mobColor: Color
+	val passiveColor: Color
+	val vehicleColor: Color
+	val projectileColor: Color
+	val bossColor: Color
+	val decorationColor: Color
+	val blockColor: Color
+	val miscColor: Color
 }

@@ -23,19 +23,20 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class WorldTextSettings(
-	prefix: String,
+	prefix: String = "",
 	c: Configurable,
 	vararg baseGroup: NamedEnum,
 	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), TextConfig {
 	private enum class Group(override val displayName: String) : NamedEnum {
+		General("General"),
 		Outline("Outline"),
 		Glow("Glow"),
 		Shadow("Shadow")
 	}
 
-	override val textColor by c.setting("${prefix}Text Color", Color.WHITE, "The main text color", visibility = visibility).group(*baseGroup).index()
-	val sizeSetting by c.setting("${prefix}Text Size", 5, 1..50, 1, visibility = visibility).group(*baseGroup).index()
+	override val textColor by c.setting("${prefix}Text Color", Color.WHITE, "The main text color", visibility = visibility).group(*baseGroup, Group.General).index()
+	val sizeSetting by c.setting("${prefix}Text Size", 5, 1..50, 1, visibility = visibility).group(*baseGroup, Group.General).index()
 	override val size get() = sizeSetting * 0.1f
 
 	override val outlineEnabled by c.setting("${prefix}Outline", false, "Enable text outline", visibility = visibility).group(*baseGroup, Group.Outline).index()

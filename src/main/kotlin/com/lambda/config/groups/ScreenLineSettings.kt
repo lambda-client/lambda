@@ -23,7 +23,7 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class ScreenLineSettings(
-	prefix: String,
+	prefix: String = "",
 	c: Configurable,
 	vararg baseGroup: NamedEnum,
 	override val visibility: () -> Boolean = { true },
@@ -33,7 +33,7 @@ class ScreenLineSettings(
 		Dash("Dash")
 	}
 
-	val widthSetting by c.setting("${prefix}Line Width", 10, 1..100, 1, "The width of the line", visibility = visibility).group(*baseGroup).index()
+	val widthSetting by c.setting("${prefix}Width", 10, 1..100, 1, "The width of the line", visibility = visibility).group(*baseGroup).index()
 	override val width get() = widthSetting * 0.00005f
 
 	override val startColor by c.setting("${prefix}Start Color", Color.WHITE, "The color at the start of the line", visibility = visibility).group(*baseGroup, Group.Color).index()

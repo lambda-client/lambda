@@ -1,8 +1,24 @@
-
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
+import com.lambda.config.groups.LineConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.outline.OutlineManager
 import com.lambda.graphics.outline.OutlineStyle
@@ -57,9 +73,9 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		private set
 
 	private var currentLayer = -800f
-	
+
 	private val layerIncrement = 1f
-	
+
 	private val DEFAULT_LIGHT_DIR = Vector3f(0.2f, 1.0f, -0.7f).normalize()
 	private val DEFAULT_LIGHT1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
 
@@ -91,10 +107,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	fun box(
 		box: Box,
-		lineWidth: Float = 0.005f,
+		lineConfig: LineConfig? = null,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) {
-		val boxBuilder = BoxBuilder(lineWidth).apply { builder?.invoke(this) }
+		val boxBuilder = BoxBuilder(lineConfig).apply { builder?.invoke(this) }
 		if (boxBuilder.fillSides != DirectionMask.NONE) boxBuilder.boxFaces(box)
 		if (boxBuilder.outlineSides != DirectionMask.NONE) boxBuilder.boxOutline(box)
 	}
@@ -103,11 +119,11 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	fun boxes(
 		pos: BlockPos,
 		state: BlockState,
-		lineWidth: Float = 0.005f,
+		lineConfig: LineConfig? = null,
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = with(safeContext) {
 		val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-		val boxBuilder = BoxBuilder(lineWidth).apply { builder?.invoke(this) }
+		val boxBuilder = BoxBuilder(lineConfig).apply { builder?.invoke(this) }
 		boxes.forEach { box ->
 			if (boxBuilder.fillSides != DirectionMask.NONE) boxBuilder.boxFaces(box)
 			if (boxBuilder.outlineSides != DirectionMask.NONE) boxBuilder.boxOutline(box)
@@ -116,16 +132,16 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	fun box(
 		pos: BlockPos,
-		lineWidth: Float = 0.005f,
+		lineConfig: LineConfig? = null,
 		builder: (BoxBuilder.() -> Unit)? = null
-	) = box(Box(pos), lineWidth, builder)
+	) = box(Box(pos), lineConfig, builder)
 
 	context(safeContext: SafeContext)
 	fun boxes(
 		pos: BlockPos,
-		lineWidth: Float = 0.005f,
+		lineConfig: LineConfig? = null,
 		builder: (BoxBuilder.() -> Unit)? = null
-	) = boxes(pos, safeContext.blockState(pos), lineWidth, builder)
+	) = boxes(pos, safeContext.blockState(pos), lineConfig, builder)
 
 	fun filledQuadGradient(
 		corner1: Vec3d,
@@ -240,16 +256,32 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		polyline(points, color, width, dashStyle)
 	}
 
+	@JvmName("worldOutline1")
 	fun worldOutline(
 		entity: Entity,
 		style: OutlineStyle
 	) = OutlineManager.setEntityOutline(entity.id, style, depthTest = depthTest)
 
+	@JvmName("worldOutlines1")
 	fun worldOutlines(
 		entities: Iterable<Entity>,
 		style: OutlineStyle
 	) = entities.forEach {
 		OutlineManager.setEntityOutline(it.id, style, depthTest = depthTest)
+	}
+
+	@JvmName("worldOutline2")
+	fun worldOutline(
+		pos: BlockPos,
+		style: OutlineStyle
+	) = OutlineManager.setBlockOutline(pos, style, depthTest = depthTest)
+
+	@JvmName("worldOutlines2")
+	fun worldOutlines(
+		positions: Iterable<BlockPos>,
+		style: OutlineStyle
+	) = positions.forEach {
+		OutlineManager.setBlockOutline(it, style, depthTest = depthTest)
 	}
 
 	fun circleLine(
@@ -308,27 +340,27 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX
 			val offsetY = style.shadow.offsetY
-			buildTextQuads(atlas, text, startX + offsetX, offsetY, 
+			buildTextQuads(atlas, text, startX + offsetX, offsetY,
 				shadowColor.red, shadowColor.green, shadowColor.blue, shadowColor.alpha,
 				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 0)
 		}
 
 		if (style.glow != null) {
 			val glowColor = style.glow.color
-			buildTextQuads(atlas, text, startX, 0f, 
+			buildTextQuads(atlas, text, startX, 0f,
 				glowColor.red, glowColor.green, glowColor.blue, glowColor.alpha,
 				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 1)
 		}
 
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
-			buildTextQuads(atlas, text, startX, 0f, 
+			buildTextQuads(atlas, text, startX, 0f,
 				outlineColor.red, outlineColor.green, outlineColor.blue, outlineColor.alpha,
 				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 2)
 		}
 
 		val mainColor = style.color
-		buildTextQuads(atlas, text, startX, 0f, 
+		buildTextQuads(atlas, text, startX, 0f,
 			mainColor.red, mainColor.green, mainColor.blue, 255,
 			anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId)
 	}
@@ -340,7 +372,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	private fun toPixelY(normalizedY: Float): Float = normalizedY * screenHeight
 
-	private fun toPixelSize(normalizedSize: Float): Float = 
+	private fun toPixelSize(normalizedSize: Float): Float =
 		normalizedSize * screenHeight
 
 	fun screenQuadGradient(
@@ -433,7 +465,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val y0 = toPixelY(y)
 		val x1 = toPixelX(x + width)
 		val y1 = toPixelY(y + height)
-		
+
 		val overlayFlag = if (hasOverlay) 1f else 0f
 		val u0 = image.u0
 		val v0 = image.v0
@@ -486,14 +518,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val textureView = mc.textureManager.getTexture(atlas)?.glTextureView ?: return
 
 		val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
-		
+
 		val scaleVec = Vector3f(scale.x.toFloat(), scale.y.toFloat(), scale.z.toFloat())
 		val posVec = Vector3f(
 			(pos.x - cameraPos.x).toFloat(),
 			(pos.y - cameraPos.y).toFloat(),
 			(pos.z - cameraPos.z).toFloat()
 		)
-		
+
 		val vertexPos = Vector3f()
 		val normalVec = Vector3f()
 
@@ -509,7 +541,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		if (smartAA) {
 			overlayFlag += 2.0f
 		}
-		
+
 		val random = Random.create()
 		val quads = mutableListOf<BakedQuad>()
 
@@ -543,9 +575,9 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				val posVecSrc = quad.getPosition(i)
 
 				vertexPos.set(posVecSrc.x(), posVecSrc.y(), posVecSrc.z())
-				
+
 				if (centered) vertexPos.sub(0.5f, 0.5f, 0.5f)
-				
+
 				vertexPos.mul(scaleVec)
 				rotation?.transform(vertexPos)
 				vertexPos.add(posVec)
@@ -583,7 +615,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				))
 			}
 		}
-		
+
 		if (vertices.isNotEmpty()) {
 			val useNearest = pixelPerfect && !smartAA
 			collector.addModelVertices(textureView, vertices, useNearest, activeOutlineId)
@@ -601,10 +633,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
-		
+
 		val renderState = ItemRenderState()
 		mc.itemModelManager.updateForNonLivingEntity(renderState, stack, ItemDisplayContext.GUI, mc.player ?: return)
-		
+
 		val rot = rotation?.let { eulerToQuaternion(it) }
 		renderItemState(renderState, pos, scale, rot, centered, isScreen = false, flat = flat, lighting = lighting, overlay = overlay)
 	}
@@ -626,7 +658,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val pixelX = toPixelX(x)
 		val pixelY = toPixelY(y)
 		val pixelSize = toPixelSize(size)
-		
+
 		val rot = rotation?.let { eulerToQuaternion(it) }
 
 		renderItemState(renderState, Vec3d(pixelX.toDouble(), pixelY.toDouble(), nextLayer().toDouble()), pixelSize, rot, centered, isScreen = true, flat = true, lighting = lighting, overlay = overlay)
@@ -650,7 +682,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 
 		val lightDirs = Pair(Vector3f(lighting.light0), Vector3f(lighting.light1))
-		
+
 		val queue = CapturingQueue(
 			posVec, Vector3f(scale), rotation, centered, flat, lighting, lightDirs, state.isSideLit
 		) { vertices, textureView ->
@@ -662,7 +694,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		}
 
 		val matrixStack = MatrixStack()
-		
+
 		for (i in 0 until state.layerCount) {
 			val layer = state.layers[i]
 
@@ -671,12 +703,12 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				null -> layer.glint != ItemRenderState.Glint.NONE
 				else -> true
 			}
-			
+
 			matrixStack.push()
 			layer.transform.apply(state.displayContext.isLeftHand, matrixStack.peek())
 
 			val specialModel = layer.specialModelType
-			
+
 			if (specialModel != null) {
 				specialModel.render(layer.data, state.displayContext, matrixStack, queue, 15728880, 0, queue.currentGlint, 0)
 			} else {
@@ -686,7 +718,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 					queue.submitItem(matrixStack, state.displayContext, 15728880, 0, 0, layer.tints, layer.quads, renderLayer, captureGlint)
 				}
 			}
-			
+
 			matrixStack.pop()
 		}
 	}
@@ -849,7 +881,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		) {
 			val sprite = quads.firstOrNull()?.sprite ?: return
 			val textureView = mc.textureManager.getTexture(sprite.atlasId)?.glTextureView ?: return
-			
+
 			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 
@@ -973,14 +1005,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		override fun submitBlock(matrices: MatrixStack, state: BlockState, light: Int, overlay: Int, outlineColor: Int) {
 			val model = mc.blockRenderManager.getModel(state)
 			val textureView = mc.textureManager.getTexture(Identifier.ofVanilla("textures/atlas/blocks.png"))?.glTextureView ?: return
-			
+
 			val vertices = ArrayList<RegionVertexCollector.ModelVertex>()
 			val shadingAmount = if (lighting.respectsUseLight && !isSideLit) 0.0f else 1.0f
 			val consumer = CapturingConsumer(
 				vertices, ::posTransform, ::normalTransform,
 				flat, rotation, currentGlint, lightDirs, shadingAmount, light, overlay
 			)
-			
+
 			val random = Random.create()
 			val parts = model.getParts(random)
 			for (part in parts) {
@@ -993,7 +1025,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 					consumer.quad(matrices.peek(), quad, 1f, 1f, 1f, 1f, light, overlay)
 				}
 			}
-			
+
 			onSubmission(vertices, textureView)
 		}
 
@@ -1027,7 +1059,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 		val halfWidth = size * ratio / 2f
 		val halfHeight = size / 2f
-		
+
 		val overlayFlag = if (hasOverlay) 1f else 0f
 		val billboardFlag = if (rotation == null) 0f else 1f
 
@@ -1040,7 +1072,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val x1 = halfWidth / size
 		val y0 = -halfHeight / size
 		val y1 = halfHeight / size
-		
+
 		val vertices = if (rotation == null) {
 			listOf(
 				RegionVertexCollector.WorldImageVertex(
@@ -1069,12 +1101,12 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				.rotateY(Math.toRadians(rotation.y).toFloat())
 				.rotateX(Math.toRadians(rotation.x).toFloat())
 				.rotateZ(Math.toRadians(rotation.z).toFloat())
-			
+
 			val p0 = transformPoint(rotationMatrix, x0, y0, 0f)
 			val p1 = transformPoint(rotationMatrix, x1, y0, 0f)
 			val p2 = transformPoint(rotationMatrix, x1, y1, 0f)
 			val p3 = transformPoint(rotationMatrix, x0, y1, 0f)
-			
+
 			listOf(
 				RegionVertexCollector.WorldImageVertex(
 					p0.x, p0.y, u0, v1, tint.red, tint.green, tint.blue, tint.alpha,
@@ -1247,7 +1279,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val glowRadius = style.glow?.radius ?: 0f
 		val shadowSoftness = style.shadow?.softness ?: 0f
 		val threshold = 0.5f
-		
+
 		var penX = startX
 		for (char in text) {
 			val glyph = atlas.getGlyph(char.code) ?: continue
@@ -1267,7 +1299,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				val p1 = transformPoint(rotationMatrix, x1, -y1, 0f)
 				val p2 = transformPoint(rotationMatrix, x1, -y0, 0f)
 				val p3 = transformPoint(rotationMatrix, x0, -y0, 0f)
-				
+
 				collector.addTextVertex(p0.x, p0.y, glyph.u0, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 				collector.addTextVertex(p1.x, p1.y, glyph.u1, glyph.v1, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)
 				collector.addTextVertex(p2.x, p2.y, glyph.u1, glyph.v0, r, g, b, a, anchorX, anchorY, anchorZ, scale, false, outlineWidth, glowRadius, shadowSoftness, threshold, outlineId, layerType)

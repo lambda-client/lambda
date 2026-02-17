@@ -19,6 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
+import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
@@ -33,6 +34,7 @@ import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
+import net.minecraft.client.toast.SystemToast.hide
 import net.minecraft.entity.LivingEntity
 import java.util.*
 
@@ -49,18 +51,23 @@ import java.util.*
  * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class Targeting(
-    private val c: Configurable,
-    baseGroup: NamedEnum,
-    private val defaultRange: Double,
-    private val maxRange: Double,
-    override val visibility: () -> Boolean = { true },
+    prefix: String = "",
+	c: Configurable,
+    vararg baseGroup: NamedEnum,
+    defaultRange: Double,
+    maxRange: Double,
+    visibility: () -> Boolean = { true },
 ) : SettingGroup(c), TargetingConfig {
 	/**
 	 * The range within which entities can be targeted. This value is configurable and constrained
 	 * between 1.0 and [maxRange].
 	 */
-	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05, visibility = visibility).group(baseGroup)
-    override val targets by c.setting("Targets", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries, visibility = visibility)
+	override val targetingRange by c.setting("${prefix}Targeting Range", defaultRange, 1.0..maxRange, 0.05, visibility = visibility).group(*baseGroup).index()
+    override val targets = EntitySelectionSettings(c = c, baseGroup = baseGroup).apply {
+		c.applyEdits {
+			hide(::self, ::blockEntities)
+		}
+    }
 
 	/**
 	 * Validates whether a given entity is targetable by the player based on current settings.
@@ -70,7 +77,7 @@ abstract class Targeting(
 	 * @return `true` if the entity is valid for targeting, `false` otherwise.
 	 */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) =
-		entity.entityGroup in targets && (entity !is OtherClientPlayerEntity || !entity.isFriend)
+		targets.isSelected(entity) && (entity !is OtherClientPlayerEntity || !entity.isFriend)
 
     /**
      * Subclass for targeting entities specifically for combat purposes.
@@ -79,21 +86,22 @@ abstract class Targeting(
      * @property priority The priority used to determine which entity is targeted when multiple candidates are available.
      */
     class Combat(
+	    prefix: String = "",
         c: Configurable,
-        baseGroup: NamedEnum,
+        vararg baseGroup: NamedEnum,
         defaultRange: Double = 5.0,
         maxRange: Double = 16.0,
-        visibility: () -> Boolean = { true },
-    ) : Targeting(c, baseGroup, defaultRange, maxRange, visibility) {
+        override val visibility: () -> Boolean = { true },
+    ) : Targeting(prefix, c, *baseGroup, defaultRange = defaultRange, maxRange = maxRange, visibility = visibility) {
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by c.setting("FOV Limit", 180, 5..180, 1) { visibility() && priority == Priority.Fov }.group(baseGroup)
+        val fov by c.setting("${prefix}FOV Limit", 180, 5..180, 1) { visibility() && priority == Priority.Fov }.group(*baseGroup).index()
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.Distance].
          */
-        val priority by c.setting("Priority", Priority.Distance, visibility = visibility).group(baseGroup)
+        val priority by c.setting("${prefix}Priority", Priority.Distance, visibility = visibility).group(*baseGroup).index()
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.

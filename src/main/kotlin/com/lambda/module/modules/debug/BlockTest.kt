@@ -54,7 +54,7 @@ object BlockTest : Module(
                     state.isOf(Blocks.DIAMOND_BLOCK)
                 }.forEach { (pos, state) ->
                     state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
-                        box(box.offset(pos), 1.5f) {
+                        box(box.offset(pos)) {
                             colors(filledColor, outlineColor)
                         }
                     }

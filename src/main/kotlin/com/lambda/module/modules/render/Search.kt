@@ -172,7 +172,7 @@ object Search : Module(
 
     private fun RenderBuilder.box(boxes: List<Box>, ignoreSides: Int, fillColor: Color, lineColor: Color) {
         boxes.forEach { box ->
-            box(box, outlineConfig.width) {
+            box(box, outlineConfig) {
                 hideSides(ignoreSides)
                 if (fill) fillColor(fillColor) else hideFill()
                 if (!outline) hideOutline()
@@ -193,6 +193,7 @@ object Search : Module(
 
     private fun getEntityColor(entity: Entity) =
         entityColor(entity).ensureMinBrightness(minimumNaturalBrightness)
+
     private fun SafeContext.getBlockColor(state: BlockState, pos: BlockPos) =
         blockColor(state, pos).ensureMinBrightness(minimumNaturalBrightness)
     

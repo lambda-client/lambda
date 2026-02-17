@@ -176,7 +176,7 @@ object BackTrack : Module(
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)
 
-            box(box.box(mc.tickDelta) ?: return@immediateRenderer, 0f) {
+            box(box.box(mc.tickDelta) ?: return@immediateRenderer) {
                 hideOutline()
                 gradientY(c.multAlpha(0.3), c.multAlpha(0.8))
             }

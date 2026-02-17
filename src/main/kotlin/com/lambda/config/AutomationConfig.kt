@@ -48,13 +48,13 @@ open class AutomationConfig(
         Debug("Debug")
     }
 
-    override val buildConfig = BuildSettings(this, Group.Build)
-    override val breakConfig = BreakSettings(this, Group.Break)
-    override val interactConfig = InteractSettings(this, Group.Interact)
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
-    override val inventoryConfig = InventorySettings(this, Group.Inventory)
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
-    override val eatConfig = EatSettings(this, Group.Eat)
+    override val buildConfig = BuildSettings(c = this, baseGroup = arrayOf(Group.Build))
+    override val breakConfig = BreakSettings(c = this, baseGroup = arrayOf(Group.Break))
+    override val interactConfig = InteractSettings(c = this, baseGroup = arrayOf(Group.Interact))
+    override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(Group.Rotation))
+    override val inventoryConfig = InventorySettings(c = this, baseGroup = arrayOf(Group.Inventory))
+    override val hotbarConfig = HotbarSettings(c = this, baseGroup = arrayOf(Group.Hotbar))
+    override val eatConfig = EatSettings(c = this, baseGroup = arrayOf(Group.Eat))
 
     companion object {
 		context(module: Module)

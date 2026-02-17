@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.blockEntityMap
@@ -81,15 +82,7 @@ object NoRender : Module(
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-	private val playerEntities by setting("Player Entities", emptySet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering").group(Group.Entity)
-	private val bossEntities by setting("Boss Entities", emptySet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering").group(Group.Entity)
-	private val decorationEntities by setting("Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering").group(Group.Entity)
-	private val mobEntities by setting("Mob Entities", emptySet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering").group(Group.Entity)
-	private val passiveEntities by setting("Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering").group(Group.Entity)
-	private val projectileEntities by setting("Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering").group(Group.Entity)
-	private val vehicleEntities by setting("Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering").group(Group.Entity)
-	private val miscEntities by setting("Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering").group(Group.Entity)
-	private val blockEntities by setting("Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering").group(Group.Entity)
+	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entity))
 
 	@JvmStatic val noTerrainFog by setting("No Terrain Fog", false).group(Group.World)
 	@JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)
@@ -116,29 +109,8 @@ object NoRender : Module(
 		isEnabled && particleMap[particle.simpleName] in particles
 
 	@JvmStatic
-	fun shouldOmitEntity(entity: Entity): Boolean {
-		val simpleName = entity.javaClass.simpleName
-		return isEnabled && when (entity.type.spawnGroup) {
-			SpawnGroup.MISC ->
-				miscEntityMap[simpleName] in miscEntities ||
-						playerEntityMap[simpleName] in playerEntities ||
-						projectileEntityMap[simpleName] in projectileEntities ||
-						vehicleEntityMap[simpleName] in vehicleEntities ||
-						decorationEntityMap[simpleName] in decorationEntities ||
-						passiveEntityMap[simpleName] in passiveEntities ||
-						mobEntityMap[simpleName] in mobEntities ||
-						bossEntityMap[simpleName] in bossEntities
-			SpawnGroup.WATER_AMBIENT,
-			SpawnGroup.WATER_CREATURE,
-			SpawnGroup.AMBIENT,
-			SpawnGroup.AXOLOTLS,
-			SpawnGroup.CREATURE,
-			SpawnGroup.UNDERGROUND_WATER_CREATURE -> passiveEntityMap[simpleName] in passiveEntities
-			SpawnGroup.MONSTER -> mobEntityMap[simpleName] in mobEntities
-		}
-	}
+	fun shouldOmitEntity(entity: Entity): Boolean = entitySettings.isSelected(entity)
 
 	@JvmStatic
-	fun shouldOmitBlockEntity(blockEntity: BlockEntity) =
-		isEnabled && blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities
+	fun shouldOmitBlockEntity(blockEntity: BlockEntity) = entitySettings.isSelected(blockEntity)
 }

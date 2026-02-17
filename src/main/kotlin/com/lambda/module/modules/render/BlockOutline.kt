@@ -71,7 +71,7 @@ object BlockOutline : Module(
 					}
 
 				boxes.forEach { box ->
-					box(box, lineConfig.width) {
+					box(box, lineConfig) {
 						colors(fillColor, outlineColor)
 						if (!fill) hideFill()
 						if (!outline) hideOutline()

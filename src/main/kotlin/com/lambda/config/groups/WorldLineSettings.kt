@@ -23,22 +23,24 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class WorldLineSettings(
-    prefix: String,
+    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), LineConfig {
     private enum class Group(override val displayName: String) : NamedEnum {
+        General("General"),
         Color("Color"),
         Dash("Dash")
     }
 
-    val distanceScaling by c.setting("${prefix}Distance Scaling", true, "Line width stays constant on screen regardless of distance", visibility = visibility).group(*baseGroup).index()
-    val worldWidthSetting by c.setting("${prefix}Line Width", 5, 1..50, 1, "Line width in world units (blocks)") { visibility() && !distanceScaling }.group(*baseGroup).index()
-    val screenWidthSetting by c.setting("${prefix}Screen Width", 10, 1..100, 1, "Line width in screen-space (stays constant size)") { visibility() && distanceScaling }.group(*baseGroup).index()
+    val distanceScaling by c.setting("${prefix}Distance Scaling", true, "Line width stays constant on screen regardless of distance", visibility = visibility).group(*baseGroup, Group.General).index()
+    val worldWidthSetting by c.setting("${prefix}Width", 5, 1..50, 1, "Line width in world units (blocks)") { visibility() && !distanceScaling }.group(*baseGroup, Group.General).index()
+    val screenWidthSetting by c.setting("${prefix}Screen Width", 10, 1..100, 1, "Line width in screen-space (stays constant size)") { visibility() && distanceScaling }.group(*baseGroup, Group.General).index()
 
-    override val width: Float get() = if (distanceScaling) -screenWidthSetting * 0.00005f  // Negative = screen-space mode
-    else worldWidthSetting * 0.001f  // Positive = world units
+    override val width: Float get() =
+        if (distanceScaling) -screenWidthSetting * 0.00005f
+        else worldWidthSetting * 0.001f
 
     override val startColor by c.setting("${prefix}Start Color", Color.WHITE, "The color at the start of the line", visibility = visibility).group(*baseGroup, Group.Color).index()
     override val endColor by c.setting("${prefix}End Color", Color.WHITE, "The color at the end of the line", visibility = visibility).group(*baseGroup, Group.Color).index()

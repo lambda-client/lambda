@@ -71,7 +71,7 @@ object Blink : Module(
 
         immediateRenderer("Blink Immediate Renderer") {
             val color = ClickGuiLayout.primaryColor
-            box(box.update(lastBox).box(mc.tickDelta) ?: return@immediateRenderer, 1.5f) {
+            box(box.update(lastBox).box(mc.tickDelta) ?: return@immediateRenderer) {
                 colors(color.setAlpha(0.3), color)
             }
         }

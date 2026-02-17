@@ -18,11 +18,14 @@
 package com.lambda.module.modules.render
 
 import com.lambda.config.applyEdits
+import com.lambda.config.groups.EntityColorSettings
+import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.config.groups.ScreenLineSettings
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module
+import com.lambda.module.modules.render.ExtraTab.friendColor
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.EntityGroup
 import com.lambda.util.EntityUtils.entityGroup
@@ -44,7 +47,8 @@ object Tracers : Module(
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
-		Color("Color"),
+		Entities("Entities"),
+		Colors("Colors"),
 		LineStyle("Line Style")
 	}
 
@@ -55,19 +59,12 @@ object Tracers : Module(
 
 	private val target by setting("Target", TracerMode.Feet).group(Group.General)
 	private val stem by setting("Stem", true).group(Group.General)
-	private val entities by setting("Entities", setOf(EntityGroup.Player, EntityGroup.Mob, EntityGroup.Boss), EntityGroup.entries).group(Group.General)
-	private val friendColor by setting("Friend Color", Color(0, 255, 255, 255)).group(Group.Color)
-	private val playerDistanceGradient by setting("Player Distance Gradient", true) { EntityGroup.Player in entities }.group(Group.Color)
-	private val playerDistanceColorFar by setting("Player Far Color", Color.GREEN) { EntityGroup.Player in entities && playerDistanceGradient }.group(Group.Color)
-	private val playerDistanceColorClose by setting("Player Close Color", Color.RED) { EntityGroup.Player in entities && playerDistanceGradient }.group(Group.Color)
-	private val playerColor by setting("Players", Color.RED) { EntityGroup.Player in entities && !playerDistanceGradient }.group(Group.Color)
-	private val mobColor by setting("Mobs", Color(255, 80, 0, 255)) { EntityGroup.Mob in entities }.group(Group.Color)
-	private val passiveColor by setting("Passives", Color.BLUE) { EntityGroup.Passive in entities }.group(Group.Color)
-	private val projectileColor by setting("Projectiles", Color.LIGHT_GRAY) { EntityGroup.Projectile in entities }.group(Group.Color)
-	private val vehicleColor by setting("Vehicles", Color.WHITE) { EntityGroup.Vehicle in entities }.group(Group.Color)
-	private val decorationColor by setting("Decorations", Color.PINK) { EntityGroup.Decoration in entities }.group(Group.Color)
-	private val bossColor by setting("Bosses", Color(255, 0, 255, 255)) { EntityGroup.Boss in entities }.group(Group.Color)
-	private val miscColor by setting("Miscellaneous", Color.magenta) { EntityGroup.Misc in entities }.group(Group.Color)
+	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities)).apply {
+		applyEdits {
+			hide(::self, ::blockEntities)
+		}
+	}
+	private val entityColors = EntityColorSettings(c = this, baseGroup = arrayOf(Group.Colors))
 
 	private val friendLineConfig = ScreenLineSettings("Friend ", this, Group.LineStyle, LineGroup.Friend).apply {
 		applyEdits { hide(::startColor, ::endColor) }
@@ -81,26 +78,8 @@ object Tracers : Module(
 			with(safeContext) {
 				world.entities.forEach { entity ->
 					if (entity === player) return@forEach
-					val entityGroup = entity.entityGroup
-					if (entityGroup !in entities) return@forEach
-					val color = if (entity is OtherClientPlayerEntity) {
-						if (entity.isFriend) friendColor
-						else {
-							if (playerDistanceGradient) {
-								val distance = player dist entity
-								lerp(distance / 60.0, playerDistanceColorClose, playerDistanceColorFar)
-							} else playerColor
-						}
-					} else when (entityGroup) {
-						EntityGroup.Player -> playerColor
-						EntityGroup.Mob -> mobColor
-						EntityGroup.Passive -> passiveColor
-						EntityGroup.Projectile -> projectileColor
-						EntityGroup.Vehicle -> vehicleColor
-						EntityGroup.Decoration -> decorationColor
-						EntityGroup.Boss -> bossColor
-						else -> miscColor
-					}
+					if (!entitySettings.isSelected(entity)) return@forEach
+					val color = entityColors.getColor(entity)
 					val lineConfig = if (entity is OtherClientPlayerEntity && entity.isFriend) friendLineConfig else otherLineConfig
 					val lerpedPos = lerp(mc.tickDelta, entity.prevPos, entity.pos)
 					val lerpedEyePos = lerpedPos.add(0.0, entity.standingEyeHeight.toDouble(), 0.0)

@@ -24,6 +24,7 @@ import io.github.classgraph.ClassInfo
 import io.github.classgraph.ClassInfoList
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityType
 import net.minecraft.util.math.BlockPos
 import kotlin.jvm.java
 
@@ -46,12 +47,12 @@ object EntityUtils {
         Player(createEntityNameMap("net.minecraft.client.network.")),
         Mob(createEntityNameMap("net.minecraft.entity.mob.")),
         Passive(createEntityNameMap("net.minecraft.entity.passive.")),
-        Projectile(createEntityNameMap("net.minecraft.entity.projectile.")),
         Vehicle(createEntityNameMap("net.minecraft.entity.vehicle.")),
-        Decoration(createEntityNameMap("net.minecraft.entity.decoration.")),
+        Projectile(createEntityNameMap("net.minecraft.entity.projectile.")),
         Boss(createEntityNameMap("net.minecraft.entity.boss.")),
-        Misc(createEntityNameMap("net.minecraft.entity.", strictDir = true)),
-        Block(createBlockEntityNameMap())
+        Decoration(createEntityNameMap("net.minecraft.entity.decoration.")),
+        Block(createBlockEntityNameMap()),
+        Misc(createEntityNameMap("net.minecraft.entity.", strictDir = true))
     }
 
     val Entity.entityGroup get() = entityGroup()

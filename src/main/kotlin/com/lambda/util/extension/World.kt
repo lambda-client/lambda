@@ -19,6 +19,7 @@ package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
+import com.lambda.util.extension.paintingColorCache
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.x
@@ -35,6 +36,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.decoration.painting.PaintingEntity
+import net.minecraft.entity.decoration.painting.PaintingVariant
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.util.Atlases
@@ -44,6 +46,7 @@ import net.minecraft.util.math.ColorHelper
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.World
 import java.awt.Color
+import java.lang.reflect.Modifier
 import java.util.concurrent.ConcurrentHashMap
 
 private val blockColorCache = ConcurrentHashMap<Block, Color>()
@@ -81,6 +84,8 @@ fun SafeContext.blockColor(state: BlockState, pos: BlockPos): Color {
 }
 
 private val entityColorCache = ConcurrentHashMap<EntityType<*>, Color>()
+private val itemFrameColorCache = ConcurrentHashMap<Int, Color>()
+private val paintingColorCache = ConcurrentHashMap<PaintingVariant, Color>()
 
 /**
  * Gets the average color of an entity from its texture.
@@ -88,8 +93,12 @@ private val entityColorCache = ConcurrentHashMap<EntityType<*>, Color>()
  * Falls back to gray if texture access fails.
  */
 fun entityColor(entity: Entity): Color {
-    return entityColorCache.getOrPut(entity.type) {
-        calculateEntityTextureColor(entity) ?: Color(128, 128, 128)
+    return when (entity) {
+	    is ItemFrameEntity -> calculateItemFrameColor(entity) ?: Color.LIGHT_GRAY
+	    is PaintingEntity -> paintingColorCache.getOrPut(entity.variant.value()) { calculatePaintingColor(entity) ?: Color.LIGHT_GRAY }
+	    else -> entityColorCache.getOrPut(entity.type) {
+		    calculateEntityTextureColor(entity) ?: Color(128, 128, 128)
+	    }
     }
 }
 
@@ -100,30 +109,18 @@ fun entityColor(entity: Entity): Color {
  */
 private fun calculateEntityTextureColor(entity: Entity): Color? {
     return try {
-        // Special handling for sprite-based entities
-        if (entity is ItemFrameEntity) return calculateItemFrameColor(entity)
-        if (entity is PaintingEntity) return calculatePaintingColor(entity)
-        
         val renderer = mc.entityRenderDispatcher.getRenderer(entity) ?: return null
         val textureId = getTextureFromRenderer(entity, renderer) ?: return null
         calculateAverageColorFromTexture(textureId)
     } catch (_: Exception) { null }
 }
 
-/**
- * Attempts to get the texture identifier from an entity renderer using reflection.
- * Tries the following approaches in order:
- * 1. Look for a getTexture(RenderState) method and call it
- * 2. Look for Identifier-typed fields (like 'texture' or 'TEXTURE')
- */
 private fun getTextureFromRenderer(entity: Entity, renderer: EntityRenderer<*, *>): Identifier? {
     val rendererClass = renderer.javaClass
-    
-    // Approach 1: Try to find and call a getTexture method
+
     val textureFromMethod = tryGetTextureFromMethod(entity, renderer, rendererClass)
     if (textureFromMethod != null) return textureFromMethod
-    
-    // Approach 2: Try to find an Identifier field
+
     val textureFromField = tryGetTextureFromField(renderer, rendererClass)
     if (textureFromField != null) return textureFromField
     
@@ -176,7 +173,7 @@ private fun tryGetTextureFromField(renderer: EntityRenderer<*, *>, rendererClass
                     if (value is Identifier) return value
                     
                     // Also try static fields
-                    if (java.lang.reflect.Modifier.isStatic(field.modifiers)) {
+                    if (Modifier.isStatic(field.modifiers)) {
                         val staticValue = field.get(null)
                         if (staticValue is Identifier) return staticValue
                     }
@@ -188,9 +185,6 @@ private fun tryGetTextureFromField(renderer: EntityRenderer<*, *>, rendererClass
     } catch (_: Exception) { null }
 }
 
-/**
- * Calculates the average color from an item frame entity using the block model sprite.
- */
 private fun calculateItemFrameColor(entity: ItemFrameEntity): Color? {
     return try {
         val isGlow = entity.type == EntityType.GLOW_ITEM_FRAME
@@ -201,9 +195,6 @@ private fun calculateItemFrameColor(entity: ItemFrameEntity): Color? {
     } catch (_: Exception) { null }
 }
 
-/**
- * Calculates the average color from a painting entity using the painting variant's sprite.
- */
 private fun calculatePaintingColor(entity: PaintingEntity): Color? {
     return try {
         val variant = entity.variant.value()
@@ -213,9 +204,6 @@ private fun calculatePaintingColor(entity: PaintingEntity): Color? {
     } catch (_: Exception) { null }
 }
 
-/**
- * Calculates the average color from a sprite.
- */
 private fun calculateAverageColorFromSprite(sprite: Sprite): Color? {
     return try {
         val contents = sprite.contents

@@ -27,19 +27,20 @@ import com.lambda.interaction.managers.interacting.InteractConfig.InteractConfir
 import com.lambda.util.NamedEnum
 
 class InteractSettings(
+    prefix: String = "",
     c: Configurable,
-    baseGroup: NamedEnum,
+    vararg baseGroup: NamedEnum,
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InteractConfig {
-    override val rotate by c.setting("Rotate For Interact", true, "Rotate towards block while placing", visibility = visibility).group(baseGroup).index()
-    override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = visibility).group(baseGroup).index()
-    override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { visibility() && airPlace.isEnabled }.group(baseGroup).index()
-    override val sorter by c.setting("Interaction Sorter", ActionConfig.SortMode.Tool, "The order in which placements are performed", visibility = visibility).group(baseGroup).index()
-    override val tickStageMask by c.setting("Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true, visibility = visibility).group(baseGroup).index()
-    override val interactConfirmationMode by c.setting("Interact Confirmation", InteractConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation", visibility = visibility).group(baseGroup).index()
-    override val interactDelay by c.setting("Interact Delay", 0, 0..3, 1, "Tick delay between interacting with another block", visibility = visibility).group(baseGroup).index()
-    override val interactionsPerTick by c.setting("Interactions Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", visibility = visibility).group(baseGroup).index()
-    override val swing by c.setting("Swing On Interact", true, "Swings the players hand when placing", visibility = visibility).group(baseGroup).index()
-    override val swingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { visibility() && swing }.group(baseGroup).index()
-    override val sounds by c.setting("Place Sounds", true, "Plays the placing sounds", visibility = visibility).group(baseGroup).index()
+    override val rotate by c.setting("${prefix}Rotate For Interact", true, "Rotate towards block while placing", visibility = visibility).group(*baseGroup).index()
+    override val airPlace by c.setting("${prefix}Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = visibility).group(*baseGroup).index()
+    override val axisRotateSetting by c.setting("${prefix}Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { visibility() && airPlace.isEnabled }.group(*baseGroup).index()
+    override val sorter by c.setting("${prefix}Interaction Sorter", ActionConfig.SortMode.Tool, "The order in which placements are performed", visibility = visibility).group(*baseGroup).index()
+    override val tickStageMask by c.setting("${prefix}Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true, visibility = visibility).group(*baseGroup).index()
+    override val interactConfirmationMode by c.setting("${prefix}Interact Confirmation", InteractConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation", visibility = visibility).group(*baseGroup).index()
+    override val interactDelay by c.setting("${prefix}Interact Delay", 0, 0..3, 1, "Tick delay between interacting with another block", visibility = visibility).group(*baseGroup).index()
+    override val interactionsPerTick by c.setting("${prefix}Interactions Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", visibility = visibility).group(*baseGroup).index()
+    override val swing by c.setting("${prefix}Swing On Interact", true, "Swings the players hand when placing", visibility = visibility).group(*baseGroup).index()
+    override val swingType by c.setting("${prefix}Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { visibility() && swing }.group(*baseGroup).index()
+    override val sounds by c.setting("${prefix}Place Sounds", true, "Plays the placing sounds", visibility = visibility).group(*baseGroup).index()
 }

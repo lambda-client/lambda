@@ -66,7 +66,7 @@ object WorldEater : Module(
         }
 
         tickedRenderer("WorldEater Ticked Renderer") {
-            box(Box.enclosing(pos1, pos2), 1.5f) {
+            box(Box.enclosing(pos1, pos2)) {
                 hideFill()
                 outlineColor(Color.BLUE)
             }

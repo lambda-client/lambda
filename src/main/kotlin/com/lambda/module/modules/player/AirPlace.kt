@@ -63,9 +63,6 @@ object AirPlace : Module(
 	private var distance by setting("Distance", 4.0, 1.0..7.0, 1.0).group(Group.General)
 	private val scrollBind by setting("Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the ctrl key and scroll to adjust distance").group(Group.General)
 
-	private val outlineColor by setting("Outline Color", Color.WHITE).group(Group.Render)
-	private val outlineWidth by setting("Outline Width", 1.5f, 0.5f..10f, 0.1f)
-
 	private var placementPos: BlockPos? = null
 	private var placementState: BlockState? = null
 	private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -113,9 +110,7 @@ object AirPlace : Module(
 				val boxes = placementState?.getOutlineShape(safeContext.world, pos)?.boundingBoxes
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
 				boxes.forEach { box ->
-					box(box, outlineWidth) {
-						hideFill()
-					}
+					box(box) { hideFill() }
 				}
 			}
 		}
