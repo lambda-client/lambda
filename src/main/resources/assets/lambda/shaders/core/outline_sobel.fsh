@@ -8,6 +8,11 @@ uniform sampler2D Sampler2;
 in vec2 v_TexCoord;
 out vec4 fragColor;
 
+float u_Thickness;
+float u_GlowIntensity;
+float u_GlowRadius;
+float u_FillOpacity;
+
 bool depthTestVisible(vec2 coord) {
     float silDepth = texture(Sampler1, coord).r;
     float worldDepth = texture(Sampler2, coord).r;
@@ -22,41 +27,115 @@ bool isVisible(float alpha, vec2 coord) {
         return true;
     }
 
-    // Entity ID mode: depth test flag encoded in alpha
     if (alpha < 0.5) return true;
     return depthTestVisible(coord);
 }
 
+bool hasEntityData(vec2 coord) {
+    return texture(Sampler0, coord).a > 0.0;
+}
+
+vec3 getEntityColor(vec4 sample) {
+    return sample.rgb;
+}
+
 void main() {
-    vec4 center = texture(Sampler0, v_TexCoord);
-    
-    if (center.a > 0.0 && !isVisible(center.a, v_TexCoord)) discard;
-    
-    float fillAlpha = (center.a >= 0.5) ? (center.a - 128.0/255.0) * (255.0/125.0) : center.a * (255.0/125.0);
-    
-    if (fillAlpha > 1.5 / 255.0) {
-        fragColor = vec4(center.rgb, fillAlpha);
-        return;
-    }
-    
+    float screenHeight = float(textureSize(Sampler0, 0).y);
+    u_Thickness = TextureMat[0][0] * screenHeight;
+    u_GlowIntensity = TextureMat[0][1];
+    u_GlowRadius = TextureMat[0][2] * screenHeight;
+    u_FillOpacity = TextureMat[0][3];
+
+    if (u_Thickness <= 0.0) u_Thickness = 1.0;
+
+    float outlineAlpha = clamp(u_Thickness, 0.0, 1.0);
+    float effectiveThickness = max(u_Thickness, 1.0);
+
     vec2 texelSize = 1.0 / textureSize(Sampler0, 0);
-    vec4 n = texture(Sampler0, v_TexCoord + vec2(0.0, texelSize.y));
-    vec4 s = texture(Sampler0, v_TexCoord - vec2(0.0, texelSize.y));
-    vec4 e = texture(Sampler0, v_TexCoord + vec2(texelSize.x, 0.0));
-    vec4 w = texture(Sampler0, v_TexCoord - vec2(texelSize.x, 0.0));
-    
-    if (n.a > 0.0 || s.a > 0.0 || e.a > 0.0 || w.a > 0.0) {
-        if (!isVisible(n.a, v_TexCoord + vec2(0.0, texelSize.y)) &&
-            !isVisible(s.a, v_TexCoord - vec2(0.0, texelSize.y)) &&
-            !isVisible(e.a, v_TexCoord + vec2(texelSize.x, 0.0)) &&
-            !isVisible(w.a, v_TexCoord - vec2(texelSize.x, 0.0))) {
-            discard;
+    vec4 center = texture(Sampler0, v_TexCoord);
+    bool centerHasData = center.a > 0.0;
+    bool centerVisible = centerHasData && isVisible(center.a, v_TexCoord);
+
+    float maxRadius = effectiveThickness + u_GlowRadius;
+    int maxRadiusInt = int(ceil(maxRadius));
+
+    float minDistToEdge = maxRadius + 1.0;
+
+    if (centerHasData) {
+        if (!centerVisible) discard;
+
+        if (u_FillOpacity > 0.0) {
+            vec3 color;
+            if (ModelOffset.x > 0.5) color = ColorModulator.rgb;
+            else color = getEntityColor(center);
+            fragColor = vec4(color, u_FillOpacity);
+            return;
         }
 
-        if (ModelOffset.x > 0.5) fragColor = ColorModulator;
-        else {
-            vec4 edgeSample = n.a > 0.0 ? n : (s.a > 0.0 ? s : (e.a > 0.0 ? e : w));
-            fragColor = vec4(edgeSample.rgb, 1.0);
+        discard;
+    } else {
+        vec3 nearestColor = vec3(0.0);
+        bool nearestVisible = false;
+
+        int step = max(1, maxRadiusInt / 12);
+        int bestDx = 0, bestDy = 0;
+
+        for (int dy = -maxRadiusInt; dy <= maxRadiusInt; dy += step) {
+            for (int dx = -maxRadiusInt; dx <= maxRadiusInt; dx += step) {
+                if (dx == 0 && dy == 0) continue;
+                float dist = length(vec2(float(dx), float(dy)));
+                if (dist > maxRadius || dist >= minDistToEdge) continue;
+
+                vec2 sampleCoord = v_TexCoord + vec2(float(dx), float(dy)) * texelSize;
+                vec4 s = texture(Sampler0, sampleCoord);
+                if (s.a > 0.0) {
+                    minDistToEdge = dist;
+                    bestDx = dx;
+                    bestDy = dy;
+                    nearestVisible = isVisible(s.a, sampleCoord);
+                    if (ModelOffset.x > 0.5) nearestColor = ColorModulator.rgb;
+                    else nearestColor = getEntityColor(s);
+                }
+            }
         }
-    } else discard;
+
+        if (step > 1 && minDistToEdge < maxRadius + 1.0) {
+            int rMin = step;
+            for (int dy = bestDy - rMin; dy <= bestDy + rMin; dy++) {
+                for (int dx = bestDx - rMin; dx <= bestDx + rMin; dx++) {
+                    if (dx == 0 && dy == 0) continue;
+                    float dist = length(vec2(float(dx), float(dy)));
+                    if (dist > maxRadius || dist >= minDistToEdge) continue;
+
+                    vec2 sampleCoord = v_TexCoord + vec2(float(dx), float(dy)) * texelSize;
+                    vec4 s = texture(Sampler0, sampleCoord);
+                    if (s.a > 0.0) {
+                        minDistToEdge = dist;
+                        nearestVisible = isVisible(s.a, sampleCoord);
+                        if (ModelOffset.x > 0.5) nearestColor = ColorModulator.rgb;
+                        else nearestColor = getEntityColor(s);
+                    }
+                }
+            }
+        }
+
+        if (!nearestVisible) discard;
+
+        if (minDistToEdge <= effectiveThickness) {
+            fragColor = vec4(nearestColor, outlineAlpha);
+            return;
+        }
+
+        if (u_GlowIntensity > 0.0 && u_GlowRadius > 0.0 && minDistToEdge <= maxRadius) {
+            float glowDist = minDistToEdge - effectiveThickness;
+            float glowFactor = 1.0 - (glowDist / u_GlowRadius);
+            glowFactor = clamp(glowFactor, 0.0, 1.0);
+            glowFactor = glowFactor * glowFactor;
+            float alpha = glowFactor * u_GlowIntensity * outlineAlpha;
+            fragColor = vec4(nearestColor, alpha);
+            return;
+        }
+
+        discard;
+    }
 }

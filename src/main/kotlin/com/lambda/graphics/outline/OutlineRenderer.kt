@@ -18,21 +18,17 @@
 package com.lambda.graphics.outline
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.LambdaRenderPipelines
-import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
 import com.mojang.blaze3d.vertex.VertexFormat
-import net.minecraft.client.render.VertexFormats
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.system.MemoryUtil
-import java.nio.ByteOrder
 import java.util.OptionalDouble
 import java.util.OptionalInt
 
@@ -76,11 +72,12 @@ object OutlineRenderer {
         val quadBuffer = fullscreenQuadBuffer ?: return
 
         val outlineColor = Vector4f(style.color.red / 255f, style.color.green / 255f, style.color.blue / 255f, 1.0f)
+        val styleMat = buildStyleMatrix(style)
         val dynamicTransform = RenderSystem.getDynamicUniforms().write(
             Matrix4f(),
             outlineColor,
             Vector3f(1f, if (depthTest) 1f else 0f, 0f),
-            Matrix4f()
+            styleMat
         )
 
         RenderSystem.getDevice()
@@ -175,35 +172,69 @@ object OutlineRenderer {
         }
     }
 
+    private data class StyleKey(
+        val thickness: Float,
+        val glowIntensity: Float,
+        val glowRadius: Float,
+        val fill: Boolean,
+        val fillOpacity: Float
+    )
+
+    private fun OutlineStyle.toKey() = StyleKey(thickness, glowIntensity, glowRadius, fill, fillOpacity)
+
     fun renderAllIDPasses() {
-        val depthTested = OutlineManager.getDepthTestedEntityIds()
-        val xray = OutlineManager.getXrayEntityIds()
+        val depthTestedStyles = OutlineManager.getDepthTestedStyles()
+        val xrayStyles = OutlineManager.getXrayStyles()
 
-        if (depthTested.isNotEmpty()) {
-            OutlineIdPassRenderer.render(depthTested, useMcDepth = true)
-        }
-        if (xray.isNotEmpty()) {
-            OutlineIdPassRenderer.render(xray, useMcDepth = false)
+        val depthTestedGroups = depthTestedStyles.entries.groupBy({ it.value.toKey() }, { it.key })
+        val xrayGroups = xrayStyles.entries.groupBy({ it.value.toKey() }, { it.key })
+
+        val allStyleKeys = (depthTestedGroups.keys + xrayGroups.keys).distinct()
+
+        for (styleKey in allStyleKeys) {
+            OutlineIdBuffer.beginFrame()
+
+            val depthTestedIds = depthTestedGroups[styleKey]
+            val xrayIds = xrayGroups[styleKey]
+
+            if (!depthTestedIds.isNullOrEmpty()) {
+                OutlineIdPassRenderer.render(depthTestedIds.toSet(), useMcDepth = true)
+            }
+            if (!xrayIds.isNullOrEmpty()) {
+                OutlineIdPassRenderer.render(xrayIds.toSet(), useMcDepth = false)
+            }
+
+            if (OutlineIdBuffer.hasData) {
+                val representativeId = depthTestedIds?.firstOrNull() ?: xrayIds?.firstOrNull() ?: continue
+                val representativeStyle = OutlineManager.getOutlineStyle(representativeId) ?: continue
+                applyEdgeDetection(representativeStyle)
+            }
         }
     }
 
-    fun renderEdges() {
-        if (OutlineIdBuffer.hasData) applyEdgeDetection()
-    }
-
-    private fun applyEdgeDetection() {
+    private fun applyEdgeDetection(style: OutlineStyle = OutlineStyle.DEFAULT) {
         val idBufferView = OutlineIdBuffer.getTextureView() ?: return
-        applySobel(idBufferView, "Lambda Global Outline Sobel Pass")
+        applySobel(idBufferView, "Lambda Global Outline Sobel Pass", style)
     }
 
-    private fun applySobel(textureView: GpuTextureView, label: String) {
+    private fun buildStyleMatrix(style: OutlineStyle): Matrix4f {
+        val mat = Matrix4f()
+        mat.m00(style.thickness)
+        mat.m01(style.glowIntensity)
+        mat.m02(style.glowRadius)
+        mat.m03(if (style.fill) style.fillOpacity else 0f)
+        return mat
+    }
+
+    private fun applySobel(textureView: GpuTextureView, label: String, style: OutlineStyle = OutlineStyle.DEFAULT) {
         val framebuffer = mc.framebuffer ?: return
         
         ensureFullscreenQuad()
         val quadBuffer = fullscreenQuadBuffer ?: return
 
+        val styleMat = buildStyleMatrix(style)
         val dynamicTransform = RenderSystem.getDynamicUniforms().write(
-            Matrix4f(), Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), Matrix4f()
+            Matrix4f(), Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), styleMat
         )
 
         RenderSystem.getDevice()

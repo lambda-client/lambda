@@ -26,7 +26,6 @@ import java.util.OptionalDouble
 import java.util.OptionalInt
 
 object OutlineIdBuffer {
-
     private var idTexture: GpuTexture? = null
     private var idTextureView: GpuTextureView? = null
 

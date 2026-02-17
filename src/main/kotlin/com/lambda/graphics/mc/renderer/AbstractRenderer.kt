@@ -129,6 +129,62 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			outlinedIds.forEach { id ->
 				val style = OutlineManager.getOutlineStyle(id) ?: OutlineStyle.DEFAULT
 
+				RegionRenderer.createRenderPass("$name Outlined Draw $id", depth)?.use { pass ->
+					pass.setPipeline(RendererUtils.facesPipeline)
+					RenderSystem.bindDefaultUniforms(pass)
+					chunks.forEach { (renderer, transform) ->
+						if (renderer.hasOutlinedData(id)) {
+							pass.setUniform("DynamicTransforms", transform)
+							renderer.renderOutlinedFaces(pass, id)
+						}
+					}
+
+					pass.setPipeline(RendererUtils.edgesPipeline)
+					RenderSystem.bindDefaultUniforms(pass)
+					chunks.forEach { (renderer, transform) ->
+						if (renderer.hasOutlinedData(id)) {
+							pass.setUniform("DynamicTransforms", transform)
+							renderer.renderOutlinedEdges(pass, id)
+						}
+					}
+
+					val atlasD = currentFontAtlas
+					if (atlasD != null && atlasD.textureView != null) {
+						pass.setPipeline(RendererUtils.textPipeline)
+						RenderSystem.bindDefaultUniforms(pass)
+						pass.bindTexture("Sampler0", atlasD.textureView!!, atlasD.sampler ?: nearestSampler)
+						chunks.forEach { (renderer, transform) ->
+							if (renderer.hasOutlinedData(id)) {
+								pass.setUniform("DynamicTransforms", transform)
+								renderer.renderOutlinedText(pass, id)
+							}
+						}
+					}
+
+					pass.setPipeline(RendererUtils.worldImagePipeline)
+					RenderSystem.bindDefaultUniforms(pass)
+					RendererUtils.bindGlintTexture(pass, "Sampler1")
+					chunks.forEach { (renderer, transform) ->
+						if (renderer.hasOutlinedData(id)) {
+							pass.setUniform("DynamicTransforms", transform)
+							renderer.renderOutlinedImages(pass, id)
+						}
+					}
+
+					pass.setPipeline(RendererUtils.modelPipeline)
+					RenderSystem.bindDefaultUniforms(pass)
+					RendererUtils.bindOverlayTexture(pass, "Sampler1")
+					RendererUtils.bindLightmapTexture(pass, "Sampler2")
+					RendererUtils.bindGlintTexture(pass, "Sampler3")
+					pass.setUniform("GlintTransforms", glintUniformL)
+					chunks.forEach { (renderer, transform) ->
+						if (renderer.hasOutlinedData(id)) {
+							pass.setUniform("DynamicTransforms", transform)
+							renderer.renderOutlinedModels(pass, id)
+						}
+					}
+				}
+
 				OutlineRenderer.beginGroupPass("$name Group $id")
 				val groupTarget = OutlineRenderer.getGroupView() ?: return@forEach
 				val groupDepthView = OutlineRenderer.getGroupDepthView() ?: return@forEach

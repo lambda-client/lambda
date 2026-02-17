@@ -55,7 +55,6 @@ object RenderMain {
         RenderEvent.RenderWorld.post()
 
         OutlineRenderer.renderAllIDPasses()
-        OutlineRenderer.renderEdges()
         
         RenderEvent.RenderScreen.post()
     }

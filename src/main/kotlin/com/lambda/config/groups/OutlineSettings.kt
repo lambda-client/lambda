@@ -36,7 +36,7 @@ class OutlineSettings(
 	val glowIntensity get() = glowIntensitySetting * 0.01f
 
 	val glowRadiusSetting by c.setting("${prefix}Glow Radius", 20, 0..100, 1, "Radius of the outline glow", visibility = visibility).group(*baseGroup).index()
-	val glowRadius get() = glowRadiusSetting * 0.1f
+	val glowRadius get() = glowRadiusSetting * 0.00005f
 
 	val fill by c.setting("${prefix}Fill", true, "Fill the entity silhouette", visibility = visibility).group(*baseGroup).index()
 
