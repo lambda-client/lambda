@@ -35,6 +35,7 @@ object Nuker : Module(
 	name = "Nuker",
 	description = "Breaks blocks around you",
 	tag = ModuleTag.PLAYER,
+	autoDisable = true
 ) {
 	private val height by setting("Height", 6, 1..8, 1)
 	private val width by setting("Width", 6, 1..8, 1)

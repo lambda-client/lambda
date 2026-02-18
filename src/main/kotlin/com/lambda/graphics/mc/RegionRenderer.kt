@@ -51,11 +51,11 @@ class RegionRenderer {
 
 	private var outlinedBatches: Map<Int, OutlinedBatchResult> = emptyMap()
 
-	private var hasData = false
+	private var hasWorldData = false
 	private var hasScreenData = false
 
 	fun upload(collector: RegionVertexCollector) {
-		val result = collector.build()
+		val result = collector.buildWorld()
 		val screenResult = collector.buildScreen()
 
 		fun uploadBatch(batch: BuiltBatch?, label: String, oldBuffer: GpuBuffer?): BufferResult {
@@ -68,7 +68,7 @@ class RegionRenderer {
 			return BufferResult(buffer, batch.indexCount)
 		}
 
-		fun uploadTextureBatches(batches: List<TextureBuildBatch>, label: String, oldBatches: List<TextureBatchResult>): List<TextureBatchResult> {
+		fun uploadTextureBatches(batches: List<BuiltTextureBatch>, label: String, oldBatches: List<TextureBatchResult>): List<TextureBatchResult> {
 			oldBatches.forEach { it.buffer.close() }
 			
 			return batches.map { batch ->
@@ -79,15 +79,15 @@ class RegionRenderer {
 			}
 		}
 
-		val faceRes = uploadBatch(result.faces, "Lambda ESP Face Buffer", faceVertexBuffer)
+		val faceRes = uploadBatch(result.faces, "Lambda World Face Buffer", faceVertexBuffer)
 		faceVertexBuffer = faceRes.buffer
 		faceIndexCount = faceRes.indexCount
 
-		val edgeRes = uploadBatch(result.edges, "Lambda ESP Edge Buffer", edgeVertexBuffer)
+		val edgeRes = uploadBatch(result.edges, "Lambda World Edge Buffer", edgeVertexBuffer)
 		edgeVertexBuffer = edgeRes.buffer
 		edgeIndexCount = edgeRes.indexCount
 
-		val textRes = uploadBatch(result.text, "Lambda ESP Text Buffer", textVertexBuffer)
+		val textRes = uploadBatch(result.text, "Lambda World Text Buffer", textVertexBuffer)
 		textVertexBuffer = textRes.buffer
 		textIndexCount = textRes.indexCount
 
@@ -103,9 +103,9 @@ class RegionRenderer {
 		screenTextVertexBuffer = sTextRes.buffer
 		screenTextIndexCount = sTextRes.indexCount
 
-		screenImageBatches = uploadTextureBatches(screenResult.images, "Lambda Screen Image Buffer", screenImageBatches)
 		worldImageBatches = uploadTextureBatches(result.images, "Lambda World Image Buffer", worldImageBatches)
-		modelBatches = uploadTextureBatches(result.models, "Lambda Model Buffer", modelBatches)
+		screenImageBatches = uploadTextureBatches(screenResult.images, "Lambda Screen Image Buffer", screenImageBatches)
+		modelBatches = uploadTextureBatches(result.models, "Lambda World Model Buffer", modelBatches)
 		screenModelBatches = uploadTextureBatches(screenResult.models, "Lambda Screen Model Buffer", screenModelBatches)
 
 		val oldOutlined = outlinedBatches
@@ -130,7 +130,7 @@ class RegionRenderer {
 			}
 		}
 
-		hasData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty() || outlinedBatches.isNotEmpty()
+		hasWorldData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty() || outlinedBatches.isNotEmpty()
 		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty() || screenModelBatches.isNotEmpty()
 	}
 
@@ -379,7 +379,7 @@ class RegionRenderer {
 		faceIndexCount = 0
 		edgeIndexCount = 0
 		textIndexCount = 0
-		hasData = false
+		hasWorldData = false
 
 		screenFaceVertexBuffer = null
 		screenEdgeVertexBuffer = null
@@ -397,7 +397,7 @@ class RegionRenderer {
 		hasScreenData = false
 	}
 
-	fun hasData(): Boolean = hasData
+	fun hasData(): Boolean = hasWorldData
 
 	companion object {
 		fun createRenderPass(label: String): RenderPass? = createRenderPass(label, useMcDepth = true)

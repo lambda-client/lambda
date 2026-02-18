@@ -17,6 +17,7 @@
 
 package com.lambda.graphics.mc
 
+import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexFormatElement
@@ -25,6 +26,7 @@ import net.minecraft.client.render.VertexFormats
 import net.minecraft.client.util.BufferAllocator
 import org.lwjgl.system.MemoryUtil
 import java.awt.Color
+import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
@@ -148,9 +150,9 @@ class RegionVertexCollector {
 		val useNearestFilter: Boolean
 	)
 
-	private val screenImageBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
 	private val worldImageBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<WorldImageVertex>>()
-	private val modelBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
+	private val screenImageBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ScreenImageVertex>>()
+	private val worldModelBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
 	private val screenModelBatches = ConcurrentHashMap<ImageBatchKey, ConcurrentLinkedDeque<ModelVertex>>()
 
 	fun addScreenImageVertices(texture: GpuTextureView, vertices: List<ScreenImageVertex>, useNearestFilter: Boolean = false) {
@@ -179,7 +181,7 @@ class RegionVertexCollector {
 		outlineId: Int? = null
 	) {
 		val key = ImageBatchKey(texture, useNearestFilter)
-		if (outlineId == null) modelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
+		if (outlineId == null) worldModelBatches.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
 		else {
 			val idMap = modelVerticesOutlined.getOrPut(outlineId) { ConcurrentHashMap() }
 			idMap.getOrPut(key) { ConcurrentLinkedDeque() }.addAll(vertices)
@@ -297,18 +299,7 @@ class RegionVertexCollector {
 		}
 	}
 
-	fun addScreenTextVertex(
-		x: Float, y: Float, u: Float, v: Float,
-		r: Int, g: Int, b: Int, a: Int,
-		layer: Float,
-		layerType: Int = 3,
-		outlineWidth: Float = 0f,
-		glowRadius: Float = 0f,
-		shadowSoftness: Float = 0f,
-		threshold: Float = 0.5f
-	) { screenTextVertices.add(ScreenTextVertex(x, y, layerType, u, v, r, g, b, a, outlineWidth, glowRadius, shadowSoftness, threshold, layer)) }
-
-	fun build(): BuildResult {
+	fun buildWorld(): BuiltWorldResult {
 		val faces = buildFaces()
 		val edges = buildEdges()
 		val text = buildText()
@@ -317,7 +308,7 @@ class RegionVertexCollector {
 		
 		val outlineIds = faceVerticesOutlined.keys + edgeVerticesOutlined.keys + textVerticesOutlined.keys + modelVerticesOutlined.keys + worldImageVerticesOutlined.keys
 		val outlinedResults = outlineIds.associateWith { id ->
-			OutlinedBuildResult(
+			BuiltOutlineResult(
 				faces = buildOutlinedFaces(id),
 				edges = buildOutlinedEdges(id),
 				text = buildOutlinedText(id),
@@ -326,7 +317,7 @@ class RegionVertexCollector {
 			)
 		}
 
-		return BuildResult(faces, edges, text, models, images, outlinedResults)
+		return BuiltWorldResult(faces, edges, text, models, images, outlinedResults)
 	}
 
 	private fun buildFaces(): BuiltBatch? {
@@ -512,19 +503,19 @@ class RegionVertexCollector {
 		return result
 	}
 
-	fun buildScreen(): ScreenBuildResult {
+	fun buildScreen(): BuiltScreenResult {
 		val faces = buildScreenFaces()
 		val edges = buildScreenEdges()
 		val text = buildScreenText()
 		val images = buildScreenImageBatches()
 		val models = buildScreenModelBatches()
-		return ScreenBuildResult(faces, edges, text, images, models)
+		return BuiltScreenResult(faces, edges, text, images, models)
 	}
 
-	private fun buildScreenImageBatches(): List<TextureBuildBatch> {
+	private fun buildScreenImageBatches(): List<BuiltTextureBatch> {
 		if (screenImageBatches.isEmpty()) return emptyList()
 
-		val results = mutableListOf<TextureBuildBatch>()
+		val results = mutableListOf<BuiltTextureBatch>()
 		
 		screenImageBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
@@ -561,7 +552,7 @@ class RegionVertexCollector {
 					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
 					copy.put(built.buffer)
 					copy.flip()
-					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					results.add(BuiltTextureBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -570,9 +561,9 @@ class RegionVertexCollector {
 		return results
 	}
 
-	fun buildWorldImageBatches(): List<TextureBuildBatch> {
+	fun buildWorldImageBatches(): List<BuiltTextureBatch> {
 		if (worldImageBatches.isEmpty()) return emptyList()
-		val results = mutableListOf<TextureBuildBatch>()
+		val results = mutableListOf<BuiltTextureBatch>()
 		worldImageBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
@@ -596,7 +587,7 @@ class RegionVertexCollector {
 					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
 					copy.put(built.buffer)
 					copy.flip()
-					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					results.add(BuiltTextureBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -605,10 +596,10 @@ class RegionVertexCollector {
 		return results
 	}
 
-	fun buildModelBatches(): List<TextureBuildBatch> {
-		if (modelBatches.isEmpty()) return emptyList()
-		val results = mutableListOf<TextureBuildBatch>()
-		modelBatches.forEach { (batchKey, vertexDeque) ->
+	fun buildModelBatches(): List<BuiltTextureBatch> {
+		if (worldModelBatches.isEmpty()) return emptyList()
+		val results = mutableListOf<BuiltTextureBatch>()
+		worldModelBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
@@ -639,18 +630,18 @@ class RegionVertexCollector {
 					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
 					copy.put(built.buffer)
 					copy.flip()
-					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					results.add(BuiltTextureBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
 		}
-		modelBatches.clear()
+		worldModelBatches.clear()
 		return results
 	}
 
-	private fun buildScreenModelBatches(): List<TextureBuildBatch> {
+	private fun buildScreenModelBatches(): List<BuiltTextureBatch> {
 		if (screenModelBatches.isEmpty()) return emptyList()
-		val results = mutableListOf<TextureBuildBatch>()
+		val results = mutableListOf<BuiltTextureBatch>()
 		screenModelBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
@@ -682,7 +673,7 @@ class RegionVertexCollector {
 					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
 					copy.put(built.buffer)
 					copy.flip()
-					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					results.add(BuiltTextureBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -775,11 +766,11 @@ class RegionVertexCollector {
 		return result
 	}
 
-	private fun buildOutlinedModelBatches(id: Int): List<TextureBuildBatch> {
+	private fun buildOutlinedModelBatches(id: Int): List<BuiltTextureBatch> {
 		val modelBatches = modelVerticesOutlined[id] ?: return emptyList()
 		if (modelBatches.isEmpty()) return emptyList()
 
-		val results = mutableListOf<TextureBuildBatch>()
+		val results = mutableListOf<BuiltTextureBatch>()
 		modelBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
@@ -812,7 +803,7 @@ class RegionVertexCollector {
 					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
 					copy.put(built.buffer)
 					copy.flip()
-					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					results.add(BuiltTextureBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -821,11 +812,11 @@ class RegionVertexCollector {
 		return results
 	}
 
-	private fun buildOutlinedWorldImageBatches(id: Int): List<TextureBuildBatch> {
+	private fun buildOutlinedWorldImageBatches(id: Int): List<BuiltTextureBatch> {
 		val imageBatches = worldImageVerticesOutlined[id] ?: return emptyList()
 		if (imageBatches.isEmpty()) return emptyList()
 
-		val results = mutableListOf<TextureBuildBatch>()
+		val results = mutableListOf<BuiltTextureBatch>()
 		imageBatches.forEach { (batchKey, vertexDeque) ->
 			val vertices = vertexDeque.toList()
 			vertexDeque.clear()
@@ -849,7 +840,7 @@ class RegionVertexCollector {
 					val copy = MemoryUtil.memAlloc(built.buffer.remaining())
 					copy.put(built.buffer)
 					copy.flip()
-					results.add(TextureBuildBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
+					results.add(BuiltTextureBatch(batchKey.textureView, copy, built.drawParameters.indexCount(), batchKey.useNearestFilter))
 					built.close()
 				}
 			}
@@ -859,15 +850,15 @@ class RegionVertexCollector {
 	}
 }
 
-data class BuiltBatch(val buffer: java.nio.ByteBuffer, val indexCount: Int)
-data class TextureBuildBatch(val textureView: GpuTextureView, val buffer: java.nio.ByteBuffer, val indexCount: Int, val useNearestFilter: Boolean = false)
-data class OutlinedBuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<TextureBuildBatch>, val images: List<TextureBuildBatch>)
-data class BuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<TextureBuildBatch>, val images: List<TextureBuildBatch>, val outlined: Map<Int, OutlinedBuildResult>)
-data class ScreenBuildResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val images: List<TextureBuildBatch>, val models: List<TextureBuildBatch>)
+data class BuiltBatch(val buffer: ByteBuffer, val indexCount: Int)
+data class BuiltTextureBatch(val textureView: GpuTextureView, val buffer: ByteBuffer, val indexCount: Int, val useNearestFilter: Boolean = false)
+data class BuiltWorldResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<BuiltTextureBatch>, val images: List<BuiltTextureBatch>, val outlined: Map<Int, BuiltOutlineResult>)
+data class BuiltScreenResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val images: List<BuiltTextureBatch>, val models: List<BuiltTextureBatch>)
+data class BuiltOutlineResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<BuiltTextureBatch>, val images: List<BuiltTextureBatch>)
 
 data class TextureBatchResult(
 	val textureView: GpuTextureView,
-	val buffer: com.mojang.blaze3d.buffers.GpuBuffer,
+	val buffer: GpuBuffer,
 	val indexCount: Int,
 	val useNearestFilter: Boolean = false
 )
@@ -880,5 +871,5 @@ data class OutlinedBatchResult(
 	val images: List<TextureBatchResult>
 )
 
-data class BufferResult(val buffer: com.mojang.blaze3d.buffers.GpuBuffer?, val indexCount: Int)
+data class BufferResult(val buffer: GpuBuffer?, val indexCount: Int)
 

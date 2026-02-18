@@ -29,6 +29,7 @@ import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
+import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
@@ -101,6 +102,13 @@ class ChunkedRenderer(
 
 	fun rebuild() {
 		rebuildQueue.clear()
+		mc.world?.chunkManager?.chunks?.let { chunks ->
+			val chunkCount = chunks.loadedChunkCount
+			(0..chunkCount).forEach { index ->
+				val chunk = chunks.chunks.get(index) ?: return@forEach
+				chunkMap.putIfAbsent(chunk.chunkKey, chunk.chunkData)
+			}
+		}
 		rebuildQueue.addAll(chunkMap.values)
 	}
 
@@ -142,9 +150,9 @@ class ChunkedRenderer(
 			.map { it.renderer }
 
 	private inner class ChunkData(val chunk: WorldChunk) {
-		val originX: Double = (chunk.pos.x shl 4).toDouble()
-		val originY: Double = chunk.bottomY.toDouble()
-		val originZ: Double = (chunk.pos.z shl 4).toDouble()
+		val originX = (chunk.pos.x shl 4).toDouble()
+		val originY = chunk.bottomY.toDouble()
+		val originZ = (chunk.pos.z shl 4).toDouble()
 
 		val renderer = RegionRenderer()
 
@@ -175,6 +183,11 @@ class ChunkedRenderer(
 			name: String,
 			depthTest: SafeContext.() -> Boolean = { false },
 			update: RenderBuilder.(ClientWorld, FastVector) -> Unit
-		) = ChunkedRenderer(this, name, depthTest, update)
+		) = ChunkedRenderer(this, name, depthTest, update).also { renderer ->
+			(this as? Module)?.let { module ->
+				module.onEnable { renderer.rebuild() }
+				module.onDisable { renderer.rebuild() }
+			}
+		}
 	}
 }
