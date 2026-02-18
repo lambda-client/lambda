@@ -1,5 +1,4 @@
 #version 330
-#moj_import <minecraft:fog.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:globals.glsl>
 
@@ -7,8 +6,6 @@ uniform sampler2D Sampler0;
 
 in vec2 v_TexCoord;
 in vec4 v_Color;
-in float sphericalVertexDistance;
-in float cylindricalVertexDistance;
 in vec4 sdfStyleParams;
 flat in int v_LayerType;
 
@@ -55,7 +52,5 @@ void main() {
 
     result *= ColorModulator;
 
-    fragColor = apply_fog(result, sphericalVertexDistance, cylindricalVertexDistance,
-                          FogEnvironmentalStart, FogEnvironmentalEnd,
-                          FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
+    fragColor = result;
 }

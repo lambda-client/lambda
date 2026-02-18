@@ -36,10 +36,9 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 	protected abstract val currentFontAtlas: SDFFontAtlas?
 
 	fun SafeContext.render() {
+		val depth = depthTest()
 		val chunks = getRendererTransforms()
 		if (chunks.isEmpty()) return
-
-		val depth = depthTest()
 
 		RegionRenderer.createRenderPass("$name Faces", depth)?.use { pass ->
 			pass.setPipeline(RendererUtils.facesPipeline)
@@ -125,7 +124,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			RendererUtils.ensureGlintTextureLoaded()
 			val glintUniformL = RendererUtils.createGlintUniform(8.0f)
 
-			val depth = depthTest()
+
 			outlinedIds.forEach { id ->
 				val style = OutlineManager.getOutlineStyle(id) ?: OutlineStyle.DEFAULT
 

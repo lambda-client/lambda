@@ -12,7 +12,6 @@ out vec4 v_Color;
 
 void main() {
     gl_Position = Position;
-    gl_Position.z = gl_Position.z * 0.9999 - 0.00001 * gl_Position.w;
 
     v_TexCoord = UV0;
     v_Color = Color;

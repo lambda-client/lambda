@@ -1,6 +1,5 @@
 #version 330
 
-#moj_import <minecraft:fog.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:projection.glsl>
 
@@ -13,8 +12,6 @@ in vec4 SDFStyle;
 
 out vec2 v_TexCoord;
 out vec4 v_Color;
-out float sphericalVertexDistance;
-out float cylindricalVertexDistance;
 flat out int v_LayerType;
 out vec4 sdfStyleParams;
 
@@ -51,7 +48,4 @@ void main() {
     v_TexCoord = UV0;
     v_Color = Color;
     sdfStyleParams = SDFStyle;
-
-    sphericalVertexDistance = fog_spherical_distance(viewPos.xyz);
-    cylindricalVertexDistance = fog_cylindrical_distance(viewPos.xyz);
 }

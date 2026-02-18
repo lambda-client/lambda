@@ -1,6 +1,5 @@
 #version 330
 
-#moj_import <minecraft:fog.glsl>
 #moj_import <minecraft:globals.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
 
@@ -15,8 +14,7 @@ in float v_WorldPixelSize;
 flat in float v_SegmentLength;
 flat in float v_IsStart;
 flat in vec4 v_Dash;
-in float sphericalVertexDistance;
-in float cylindricalVertexDistance;
+
 
 out vec4 fragColor;
 
@@ -107,7 +105,5 @@ void main() {
     vec4 color = v_Color * ColorModulator;
     color.a *= alpha;
     
-    fragColor = apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance,
-                          FogEnvironmentalStart, FogEnvironmentalEnd,
-                          FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
+    fragColor = color;
 }

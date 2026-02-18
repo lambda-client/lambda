@@ -1,6 +1,5 @@
 #version 330
 
-#moj_import <minecraft:fog.glsl>
 #moj_import <minecraft:globals.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:projection.glsl>
@@ -23,8 +22,6 @@ out float v_WorldPixelSize;
 flat out float v_SegmentLength;
 flat out float v_IsStart;
 flat out vec4 v_Dash;
-out float sphericalVertexDistance;
-out float cylindricalVertexDistance;
 
 void main() {
     int vertexIndex = gl_VertexID % 4;
@@ -93,7 +90,4 @@ void main() {
     v_IsStart = isStart ? 1.0 : 0.0;
     v_Dash = Dash;
     v_TexCoord = vec2(0.0);
-    
-    sphericalVertexDistance = fog_spherical_distance(viewPos.xyz);
-    cylindricalVertexDistance = fog_cylindrical_distance(viewPos.xyz);
 }
