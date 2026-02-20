@@ -42,7 +42,7 @@ import org.joml.Quaternionf
 
 class OutlineCapturingQueue(
     private val delegate: OrderedRenderCommandQueueImpl,
-    private val entityId: Int
+    private val entityId: Any
 ) : OrderedRenderCommandQueueImpl() {
 
     override fun getBatchingQueue(i: Int): BatchingRenderCommandQueue {
@@ -58,7 +58,11 @@ class OutlineCapturingQueue(
         parent: OrderedRenderCommandQueueImpl
     ) : BatchingRenderCommandQueue(parent) {
 
-        private fun getTextureView(renderLayer: RenderLayer): GpuTextureView? {
+        private fun getTextureView(renderLayer: RenderLayer, sprite: Sprite?): GpuTextureView? {
+            if (sprite != null) {
+                val texManager = net.minecraft.client.MinecraftClient.getInstance().textureManager
+                return texManager.getTexture(sprite.atlasId)?.glTextureView
+            }
             val outlineLayer = renderLayer.getAffectedOutline().orElse(null) ?: renderLayer
             val setup = outlineLayer.renderSetup ?: return null
             val textures = setup.resolveTextures()
@@ -110,11 +114,12 @@ class OutlineCapturingQueue(
             crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
         ) {
             if (renderLayer.isOutline || renderLayer.affectedOutline.isPresent) {
-                VertexCapture.setActiveTexture(getTextureView(renderLayer))
-                val consumer = CapturingConsumer(renderLayer)
+                VertexCapture.setActiveTexture(getTextureView(renderLayer, sprite))
+                val baseConsumer = CapturingConsumer(renderLayer)
+                val consumer = if (sprite != null) net.minecraft.client.render.SpriteTexturedVertexConsumer(baseConsumer, sprite) else baseConsumer
                 model.setAngles(state)
                 model.render(matrices, consumer, light, overlay, tintedColor)
-                consumer.flush()
+                baseConsumer.flush()
             }
             batchedDelegate.submitModel(model, state, matrices, renderLayer, light, overlay, tintedColor, sprite, outlineColor, crumblingOverlay)
         }
@@ -133,10 +138,11 @@ class OutlineCapturingQueue(
             i: Int
         ) {
             if (renderLayer.isOutline || renderLayer.getAffectedOutline().isPresent) {
-                VertexCapture.setActiveTexture(getTextureView(renderLayer))
-                val consumer = CapturingConsumer(renderLayer)
+                VertexCapture.setActiveTexture(getTextureView(renderLayer, sprite))
+                val baseConsumer = CapturingConsumer(renderLayer)
+                val consumer = if (sprite != null) net.minecraft.client.render.SpriteTexturedVertexConsumer(baseConsumer, sprite) else baseConsumer
                 part.render(matrices, consumer, light, overlay, tintedColor)
-                consumer.flush()
+                baseConsumer.flush()
             }
             batchedDelegate.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, tintedColor, crumblingOverlay, i)
         }
@@ -161,8 +167,8 @@ class OutlineCapturingQueue(
             renderLayer: RenderLayer,
             glintType: net.minecraft.client.render.item.ItemRenderState.Glint
         ) {
-            if (renderLayer.isOutline || renderLayer.getAffectedOutline().isPresent) {
-                VertexCapture.setActiveTexture(getTextureView(renderLayer))
+            if (renderLayer.isOutline || renderLayer.affectedOutline.isPresent) {
+                VertexCapture.setActiveTexture(getTextureView(renderLayer, null))
                 val combined = getClipTransform(renderLayer).mul(matrices.peek().positionMatrix)
                 val posVec = Vector4f()
                 val normVec = Vector3f()

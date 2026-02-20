@@ -23,7 +23,8 @@ object OutlineManager {
     private val depthTestedEntityOutlines = mutableMapOf<Int, OutlineStyle>()
     private val xrayEntityOutlines = mutableMapOf<Int, OutlineStyle>()
 
-    private val blockOutlines = mutableMapOf<BlockPos, OutlineStyle>()
+    private val depthTestedBlockOutlines = mutableMapOf<BlockPos, OutlineStyle>()
+    private val xrayBlockOutlines = mutableMapOf<BlockPos, OutlineStyle>()
 
     private val depthTestedCustomOutlines = mutableMapOf<Int, OutlineStyle>()
     private val xrayCustomOutlines = mutableMapOf<Int, OutlineStyle>()
@@ -43,7 +44,7 @@ object OutlineManager {
             xrayEntityOutlines.remove(entityId)
         }
     }
-    
+
     fun registerCustomOutline(style: OutlineStyle, depthTest: Boolean = true): Int {
         val id = nextCustomId++
         if (depthTest) {
@@ -54,10 +55,9 @@ object OutlineManager {
         return id
     }
 
-    fun getOutlineStyle(id: Int): OutlineStyle? {
-        return depthTestedEntityOutlines[id] ?: xrayEntityOutlines[id] ?: 
-               depthTestedCustomOutlines[id] ?: xrayCustomOutlines[id]
-    }
+    fun getOutlineStyle(id: Int): OutlineStyle? =
+        depthTestedEntityOutlines[id] ?: xrayEntityOutlines[id] ?:
+        depthTestedCustomOutlines[id] ?: xrayCustomOutlines[id]
 
     fun getEntityOutline(entityId: Int): OutlineStyle? = 
         depthTestedEntityOutlines[entityId] ?: xrayEntityOutlines[entityId]
@@ -65,7 +65,7 @@ object OutlineManager {
     fun hasEntityOutlines(): Boolean = depthTestedEntityOutlines.isNotEmpty() || xrayEntityOutlines.isNotEmpty()
     
     @JvmStatic
-    fun shouldCapture(entityId: Int): Boolean = 
+    fun shouldCapture(entityId: Int): Boolean =
         depthTestedEntityOutlines.containsKey(entityId) || xrayEntityOutlines.containsKey(entityId)
     
     fun getEntityOutlines(): Map<Int, Pair<OutlineStyle, Boolean>> {
@@ -78,8 +78,8 @@ object OutlineManager {
     fun getDepthTestedEntityIds(): Set<Int> = depthTestedEntityOutlines.keys
     fun getXrayEntityIds(): Set<Int> = xrayEntityOutlines.keys
     
-    fun getDepthTestedStyles(): Map<Int, OutlineStyle> = depthTestedEntityOutlines
-    fun getXrayStyles(): Map<Int, OutlineStyle> = xrayEntityOutlines
+    fun getDepthTestedEntityStyles(): Map<Int, OutlineStyle> = depthTestedEntityOutlines
+    fun getXrayEntityStyles(): Map<Int, OutlineStyle> = xrayEntityOutlines
 
     fun getCustomOutlines(): Map<Int, Pair<OutlineStyle, Boolean>> {
         val all = mutableMapOf<Int, Pair<OutlineStyle, Boolean>>()
@@ -93,22 +93,36 @@ object OutlineManager {
 
     fun setBlockOutline(pos: BlockPos, style: OutlineStyle?, depthTest: Boolean = true) {
         if (style != null) {
-            blockOutlines[pos] = style
+            if (depthTest) {
+                depthTestedBlockOutlines[pos] = style
+                xrayBlockOutlines.remove(pos)
+            } else {
+                xrayBlockOutlines[pos] = style
+                depthTestedBlockOutlines.remove(pos)
+            }
         } else {
-            blockOutlines.remove(pos)
+            depthTestedBlockOutlines.remove(pos)
+            xrayBlockOutlines.remove(pos)
         }
     }
     
-    fun getBlockOutline(pos: BlockPos): OutlineStyle? = blockOutlines[pos]
+    fun getBlockOutline(pos: BlockPos): OutlineStyle? = 
+        depthTestedBlockOutlines[pos] ?: xrayBlockOutlines[pos]
+
+    @JvmStatic
+    fun isBlockCaptured(pos: BlockPos): Boolean =
+        depthTestedBlockOutlines.containsKey(pos) || xrayBlockOutlines.containsKey(pos)
     
-    fun hasBlockOutlines(): Boolean = blockOutlines.isNotEmpty()
+    fun hasBlockOutlines(): Boolean = depthTestedBlockOutlines.isNotEmpty() || xrayBlockOutlines.isNotEmpty()
     
-    fun getBlockOutlines(): Map<BlockPos, OutlineStyle> = blockOutlines
+    fun getDepthTestedBlockStyles(): Map<BlockPos, OutlineStyle> = depthTestedBlockOutlines
+    fun getXrayBlockStyles(): Map<BlockPos, OutlineStyle> = xrayBlockOutlines
     
     fun clear() {
         depthTestedEntityOutlines.clear()
         xrayEntityOutlines.clear()
-        blockOutlines.clear()
+        depthTestedBlockOutlines.clear()
+        xrayBlockOutlines.clear()
         depthTestedCustomOutlines.clear()
         xrayCustomOutlines.clear()
     }
@@ -119,6 +133,7 @@ object OutlineManager {
     }
     
     fun clearBlocks() {
-        blockOutlines.clear()
+        depthTestedBlockOutlines.clear()
+        xrayBlockOutlines.clear()
     }
 }

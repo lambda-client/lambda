@@ -438,7 +438,28 @@ object ImmediateRendererTest : Module(
 					)
 				}
 
-				worldOutlines(world.entities, OutlineStyle(Color.RED))
+//				worldOutlines(world.entities, OutlineStyle(Color.RED))
+
+				val playerBlockPos = player.blockPos
+
+				worldOutline(
+					playerBlockPos.offset(Direction.EAST, 3),
+					OutlineStyle(color = Color.RED)
+				)
+
+				for (dx in -1..1) {
+					for (dz in -1..1) {
+						worldOutline(
+							playerBlockPos.offset(Direction.SOUTH, 5).add(dx, 0, dz),
+							OutlineStyle(color = Color.CYAN)
+						)
+					}
+				}
+
+				worldOutline(
+					playerBlockPos.down(),
+					OutlineStyle(color = Color.GREEN)
+				)
 			}
 		}
 	}

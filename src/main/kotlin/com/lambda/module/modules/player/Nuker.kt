@@ -48,7 +48,13 @@ object Nuker : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig()
+		setDefaultAutomationConfig {
+			applyEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange) { defaultValue(false) }
+				}
+			}
+		}
 
 		onEnable {
 			task = tickingBlueprint {

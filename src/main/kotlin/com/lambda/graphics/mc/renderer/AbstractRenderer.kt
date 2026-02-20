@@ -26,6 +26,7 @@ import com.lambda.graphics.text.SDFFontAtlas
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.FilterMode
 import kotlin.collections.isNotEmpty
 
 abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() -> Boolean) {
@@ -119,7 +120,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 
 		val outlinedIds = chunks.flatMap { it.first.getOutlineIds() }.toSet()
 		if (outlinedIds.isNotEmpty()) {
-			val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+			val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 
 			RendererUtils.ensureGlintTextureLoaded()
 			val glintUniformL = RendererUtils.createGlintUniform(8.0f)
@@ -188,7 +189,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 				val groupTarget = OutlineRenderer.getGroupView() ?: return@forEach
 				val groupDepthView = OutlineRenderer.getGroupDepthView() ?: return@forEach
 
-				RenderSystem.getDevice()
+					RenderSystem.getDevice()
 					.createCommandEncoder()
 					.createRenderPass(
 						{ "$name Outline Group $id - Draw" },
@@ -197,7 +198,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 						groupDepthView,
 						java.util.OptionalDouble.empty()
 					)?.use { pass ->
-						pass.setPipeline(RendererUtils.facesPipeline)
+						pass.setPipeline(RendererUtils.outlineFacesPipeline)
 						RenderSystem.bindDefaultUniforms(pass)
 						chunks.forEach { (renderer, transform) ->
 							if (renderer.hasOutlinedData(id)) {
@@ -206,7 +207,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 							}
 						}
 
-						pass.setPipeline(RendererUtils.edgesPipeline)
+						pass.setPipeline(RendererUtils.outlineEdgesPipeline)
 						RenderSystem.bindDefaultUniforms(pass)
 						chunks.forEach { (renderer, transform) ->
 							if (renderer.hasOutlinedData(id)) {
@@ -217,7 +218,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 
 						val atlasT = currentFontAtlas
 						if (atlasT != null && atlasT.textureView != null) {
-							pass.setPipeline(RendererUtils.textPipeline)
+							pass.setPipeline(RendererUtils.outlineTextPipeline)
 							RenderSystem.bindDefaultUniforms(pass)
 							pass.bindTexture("Sampler0", atlasT.textureView!!, atlasT.sampler ?: nearestSampler)
 							chunks.forEach { (renderer, transform) ->
@@ -228,7 +229,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 							}
 						}
 
-						pass.setPipeline(RendererUtils.worldImagePipeline)
+						pass.setPipeline(RendererUtils.outlineImagePipeline)
 						RenderSystem.bindDefaultUniforms(pass)
 						RendererUtils.bindGlintTexture(pass, "Sampler1")
 						chunks.forEach { (renderer, transform) ->
@@ -238,7 +239,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 							}
 						}
 
-						pass.setPipeline(RendererUtils.modelPipeline)
+						pass.setPipeline(RendererUtils.outlineModelPipeline)
 						RenderSystem.bindDefaultUniforms(pass)
 						RendererUtils.bindOverlayTexture(pass, "Sampler1")
 						RendererUtils.bindLightmapTexture(pass, "Sampler2")

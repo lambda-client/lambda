@@ -173,6 +173,7 @@ object OutlineRenderer {
     }
 
     private data class StyleKey(
+        val color: java.awt.Color,
         val thickness: Float,
         val glowIntensity: Float,
         val glowRadius: Float,
@@ -180,22 +181,30 @@ object OutlineRenderer {
         val fillOpacity: Float
     )
 
-    private fun OutlineStyle.toKey() = StyleKey(thickness, glowIntensity, glowRadius, fill, fillOpacity)
+    private fun OutlineStyle.toKey() = StyleKey(color, thickness, glowIntensity, glowRadius, fill, fillOpacity)
 
     fun renderAllIDPasses() {
-        val depthTestedStyles = OutlineManager.getDepthTestedStyles()
-        val xrayStyles = OutlineManager.getXrayStyles()
+        val depthTestedEntityStyles = OutlineManager.getDepthTestedEntityStyles()
+        val xrayEntityStyles = OutlineManager.getXrayEntityStyles()
 
-        val depthTestedGroups = depthTestedStyles.entries.groupBy({ it.value.toKey() }, { it.key })
-        val xrayGroups = xrayStyles.entries.groupBy({ it.value.toKey() }, { it.key })
+        val depthTestedBlockStyles = OutlineManager.getDepthTestedBlockStyles()
+        val xrayBlockStyles = OutlineManager.getXrayBlockStyles()
 
-        val allStyleKeys = (depthTestedGroups.keys + xrayGroups.keys).distinct()
+        val depthTestedEntityGroups = depthTestedEntityStyles.entries.groupBy({ it.value.toKey() }, { it.key })
+        val xrayEntityGroups = xrayEntityStyles.entries.groupBy({ it.value.toKey() }, { it.key })
+
+        val depthTestedBlockGroups = depthTestedBlockStyles.entries.groupBy({ it.value.toKey() }, { it.key to it.value })
+        val xrayBlockGroups = xrayBlockStyles.entries.groupBy({ it.value.toKey() }, { it.key to it.value })
+
+        val allStyleKeys = (depthTestedEntityGroups.keys + xrayEntityGroups.keys + depthTestedBlockGroups.keys + xrayBlockGroups.keys).distinct()
 
         for (styleKey in allStyleKeys) {
             OutlineIdBuffer.beginFrame()
 
-            val depthTestedIds = depthTestedGroups[styleKey]
-            val xrayIds = xrayGroups[styleKey]
+            val depthTestedIds = depthTestedEntityGroups[styleKey]
+            val xrayIds = xrayEntityGroups[styleKey]
+            val depthTestedBlocks = depthTestedBlockGroups[styleKey]
+            val xrayBlocks = xrayBlockGroups[styleKey]
 
             if (!depthTestedIds.isNullOrEmpty()) {
                 OutlineIdPassRenderer.render(depthTestedIds.toSet(), useMcDepth = true)
@@ -204,9 +213,23 @@ object OutlineRenderer {
                 OutlineIdPassRenderer.render(xrayIds.toSet(), useMcDepth = false)
             }
 
+            if (!depthTestedBlocks.isNullOrEmpty()) {
+                val blockMap = depthTestedBlocks.associate { it.first to it.second }
+                OutlineIdPassRenderer.renderBlocks(blockMap, useMcDepth = true)
+            }
+            if (!xrayBlocks.isNullOrEmpty()) {
+                val blockMap = xrayBlocks.associate { it.first to it.second }
+                OutlineIdPassRenderer.renderBlocks(blockMap, useMcDepth = false)
+            }
+
             if (OutlineIdBuffer.hasData) {
-                val representativeId = depthTestedIds?.firstOrNull() ?: xrayIds?.firstOrNull() ?: continue
-                val representativeStyle = OutlineManager.getOutlineStyle(representativeId) ?: continue
+                val representativeStyle = when {
+                    !depthTestedIds.isNullOrEmpty() -> OutlineManager.getOutlineStyle(depthTestedIds.first())
+                    !xrayIds.isNullOrEmpty() -> OutlineManager.getOutlineStyle(xrayIds.first())
+                    !depthTestedBlocks.isNullOrEmpty() -> depthTestedBlocks.first().second
+                    !xrayBlocks.isNullOrEmpty() -> xrayBlocks.first().second
+                    else -> null
+                } ?: continue
                 applyEdgeDetection(representativeStyle)
             }
         }

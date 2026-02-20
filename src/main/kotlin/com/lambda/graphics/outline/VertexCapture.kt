@@ -21,15 +21,15 @@ import com.mojang.blaze3d.textures.GpuTextureView
 import kotlin.collections.find
 
 object VertexCapture {
-    private val entityGeometries = mutableMapOf<Int, MutableList<CapturedGeometry>>()
+    private val entityGeometries = mutableMapOf<Any, MutableList<CapturedGeometry>>()
 
-    private var capturingEntityId: Int? = null
+    private var capturingEntityId: Any? = null
 
     private var currentTextureView: GpuTextureView? = null
 
     private var currentGeometry: CapturedGeometry? = null
     
-    fun beginCapture(entityId: Int) {
+    fun beginCapture(entityId: Any) {
         capturingEntityId = entityId
         entityGeometries.getOrPut(entityId) { mutableListOf() }.clear()
         currentTextureView = null
@@ -64,16 +64,16 @@ object VertexCapture {
     }
     
     fun isCapturing(): Boolean = capturingEntityId != null
-    fun isCapturing(entityId: Int): Boolean = capturingEntityId == entityId
+    fun isCapturing(entityId: Any): Boolean = capturingEntityId == entityId
     
     fun captureVertex(x: Float, y: Float, z: Float, w: Float, nx: Float, ny: Float, nz: Float, u: Float = 0f, v: Float = 0f) {
         currentGeometry?.addVertex(x, y, z, w, nx, ny, nz, u, v)
     }
     
-    fun getEntityGeometries(entityId: Int): List<CapturedGeometry> = entityGeometries[entityId] ?: emptyList()
+    fun getEntityGeometries(entityId: Any): List<CapturedGeometry> = entityGeometries[entityId] ?: emptyList()
     
     fun hasEntityGeometry(): Boolean = entityGeometries.isNotEmpty()
-    fun getCapturedEntityIds(): Set<Int> = entityGeometries.keys
+    fun getCapturedEntityIds(): Set<Any> = entityGeometries.keys
     
     fun clear() {
         entityGeometries.clear()

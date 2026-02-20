@@ -38,16 +38,22 @@ import kotlin.math.abs
 object RendererUtils {
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, false)
 
-	val facesPipeline: RenderPipeline get() = LambdaRenderPipelines.ESP_QUADS
-	val edgesPipeline: RenderPipeline get() = LambdaRenderPipelines.ESP_LINES
-	val textPipeline: RenderPipeline get() = LambdaRenderPipelines.SDF_TEXT
-	val worldImagePipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_IMAGE
-	val modelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODEL
+	val facesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_QUADS
+	val edgesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_LINES
+	val textPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_SDF_TEXT
+	val worldImagePipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_IMAGES
+	val modelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS
 
-	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_FACES
+	val outlineFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_QUADS
+	val outlineEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_LINES
+	val outlineTextPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_SDF_TEXT
+	val outlineImagePipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_IMAGES
+	val outlineModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS // WORLD_MODEL already writes depth
+
+	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_QUADS
 	val screenEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_LINES
 	val screenTextPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_TEXT
-	val screenImagePipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_IMAGE
+	val screenImagePipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_IMAGES
 
 	private var glintTextureView: com.mojang.blaze3d.textures.GpuTextureView? = null
 	private var glintSampler: net.minecraft.client.gl.GpuSampler? = null
