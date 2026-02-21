@@ -86,6 +86,13 @@ How do I...
     <img alt="" src="https://raw.githubusercontent.com/lambda-client/assets/main/footer.png">
 </p>
 
+## Developing
+
+### MSA authentication setup
+
+Add `--msa --msa-no-dialog` to your CLI arguments to enable MSA authentication when launching from the IDE.
+
+
 ### Stargazers
 
 [![Stargazers over time](https://starchart.cc/lambda-client/lambda.svg?variant=adaptive)](https://starchart.cc/lambda-client/lambda)
