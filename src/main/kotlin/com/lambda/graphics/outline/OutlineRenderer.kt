@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
@@ -90,7 +91,7 @@ object OutlineRenderer {
                 OptionalDouble.empty()
             )?.use { pass ->
                 pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
-                val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+                val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
                 pass.bindTexture("Sampler0", groupView, nearestSampler)
 
                 val silDepth = silhouetteDepthView
@@ -270,7 +271,7 @@ object OutlineRenderer {
                 OptionalDouble.empty()
             )?.use { pass ->
                 pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
-                val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+                val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
                 pass.bindTexture("Sampler0", textureView, nearestSampler)
 
                 val silDepth = OutlineIdBuffer.getSilhouetteDepthView()

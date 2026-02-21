@@ -429,7 +429,7 @@ object ImmediateRendererTest : Module(
 						fillColor(Color(255, 255, 255, 60))
 						hideOutline()
 					}
-					
+
 					worldText(
 						"Outlined Text in Immediate!",
 						startPos.add(3.5, 2.5, 3.5),
@@ -437,29 +437,6 @@ object ImmediateRendererTest : Module(
 						style = SDFStyle(color = Color.WHITE)
 					)
 				}
-
-//				worldOutlines(world.entities, OutlineStyle(Color.RED))
-
-				val playerBlockPos = player.blockPos
-
-				worldOutline(
-					playerBlockPos.offset(Direction.EAST, 3),
-					OutlineStyle(color = Color.RED)
-				)
-
-				for (dx in -1..1) {
-					for (dz in -1..1) {
-						worldOutline(
-							playerBlockPos.offset(Direction.SOUTH, 5).add(dx, 0, dz),
-							OutlineStyle(color = Color.CYAN)
-						)
-					}
-				}
-
-				worldOutline(
-					playerBlockPos.down(),
-					OutlineStyle(color = Color.GREEN)
-				)
 			}
 		}
 	}

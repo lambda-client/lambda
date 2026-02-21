@@ -48,26 +48,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-/**
- * Signed Distance Field font atlas for high-quality scalable text rendering.
- *
- * SDF fonts store the distance to the nearest edge instead of raw coverage,
- * enabling crisp text at any scale with effects like outlines and glows.
- * 
- * Uses MC 1.21's GpuTexture APIs for proper texture binding via RenderPass.bindTexture().
- *
- * @param fontPath Resource path to TTF/OTF file
- * @param baseSize Base font size for SDF generation (larger = more detail, 48-64 recommended)
- * @param sdfSpread SDF spread in pixels (how far the distance field extends)
- * @param atlasSize Atlas texture dimensions (must be power of 2)
- */
 class SDFFontAtlas(
 	fontPath: String,
 	val baseSize: Float = 256f,
 	val sdfSpread: Int = 16,
 	val atlasSize: Int = 4096
 ) : AutoCloseable {
-
 	data class Glyph(
 		val codepoint: Int,
 		val width: Int,
@@ -79,10 +65,6 @@ class SDFFontAtlas(
 		val u1: Float, val v1: Float
 	)
 
-	/**
-	 * Work unit for parallel glyph SDF generation.
-	 * Contains all data needed to generate the SDF independently.
-	 */
 	private data class GlyphJob(
 		val codepoint: Int,
 		val glyphIndex: Int,
@@ -100,7 +82,6 @@ class SDFFontAtlas(
 	private var atlasData: ByteArray? = null
 	private val glyphs = mutableMapOf<Int, Glyph>()
 
-	// MC 1.21 GPU texture objects
 	private var glTexture: GpuTexture? = null
 	private var glTextureView: GpuTextureView? = null
 	private var gpuSampler: GpuSampler? = null
@@ -110,20 +91,15 @@ class SDFFontAtlas(
 	val descent: Float
 	val scale: Float
 
-	/** The pixel range used for SDF, needed by shader for proper AA */
 	val sdfPixelRange: Float get() = (sdfSpread * 2).toFloat()
 
-	/** Get the texture view for binding in render pass */
 	val textureView: GpuTextureView? get() = glTextureView
 
-	/** Get the sampler for binding in render pass */
 	val sampler: GpuSampler? get() = gpuSampler
 
-	/** Check if texture is uploaded and ready */
 	val isUploaded: Boolean get() = glTexture != null
 
 	init {
-		// Load font file
 		val fontBytes = fontPath.stream.readAllBytes()
 		fontBuffer = MemoryUtil.memAlloc(fontBytes.size).put(fontBytes).flip()
 
@@ -150,12 +126,6 @@ class SDFFontAtlas(
 		buildSDFAtlas()
 	}
 
-	/**
-	 * Build the SDF atlas using parallel glyph generation.
-	 * 
-	 * Phase 1: Sequential layout - calculate glyph positions in the atlas
-	 * Phase 2: Parallel generation - generate SDF for each glyph concurrently
-	 */
 	private fun buildSDFAtlas() {
 		val data = atlasData ?: return
 		var penX = sdfSpread
@@ -165,7 +135,6 @@ class SDFFontAtlas(
 		val codepoints = (32..126) + (160..255)
 		val jobs = mutableListOf<GlyphJob>()
 
-		// Phase 1: Calculate all glyph positions (sequential, fast)
 		MemoryStack.stackPush().use { stack ->
 			val x0 = stack.mallocInt(1)
 			val y0 = stack.mallocInt(1)
@@ -212,7 +181,6 @@ class SDFFontAtlas(
 
 				glyphs[cp] = glyph
 
-				// Only create job if glyph has visible content
 				if (glyphW > 0 && glyphH > 0) {
 					jobs.add(GlyphJob(
 						codepoint = cp,
@@ -232,7 +200,6 @@ class SDFFontAtlas(
 			}
 		}
 
-		// Phase 2: Generate SDF for each glyph in parallel
 		runBlocking(Dispatchers.Default) {
 			for (job in jobs) {
 				launch {
@@ -247,10 +214,6 @@ class SDFFontAtlas(
 		}
 	}
 
-	/**
-	 * Generate vector-based SDF for a glyph.
-	 * Computes distances directly from bezier curves for smooth edges.
-	 */
 	private fun generateGlyphSDF(
 		glyphIndex: Int,
 		atlasData: ByteArray,
@@ -259,7 +222,6 @@ class SDFFontAtlas(
 		glyphW: Int, glyphH: Int
 	) {
 		MemoryStack.stackPush().use { stack ->
-			// Get glyph bounding box in FONT UNITS
 			val boxX0 = stack.mallocInt(1)
 			val boxY0 = stack.mallocInt(1)
 			val boxX1 = stack.mallocInt(1)
@@ -272,13 +234,11 @@ class SDFFontAtlas(
 			val fontY1 = boxY1[0].toFloat()
 			val fontWidth = fontX1 - fontX0
 			val fontHeight = fontY1 - fontY0
-			
-			// Get glyph shape (bezier curves in font units)
+
 			val verticesPtr = stack.mallocPointer(1)
 			val numVertices = stbtt_GetGlyphShape(fontInfo, glyphIndex, verticesPtr)
 			
 			if (numVertices <= 0 || fontWidth <= 0 || fontHeight <= 0) {
-				// Empty glyph (space, etc) - fill with "outside" value
 				for (py in 0 until paddedH) {
 					for (px in 0 until paddedW) {
 						val index = (atlasY + py) * atlasSize + atlasX + px
@@ -293,7 +253,6 @@ class SDFFontAtlas(
 			val vertices = STBTTVertex.create(verticesPtr[0], numVertices)
 			
 			try {
-				// Extract curve segments from vertices (in font units)
 				val segments = mutableListOf<CurveSegment>()
 				var lastX = 0f
 				var lastY = 0f
@@ -323,29 +282,18 @@ class SDFFontAtlas(
 						}
 					}
 				}
-				
-				// Font units per pixel in the output
-				// The glyph area (without padding) maps to the font bounding box
+
 				val fontUnitsPerPixelX = fontWidth / glyphW
 				val fontUnitsPerPixelY = fontHeight / glyphH
-				
-				// Compute SDF for each pixel in output
+
 				for (py in 0 until paddedH) {
 					for (px in 0 until paddedW) {
-						// Map output pixel to font units
-						// px, py are in padded coordinate space
-						// The glyph occupies pixels [sdfSpread, sdfSpread+glyphW) x [sdfSpread, sdfSpread+glyphH)
-						val gx = px - sdfSpread  // Glyph-local X (0 to glyphW maps to fontX0 to fontX1)
-						val gy = py - sdfSpread  // Glyph-local Y
-						
-						// Convert to font units
-						// X: direct mapping
+						val gx = px - sdfSpread
+						val gy = py - sdfSpread
+
 						val fontX = fontX0 + gx * fontUnitsPerPixelX
-						// Y: font coords have Y up, screen coords have Y down
-						// gy=0 should map to fontY1 (top), gy=glyphH should map to fontY0 (bottom)
 						val fontY = fontY1 - gy * fontUnitsPerPixelY
-						
-						// Find minimum distance to any curve segment (in font units)
+
 						var minDist = Float.MAX_VALUE
 						for (seg in segments) {
 							val d = seg.distance(fontX, fontY)
@@ -353,16 +301,13 @@ class SDFFontAtlas(
 								minDist = d
 							}
 						}
-						
-						// Determine if inside or outside using winding number
+
 						val inside = computeWindingNumber(fontX, fontY, segments) != 0
 						val signedDist = if (inside) minDist else -minDist
-						
-						// Convert distance from font units to pixels
+
 						val avgFontUnitsPerPixel = (fontUnitsPerPixelX + fontUnitsPerPixelY) / 2f
 						val pixelDist = signedDist / avgFontUnitsPerPixel
-						
-						// Normalize: map [-sdfSpread, +sdfSpread] pixels to [0, 1]
+
 						val normalizedDist = (pixelDist / sdfSpread + 1f) * 0.5f
 						val value = (normalizedDist.coerceIn(0f, 1f) * 255).toInt().toByte()
 						
@@ -377,13 +322,11 @@ class SDFFontAtlas(
 			}
 		}
 	}
-	
-	/** Curve segment interface */
+
 	private sealed interface CurveSegment {
 		fun distance(px: Float, py: Float): Float
 	}
-	
-	/** Line segment */
+
 	private data class LineSegment(
 		val x0: Float, val y0: Float,
 		val x1: Float, val y1: Float
@@ -401,20 +344,16 @@ class SDFFontAtlas(
 			return sqrt((px - nearX) * (px - nearX) + (py - nearY) * (py - nearY))
 		}
 	}
-	
-	/** Quadratic bezier curve */
+
 	private data class QuadraticBezier(
 		val x0: Float, val y0: Float,
 		val cx: Float, val cy: Float,
 		val x1: Float, val y1: Float
 	) : CurveSegment {
 		override fun distance(px: Float, py: Float): Float {
-			// Use iterative refinement for accurate bezier distance
-			// First pass: coarse sampling to find approximate t
 			var bestT = 0f
 			var minDist = Float.MAX_VALUE
-			
-			// Coarse pass: 32 samples
+
 			for (i in 0..32) {
 				val t = i / 32f
 				val d = distAtT(px, py, t)
@@ -423,18 +362,16 @@ class SDFFontAtlas(
 					bestT = t
 				}
 			}
-			
-			// Refinement: search around bestT with smaller steps
+
 			val step = 1f / 64f
-			var tLo = (bestT - step * 2).coerceIn(0f, 1f)
-			var tHi = (bestT + step * 2).coerceIn(0f, 1f)
+			val tLo = (bestT - step * 2).coerceIn(0f, 1f)
+			val tHi = (bestT + step * 2).coerceIn(0f, 1f)
 			
 			for (i in 0..16) {
 				val t = tLo + (tHi - tLo) * i / 16f
 				val d = distAtT(px, py, t)
 				if (d < minDist) {
 					minDist = d
-					bestT = t
 				}
 			}
 			
@@ -447,8 +384,7 @@ class SDFFontAtlas(
 			val by = u * u * y0 + 2 * u * t * cy + t * t * y1
 			return sqrt((px - bx) * (px - bx) + (py - by) * (py - by))
 		}
-		
-		/** Get subdivided points for winding calculation */
+
 		fun getSubdividedPoints(numSegments: Int = 8): List<Pair<Float, Float>> {
 			val points = mutableListOf<Pair<Float, Float>>()
 			for (i in 0..numSegments) {
@@ -461,8 +397,7 @@ class SDFFontAtlas(
 			return points
 		}
 	}
-	
-	/** Compute winding number to determine if point is inside the glyph */
+
 	private fun computeWindingNumber(px: Float, py: Float, segments: List<CurveSegment>): Int {
 		var winding = 0
 		for (seg in segments) {
@@ -471,7 +406,6 @@ class SDFFontAtlas(
 					winding += windingForLine(px, py, seg.x0, seg.y0, seg.x1, seg.y1)
 				}
 				is QuadraticBezier -> {
-					// Subdivide bezier into line segments for accurate winding
 					val points = seg.getSubdividedPoints(8)
 					for (i in 0 until points.size - 1) {
 						val (ax, ay) = points[i]
@@ -483,8 +417,7 @@ class SDFFontAtlas(
 		}
 		return winding
 	}
-	
-	/** Compute winding contribution for a single line segment */
+
 	private fun windingForLine(px: Float, py: Float, x0: Float, y0: Float, x1: Float, y1: Float): Int {
 		if (y0 <= py) {
 			if (y1 > py) {
@@ -500,116 +433,6 @@ class SDFFontAtlas(
 		return 0
 	}
 
-	/**
-	 * Compute signed distance field using Euclidean Distance Transform (EDT).
-	 * Uses the Felzenszwalb-Huttenlocher algorithm for O(n) linear time.
-	 * 
-	 * @param coverage Grayscale values 0-1 where > 0.5 is "inside"
-	 * @param width Image width
-	 * @param height Image height
-	 * @return Signed distance field (positive = inside, negative = outside)
-	 */
-	private fun computeEDT(coverage: FloatArray, width: Int, height: Int): FloatArray {
-		val INF = 1e10f
-		
-		// Create binary inside/outside arrays based on coverage threshold
-		val inside = FloatArray(width * height) { i ->
-			if (coverage[i] > 0.5f) 0f else INF
-		}
-		val outside = FloatArray(width * height) { i ->
-			if (coverage[i] <= 0.5f) 0f else INF
-		}
-		
-		// Compute EDT for both inside and outside
-		edtTransform(inside, width, height)
-		edtTransform(outside, width, height)
-		
-		// Combine into signed distance field
-		// distOutside - distInside: positive inside glyph, negative outside
-		val sdf = FloatArray(width * height)
-		for (i in 0 until width * height) {
-			val distInside = sqrt(inside[i])
-			val distOutside = sqrt(outside[i])
-			sdf[i] = distOutside - distInside
-		}
-		
-		return sdf
-	}
-
-	/**
-	 * 2D Euclidean Distance Transform using Felzenszwalb-Huttenlocher algorithm.
-	 * Transforms the input array in-place to contain squared distances.
-	 */
-	private fun edtTransform(data: FloatArray, width: Int, height: Int) {
-		val INF = 1e10f
-		val maxDim = maxOf(width, height)
-		
-		// Temporary arrays for 1D transform
-		val f = FloatArray(maxDim)
-		val d = FloatArray(maxDim)
-		val v = IntArray(maxDim)
-		val z = FloatArray(maxDim + 1)
-		
-		// Transform columns
-		for (x in 0 until width) {
-			for (y in 0 until height) {
-				f[y] = data[y * width + x]
-			}
-			edt1d(f, d, v, z, height)
-			for (y in 0 until height) {
-				data[y * width + x] = d[y]
-			}
-		}
-		
-		// Transform rows
-		for (y in 0 until height) {
-			for (x in 0 until width) {
-				f[x] = data[y * width + x]
-			}
-			edt1d(f, d, v, z, width)
-			for (x in 0 until width) {
-				data[y * width + x] = d[x]
-			}
-		}
-	}
-
-	/**
-	 * 1D squared Euclidean distance transform.
-	 * f = input function, d = output distances
-	 */
-	private fun edt1d(f: FloatArray, d: FloatArray, v: IntArray, z: FloatArray, n: Int) {
-		val INF = 1e10f
-		var k = 0
-		v[0] = 0
-		z[0] = -INF
-		z[1] = INF
-		
-		for (q in 1 until n) {
-			var s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k])
-			while (s <= z[k]) {
-				k--
-				s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k])
-			}
-			k++
-			v[k] = q
-			z[k] = s
-			z[k + 1] = INF
-		}
-		
-		k = 0
-		for (q in 0 until n) {
-			while (z[k + 1] < q) {
-				k++
-			}
-			val dist = q - v[k]
-			d[q] = dist * dist + f[v[k]]
-		}
-	}
-
-	/**
-	 * Upload atlas to GPU using MC 1.21 APIs.
-	 * Must be called on render thread.
-	 */
 	fun upload() {
 		if (glTexture != null) return
 		val data = atlasData ?: return
@@ -618,10 +441,9 @@ class SDFFontAtlas(
 
 		val gpuDevice = RenderSystem.getDevice()
 
-		// Create RGBA8 texture - the shader samples red channel for SDF value
 		glTexture = gpuDevice.createTexture(
 			"Lambda SDF FontAtlas",
-			5, // COPY_DST (1) | TEXTURE_BINDING (4)
+			5,
 			TextureFormat.RGBA8,
 			atlasSize, atlasSize,
 			1, 1
@@ -629,18 +451,12 @@ class SDFFontAtlas(
 
 		glTextureView = gpuDevice.createTextureView(glTexture)
 
-		// Use LINEAR filtering for smooth SDF interpolation
 		gpuSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
 
-		// Create NativeImage with SDF value in alpha channel for transparency blending
-		// The position_tex_color shader multiplies texture.rgba by vertex color
-		// So we need SDF in alpha, with white RGB for the text color from vertex
 		val nativeImage = NativeImage(atlasSize, atlasSize, false)
 		for (y in 0 until atlasSize) {
 			for (x in 0 until atlasSize) {
 				val sdfValue = data[y * atlasSize + x].toInt() and 0xFF
-				// ABGR format: alpha=sdfValue, blue=255, green=255, red=255
-				// In ABGR, it's (A << 24 | B << 16 | G << 8 | R)
 				val abgr = (sdfValue shl 24) or 0x00FFFFFF
 				nativeImage.setColor(x, y, abgr)
 			}
@@ -663,58 +479,28 @@ class SDFFontAtlas(
 		return width
 	}
 
-	/** Get screen width in pixels (uses MC's scaled width). */
 	private val screenWidth: Float
 		get() = mc.window.scaledWidth.toFloat()
 
-	/** Get screen height in pixels (uses MC's scaled height). */
 	private val screenHeight: Float
 		get() = mc.window.scaledHeight.toFloat()
 
-	/**
-	 * Get the width of text using normalized size (0-1 range, matching screenText).
-	 * @param text The text string to measure
-	 * @param normalizedSize Text size in normalized units (e.g., 0.02 = 2% of screen)
-	 * @return Width in normalized units (0-1 range relative to screen width)
-	 */
 	fun getStringWidthNormalized(text: String, normalizedSize: Float): Float {
-		// Apply the same baseSize/ascent correction that screenText uses
-		// so dimensions match what actually gets rendered
 		val targetPixelHeight = normalizedSize * screenHeight
 		val pixelSize = targetPixelHeight * baseSize / ascent
 		val pixelWidth = getStringWidth(text, pixelSize)
 		return pixelWidth / screenWidth
 	}
 
-	/**
-	 * Get the descent using normalized size (0-1 range, matching screenText).
-	 * @param normalizedSize Text size in normalized units
-	 * @return Descent in normalized units (0-1 range relative to screen height)
-	 */
 	fun getDescentNormalized(normalizedSize: Float): Float {
-		// descent / ascent = proportion of ascent that is descent
 		return normalizedSize * descent / ascent
 	}
 
-	/**
-	 * Get both width and height of text using normalized size (0-1 range, matching screenText).
-	 * @param text The text string to measure
-	 * @param normalizedSize Text size in normalized units
-	 * @return Pair of (width, height) in normalized units
-	 */
 	fun getStringDimensionsNormalized(text: String, normalizedSize: Float): Pair<Float, Float> {
 		return Pair(getStringWidthNormalized(text, normalizedSize), normalizedSize)
 	}
 
-	/**
-	 * Get the normalized size needed to make text fit a target width.
-	 * This is the inverse of getStringWidthNormalized.
-	 * @param text The text string to measure
-	 * @param targetWidthNormalized The desired width in normalized units (0-1 range relative to screen width)
-	 * @return The normalized size that would produce the target width
-	 */
 	fun getSizeForWidthNormalized(text: String, targetWidthNormalized: Float): Float {
-		// Calculate the raw advance width of the text (sum of glyph advances)
 		var rawAdvance = 0f
 		for (char in text) {
 			val glyph = glyphs[char.code] ?: glyphs[' '.code] ?: continue
@@ -722,15 +508,6 @@ class SDFFontAtlas(
 		}
 		if (rawAdvance <= 0f) return 0f
 
-		// Width formula from getStringWidthNormalized:
-		// targetPixelHeight = normalizedSize * screenHeight
-		// pixelSize = targetPixelHeight * baseSize / ascent
-		// pixelWidth = rawAdvance * pixelSize  (since getStringWidth multiplies advance by fontSize)
-		// normalizedWidth = pixelWidth / screenWidth
-		//
-		// Solving for normalizedSize:
-		// normalizedWidth = (rawAdvance * normalizedSize * screenHeight * baseSize / ascent) / screenWidth
-		// normalizedSize = (normalizedWidth * screenWidth * ascent) / (rawAdvance * screenHeight * baseSize)
 		return (targetWidthNormalized * screenWidth * ascent) / (rawAdvance * screenHeight * baseSize)
 	}
 

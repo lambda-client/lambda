@@ -23,7 +23,9 @@ import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.vertex.VertexFormat
+import net.minecraft.client.render.item.ItemRenderer
 import org.lwjgl.system.MemoryUtil
 import java.util.*
 
@@ -173,8 +175,8 @@ class RegionRenderer {
 
 	private fun renderImageBatches(renderPass: RenderPass, batches: List<TextureBatchResult>) {
 		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
-		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 		for (batch in batches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
 			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
@@ -187,9 +189,9 @@ class RegionRenderer {
 
 	private fun renderModelBatches(renderPass: RenderPass, batches: List<TextureBatchResult>) {
 		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
-		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
-		val glintTexture = mc.textureManager.getTexture(net.minecraft.client.render.item.ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
+		val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
+		val glintTexture = mc.textureManager.getTexture(ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
 		for (batch in batches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
 			renderPass.bindTexture("Sampler0", batch.textureView, sampler)
@@ -281,8 +283,8 @@ class RegionRenderer {
 		if (screenImageBatches.isEmpty()) return
 		
 		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
-		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 		
 		for (batch in screenImageBatches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
@@ -300,10 +302,10 @@ class RegionRenderer {
 		if (screenModelBatches.isEmpty()) return
 		
 		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
-		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 
-		val glintTexture = mc.textureManager.getTexture(net.minecraft.client.render.item.ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
+		val glintTexture = mc.textureManager.getTexture(ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
 		
 		for (batch in screenModelBatches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
@@ -329,8 +331,8 @@ class RegionRenderer {
 		if (worldImageBatches.isEmpty()) return
 		
 		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
-		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 		
 		for (batch in worldImageBatches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler
@@ -348,10 +350,10 @@ class RegionRenderer {
 		if (modelBatches.isEmpty()) return
 		
 		val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-		val linearSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.LINEAR)
-		val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
+		val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+		val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
 
-		val glintTexture = mc.textureManager.getTexture(net.minecraft.client.render.item.ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
+		val glintTexture = mc.textureManager.getTexture(ItemRenderer.ITEM_ENCHANTMENT_GLINT)?.glTextureView
 		
 		for (batch in modelBatches) {
 			val sampler = if (batch.useNearestFilter) nearestSampler else linearSampler

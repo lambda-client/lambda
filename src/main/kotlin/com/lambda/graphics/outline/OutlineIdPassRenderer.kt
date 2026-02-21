@@ -21,17 +21,13 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.LambdaRenderPipelines
 import com.lambda.graphics.mc.renderer.upload
-import com.lambda.util.extension.tickDeltaF
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
-import net.minecraft.block.entity.BlockEntity
-import net.minecraft.client.render.block.entity.BlockEntityRenderManager
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState
 import net.minecraft.util.Identifier
 import net.minecraft.client.render.model.BakedQuad
 import net.minecraft.client.render.model.BlockModelPart
-import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.client.util.math.Vector2f
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.random.Random
 import net.minecraft.util.math.BlockPos
@@ -85,14 +81,13 @@ object OutlineIdPassRenderer {
     
     fun buildVertexBuffer(entities: Map<Int, OutlineStyle>, isDepthTested: Boolean) {
         val geometries = entities.mapValues { (id, _) -> VertexCapture.getEntityGeometries(id) }
-        buildVertexBufferInternal(geometries as Map<Any, List<CapturedGeometry>>, styles = entities as Map<Any, OutlineStyle>, isDepthTested = isDepthTested, transform = null)
+        buildVertexBufferInternal(geometries, styles = entities, isDepthTested = isDepthTested)
     }
 
     private fun buildVertexBufferInternal(
-        allGeometries: Map<Any, List<CapturedGeometry>>,
-        styles: Map<Any, OutlineStyle>,
-        isDepthTested: Boolean,
-        transform: Matrix4f? = null
+        allGeometries: Map<*, List<CapturedGeometry>>,
+        styles: Map<*, OutlineStyle>,
+        isDepthTested: Boolean
     ) {
         val targetBatches = if (isDepthTested) depthTestedBatches else xrayBatches
         targetBatches.clear()
@@ -113,7 +108,6 @@ object OutlineIdPassRenderer {
         if (totalTriVertices == 0) return
 
         val buffer = MemoryUtil.memAlloc(totalTriVertices * vertexSize).order(ByteOrder.nativeOrder())
-        val posVec = Vector4f()
         
         try {
             var currentVertexOffset = 0
@@ -146,17 +140,10 @@ object OutlineIdPassRenderer {
                             capturedVerts[baseIdx + 3]
                         )
 
-                        val transformed = if (transform != null) {
-                            quadVerts.map { v ->
-                                transform.transform(v.x, v.y, v.z, v.w, posVec)
-                                CapturedVertex(posVec.x, posVec.y, posVec.z, posVec.w, v.nx, v.ny, v.nz, v.u, v.v)
-                            }
-                        } else quadVerts.toList()
-
-                        val v0 = transformed[0]
-                        val v1 = transformed[1]
-                        val v2 = transformed[2]
-                        val v3 = transformed[3]
+                        val v0 = quadVerts[0]
+                        val v1 = quadVerts[1]
+                        val v2 = quadVerts[2]
+                        val v3 = quadVerts[3]
 
                         buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putFloat(v0.w).putFloat(v0.u).putFloat(v0.v).putInt(packedColor)
                         buffer.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putFloat(v1.w).putFloat(v1.u).putFloat(v1.v).putInt(packedColor)
@@ -245,9 +232,8 @@ object OutlineIdPassRenderer {
         val cameraPos = mc.gameRenderer?.camera?.pos ?: return
         
         val viewProj = RenderMain.projModel
-        
-        val isDepthTested = useMcDepth
-        val targetBatches = if (isDepthTested) blockDepthTestedBatches else blockXrayBatches
+
+        val targetBatches = if (useMcDepth) blockDepthTestedBatches else blockXrayBatches
         targetBatches.clear()
 
         val world = mc.world ?: return
@@ -296,7 +282,7 @@ object OutlineIdPassRenderer {
             
             if (quads.isNotEmpty()) {
                 blockData.add(style to quads)
-                totalTriVertices += quads.size * 6 // 6 vertices per quad (2 triangles)
+                totalTriVertices += quads.size * 6
             }
         }
 
@@ -313,7 +299,7 @@ object OutlineIdPassRenderer {
                     if (style.fill) (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
                     else 1
                 
-                if (isDepthTested) alpha = alpha or 128
+                if (useMcDepth) alpha = alpha or 128
                 
                 val packedColor = (alpha shl 24) or
                         ((color.blue and 0xFF) shl 16) or
@@ -343,22 +329,21 @@ object OutlineIdPassRenderer {
                         }
                     } else {
                         val uvA = quad.getTexcoords(0)
-                        val uA = net.minecraft.client.util.math.Vector2f.getX(uvA)
-                        val vA = net.minecraft.client.util.math.Vector2f.getY(uvA)
+                        val uA = Vector2f.getX(uvA)
+                        val vA = Vector2f.getY(uvA)
                         
                         val uvB = quad.getTexcoords(1)
-                        val uB = net.minecraft.client.util.math.Vector2f.getX(uvB)
-                        val vB = net.minecraft.client.util.math.Vector2f.getY(uvB)
+                        val uB = Vector2f.getX(uvB)
+                        val vB = Vector2f.getY(uvB)
                         
                         val uvC = quad.getTexcoords(2)
-                        val uC = net.minecraft.client.util.math.Vector2f.getX(uvC)
-                        val vC = net.minecraft.client.util.math.Vector2f.getY(uvC)
+                        val uC = Vector2f.getX(uvC)
+                        val vC = Vector2f.getY(uvC)
                         
                         val uvD = quad.getTexcoords(3)
-                        val uD = net.minecraft.client.util.math.Vector2f.getX(uvD)
-                        val vD = net.minecraft.client.util.math.Vector2f.getY(uvD)
-                        
-                        // tri 1: 0, 1, 2
+                        val uD = Vector2f.getX(uvD)
+                        val vD = Vector2f.getY(uvD)
+
                         buffer.putFloat(c0.x).putFloat(c0.y).putFloat(c0.z).putFloat(c0.w)
                         buffer.putFloat(uA).putFloat(vA)
                         buffer.putInt(packedColor)
@@ -370,8 +355,7 @@ object OutlineIdPassRenderer {
                         buffer.putFloat(c2.x).putFloat(c2.y).putFloat(c2.z).putFloat(c2.w)
                         buffer.putFloat(uC).putFloat(vC)
                         buffer.putInt(packedColor)
-                        
-                        // tri 2: 0, 2, 3
+
                         buffer.putFloat(c0.x).putFloat(c0.y).putFloat(c0.z).putFloat(c0.w)
                         buffer.putFloat(uA).putFloat(vA)
                         buffer.putInt(packedColor)
@@ -394,16 +378,14 @@ object OutlineIdPassRenderer {
             }
             
             var currentVertexOffset = batchVertexCount
-            
-            // Render block entities
+
             val textureGroups = mutableMapOf<GpuTextureView?, MutableList<Pair<CapturedGeometry, OutlineStyle>>>()
             for ((style, list) in blockEntityData) {
                 for ((textureView, geometry) in list) {
                     textureGroups.getOrPut(textureView) { mutableListOf() }.add(geometry to style)
                 }
             }
-            
-            val posVec = Vector4f()
+
             for ((textureView, group) in textureGroups) {
                 val batchStartVertex = currentVertexOffset
                 var entBatchVertexCount = 0
@@ -415,7 +397,7 @@ object OutlineIdPassRenderer {
                         if (style.fill) (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
                         else 1
                     
-                    if (isDepthTested) alpha = alpha or 128
+                    if (useMcDepth) alpha = alpha or 128
                     
                     val packedColor = (alpha shl 24) or
                             ((color.blue and 0xFF) shl 16) or
@@ -440,15 +422,13 @@ object OutlineIdPassRenderer {
                                 buffer.putInt(0)
                             }
                         } else {
-                            // Triangle 1 (0, 1, 2)
                             buffer.putFloat(quadVerts[0].x).putFloat(quadVerts[0].y).putFloat(quadVerts[0].z).putFloat(quadVerts[0].w)
                                 .putFloat(quadVerts[0].u).putFloat(quadVerts[0].v).putInt(packedColor)
                             buffer.putFloat(quadVerts[1].x).putFloat(quadVerts[1].y).putFloat(quadVerts[1].z).putFloat(quadVerts[1].w)
                                 .putFloat(quadVerts[1].u).putFloat(quadVerts[1].v).putInt(packedColor)
                             buffer.putFloat(quadVerts[2].x).putFloat(quadVerts[2].y).putFloat(quadVerts[2].z).putFloat(quadVerts[2].w)
                                 .putFloat(quadVerts[2].u).putFloat(quadVerts[2].v).putInt(packedColor)
-                            
-                            // Triangle 2 (0, 2, 3)
+
                             buffer.putFloat(quadVerts[0].x).putFloat(quadVerts[0].y).putFloat(quadVerts[0].z).putFloat(quadVerts[0].w)
                                 .putFloat(quadVerts[0].u).putFloat(quadVerts[0].v).putInt(packedColor)
                             buffer.putFloat(quadVerts[2].x).putFloat(quadVerts[2].y).putFloat(quadVerts[2].z).putFloat(quadVerts[2].w)
@@ -467,7 +447,7 @@ object OutlineIdPassRenderer {
             }
             
             buffer.flip()
-            if (isDepthTested) {
+            if (useMcDepth) {
                 blockDepthTestedVertexBuffer?.close()
                 val vbo = RenderSystem.getDevice().createBuffer({ "Lambda Block Outline ID (Depth)" }, GpuBuffer.USAGE_VERTEX or GpuBuffer.USAGE_COPY_DST, buffer.remaining().toLong())
                 vbo.upload(buffer)
@@ -482,7 +462,7 @@ object OutlineIdPassRenderer {
             MemoryUtil.memFree(buffer)
         }
         
-        val vbo = if (isDepthTested) blockDepthTestedVertexBuffer else blockXrayVertexBuffer
+        val vbo = if (useMcDepth) blockDepthTestedVertexBuffer else blockXrayVertexBuffer
         if (vbo != null && targetBatches.isNotEmpty()) {
             OutlineIdBuffer.markHasData()
             renderPass(colorView, vbo, targetBatches)

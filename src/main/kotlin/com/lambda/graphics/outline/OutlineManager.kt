@@ -109,11 +109,11 @@ object OutlineManager {
     fun getBlockOutline(pos: BlockPos): OutlineStyle? = 
         depthTestedBlockOutlines[pos] ?: xrayBlockOutlines[pos]
 
+    fun hasBlockOutlines(): Boolean = depthTestedBlockOutlines.isNotEmpty() || xrayBlockOutlines.isNotEmpty()
+
     @JvmStatic
     fun isBlockCaptured(pos: BlockPos): Boolean =
         depthTestedBlockOutlines.containsKey(pos) || xrayBlockOutlines.containsKey(pos)
-    
-    fun hasBlockOutlines(): Boolean = depthTestedBlockOutlines.isNotEmpty() || xrayBlockOutlines.isNotEmpty()
     
     fun getDepthTestedBlockStyles(): Map<BlockPos, OutlineStyle> = depthTestedBlockOutlines
     fun getXrayBlockStyles(): Map<BlockPos, OutlineStyle> = xrayBlockOutlines
@@ -125,15 +125,5 @@ object OutlineManager {
         xrayBlockOutlines.clear()
         depthTestedCustomOutlines.clear()
         xrayCustomOutlines.clear()
-    }
-    
-    fun clearEntities() {
-        depthTestedEntityOutlines.clear()
-        xrayEntityOutlines.clear()
-    }
-    
-    fun clearBlocks() {
-        depthTestedBlockOutlines.clear()
-        xrayBlockOutlines.clear()
     }
 }
