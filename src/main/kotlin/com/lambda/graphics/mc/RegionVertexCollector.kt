@@ -17,6 +17,7 @@
 
 package com.lambda.graphics.mc
 
+import com.lambda.graphics.outline.OutlineStyle
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexFormat
@@ -29,6 +30,7 @@ import java.awt.Color
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.atomic.AtomicInteger
 
 class RegionVertexCollector {
 	val faceVertices = ConcurrentLinkedDeque<FaceVertex>()
@@ -44,6 +46,13 @@ class RegionVertexCollector {
 	val screenFaceVertices = ConcurrentLinkedDeque<ScreenFaceVertex>()
 	val screenEdgeVertices = ConcurrentLinkedDeque<ScreenEdgeVertex>()
 	val screenTextVertices = ConcurrentLinkedDeque<ScreenTextVertex>()
+
+	val depthTestedCustomOutlines = mutableMapOf<Int, OutlineStyle>()
+	val xrayCustomOutlines = mutableMapOf<Int, OutlineStyle>()
+
+	companion object {
+		private val nextCustomId = AtomicInteger(1_000_000)
+	}
 
 	data class FaceVertex(
 		val x: Float, val y: Float, val z: Float,
@@ -317,7 +326,8 @@ class RegionVertexCollector {
 			)
 		}
 
-		return BuiltWorldResult(faces, edges, text, models, images, outlinedResults)
+		val allCustomStyles = depthTestedCustomOutlines + xrayCustomOutlines
+		return BuiltWorldResult(faces, edges, text, models, images, outlinedResults, allCustomStyles)
 	}
 
 	private fun buildFaces(): BuiltBatch? {
@@ -848,11 +858,21 @@ class RegionVertexCollector {
 		worldImageVerticesOutlined.remove(id)
 		return results
 	}
+
+	fun registerCustomOutline(style: OutlineStyle, depthTest: Boolean = true): Int {
+		val id = nextCustomId.getAndIncrement()
+		if (depthTest) {
+			depthTestedCustomOutlines[id] = style
+		} else {
+			xrayCustomOutlines[id] = style
+		}
+		return id
+	}
 }
 
 data class BuiltBatch(val buffer: ByteBuffer, val indexCount: Int)
 data class BuiltTextureBatch(val textureView: GpuTextureView, val buffer: ByteBuffer, val indexCount: Int, val useNearestFilter: Boolean = false)
-data class BuiltWorldResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<BuiltTextureBatch>, val images: List<BuiltTextureBatch>, val outlined: Map<Int, BuiltOutlineResult>)
+data class BuiltWorldResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<BuiltTextureBatch>, val images: List<BuiltTextureBatch>, val outlined: Map<Int, BuiltOutlineResult>, val customOutlineStyles: Map<Int, OutlineStyle> = emptyMap())
 data class BuiltScreenResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val images: List<BuiltTextureBatch>, val models: List<BuiltTextureBatch>)
 data class BuiltOutlineResult(val faces: BuiltBatch?, val edges: BuiltBatch?, val text: BuiltBatch?, val models: List<BuiltTextureBatch>, val images: List<BuiltTextureBatch>)
 

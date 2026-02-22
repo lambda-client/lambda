@@ -225,8 +225,8 @@ object OutlineRenderer {
 
             if (OutlineIdBuffer.hasData) {
                 val representativeStyle = when {
-                    !depthTestedIds.isNullOrEmpty() -> OutlineManager.getOutlineStyle(depthTestedIds.first())
-                    !xrayIds.isNullOrEmpty() -> OutlineManager.getOutlineStyle(xrayIds.first())
+                    !depthTestedIds.isNullOrEmpty() -> OutlineManager.getEntityOutlineStyle(depthTestedIds.first())
+                    !xrayIds.isNullOrEmpty() -> OutlineManager.getEntityOutlineStyle(xrayIds.first())
                     !depthTestedBlocks.isNullOrEmpty() -> depthTestedBlocks.first().second
                     !xrayBlocks.isNullOrEmpty() -> xrayBlocks.first().second
                     else -> null

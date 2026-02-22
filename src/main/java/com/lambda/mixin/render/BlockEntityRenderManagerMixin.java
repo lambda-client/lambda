@@ -39,7 +39,7 @@ public class BlockEntityRenderManagerMixin {
     private <S extends BlockEntityRenderState> void wrapRenderQueue(BlockEntityRenderer<?, S> renderer, S renderState, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, Operation<Void> original) {
         BlockPos pos = renderState.pos;
 
-        if (pos != null && OutlineManager.isBlockCaptured(pos)) {
+        if (pos != null && OutlineManager.shouldCapture(pos)) {
             VertexCapture.INSTANCE.beginCapture(pos);
 
             OrderedRenderCommandQueueImpl wrappedQueue = new OutlineCapturingQueue((OrderedRenderCommandQueueImpl) queue, pos);

@@ -97,7 +97,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	fun withOutline(style: OutlineStyle, block: RenderBuilder.() -> Unit) {
 		val previousId = activeOutlineId
-		activeOutlineId = OutlineManager.registerCustomOutline(style, depthTest = depthTest)
+		activeOutlineId = collector.registerCustomOutline(style, depthTest = depthTest)
 		try {
 			block()
 		} finally {

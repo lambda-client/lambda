@@ -19,7 +19,6 @@ package com.lambda.graphics.mc.renderer
 
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RegionRenderer
-import com.lambda.graphics.outline.OutlineManager
 import com.lambda.graphics.outline.OutlineRenderer
 import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.text.SDFFontAtlas
@@ -125,9 +124,8 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			RendererUtils.ensureGlintTextureLoaded()
 			val glintUniformL = RendererUtils.createGlintUniform(8.0f)
 
-
 			outlinedIds.forEach { id ->
-				val style = OutlineManager.getOutlineStyle(id) ?: OutlineStyle.DEFAULT
+				val style = chunks.firstNotNullOfOrNull { it.first.getOutlineStyle(id) } ?: OutlineStyle.DEFAULT
 
 				RegionRenderer.createRenderPass("$name Outlined Draw $id", depth)?.use { pass ->
 					pass.setPipeline(RendererUtils.facesPipeline)

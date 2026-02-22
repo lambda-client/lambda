@@ -98,16 +98,12 @@ object OutlineIdBuffer {
     
     fun getMcDepthView(): GpuTextureView? = mc.framebuffer?.depthAttachmentView
     
-    fun getDepthView(): GpuTextureView? = depthTextureView
-    
     fun getSilhouetteDepthView(): GpuTextureView? = depthTextureView
     
     fun getTextureView(): GpuTextureView? = idTextureView
     
     fun getWidth(): Int = bufferWidth
     fun getHeight(): Int = bufferHeight
-    
-    fun isReady(): Boolean = idTexture != null && idTextureView != null
     
     fun cleanup() {
         idTextureView?.close()

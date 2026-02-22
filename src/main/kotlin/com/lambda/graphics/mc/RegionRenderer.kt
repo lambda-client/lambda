@@ -18,6 +18,7 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.mc.renderer.RendererUtils
 import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
@@ -52,6 +53,7 @@ class RegionRenderer {
 	private var screenTextIndexCount = 0
 
 	private var outlinedBatches: Map<Int, OutlinedBatchResult> = emptyMap()
+	private var customOutlineStyles: Map<Int, OutlineStyle> = emptyMap()
 
 	private var hasWorldData = false
 	private var hasScreenData = false
@@ -132,11 +134,15 @@ class RegionRenderer {
 			}
 		}
 
+		customOutlineStyles = result.customOutlineStyles
+
 		hasWorldData = faceVertexBuffer != null || edgeVertexBuffer != null || textVertexBuffer != null || worldImageBatches.isNotEmpty() || modelBatches.isNotEmpty() || outlinedBatches.isNotEmpty()
 		hasScreenData = screenFaceVertexBuffer != null || screenEdgeVertexBuffer != null || screenTextVertexBuffer != null || screenImageBatches.isNotEmpty() || screenModelBatches.isNotEmpty()
 	}
 
 	fun getOutlineIds(): Set<Int> = outlinedBatches.keys
+
+	fun getOutlineStyle(id: Int): OutlineStyle? = customOutlineStyles[id]
 
 	fun hasOutlinedData(id: Int): Boolean = outlinedBatches.containsKey(id)
 
@@ -391,6 +397,7 @@ class RegionRenderer {
 		screenTextIndexCount = 0
 
 		outlinedBatches = emptyMap()
+		customOutlineStyles = emptyMap()
 		screenImageBatches = emptyList()
 		worldImageBatches = emptyList()
 		modelBatches = emptyList()
