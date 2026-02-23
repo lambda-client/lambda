@@ -21,6 +21,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
 import com.lambda.gui.DearImGui;
+import com.lambda.module.modules.render.Bobbing;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.Zoom;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -39,6 +40,7 @@ import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
@@ -75,5 +77,19 @@ public class GameRendererMixin {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
     private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
         DearImGui.INSTANCE.render();
+    }
+
+    @ModifyVariable(method = "bobView", at = @At("STORE"), ordinal = 1)
+    private float modifyBobbingSpeed(float f) {
+        return Bobbing.INSTANCE.isEnabled()
+                ? f * (float) Bobbing.INSTANCE.getSpeed()
+                : f;
+    }
+
+    @ModifyVariable(method = "bobView", at = @At("STORE"), ordinal = 2)
+    private float modifyBobbingMagnitude(float g) {
+        return Bobbing.INSTANCE.isEnabled()
+                ? g * (float) Bobbing.INSTANCE.getMagnitude()
+                : g;
     }
 }
