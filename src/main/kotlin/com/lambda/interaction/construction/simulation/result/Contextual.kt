@@ -45,7 +45,7 @@ interface Contextual : ComparableResult<Rank> {
                 if (it is InteractContext) it.cachedState.fluidState.level
                 else Int.MIN_VALUE
             }.thenByDescending {
-                it.cachedState.block != Blocks.OBSERVER
+                it.expectedState.block != Blocks.OBSERVER
             }.thenByDescending {
                 context.sorter == ActionConfig.SortMode.Tool && it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
