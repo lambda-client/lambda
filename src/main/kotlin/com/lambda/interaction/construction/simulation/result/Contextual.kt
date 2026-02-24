@@ -25,6 +25,7 @@ import com.lambda.interaction.managers.hotbar.HotbarManager
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
+import net.minecraft.block.Blocks
 
 /**
  * Represents a result holding a [BuildContext].
@@ -43,6 +44,8 @@ interface Contextual : ComparableResult<Rank> {
             }.thenByDescending {
                 if (it is InteractContext) it.cachedState.fluidState.level
                 else Int.MIN_VALUE
+            }.thenByDescending {
+                it.cachedState.block != Blocks.OBSERVER
             }.thenByDescending {
                 context.sorter == ActionConfig.SortMode.Tool && it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
