@@ -175,30 +175,25 @@ public class MinecraftClientMixin {
     @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z"))
     void injectFastPlace(CallbackInfo ci) {
         if (!Interact.INSTANCE.isEnabled()) return;
-
         itemUseCooldown = Interact.getPlaceDelay();
     }
 
     @WrapMethod(method = "doItemUse")
     void injectItemUse(Operation<Void> original) {
-        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract())
-            original.call();
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract()) original.call();
     }
 
     @WrapMethod(method = "doItemPick")
     void injectItemPick(Operation<Void> original) {
-        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick())
-            original.call();
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick()) original.call();
     }
 
     @WrapMethod(method = "getTargetMillisPerTick")
     float getTargetMillisPerTick(float millis, Operation<Float> original) {
         var length = TimerManager.INSTANCE.getLength();
 
-        if (length == TimerManager.DEFAULT_LENGTH)
-            return original.call(millis);
-        else
-            return (float) TimerManager.INSTANCE.getLength();
+        if (length == TimerManager.DEFAULT_LENGTH) return original.call(millis);
+        else return (float) TimerManager.INSTANCE.getLength();
     }
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)

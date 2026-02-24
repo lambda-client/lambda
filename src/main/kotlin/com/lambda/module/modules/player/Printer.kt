@@ -44,13 +44,7 @@ object Printer : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
-				editTyped(breakConfig::efficientOnly, breakConfig::suitableToolsOnly) { defaultValue(false) }
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
-			}
-		}
+		setDefaultAutomationConfig()
 
 		onEnable {
 			if (!litematicaAvailable()) {

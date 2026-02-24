@@ -31,7 +31,7 @@ class InteractSettings(
     baseGroup: NamedEnum
 ) : SettingGroup(c), InteractConfig {
     override val rotate by c.setting("Rotate For Interact", true, "Rotate towards block while placing").group(baseGroup).index()
-    override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces").group(baseGroup).index()
+    override val airPlace by c.setting("Air Place", AirPlaceMode.Grim, "Allows for placing blocks without adjacent faces").group(baseGroup).index()
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }.group(baseGroup).index()
     override val sorter by c.setting("Interaction Sorter", ActionConfig.SortMode.Tool, "The order in which placements are performed").group(baseGroup).index()
     override val tickStageMask by c.setting("Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true).group(baseGroup).index()

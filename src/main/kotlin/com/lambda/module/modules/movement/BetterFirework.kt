@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
@@ -28,6 +29,7 @@ import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
+import com.lambda.module.modules.movement.BetterFirework.sendSwing
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.warn
@@ -130,7 +132,7 @@ object BetterFirework : Module(
 				!fireworkInteract ||
 						player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET ||
 						player.isGliding || // No need to do special magic if we are already holding fireworks and flying
-						(mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
+						(mc.crosshairTarget != null && mc.crosshairTarget?.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
 				else -> {
 					mc.itemUseCooldown += 4
 					val cancelInteract = player.canTakeoff || fireworkInteractCancel
@@ -145,25 +147,14 @@ object BetterFirework : Module(
 		} ?: false
 
 	/**
-	 * Returns true when the pick interaction should be canceled.
+	 * Returns true if the pick interaction should be canceled.
 	 */
 	@JvmStatic
-	fun onPick() =
-		runSafe {
-			when {
-				(mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
-						activateButton.mouse != mc.options.pickItemKey.boundKey.code ||
-						takeoffState != TakeoffState.None -> false // Prevent using multiple times
-				else -> middleClickCancel
-			}
-		} ?: false
+	fun onPick() = if (activateButton.mouse == mc.options.pickItemKey.boundKey.code) middleClickCancel else false
 
 	fun SafeContext.sendSwing() {
-		if (clientSwing) {
-			player.swingHand(Hand.MAIN_HAND)
-		} else {
-			connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
-		}
+		if (clientSwing) player.swingHand(Hand.MAIN_HAND)
+		else connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
 	}
 
 	/**

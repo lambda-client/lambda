@@ -71,9 +71,6 @@ object AirPlace : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				interactConfig.apply {
-					::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
-				}
 				hideAllGroupsExcept(interactConfig)
 			}
 		}
