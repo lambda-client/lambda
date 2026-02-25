@@ -41,7 +41,8 @@ object Coordinates : HudModule(
 		OtherDimension("Other Dimension"),
 	}
 
-	private val showDimension by setting("Show Dimension", true)
+	private val showDimension by setting("Show Dimension Name", true)
+	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
 	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
 		applyEdits {
@@ -60,7 +61,9 @@ object Coordinates : HudModule(
 				if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 				else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 
-			val text = "$position $otherDimensionPos"
+			val text =
+				if (showCurrentDimensionOnly) position
+				else "$position $otherDimensionPos"
 
 			val withDimension =
 				if (showDimension) "$text ${world.dimensionName}"

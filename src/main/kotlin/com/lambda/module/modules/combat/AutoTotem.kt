@@ -42,7 +42,6 @@ object AutoTotem : Module(
     description = "Swaps the your off-hand item to a totem",
     tag = ModuleTag.COMBAT,
 ) {
-    private val log by setting("Log Message", true).group(Group.General)
 	private val always by setting("Always", true, "Always attempt to keep a totem in offhand").group(Group.General)
 	private val ignoreWhenHolding by setting("Ignore When Holding", false, "Ignore swapping to offhand when already holding a totem").group(Group.General)
 	private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold to swap", unit = " half-hearts") { !always }.group(Group.General)
