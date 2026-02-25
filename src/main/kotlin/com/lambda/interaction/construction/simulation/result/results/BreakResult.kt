@@ -103,7 +103,7 @@ sealed class BreakResult : BuildResult() {
         override fun resolve() {
             selectStack {
                 isItem(badItem).not()
-            }.transferByTask(HotbarContainer)?.execute(task)
+            }.transferByTask(HotbarContainer)?.softFail()?.execute(task)
         }
 
         override fun compareResult(other: ComparableResult<Rank>) =

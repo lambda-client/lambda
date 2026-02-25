@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module
+package com.lambda.module.modules.render
 
-import com.lambda.config.settings.complex.Bind
-import com.lambda.gui.Layout
+import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import java.awt.Color
 
-abstract class HudModule(
-    name: String,
-    description: String = "",
-    tag: ModuleTag,
-    alwaysListening: Boolean = false,
-    enabledByDefault: Boolean = false,
-    defaultKeybind: Bind = Bind.EMPTY,
-) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout {
-    val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
+object Bobbing : Module(
+	name = "Bobbing",
+	description = "Modifies vanilla view bobbing when the player walks or runs",
+	tag = ModuleTag.RENDER
+) {
+	val magnitude by setting("Magnitude", 1.0, 0.0..2.0, 0.01)
+	val speed by setting("Speed", 1.0, 0.0..2.0, 0.01)
 }

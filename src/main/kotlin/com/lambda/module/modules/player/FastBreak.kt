@@ -54,9 +54,9 @@ object FastBreak : Module(
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 					editTyped(
-						::checkSideVisibility,
 						::strictRayCast
-					) { defaultValue(false); hide() }
+					) { defaultValue(false); }
+					hide(::strictRayCast, ::checkSideVisibility)
 					::blockReach.edit { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {

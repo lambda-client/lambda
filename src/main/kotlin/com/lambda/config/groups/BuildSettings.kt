@@ -50,7 +50,7 @@ class BuildSettings(
     override var entityReach by c.setting("${prefix}Attack Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance", visibility = visibility).group(*baseGroup, Group.Reach).index()
     override val scanReach: Double get() = max(entityReach, blockReach)
 
-    override val checkSideVisibility by c.setting("${prefix}Visibility Check", true, "Whether to check if an AABB side is visible", visibility = visibility).group(*baseGroup, Group.Scan).index()
+    override val checkSideVisibility by c.setting("${prefix}Visibility Check", false, "Whether to check if an AABB side is visible", visibility = visibility).group(*baseGroup, Group.Scan).index()
     override val strictRayCast by c.setting("${prefix}Strict Raycast", false, "Whether to include the environment to the ray cast context", visibility = visibility).group(*baseGroup, Group.Scan).index()
     override val resolution by c.setting("${prefix}Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "") { visibility() && strictRayCast }.group(*baseGroup, Group.Scan).index()
     override val pointSelection by c.setting("${prefix}Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", visibility = visibility).group(*baseGroup, Group.Scan).index()

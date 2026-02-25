@@ -136,8 +136,7 @@ public class MinecraftClientMixin {
 
     @Inject(method = "setScreen", at = @At("HEAD"))
     private void onScreenOpen(@Nullable Screen screen, CallbackInfo ci) {
-        if (screen == null)
-            return;
+        if (screen == null) return;
         if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new InventoryEvent.Open(handledScreen.getScreenHandler()));
         }
@@ -145,8 +144,7 @@ public class MinecraftClientMixin {
 
     @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.AFTER))
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
-        if (currentScreen == null)
-            return;
+        if (currentScreen == null) return;
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new InventoryEvent.Close(handledScreen.getScreenHandler()));
         }
@@ -167,52 +165,43 @@ public class MinecraftClientMixin {
 
     @WrapWithCondition(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
     private boolean redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
-        if (this.crosshairTarget == null)
-            return false;
+        if (this.crosshairTarget == null) return false;
         return this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled();
     }
 
     @ModifyExpressionValue(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
     boolean redirectMultiActon(boolean original) {
-        if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction())
-            return false;
+        if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction()) return false;
         return original;
     }
 
     @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z"))
     void injectFastPlace(CallbackInfo ci) {
-        if (!Interact.INSTANCE.isEnabled())
-            return;
-
+        if (!Interact.INSTANCE.isEnabled()) return;
         itemUseCooldown = Interact.getPlaceDelay();
     }
 
     @WrapMethod(method = "doItemUse")
     void injectItemUse(Operation<Void> original) {
-        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract())
-            original.call();
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract()) original.call();
     }
 
     @WrapMethod(method = "doItemPick")
     void injectItemPick(Operation<Void> original) {
-        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick())
-            original.call();
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick()) original.call();
     }
 
     @WrapMethod(method = "getTargetMillisPerTick")
     float getTargetMillisPerTick(float millis, Operation<Float> original) {
         var length = TimerManager.INSTANCE.getLength();
 
-        if (length == TimerManager.DEFAULT_LENGTH)
-            return original.call(millis);
-        else
-            return (float) TimerManager.INSTANCE.getLength();
+        if (length == TimerManager.DEFAULT_LENGTH) return original.call(millis);
+        else return (float) TimerManager.INSTANCE.getLength();
     }
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)
     void updateWindowTitle(CallbackInfo ci) {
-        if (!ClickGuiLayout.getSetLambdaWindowTitle())
-            return;
+        if (!ClickGuiLayout.getSetLambdaWindowTitle()) return;
         WindowUtils.setLambdaTitle();
         ci.cancel();
     }

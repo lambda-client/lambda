@@ -33,7 +33,7 @@ class InteractSettings(
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InteractConfig {
     override val rotate by c.setting("${prefix}Rotate For Interact", true, "Rotate towards block while placing", visibility = visibility).group(*baseGroup).index()
-    override val airPlace by c.setting("${prefix}Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = visibility).group(*baseGroup).index()
+    override val airPlace by c.setting("${prefix}Air Place", AirPlaceMode.Grim, "Allows for placing blocks without adjacent faces", visibility = visibility).group(*baseGroup).index()
     override val axisRotateSetting by c.setting("${prefix}Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { visibility() && airPlace.isEnabled }.group(*baseGroup).index()
     override val sorter by c.setting("${prefix}Interaction Sorter", ActionConfig.SortMode.Tool, "The order in which placements are performed", visibility = visibility).group(*baseGroup).index()
     override val tickStageMask by c.setting("${prefix}Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true, visibility = visibility).group(*baseGroup).index()

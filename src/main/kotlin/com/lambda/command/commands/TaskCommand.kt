@@ -42,7 +42,6 @@ object TaskCommand : LambdaCommand(
             execute {
                 this@TaskCommand.info("Clearing all tasks")
                 RootTask.cancel()
-                RootTask.clear()
             }
         }
     }

@@ -100,7 +100,7 @@ sealed class GenericResult : BuildResult() {
 
         context(task: Task<*>, _: AutomatedSafeContext)
         override fun resolve() {
-            neededSelection.transferByTask(HotbarContainer)?.execute(task)
+            neededSelection.transferByTask(HotbarContainer)?.softFail()?.execute(task)
         }
 
         override fun RenderBuilder.render() {
