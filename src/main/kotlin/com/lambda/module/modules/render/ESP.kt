@@ -1,0 +1,97 @@
+/*
+ * Copyright 2025 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.module.modules.render
+
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.EntityColorSettings
+import com.lambda.config.groups.EntitySelectionSettings
+import com.lambda.config.groups.OutlineSettings
+import com.lambda.config.groups.ScreenLineSettings
+import com.lambda.config.groups.WorldLineSettings
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.EntityUtils
+import com.lambda.util.NamedEnum
+import com.lambda.util.math.setAlpha
+import fi.dy.masa.malilib.render.RenderUtils.depthTest
+import net.minecraft.client.network.ClientPlayerEntity
+
+object ESP : Module(
+	name = "ESP",
+	description = "Highlight entities with smooth interpolated rendering",
+	tag = ModuleTag.RENDER
+) {
+	private enum class Group(override val displayName: String): NamedEnum {
+		General("General"),
+		Shader("Shader"),
+		Box("Box"),
+//		Frame("Frame"),
+		Entities("Entities"),
+		Colors("Colors")
+	}
+
+	private val mode by setting("Mode", EspMode.Shader).group(Group.General)
+	private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world").group(Group.General)
+
+	private val outlineStyle = OutlineSettings(c = this, baseGroup = arrayOf(Group.Shader)) { mode == EspMode.Shader }
+
+	private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }.group(Group.Box)
+		.onValueChange { _, to -> if (!to && !drawOutline) drawOutline = true }
+	private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }.group(Group.Box)
+		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
+	private val boxOutlineSettings = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Box)) { mode == EspMode.Box && drawOutline }.apply {
+		applyEdits {
+			hide(::startColor, ::endColor)
+		}
+	}
+	private val fillAlpha by setting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { mode == EspMode.Box && drawFilled }.group(Group.Box)
+	private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }.group(Group.Box)
+
+	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities))
+	private val entityColors = EntityColorSettings(c = this, baseGroup = arrayOf(Group.Colors))
+
+	init {
+		immediateRenderer("EntityESP Immediate Renderer", depthTest = { depthTest }) { safeContext ->
+			with(safeContext) {
+				world.entities.forEach { entity ->
+					if (!entitySettings.isSelected(entity)) return@forEach
+					val entityColor = entityColors.getColor(entity)
+					when (mode) {
+						EspMode.Shader -> worldOutline(entity, outlineStyle.toStyle(entityColor))
+						EspMode.Box -> {
+							box(entity.interpolatedBox, boxOutlineSettings) {
+								if (!drawFilled) hideFill()
+								else if (!drawOutline) hideOutline()
+								colors(entityColor.setAlpha(fillAlpha), entityColor.setAlpha(outlineAlpha))
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private enum class EspMode {
+		Shader,
+		Box,
+		//ToDo: Implement
+//		Frame
+	}
+}

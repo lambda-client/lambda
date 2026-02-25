@@ -29,6 +29,7 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText
@@ -53,7 +54,7 @@ object PrefixCommand : LambdaCommand(
 				val prefixChar = prefix.first()
 				val configurable = Configuration.configurableByName("command") ?: return@executeWithResult failure("No command configurable found.")
 				@Suppress("UNCHECKED_CAST")
-				val setting = configurable.settings.find { it.name == "prefix" } as? Setting<*, Char>
+				val setting = configurable.settings.find { it.name == "prefix" } as? Setting<SettingCore<Char>, Char>
 					?: return@executeWithResult failure("Prefix setting is not a Char or can not be found.")
 				setting.trySetValue(prefixChar)
 				return@executeWithResult success()

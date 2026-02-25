@@ -71,7 +71,7 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
         Schematic("Schematic")
     }
 
-    override val rotationConfig = RotationSettings(this@BaritoneManager, Group.Rotation)
+    override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(Group.Rotation))
 
     init {
         // ToDo: Dont actually save the settings as its duplicate data

@@ -31,6 +31,9 @@ val Entity.rotation
 val LivingEntity.fullHealth: Double
     get() = health + absorptionAmount.toDouble()
 
+val LivingEntity.maxFullHealth: Double
+    get() = maxHealth + maxAbsorption.toDouble()
+
 var LivingEntity.isElytraFlying
     get() = isGliding
     set(value) {

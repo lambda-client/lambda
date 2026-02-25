@@ -39,7 +39,7 @@ object FPS : HudModule(
 	var fps = 0
 
 	init {
-		listen<RenderEvent.Render> {
+		listen<RenderEvent.RenderWorld> {
 			var currentFps = 0
 			if (average) {
 				frames.add(Unit)

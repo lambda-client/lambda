@@ -74,6 +74,7 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "render")
     void onLoopTick(boolean tick, Operation<Void> original) {
+        com.lambda.graphics.RenderMain.preRender();
         EventFlow.post(TickEvent.Render.Pre.INSTANCE);
         original.call(tick);
         EventFlow.post(TickEvent.Render.Post.INSTANCE);
@@ -120,11 +121,13 @@ public class MinecraftClientMixin {
 
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")
     private void onShutdown(CallbackInfo ci) {
+        com.lambda.graphics.outline.OutlineRenderer.INSTANCE.cleanup();
         EventFlow.post(new ClientEvent.Shutdown());
     }
 
     /**
-     * Inject after the thread field is set so that {@link ThreadExecutor#getThread} is available
+     * Inject after the thread field is set so that {@link ThreadExecutor#getThread}
+     * is available
      */
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0, opcode = Opcodes.PUTFIELD), method = "run")
     private void onStartup(CallbackInfo ci) {

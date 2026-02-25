@@ -18,6 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
@@ -39,6 +40,7 @@ object Nuker : Module(
 	name = "Nuker",
 	description = "Breaks blocks around you",
 	tag = ModuleTag.PLAYER,
+	autoDisable = true
 ) {
 	private val height by setting("Height", 6, 1..8, 1)
 	private val width by setting("Width", 6, 1..8, 1)
@@ -54,7 +56,13 @@ object Nuker : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig()
+		setDefaultAutomationConfig {
+			applyEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange) { defaultValue(false) }
+				}
+			}
+		}
 
 		onEnable {
 			task = tickingBlueprint {
