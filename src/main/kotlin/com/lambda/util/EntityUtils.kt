@@ -21,10 +21,8 @@ import com.lambda.util.DynamicReflectionSerializer.remappedName
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
-import io.github.classgraph.ClassInfoList
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityType
 import net.minecraft.util.math.BlockPos
 import kotlin.jvm.java
 
@@ -33,26 +31,26 @@ object EntityUtils {
         .getSubclasses(Entity::class.java)
         .filter { !it.isAbstract && it.name.startsWith("net.minecraft") }
 
-    val blockEntityMap = createBlockEntityNameMap()
     val playerEntityMap = createEntityNameMap("net.minecraft.client.network.")
-    val bossEntityMap = createEntityNameMap("net.minecraft.entity.boss.")
-    val decorationEntityMap = createEntityNameMap("net.minecraft.entity.decoration.")
     val mobEntityMap = createEntityNameMap("net.minecraft.entity.mob.")
     val passiveEntityMap = createEntityNameMap("net.minecraft.entity.passive.")
-    val projectileEntityMap = createEntityNameMap("net.minecraft.entity.projectile.")
     val vehicleEntityMap = createEntityNameMap("net.minecraft.entity.vehicle.")
+    val projectileEntityMap = createEntityNameMap("net.minecraft.entity.projectile.")
+    val bossEntityMap = createEntityNameMap("net.minecraft.entity.boss.")
+    val decorationEntityMap = createEntityNameMap("net.minecraft.entity.decoration.")
+    val blockEntityMap = createBlockEntityNameMap()
     val miscEntityMap = createEntityNameMap("net.minecraft.entity.", strictDir = true)
 
     enum class EntityGroup(val nameToDisplayNameMap: Map<String, String>) {
-        Player(createEntityNameMap("net.minecraft.client.network.")),
-        Mob(createEntityNameMap("net.minecraft.entity.mob.")),
-        Passive(createEntityNameMap("net.minecraft.entity.passive.")),
-        Vehicle(createEntityNameMap("net.minecraft.entity.vehicle.")),
-        Projectile(createEntityNameMap("net.minecraft.entity.projectile.")),
-        Boss(createEntityNameMap("net.minecraft.entity.boss.")),
-        Decoration(createEntityNameMap("net.minecraft.entity.decoration.")),
-        Block(createBlockEntityNameMap()),
-        Misc(createEntityNameMap("net.minecraft.entity.", strictDir = true))
+        Player(playerEntityMap),
+        Mob(mobEntityMap),
+        Passive(passiveEntityMap),
+        Vehicle(vehicleEntityMap),
+        Projectile(projectileEntityMap),
+        Boss(bossEntityMap),
+        Decoration(decorationEntityMap),
+        Block(blockEntityMap),
+        Misc(miscEntityMap)
     }
 
     val Entity.entityGroup get() = entityGroup()
