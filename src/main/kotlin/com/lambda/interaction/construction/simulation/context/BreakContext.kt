@@ -18,7 +18,8 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.threading.runSafe
@@ -59,9 +60,9 @@ data class BreakContext(
 
     override val sorter get() = breakConfig.sorter
 
-    override fun render(esp: TransientRegionESP) {
-        esp.shapes(blockPos.x.toDouble(), blockPos.y.toDouble(), blockPos.z.toDouble()) {
-            box(blockPos, baseColor, sideColor)
+    override fun RenderBuilder.render() {
+        box(blockPos) {
+            colors(baseColor, sideColor)
         }
     }
 }

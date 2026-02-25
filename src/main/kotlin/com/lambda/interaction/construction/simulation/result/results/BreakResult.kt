@@ -20,8 +20,9 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.graphics.mc.TransientRegionESP
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.mc.renderer.TickedRenderer
+import com.lambda.graphics.util.DirectionMask.mask
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -55,8 +56,8 @@ sealed class BreakResult : BuildResult() {
     ) : Contextual, Drawable, BreakResult() {
         override val rank = Rank.BreakSuccess
 
-        override fun render(esp: TransientRegionESP) {
-            context.render(esp)
+        override fun RenderBuilder.render() {
+            with(context) { render() }
         }
     }
 
@@ -72,9 +73,10 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakNotExposed
         private val color = Color(46, 0, 0, 30)
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                box(pos, color, color, side.mask)
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
+                hideSides(side.mask.inv())
             }
         }
 
@@ -101,7 +103,7 @@ sealed class BreakResult : BuildResult() {
         override fun resolve() {
             selectStack {
                 isItem(badItem).not()
-            }.transferByTask(HotbarContainer)?.execute(task)
+            }.transferByTask(HotbarContainer)?.softFail()?.execute(task)
         }
 
         override fun compareResult(other: ComparableResult<Rank>) =
@@ -122,9 +124,9 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakSubmerge
         private val color = Color(114, 27, 255, 100)
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                box(pos, color, color)
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
     }
@@ -140,14 +142,14 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakIsBlockedByFluid
         private val color = Color(50, 12, 112, 100)
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                val center = pos.toCenterPos()
-                val box = Box(
-                    center.x - 0.1, center.y - 0.1, center.z - 0.1,
-                    center.x + 0.1, center.y + 0.1, center.z + 0.1
-                )
-                box(box, color, color)
+        override fun RenderBuilder.render() {
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box) {
+                allColors(color)
             }
         }
     }
@@ -164,9 +166,9 @@ sealed class BreakResult : BuildResult() {
 
         override val goal = GoalInverted(GoalBlock(pos))
 
-        override fun render(esp: TransientRegionESP) {
-            esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-                box(pos, color, color)
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
             }
         }
     }

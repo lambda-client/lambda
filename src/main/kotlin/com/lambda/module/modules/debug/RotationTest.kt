@@ -31,7 +31,7 @@ object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,
 ) {
-    override val rotationConfig = RotationSettings(this, AutomationConfig.Group.Rotation)
+    override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(AutomationConfig.Group.Rotation))
     var hitPos: HitResult? = null
     
     init {

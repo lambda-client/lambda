@@ -24,6 +24,7 @@ import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
 import imgui.ImGui
@@ -41,6 +42,9 @@ object SettingsWidget {
                 with(config.disableOnReleaseSetting) { buildLayout() }
 	            with(config.drawSetting) { buildLayout() }
             }
+	        if (config is HudModule) {
+				with(config.backgroundColor) { buildLayout() }
+	        }
             smallButton("Reset") {
                 config.settings.forEach { it.reset(silent = true) }
             }
@@ -76,7 +80,8 @@ object SettingsWidget {
         }
         val toIgnoreSettings =
             when (config) {
-                is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting, config.drawSetting)
+	            is HudModule -> setOf(config.backgroundColor)
+	            is Module -> setOf(config.keybindSetting, config.disableOnReleaseSetting, config.drawSetting)
                 is UserAutomationConfig -> setOf(config.linkedModules)
                 else -> emptySet()
             }

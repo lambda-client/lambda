@@ -37,7 +37,6 @@ val KClass<*>.className: String get() = java.name
     .substringAfter("${java.packageName}.")
     .replace('$', '.')
 
-
 /**
  * This function returns a instance of subtype [T].
  *

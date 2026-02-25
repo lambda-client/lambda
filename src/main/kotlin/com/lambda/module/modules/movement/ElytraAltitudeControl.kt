@@ -30,9 +30,8 @@ import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
 import com.lambda.util.Timer
-import com.lambda.util.world.fastEntitySearch
+import com.lambda.util.player.hasFirework
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.text.Text.literal
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
@@ -100,7 +99,7 @@ object ElytraAltitudeControl : Module(
 			run {
 				when (controlState) {
 					ControlState.AttitudeControl -> {
-						if (disableOnFirework && hasFirework) {
+						if (disableOnFirework && player.hasFirework) {
 							return@run
 						}
 						if (usePitch40OnHeight) {
@@ -120,7 +119,7 @@ object ElytraAltitudeControl : Module(
 						}.coerceIn(-maxPitchAngle, maxPitchAngle)
 						rotationRequest { pitch(outputPitch) }.submit()
 
-						if (usageDelay.timePassed(2.seconds) && !hasFirework) {
+						if (usageDelay.timePassed(2.seconds) && !player.hasFirework) {
 							if (useFireworkOnHeight && minHeight > player.y) {
 								usageDelay.reset()
 								runSafe {
@@ -190,9 +189,6 @@ object ElytraAltitudeControl : Module(
 			lastAngle = pitch40UpStartAngle
 		}
 	}
-
-	val hasFirework: Boolean
-		get() = runSafe { return fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == player }.any() } ?: false
 
 	class PIController(val valueP: () -> Double, val valueD: () -> Double, val valueI: () -> Double, val constant: () -> Double) {
 		var accumulator = 0.0 // Integral term accumulator

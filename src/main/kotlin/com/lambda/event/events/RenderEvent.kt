@@ -17,23 +17,14 @@
 
 package com.lambda.event.events
 
-import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.RenderMain
-import com.lambda.graphics.mc.TransientRegionESP
-
-fun Any.onStaticRender(block: SafeContext.(TransientRegionESP) -> Unit) =
-	listen<RenderEvent.Upload> { block(RenderMain.StaticESP) }
-
-fun Any.onDynamicRender(block: SafeContext.(TransientRegionESP) -> Unit) =
-	listen<RenderEvent.Upload> { block(RenderMain.DynamicESP) }
 
 sealed class RenderEvent {
-    object Upload : Event
-    object Render : Event
+    object PreRenderWorld : Event
+    object RenderWorld : Event
+    object RenderScreen : Event
 
     class UpdateTarget : ICancellable by Cancellable()
 }

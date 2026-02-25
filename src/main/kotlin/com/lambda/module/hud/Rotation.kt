@@ -32,7 +32,7 @@ object Rotation : HudModule(
 	description = "Show your rotation",
 	tag = ModuleTag.HUD,
 ) {
-	private val formatter = FormatterSettings(this).apply {
+	private val formatter = FormatterSettings(c = this).apply {
 		applyEdits {
 			::timeFormat.edit { hide() }
 		}

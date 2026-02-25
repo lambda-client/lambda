@@ -43,7 +43,7 @@ object Coordinates : HudModule(
 
 	private val showDimension by setting("Show Dimension", true)
 
-	private val formatter = FormatterSettings(this, Group.CurrentDimension).apply {
+	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
 		applyEdits {
 			::timeFormat.edit { hide() }
 		}

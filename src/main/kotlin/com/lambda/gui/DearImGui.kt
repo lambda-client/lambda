@@ -36,7 +36,6 @@ import imgui.glfw.ImGuiImplGlfw
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
-import org.lwjgl.opengl.GL32C
 import kotlin.math.abs
 
 object DearImGui : Loadable {
