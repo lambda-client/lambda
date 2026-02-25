@@ -19,6 +19,7 @@ package com.lambda.task
 
 import com.lambda.Lambda.LOG
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
@@ -118,10 +119,10 @@ abstract class Task<Result> : Nameable, Muteable {
         require(owner != this) { "Cannot execute a task as a child of itself" }
         owner.subTasks.add(this)
         parent = owner
-        LOG.info("${owner.name} started $name")
+        if (verboseDebug) LOG.info("${owner.name} started $name")
         if (pauseParent) {
             parentPausing = true
-            LOG.info("$name pausing parent ${owner.name}")
+            if (verboseDebug) LOG.info("$name pausing parent ${owner.name}")
             if (owner !is RootTask) owner.pause()
         }
         state = State.Running
@@ -219,16 +220,18 @@ abstract class Task<Result> : Nameable, Muteable {
             if (parentPausing) parent?.activate()
             return
         } else parent?.failure(e, stacktrace) ?: run {
-            val message = buildString {
-                stacktrace.firstOrNull()?.let { first ->
-                    append("${first.name} failed: ${e.message}\n")
-                    stacktrace.drop(1).forEach {
-                        append("  -> ${it.name}\n")
+            if (verboseDebug) {
+                val message = buildString {
+                    stacktrace.firstOrNull()?.let { first ->
+                        append("${first.name} failed: ${e.message}\n")
+                        stacktrace.drop(1).forEach {
+                            append("  -> ${it.name}\n")
+                        }
                     }
                 }
+                LOG.error(message, e)
+                logError(message)
             }
-            LOG.error(message, e)
-            logError(message)
         }
     }
 
