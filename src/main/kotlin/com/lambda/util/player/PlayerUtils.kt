@@ -20,11 +20,7 @@ package com.lambda.util.player
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.util.world.fastEntitySearch
-import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.network.OtherClientPlayerEntity
-import net.minecraft.client.network.PlayerListEntry
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
@@ -57,23 +53,6 @@ fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
         isSwimming = entity.isSwimming
         isOnGround = entity.isOnGround
     }
-
-fun SafeContext.spawnFakePlayer(
-    profile: GameProfile,
-    reference: PlayerEntity = player,
-    addToWorld: Boolean = true
-): OtherClientPlayerEntity {
-    val entity = OtherClientPlayerEntity(world, profile).apply {
-        copyFrom(reference)
-
-        playerListEntry = PlayerListEntry(profile, false)
-        id = FakePlayerId
-    }
-
-    if (addToWorld) world.addEntity(entity)
-
-    return entity
-}
 
 fun SafeContext.swingHand(swingType: BuildConfig.SwingType, hand: Hand) =
     when (swingType) {
