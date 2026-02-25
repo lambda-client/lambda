@@ -38,7 +38,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityRenderManager.class)
 public class EntityRenderManagerMixin {
-
     @Inject(method = "getAndUpdateRenderState", at = @At("RETURN"))
     private <E extends Entity> void captureEntityId(E entity, float tickProgress, CallbackInfoReturnable<EntityRenderState> cir) {
         EntityRenderState state = cir.getReturnValue();

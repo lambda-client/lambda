@@ -29,7 +29,6 @@ import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
-
     @WrapMethod(method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;Lnet/minecraft/client/gui/hud/MessageIndicator;)V")
     void wrapAddMessage(Text message, MessageSignatureData signatureData, MessageIndicator indicator, Operation<Void> original) {
         var event = new ChatEvent.Receive(message, signatureData, indicator);

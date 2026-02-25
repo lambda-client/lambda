@@ -46,8 +46,7 @@ import static com.lambda.Lambda.getMc;
 @Mixin(Entity.class)
 public abstract class EntityMixin {
     @Shadow
-    public void move(MovementType movementType, Vec3d movement) {
-    }
+    public void move(MovementType movementType, Vec3d movement) {}
 
     @Shadow
     public abstract float getYaw();
@@ -158,7 +157,7 @@ public abstract class EntityMixin {
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
     private boolean wrapSetPitch(Entity instance, float yaw) {
-        if ((Object) this != Lambda.getMc().player) return true;
+        if ((Object) this != getMc().player) return true;
         return RotationManager.getLockPitch() == null;
     }
 
