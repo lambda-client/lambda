@@ -19,6 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
+import com.lambda.config.applyEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.managers.breaking.BreakConfig
@@ -28,6 +29,7 @@ import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
+import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 import java.awt.Color
 
 open class BreakSettings(
@@ -111,7 +113,11 @@ open class BreakSettings(
 
 	// Outline
 	override val outline by c.setting("${prefix}Outline", true, "Renders the lines of the box to display break progress") { visibility() && renders }.group(*baseGroup, Group.Cosmetic).index()
-	override val outlineWidth by c.setting("${prefix}Outline Width", 2f, 0f..10f, 0.1f, "The width of the outline") { visibility() && renders && outline }.group(*baseGroup, Group.Cosmetic).index()
+	override val outlineConfig = WorldLineSettings("${prefix}Outline ", c, baseGroup = arrayOf(*baseGroup, Group.Cosmetic)) { visibility() && outline }.apply {
+		c.applyEdits {
+			hide(::startColor, ::endColor)
+		}
+	}
 	override val dynamicOutlineColor by c.setting("${prefix}Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { visibility() && renders && outline }.group(*baseGroup, Group.Cosmetic).index()
 	override val staticOutlineColor by c.setting("${prefix}Outline Color", Color.RED.brighter(), "The Color of the outline at the start of breaking") { visibility() && renders && !dynamicOutlineColor && outline }.group(*baseGroup, Group.Cosmetic).index()
 	override val startOutlineColor by c.setting("${prefix}Start Outline Color", Color.RED.brighter(), "The color of the outline at the start of breaking") { visibility() && renders && dynamicOutlineColor && outline }.group(*baseGroup, Group.Cosmetic).index()

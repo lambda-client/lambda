@@ -35,7 +35,7 @@ class WorldLineSettings(
     }
 
     val distanceScaling by c.setting("${prefix}Distance Scaling", true, "Line width stays constant on screen regardless of distance", visibility = visibility).group(*baseGroup, Group.General).index()
-    val worldWidthSetting by c.setting("${prefix}Width", 5, 1..50, 1, "Line width in world units (blocks)") { visibility() && !distanceScaling }.group(*baseGroup, Group.General).index()
+    val worldWidthSetting by c.setting("${prefix}Width", 5, 1..50, 1) { visibility() && !distanceScaling }.group(*baseGroup, Group.General).index()
     val screenWidthSetting by c.setting("${prefix}Screen Width", 10, 1..100, 1, "Line width in screen-space (stays constant size)") { visibility() && distanceScaling }.group(*baseGroup, Group.General).index()
 
     override val width: Float get() =

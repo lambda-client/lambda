@@ -76,7 +76,6 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
@@ -237,7 +236,7 @@ object BreakManager : Manager<BreakRequest>(
 
 						val config = info.breakConfig
 						if (!config.renders) return@immediateRenderer
-						val swapMode = info.breakConfig.swapMode
+						val swapMode = config.swapMode
 						val breakDelta = info.request.runSafeAutomated {
 							info.context.cachedState.calcBreakDelta(
 								info.context.blockPos,
@@ -250,7 +249,7 @@ object BreakManager : Manager<BreakRequest>(
 						}
 						val currentDelta = info.breakingTicks * breakDelta
 
-						val threshold = if (info.type == Primary) info.breakConfig.breakThreshold else 1f
+						val threshold = if (info.type == Primary) config.breakThreshold else 1f
 						val adjustedThreshold = threshold + (breakDelta * config.fudgeFactor)
 
 						val currentProgress = currentDelta / adjustedThreshold
@@ -274,9 +273,11 @@ object BreakManager : Manager<BreakRequest>(
 						info.context.cachedState.getOutlineShape(world, pos).boundingBoxes.map {
 							it.offset(pos)
 						}.forEach { box ->
-							val animationMode = info.breakConfig.animation
+							val animationMode = config.animation
 							val interpolatedBox = interpolateBox(box, interpolatedProgress, animationMode)
-							box(interpolatedBox) {
+							box(interpolatedBox, config.outlineConfig) {
+								if (!config.outline) hideOutline()
+								if (!config.fill) hideFill()
 								colors(fillColor, outlineColor)
 							}
 						}
