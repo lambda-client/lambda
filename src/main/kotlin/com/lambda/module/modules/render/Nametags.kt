@@ -134,7 +134,7 @@ object Nametags : Module(
 							if (background) {
 								screenRect(anchorX - halfNameWidth - trueBGSizeX, anchorY - trueBGSizeY, nameWidth + (trueBGSizeX * 2), textSize + (trueBGSizeY * 2), backgroundColor)
 							}
-							screenText(nameText, anchorX, anchorY + (textSize / 2f), textSize, style = textStyle, centered = true)
+							screenText(nameText, anchorX, anchorY, textSize, style = textStyle, centered = true)
 							return@forEach
 						}
 
@@ -153,18 +153,20 @@ object Nametags : Module(
 						var combinedWidth = nameWidth + healthWidth + pingWidth
 						val nameX = anchorX - (combinedWidth * 0.5f)
 
+						val itemName = itemName && !entity.mainHandStack.isEmpty
 						val itemNameText = if (itemName) entity.mainHandStack.name.string else ""
 						val itemNameSize = if (itemName) textSize * itemNameScale else 0f
 
 						if (background) {
 							anchorY += trueBGSizeY
+							val itemNameWidth = getDefaultFont().getStringWidthNormalized(itemNameText, itemNameSize)
 							val maxWidth =
-								if (itemName) max(getDefaultFont().getStringWidthNormalized(itemNameText, itemNameSize), combinedWidth)
-								else nameWidth
+								if (itemName) max(itemNameWidth, combinedWidth)
+								else combinedWidth
 							screenRect(nameX - trueBGSizeX, anchorY - trueBGSizeY, maxWidth + (trueBGSizeX * 2), textSize + itemNameSize + trueSpacingY + (trueBGSizeY * 2), backgroundColor)
 						}
 
-						if (itemName && !entity.mainHandStack.isEmpty) {
+						if (itemName) {
 							screenText(itemNameText, anchorX, anchorY, itemNameSize, centered = true)
 							anchorY += (itemNameSize * 1.1f) + trueSpacingY
 						}
@@ -183,8 +185,9 @@ object Nametags : Module(
 						if (background) anchorY += trueBGSizeY
 
 						if (EquipmentSlot.entries.none { it.index in 1..4 && !entity.getEquippedStack(it).isEmpty }) {
+							anchorY -= textSize * 0.5f
 							if (mainItem && !entity.mainHandStack.isEmpty)
-								renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX - (trueItemScaleX * 0.1f), anchorY)
+								renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX, anchorY)
 							if (offhandItem && !entity.offHandStack.isEmpty)
 								renderItem(entity.offHandStack, anchorX + (combinedWidth * 0.5f) + trueSpacingX, anchorY)
 						} else drawArmorAndItems(entity, anchorX, anchorY + textSize + trueSpacingY)

@@ -95,16 +95,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	private var activeOutlineId: Int? = null
 
-	fun withOutline(style: OutlineStyle, block: RenderBuilder.() -> Unit) {
-		val previousId = activeOutlineId
-		activeOutlineId = collector.registerCustomOutline(style, depthTest = depthTest)
-		try {
-			block()
-		} finally {
-			activeOutlineId = previousId
-		}
-	}
-
 	fun box(
 		box: Box,
 		lineConfig: LineConfig? = null,
@@ -171,7 +161,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	fun lineGradient(
 		startPos: Vec3d, startColor: Color,
 		endPos: Vec3d, endColor: Color,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) = lineGradient(
 		startPos.x, startPos.y, startPos.z, startColor,
@@ -183,7 +173,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	fun lineGradient(
 		x1: Double, y1: Double, z1: Double, c1: Color,
 		x2: Double, y2: Double, z2: Double, c2: Color,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) = line(x1, y1, z1, x2, y2, z2, c1, c2, width, dashStyle)
 
@@ -191,14 +181,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		start: Vec3d,
 		end: Vec3d,
 		color: Color,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) = line(start.x, start.y, start.z, end.x, end.y, end.z, color, color, width, dashStyle)
 
 	fun polyline(
 		points: List<Vec3d>,
 		color: Color,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) {
 		if (points.size < 2) return
@@ -213,7 +203,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		p2: Vec3d,
 		color: Color,
 		segments: Int = 16,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) {
 		val points = CurveUtils.quadraticBezierPoints(p0, p1, p2, segments)
@@ -227,7 +217,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		p3: Vec3d,
 		color: Color,
 		segments: Int = 32,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) {
 		val points = CurveUtils.cubicBezierPoints(p0, p1, p2, p3, segments)
@@ -238,7 +228,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		controlPoints: List<Vec3d>,
 		color: Color,
 		segmentsPerSection: Int = 16,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) {
 		val points = CurveUtils.catmullRomSplinePoints(controlPoints, segmentsPerSection)
@@ -249,10 +239,36 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		waypoints: List<Vec3d>,
 		color: Color,
 		segmentsPerSection: Int = 16,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) {
 		val points = CurveUtils.smoothPath(waypoints, segmentsPerSection)
+		polyline(points, color, width, dashStyle)
+	}
+
+	fun circleLine(
+		center: Vec3d,
+		radius: Double,
+		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
+		color: Color,
+		segments: Int = 32,
+		width: Float = -0.0005f,
+		dashStyle: LineDashStyle? = null
+	) {
+		val up =
+			if (kotlin.math.abs(normal.y) < 0.99) Vec3d(0.0, 1.0, 0.0)
+			else Vec3d(1.0, 0.0, 0.0)
+		val u = normal.crossProduct(up).normalize()
+		val v = u.crossProduct(normal).normalize()
+
+		val points =
+			(0..segments).map { i ->
+				val angle = 2.0 * Math.PI * i / segments
+				val x = cos(angle) * radius
+				val y = sin(angle) * radius
+				center.add(u.multiply(x)).add(v.multiply(y))
+			}
+
 		polyline(points, color, width, dashStyle)
 	}
 
@@ -284,30 +300,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		OutlineManager.setBlockOutline(it, style, depthTest = depthTest)
 	}
 
-	fun circleLine(
-		center: Vec3d,
-		radius: Double,
-		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
-		color: Color,
-		segments: Int = 32,
-		width: Float,
-		dashStyle: LineDashStyle? = null
-	) {
-		val up =
-			if (kotlin.math.abs(normal.y) < 0.99) Vec3d(0.0, 1.0, 0.0)
-			else Vec3d(1.0, 0.0, 0.0)
-		val u = normal.crossProduct(up).normalize()
-		val v = u.crossProduct(normal).normalize()
-
-		val points =
-			(0..segments).map { i ->
-				val angle = 2.0 * Math.PI * i / segments
-				val x = cos(angle) * radius
-				val y = sin(angle) * radius
-				center.add(u.multiply(x)).add(v.multiply(y))
-			}
-
-		polyline(points, color, width, dashStyle)
+	fun withOutline(style: OutlineStyle, block: RenderBuilder.() -> Unit) {
+		val previousId = activeOutlineId
+		activeOutlineId = collector.registerCustomOutline(style, depthTest = depthTest)
+		try {
+			block()
+		} finally {
+			activeOutlineId = previousId
+		}
 	}
 
 	fun worldText(
@@ -1462,7 +1462,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		x2: Double, y2: Double, z2: Double,
 		color1: Color,
 		color2: Color,
-		width: Float,
+		width: Float = -0.0005f,
 		dashStyle: LineDashStyle? = null
 	) {
 		val rx1 = (x1 - cameraPos.x).toFloat()

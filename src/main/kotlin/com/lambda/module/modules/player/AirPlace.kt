@@ -107,7 +107,7 @@ object AirPlace : Module(
 				val boxes = placementState?.getOutlineShape(safeContext.world, pos)?.boundingBoxes
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
 				boxes.forEach { box ->
-					box(box) { hideFill() }
+					box(box.offset(pos)) { hideFill() }
 				}
 			}
 		}
