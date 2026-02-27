@@ -129,6 +129,11 @@ transitive-accessible field net/minecraft/network/packet/c2s/play/PlayerInteract
 transitive-accessible method net/minecraft/network/packet/BrandCustomPayload write (Lnet/minecraft/network/PacketByteBuf;)V
 transitive-accessible method net/minecraft/client/network/ClientPlayerInteractionManager sendSequencedPacket (Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/network/SequencedPacketCreator;)V
 transitive-accessible field net/minecraft/client/world/ClientWorld pendingUpdateManager Lnet/minecraft/client/network/PendingUpdateManager;
+transitive-accessible field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket x D
+transitive-accessible field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket y D
+transitive-accessible field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket z D
+transitive-accessible field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket yaw F
+transitive-accessible field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket pitch F
 
 # Math
 transitive-accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;
