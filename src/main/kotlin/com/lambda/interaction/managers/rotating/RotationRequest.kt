@@ -145,9 +145,6 @@ interface IRotationRequest : Automated {
 		@RotationRequestDsl
 		fun yaw(yaw: Float) { yawBuilder = { yaw.toDouble() } }
 
-		@RotationRequestDsl
-		fun yaw(rotation: Rotation) { yawBuilder = { rotation.yaw } }
-
 		@JvmName("pitchBuilder1")
 		@RotationRequestDsl
 		fun pitch(builder: SafeContext.() -> Double) { pitchBuilder = builder }
@@ -161,9 +158,6 @@ interface IRotationRequest : Automated {
 
 		@RotationRequestDsl
 		fun pitch(pitch: Float) { pitchBuilder = { pitch.toDouble() } }
-
-		@RotationRequestDsl
-		fun pitch(rotation: Rotation) { pitchBuilder = { rotation.pitch } }
 
 		@RotationRequestDsl
 		fun rotation(builder: SafeContext.() -> Rotation) { rotationBuilder = builder }

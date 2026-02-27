@@ -370,13 +370,13 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
      * Sets the current Baritone goal without starting pathing
      */
     fun setGoal(goal: Goal) {
-        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded == false) return
-	    primary?.customGoalProcess?.goal = goal
+        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded != true) return
+	    primary.customGoalProcess?.goal = goal
     }
 
     fun setGoalAndElytraPath(goal: Goal) {
-        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded == false) return
-        primary?.elytraProcess?.pathTo(goal)
+        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded != true) return
+        primary.elytraProcess?.pathTo(goal)
     }
 
     /**

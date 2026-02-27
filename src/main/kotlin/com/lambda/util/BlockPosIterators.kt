@@ -41,7 +41,7 @@ object BlockPosIterators {
 	 * @see <a href="https://stackoverflow.com/questions/3706219/algorithm-for-iterating-over-an-outward-spiral-on-a-discrete-2d-grid-from-the-or">StackOverflow: Algorithm for iterating over an outward spiral on a discrete 2d grid</a>
 	 *
 	 */
-	class SpiralIterator2d(val maxDistance: Int) : MutableIterator<BlockPos?> {
+	class SpiralIterator2d(maxDistance: Int) : MutableIterator<BlockPos?> {
 		val totalPoints: Int = floor(((floor(maxDistance.toDouble()) - 0.5) * 2).pow(2.0)).toInt()
 		private var deltaX: Int = 1
 		private var deltaZ: Int = 0
