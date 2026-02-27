@@ -28,11 +28,12 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.math.MathUtils.toInt
-import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.setSpeed
 import net.minecraft.block.Blocks
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -54,6 +55,8 @@ object Jesus : Module(
     private var goUp = true
     private var swimmingTicks = 0
 
+    private var prevPos = Vec3d.ZERO
+
     enum class Mode(override val displayName: String, val collision: Boolean) : NamedEnum {
         Ncp("NCP", true),
         NcpDolphin("NCP Dolphin", false),
@@ -63,22 +66,17 @@ object Jesus : Module(
     private var shouldWork = false
 
     init {
-        listen<PlayerPacketEvent.Pre> { event ->
+        listen<PlayerPacketEvent.Send> { event ->
             if (!shouldWork || !waterAt(-0.0001)) return@listen
-            event.onGround = false
 
             if (!player.isOnGround) return@listen
 
             when (mode) {
                 Mode.Ncp -> {
                     val offset = if (player.age % 2 == 0) 0.001 else 0.002
-                    event.position -= Vec3d(0.0, offset, 0.0)
+                    event.lowerPosition(offset)
                 }
-
-                Mode.NcpNew -> {
-                    event.position -= Vec3d(0.0, 0.02 + 0.0001 * swimmingTicks, 0.0)
-                }
-
+                Mode.NcpNew -> event.lowerPosition(0.02 + 0.0001 * swimmingTicks)
                 else -> {}
             }
         }
@@ -148,6 +146,19 @@ object Jesus : Module(
             goUp = false
             swimmingTicks = 0
             shouldWork = false
+        }
+    }
+
+    private fun PlayerPacketEvent.Send.lowerPosition(amount: Double) {
+        with(packet) {
+            val newPos = Vec3d(x, y - amount, z)
+            when(this) {
+                is Full -> packet = Full(newPos, yaw, pitch, isOnGround, horizontalCollision())
+                is PositionAndOnGround -> packet = PositionAndOnGround(newPos, isOnGround, horizontalCollision())
+                else -> if (newPos != prevPos) packet = PositionAndOnGround(newPos, isOnGround, horizontalCollision())
+            }
+
+            prevPos = newPos
         }
     }
 
