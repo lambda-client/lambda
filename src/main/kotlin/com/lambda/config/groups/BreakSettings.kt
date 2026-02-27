@@ -29,7 +29,6 @@ import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
-import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 import java.awt.Color
 
 open class BreakSettings(
@@ -79,9 +78,9 @@ open class BreakSettings(
 
 	// Block
 	override val ignoredBlocks by c.setting("${prefix}Ignored Blocks", emptySet<Block>(), description = "Blocks that wont be broken", visibility = visibility).group(*baseGroup, Group.General).index()
-	override val avoidLiquids by c.setting("${prefix}Avoid Liquids", true, "Avoids breaking blocks that would cause liquid to spill", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val avoidFluids by c.setting("${prefix}Avoid Fluids", true, "Avoids breaking blocks that would cause fluids to spill", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val avoidSupporting by c.setting("${prefix}Avoid Supporting", true, "Avoids breaking the block supporting the player", visibility = visibility).group(*baseGroup, Group.General).index()
-
+	override val fillFluids by c.setting("Fill Fluids", true, "Fills fluids in order to break blocks that would initially spill them") { visibility() && avoidFluids }.group(*baseGroup, Group.General).index()
 	// Tool
 	override val efficientOnly by c.setting("${prefix}Efficient Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 	override val suitableToolsOnly by c.setting("${prefix}Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()

@@ -21,7 +21,6 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.graphics.util.DirectionMask.mask
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -114,8 +113,8 @@ sealed class BreakResult : BuildResult() {
     }
 
     /**
-     * The block is a liquid and first has to be submerged.
-     * @param pos The position of the block that is a liquid.
+     * The block is a fluid and first has to be submerged.
+     * @param pos The position of the block that is a fluid.
      */
     data class Submerge(
         override val pos: BlockPos,
@@ -132,7 +131,7 @@ sealed class BreakResult : BuildResult() {
     }
 
     /**
-     * The block is blocked by another liquid block that first has to be submerged.
+     * The block is blocked by another fluid block that first has to be submerged.
      */
     data class BlockedByFluid(
         override val pos: BlockPos,

@@ -27,7 +27,7 @@ class BoxBuilder(lineConfig: LineConfig?) {
     var fillSides: Int = DirectionMask.ALL
 
     var outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
-    var lineWidth = lineConfig?.width ?: 0.005f
+    var lineWidth = lineConfig?.width ?: -0.0005f
 
     var dashStyle: LineDashStyle? = lineConfig?.getDashStyle()
 

@@ -47,7 +47,6 @@ object Nuker : Module(
 	private val flattenMode by setting("Flatten Mode", FlattenMode.Standard)
 	private val directionalDig by setting("Directional Dig", DigDirection.None)
 	private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
-	private val fillFluids by setting("Fill Fluids", false, "Removes liquids by filling them in before breaking")
 	private val fillFloor by setting("Fill Floor", false)
 	private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 	private val inverseSelection by setting("Inverse Selection", false, "Breaks blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
@@ -75,7 +74,7 @@ object Nuker : Module(
 					.filter { flattenMode == FlattenMode.None || isInFlatten(it) }
 					.filter { isWithinDigDirection(it) }
 					.filter { isInBaritoneSelection(it) == !inverseSelection }
-					.associateWith { if (fillFluids) TargetState.Air else TargetState.Empty }
+					.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
 
 				if (fillFloor) {
 					val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)

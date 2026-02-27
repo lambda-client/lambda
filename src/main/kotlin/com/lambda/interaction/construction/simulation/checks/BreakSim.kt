@@ -94,7 +94,7 @@ class BreakSim private constructor(simInfo: SimInfo)
 			return
 		}
 
-		if (breakConfig.avoidLiquids && affectsFluids()) return
+		if (breakConfig.avoidFluids && affectsFluids()) return
 
 		val (swapStack, stackSelection) = getSwapStack() ?: return
 		val instant = instantBreakable(
@@ -265,15 +265,17 @@ class BreakSim private constructor(simInfo: SimInfo)
 		}
 
 		if (affectedFluids.isNotEmpty()) {
-			val liquidOutOfBounds = affectedFluids.any { !world.worldBorder.contains(it.key) }
-			if (liquidOutOfBounds) {
+			val fluidOutOfBounds = affectedFluids.any { !world.worldBorder.contains(it.key) }
+			if (fluidOutOfBounds) {
 				result(GenericResult.Ignored(pos))
 				return true
 			}
 
-			affectedFluids.forEach { (fluidPos, fluidState) ->
-				result(BreakResult.Submerge(fluidPos, fluidState))
-				sim(fluidPos, fluidState, TargetState.Solid(emptySet()))
+			if (breakConfig.fillFluids) {
+				affectedFluids.forEach { (fluidPos, fluidState) ->
+					result(BreakResult.Submerge(fluidPos, fluidState))
+					sim(fluidPos, fluidState, TargetState.Solid(emptySet()))
+				}
 			}
 			result(BreakResult.BlockedByFluid(pos, state, affectedFluids.keys))
 			return true

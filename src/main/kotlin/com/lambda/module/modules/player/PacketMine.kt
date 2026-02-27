@@ -35,7 +35,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
@@ -116,7 +115,7 @@ object PacketMine : Module(
 				}
 				breakConfig.apply {
 					editTyped(
-						::avoidLiquids,
+						::avoidFluids,
 						::avoidSupporting,
 						::efficientOnly,
 						::suitableToolsOnly
