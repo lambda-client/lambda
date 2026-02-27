@@ -18,6 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
@@ -30,10 +31,12 @@ import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.rotation
+import com.lambda.util.math.Vec2d
 import com.lambda.util.math.interpolate
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
@@ -47,133 +50,206 @@ import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.option.Perspective
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.GameMode
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.hypot
+import kotlin.math.sign
 
 object Freecam : Module(
-    name = "Freecam",
-    description = "Move your camera freely",
-    tag = ModuleTag.RENDER,
-    autoDisable = true,
+	name = "Freecam",
+	description = "Move your camera freely",
+	tag = ModuleTag.RENDER,
+	autoDisable = true,
 ) {
-    private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s")
-    private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
-    private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-    private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode")
-        .onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
-    private val relative by setting("Relative", false, "Moves freecam relative to player position")
-        .onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
-    private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { relative }
+	private val mode by setting("Mode", FreecamMode.Free, "Freecam movement mode")
+	private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s") { mode == FreecamMode.Free }
+	private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.") { mode == FreecamMode.Free }
+	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
+	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
+	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == FreecamMode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
 
-    override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+	// Follow Player settings
+	private val followMaxDistance by setting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == FreecamMode.FollowPlayer }
+	private val followTrackPlayer by setting("Track Player", false, "Keeps looking at the followed player") { mode == FreecamMode.FollowPlayer }
 
-    private var lastPerspective = Perspective.FIRST_PERSON
-    private var lastPlayerPosition: Vec3d = Vec3d.ZERO
-    private var prevPosition: Vec3d = Vec3d.ZERO
-    private var position: Vec3d = Vec3d.ZERO
-    private val lerpPos: Vec3d
-        get() {
-            val tickProgress = mc.gameRenderer.camera.lastTickProgress
-            return prevPosition.interpolate(tickProgress, position)
-        }
+	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement. Applies to relative and follow modes")
 
-    private var rotation: Rotation = Rotation.ZERO
-    private var velocity: Vec3d = Vec3d.ZERO
 
-    @JvmStatic
-    fun updateCam() {
-        mc.gameRenderer.apply {
-            camera.setRotation(rotation.yawF, rotation.pitchF)
-            camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
-        }
-    }
+	override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+	private var lastPerspective = Perspective.FIRST_PERSON
+	private var lastPlayerPosition: Vec3d = Vec3d.ZERO
+	private var prevPosition: Vec3d = Vec3d.ZERO
+	private var position: Vec3d = Vec3d.ZERO
+	private val lerpPos: Vec3d
+		get() {
+			val tickProgress = mc.gameRenderer.camera.lastTickProgress
+			return prevPosition.interpolate(tickProgress, position)
+		}
 
-    /**
-     * @see net.minecraft.entity.Entity.changeLookDirection
-     */
-    private const val SENSITIVITY_FACTOR = 0.15
+	private var rotation: Rotation = Rotation.ZERO
+	private var velocity: Vec3d = Vec3d.ZERO
 
-    init {
-        onEnable {
-            lastPerspective = mc.options.perspective
-            position = player.eyePos
-            rotation = player.rotation
-            velocity = Vec3d.ZERO
-            lastPlayerPosition = player.pos
-        }
+	@JvmStatic
+	fun updateCam() {
+		if (mode == FreecamMode.FollowPlayer && followTrackPlayer) {
+			runSafe {
+				findFollowTarget()?.let {
+					val vec = it.getLerpedPos(mc.gameRenderer.camera.lastTickProgress).add(.0, it.standingEyeHeight.toDouble(), .0).subtract(lerpPos)					// look from lerp pos to target's eye pos
+					val yaw = Math.toDegrees(atan2(vec.z, vec.x)) - 90.0
+					val pitch = -Math.toDegrees(atan2(vec.y, hypot(vec.x, vec.z)))
+					rotation = Rotation(yaw, pitch)
+				}
+			}
+		}
+		mc.gameRenderer.apply {
+			camera.setRotation(rotation.yawF, rotation.pitchF)
+			camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
+		}
+	}
 
-        onDisable {
-            mc.options.perspective = lastPerspective
-        }
+	/**
+	 * @see net.minecraft.entity.Entity.changeLookDirection
+	 */
+	private const val SENSITIVITY_FACTOR = 0.15
 
-        listen<TickEvent.Pre> {
-            when (rotateMode) {
-                FreecamRotationMode.None -> return@listen
-                FreecamRotationMode.KeepRotation -> rotationRequest { rotation(rotation) }.submit()
-                FreecamRotationMode.LookAtTarget ->
-                    mc.crosshairTarget?.let {
-                        runSafeAutomated {
-                            rotationRequest { rotation(lookAt(it.pos)) }.submit()
-                        }
-                    }
-            }
-        }
+	init {
+		onEnable {
+			lastPerspective = mc.options.perspective
+			position = player.eyePos
+			rotation = player.rotation
+			velocity = Vec3d.ZERO
+			lastPlayerPosition = player.pos
+		}
 
-        listen<PlayerEvent.ChangeLookDirection> {
-            rotation = rotation.withDelta(
-                it.deltaYaw * SENSITIVITY_FACTOR,
-                it.deltaPitch * SENSITIVITY_FACTOR
-            )
-            it.cancel()
-        }
+		onDisable {
+			mc.options.perspective = lastPerspective
+		}
 
-        listen<MovementEvent.InputUpdate> { event ->
-            mc.options.perspective = Perspective.FIRST_PERSON
+		listen<TickEvent.Pre> {
+			when (rotateMode) {
+				FreecamRotationMode.None -> return@listen
+				FreecamRotationMode.KeepRotation -> rotationRequest { rotation(rotation) }.submit()
+				FreecamRotationMode.LookAtTarget -> mc.crosshairTarget?.let {
+					runSafeAutomated {
+						rotationRequest { rotation(lookAt(it.pos)) }.submit()
+					}
+				}
+			}
+		}
 
-            // Don't block baritone from working
-            if (!event.input.handledByBaritone) {
-                // Reset actual input
-                event.input.cancel()
-            }
+		listen<PlayerEvent.ChangeLookDirection> {
+			rotation = rotation.withDelta(
+				it.deltaYaw * SENSITIVITY_FACTOR, it.deltaPitch * SENSITIVITY_FACTOR
+			)
+			it.cancel()
+		}
 
-            // Create new input for freecam
-            val input = newMovementInput(assumeBaritone = false, slowdownCheck = false)
-            val sprintModifier = if (mc.options.sprintKey.isPressed) sprint else 1.0
-            val moveDir = calcMoveRad(rotation.yawF, input.roundedForward, input.roundedStrafing)
-            var moveVec = movementVector(moveDir, input.verticalMovement) * speed * sprintModifier
-            if (!input.isInputting) moveVec *= Vec3d(0.0, 1.0, 0.0)
+		listen<MovementEvent.InputUpdate> { event ->
+			mc.options.perspective = Perspective.FIRST_PERSON
 
-            // Apply movement
-            velocity += moveVec
-            velocity *= 0.6
+			// Don't block baritone from working
+			if (!event.input.handledByBaritone) {				// Reset actual input
+				event.input.cancel()
+			}
 
-            // Update position
-            prevPosition = position
-            position += velocity
+			when (mode) {
+				FreecamMode.Free -> {
+					// Create new input for freecam
+					val input = newMovementInput(assumeBaritone = false, slowdownCheck = false)
+					val sprintModifier = if (mc.options.sprintKey.isPressed) sprint else 1.0
+					val moveDir = calcMoveRad(rotation.yawF, input.roundedForward, input.roundedStrafing)
+					var moveVec = movementVector(moveDir, input.verticalMovement) * speed * sprintModifier
+					if (!input.isInputting) moveVec *= Vec3d(0.0, 1.0, 0.0)
+					// Apply movement
+					velocity += moveVec
+					velocity *= 0.6
+					// Update position
+					prevPosition = position
+					position += velocity
 
-            if (relative) {
-                val delta = player.pos.subtract(lastPlayerPosition)
-                position += if (keepYLevel) Vec3d(delta.x, 0.0, delta.z) else delta
-                lastPlayerPosition = player.pos
-            }
-        }
+					if (relative) {
+						val delta = player.pos.subtract(lastPlayerPosition)
+						position += if (keepYLevel) Vec3d(delta.x, 0.0, delta.z) else delta
+						lastPlayerPosition = player.pos
+					}
+				}
 
-        listen<RenderEvent.UpdateTarget>(priority = 1) { event -> // Higher priority then RotationManager to run before RotationManager modifies mc.crosshairTarget
-            mc.crosshairTarget = rotation
-                .rayCast(reach, lerpPos)
-                .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
+				FreecamMode.FollowPlayer -> {
+					// Allow manual camera nudges via input
+					val input = newMovementInput(assumeBaritone = false, slowdownCheck = false)
+					val moveDir = calcMoveRad(rotation.yawF, input.roundedForward, input.roundedStrafing)
+					var moveVec = movementVector(moveDir, input.verticalMovement) * speed
+					if (!input.isInputting) moveVec *= Vec3d(0.0, 1.0, 0.0)
+					// Apply movement
+					velocity += moveVec
+					velocity *= 0.6
+					// Update position
+					prevPosition = position
 
-            mc.crosshairTarget?.let { if (it.type != HitResult.Type.MISS) event.cancel() }
-        }
-    }
+					findFollowTarget()?.let { target ->
+						val targetPos2d = Vec2d(target.eyePos.x, target.eyePos.z)
+						val cameraPos2d = Vec2d(position.x, position.z)
+						val distance2d = targetPos2d.distanceTo(cameraPos2d)
+						if (distance2d > followMaxDistance) {
+							val excess2d = distance2d - followMaxDistance
+							val pullDirection2d = Vec2d(targetPos2d.x - position.x, targetPos2d.y - position.z).normalize()
+							val pullVec2d = pullDirection2d * excess2d
+							position = Vec3d(position.x + pullVec2d.x, position.y, position.z + pullVec2d.y)
+						}
 
-    enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
-        None("None", "No rotation changes"),
-        LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
-        KeepRotation("Keep Rotation", "Look in the same direction as the camera");
-    }
+						if (abs(target.eyePos.y - position.y) > followMaxDistance) {
+							val excessY = abs(target.eyePos.y - position.y) - followMaxDistance
+							val pullDirectionY = sign(target.eyePos.y - position.y)
+							position = Vec3d(position.x, position.y + pullDirectionY * excessY, position.z)
+						}
+						val delta = player.pos.subtract(lastPlayerPosition)
+						position += Vec3d(0.0, delta.y, 0.0)
+					}
+					position += velocity
+					lastPlayerPosition = player.pos
+				}
+			}
+		}
+
+		listen<RenderEvent.UpdateTarget>(priority = 1) { event -> // Higher priority then RotationManager to run before RotationManager modifies mc.crosshairTarget
+			mc.crosshairTarget = rotation.rayCast(reach, lerpPos).orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
+			mc.crosshairTarget?.let { if (it.type != HitResult.Type.MISS) event.cancel() }
+		}
+	}
+
+	enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
+		None("None", "No rotation changes"), LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"), KeepRotation("Keep Rotation", "Look in the same direction as the camera");
+	}
+
+	enum class FreecamMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
+		Free("Free", "Move the camera freely with keyboard input"), FollowPlayer("Follow Player", "Camera follows a player as if attached by an invisible string");
+	}
+
+	private fun SafeContext.findFollowTarget(): PlayerEntity? {
+		if (player.gameMode != GameMode.SPECTATOR) {
+			return player
+		}
+		val players = world.players.filter { it != player && it !is ClientPlayerEntity }
+		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
+	}
+
+	private fun Vec2d.distanceTo(other: Vec2d): Double {
+		val dx = other.x - this.x
+		val dz = other.y - this.y
+		return kotlin.math.sqrt(dx * dx + dz * dz)
+	}
+
+	private fun Vec2d.normalize(): Vec2d {
+		val length = distanceTo(Vec2d(0.0, 0.0))
+		return if (length > 0) Vec2d(x / length, y / length) else Vec2d(0.0, 0.0)
+	}
 }
