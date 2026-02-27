@@ -189,7 +189,7 @@ object Speed : Module(
             || player.isElytraFlying
             || player.isTouchingWater
             || player.isInLava
-            || player.isRiding) return false
+            || player.hasVehicle()) return false
 
         return when (mode) {
             Mode.GrimStrafe -> !player.input.handledByBaritone
