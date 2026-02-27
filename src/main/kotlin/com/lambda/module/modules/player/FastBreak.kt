@@ -61,7 +61,7 @@ object FastBreak : Module(
 				}
 				breakConfig.apply {
 					editTyped(
-						::avoidLiquids,
+						::avoidFluids,
 						::avoidSupporting,
 						::efficientOnly,
 						::suitableToolsOnly

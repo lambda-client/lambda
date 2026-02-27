@@ -50,7 +50,8 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 	val breakConfirmation: BreakConfirmationMode
 	val breaksPerTick: Int
 
-	val avoidLiquids: Boolean
+	val avoidFluids: Boolean
+	val fillFluids: Boolean
 	val avoidSupporting: Boolean
 	val ignoredBlocks: Collection<Block>
 

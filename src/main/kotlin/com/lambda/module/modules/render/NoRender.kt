@@ -20,22 +20,12 @@ package com.lambda.module.modules.render
 import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.EntityUtils.blockEntityMap
-import com.lambda.util.EntityUtils.bossEntityMap
 import com.lambda.util.EntityUtils.createNameMap
-import com.lambda.util.EntityUtils.decorationEntityMap
-import com.lambda.util.EntityUtils.miscEntityMap
-import com.lambda.util.EntityUtils.mobEntityMap
-import com.lambda.util.EntityUtils.passiveEntityMap
-import com.lambda.util.EntityUtils.playerEntityMap
-import com.lambda.util.EntityUtils.projectileEntityMap
-import com.lambda.util.EntityUtils.vehicleEntityMap
 import com.lambda.util.NamedEnum
 import com.lambda.util.reflections.scanResult
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
 import net.minecraft.entity.Entity
-import net.minecraft.entity.SpawnGroup
 
 //ToDo: Implement unimplemented settings. (Keep in mind compatibility with other mods like sodium)
 object NoRender : Module(
