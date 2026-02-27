@@ -123,5 +123,4 @@ transitive-accessible method net/minecraft/item/BlockItem getPlacementState (Lne
 transitive-accessible method net/minecraft/block/AbstractBlock getPickStack (Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/item/ItemStack;
 transitive-accessible field net/minecraft/client/gui/screen/ingame/HandledScreen focusedSlot Lnet/minecraft/screen/slot/Slot;
 transitive-accessible field net/minecraft/registry/SimpleRegistry frozen Z
-
 transitive-accessible field net/minecraft/client/gui/screen/ingame/AbstractSignEditScreen messages [Ljava/lang/String;

@@ -29,7 +29,7 @@ import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
 import java.util.*
 
-
+@Suppress("unused")
 class AutoSign : Module(
 	name = "AutoSign",
 	description = """Auto fills signs with customizable text. Leave lines empty to skip them. Supports data formatting with:
@@ -86,8 +86,8 @@ class AutoSign : Module(
 			else SignEditScreen(event.sign, true, mc.shouldFilterText())
 			for (i in 0 until 4) editor.messages[i] = lines[i]
 			if (autoClose) {
-				if (writeOnFront) mc.networkHandler?.sendPacket(UpdateSignC2SPacket(event.sign.pos, true, editor.messages[0], editor.messages[1], editor.messages[2], editor.messages[3]))
-				else mc.networkHandler?.sendPacket(UpdateSignC2SPacket(event.sign.pos, false, editor.messages[0], editor.messages[1], editor.messages[2], editor.messages[3]))
+				if (writeOnFront) connection.sendPacket(UpdateSignC2SPacket(event.sign.pos, true, editor.messages[0], editor.messages[1], editor.messages[2], editor.messages[3]))
+				else connection.sendPacket(UpdateSignC2SPacket(event.sign.pos, false, editor.messages[0], editor.messages[1], editor.messages[2], editor.messages[3]))
 			} else {
 				mc.setScreen(editor)
 			}
