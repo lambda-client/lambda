@@ -37,7 +37,7 @@ interface Contextual : ComparableResult<Rank> {
         when (other) {
             is Contextual -> compareBy<BuildContext> {
                 if (it is InteractContext) BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
-                else BlockUtils.fluids.size
+                else BlockUtils.fluids.size - 1
             }.thenByDescending {
                 if (it is InteractContext && it.cachedState.fluidState.level != 0) it.blockPos.y
                 else Int.MIN_VALUE
