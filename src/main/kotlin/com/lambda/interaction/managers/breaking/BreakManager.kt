@@ -217,7 +217,7 @@ object BreakManager : Manager<BreakRequest>(
 				?.internalOnItemDrop(it.entity)
 		}
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
+		listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
 			primaryBreak = null
 			secondaryBreak = null
 			breakCooldown = 0
