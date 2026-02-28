@@ -90,14 +90,21 @@ object KillAura : Module(
             applyEdits {
                 hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
                 buildConfig.apply {
-                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::blockReach)
+                    hide(
+                        ::pathing, ::stayInRange, ::collectDrops,
+                        ::spleefEntities, ::maxPendingActions, ::actionTimeout,
+                        ::maxBuildDependencies, ::blockReach
+                    )
+                }
+                hotbarConfig.apply {
+                    ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
                 }
             }
         }
 
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
-        listen<TickEvent.Input.Post> {
+        listen<TickEvent.Pre> {
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 var rotated = true

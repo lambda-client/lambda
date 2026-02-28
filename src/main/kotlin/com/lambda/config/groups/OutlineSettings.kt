@@ -29,7 +29,7 @@ class OutlineSettings(
 	vararg baseGroup: NamedEnum,
 	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c) {
-	val thicknessSetting by c.setting("${prefix}Line Width", 40, 1..100, 1, "The width of the outline", visibility = visibility).group(*baseGroup).index()
+	val thicknessSetting by c.setting("${prefix}Line Width", 25, 1..100, 1, "The width of the outline", visibility = visibility).group(*baseGroup).index()
 	val thickness get() = thicknessSetting * 0.00005f
 
 	val glowIntensitySetting by c.setting("${prefix}Glow Intensity", 50, 0..100, 1, "Intensity of the outline glow", visibility = visibility).group(*baseGroup).index()
