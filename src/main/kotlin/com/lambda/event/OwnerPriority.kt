@@ -18,5 +18,5 @@
 package com.lambda.event
 
 interface OwnerPriority {
-	var ownerPriority: Int
+	val ownerPriority: Int
 }
