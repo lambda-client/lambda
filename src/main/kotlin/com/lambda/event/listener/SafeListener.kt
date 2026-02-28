@@ -25,7 +25,7 @@ import com.lambda.threading.runConcurrent
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.Pointer
-import com.lambda.util.collections.updatableLazy
+import com.lambda.util.collections.updatable
 import com.lambda.util.selfReference
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +68,7 @@ class SafeListener<T : Event>(
     override val alwaysListen: Boolean = false,
     val function: SafeContext.(T) -> Unit
 ) : Listener<T>(), ReadOnlyProperty<Any?, T?> {
-    override val priority = updatableLazy(priorityProvider)
+    override val priority = updatable(priorityProvider)
 
     /**
      * The last processed event signal.
@@ -121,7 +121,7 @@ class SafeListener<T : Event>(
          * @return The newly created and registered [SafeListener].
          */
         inline fun <reified T : Event> Any.listen(
-            noinline priority: () -> Int = modulePriorityOr0Getter,
+            noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             noinline function: SafeContext.(T) -> Unit = {}
         ): SafeListener<T> {
@@ -166,7 +166,7 @@ class SafeListener<T : Event>(
          */
         fun <T : Event> Any.listen(
             kClass: KClass<out T>,
-            priority: () -> Int = modulePriorityOr0Getter,
+            priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             function: SafeContext.(T) -> Unit = {},
         ): SafeListener<T> {
@@ -208,7 +208,7 @@ class SafeListener<T : Event>(
          * @return The newly created and registered [SafeListener].
          */
         inline fun <reified T : Event> Any.listenOnce(
-            noinline priority: () -> Int = modulePriorityOr0Getter,
+            noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             noinline predicate: SafeContext.(T) -> Boolean = { true },
         ): ReadWriteProperty<Any?, T?> {
@@ -256,7 +256,7 @@ class SafeListener<T : Event>(
          * @return The newly created and registered [SafeListener].
          */
         inline fun <reified T : Event> Any.listenConcurrently(
-            noinline priority: () -> Int = modulePriorityOr0Getter,
+            noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             scheduler: CoroutineDispatcher = Dispatchers.Default,
             noinline function: suspend SafeContext.(T) -> Unit = {},

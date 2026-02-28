@@ -19,7 +19,7 @@ package com.lambda.gui.components
 
 import com.lambda.config.AutomationConfig
 import com.lambda.config.Configurable
-import com.lambda.config.MutableAutomationConfig
+import com.lambda.config.IMutableAutomationConfig
 import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
@@ -52,7 +52,7 @@ object SettingsWidget {
 	            }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
-            if (config is MutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
+            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }

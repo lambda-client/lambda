@@ -26,7 +26,7 @@ import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.inventory.InventoryConfig
 import com.lambda.interaction.managers.rotating.RotationConfig
 
-interface MutableAutomationConfig : Automated {
+interface IMutableAutomationConfig : Automated {
     var defaultAutomationConfig: AutomationConfig
     var backingAutomationConfig: AutomationConfig
 	var automationConfig: AutomationConfig
@@ -40,7 +40,7 @@ interface MutableAutomationConfig : Automated {
 	override val eatConfig: EatConfig get() = automationConfig.eatConfig
 }
 
-class MutableAutomationConfigImpl : MutableAutomationConfig {
+class MutableAutomationConfig : IMutableAutomationConfig {
 	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Companion.DEFAULT
 		set(value) {
 			field = value

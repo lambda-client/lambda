@@ -20,8 +20,8 @@ package com.lambda.module
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
+import com.lambda.config.IMutableAutomationConfig
 import com.lambda.config.MutableAutomationConfig
-import com.lambda.config.MutableAutomationConfigImpl
 import com.lambda.config.SettingCore
 import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.config.settings.complex.Bind
@@ -30,6 +30,7 @@ import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.updateListenerSorting
 import com.lambda.event.Muteable
+import com.lambda.event.OwnerPriority
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.listener.Listener
@@ -120,11 +121,19 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig by MutableAutomationConfigImpl() {
+) : Nameable, Muteable, OwnerPriority, Configurable(ModuleConfigs),
+    IMutableAutomationConfig by MutableAutomationConfig()
+{
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-	open val prioritySetting = setting("Module Priority", 0, -100..100, 1, "Priority over other modules") { false }
-		.onValueChangeUnsafe { _, _ -> updateListenerSorting() }
-	val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
+    val prioritySetting = setting("Module Priority", 0, -100..100, 1, "Priority over other modules") { false }
+		.onValueChangeUnsafe { _, to -> ownerPriority = to }
+    override var ownerPriority = 0
+        set(value) {
+            val oldVal = field
+            field = value
+            if (value != oldVal) updateListenerSorting()
+        }
+    val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
         .onPress { toggle() }
         .onRelease { if (disableOnRelease) disable() }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }

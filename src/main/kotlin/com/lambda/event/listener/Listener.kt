@@ -20,8 +20,9 @@ package com.lambda.event.listener
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
+import com.lambda.event.OwnerPriority
 import com.lambda.module.Module
-import com.lambda.util.collections.UpdatableLazy
+import com.lambda.util.collections.Updatable
 
 /**
  * An abstract class representing a [Listener] in the [Event] system ([EventFlow]).
@@ -46,7 +47,7 @@ import com.lambda.util.collections.UpdatableLazy
  * @property alwaysListen If true, the [Listener] will always be triggered, even if the [owner] is [Muteable.isMuted].
  */
 abstract class Listener<T : Event> : Comparable<Listener<T>> {
-    abstract val priority: UpdatableLazy<Int>
+    abstract val priority: Updatable<Int>
     abstract val owner: Any
     abstract val alwaysListen: Boolean
 
@@ -68,7 +69,7 @@ abstract class Listener<T : Event> : Comparable<Listener<T>> {
             it.hashCode()
         }
 
-        val Any.modulePriorityOr0Getter
-            get() = (this as? Module)?.let { { prioritySetting.value } } ?: { 0 }
+        val Any.ownerPriorityOr0Getter
+            get() = (this as? OwnerPriority)?.let { { ownerPriority } } ?: { 0 }
     }
 }
