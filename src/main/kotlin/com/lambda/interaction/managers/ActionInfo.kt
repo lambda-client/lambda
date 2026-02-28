@@ -24,6 +24,6 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
  * must persist longer than the request.
  */
 interface ActionInfo {
-    val context: BuildContext
-    val pendingInteractionsList: MutableCollection<BuildContext>
+	val context: BuildContext
+	val pendingInteractionsList: MutableCollection<BuildContext>
 }

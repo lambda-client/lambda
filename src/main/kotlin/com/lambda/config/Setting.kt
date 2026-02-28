@@ -153,11 +153,12 @@ class Setting<T : SettingCore<R>, R>(
 	override val description: String,
 	var core: T,
 	val configurable: Configurable,
-	val visibility: () -> Boolean,
+	var visibility: () -> Boolean,
 ) : Nameable, Describable {
 	val originalCore = core
 	var disabled = { false }
 	var groups: MutableList<List<NamedEnum>> = mutableListOf()
+	var buttonMenu: NamedEnum? = null
 
 	var value by this
 
@@ -223,6 +224,10 @@ class Setting<T : SettingCore<R>, R>(
 
 	fun group(path: NamedEnum?) = apply {
 		path?.let { groups.add(listOf(it)) }
+	}
+
+	fun buttonMenu(menu: NamedEnum) = apply {
+		buttonMenu = menu
 	}
 
 	fun trySetValue(newValue: R) {

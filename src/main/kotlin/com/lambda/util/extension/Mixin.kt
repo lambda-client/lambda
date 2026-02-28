@@ -19,8 +19,8 @@ package com.lambda.util.extension
 
 import net.minecraft.client.MinecraftClient
 
-val MinecraftClient.partialTicks
-    get() = tickDelta.toDouble()
-
 val MinecraftClient.tickDelta
+    get() = tickDeltaF.toDouble()
+
+val MinecraftClient.tickDeltaF
     get() = renderTickCounter.getTickProgress(true)

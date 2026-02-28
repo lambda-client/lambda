@@ -17,12 +17,13 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.event.events.onDynamicRender
-import com.lambda.event.events.onStaticRender
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
+import com.lambda.graphics.util.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.ChatUtils.colors
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
@@ -45,18 +46,20 @@ object RenderTest : Module(
     private val filledColor = outlineColor.setAlpha(0.2)
 
     init {
-        onDynamicRender { esp ->
-            entitySearch<LivingEntity>(8.0)
-                .forEach { entity ->
-                    esp.shapes(entity.x, entity.y, entity.z) {
-                        box(entity.dynamicBox, filledColor, outlineColor, DirectionMask.ALL, DirectionMask.OutlineMode.And)
+        immediateRenderer("RenderTest Immediate Renderer") { safeContext ->
+            with(safeContext) {
+                entitySearch<LivingEntity>(8.0)
+                    .forEach { entity ->
+                        box(entity.dynamicBox.box(mc.tickDelta) ?: return@forEach) {
+                            colors(filledColor, outlineColor)
+                        }
                     }
-                }
+            }
         }
 
-        onStaticRender { esp ->
-            esp.shapes(player.x, player.y, player.z) {
-                box(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
+        tickedRenderer("RenderTest Ticked Renderer") { safeContext ->
+            box(Box.of(safeContext.player.pos, 0.3, 0.3, 0.3)) {
+                colors(filledColor, outlineColor)
             }
         }
     }

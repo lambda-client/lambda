@@ -38,18 +38,18 @@ import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object Scaffold : Module(
-    name = "Scaffold",
-    description = "Places blocks under the player",
-    tag = ModuleTag.PLAYER,
+	name = "Scaffold",
+	description = "Places blocks under the player",
+	tag = ModuleTag.PLAYER,
 ) {
-    private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
-    private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }
-    private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
-    private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
+	private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
+	private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }
+	private val descend by setting("Descend", Bind.EMPTY, "Lower the place position by one to allow the player to lower y level")
+	private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
-    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
+	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
-    init {
+	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				buildConfig.apply {
@@ -80,31 +80,31 @@ object Scaffold : Module(
 			}
 		}
 
-        listen<TickEvent.Pre> {
-            val playerSupport = player.blockPos.down()
-            val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
-            if (alreadySupported) return@listen
-            val offset = if (descend.isSatisfied()) descendAmount else 0
-            val beneath = playerSupport.down(offset)
-            runSafeAutomated {
-                scaffoldPositions(beneath)
-                    .associateWith { TargetState.Solid(emptySet()) }
-                    .simulate()
-                    .interactRequest(pendingActions)
-	                ?.submit()
-            }
-        }
-    }
+		listen<TickEvent.Pre> {
+			val playerSupport = player.blockPos.down()
+			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
+			if (alreadySupported) return@listen
+			val offset = if (descend.isSatisfied()) descendAmount else 0
+			val beneath = playerSupport.down(offset)
+			runSafeAutomated {
+				scaffoldPositions(beneath)
+					.associateWith { TargetState.Solid(emptySet()) }
+					.simulate()
+					.interactRequest(pendingActions)
+					?.submit()
+			}
+		}
+	}
 
-    private fun SafeContext.scaffoldPositions(beneath: BlockPos): List<BlockPos> {
-        if (!blockState(beneath).isReplaceable) return emptyList()
-        if (interactConfig.airPlace.isEnabled) return listOf(beneath)
+	private fun SafeContext.scaffoldPositions(beneath: BlockPos): List<BlockPos> {
+		if (!blockState(beneath).isReplaceable) return emptyList()
+		if (interactConfig.airPlace.isEnabled) return listOf(beneath)
 
-        return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
-            .asSequence()
-            .filter { !onlyBelow || it.y <= beneath.y }
-            .filter { blockState(it).isReplaceable }
-            .map { it.blockPos }
-            .toList()
-    }
+		return BlockPos.iterateOutwards(beneath, bridgeRange, bridgeRange, bridgeRange)
+			.asSequence()
+			.filter { !onlyBelow || it.y <= beneath.y }
+			.filter { blockState(it).isReplaceable }
+			.map { it.blockPos }
+			.toList()
+	}
 }

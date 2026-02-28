@@ -29,7 +29,6 @@ import com.lambda.network.mojang.getProfile
 import com.lambda.threading.onShutdown
 import com.lambda.util.Timer
 import com.lambda.util.player.FakePlayerId
-import com.lambda.util.player.spawnFakePlayer
 import com.mojang.authlib.GameProfile
 import com.mojang.datafixers.util.Either
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -58,16 +57,16 @@ object FakePlayer : Module(
 
     init {
         listen<TickEvent.Pre> {
-            fakePlayer = cachedProfiles[playerName]
-                ?.let { spawnFakePlayer(it, fakePlayer ?: player, addToWorld = false) }
-                ?.takeUnless { it == fakePlayer?.gameProfile }
-                ?: fakePlayer?.takeIf { playerName == it.gameProfile.name }
-                        ?: spawnFakePlayer(nilProfile, fakePlayer ?: player, addToWorld = false)
+            val newFakePlayer = cachedProfiles[playerName]
+                ?.let { newFakePlayer(it) }
+                ?.takeUnless { it.gameProfile == fakePlayer?.gameProfile } // If the current profile equals the current fake player's profile, stop.
+
+            fakePlayer = newFakePlayer
+                ?: return@listen
         }
 
         listenConcurrently<TickEvent.Pre>({ 1000 }) {
             if (!fetchTimer.timePassed(2.seconds)) return@listenConcurrently
-
             cachedProfiles.getOrPut(playerName) { fetchProfile(playerName) }
         }
 
@@ -76,24 +75,33 @@ object FakePlayer : Module(
         }
 
         listen<ConnectionEvent.Connect.Pre> { disable() }
-        onShutdown { disable() }
+
+        onShutdown { disable() } // FixMe: This doesn't work because the hook triggers after the modules are saved.
+
         onDisable { fakePlayer?.discard(); fakePlayer = null }
     }
 
+    fun SafeContext.newFakePlayer(profile: GameProfile) =
+        OtherClientPlayerEntity(world, profile).apply {
+            copyFrom(player)
+            id = FakePlayerId
+        }
+
     suspend fun SafeContext.fetchProfile(user: String): GameProfile {
-        val requestedProfile = getProfile(user).getOrElse { return nilProfile }
+        val requestedProfile = getProfile(user)
+            .getOrElse { return nilProfile }
 
         // Fetch the skin properties from mojang
         val properties = mc.apiServices.profileResolver
-            .getProfile(Either.right(requestedProfile.id)).getOrNull()?.properties
+            .getProfile(Either.right(requestedProfile.id))
+            .getOrNull()
+            ?.properties
+            ?: return nilProfile
 
-        // We use the nil profile to avoid the nil username if something wrong happens
-        // Check the GameProfile deserializer you'll understand
-        val profile = nilProfile
-        properties?.let { profile.properties.putAll(it) }
+        val profile = GameProfile(requestedProfile.id, requestedProfile.name, properties)
 
-        mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
+	    connection.playerListEntries[profile.id] = PlayerListEntry(profile, false)
 
-        return profile
+	    return profile
     }
 }

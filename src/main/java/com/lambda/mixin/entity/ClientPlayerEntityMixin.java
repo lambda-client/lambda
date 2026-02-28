@@ -17,61 +17,76 @@
 
 package com.lambda.mixin.entity;
 
-import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
+import com.lambda.event.events.PlayerPacketEvent;
 import com.lambda.event.events.TickEvent;
-import com.lambda.interaction.PlayerPacketHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.injector.v2.WrapWithCondition;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Share;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.authlib.GameProfile;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.MovementType;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
-import org.spongepowered.asm.mixin.Final;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Objects;
 
+import static com.lambda.Lambda.getMc;
+
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
-    @Shadow public Input input;
-    @Shadow @Final protected MinecraftClient client;
-    @Shadow private boolean autoJumpEnabled;
-
     public ClientPlayerEntityMixin(ClientWorld world, GameProfile profile) {
         super(world, profile);
     }
 
+    @WrapMethod(method = "tick")
+    void onTick(Operation<Void> original) {
+        EventFlow.post(TickEvent.Player.Pre.INSTANCE);
+        original.call();
+        EventFlow.post(TickEvent.Player.Post.INSTANCE);
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void injectTick(CallbackInfo ci, @Share(namespace = "shared_rotations", value = "target_rotation") final LocalRef<Vec2f> targetRotation) {
+        if (RotationManager.getRequests().stream().anyMatch(Objects::nonNull)) {
+            final var activeRotation = RotationManager.getActiveRotation();
+            targetRotation.set(new Vec2f(activeRotation.getYawF(), activeRotation.getPitchF()));
+        }
+    }
+
     @WrapOperation(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"))
-    private void emitMovementEvents(ClientPlayerEntity instance, MovementType movementType, Vec3d vec3d, Operation<Void> original) {
+    private void wrapMove(ClientPlayerEntity instance, MovementType movementType, Vec3d vec3d, Operation<Void> original) {
         EventFlow.post(new MovementEvent.Player.Pre(movementType, vec3d));
         original.call(instance, movementType, vec3d);
         EventFlow.post(new MovementEvent.Player.Post(movementType, vec3d));
     }
 
     @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
-    void processMovement(Input input, Operation<Void> original) {
+    void wrapTick(Input input, Operation<Void> original) {
         original.call(input);
         RotationManager.processRotations();
         RotationManager.redirectStrafeInputs(input);
@@ -83,56 +98,61 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
     }
 
-    @Inject(method = "sendMovementPackets", at = @At("HEAD"))
-    private void injectSendMovementPackets(CallbackInfo ci) {
-        PlayerPacketHandler.sendPlayerPackets();
-        autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
+    private float modifyGetYaw(float original) {
+        final var yaw = RotationManager.getHeadYaw();
+        return yaw != null ? yaw : original;
     }
-    
-    @WrapWithCondition(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;sendSprintingPacket()V"))
-    private boolean wrapSendSprintingPackets(ClientPlayerEntity instance) { return false; }
 
-    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isCamera()Z"))
-    private boolean wrapIsCamera(boolean original) { return false; }
+    @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
+    private float modifyGetPitch(float original) {
+        final var pitch = RotationManager.getHeadPitch();
+        return pitch != null ? pitch : original;
+    }
+
+    @WrapOperation(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"))
+    private void wrapSendPacket(ClientPlayNetworkHandler instance, Packet packet, Operation<Void> original) {
+        var event = EventFlow.post(new PlayerPacketEvent.Send((PlayerMoveC2SPacket) packet));
+        if (event.isCanceled()) return;
+        original.call(instance, event.getPacket());
+    }
+
+    @Inject(method = "sendMovementPackets", at = @At("TAIL"))
+    private void injectSendMovementPacketsReturn(CallbackInfo ci) {
+        RotationManager.onRotationSend();
+        EventFlow.post(new PlayerPacketEvent.Post());
+    }
 
     @ModifyExpressionValue(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
-    boolean isSprinting(boolean original) {
+    boolean modifyIsSprinting(boolean original) {
         return EventFlow.post(new MovementEvent.Sprint(original)).getSprint();
     }
 
-    @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
-    void injectSneakingInput(CallbackInfoReturnable<Boolean> cir) {
+    @ModifyReturnValue(method = "isSneaking", at = @At("RETURN"))
+    boolean injectSneakingInput(boolean original) {
         ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
+        if (self != getMc().player || self.input == null) return original;
 
-        if (self.input == null) return;
-        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
-    }
-
-    @WrapMethod(method = "tick")
-    void onTick(Operation<Void> original) {
-        EventFlow.post(TickEvent.Player.Pre.INSTANCE);
-        original.call();
-        EventFlow.post(TickEvent.Player.Post.INSTANCE);
+        return EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak();
     }
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
-    float fixHeldItemYaw(ClientPlayerEntity instance, Operation<Float> original) {
+    float wrapGetYaw(ClientPlayerEntity instance, Operation<Float> original) {
         return Objects.requireNonNullElse(RotationManager.getHandYaw(), original.call(instance));
     }
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
-    float fixHeldItemPitch(ClientPlayerEntity instance, Operation<Float> original) {
+    float wrapGetPitch(ClientPlayerEntity instance, Operation<Float> original) {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), original.call(instance));
     }
 
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
-    void onSwing(Hand hand, CallbackInfo ci) {
+    void injectSwingHand(Hand hand, CallbackInfo ci) {
         if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
     }
 
     @WrapOperation(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
-    private void adjustSwing(ClientPlayerEntity instance, Hand hand, Operation<Void> original) {
+    private void wrapSwingHand(ClientPlayerEntity instance, Hand hand, Operation<Void> original) {
         ViewModel viewModel = ViewModel.INSTANCE;
 
         if (!viewModel.isEnabled()) {
@@ -144,12 +164,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     }
 
     @Inject(method = "updateHealth", at = @At("HEAD"))
-    public void damage(float health, CallbackInfo ci) {
+    public void injectUpdateHealth(float health, CallbackInfo ci) {
         EventFlow.post(new PlayerEvent.Health(health));
     }
 
     /**
      * Prevents the game from closing Guis when the player is in a nether portal
+     * 
      * <pre>{@code
      * if (this.client.currentScreen != null
      *         && !this.client.currentScreen.shouldPause()
@@ -163,8 +184,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
      * }
      * }</pre>
      */
-    @ModifyExpressionValue(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;"))
-    Screen keepScreensInPortal(Screen original) {
+    @ModifyExpressionValue(method = "tickNausea", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;", opcode = Opcodes.GETFIELD))
+    Screen modifyCurrentScreen(Screen original) {
         if (PortalGui.INSTANCE.isEnabled()) return null;
         else return original;
     }

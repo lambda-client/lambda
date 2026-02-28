@@ -18,7 +18,8 @@
 package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractRequest
@@ -46,22 +47,22 @@ data class InteractContext(
 
     override val sorter get() = interactConfig.sorter
 
-    override fun render(esp: TransientRegionESP) {
-        esp.shapes(hitResult.pos.x, hitResult.pos.y, hitResult.pos.z) {
-            val box = with(hitResult.pos) {
-                Box(
-                    x - 0.05, y - 0.05, z - 0.05,
-                    x + 0.05, y + 0.05, z + 0.05,
-                ).offset(hitResult.side.doubleVector.multiply(0.05))
-            }
-            box(box, baseColor, sideColor)
+    override fun RenderBuilder.render() {
+        val box = with(hitResult.pos) {
+            Box(
+                x - 0.05, y - 0.05, z - 0.05,
+                x + 0.05, y + 0.05, z + 0.05,
+            ).offset(hitResult.side.doubleVector.multiply(0.05))
+        }
+        box(box) {
+            colors(baseColor, sideColor)
         }
     }
 
     fun requestDependencies(request: InteractRequest): Boolean {
         val hotbarRequest = HotbarRequest(hotbarIndex, this).submit(queueIfMismatchedStage = false)
         val validRotation = if (request.interactConfig.rotate) {
-            rotationRequest.submit(queueIfMismatchedStage = false).done && currentDirIsValid
+            (rotationRequest.submit(queueIfMismatchedStage = false).done || interactConfig.airPlace.isEnabled) && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
     }

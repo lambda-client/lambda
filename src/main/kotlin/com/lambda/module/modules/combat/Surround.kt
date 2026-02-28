@@ -52,10 +52,6 @@ object Surround : Module(
 						::spleefEntities,
 						::collectDrops
 					) { defaultValue(false); hide() }
-					::checkSideVisibility.edit { defaultValue(false) }
-				}
-				interactConfig.apply {
-					::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
 				}
 				hideGroup(eatConfig)
 			}

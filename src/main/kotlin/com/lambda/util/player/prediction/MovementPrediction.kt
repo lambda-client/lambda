@@ -24,7 +24,7 @@ import com.lambda.context.SafeContext
  *
  * Currently not implemented:
  * - Elytra movement
- * - Movement in liquids
+ * - Movement in fluids
  * - Ladder climbing
  * - Movement in webs
  * - Sneaking safewalk

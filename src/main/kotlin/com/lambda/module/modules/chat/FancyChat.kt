@@ -17,8 +17,10 @@
 
 package com.lambda.module.modules.chat
 
+import com.lambda.command.CommandRegistry.prefix
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.BaritoneManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ChatUtils.toBlue
@@ -38,6 +40,15 @@ object FancyChat : Module(
 
 	init {
 		listen<ChatEvent.Send> {
+			val isBaritone = BaritoneManager.baritoneSettings?.prefix?.value
+				?.let { setting -> it.message.startsWith(setting)}
+				?: false
+
+			val isLambda = it.message.startsWith(prefix)
+
+			if (isLambda || isBaritone)
+				return@listen
+
 			if (uwu) it.message = it.message.toUwu
 			if (leet) it.message = it.message.toLeet
 			if (green) it.message = it.message.toGreen

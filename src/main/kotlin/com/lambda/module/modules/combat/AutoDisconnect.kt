@@ -31,7 +31,7 @@ import com.lambda.util.Formatting.format
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.extension.tickDelta
+import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -153,7 +153,7 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
-        if (connection.brand == "2b2t (Velocity)" && player.gameMode == GameMode.SPECTATOR) return
+        if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE) return
         if (reason == Reason.Health || reason == Reason.Totem) disable()
         connection.connection.disconnect(generateInfo(reasonText))
         playSound(SoundEvents.BLOCK_ANVIL_LAND)
@@ -231,7 +231,7 @@ object AutoDisconnect : Module(
         }),
         Creeper({ creeper }, {
             fastEntitySearch<CreeperEntity>(15.0).find {
-                it.getLerpedFuseTime(mc.tickDelta) > 0.0
+                it.getLerpedFuseTime(mc.tickDeltaF) > 0.0
                         && it.pos.distanceTo(player.pos) <= 5.0
             }?.let { creeper ->
                 buildText {

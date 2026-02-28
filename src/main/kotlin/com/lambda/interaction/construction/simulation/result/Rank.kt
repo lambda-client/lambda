@@ -21,7 +21,6 @@ enum class Rank {
     // solvable
     PlaceSuccess,
     BreakSuccess,
-    InteractSuccess,
     WrongItem,
     BreakItemCantMine,
     PlaceBlockedByPlayer,

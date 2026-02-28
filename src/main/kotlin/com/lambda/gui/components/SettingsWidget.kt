@@ -24,6 +24,7 @@ import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.util.NamedEnum
 import imgui.ImGui
@@ -46,6 +47,9 @@ object SettingsWidget {
 		            with(config.prioritySetting) { buildLayout() }
 		            with(config.disableOnReleaseSetting) { buildLayout() }
 		            with(config.drawSetting) { buildLayout() }
+		            if (config is HudModule) {
+			            with(config.backgroundColor) { buildLayout() }
+		            }
 		            smallButton("Reset") {
 			            config.settings.forEach { it.reset(silent = true) }
 		            }

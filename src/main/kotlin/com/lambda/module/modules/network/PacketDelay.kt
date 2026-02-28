@@ -19,8 +19,8 @@ package com.lambda.module.modules.network
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -53,10 +53,10 @@ object PacketDelay : Module(
     private var inboundLastUpdate = 0L
 
     init {
-        listen<RenderEvent.Upload> {
-            if (mode != Mode.Static) return@listen
+        tickedRenderer("PacketDelay Ticked Renderer") { safeContext ->
+            if (mode != Mode.Static) return@tickedRenderer
 
-            flushPools(System.currentTimeMillis())
+            with(safeContext) { flushPools(System.currentTimeMillis()) }
         }
 
         listen<PacketEvent.Send.Pre>({ Int.MIN_VALUE }) { event ->

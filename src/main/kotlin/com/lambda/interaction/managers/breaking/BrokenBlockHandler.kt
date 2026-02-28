@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.managerDebugLogs
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -49,31 +49,31 @@ import net.minecraft.util.math.ChunkSectionPos
  * @see BreakManager
  */
 object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
-    override val pendingActions = LimitedDecayQueue<BreakInfo>(
-        DEFAULT.buildConfig.maxPendingActions, DEFAULT.buildConfig.actionTimeout * 50L
-    ) { info ->
-        runSafe {
-            val pos = info.context.blockPos
-            val loaded =
-                world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
-            if (!loaded) return@runSafe
+	override val pendingActions = LimitedDecayQueue<BreakInfo>(
+		DEFAULT.buildConfig.maxPendingActions, DEFAULT.buildConfig.actionTimeout * 50L
+	) { info ->
+		runSafe {
+			val pos = info.context.blockPos
+			val loaded =
+				world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
+			if (!loaded) return@runSafe
 
-            if (!info.broken) {
-                val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
-                if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
-            } else if (!DEFAULT.ignoreItemDropWarnings) {
-                val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
-                if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
-            }
+			if (!info.broken) {
+				val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
+				if (verboseDebug) this@BrokenBlockHandler.warn(message)
+			} else if (!DEFAULT.ignoreItemDropWarnings) {
+				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
+				if (verboseDebug) this@BrokenBlockHandler.warn(message)
+			}
 
-            if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
-                world.setBlockState(info.context.blockPos, info.context.cachedState)
-            }
+			if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
+				world.setBlockState(info.context.blockPos, info.context.cachedState)
+			}
 
-            info.request.onCancel?.invoke(this, info.context.blockPos)
-        }
-        info.pendingInteractionsList.remove(info.context)
-    }
+			info.request.onCancel?.invoke(this, info.context.blockPos)
+		}
+		info.pendingInteractionsList.remove(info.context)
+	}
 
     init {
         listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
@@ -91,31 +91,31 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                         return@listen
                     }
 
-                    if (pending.type == BreakInfo.BreakType.Rebreak) {
-                        pending.context.cachedState = event.newState
-                    } else {
-                        val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
-                        if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
-                        pending.stopPending()
-                    }
-                    return@listen
-                }
+					if (pending.type == BreakInfo.BreakType.Rebreak) {
+						pending.context.cachedState = event.newState
+					} else {
+						val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
+						if (verboseDebug) this@BrokenBlockHandler.warn(message)
+						pending.stopPending()
+					}
+					return@listen
+				}
 
-                if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
-                    || (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
-                    ) {
-                    destroyBlock(pending)
-                }
-                pending.internalOnBreak()
-                if (pending.callbacksCompleted) {
-                    pending.stopPending()
-                    if (lastPosStarted == pending.context.blockPos) {
-                        RebreakHandler.offerRebreak(pending)
-                    }
-                }
-                return@listen
-            }
-        }
+				if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak
+					|| (pending.type == BreakInfo.BreakType.Rebreak && !pending.breakConfig.rebreak)
+					) {
+					destroyBlock(pending)
+				}
+				pending.internalOnBreak()
+				if (pending.callbacksCompleted) {
+					pending.stopPending()
+					if (lastPosStarted == pending.context.blockPos) {
+						RebreakHandler.offerRebreak(pending)
+					}
+				}
+				return@listen
+			}
+		}
 
         listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
             if (it.entity !is ItemEntity) return@listen
@@ -126,39 +126,39 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                         else return@listen
                     } ?: return@listen
 
-            pending.internalOnItemDrop(it.entity)
-            if (pending.callbacksCompleted) {
-                pending.stopPending()
-                if (lastPosStarted == pending.context.blockPos) {
-                    RebreakHandler.offerRebreak(pending)
-                }
-            }
-        }
-    }
+			pending.internalOnItemDrop(it.entity)
+			if (pending.callbacksCompleted) {
+				pending.stopPending()
+				if (lastPosStarted == pending.context.blockPos) {
+					RebreakHandler.offerRebreak(pending)
+				}
+			}
+		}
+	}
 
-    /**
-     * A modified version of the minecraft breakBlock method.
-     *
-     * Performs the actions required to display breaking particles, sounds, texture overlay, etc.
-     * based on the user's settings.
-     *
-     * @see net.minecraft.client.world.ClientWorld.breakBlock
-     */
-    fun SafeContext.destroyBlock(info: BreakInfo) {
-        val ctx = info.context
+	/**
+	 * A modified version of the minecraft breakBlock method.
+	 *
+	 * Performs the actions required to display breaking particles, sounds, texture overlay, etc.
+	 * based on the user's settings.
+	 *
+	 * @see net.minecraft.client.world.ClientWorld.breakBlock
+	 */
+	fun SafeContext.destroyBlock(info: BreakInfo) {
+		val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return
-        if (!player.mainHandStack.canMine(ctx.cachedState, world, ctx.blockPos, player)) return
+		if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return
+		if (!player.mainHandStack.canMine(ctx.cachedState, world, ctx.blockPos, player)) return
 
-        val block = ctx.cachedState.block
-        if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return
-        if (ctx.cachedState.isEmpty) return
+		val block = ctx.cachedState.block
+		if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return
+		if (ctx.cachedState.isEmpty) return
 
-        block.onBreak(world, ctx.blockPos, ctx.cachedState, player)
-        val fluidState = fluidState(ctx.blockPos)
-        val setState = world.setBlockState(ctx.blockPos, fluidState.blockState, 11)
-        if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
+		block.onBreak(world, ctx.blockPos, ctx.cachedState, player)
+		val fluidState = fluidState(ctx.blockPos)
+		val setState = world.setBlockState(ctx.blockPos, fluidState.blockState, 11)
+		if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
 
-        if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
-    }
+		if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
+	}
 }

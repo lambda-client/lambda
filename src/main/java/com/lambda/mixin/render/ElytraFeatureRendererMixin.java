@@ -33,12 +33,6 @@ import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-/**
- * Mixin to override elytra textures with Lambda capes and disable elytra rendering.
- *
- * Note: In 1.21.11, render method uses OrderedRenderCommandQueue instead of VertexConsumerProvider.
- * getTexture is now a private static method.
- */
 @Mixin(ElytraFeatureRenderer.class)
 public class ElytraFeatureRendererMixin {
     @ModifyReturnValue(method = "getTexture", at = @At("RETURN"))
@@ -49,7 +43,9 @@ public class ElytraFeatureRendererMixin {
         var networkHandler = Lambda.getMc().getNetworkHandler();
         if (networkHandler == null) return original;
 
-        var entry = playerState.playerName != null ? networkHandler.getPlayerListEntry(playerState.playerName.getString()) : null;
+        var entry = playerState.playerName != null
+                ? networkHandler.getPlayerListEntry(playerState.playerName.getString())
+                : null;
         if (entry == null) return original;
 
         var profile = entry.getProfile();

@@ -31,7 +31,7 @@ import net.minecraft.util.math.Direction
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object BlockHalfPreProcessor : PropertyPreProcessor {
-    override fun acceptsState(targetState: BlockState) =
+    override fun acceptsState(state: BlockState, targetState: BlockState) =
         Properties.BLOCK_HALF in targetState
 
     context(safeContext: SafeContext)

@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.interacting
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.managerDebugLogs
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler
@@ -29,18 +29,18 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
 object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
-    override val pendingActions = LimitedDecayQueue<InteractInfo>(
-        DEFAULT.buildConfig.maxPendingActions,
-        DEFAULT.buildConfig.actionTimeout * 50L
-    ) {
-        if (managerDebugLogs) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
-        if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
-            runSafe {
-                world.setBlockState(it.context.blockPos, it.context.cachedState)
-            }
-        }
-        it.pendingInteractionsList.remove(it.context)
-    }
+	override val pendingActions = LimitedDecayQueue<InteractInfo>(
+		DEFAULT.buildConfig.maxPendingActions,
+		DEFAULT.buildConfig.actionTimeout * 50L
+	) {
+		if (verboseDebug) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
+		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
+			runSafe {
+				world.setBlockState(it.context.blockPos, it.context.cachedState)
+			}
+		}
+		it.pendingInteractionsList.remove(it.context)
+	}
 
     init {
         listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
@@ -53,18 +53,18 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
                             return@listen
                         }
 
-                        pending.stopPending()
+						pending.stopPending()
 
-                        if (managerDebugLogs) this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
-                        return@listen
-                    }
+						if (verboseDebug) this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+						return@listen
+					}
 
-                    pending.stopPending()
+					pending.stopPending()
 
-                    if (pending.interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
-                        with(pending.context) { placeSound(expectedState, blockPos) }
-                    pending.onPlace?.invoke(this, pending.context.blockPos)
-                }
-        }
-    }
+					if (pending.interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
+						with(pending.context) { placeSound(expectedState, blockPos) }
+					pending.onPlace?.invoke(this, pending.context.blockPos)
+				}
+		}
+	}
 }

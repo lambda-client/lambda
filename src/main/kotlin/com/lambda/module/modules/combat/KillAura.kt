@@ -57,7 +57,7 @@ object KillAura : Module(
     private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
 
     // Targeting
-    private val targeting = Targeting.Combat(this, Group.Targeting)
+    private val targeting = Targeting.Combat(c = this, baseGroup = arrayOf(Group.Targeting))
 
     val target: LivingEntity?
         get() = targeting.target()

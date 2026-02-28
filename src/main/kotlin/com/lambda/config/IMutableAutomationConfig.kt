@@ -60,7 +60,7 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 						if (setting.core.type != newSetting.core.type)
 							throw IllegalStateException("Settings with the same name do not have the same type.")
 						@Suppress("UNCHECKED_CAST")
-						(setting as Setting<SettingCore<*>, Any>).core = newSetting.core as SettingCore<Any>
+						(setting as Setting<SettingCore<Any>, Any>).core = newSetting.core as SettingCore<Any>
 					}
 				}
 			}

@@ -30,13 +30,13 @@ import com.lambda.threading.runSafeAutomated
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object FastBreak : Module(
-    name = "FastBreak",
-    description = "Break blocks faster.",
-    tag = ModuleTag.PLAYER,
+	name = "FastBreak",
+	description = "Break blocks faster.",
+	tag = ModuleTag.PLAYER,
 ) {
-    private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
+	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
-    init {
+	init {
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
@@ -54,14 +54,14 @@ object FastBreak : Module(
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 					editTyped(
-						::checkSideVisibility,
 						::strictRayCast
-					) { defaultValue(false); hide() }
+					) { defaultValue(false); }
+					hide(::strictRayCast, ::checkSideVisibility)
 					::blockReach.edit { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {
 					editTyped(
-						::avoidLiquids,
+						::avoidFluids,
 						::avoidSupporting,
 						::efficientOnly,
 						::suitableToolsOnly
@@ -78,12 +78,12 @@ object FastBreak : Module(
 			}
 		}
 
-        listen<PlayerEvent.Attack.Block> { it.cancel() }
-        listen<PlayerEvent.Breaking.Update> { event ->
-            event.cancel()
-	        runSafeAutomated {
+		listen<PlayerEvent.Attack.Block> { it.cancel() }
+		listen<PlayerEvent.Breaking.Update> { event ->
+			event.cancel()
+			runSafeAutomated {
 				breakRequest(listOf(event.pos), pendingActions)?.submit()
 			}
-        }
-    }
+		}
+	}
 }

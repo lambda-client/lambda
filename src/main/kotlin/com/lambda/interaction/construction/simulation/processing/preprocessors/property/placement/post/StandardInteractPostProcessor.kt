@@ -17,10 +17,12 @@
 
 package com.lambda.interaction.construction.simulation.processing.preprocessors.property.placement.post
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.standardInteractProperties
 import com.lambda.interaction.construction.simulation.processing.PropertyPostProcessor
 import net.minecraft.block.BlockState
+import net.minecraft.util.math.BlockPos
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
@@ -30,7 +32,8 @@ object StandardInteractPostProcessor : PropertyPostProcessor {
 			it in targetState && state.get(it) != targetState.get(it)
 		}
 
-	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState) {
+	context(safeContext: SafeContext)
+	override fun PreProcessingInfoAccumulator.preProcess(state: BlockState, targetState: BlockState, pos: BlockPos) {
 		setItem(null)
 		setPlacing(false)
 	}

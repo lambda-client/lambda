@@ -25,5 +25,5 @@ import net.minecraft.util.math.BlockPos
  * Reasons a position could be blocked include pending interactions and or active interactions.
  */
 interface PositionBlocking {
-    val blockedPositions: List<BlockPos>
+	val blockedPositions: List<BlockPos>
 }

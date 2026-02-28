@@ -24,8 +24,8 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.onStaticRender
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
@@ -48,6 +48,7 @@ import net.minecraft.world.RaycastContext
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.invoke
 
 object AirPlace : Module(
 	name = "AirPlace",
@@ -62,8 +63,6 @@ object AirPlace : Module(
 	private var distance by setting("Distance", 4.0, 1.0..7.0, 1.0).group(Group.General)
 	private val scrollBind by setting("Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the ctrl key and scroll to adjust distance").group(Group.General)
 
-	private val outlineColor by setting("Outline Color", Color.WHITE).group(Group.Render)
-
 	private var placementPos: BlockPos? = null
 	private var placementState: BlockState? = null
 	private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -71,9 +70,6 @@ object AirPlace : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				interactConfig.apply {
-					::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
-				}
 				hideAllGroupsExcept(interactConfig)
 			}
 		}
@@ -106,14 +102,12 @@ object AirPlace : Module(
 		listen<PlayerEvent.Interact.Block> { if (airPlace()) it.cancel() }
 		listen<PlayerEvent.Interact.Item> { if (airPlace()) it.cancel() }
 
-		onStaticRender { esp ->
+		tickedRenderer("Air Place Ticked Renderer") { safeContext ->
 			placementPos?.let { pos ->
-				val boxes = placementState?.getOutlineShape(world, pos)?.boundingBoxes
+				val boxes = placementState?.getOutlineShape(safeContext.world, pos)?.boundingBoxes
 					?: listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
-				esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
-					boxes.forEach { box ->
-						outline(box.offset(pos), outlineColor)
-					}
+				boxes.forEach { box ->
+					box(box.offset(pos)) { hideFill() }
 				}
 			}
 		}

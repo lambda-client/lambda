@@ -33,17 +33,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.OptionalInt;
-
-/**
- * Mixin to override lightmap for Fullbright/XRay and disable darkness effect.
- *
- * Note: In 1.21.11, the lightmap rendering was rewritten to use RenderPass with shaders.
- * We override the texture after normal rendering completes.
- */
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
-    @Shadow @Final private GpuTexture glTexture;
+    @Shadow
+    @Final
+    private GpuTexture glTexture;
 
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V", shift = At.Shift.BEFORE))
     private void injectUpdate(float tickProgress, CallbackInfo ci) {
@@ -54,7 +48,7 @@ public class LightmapTextureManagerMixin {
 
     @ModifyReturnValue(method = "getDarkness", at = @At("RETURN"))
     private float modifyGetDarkness(float original, LivingEntity entity, float factor, float tickProgress) {
-        if (NoRender.getNoDarkness() && NoRender.INSTANCE.isEnabled()) return 0.0f;
+        if (NoRender.INSTANCE.isEnabled() && NoRender.getNoDarkness()) return 0.0f;
         return original;
     }
 }

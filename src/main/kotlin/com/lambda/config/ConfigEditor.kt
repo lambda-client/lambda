@@ -102,6 +102,13 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 		@SettingEditorDsl
 		fun groups(groups: MutableList<List<NamedEnum>>) =
 			settings.forEach { it.groups = groups }
+
+		@SettingEditorDsl
+		fun visibility(visibility: (() -> Boolean) -> () -> Boolean) {
+			settings.forEach {
+				it.visibility = visibility(it.visibility)
+			}
+		}
 	}
 
 	class TypedEditBuilder<T : Any>(
