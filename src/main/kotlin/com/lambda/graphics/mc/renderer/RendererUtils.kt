@@ -46,11 +46,11 @@ import kotlin.math.sqrt
 object RendererUtils {
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, false)
 
-	val facesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_QUADS
-	val edgesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_LINES
-	val textPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_SDF_TEXT
+	val worldFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_QUADS
+	val worldLinesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_LINES
+	val worldTextPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_SDF_TEXT
 	val worldImagePipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_IMAGES
-	val modelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS
+	val worldModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS
 
 	val outlineFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_QUADS
 	val outlineEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_LINES
@@ -59,7 +59,7 @@ object RendererUtils {
 	val outlineModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS
 
 	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_QUADS
-	val screenEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_LINES
+	val screenLinesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_LINES
 	val screenTextPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_TEXT
 	val screenImagePipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_IMAGES
 
