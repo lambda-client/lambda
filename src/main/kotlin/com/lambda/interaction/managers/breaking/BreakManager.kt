@@ -799,8 +799,9 @@ object BreakManager : Manager<BreakRequest>(
 		if (instantBreakable) {
 			info.vanillaInstantBreakable = progress >= 1
 			onBlockBreak(info)
+			val breakDelay = breakConfig.breakDelay
 			if (!info.vanillaInstantBreakable)
-				breakCooldown = if (breakConfig.breakDelay == 0) 0 else breakConfig.breakDelay + 1
+				breakCooldown = if (breakDelay == 0) 0 else breakDelay + 1
 		} else {
 			info.apply {
 				breaking = true
