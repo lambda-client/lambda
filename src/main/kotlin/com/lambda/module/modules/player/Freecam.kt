@@ -17,7 +17,9 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.Lambda
 import com.lambda.Lambda.mc
+import com.lambda.event.events.CameraEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
@@ -84,14 +86,6 @@ object Freecam : Module(
     private var rotation: Rotation = Rotation.ZERO
     private var velocity: Vec3d = Vec3d.ZERO
 
-    @JvmStatic
-    fun updateCam() {
-        mc.gameRenderer.apply {
-            camera.setRotation(rotation.yawF, rotation.pitchF)
-            camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
-        }
-    }
-
     /**
      * @see net.minecraft.entity.Entity.changeLookDirection
      */
@@ -108,6 +102,13 @@ object Freecam : Module(
 
         onDisable {
             mc.options.perspective = lastPerspective
+        }
+
+        listen<CameraEvent.CameraPosition> {
+            Lambda.mc.gameRenderer.apply {
+                camera.setRotation(rotation.yawF, rotation.pitchF)
+                camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
+            }
         }
 
         listen<TickEvent.Pre> {

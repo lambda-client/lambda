@@ -17,8 +17,9 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.event.EventFlow;
+import com.lambda.event.events.CameraEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.FreeLook;
 import com.lambda.module.modules.render.NoRender;
@@ -53,9 +54,11 @@ public abstract class CameraMixin {
     @Shadow
     private float pitch;
 
-    @Inject(method = "update", at = @At("TAIL"))
+    @Inject(method = "update", at = @At("TAIL"), cancellable = true)
     private void onUpdate(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
-        if (Freecam.INSTANCE.isEnabled()) Freecam.updateCam();
+        if (EventFlow.post(CameraEvent.CameraPosition.INSTANCE).isCanceled()) {
+            ci.cancel();
+        }
     }
 
     /**

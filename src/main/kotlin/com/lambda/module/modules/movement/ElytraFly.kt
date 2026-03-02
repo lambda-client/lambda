@@ -17,15 +17,19 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
+import com.lambda.event.events.CameraEvent
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
 import com.lambda.module.modules.movement.BetterFirework.canTakeoff
@@ -34,11 +38,11 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Timer
 import com.lambda.util.extension.isElytraFlying
+import com.lambda.util.math.interpolate
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.hasFirework
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
@@ -77,10 +81,32 @@ object ElytraFly : Module(
     private var lastDuration = 1.0
     private val fireworkTimer = Timer()
 
+    private var stabilizeCamera = false
+    private var prevPosition: Vec3d = Vec3d.ZERO
+    private var position: Vec3d = Vec3d.ZERO
+    private val flipFlopLerpPos: Vec3d
+        get() {
+            var tickProgress = mc.gameRenderer.camera.lastTickProgress / 2
+            if (!flipFlop) tickProgress += 0.5f
+            return prevPosition.interpolate(tickProgress, position)
+        }
+
     init {
         setDefaultAutomationConfig {
             applyEdits {
                 hideAllGroupsExcept(inventoryConfig)
+            }
+        }
+
+        onEnable {
+            position = player.eyePos
+            prevPosition = position
+        }
+
+        listen<CameraEvent.CameraPosition> {
+            if (mode != FlyMode.GrimControl || !stabilizeCamera) return@listen
+            Lambda.mc.gameRenderer.apply {
+                camera.setPos(flipFlopLerpPos.x, flipFlopLerpPos.y, flipFlopLerpPos.z)
             }
         }
 
@@ -132,22 +158,33 @@ object ElytraFly : Module(
 
         var vec = Vec3d.ZERO
         val yaw = player.yaw
-        if (mc.options.forwardKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw))
-        if (mc.options.backKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 180f))
-        if (mc.options.leftKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw - 90f))
-        if (mc.options.rightKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 90f))
-        if (mc.options.jumpKey.isPressed) vec = vec.add(Vec3d(0.0, 1.0, 0.0))
-        if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
-        if (vec.lengthSquared() < 1e-4 && player.hasFirework) {
+        if (flipFlop) {
+            if (mc.options.forwardKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw))
+            if (mc.options.backKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 180f))
+            if (mc.options.leftKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw - 90f))
+            if (mc.options.rightKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 90f))
+            if (mc.options.jumpKey.isPressed) vec = vec.add(Vec3d(0.0, 1.0, 0.0))
+            if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
+        }
+        if (vec.lengthSquared() < 1e-2 && player.hasFirework) {
+            if (!stabilizeCamera) {
+                stabilizeCamera = true
+                position = player.eyePos
+                prevPosition = position
+                flipFlop = true
+            }
             if (flipFlop) {
                 flipFlop = false
                 rotationRequest { rotation(0f, 0f) }
             } else {
                 flipFlop = true
+                prevPosition = position
+                position = player.eyePos
                 rotationRequest { rotation(180f, 0f) }
             }
         } else {
             val rot = vec.yawAndPitch
+            stabilizeCamera = false
             rotationRequest { rotation(rot.y, rot.x) }
         }.submit()
     }
