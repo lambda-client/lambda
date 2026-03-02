@@ -25,6 +25,7 @@ import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
+import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.util.NamedEnum
 import imgui.ImGui
 import imgui.flag.ImGuiPopupFlags
@@ -36,7 +37,7 @@ object SettingsWidget {
      */
     fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
-            if (config is Module) {
+            if (config is Module && config !== AutoUpdater) {
                 with(config.keybindSetting) { buildLayout() }
                 with(config.disableOnReleaseSetting) { buildLayout() }
 	            with(config.drawSetting) { buildLayout() }

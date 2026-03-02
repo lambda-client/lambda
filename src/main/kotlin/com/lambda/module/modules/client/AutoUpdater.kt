@@ -21,21 +21,18 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
-import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
+import com.lambda.gui.components.QuickSearch.WINDOW_FLAGS
+import com.lambda.gui.dsl.ImGuiBuilder.popupModal
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.debug
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import imgui.ImGui
-import imgui.flag.ImGuiWindowFlags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import net.caffeinemc.mods.sodium.client.SodiumClientMod.logger
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
-import org.slf4j.LoggerFactory
 import java.net.URI
 import java.nio.file.Path
 import javax.xml.parsers.DocumentBuilderFactory
@@ -49,8 +46,8 @@ object AutoUpdater : Module(
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
     private val clientBranch by setting("Client Branch", Branch.Snapshot, "Select client update branch")
 
-    private var showInstallModal = false
-    private var showUninstallModal = false
+    @JvmStatic var showInstallModal = false
+    @JvmStatic var showUninstallModal = false
 
     private const val MAVEN_URL = "https://maven.lambda-client.org"
     private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda-loader/maven-metadata.xml"
@@ -65,62 +62,65 @@ object AutoUpdater : Module(
 
     init {
         onEnable {
-            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open)
+            if (mc.currentScreen is LambdaScreen && !showUninstallModal)
                 showInstallModal = true
+            showUninstallModal = false
         }
 
         onDisable {
-            if (mc.currentScreen is LambdaScreen && ClickGuiLayout.open)
+            if (mc.currentScreen is LambdaScreen && !showInstallModal)
                 showUninstallModal = true
+            showInstallModal = false
         }
 
         listen<GuiEvent.NewFrame>(alwaysListen = true) {
             if (showInstallModal) {
-                buildLayout {
-                    openPopup("install-lambda-loader")
-                    popupModal("install-lambda-loader", ImGuiWindowFlags.AlwaysAutoResize) {
-                        text("Do you want to install Lambda Client?")
-                        ImGui.spacing()
-                        text("This will close the client automatically once the install is finished.")
-                        ImGui.spacing()
+                ImGui.openPopup("Install Loader")
+                popupModal("Install Loader", WINDOW_FLAGS) {
+                    text("Do you want to install Lambda Client?")
+                    spacing()
+                    text("This will close the client automatically once the install is finished.")
+                    spacing()
 
-                        button("Install", 120f, 0f) {
-                            showInstallModal = false
-                            installLoader()
-                        }
+                    button("Install", 120f, 0f) {
+                        installLoader()
+                        showInstallModal = false
+                    }
 
-                        sameLine()
+                    sameLine()
 
-                        button("Cancel", 120f, 0f) {
-                            showInstallModal = false
-                        }
+                    button("Cancel", 120f, 0f) {
+                        disable()
                     }
                 }
                 return@listen
             }
 
+            showInstallModal = false
+
             if (showUninstallModal) {
-                buildLayout {
-                    openPopup("uninstall-lambda-loader")
-                    popupModal("uninstall-lambda-loader", ImGuiWindowFlags.AlwaysAutoResize) {
-                        text("Do you want to uninstall Lambda Loader?")
-                        ImGui.spacing()
-                        text("This will close the client automatically once the uninstall is finished.")
-                        ImGui.spacing()
+                ImGui.openPopup("Uninstall Loader")
+                popupModal("Uninstall Loader", WINDOW_FLAGS) {
+                    text("Do you want to uninstall Lambda Loader?")
+                    spacing()
+                    text("This will close the client automatically once the uninstall is finished.")
+                    spacing()
 
-                        button("Uninstall", 120f, 0f) {
-                            showUninstallModal = false
-                            installClient()
-                        }
+                    button("Uninstall", 120f, 0f) {
+                        installClient()
+                        showUninstallModal = false
+                    }
 
-                        sameLine()
+                    sameLine()
 
-                        button("Cancel", 120f, 0f) {
-                            showUninstallModal = false
-                        }
+                    button("Cancel", 120f, 0f) {
+                        enable()
                     }
                 }
+                return@listen
             }
+
+            showUninstallModal = false
         }
     }
 
@@ -145,6 +145,7 @@ object AutoUpdater : Module(
 
                 mc.stop()
             } catch (e: Exception) {
+                disable()
                 logError("Error installing Lambda loader", e)
             }
         }
@@ -171,6 +172,7 @@ object AutoUpdater : Module(
 
                 mc.stop()
             } catch (e: Exception) {
+                enable()
                 logError("Error installing Lambda client", e)
             }
         }
