@@ -22,6 +22,9 @@ import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runConcurrent
+import com.lambda.threading.runSafeGameScheduled
+import kotlinx.coroutines.delay
 import net.minecraft.block.entity.HangingSignBlockEntity
 import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
 import net.minecraft.client.gui.screen.ingame.HangingSignEditScreen
@@ -55,6 +58,7 @@ class AutoSign : Module(
 	var writeOnFront by setting("Write Front", true, description = "Write on front side of the sign") { autoWrite }
 
 	var autoClose by setting("Auto Close", true)
+	var signWriteDelay by setting("Sign Write Delay", 400L, 100L..1000L, 50L, description = "Delay in milliseconds before sending the sign text to the server") { autoClose }
 
 	init {
 		listen<GuiEvent.SignEditorOpen> { event ->
@@ -82,12 +86,19 @@ class AutoSign : Module(
 				}
 			}
 
-			var editor: AbstractSignEditScreen = if (event.sign is HangingSignBlockEntity) HangingSignEditScreen(event.sign, true, mc.shouldFilterText())
-			else SignEditScreen(event.sign, true, mc.shouldFilterText())
+			var editor: AbstractSignEditScreen = if (event.sign is HangingSignBlockEntity) HangingSignEditScreen(event.sign, event.front, mc.shouldFilterText())
+			else SignEditScreen(event.sign, event.front, mc.shouldFilterText())
 			for (i in 0 until 4) editor.messages[i] = lines[i]
 			if (autoClose) {
-				if (writeOnFront) connection.sendPacket(UpdateSignC2SPacket(event.sign.pos, true, editor.messages[0], editor.messages[1], editor.messages[2], editor.messages[3]))
-				else connection.sendPacket(UpdateSignC2SPacket(event.sign.pos, false, editor.messages[0], editor.messages[1], editor.messages[2], editor.messages[3]))
+				val pos = event.sign.pos
+				val messages = editor.messages.copyOf()
+				runConcurrent {
+					delay(signWriteDelay)
+					runSafeGameScheduled {
+						if (writeOnFront) connection.sendPacket(UpdateSignC2SPacket(pos, true, messages[0], messages[1], messages[2], messages[3]))
+						else connection.sendPacket(UpdateSignC2SPacket(pos, false, messages[0], messages[1], messages[2], messages[3]))
+					}
+				}
 			} else {
 				mc.setScreen(editor)
 			}
