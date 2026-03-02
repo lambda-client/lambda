@@ -19,6 +19,7 @@ package com.lambda.config
 
 interface ISettingGroup {
 	val settings: MutableList<Setting<*, *>>
+	val visibility: () -> Boolean
 }
 
 abstract class SettingGroup(c: Configurable) : ISettingGroup {

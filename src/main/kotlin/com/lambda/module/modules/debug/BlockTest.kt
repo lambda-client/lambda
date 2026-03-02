@@ -17,9 +17,10 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.event.events.onStaticRender
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.ChatUtils.colors
 import com.lambda.util.world.blockSearch
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.Vec3i
@@ -47,13 +48,15 @@ object BlockTest : Module(
     private val outlineColor = Color(100, 150, 255, 51)
 
     init {
-        onStaticRender { esp ->
-            blockSearch(range, step = step) { _, state ->
-                state.isOf(Blocks.DIAMOND_BLOCK)
-            }.forEach { (pos, state) ->
-                esp.shapes(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()) {
+        tickedRenderer("BlockTest Ticked Renderer") { safeContext ->
+            with(safeContext) {
+                blockSearch(range, step = step) { _, state ->
+                    state.isOf(Blocks.DIAMOND_BLOCK)
+                }.forEach { (pos, state) ->
                     state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
-                        box(box.offset(pos), filledColor, outlineColor)
+                        box(box.offset(pos)) {
+                            colors(filledColor, outlineColor)
+                        }
                     }
                 }
             }

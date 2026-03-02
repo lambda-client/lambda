@@ -161,37 +161,37 @@ abstract class Module(
         isEnabled = !isEnabled
     }
 
-    protected fun onEnable(block: SafeContext.() -> Unit) {
+    fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisable(block: SafeContext.() -> Unit) {
+    fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
+    fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
-    protected fun onEnableUnsafe(block: () -> Unit) {
+    fun onEnableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisableUnsafe(block: () -> Unit) {
+    fun onDisableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
+    fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }

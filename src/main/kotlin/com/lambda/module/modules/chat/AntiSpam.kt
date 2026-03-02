@@ -137,8 +137,9 @@ object AntiSpam : Module(
 		name: String,
 		c: Configurable,
 		baseGroup: NamedEnum,
+		override val visibility: () -> Boolean = { true },
 	) : ReplaceConfig, SettingGroup(c) {
-		override val action by setting("$name Action Strategy", ReplaceConfig.ActionStrategy.Replace).group(baseGroup)
-		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { action == ReplaceConfig.ActionStrategy.Replace }.group(baseGroup)
+		override val action by setting("$name Action Strategy", ReplaceConfig.ActionStrategy.Replace, visibility = visibility).group(baseGroup)
+		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { visibility() && action == ReplaceConfig.ActionStrategy.Replace }.group(baseGroup)
 	}
 }

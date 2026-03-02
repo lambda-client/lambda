@@ -50,8 +50,8 @@ object GameProfileCodec : Codec<GameProfile>, Stringifiable<GameProfile> {
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): GameProfile {
-        val name = json.asJsonObject.get("name")?.asString ?: "nil"
-        val id = json.asJsonObject.get("id")?.asString ?: "00000000-0000-0000-0000-000000000000"
+        val name = json.asJsonObject.get("name").asString
+        val id = json.asJsonObject.get("id").asString
         val parsedId =
             if (id.length == 32) id.replaceFirst(
                 "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(),

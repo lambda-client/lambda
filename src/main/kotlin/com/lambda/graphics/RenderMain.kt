@@ -17,95 +17,45 @@
 
 package com.lambda.graphics
 
-import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.gl.Matrices
-import com.lambda.graphics.gl.Matrices.resetMatrices
-import com.lambda.graphics.mc.TransientRegionESP
-import net.minecraft.util.math.Vec3d
+import com.lambda.graphics.mc.renderer.RendererUtils
+import com.lambda.graphics.outline.OutlineIdBuffer
+import com.lambda.graphics.outline.OutlineManager
+import com.lambda.graphics.outline.OutlineRenderer
+import com.lambda.graphics.outline.VertexCapture
 import org.joml.Matrix4f
-import org.joml.Vector2f
-import org.joml.Vector4f
 
 object RenderMain {
-    @JvmStatic
-    val StaticESP = TransientRegionESP("Static")
+    val baseProjectionMatrix = Matrix4f()
+    val worldProjectionMatrix = Matrix4f()
+    val cameraRotationMatrix = Matrix4f()
 
-    @JvmStatic
-    val DynamicESP = TransientRegionESP("Dynamic")
-
-    val projectionMatrix = Matrix4f()
-    val modelViewMatrix
-        get() = Matrices.peek()
     val projModel: Matrix4f
-        get() = Matrix4f(projectionMatrix).mul(modelViewMatrix)
-
-    /**
-     * Project a world position to screen coordinates. Returns null if the position is behind the
-     * camera or off-screen.
-     *
-     * @param worldPos The world position to project
-     * @return Screen coordinates (x, y) in pixels, or null if not visible
-     */
-    fun worldToScreen(worldPos: Vec3d): Vector2f? {
-        val camera = mc.gameRenderer?.camera ?: return null
-        val cameraPos = camera.pos
-
-        // Camera-relative position
-        val relX = (worldPos.x - cameraPos.x).toFloat()
-        val relY = (worldPos.y - cameraPos.y).toFloat()
-        val relZ = (worldPos.z - cameraPos.z).toFloat()
-
-        // Apply projection * modelview matrix
-        val vec = Vector4f(relX, relY, relZ, 1f)
-        projModel.transform(vec)
-
-        // Behind camera check
-        if (vec.w <= 0) return null
-
-        // Perspective divide to get NDC
-        val ndcX = vec.x / vec.w
-        val ndcY = vec.y / vec.w
-        val ndcZ = vec.z / vec.w
-
-        // Off-screen check (NDC is -1 to 1)
-        if (ndcZ < -1 || ndcZ > 1) return null
-
-        // NDC to screen coordinates (Y is flipped in screen space)
-        val window = mc.window
-        val screenX = (ndcX + 1f) * 0.5f * window.framebufferWidth
-        val screenY = (1f - ndcY) * 0.5f * window.framebufferHeight
-
-        return Vector2f(screenX, screenY)
-    }
-
-    /** Check if a world position is visible on screen. */
-    fun isOnScreen(worldPos: Vec3d): Boolean = worldToScreen(worldPos) != null
+        get() = Matrix4f(worldProjectionMatrix).mul(cameraRotationMatrix)
 
     @JvmStatic
-    fun render3D(positionMatrix: Matrix4f, projMatrix: Matrix4f) {
-        resetMatrices(positionMatrix)
-        projectionMatrix.set(projMatrix)
-
-        // Render transient ESPs using the new pipeline
-        StaticESP.render() // Uses internal depthTest flag (true)
-        DynamicESP.render() // Uses internal depthTest flag (false)
-
-        RenderEvent.Render.post()
+    fun preRender() {
+        OutlineManager.clear()
+        VertexCapture.clear()
+        OutlineIdBuffer.beginFrame()
     }
 
-    init {
-        listen<TickEvent.Post> {
-            StaticESP.clear()
-            DynamicESP.clear()
+    @JvmStatic
+    fun updateState(camRotMatrix: Matrix4f, basicProjMatrix: Matrix4f, projMatrix: Matrix4f) {
+        baseProjectionMatrix.set(projMatrix)
+        worldProjectionMatrix.set(basicProjMatrix)
+        cameraRotationMatrix.set(camRotMatrix)
+    }
 
-            RenderEvent.Upload.post()
+    @JvmStatic
+    fun render() {
+        RendererUtils.clearXrayDepthBuffer()
 
-            StaticESP.upload()
-            DynamicESP.upload()
-        }
+        RenderEvent.RenderWorld.post()
+
+        OutlineRenderer.renderAllIDPasses()
+        
+        RenderEvent.RenderScreen.post()
     }
 }

@@ -45,7 +45,7 @@ object RotationLock : Module(
 	private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 1.0) { pitchMode == Mode.Snap }.group(Group.General)
 	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 1.0) { pitchMode == Mode.Custom }.group(Group.General)
 
-	override val rotationConfig = RotationSettings(this, Group.Rotation).apply {
+	override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(Group.Rotation)).apply {
 		applyEdits {
 			::rotationMode.edit { defaultValue(RotationMode.Lock) }
 		}

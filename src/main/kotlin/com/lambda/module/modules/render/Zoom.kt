@@ -61,10 +61,6 @@ object Zoom : Module(
 			event.cancel()
 		}
 
-		listen<RenderEvent.Render>(alwaysListen = true) {
-			updateCurrentZoom()
-		}
-
 		onEnable {
 			updateZoomTime()
 		}

@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.interacting
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.managerDebugLogs
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler
@@ -33,7 +33,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 		DEFAULT.buildConfig.maxPendingActions,
 		DEFAULT.buildConfig.actionTimeout * 50L
 	) {
-		if (managerDebugLogs) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
+		if (verboseDebug) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
 		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {
 			runSafe {
 				world.setBlockState(it.context.blockPos, it.context.cachedState)
@@ -55,7 +55,7 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 
 						pending.stopPending()
 
-						if (managerDebugLogs) this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+						if (verboseDebug) this@InteractedBlockHandler.warn("Placed block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
 						return@listen
 					}
 
