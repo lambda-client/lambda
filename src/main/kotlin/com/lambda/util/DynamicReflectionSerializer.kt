@@ -82,7 +82,7 @@ object DynamicReflectionSerializer : Loadable {
     private val qualifiedMappings = runBlocking {
         cache.resolveFile(LambdaAPI.gameVersion)
             .also {
-                if (!it.readText().contains("net.minecraft.client.MinecraftClient")) {
+                if (it.exists() && !it.readText().contains("net.minecraft.client.MinecraftClient")) {
                     LOG.debug("Re-downloading yarn mappings as the current cache is improperly generated")
                     it.delete()
                 }
