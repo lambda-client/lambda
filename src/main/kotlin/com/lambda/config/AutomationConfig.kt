@@ -58,16 +58,16 @@ open class AutomationConfig(
 
 	companion object {
 		context(module: Module)
-		fun MutableAutomationConfig.setDefaultAutomationConfig(
-			name: String = module.name,
-			edits: (AutomationConfig.() -> Unit)? = null
+        fun IMutableAutomationConfig.setDefaultAutomationConfig(
+	        name: String = module.name,
+	        edits: (AutomationConfig.() -> Unit)? = null
 		) {
 			this.defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
 		}
 
-		fun MutableAutomationConfig.setDefaultAutomationConfig(
-			name: String,
-			edits: (AutomationConfig.() -> Unit)? = null
+        fun IMutableAutomationConfig.setDefaultAutomationConfig(
+	        name: String,
+	        edits: (AutomationConfig.() -> Unit)? = null
 		) {
 			defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) }
 		}

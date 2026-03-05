@@ -25,6 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.threading.runConcurrent
 import com.lambda.util.Pointer
+import com.lambda.util.collections.updatable
 import com.lambda.util.selfReference
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -60,11 +61,13 @@ import kotlin.reflect.KProperty
  * @property function The function to be executed when the event occurs. This function operates without a [SafeContext].
  */
 class UnsafeListener<T : Event>(
-    override val priority: Int,
+    priorityProvider: () -> Int,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
     val function: (T) -> Unit,
 ) : Listener<T>(), ReadOnlyProperty<Any?, T?> {
+    override val priority = updatable(priorityProvider)
+
     /**
      * The last processed event signal.
      */
@@ -107,7 +110,7 @@ class UnsafeListener<T : Event>(
          * @return The newly created and registered [UnsafeListener].
          */
         inline fun <reified T : Event> Any.listenUnsafe(
-            priority: Int = 0,
+            noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},
         ): UnsafeListener<T> {
@@ -144,7 +147,7 @@ class UnsafeListener<T : Event>(
          * @return The newly created and registered [UnsafeListener].
          */
         inline fun <reified T : Event> Any.listenOnceUnsafe(
-            priority: Int = 0,
+            noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             noinline function: (T) -> Boolean = { true },
         ): ReadWriteProperty<Any?, T?> {
@@ -193,7 +196,7 @@ class UnsafeListener<T : Event>(
          * @return The newly created and registered [UnsafeListener].
          */
         inline fun <reified T : Event> Any.listenConcurrentlyUnsafe(
-            priority: Int = 0,
+            noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
             scheduler: CoroutineDispatcher = Dispatchers.Default,
             noinline function: suspend (T) -> Unit = {},

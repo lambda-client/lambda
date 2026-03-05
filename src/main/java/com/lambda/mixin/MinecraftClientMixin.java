@@ -96,7 +96,7 @@ public class MinecraftClientMixin {
 
     @Definition(id = "overlay", field = "Lnet/minecraft/client/MinecraftClient;overlay:Lnet/minecraft/client/gui/screen/Overlay;")
     @Expression("this.overlay == null")
-    @ModifyExpressionValue(method = "tick", at = @At("MIXINEXTRAS:EXPRESSION"))
+    @ModifyExpressionValue(method = "tick", at = @At(value = "MIXINEXTRAS:EXPRESSION", ordinal = 1))
     private boolean modifyCurrentScreenNullCheck(boolean original) {
         if (!original || this.currentScreen != null) {
             EventFlow.post(TickEvent.Input.Pre.INSTANCE);
