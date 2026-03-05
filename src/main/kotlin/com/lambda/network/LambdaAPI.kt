@@ -48,7 +48,7 @@ object LambdaAPI : Configurable(LambdaConfig) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")
     val apiUrl by setting("API Server", "https://api.lambda-client.org")
     val apiVersion by setting("API Version", ApiVersion.V1)
-    val assets by setting("Assets", "https://raw.githubusercontent.com/Edouard127/lambda-assets/refs/heads/master")
+    val assets by setting("Assets", "https://raw.githubusercontent.com/beanbag44/lambda-assets/refs/heads/master")
 
     val mappings get() = "$assets/mappings" // Folder containing mappings for our dynamic serializer
     val capes get() = "$assets/capes" // Folder containing all the capes, add .txt to get the list of available capes

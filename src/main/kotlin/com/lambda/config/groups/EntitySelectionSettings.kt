@@ -70,7 +70,9 @@ class EntitySelectionSettings(
 			SpawnGroup.AXOLOTLS,
 			SpawnGroup.CREATURE,
 			SpawnGroup.UNDERGROUND_WATER_CREATURE -> passiveEntityMap[name] in passiveEntities
-			SpawnGroup.MONSTER -> mobEntityMap[name] in mobEntities
+			SpawnGroup.MONSTER ->
+				mobEntityMap[name] in mobEntities ||
+						bossEntityMap[name] in bossEntities
 		}
 	}
 

@@ -28,7 +28,7 @@ import net.minecraft.util.math.BlockPos
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object FlowerPotPreProcessor : StateProcessor {
+object FlowerPotStateProcessor : StateProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =
 		(state.isReplaceable || state.block == Blocks.FLOWER_POT) &&
 				(targetState.block is FlowerPotBlock && targetState.block != Blocks.FLOWER_POT)

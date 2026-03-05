@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
+import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.config.groups.ScreenTextSettings
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.mc.RenderBuilder
@@ -28,8 +28,6 @@ import com.lambda.graphics.text.FontHandler.getDefaultFont
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.EntityUtils
-import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.maxFullHealth
@@ -56,6 +54,7 @@ object Nametags : Module(
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
+		Entities("Entities"),
 		Background("Background"),
 		Text("Text")
 	}
@@ -65,14 +64,9 @@ object Nametags : Module(
 		Other("Other")
 	}
 
-	private val entities by setting("Entities", setOf(EntityUtils.EntityGroup.Player), EntityUtils.EntityGroup.entries).group(Group.General)
 	private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f).group(Group.General)
 	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01).group(Group.General)
-	private val background by setting("Background", true).group(Group.Background)
-	private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }.group(Group.Background)
-	private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }.group(Group.Background)
 	private val spacing by setting("Spacing", 0, 0..10, 1).group(Group.General)
-	private val self by setting("Self", false).group(Group.General)
 	private val health by setting("Health", true).group(Group.General)
 	private val ping by setting("Ping", true).group(Group.General)
 	private val gear by setting("Gear", true).group(Group.General)
@@ -82,6 +76,10 @@ object Nametags : Module(
 	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }.group(Group.General)
 	private val itemCount by setting("Item Count", true).group(Group.General)
 	private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }.group(Group.General)
+	private val entitySelectionSettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities))
+	private val background by setting("Background", true).group(Group.Background)
+	private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }.group(Group.Background)
+	private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }.group(Group.Background)
 	//ToDo: Implement
 //	private val enchantments by setting("Enchantments", false) { gear }
 
@@ -245,7 +243,7 @@ object Nametags : Module(
 
 	@JvmStatic
 	fun shouldRenderNametag(entity: Entity) =
-		entity.entityGroup in entities && (self || entity !== mc.player) && (entity !is LivingEntity || entity.isAlive)
+		entitySelectionSettings.isSelected(entity) && (entity !is LivingEntity || entity.isAlive)
 
 	private enum class DurabilityMode(val text: Boolean, val bar: Boolean) {
 		None(false, false),

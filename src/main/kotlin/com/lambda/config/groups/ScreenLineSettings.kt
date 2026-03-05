@@ -33,7 +33,7 @@ class ScreenLineSettings(
 		Dash("Dash")
 	}
 
-	val widthSetting by c.setting("${prefix}Width", 10, 1..100, 1, "The width of the line", visibility = visibility).group(*baseGroup).index()
+	val widthSetting by c.setting("${prefix}Width", 20, 1..100, 1, "The width of the line", visibility = visibility).group(*baseGroup).index()
 	override val width get() = widthSetting * 0.00005f
 
 	override val startColor by c.setting("${prefix}Start Color", Color.WHITE, "The color at the start of the line", visibility = visibility).group(*baseGroup, Group.Color).index()
