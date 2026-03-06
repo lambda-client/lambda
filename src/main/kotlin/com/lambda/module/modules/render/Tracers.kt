@@ -53,8 +53,8 @@ object Tracers : Module(
 	}
 
 	private enum class LineGroup(override val displayName: String) : NamedEnum {
-		Friend("Friend"),
-		Other("Other")
+		Other("Other"),
+		Friend("Friend")
 	}
 
 	private val target by setting("Target", TracerMode.Feet).group(Group.General)

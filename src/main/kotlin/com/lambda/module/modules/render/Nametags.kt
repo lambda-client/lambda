@@ -60,8 +60,8 @@ object Nametags : Module(
 	}
 
 	private enum class TextGroup(override val displayName: String): NamedEnum {
-		Friend("Friend"),
-		Other("Other")
+		Other("Other"),
+		Friend("Friend")
 	}
 
 	private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f).group(Group.General)
