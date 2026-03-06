@@ -24,9 +24,11 @@ import com.lambda.friend.FriendManager.isFriend
 import com.lambda.util.EntityUtils
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
+import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.entityColor
 import com.lambda.util.math.dist
 import com.lambda.util.math.lerp
+import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.Entity
 import java.awt.Color
@@ -76,10 +78,14 @@ class EntityColorSettings(
 			EntityUtils.EntityGroup.Projectile -> projectileColor
 			EntityUtils.EntityGroup.Boss -> bossColor
 			EntityUtils.EntityGroup.Decoration -> decorationColor
-			EntityUtils.EntityGroup.Block -> blockColor
-			EntityUtils.EntityGroup.Misc -> miscColor
+			else -> miscColor
 		}
 	}
+
+	context(safeContext: SafeContext)
+	fun getColor(blockEntity: BlockEntity): Color =
+		if (useNaturalColors) safeContext.blockColor(blockEntity.cachedState, blockEntity.pos)
+		else blockColor
 
 	private fun hasSpecialCase(entity: Entity, group: EntityUtils.EntityGroup) =
 		group == EntityUtils.EntityGroup.Player &&
