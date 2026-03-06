@@ -20,6 +20,8 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
@@ -27,6 +29,7 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 
 /**
  * Represents various events that can be triggered by the player during gameplay.
@@ -138,4 +141,21 @@ sealed class PlayerEvent {
         val action: SlotActionType,
         val screenHandler: ScreenHandler,
     ) : ICancellable by Cancellable()
+
+    sealed class World {
+        data class Respawn(
+            val packet: PlayerRespawnS2CPacket
+        ) : Event
+
+        data class PositionLook(
+            val packet: PlayerPositionLookS2CPacket
+        ) : Event
+
+        data class SetPosition(
+            val position: Vec3d,
+            val velocity: Vec3d,
+            val yaw: Float,
+            val pitch: Float
+        ) : Event
+    }
 }
