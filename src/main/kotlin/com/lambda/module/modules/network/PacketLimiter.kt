@@ -69,7 +69,7 @@ object PacketLimiter : Module(
 			globalQueue.setSizeLimit(globalLimit)
 		}
 
-		listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
+		listen<PacketEvent.Send.Pre>({ Int.MAX_VALUE }) {
 			if (it.packet::class.java.name in ignorePackets) return@listen
 
 			if (!globalQueue.add(it)) {

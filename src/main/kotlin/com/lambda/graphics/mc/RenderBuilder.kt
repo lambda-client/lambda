@@ -28,6 +28,7 @@ import com.lambda.graphics.texture.LambdaImageAtlas
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.hasDirection
 import com.lambda.util.BlockUtils.blockState
+import com.mojang.blaze3d.textures.GpuTextureView
 import net.minecraft.block.BlockState
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.render.OverlayTexture
@@ -851,7 +852,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		private val lighting: ItemLighting,
 		private val lightDirs: Pair<Vector3f, Vector3f>,
 		private val isSideLit: Boolean,
-		private val onSubmission: (List<RegionVertexCollector.ModelVertex>, com.mojang.blaze3d.textures.GpuTextureView) -> Unit
+		private val onSubmission: (List<RegionVertexCollector.ModelVertex>, GpuTextureView) -> Unit
 	) : OrderedRenderCommandQueue {
 		var currentGlint: Boolean = false
 

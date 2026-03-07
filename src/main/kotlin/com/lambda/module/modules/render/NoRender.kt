@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -72,7 +73,13 @@ object NoRender : Module(
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entity))
+	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entity)).apply {
+		applyEdits {
+			editTyped(::playerEntities, ::mobEntities, ::bossEntities) {
+				defaultValue(mutableSetOf())
+			}
+		}
+	}
 
 	@JvmStatic val noTerrainFog by setting("No Terrain Fog", false).group(Group.World)
 	@JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)

@@ -29,7 +29,7 @@ import net.minecraft.util.math.BlockPos
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object BambooPreProcessor : StateProcessor {
+object BambooStateProcessor : StateProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =
 		(state.isReplaceable || state.block == Blocks.BAMBOO_SAPLING) && targetState.block == Blocks.BAMBOO
 

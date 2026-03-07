@@ -18,6 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.config.applyEdits
+import com.lambda.config.groups.OutlineSettings
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -36,25 +37,32 @@ object BlockOutline : Module(
 	description = "Overrides the default block outline rendering",
 	tag = ModuleTag.RENDER
 ) {
-	private val fill by setting("Fill", true)
-	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill }
-	private val outline by setting("Outline", true)
-	private val outlineColor by setting("Outline Color", Color(255, 255, 255, 120)) { outline }
-	private val lineConfig = WorldLineSettings("Outline ", this) { outline }.apply {
+	private val mode by setting("Mode", Mode.Boxes)
+	private val fill by setting("Fill", true) { mode == Mode.Boxes }
+	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
+	private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
+	private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
+	private val lineConfig = WorldLineSettings("Outline ", this) { boxOutline && mode == Mode.Boxes }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}
 	}
-	private val interpolate by setting("Interpolate", true)
-	private val esp by setting("ESP", true)
+	private val interpolate by setting("Interpolate", true) { mode == Mode.Boxes }
+	private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
+	private val outlineStyle = OutlineSettings("Outline", this) { mode == Mode.Outline }
+	private val depthTest by setting("Depth Test", true)
 
 	var previous: List<Box>? = null
 
 	init {
-		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { !esp }) { safeContext ->
+		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { !depthTest }) { safeContext ->
 			with(safeContext) {
-				val hitResult = mc.crosshairTarget?.blockResult ?: return@immediateRenderer
+				val hitResult = mc.crosshairTarget?.blockResult ?: return@with
 				val pos = hitResult.blockPos
+				if (mode == Mode.Outline) {
+					worldOutline(pos, outlineStyle.toStyle(outlineColor))
+					return@with
+				}
 				val blockState = blockState(pos)
 				val boxes = blockState
 					.getOutlineShape(world, pos)
@@ -72,9 +80,9 @@ object BlockOutline : Module(
 
 				boxes.forEach { box ->
 					box(box, lineConfig) {
-						colors(fillColor, outlineColor)
+						colors(fillColor, boxOutlineColor)
 						if (!fill) hideFill()
-						if (!outline) hideOutline()
+						if (!boxOutline) hideOutline()
 					}
 				}
 			}
@@ -87,5 +95,10 @@ object BlockOutline : Module(
 				.getOutlineShape(world, hitResult.blockPos).boundingBoxes
 				.map { it.offset(hitResult.blockPos) }
 		}
+	}
+
+	private enum class Mode {
+		Boxes,
+		Outline
 	}
 }

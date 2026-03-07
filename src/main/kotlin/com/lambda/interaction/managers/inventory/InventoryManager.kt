@@ -73,16 +73,16 @@ object InventoryManager : Manager<InventoryRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			if (DEFAULT.avoidDesync) indexInventoryChanges()
-			if (++secondCounter >= 20) {
-				secondCounter = 0
-				actionsThisSecond = 0
-			}
-			actionsThisTick = 0
-			activeRequest = null
-			actions = mutableListOf()
-		}
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            if (DEFAULT.avoidDesync) indexInventoryChanges()
+            if (++secondCounter >= 20) {
+                secondCounter = 0
+                actionsThisSecond = 0
+            }
+            actionsThisTick = 0
+            activeRequest = null
+            actions = mutableListOf()
+        }
 
 		listen<PacketEvent.Send.Post> { event ->
 			if (event.packet is CloseHandledScreenC2SPacket) {

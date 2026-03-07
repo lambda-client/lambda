@@ -75,21 +75,21 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 		info.pendingInteractionsList.remove(info.context)
 	}
 
-	init {
-		listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-			run {
-				pendingActions.firstOrNull { it.context.blockPos == event.pos }
-					?: if (rebreak?.context?.blockPos == event.pos) rebreak
-					else null
-			}?.let { pending ->
-				val currentState = pending.context.cachedState
-				// return if the block's not broken
-				if (isNotBroken(currentState, event.newState)) {
-					// return if the state hasn't changed
-					if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties)) {
-						pending.context.cachedState = event.newState
-						return@listen
-					}
+    init {
+        listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
+            run {
+                pendingActions.firstOrNull { it.context.blockPos == event.pos }
+                    ?: if (rebreak?.context?.blockPos == event.pos) rebreak
+                    else null
+            }?.let { pending ->
+                val currentState = pending.context.cachedState
+                // return if the block's not broken
+                if (isNotBroken(currentState, event.newState)) {
+                    // return if the state hasn't changed
+                    if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties)) {
+                        pending.context.cachedState = event.newState
+                        return@listen
+                    }
 
 					if (pending.type == BreakInfo.BreakType.Rebreak) {
 						pending.context.cachedState = event.newState
@@ -117,14 +117,14 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			}
 		}
 
-		listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
-			if (it.entity !is ItemEntity) return@listen
-			val pending =
-				pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
-					?: rebreak?.let { info ->
-						if (matchesBlockItem(info, it.entity)) info
-						else return@listen
-					} ?: return@listen
+        listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
+            if (it.entity !is ItemEntity) return@listen
+            val pending =
+                pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                    ?: rebreak?.let { info ->
+                        if (matchesBlockItem(info, it.entity)) info
+                        else return@listen
+                    } ?: return@listen
 
 			pending.internalOnItemDrop(it.entity)
 			if (pending.callbacksCompleted) {
