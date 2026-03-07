@@ -65,7 +65,7 @@ object FakePlayer : Module(
                 ?: return@listen
         }
 
-        listenConcurrently<TickEvent.Pre>(priority = 1000) {
+        listenConcurrently<TickEvent.Pre>({ 1000 }) {
             if (!fetchTimer.timePassed(2.seconds)) return@listenConcurrently
             cachedProfiles.getOrPut(playerName) { fetchProfile(playerName) }
         }

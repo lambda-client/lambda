@@ -46,14 +46,14 @@ class EntitySelectionSettings(
 	override val passiveEntities by c.setting("${prefix}Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering").group(*baseGroup).index()
 	override val vehicleEntities by c.setting("${prefix}Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering").group(*baseGroup).index()
 	override val projectileEntities by c.setting("${prefix}Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering").group(*baseGroup).index()
-	override val bossEntities by c.setting("${prefix}Boss Entities", emptySet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering").group(*baseGroup).index()
+	override val bossEntities by c.setting("${prefix}Boss Entities", bossEntityMap.values.toSet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering").group(*baseGroup).index()
 	override val decorationEntities by c.setting("${prefix}Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering").group(*baseGroup).index()
 	override val blockEntities by c.setting("${prefix}Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering").group(*baseGroup).index()
 	override val miscEntities by c.setting("${prefix}Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering").group(*baseGroup).index()
 
 	fun isSelected(entity: Entity): Boolean {
 		val name = entity::class.simpleName
-		return if (entity == mc.player && !self) false
+		return if (entity == mc.player) self
 		else when (entity.type.spawnGroup) {
 			SpawnGroup.MISC ->
 				miscEntityMap[name] in miscEntities ||
@@ -70,7 +70,9 @@ class EntitySelectionSettings(
 			SpawnGroup.AXOLOTLS,
 			SpawnGroup.CREATURE,
 			SpawnGroup.UNDERGROUND_WATER_CREATURE -> passiveEntityMap[name] in passiveEntities
-			SpawnGroup.MONSTER -> mobEntityMap[name] in mobEntities
+			SpawnGroup.MONSTER ->
+				mobEntityMap[name] in mobEntities ||
+						bossEntityMap[name] in bossEntities
 		}
 	}
 

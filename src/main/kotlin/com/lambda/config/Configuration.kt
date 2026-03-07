@@ -65,7 +65,7 @@ abstract class Configuration : Jsonable, Loadable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     override fun load(): String {
-        listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
+        listenUnsafe<ClientEvent.Shutdown>({ Int.MIN_VALUE }) { trySave() }
         register()
         return super.load()
     }

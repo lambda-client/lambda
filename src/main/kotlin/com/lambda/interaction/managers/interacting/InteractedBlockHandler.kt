@@ -42,16 +42,16 @@ object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 		it.pendingInteractionsList.remove(it.context)
 	}
 
-	init {
-		listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-			pendingActions
-				.firstOrNull { it.context.blockPos == event.pos }
-				?.let { pending ->
-					if (!pending.context.expectedState.matches(event.newState)) {
-						if (pending.context.cachedState.matches(event.newState, pending.context.preProcessingInfo.ignore)) {
-							pending.context.cachedState = event.newState
-							return@listen
-						}
+    init {
+        listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
+            pendingActions
+                .firstOrNull { it.context.blockPos == event.pos }
+                ?.let { pending ->
+                    if (!pending.context.expectedState.matches(event.newState)) {
+                        if (pending.context.cachedState.matches(event.newState, pending.context.preProcessingInfo.ignore)) {
+                            pending.context.cachedState = event.newState
+                            return@listen
+                        }
 
 						pending.stopPending()
 

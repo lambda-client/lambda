@@ -20,7 +20,9 @@ package com.lambda.event.listener
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
+import com.lambda.event.OwnerPriority
 import com.lambda.module.Module
+import com.lambda.util.collections.Updatable
 
 /**
  * An abstract class representing a [Listener] in the [Event] system ([EventFlow]).
@@ -45,7 +47,7 @@ import com.lambda.module.Module
  * @property alwaysListen If true, the [Listener] will always be triggered, even if the [owner] is [Muteable.isMuted].
  */
 abstract class Listener<T : Event> : Comparable<Listener<T>> {
-    abstract val priority: Int
+    abstract val priority: Updatable<Int>
     abstract val owner: Any
     abstract val alwaysListen: Boolean
 
@@ -61,10 +63,13 @@ abstract class Listener<T : Event> : Comparable<Listener<T>> {
 
     companion object {
         val comparator = compareBy<Listener<out Event>> {
-            it.priority
+            it.priority.value
         }.thenBy {
             // Hashcode is needed because ConcurrentSkipListSet handles insertion based on compareTo
             it.hashCode()
         }
+
+        val Any.ownerPriorityOr0Getter
+            get() = (this as? OwnerPriority)?.let { { ownerPriority } } ?: { 0 }
     }
 }

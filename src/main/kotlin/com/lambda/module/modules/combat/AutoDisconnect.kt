@@ -86,7 +86,8 @@ object AutoDisconnect : Module(
     private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }
 
     init {
-        listen<TickEvent.Pre>(-1000) {
+        setModulePriority(-100)
+        listen<TickEvent.Pre> {
             Reason.entries.filter {
                 it.check()
             }.forEach { reason ->

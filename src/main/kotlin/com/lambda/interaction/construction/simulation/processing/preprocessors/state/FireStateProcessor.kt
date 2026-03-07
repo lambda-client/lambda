@@ -27,7 +27,7 @@ import net.minecraft.util.math.BlockPos
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object FirePreProcessor : StateProcessor {
+object FireStateProcessor : StateProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =
 		state.isReplaceable && targetState.block == Blocks.FIRE
 

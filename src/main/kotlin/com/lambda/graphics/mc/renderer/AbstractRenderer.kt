@@ -30,7 +30,7 @@ import kotlin.collections.isNotEmpty
 
 abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() -> Boolean) {
 	protected abstract fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>>
-	
+
 	protected abstract fun getScreenRenderers(): List<RegionRenderer>
 
 	protected abstract val currentFontAtlas: SDFFontAtlas?
@@ -41,7 +41,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 		if (chunks.isEmpty()) return
 
 		RegionRenderer.createRenderPass("$name Faces", depth)?.use { pass ->
-			pass.setPipeline(RendererUtils.facesPipeline)
+			pass.setPipeline(RendererUtils.worldFacesPipeline)
 			RenderSystem.bindDefaultUniforms(pass)
 			chunks.forEach { (renderer, transform) ->
 				pass.setUniform("DynamicTransforms", transform)
@@ -50,7 +50,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 		}
 
 		RegionRenderer.createRenderPass("$name Edges", depth)?.use { pass ->
-			pass.setPipeline(RendererUtils.edgesPipeline)
+			pass.setPipeline(RendererUtils.worldLinesPipeline)
 			RenderSystem.bindDefaultUniforms(pass)
 			chunks.forEach { (renderer, transform) ->
 				pass.setUniform("DynamicTransforms", transform)
@@ -66,7 +66,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			val sampler = atlas.sampler
 			if (textureView != null && sampler != null) {
 				RegionRenderer.createRenderPass("$name Text", depth)?.use { pass ->
-					pass.setPipeline(RendererUtils.textPipeline)
+					pass.setPipeline(RendererUtils.worldTextPipeline)
 					RenderSystem.bindDefaultUniforms(pass)
 					pass.bindTexture("Sampler0", textureView, sampler)
 					textChunks.forEach { (renderer, transform) ->
@@ -80,13 +80,13 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 		val imageChunks = chunks.filter { (renderer, _) -> renderer.hasWorldImageData() }
 		if (imageChunks.isNotEmpty()) {
 			RendererUtils.ensureGlintTextureLoaded()
-			
+
 			RegionRenderer.createRenderPass("$name World Images", depth)?.use { pass ->
 				pass.setPipeline(RendererUtils.worldImagePipeline)
 				RenderSystem.bindDefaultUniforms(pass)
 
 				RendererUtils.bindGlintTexture(pass, "Sampler1")
-				
+
 				imageChunks.forEach { (renderer, transform) ->
 					pass.setUniform("DynamicTransforms", transform)
 					renderer.renderWorldImages(pass)
@@ -97,11 +97,11 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 		val modelChunks = chunks.filter { (renderer, _) -> renderer.hasModelData() }
 		if (modelChunks.isNotEmpty()) {
 			RendererUtils.ensureGlintTextureLoaded()
-			
+
 			val glintUniform = RendererUtils.createGlintUniform(8.0f)
-			
+
 			RegionRenderer.createRenderPass("$name World Models", depth)?.use { pass ->
-				pass.setPipeline(RendererUtils.modelPipeline)
+				pass.setPipeline(RendererUtils.worldModelPipeline)
 				RenderSystem.bindDefaultUniforms(pass)
 
 				RendererUtils.bindOverlayTexture(pass, "Sampler1")
@@ -109,7 +109,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 				RendererUtils.bindGlintTexture(pass, "Sampler3")
 
 				pass.setUniform("GlintTransforms", glintUniform)
-				
+
 				modelChunks.forEach { (renderer, transform) ->
 					pass.setUniform("DynamicTransforms", transform)
 					renderer.renderModels(pass)
@@ -128,7 +128,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 				val style = chunks.firstNotNullOfOrNull { it.first.getOutlineStyle(id) } ?: OutlineStyle.DEFAULT
 
 				RegionRenderer.createRenderPass("$name Outlined Draw $id", depth)?.use { pass ->
-					pass.setPipeline(RendererUtils.facesPipeline)
+					pass.setPipeline(RendererUtils.worldFacesPipeline)
 					RenderSystem.bindDefaultUniforms(pass)
 					chunks.forEach { (renderer, transform) ->
 						if (renderer.hasOutlinedData(id)) {
@@ -137,7 +137,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 						}
 					}
 
-					pass.setPipeline(RendererUtils.edgesPipeline)
+					pass.setPipeline(RendererUtils.worldLinesPipeline)
 					RenderSystem.bindDefaultUniforms(pass)
 					chunks.forEach { (renderer, transform) ->
 						if (renderer.hasOutlinedData(id)) {
@@ -148,7 +148,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 
 					val atlasD = currentFontAtlas
 					if (atlasD != null && atlasD.textureView != null) {
-						pass.setPipeline(RendererUtils.textPipeline)
+						pass.setPipeline(RendererUtils.worldTextPipeline)
 						RenderSystem.bindDefaultUniforms(pass)
 						pass.bindTexture("Sampler0", atlasD.textureView!!, atlasD.sampler ?: nearestSampler)
 						chunks.forEach { (renderer, transform) ->
@@ -169,7 +169,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 						}
 					}
 
-					pass.setPipeline(RendererUtils.modelPipeline)
+					pass.setPipeline(RendererUtils.worldModelPipeline)
 					RenderSystem.bindDefaultUniforms(pass)
 					RendererUtils.bindOverlayTexture(pass, "Sampler1")
 					RendererUtils.bindLightmapTexture(pass, "Sampler2")
@@ -187,7 +187,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 				val groupTarget = OutlineRenderer.getGroupView() ?: return@forEach
 				val groupDepthView = OutlineRenderer.getGroupDepthView() ?: return@forEach
 
-					RenderSystem.getDevice()
+				RenderSystem.getDevice()
 					.createCommandEncoder()
 					.createRenderPass(
 						{ "$name Outline Group $id - Draw" },
@@ -251,9 +251,9 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 						}
 					}
 
-					OutlineRenderer.endGroupPass(style, depth)
-				}
+				OutlineRenderer.endGroupPass(style, depth)
 			}
+		}
 	}
 
 	fun renderScreen() {
@@ -261,7 +261,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 
 		RendererUtils.withScreenContext {
 			val dynamicTransform = RendererUtils.createScreenDynamicTransform()
-			
+
 			RendererUtils.clearScreenDepthBuffer()
 
 			fun getScreenPass(label: String): RenderPass? =
@@ -270,11 +270,11 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			val modelRenderers = renderers.filter { it.hasScreenModelData() }
 			if (modelRenderers.isNotEmpty()) {
 				RendererUtils.ensureGlintTextureLoaded()
-				
+
 				val glintUniform = RendererUtils.createGlintUniform(8.0f)
-				
+
 				getScreenPass("$name Screen Models")?.use { pass ->
-					pass.setPipeline(RendererUtils.modelPipeline)
+					pass.setPipeline(RendererUtils.worldModelPipeline)
 					RenderSystem.bindDefaultUniforms(pass)
 
 					pass.setUniform("DynamicTransforms", dynamicTransform)
@@ -283,23 +283,26 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 					RendererUtils.bindOverlayTexture(pass, "Sampler1")
 					RendererUtils.bindLightmapTexture(pass, "Sampler2")
 					RendererUtils.bindGlintTexture(pass, "Sampler3")
-					
+
 					modelRenderers.forEach { it.renderScreenModels(pass) }
 				}
 			}
 
-			getScreenPass("$name Screen Faces")?.use { pass ->
-				pass.setPipeline(RendererUtils.screenFacesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				renderers.forEach { it.renderScreenFaces(pass) }
-			}
+			val imageRenderers = renderers.filter { it.hasScreenImageData() }
+			if (imageRenderers.isNotEmpty()) {
+				RendererUtils.ensureGlintTextureLoaded()
 
-			getScreenPass("$name Screen Edges")?.use { pass ->
-				pass.setPipeline(RendererUtils.screenEdgesPipeline)
-				RenderSystem.bindDefaultUniforms(pass)
-				pass.setUniform("DynamicTransforms", dynamicTransform)
-				renderers.forEach { it.renderScreenEdges(pass) }
+				val glintTransform = RendererUtils.createScreenDynamicTransformWithGlint()
+
+				getScreenPass("$name Screen Images")?.use { pass ->
+					pass.setPipeline(RendererUtils.screenImagePipeline)
+					RenderSystem.bindDefaultUniforms(pass)
+					pass.setUniform("DynamicTransforms", glintTransform)
+
+					RendererUtils.bindGlintTexture(pass, "Sampler1")
+
+					imageRenderers.forEach { it.renderScreenImages(pass) }
+				}
 			}
 
 			val textRenderers = renderers.filter { it.hasScreenTextData() }
@@ -319,21 +322,18 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 				}
 			}
 
-			val imageRenderers = renderers.filter { it.hasScreenImageData() }
-			if (imageRenderers.isNotEmpty()) {
-				RendererUtils.ensureGlintTextureLoaded()
-				
-				val glintTransform = RendererUtils.createScreenDynamicTransformWithGlint()
-				
-				getScreenPass("$name Screen Images")?.use { pass ->
-					pass.setPipeline(RendererUtils.screenImagePipeline)
-					RenderSystem.bindDefaultUniforms(pass)
-					pass.setUniform("DynamicTransforms", glintTransform)
+			getScreenPass("$name Screen Faces")?.use { pass ->
+				pass.setPipeline(RendererUtils.screenFacesPipeline)
+				RenderSystem.bindDefaultUniforms(pass)
+				pass.setUniform("DynamicTransforms", dynamicTransform)
+				renderers.forEach { it.renderScreenFaces(pass) }
+			}
 
-					RendererUtils.bindGlintTexture(pass, "Sampler1")
-					
-					imageRenderers.forEach { it.renderScreenImages(pass) }
-				}
+			getScreenPass("$name Screen Edges")?.use { pass ->
+				pass.setPipeline(RendererUtils.screenLinesPipeline)
+				RenderSystem.bindDefaultUniforms(pass)
+				pass.setUniform("DynamicTransforms", dynamicTransform)
+				renderers.forEach { it.renderScreenEdges(pass) }
 			}
 		}
 	}

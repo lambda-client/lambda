@@ -79,22 +79,22 @@ object RotationManager : Manager<RotationRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
-			requests.forEachIndexed { index, request ->
-				if (request == null) return@forEachIndexed
-				if (request.keepTicks <= 0 && request.decayTicks <= 0) {
-					requests[index] = null
-				}
-			}
-		}
+        listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
+            requests.forEachIndexed { index, request ->
+                if (request == null) return@forEachIndexed
+                if (request.keepTicks <= 0 && request.decayTicks <= 0) {
+                    requests[index] = null
+                }
+            }
+        }
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			usingBaritoneRotation = false
-			requests.forEach { request ->
-				request?.age++
-			}
-			changedThisTick = false
-		}
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            usingBaritoneRotation = false
+            requests.forEach { request ->
+                request?.age++
+            }
+            changedThisTick = false
+        }
 
 		listen<RenderEvent.UpdateTarget> {
 			if (requests.any { request -> request == null }) return@listen
@@ -107,25 +107,25 @@ object RotationManager : Manager<RotationRequest>(
 			mc.crosshairTarget = blockHit
 		}
 
-		listen<PacketEvent.Receive.Post>(priority = Int.MIN_VALUE) { event ->
-			val packet = event.packet
-			if (packet !is PlayerPositionLookS2CPacket) return@listen
+        listen<PacketEvent.Receive.Post>({ Int.MIN_VALUE }) { event ->
+            val packet = event.packet
+            if (packet !is PlayerPositionLookS2CPacket) return@listen
 
 			runGameScheduled {
 				reset(Rotation(packet.change.yaw, packet.change.pitch))
 			}
 		}
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-			reset(Rotation.ZERO)
-		}
+        listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+            reset(Rotation.ZERO)
+        }
 
-		// Override user interactions with max priority
-		listen<PlayerEvent.Attack.Block>(priority = Int.MAX_VALUE) { activeRotation = player.rotation }
-		listen<PlayerEvent.Attack.Entity>(priority = Int.MAX_VALUE) { activeRotation = player.rotation }
-		listen<PlayerEvent.Interact.Item>(priority = Int.MAX_VALUE) { activeRotation = player.rotation }
-		listen<PlayerEvent.Interact.Block>(priority = Int.MAX_VALUE) { activeRotation = player.rotation }
-		listen<PlayerEvent.Interact.Entity>(priority = Int.MAX_VALUE) { activeRotation = player.rotation }
+        // Override user interactions with max priority
+        listen<PlayerEvent.Attack.Block>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
+        listen<PlayerEvent.Attack.Entity>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Item>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Block>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Entity>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
 
 		return "Loaded Rotation Manager"
 	}

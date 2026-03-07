@@ -162,21 +162,21 @@ object BreakManager : Manager<BreakRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+		listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
 			if (activeInfos.isEmpty() && breaks.isEmpty()) return@listen
 		}
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+		listen<TickEvent.Post>({ Int.MIN_VALUE }) {
 			breakInfos.forEach { it?.tickChecks() }
 			if (breakCooldown > 0) {
-				breakCooldown--
+			breakCooldown--
 			}
 			activeRequest = null
 			breaks = mutableListOf()
 			breaksThisTick = 0
 		}
 
-		listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
+		listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
 			if (event.pos == RebreakHandler.rebreak?.context?.blockPos) return@listen
 
 			breakInfos
@@ -203,7 +203,7 @@ object BreakManager : Manager<BreakRequest>(
 		}
 
 		// ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-		listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
+		listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
 			if (it.entity !is ItemEntity) return@listen
 
 			// ToDo: Proper item drop prediction system
@@ -217,7 +217,7 @@ object BreakManager : Manager<BreakRequest>(
 				?.internalOnItemDrop(it.entity)
 		}
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
+		listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
 			primaryBreak = null
 			secondaryBreak = null
 			breakCooldown = 0
@@ -799,8 +799,9 @@ object BreakManager : Manager<BreakRequest>(
 		if (instantBreakable) {
 			info.vanillaInstantBreakable = progress >= 1
 			onBlockBreak(info)
+			val breakDelay = breakConfig.breakDelay
 			if (!info.vanillaInstantBreakable)
-				breakCooldown = if (breakConfig.breakDelay == 0) 0 else breakConfig.breakDelay + 1
+				breakCooldown = if (breakDelay == 0) 0 else breakDelay + 1
 		} else {
 			info.apply {
 				breaking = true

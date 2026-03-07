@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,18 +17,15 @@
 
 package com.lambda.util.collections
 
-/**
- * A lazy-initialized value holder that allows the stored value to be reset and re-initialized on demand.
- */
-class UpdatableLazy<T>(private val initializer: () -> T) {
-    private var backingField: T? = null
+class Updatable<T>(private val initializer: () -> T) {
+	private var backingField: T = initializer()
 
-    val value: T
-        get() = backingField ?: initializer().also { backingField = it }
+	val value: T
+		get() = backingField
 
-    fun update() {
-        backingField = initializer()
-    }
+	fun update() {
+		backingField = initializer()
+	}
 }
 
-fun <T> updatableLazy(initializer: () -> T) = UpdatableLazy(initializer)
+fun <T> updatable(initializer: () -> T) = Updatable(initializer)
