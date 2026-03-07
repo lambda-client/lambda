@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -29,7 +30,6 @@ import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
-import com.lambda.module.modules.movement.BetterFirework.sendSwing
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.warn
@@ -51,8 +51,12 @@ object BetterFirework : Module(
 	description = "Automatic takeoff with fireworks",
 	tag = ModuleTag.MOVEMENT,
 ) {
-	private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
+	private var activateButton: Bind by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
+			if (mc.crosshairTarget?.type == HitResult.Type.BLOCK &&
+				!middleClickCancel &&
+				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code) return@onPress
+
 			if (!player.isElytraEquipped) {
 				warn("You need to equip an elytra to use this module!")
 				return@onPress
