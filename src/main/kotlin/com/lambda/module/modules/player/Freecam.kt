@@ -28,6 +28,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -75,14 +76,14 @@ object Freecam : Module(
 	private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s") { mode == Mode.Free }
 	private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.") { mode == Mode.Free }
 	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-	private val rotateMode by setting("Rotate Mode", RotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == RotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
+	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
 	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
+	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free}
 
 	// Follow Player settings
 	private val followMaxDistance by setting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == Mode.FollowPlayer }
 	private val followTrackPlayer by setting("Track Player", false, "Keeps looking at the followed player") { mode == Mode.FollowPlayer }
 
-	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement. Applies to relative and follow modes")
 
 	private var lastPerspective = Perspective.FIRST_PERSON
 	private var lastPlayerPosition: Vec3d = Vec3d.ZERO
@@ -124,12 +125,9 @@ object Freecam : Module(
 		setDefaultAutomationConfig {
 			applyEdits {
 				rotationConfig::rotationMode.edit {
-					defaultValue(com.lambda.interaction.managers.rotating.RotationMode.Lock)
+					defaultValue(RotationMode.Lock)
 				}
 				hideAllGroupsExcept(rotationConfig)
-				rotationConfig.apply {
-
-				}
 			}
 		}
 
@@ -147,9 +145,9 @@ object Freecam : Module(
 
 		listen<TickEvent.Pre> {
 			when (rotateMode) {
-				RotationMode.None -> return@listen
-				RotationMode.KeepRotation -> rotationRequest { rotation(rotation) }.submit()
-				RotationMode.LookAtTarget -> mc.crosshairTarget?.let { rotationRequest { rotation(lookAt(it.pos)) }.submit() }
+				FreecamRotationMode.None -> return@listen
+				FreecamRotationMode.KeepRotation -> rotationRequest { rotation(rotation) }.submit()
+				FreecamRotationMode.LookAtTarget -> mc.crosshairTarget?.let { rotationRequest { rotation(lookAt(it.pos)) }.submit() }
 			}
 		}
 
@@ -231,8 +229,10 @@ object Freecam : Module(
 		}
 	}
 
-	private enum class RotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
-		None("None", "No rotation changes"), LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"), KeepRotation("Keep Rotation", "Look in the same direction as the camera");
+	private enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
+		None("None", "No rotation changes"),
+		LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
+		KeepRotation("Keep Rotation", "Look in the same direction as the camera");
 	}
 
 	private enum class Mode(override val displayName: String, override val description: String) : NamedEnum, Describable {
