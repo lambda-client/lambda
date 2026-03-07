@@ -78,7 +78,7 @@ object Freecam : Module(
 	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
 	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
 	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
-	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free}
+	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free && relative }
 
 	// Follow Player settings
 	private val followMaxDistance by setting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == Mode.FollowPlayer }
@@ -103,7 +103,7 @@ object Freecam : Module(
 		if (mode == Mode.FollowPlayer && followTrackPlayer) {
 			runSafe {
 				findFollowTarget()?.let {
-					val vec = it.getLerpedPos(mc.gameRenderer.camera.lastTickProgress).add(.0, it.standingEyeHeight.toDouble(), .0).subtract(lerpPos)					// look from lerp pos to target's eye pos
+					val vec = it.getLerpedPos(mc.gameRenderer.camera.lastTickProgress).add(.0, it.standingEyeHeight.toDouble(), .0).subtract(lerpPos)                    // look from lerp pos to target's eye pos
 					val yaw = Math.toDegrees(atan2(vec.z, vec.x)) - 90.0
 					val pitch = -Math.toDegrees(atan2(vec.y, hypot(vec.x, vec.z)))
 					rotation = Rotation(yaw, pitch)
@@ -160,7 +160,7 @@ object Freecam : Module(
 			mc.options.perspective = Perspective.FIRST_PERSON
 
 			// Don't block baritone from working
-			if (!event.input.handledByBaritone) {				// Reset actual input
+			if (!event.input.handledByBaritone) {                // Reset actual input
 				event.input.cancel()
 			}
 
@@ -236,7 +236,8 @@ object Freecam : Module(
 	}
 
 	private enum class Mode(override val displayName: String, override val description: String) : NamedEnum, Describable {
-		Free("Free", "Move the camera freely with keyboard input"), FollowPlayer("Follow Player", "Camera follows a player as if attached by an invisible string");
+		Free("Free", "Move the camera freely with keyboard input"),
+		FollowPlayer("Follow Player", "Camera follows a player as if attached by an invisible string");
 	}
 
 	private fun SafeContext.findFollowTarget(): PlayerEntity? {
