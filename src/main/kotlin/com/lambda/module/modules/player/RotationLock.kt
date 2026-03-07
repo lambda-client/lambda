@@ -45,30 +45,31 @@ object RotationLock : Module(
 	private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 1.0) { pitchMode == Mode.Snap }.group(Group.General)
 	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 1.0) { pitchMode == Mode.Custom }.group(Group.General)
 
-	override val rotationConfig = RotationSettings(this, Group.Rotation).apply {
+	override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(Group.Rotation)).apply {
 		applyEdits {
 			::rotationMode.edit { defaultValue(RotationMode.Lock) }
 		}
 	}
 
-	init {
-		listen<TickEvent.Pre> {
-			val yaw = when (yawMode) {
-				Mode.Custom -> customYaw
-				Mode.Snap -> {
-					val normalizedYaw = (player.yaw % 360.0 + 360.0) % 360.0
-					(normalizedYaw / yawStep).roundToInt() * yawStep
-				}
-				Mode.None -> null
-			}
-			val pitch = when (pitchMode) {
-				Mode.Custom -> customPitch
-				Mode.Snap -> {
-					val clampedPitch = player.pitch.coerceIn(-90f, 90f)
-					(clampedPitch / pitchStep).roundToInt() * pitchStep
-				}
-				Mode.None -> null
-			}
+    init {
+        setModulePriority(100)
+        listen<TickEvent.Pre> {
+            val yaw = when (yawMode) {
+                Mode.Custom -> customYaw
+                Mode.Snap -> {
+                    val normalizedYaw = (player.yaw % 360.0 + 360.0) % 360.0
+                    (normalizedYaw / yawStep).roundToInt() * yawStep
+                }
+                Mode.None -> null
+            }
+            val pitch = when (pitchMode) {
+                Mode.Custom -> customPitch
+                Mode.Snap -> {
+                    val clampedPitch = player.pitch.coerceIn(-90f, 90f)
+                    (clampedPitch / pitchStep).roundToInt() * pitchStep
+                }
+                Mode.None -> null
+            }
 
 			if (yaw == null && pitch == null) return@listen
 

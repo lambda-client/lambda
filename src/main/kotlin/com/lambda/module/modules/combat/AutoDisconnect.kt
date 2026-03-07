@@ -31,7 +31,7 @@ import com.lambda.util.Formatting.format
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.extension.tickDelta
+import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -86,7 +86,8 @@ object AutoDisconnect : Module(
     private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }
 
     init {
-        listen<TickEvent.Pre>(-1000) {
+        setModulePriority(-100)
+        listen<TickEvent.Pre> {
             Reason.entries.filter {
                 it.check()
             }.forEach { reason ->
@@ -230,7 +231,7 @@ object AutoDisconnect : Module(
         }),
         Creeper({ creeper }, {
             fastEntitySearch<CreeperEntity>(15.0).find {
-                it.getLerpedFuseTime(mc.tickDelta) > 0.0
+                it.getLerpedFuseTime(mc.tickDeltaF) > 0.0
                         && it.pos.distanceTo(player.pos) <= 5.0
             }?.let { creeper ->
                 buildText {

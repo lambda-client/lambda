@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.managerDebugLogs
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -60,10 +60,10 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 
 			if (!info.broken) {
 				val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
-				if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
+				if (verboseDebug) this@BrokenBlockHandler.warn(message)
 			} else if (!DEFAULT.ignoreItemDropWarnings) {
 				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
-				if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
+				if (verboseDebug) this@BrokenBlockHandler.warn(message)
 			}
 
 			if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
@@ -75,27 +75,27 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 		info.pendingInteractionsList.remove(info.context)
 	}
 
-	init {
-		listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-			run {
-				pendingActions.firstOrNull { it.context.blockPos == event.pos }
-					?: if (rebreak?.context?.blockPos == event.pos) rebreak
-					else null
-			}?.let { pending ->
-				val currentState = pending.context.cachedState
-				// return if the block's not broken
-				if (isNotBroken(currentState, event.newState)) {
-					// return if the state hasn't changed
-					if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties)) {
-						pending.context.cachedState = event.newState
-						return@listen
-					}
+    init {
+        listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
+            run {
+                pendingActions.firstOrNull { it.context.blockPos == event.pos }
+                    ?: if (rebreak?.context?.blockPos == event.pos) rebreak
+                    else null
+            }?.let { pending ->
+                val currentState = pending.context.cachedState
+                // return if the block's not broken
+                if (isNotBroken(currentState, event.newState)) {
+                    // return if the state hasn't changed
+                    if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties)) {
+                        pending.context.cachedState = event.newState
+                        return@listen
+                    }
 
 					if (pending.type == BreakInfo.BreakType.Rebreak) {
 						pending.context.cachedState = event.newState
 					} else {
 						val message = "Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}"
-						if (managerDebugLogs) this@BrokenBlockHandler.warn(message)
+						if (verboseDebug) this@BrokenBlockHandler.warn(message)
 						pending.stopPending()
 					}
 					return@listen
@@ -117,14 +117,14 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			}
 		}
 
-		listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
-			if (it.entity !is ItemEntity) return@listen
-			val pending =
-				pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
-					?: rebreak?.let { info ->
-						if (matchesBlockItem(info, it.entity)) info
-						else return@listen
-					} ?: return@listen
+        listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
+            if (it.entity !is ItemEntity) return@listen
+            val pending =
+                pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                    ?: rebreak?.let { info ->
+                        if (matchesBlockItem(info, it.entity)) info
+                        else return@listen
+                    } ?: return@listen
 
 			pending.internalOnItemDrop(it.entity)
 			if (pending.callbacksCompleted) {

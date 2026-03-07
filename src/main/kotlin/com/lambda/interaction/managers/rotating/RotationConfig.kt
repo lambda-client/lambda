@@ -46,7 +46,7 @@ interface RotationConfig : ISettingGroup {
 
     val tickStageMask: Set<TickEvent>
 
-    open class Instant(mode: RotationMode) : RotationConfig {
+    open class Instant(mode: RotationMode, override val visibility: () -> Boolean = { true }) : RotationConfig {
 	    override val settings = mutableListOf<Setting<*, *>>()
         override val rotationMode = mode
         override val keepTicks = 1

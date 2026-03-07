@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.entity;
 
+import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
@@ -45,8 +46,7 @@ import static com.lambda.Lambda.getMc;
 @Mixin(Entity.class)
 public abstract class EntityMixin {
     @Shadow
-    public void move(MovementType movementType, Vec3d movement) {
-    }
+    public void move(MovementType movementType, Vec3d movement) {}
 
     @Shadow
     public abstract float getYaw();
@@ -151,11 +151,13 @@ public abstract class EntityMixin {
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setYaw(F)V"))
     private boolean wrapSetYaw(Entity instance, float yaw) {
+        if ((Object) this != getMc().player) return true;
         return RotationManager.getLockYaw() == null;
     }
 
     @WrapWithCondition(method = "changeLookDirection", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;setPitch(F)V"))
     private boolean wrapSetPitch(Entity instance, float yaw) {
+        if ((Object) this != getMc().player) return true;
         return RotationManager.getLockPitch() == null;
     }
 
@@ -175,8 +177,7 @@ public abstract class EntityMixin {
         var player = getMc().player;
         if ((Object) this != getMc().player) return original;
 
-        if (ElytraFly.INSTANCE.isDisabled() ||
-                ElytraFly.getMode() != ElytraFly.FlyMode.Bounce || !player.isGliding()) return original;
+        if (ElytraFly.INSTANCE.isDisabled() || ElytraFly.getMode() != ElytraFly.FlyMode.Bounce || !player.isGliding()) return original;
 
         return EntityPose.GLIDING;
     }

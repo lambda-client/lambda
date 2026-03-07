@@ -40,6 +40,13 @@ public class BaritonePlayerContextMixin {
         if (baritone != BaritoneManager.getPrimary())
             return original;
 
-        return new Rotation((float) RotationManager.getActiveRotation().getYaw(), (float) RotationManager.getActiveRotation().getPitch());
+        float yaw = (float) RotationManager.getActiveRotation().getYaw();
+        float pitch = (float) RotationManager.getActiveRotation().getPitch();
+
+        if (Float.isNaN(yaw) || Float.isNaN(pitch)) {
+            return original;
+        }
+
+        return new Rotation(net.minecraft.util.math.MathHelper.wrapDegrees(yaw), pitch);
     }
 }

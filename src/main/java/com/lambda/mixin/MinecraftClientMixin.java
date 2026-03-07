@@ -74,6 +74,7 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "render")
     void onLoopTick(boolean tick, Operation<Void> original) {
+        com.lambda.graphics.RenderMain.preRender();
         EventFlow.post(TickEvent.Render.Pre.INSTANCE);
         original.call(tick);
         EventFlow.post(TickEvent.Render.Post.INSTANCE);
@@ -95,7 +96,7 @@ public class MinecraftClientMixin {
 
     @Definition(id = "overlay", field = "Lnet/minecraft/client/MinecraftClient;overlay:Lnet/minecraft/client/gui/screen/Overlay;")
     @Expression("this.overlay == null")
-    @ModifyExpressionValue(method = "tick", at = @At("MIXINEXTRAS:EXPRESSION"))
+    @ModifyExpressionValue(method = "tick", at = @At(value = "MIXINEXTRAS:EXPRESSION", ordinal = 1))
     private boolean modifyCurrentScreenNullCheck(boolean original) {
         if (!original || this.currentScreen != null) {
             EventFlow.post(TickEvent.Input.Pre.INSTANCE);
@@ -120,11 +121,13 @@ public class MinecraftClientMixin {
 
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")
     private void onShutdown(CallbackInfo ci) {
+        com.lambda.graphics.outline.OutlineRenderer.INSTANCE.cleanup();
         EventFlow.post(new ClientEvent.Shutdown());
     }
 
     /**
-     * Inject after the thread field is set so that {@link ThreadExecutor#getThread} is available
+     * Inject after the thread field is set so that {@link ThreadExecutor#getThread}
+     * is available
      */
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0, opcode = Opcodes.PUTFIELD), method = "run")
     private void onStartup(CallbackInfo ci) {
@@ -175,30 +178,25 @@ public class MinecraftClientMixin {
     @Inject(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isRiding()Z"))
     void injectFastPlace(CallbackInfo ci) {
         if (!Interact.INSTANCE.isEnabled()) return;
-
         itemUseCooldown = Interact.getPlaceDelay();
     }
 
     @WrapMethod(method = "doItemUse")
     void injectItemUse(Operation<Void> original) {
-        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract())
-            original.call();
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onInteract()) original.call();
     }
 
     @WrapMethod(method = "doItemPick")
     void injectItemPick(Operation<Void> original) {
-        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick())
-            original.call();
+        if (BetterFirework.INSTANCE.isDisabled() || !BetterFirework.onPick()) original.call();
     }
 
     @WrapMethod(method = "getTargetMillisPerTick")
     float getTargetMillisPerTick(float millis, Operation<Float> original) {
         var length = TimerManager.INSTANCE.getLength();
 
-        if (length == TimerManager.DEFAULT_LENGTH)
-            return original.call(millis);
-        else
-            return (float) TimerManager.INSTANCE.getLength();
+        if (length == TimerManager.DEFAULT_LENGTH) return original.call(millis);
+        else return (float) TimerManager.INSTANCE.getLength();
     }
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)

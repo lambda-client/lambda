@@ -48,6 +48,7 @@ import com.lambda.util.player.gamemode
 import com.lambda.util.player.isItemOnCooldown
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
+import net.minecraft.block.SculkVeinBlock.place
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.BlockItem
@@ -83,25 +84,25 @@ object InteractManager : Manager<InteractRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			activeRequest = null
-			placementsThisTick = 0
-			potentialPlacements.clear()
-			if (interactCooldown > 0) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            activeRequest = null
+            placementsThisTick = 0
+            potentialPlacements.clear()
+	        if (interactCooldown > 0) {
 				interactCooldown--
 			}
 		}
 
-		listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
-			if (shouldSneak) {
-				shouldSneak = false
-				it.input.sneaking = true
-			}
-		}
+        listen<MovementEvent.InputUpdate>({ Int.MIN_VALUE }) {
+            if (shouldSneak) {
+                shouldSneak = false
+                it.input.sneaking = true
+            }
+        }
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-			interactCooldown = 0
-		}
+	    listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+		    interactCooldown = 0
+	    }
 
 		return "Loaded Place Manager"
 	}
@@ -139,8 +140,7 @@ object InteractManager : Manager<InteractRequest>(
 
 		val iterator = potentialPlacements.iterator()
 		while (iterator.hasNext()) {
-			if (interactCooldown > 0) break
-			if (placementsThisTick + 1 > maxPlacementsThisTick) break
+			if (!canInteractThisTick()) break
 			val ctx = iterator.next()
 
 			shouldSneak = ctx.sneak
@@ -152,7 +152,7 @@ object InteractManager : Manager<InteractRequest>(
 			fun doAction() {
 				val hand = if (interactConfig.airPlace == AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
 				actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
-				else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
+				else interaction.interactBlock(player, if (ctx.preProcessingInfo.item != null) hand else Hand.MAIN_HAND, ctx.hitResult)
 			}
 
 			//ToDo: Once we add 30bps placements we will need to move the air place bypass logic out of the loop to avoid excess packet spam
@@ -174,7 +174,8 @@ object InteractManager : Manager<InteractRequest>(
 					mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
 				}
 			}
-			interactCooldown = ctx.interactConfig.interactDelay + 1
+			val interactDelay = ctx.interactConfig.interactDelay
+			interactCooldown = if (interactDelay == 0) 0 else interactDelay + 1
 			placementsThisTick++
 			iterator.remove()
 		}
@@ -182,6 +183,9 @@ object InteractManager : Manager<InteractRequest>(
 			if (activeRequest != null) activeRequest = null
 		}
 	}
+
+	fun canInteractThisTick() =
+		interactCooldown <= 0 && placementsThisTick < maxPlacementsThisTick
 
 	/**
 	 * Filters the [request]'s [InteractContext]s, placing them into the [potentialPlacements] collection, and

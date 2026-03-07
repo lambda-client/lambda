@@ -31,7 +31,7 @@ import net.minecraft.util.math.BlockPos
 @Suppress("unused")
 object ChestPostProcessor : PropertyPostProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =
-		state.block is ChestBlock && state.block === targetState.block &&
+		targetState.block is ChestBlock &&
 				Properties.CHEST_TYPE in state && Properties.HORIZONTAL_FACING in state &&
 				state.get(Properties.HORIZONTAL_FACING) == targetState.get(Properties.HORIZONTAL_FACING) &&
 				state.get(Properties.CHEST_TYPE) != targetState.get(Properties.CHEST_TYPE)

@@ -20,6 +20,7 @@ package com.lambda.interaction.managers.breaking
 import com.lambda.config.ISettingGroup
 import com.lambda.config.groups.ActionConfig
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.LineConfig
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
@@ -49,7 +50,8 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 	val breakConfirmation: BreakConfirmationMode
 	val breaksPerTick: Int
 
-	val avoidLiquids: Boolean
+	val avoidFluids: Boolean
+	val fillFluids: Boolean
 	val avoidSupporting: Boolean
 	val ignoredBlocks: Collection<Block>
 
@@ -72,8 +74,6 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 
 	val renders: Boolean
 	val fill: Boolean
-	val outline: Boolean
-	val outlineWidth: Int
 	val animation: AnimationMode
 
 	val dynamicFillColor: Boolean
@@ -81,6 +81,8 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 	val startFillColor: Color
 	val endFillColor: Color
 
+	val outline: Boolean
+	val outlineConfig: LineConfig
 	val dynamicOutlineColor: Boolean
 	val staticOutlineColor: Color
 	val startOutlineColor: Color
