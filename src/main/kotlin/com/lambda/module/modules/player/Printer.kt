@@ -18,10 +18,8 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -39,7 +37,7 @@ object Printer : Module(
 	tag = ModuleTag.PLAYER
 ) {
 	private val range by setting("Range", 5, 1..7, 1)
-	private val air by setting("Air", false)
+	private val considerAll by setting("Consider All", false, description = "Consider all blocks outside the schematic as schematic air blocks")
 
 	private var buildTask: Task<*>? = null
 
@@ -59,7 +57,7 @@ object Printer : Module(
 					.asSequence()
 					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
-					.filter { air || !it.value.blockState.isAir }
+					.filter { considerAll || !it.value.blockState.isAir }
 			}.build(finishOnDone = false).run()
 		}
 
