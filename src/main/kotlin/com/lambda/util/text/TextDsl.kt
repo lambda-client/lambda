@@ -80,6 +80,11 @@ class TextBuilder {
         this.text.append(style.applyTo(text))
     }
 
+    @TextDsl
+    fun append(text: MutableText) {
+        this.text.append(text)
+    }
+
     /**
      * Returns the [Text] result of this builder.
      */
@@ -118,6 +123,17 @@ fun TextBuilder.translatable(value: String, vararg args: Any) {
 @TextDsl
 fun TextBuilder.literal(value: String) {
     styleAndAppend(Text.literal(value))
+}
+
+/**
+ * Adds a literal text that is not re-styled by the builder's current style.
+ *
+ * @param value The text.
+ * @see StyleBuilder for action
+ */
+@TextDsl
+fun TextBuilder.literal(value: MutableText) {
+    append(value)
 }
 
 /**

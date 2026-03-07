@@ -39,6 +39,7 @@ import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import com.lambda.util.text.text
 import net.minecraft.client.toast.SystemToast
+import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import java.awt.Color
 import java.time.LocalDateTime
@@ -96,18 +97,42 @@ object Communication {
         }
     }
 
+    /**
+     * Logs messages to the in game chat if available while stripping the message styles
+     */
     fun Any.log(
         message: Text,
         logLevel: LogLevel = LogLevel.Info,
         source: String = "",
         textSource: Text = Text.empty(),
+        inGameOverlay: Boolean = false
     ) {
         buildText {
             text(this@log.source(logLevel, source, textSource))
             text(message)
         }.let { log ->
             runSafeGameScheduled {
-                player.sendMessage(log, false)
+                player.sendMessage(log, inGameOverlay)
+            }
+        }
+    }
+
+    /**
+     * Logs messages to the in game chat if available while keeping the message styles
+     */
+    fun Any.log(
+        message: MutableText,
+        logLevel: LogLevel = LogLevel.Info,
+        source: String = "",
+        textSource: Text = Text.empty(),
+        inGameOverlay: Boolean = false
+    ) {
+        buildText {
+            text(this@log.source(logLevel, source, textSource))
+            literal(message)
+        }.let { log ->
+            runSafeGameScheduled {
+                player.sendMessage(log, inGameOverlay)
             }
         }
     }

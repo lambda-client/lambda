@@ -37,11 +37,18 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.module.modules.client.ModuleNotifier
+import com.lambda.module.modules.client.ModuleNotifier.NotifyTarget
+import com.lambda.module.modules.client.ModuleNotifier.notifyTarget
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
+import com.lambda.threading.runSafe
+import com.lambda.util.Communication.log
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import net.minecraft.text.Text
+import net.minecraft.util.Colors
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -171,6 +178,22 @@ abstract class Module(
 
     fun toggle() {
         isEnabled = !isEnabled
+
+        if (ModuleNotifier.isEnabled) {
+            runSafe {
+                val message = if (isEnabled) {
+                    Text.literal("on").withColor(Colors.GREEN)
+                } else {
+                    Text.literal("off").withColor(Colors.RED)
+                }
+                if (notifyTarget.contains(NotifyTarget.Chat)) {
+                    log(message, source = name)
+                }
+                if (notifyTarget.contains(NotifyTarget.ActionBar)) {
+                    log(message, source = name, inGameOverlay = true)
+                }
+            }
+        }
     }
 
     fun onEnable(block: SafeContext.() -> Unit) {
