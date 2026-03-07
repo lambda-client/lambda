@@ -53,9 +53,10 @@ import net.minecraft.text.Text
 import org.joml.Matrix4fStack
 import org.joml.Quaternionf
 
-class OutlineCapturingQueue(
+class OutlineCapturingQueue @JvmOverloads constructor(
     private val delegate: OrderedRenderCommandQueueImpl,
-    private val entityId: Any
+    private val entityId: Any,
+    private val outlineOnly: Boolean = false
 ) : OrderedRenderCommandQueueImpl() {
     override fun clear() = delegate.clear()
     override fun onNextFrame() = delegate.onNextFrame()
@@ -102,30 +103,37 @@ class OutlineCapturingQueue(
             BlockModelRenderer.render(matrices.peek(), consumer, model, r, g, b, l, o)
             consumer.flush()
         }
-        delegate.submitBlockStateModel(matrices, layer, model, r, g, b, l, o, oc)
+        if (!outlineOnly) delegate.submitBlockStateModel(matrices, layer, model, r, g, b, l, o, oc)
     }
 
     override fun getBatchingQueue(i: Int): BatchingRenderCommandQueue =
-        OutlineCapturingBatchingQueue(delegate.getBatchingQueue(i), this)
+        OutlineCapturingBatchingQueue(delegate.getBatchingQueue(i), this, outlineOnly)
 
     private inner class OutlineCapturingBatchingQueue(
         private val batchedDelegate: BatchingRenderCommandQueue,
-        parent: OrderedRenderCommandQueueImpl
+        parent: OrderedRenderCommandQueueImpl,
+        private val outlineOnly: Boolean
     ) : BatchingRenderCommandQueue(parent) {
-        override fun submitShadowPieces(matrices: MatrixStack, radius: Float, pieces: List<EntityRenderState.ShadowPiece>) =
-            batchedDelegate.submitShadowPieces(matrices, radius, pieces)
 
-        override fun submitLabel(matrices: MatrixStack, pos: Vec3d?, y: Int, label: Text, ns: Boolean, l: Int, dist: Double, cam: CameraRenderState) =
-            batchedDelegate.submitLabel(matrices, pos, y, label, ns, l, dist, cam)
+        override fun submitShadowPieces(matrices: MatrixStack, radius: Float, pieces: List<EntityRenderState.ShadowPiece>) {
+            if (!outlineOnly) batchedDelegate.submitShadowPieces(matrices, radius, pieces)
+        }
 
-        override fun submitText(matrices: MatrixStack, x: Float, y: Float, text: OrderedText, ds: Boolean, lt: TextRenderer.TextLayerType, l: Int, c: Int, bc: Int, oc: Int) =
-            batchedDelegate.submitText(matrices, x, y, text, ds, lt, l, c, bc, oc)
+        override fun submitLabel(matrices: MatrixStack, pos: Vec3d?, y: Int, label: Text, ns: Boolean, l: Int, dist: Double, cam: CameraRenderState) {
+            if (!outlineOnly) batchedDelegate.submitLabel(matrices, pos, y, label, ns, l, dist, cam)
+        }
 
-        override fun submitFire(matrices: MatrixStack, state: EntityRenderState, rot: Quaternionf) =
-            batchedDelegate.submitFire(matrices, state, rot)
+        override fun submitText(matrices: MatrixStack, x: Float, y: Float, text: OrderedText, ds: Boolean, lt: TextRenderer.TextLayerType, l: Int, c: Int, bc: Int, oc: Int) {
+            if (!outlineOnly) batchedDelegate.submitText(matrices, x, y, text, ds, lt, l, c, bc, oc)
+        }
 
-        override fun submitLeash(matrices: MatrixStack, data: EntityRenderState.LeashData) =
-            batchedDelegate.submitLeash(matrices, data)
+        override fun submitFire(matrices: MatrixStack, state: EntityRenderState, rot: Quaternionf) {
+            if (!outlineOnly) batchedDelegate.submitFire(matrices, state, rot)
+        }
+
+        override fun submitLeash(matrices: MatrixStack, data: EntityRenderState.LeashData) {
+            if (!outlineOnly) batchedDelegate.submitLeash(matrices, data)
+        }
 
         override fun submitCustom(matrices: MatrixStack, layer: RenderLayer, renderer: OrderedRenderCommandQueue.Custom) {
             if (layer.isOutline || layer.affectedOutline.isPresent) {
@@ -134,11 +142,12 @@ class OutlineCapturingQueue(
                 renderer.render(matrices.peek(), baseConsumer)
                 baseConsumer.flush()
             }
-            batchedDelegate.submitCustom(matrices, layer, renderer)
+            if (!outlineOnly) batchedDelegate.submitCustom(matrices, layer, renderer)
         }
 
-        override fun submitCustom(renderer: OrderedRenderCommandQueue.LayeredCustom) =
-            batchedDelegate.submitCustom(renderer)
+        override fun submitCustom(renderer: OrderedRenderCommandQueue.LayeredCustom) {
+            if (!outlineOnly) batchedDelegate.submitCustom(renderer)
+        }
 
         override fun <S> submitModel(
             model: Model<in S>,
@@ -160,7 +169,7 @@ class OutlineCapturingQueue(
                 model.render(matrices, consumer, light, overlay, tintedColor)
                 baseConsumer.flush()
             }
-            batchedDelegate.submitModel(model, state, matrices, renderLayer, light, overlay, tintedColor, sprite, outlineColor, crumblingOverlay)
+            if (!outlineOnly) batchedDelegate.submitModel(model, state, matrices, renderLayer, light, overlay, tintedColor, sprite, outlineColor, crumblingOverlay)
         }
 
         override fun submitModelPart(
@@ -183,7 +192,7 @@ class OutlineCapturingQueue(
                 part.render(matrices, consumer, light, overlay, tintedColor)
                 baseConsumer.flush()
             }
-            batchedDelegate.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, tintedColor, crumblingOverlay, i)
+            if (!outlineOnly) batchedDelegate.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, tintedColor, crumblingOverlay, i)
         }
 
         override fun submitBlock(matrices: MatrixStack, state: BlockState, light: Int, overlay: Int, outlineColor: Int) {
@@ -193,7 +202,7 @@ class OutlineCapturingQueue(
             val consumer = CapturingConsumer(null)
             BlockModelRenderer.render(matrices.peek(), consumer, model, 1f, 1f, 1f, light, overlay)
             consumer.flush()
-            batchedDelegate.submitBlock(matrices, state, light, overlay, outlineColor)
+            if (!outlineOnly) batchedDelegate.submitBlock(matrices, state, light, overlay, outlineColor)
         }
 
         override fun submitMovingBlock(matrices: MatrixStack, state: MovingBlockRenderState) {
@@ -203,11 +212,12 @@ class OutlineCapturingQueue(
             val consumer = CapturingConsumer(null)
             BlockModelRenderer.render(matrices.peek(), consumer, model, 1f, 1f, 1f, 0, 0)
             consumer.flush()
-            batchedDelegate.submitMovingBlock(matrices, state)
+            if (!outlineOnly) batchedDelegate.submitMovingBlock(matrices, state)
         }
 
-        override fun submitBlockStateModel(matrices: MatrixStack, layer: RenderLayer, model: BlockStateModel, r: Float, g: Float, b: Float, l: Int, o: Int, oc: Int) =
-            batchedDelegate.submitBlockStateModel(matrices, layer, model, r, g, b, l, o, oc)
+        override fun submitBlockStateModel(matrices: MatrixStack, layer: RenderLayer, model: BlockStateModel, r: Float, g: Float, b: Float, l: Int, o: Int, oc: Int) {
+            if (!outlineOnly) batchedDelegate.submitBlockStateModel(matrices, layer, model, r, g, b, l, o, oc)
+        }
 
         override fun submitItem(
             matrices: MatrixStack,
@@ -242,7 +252,7 @@ class OutlineCapturingQueue(
                     }
                 }
             }
-            batchedDelegate.submitItem(matrices, displayContext, light, overlay, outlineColors, tintLayers, quads, renderLayer, glintType)
+            if (!outlineOnly) batchedDelegate.submitItem(matrices, displayContext, light, overlay, outlineColors, tintLayers, quads, renderLayer, glintType)
         }
 
         override fun getShadowPiecesCommands(): List<ShadowPiecesCommand?>? = batchedDelegate.shadowPiecesCommands

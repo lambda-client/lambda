@@ -45,6 +45,7 @@
         "render.EntityRenderManagerMixin",
         "render.ItemFrameEntityRendererMixin",
         "render.EntityRenderStateMixin",
+        "render.BlockEntityRendererMixin",
         "render.BlockEntityRenderManagerMixin",
         "render.FluidRendererMixin",
         "render.FogRendererMixin",
