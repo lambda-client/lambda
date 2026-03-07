@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
@@ -107,14 +106,10 @@ sealed class PreSimResult : BuildResult() {
         }
     }
 
-    /**
-     * The break target is out of the world border or height limit.
-     * @param pos The position of the block that is out of the world.
-     */
-    data class OutOfWorld(
+    data class OutOfHeightLimit(
         override val pos: BlockPos,
     ) : Drawable, PreSimResult() {
-        override val name: String get() = "$pos is out of the world."
+        override val name: String get() = "$pos is out of the height limit."
         override val rank = Rank.OutOfWorld
         private val color = Color(3, 148, 252, 100)
 

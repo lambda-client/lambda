@@ -66,8 +66,8 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block is outside the world so it cant be altered
-        if (!world.worldBorder.contains(pos) || world.isOutOfHeightLimit(pos)) {
-            result(PreSimResult.OutOfWorld(pos))
+        if (world.isOutOfHeightLimit(pos)) {
+            result(PreSimResult.OutOfHeightLimit(pos))
             return false
         }
 

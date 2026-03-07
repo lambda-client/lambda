@@ -82,6 +82,11 @@ class BreakSim private constructor(simInfo: SimInfo)
 	}
 
 	private suspend fun AutomatedSafeContext.simBreaks() {
+		if (!world.worldBorder.contains(pos)) {
+			result(BreakResult.OutOfBorder(pos))
+			return
+		}
+
 		if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
 			if (support != pos) return@let
 			result(BreakResult.PlayerOnTop(pos, state))
@@ -265,12 +270,6 @@ class BreakSim private constructor(simInfo: SimInfo)
 		}
 
 		if (affectedFluids.isNotEmpty()) {
-			val fluidOutOfBounds = affectedFluids.any { !world.worldBorder.contains(it.key) }
-			if (fluidOutOfBounds) {
-				result(GenericResult.Ignored(pos))
-				return true
-			}
-
 			if (breakConfig.fillFluids) {
 				affectedFluids.forEach { (fluidPos, fluidState) ->
 					result(BreakResult.Submerge(fluidPos, fluidState))
