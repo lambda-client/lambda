@@ -24,7 +24,6 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.Configuration.Companion.configurables
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
-import com.lambda.config.settings.GuiButton
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.BlockCollectionSetting
 import com.lambda.config.settings.collections.ClassCollectionSetting
@@ -67,7 +66,6 @@ abstract class Configurable(
     val configuration: Configuration,
 ) : Jsonable, Nameable {
     val settings = mutableListOf<Setting<*, *>>()
-    val otherElements = mutableListOf<LayoutBuildable>()
 	val settingGroups = mutableListOf<SettingGroup>()
 
     init {
@@ -84,10 +82,6 @@ abstract class Configurable(
         if (settings.any { it.name == name })
             throw IllegalStateException("Setting with name $name already exists for configurable: ${this@Configurable.name}")
 	    settings.add(this)
-    }
-
-    fun LayoutBuildable.register() = apply {
-        otherElements.add(this)
     }
 
     override fun toJson() =
@@ -107,12 +101,6 @@ abstract class Configurable(
                 ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
         }
     }
-
-    fun button(
-        name: String,
-        description: String = "",
-        onPress: () -> Unit
-    ) = GuiButton(name, description, onPress).register()
 
     fun setting(
         name: String,

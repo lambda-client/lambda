@@ -40,30 +40,21 @@ object AutoSpiral : Module(
 ) {
 	var iterator: BlockPosIterators.SpiralIterator2d? = null
 	var currentWaypoint: BlockPos? = null
-	var center: BlockPos = BlockPos.ORIGIN
 
 	var spiralSpacing by setting("Spiral Spacing", 128, 16..1024, description = "The distance between each loop of the spiral")
 	var waypointTriggerDistance by setting("Waypoint Trigger Distance", 4, 2..64, description = "The distance to the waypoint at which a new waypoint is generated. Put in 50-60 range when in the Nether.")
 	var setCenterOnEnable by setting("Set Center On Enable", true, description = "Whether to set the center of the spiral to your current position when enabling the module.")
 	var setBaritoneGoal by setting("Set Baritone Goal", true, description = "Whether to set Baritone's goal to the current waypoint. Mostly so you can see where the next waypoint is.")
 
-	init {
-		button("Reset Center") {
-			runSafe {
-				center = player.blockPos
-				currentWaypoint = null
-			}
-		}
-		button("Next Waypoint") {
-			runSafe {
-				currentWaypoint = null
-			}
-		}
+	var center by setting("Center", BlockPos.ORIGIN, description = "Center position for the spiral")
 
+	init {
 		onEnable {
 			if (iterator == null) {
 				iterator = BlockPosIterators.SpiralIterator2d(10000)
-				if (setCenterOnEnable) center = player.blockPos
+				if (setCenterOnEnable) {
+					center = BlockPos.ORIGIN
+				}
 			}
 		}
 
