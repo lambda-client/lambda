@@ -63,6 +63,7 @@ object NoRender : Module(
 	@JvmStatic val noBossBar by setting("No Boss Bar", false).group(Group.Hud)
 	@JvmStatic val noScoreBoard by setting("No Score Board", false).group(Group.Hud)
 	@JvmStatic val noStatusEffects by setting("No Status Effects", false).group(Group.Hud)
+	@JvmStatic val no2b2tActionText by setting("No 2b2t Action Text", true, description = "Blocks the '2b2t.org' text from the action bar 2b2t randomly sends").group(Group.Hud)
 
 	@JvmStatic val noArmor by setting("No Armor", false).group(Group.Entity)
 	@JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }.group(Group.Entity)

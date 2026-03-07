@@ -125,4 +125,11 @@ public class ClientPlayNetworkHandlerMixin {
         if (!EventFlow.post(event).isCanceled())
             original.call(event.getMessage());
     }
+
+    @Inject(method = "onOverlayMessage", at = @At("HEAD"), cancellable = true)
+    void onOverlayMessage(OverlayMessageS2CPacket packet, CallbackInfo ci) {
+        if (NoRender.getNo2b2tActionText() && packet.text().getString().equals("2b2t.org")) {
+            ci.cancel();
+        }
+    }
 }
