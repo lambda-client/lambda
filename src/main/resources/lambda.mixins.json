@@ -43,6 +43,7 @@
         "render.ElytraFeatureRendererMixin",
         "render.EntityRendererMixin",
         "render.EntityRenderManagerMixin",
+        "render.ItemFrameEntityRendererMixin",
         "render.EntityRenderStateMixin",
         "render.BlockEntityRenderManagerMixin",
         "render.FluidRendererMixin",
