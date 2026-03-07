@@ -21,10 +21,14 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.findRotation
+import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.Communication.debug
 import com.lambda.util.Communication.info
 import com.lambda.util.Timer
 import com.lambda.util.world.fastEntitySearch
@@ -32,6 +36,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.registry.Registries
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -46,6 +51,7 @@ class AutoMount : Module(
 
 	var interval by setting("Interval", 50, 1..200, 1, unit = "ms", description = "Interact interval")
 	var range by setting("Range", 4.0, 1.0..20.0, 0.1, description = "Mount range")
+	var rotate by setting("Rotate", false, description = "Rotate to the entity when mounting")
 	var debug by setting("Debug", false, description = "Print debug messages")
 
 	val intervalTimer = Timer()
@@ -77,11 +83,8 @@ class AutoMount : Module(
 			if (!autoRemount) {
 				return@listen
 			}
-			if (player.vehicle != null) {
+			if (player.vehicle?.isRemoved == false) {
 				lastEntity = player.vehicle
-			}
-			if (lastEntity == null) {
-				return@listen
 			}
 			lastEntity?.let {
 				if (it.isRemoved || it.distanceTo(player) > range) {
@@ -97,8 +100,26 @@ class AutoMount : Module(
 	}
 
 	private fun SafeContext.interactEntity(entity: Entity) {
-		mc.networkHandler?.sendPacket(PlayerInteractEntityC2SPacket.interactAt(entity, false, Hand.MAIN_HAND, Vec3d(0.5, 0.5, 0.5)))
-		mc.networkHandler?.sendPacket(PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND))
+		if (rotate) {
+			runSafeAutomated {
+				var hit: VisibilityChecker.CheckedHit? = null
+				rotationRequest {
+					hit = lookAtEntity(entity)
+				}.submit()
+				hit?.let {
+					val hitResult = it.hit as? EntityHitResult ?: return@let
+					interaction.interactEntityAtLocation(player, entity, hitResult, Hand.MAIN_HAND)
+					return@runSafeAutomated
+				} ?: run {
+					if (debug) debug("Not rotation found to mount entity")
+					return@runSafeAutomated
+				}
+				if (debug) debug("Invalid entity rotation")
+			}
+		} else {
+			connection.sendPacket(PlayerInteractEntityC2SPacket.interactAt(entity, false, Hand.MAIN_HAND, Vec3d(0.5, 0.5, 0.5)))
+			connection.sendPacket(PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND))
+		}
 	}
 
 	private fun SafeContext.canRide(entity: Entity) = entity.canAddPassenger(player)
