@@ -1,0 +1,301 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.module.modules.player
+
+import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.context.SafeContext
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+import com.lambda.sound.SoundManager.playSound
+import com.lambda.task.RootTask.run
+import com.lambda.task.Task
+import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.threading.runSafeAutomated
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
+import com.lambda.util.NamedEnum
+import com.lambda.util.world.closestEntity
+import net.minecraft.block.Blocks
+import net.minecraft.component.DataComponentTypes
+import net.minecraft.component.type.ItemEnchantmentsComponent
+import net.minecraft.enchantment.Enchantment
+import net.minecraft.entity.passive.VillagerEntity
+import net.minecraft.item.Items
+import net.minecraft.network.packet.s2c.play.SetTradeOffersS2CPacket
+import net.minecraft.registry.RegistryKeys
+import net.minecraft.sound.SoundEvents
+import net.minecraft.util.Hand
+import net.minecraft.util.hit.EntityHitResult
+import net.minecraft.util.math.BlockPos
+
+
+object AutoVillagerCycle : Module(
+	name = "AutoVillagerCycler",
+	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
+	tag = ModuleTag.PLAYER
+) {
+	private enum class Group(override val displayName: String) : NamedEnum {
+		General("General"),
+		Enchantments("Enchantments")
+	}
+
+	private val allEnchantments = ArrayList<String>()
+
+	private val lecternPos by setting("Lectern Pos", BlockPos.ORIGIN, "Position where the lectern should be placed/broken").group(Group.General)
+	private val logFoundBooks by setting("Log Found Books", true, "Log all enchanted books found during cycling").group(Group.General)
+	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks").group(Group.General)
+	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks").group(Group.General)
+	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks").group(Group.General)
+	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling").group(Group.General)
+		.onPress {
+			if (cycleState != CycleState.IDLE) {
+				info("Stopped villager cycling.")
+				switchState(CycleState.IDLE)
+			} else {
+				info("Started villager cycling.")
+				buildTask?.cancel()
+				buildTask = null
+				switchState(CycleState.PLACE_LECTERN)
+			}
+		}
+	private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments).group(Group.Enchantments)
+
+	private var cycleState = CycleState.IDLE
+	private var tickCounter = 0
+
+	private var buildTask: Task<*>? = null
+
+	init {
+		setDefaultAutomationConfig()
+
+		onEnable {
+			allEnchantments.clear()
+			allEnchantments.addAll(getEnchantmentList())
+			cycleState = CycleState.IDLE
+			tickCounter = 0
+		}
+
+		onDisable {
+			cycleState = CycleState.IDLE
+			tickCounter = 0
+			buildTask?.cancel()
+			buildTask = null
+		}
+
+		listen<TickEvent.Pre> {
+			tickCounter++
+
+			if (allEnchantments.isEmpty()) {
+				allEnchantments.addAll(getEnchantmentList()) // Have to load enchantments after we loaded into a world
+			}
+
+			when (cycleState) {
+				CycleState.IDLE -> {}
+				CycleState.PLACE_LECTERN -> handlePlaceLectern()
+				CycleState.WAIT_LECTERN -> {}
+				CycleState.OPEN_VILLAGER -> handleOpenVillager()
+				CycleState.BREAK_LECTERN -> handleBreakLectern()
+				CycleState.WAIT_BREAK -> {}
+			}
+		}
+
+		listen<PacketEvent.Receive.Pre> { event ->
+			if (event.packet !is SetTradeOffersS2CPacket) return@listen
+			if (cycleState != CycleState.OPEN_VILLAGER) return@listen
+
+			val tradeOfferPacket = event.packet
+			val trades = tradeOfferPacket.offers
+			if (trades.isEmpty()) {
+				logError("Villager has no trades!")
+				switchState(CycleState.IDLE)
+				return@listen
+			}
+
+			for (offer in trades) {
+				if (offer.isDisabled) continue
+
+				val sellItem = offer.sellItem
+				if (sellItem.item != Items.ENCHANTED_BOOK) continue
+
+				val storedEnchantments = sellItem.get(DataComponentTypes.STORED_ENCHANTMENTS) ?: continue
+
+				if (logFoundBooks) {
+					for (entry in storedEnchantments.enchantmentEntries) {
+						info("Found book: ${entry.key.value().description().string}")
+					}
+				}
+
+				findDesiredEnchantment(storedEnchantments)?.let {
+					info("Found desired enchantment: ${it.description().string}!")
+					playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
+					switchState(CycleState.IDLE)
+					return@listen
+				}
+			}
+
+			// No desired enchantment found, break lectern and try again
+			tickCounter = 0
+			switchState(CycleState.BREAK_LECTERN)
+		}
+	}
+
+	private fun SafeContext.getEnchantmentList(): MutableList<String> {
+		val enchantments = ArrayList<String>()
+		for (foo in world.registryManager.getOrThrow(RegistryKeys.ENCHANTMENT)) {
+			enchantments.add(foo.description.string)
+		}
+		return enchantments
+	}
+
+	private fun SafeContext.handlePlaceLectern() {
+		player.closeHandledScreen()
+
+		if (lecternPos == BlockPos.ORIGIN) {
+			logError("Lectern position is not set!")
+			switchState(CycleState.IDLE)
+			return
+		}
+
+		val state = blockState(lecternPos)
+
+		if (!state.isAir) {
+			if (state.isOf(Blocks.LECTERN)) {
+				switchState(CycleState.OPEN_VILLAGER)
+				return
+			}
+			logError("Block at lectern position is not air or a lectern!")
+			switchState(CycleState.IDLE)
+			return
+		}
+
+		runSafeAutomated {
+			buildTask = lecternPos.toStructure(TargetState.Block(Blocks.LECTERN))
+				.toBlueprint()
+				.build(finishOnDone = true)
+				.finally {
+					switchState(CycleState.OPEN_VILLAGER)
+				}
+				.run()
+		}
+		switchState(CycleState.WAIT_LECTERN)
+	}
+
+	private fun SafeContext.handleOpenVillager() {
+		if (tickCounter < interactDelay) return
+
+		if (buildTask?.state == Task.State.Running) {
+			return
+		}
+
+		// Verify lectern is still present
+		val state = blockState(lecternPos)
+		if (state.isAir) {
+			tickCounter = 0
+			switchState(CycleState.PLACE_LECTERN)
+			return
+		}
+		if (!state.isOf(Blocks.LECTERN)) {
+			logError("Block at lectern position is not a lectern!")
+			switchState(CycleState.IDLE)
+			return
+		}
+
+		val villager = closestEntity<VillagerEntity>(searchRange)
+		if (villager == null) {
+			logError("No villager found nearby!")
+			switchState(CycleState.IDLE)
+			return
+		}
+
+		runSafeAutomated {
+			lookAtEntity(villager)?.let {
+				rotationRequest {
+					rotation(it.rotation)
+				}.submit()
+				interaction.interactEntityAtLocation(player, villager, it.hit as EntityHitResult?, Hand.MAIN_HAND)
+				interaction.interactEntity(player, villager, Hand.MAIN_HAND)
+				player.swingHand(Hand.MAIN_HAND)
+			}
+		}
+
+		tickCounter = 0
+	}
+
+	private fun SafeContext.handleBreakLectern() {
+		if (player.currentScreenHandler != player.playerScreenHandler) {
+			player.closeHandledScreen()
+		}
+
+		if (tickCounter < breakDelay) return
+
+		val state = blockState(lecternPos)
+
+		if (!state.isAir) {
+			buildTask = runSafeAutomated {
+				lecternPos.toStructure(TargetState.Empty)
+					.build(finishOnDone = true)
+					.finally {
+						switchState(CycleState.PLACE_LECTERN)
+					}
+					.run()
+			}
+			switchState(CycleState.WAIT_BREAK)
+			return
+		}
+		switchState(CycleState.PLACE_LECTERN)
+	}
+
+	private fun findDesiredEnchantment(enchantments: ItemEnchantmentsComponent): Enchantment? {
+		if (desiredEnchantments.isEmpty()) return null
+
+		for (entry in enchantments.enchantmentEntries) {
+			val enchantmentName = entry.key.value().description().string
+			if (desiredEnchantments.any { it.equals(enchantmentName, ignoreCase = true) }) {
+				return entry.key.value()
+			}
+		}
+		return null
+	}
+
+	private fun switchState(newState: CycleState) {
+		if (cycleState != newState) {
+			tickCounter = 0
+		}
+		cycleState = newState
+	}
+
+	private enum class CycleState {
+		IDLE,
+		PLACE_LECTERN,
+		OPEN_VILLAGER,
+		WAIT_LECTERN,
+		BREAK_LECTERN,
+		WAIT_BREAK
+	}
+}
