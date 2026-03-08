@@ -90,7 +90,11 @@ object ESP : Module(
 							blockEntity,
 							color,
 							{ worldOutline(it.pos, outlineStyle.toStyle(color)) },
-							{ it.cachedState.getOutlineShape(world, it.pos).boundingBoxes }
+							{ entity ->
+								entity.cachedState.getOutlineShape(world, entity.pos).boundingBoxes.map { box ->
+									box.offset(entity.pos)
+								}
+							}
 						)
 					}
 				}
