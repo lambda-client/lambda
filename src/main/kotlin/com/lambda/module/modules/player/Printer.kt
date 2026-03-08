@@ -37,7 +37,7 @@ object Printer : Module(
 	tag = ModuleTag.PLAYER
 ) {
 	private val range by setting("Range", 5, 1..7, 1)
-	private val considerAll by setting("Consider All", false, description = "Consider all blocks outside the schematic as schematic air blocks")
+	private val air by setting("Air", false, description = "Consider all blocks outside the schematic as schematic air blocks")
 
 	private var buildTask: Task<*>? = null
 
@@ -57,7 +57,7 @@ object Printer : Module(
 					.asSequence()
 					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
-					.filter { considerAll || !it.value.blockState.isAir }
+					.filter { air || !it.value.blockState.isAir }
 			}.build(finishOnDone = false).run()
 		}
 
