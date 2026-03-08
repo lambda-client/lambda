@@ -22,11 +22,15 @@ import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
+import com.lambda.command.commands.ConfigCommand
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
@@ -38,10 +42,25 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 	TypeToken.get(BlockPos::class.java).type
 ) {
 	context(setting: Setting<*, BlockPos>)
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3i(setting.name, value) { value = it.blockPos }
-        lambdaTooltip(setting.description)
-    }
+	override fun ImGuiBuilder.buildLayout() {
+		treeNode("Coordinates", id = setting.name) {
+			inputVec3i(setting.name, value) { value = it.blockPos }
+		}
+		lambdaTooltip(setting.description)
+		sameLine()
+		button("Set") {
+			runSafe {
+				mc.crosshairTarget?.blockResult?.blockPos?.let {
+					setting.trySetValue(it, logResponse = false)
+					ConfigCommand.info("Coordinates updated")
+				} ?: let {
+					info("No block under cursor")
+					return@runSafe
+				}
+			}
+		}
+		lambdaTooltip("Set the coordinates to the block you are currently looking at")
+	}
 
 	context(setting: Setting<*, BlockPos>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
