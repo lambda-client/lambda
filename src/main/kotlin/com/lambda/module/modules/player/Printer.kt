@@ -36,8 +36,8 @@ object Printer : Module(
 	description = "Automatically prints schematics",
 	tag = ModuleTag.PLAYER
 ) {
-	private val range by setting("Range", 5, 1..7, 1)
-	private val air by setting("Air", false, description = "Consider all blocks outside the schematic as schematic air blocks")
+	private val range by setting("Range", 5, 1..7, 1, description = "The range around the player to check for blocks to print")
+	private val air by setting("Air", false, description = "Consider breaking blocks in the world that are air in the schematic.\nNote: Breaking can also be disabled in the Automation Config.")
 
 	private var buildTask: Task<*>? = null
 
@@ -55,13 +55,21 @@ object Printer : Module(
 				BlockPos.iterateOutwards(player.blockPos, range, range, range)
 					.map { it.blockPos }
 					.asSequence()
-					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
+					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
 					.filter { air || !it.value.blockState.isAir }
 			}.build(finishOnDone = false).run()
 		}
 
 		onDisable { buildTask?.cancel(); buildTask = null }
+	}
+
+	private fun inSchematic(pos: BlockPos): Boolean {
+		val placementManager = DataManager.getSchematicPlacementManager()
+		placementManager?.getAllPlacementsTouchingChunk(pos)?.forEach {
+			if (it.bb.containsPos(pos)) return true
+		}
+		return false
 	}
 
 	private fun litematicaAvailable(): Boolean = runCatching {
