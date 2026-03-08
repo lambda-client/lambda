@@ -67,7 +67,7 @@ object Printer : Module(
 	private fun inSchematic(pos: BlockPos): Boolean {
 		val placementManager = DataManager.getSchematicPlacementManager()
 		placementManager?.getAllPlacementsTouchingChunk(pos)?.forEach {
-			if (it.bb.containsPos(pos)) return true
+			if (it.placement.isEnabled && it.bb.containsPos(pos)) return true
 		}
 		return false
 	}
