@@ -33,7 +33,7 @@ import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
 import java.util.*
 
 @Suppress("unused")
-class AutoSign : Module(
+object AutoSign : Module(
 	name = "AutoSign",
 	description = """Auto fills signs with customizable text. Leave lines empty to skip them. Supports data formatting with:
 		|<d> - Day of month (1-31)
