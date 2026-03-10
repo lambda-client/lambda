@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,12 +43,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import java.util.Optional;
 
-/*
-Map slot rendering code
-Original source: https://github.com/Crec0/map-in-slot
-Copyright (c) 2022 Crec0
-Licensed under MIT License
- */
 @Mixin(DrawContext.class)
 public abstract class DrawContextMixin {
     @Shadow
