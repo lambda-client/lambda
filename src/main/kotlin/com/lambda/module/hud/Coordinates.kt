@@ -30,7 +30,6 @@ import com.lambda.util.extension.isNether
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
-import io.ktor.util.*
 
 object Coordinates : HudModule(
 	name = "Coordinates",
@@ -43,7 +42,7 @@ object Coordinates : HudModule(
 	}
 
 	private val showDimension by setting("Show Dimension Name", true)
-	private val showBiome by setting("Show Biome Name", true) // TwinkNet - Show biome
+	private val showBiome by setting("Show Biome Name", true)
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
 	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
@@ -83,18 +82,9 @@ object Coordinates : HudModule(
 		}
 	}
 
-	// TwinkNet start - Show biome
-	fun beautifyBiome(biome: String): String {
-		val beautifulBiome = biome.replace(Regex("^.*:"), "").replace("_", " ")
-		// nuke the namespace key and underscores
-		val arr = beautifulBiome.toCharArray()
-		arr[0] = Character.toUpperCase(arr[0]) // first letter uppercase
-		for ((index, ch) in arr.withIndex()) {
-			if (ch == ' ') {
-				arr[index + 1] = Character.toUpperCase(arr[index + 1]) // uppercase every first letter of each word
-			}
-		}
-		return String(arr)
-	}
-	// TwinkNet end
+	fun beautifyBiome(biome: String): String = biome
+		.substringAfterLast(':')
+		.replace('_', ' ')
+		.split(' ')
+		.joinToString(" ") { it.replaceFirstChar(Char::uppercaseChar) }
 }
