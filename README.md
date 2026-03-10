@@ -3,10 +3,8 @@
 </p>
 
 ![Minecraft](https://img.shields.io/badge/minecraft-1.21.11-green?link=https%3A%2F%2Fwww.minecraft.net%2F)
-![Minecraft](https://img.shields.io/badge/minecraft-1.21.5-red?link=https%3A%2F%2Fwww.minecraft.net%2F)
 ![GitHub Downloads](https://img.shields.io/github/downloads/lambda-client/lambda/total)
 ![Discord](https://img.shields.io/discord/834570721070022687?logo=Discord&logoColor=white&link=https%3A%2F%2Fdiscord.gg%2FMBAEzyFn)
-![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/lambda-client/lambda?color=royalblue)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?logo=gradle)
 ![GitHub Contributors](https://img.shields.io/github/contributors/lambda-client/lambda)
 ![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)
