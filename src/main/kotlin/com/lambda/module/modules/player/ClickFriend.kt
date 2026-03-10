@@ -44,6 +44,10 @@ object ClickFriend : Module(
     private val unfriendBind: Bind by setting("Unfriend Bind", Bind(0, GLFW_MOD_SHIFT, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to unfriend a player")
         .onPress { if (!friendBind.isSatisfied()) if (checkSetFriend(false)) it.cancel() }
 
+	init {
+		setModulePriority(100)
+	}
+
     private fun SafeContext.checkSetFriend(friend: Boolean): Boolean {
         val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
             ?: return false

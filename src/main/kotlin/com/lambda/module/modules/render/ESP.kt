@@ -21,17 +21,18 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntityColorSettings
 import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.config.groups.OutlineSettings
-import com.lambda.config.groups.ScreenLineSettings
 import com.lambda.config.groups.WorldLineSettings
+import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.EntityUtils
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.setAlpha
-import fi.dy.masa.malilib.render.RenderUtils.depthTest
-import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.block.entity.BlockEntity
+import net.minecraft.entity.Entity
+import net.minecraft.util.math.Box
+import java.awt.Color
 
 object ESP : Module(
 	name = "ESP",
@@ -72,16 +73,49 @@ object ESP : Module(
 			with(safeContext) {
 				world.entities.forEach { entity ->
 					if (!entitySettings.isSelected(entity)) return@forEach
-					val entityColor = entityColors.getColor(entity)
-					when (mode) {
-						EspMode.Shader -> worldOutline(entity, outlineStyle.toStyle(entityColor))
-						EspMode.Box -> {
-							box(entity.interpolatedBox, boxOutlineSettings) {
-								if (!drawFilled) hideFill()
-								else if (!drawOutline) hideOutline()
-								colors(entityColor.setAlpha(fillAlpha), entityColor.setAlpha(outlineAlpha))
+					val color = entityColors.getColor(entity)
+					drawEsp<Entity>(
+						entity,
+						color,
+						{ worldOutline(it, outlineStyle.toStyle(color)) },
+						{ listOf(it.interpolatedBox) }
+					)
+				}
+				val chunkMap = world.chunkManager.chunks
+				(0 until chunkMap.loadedChunkCount).forEach { chunk ->
+					chunkMap.chunks.get(chunk)?.blockEntities?.values?.forEach { blockEntity ->
+						if (!entitySettings.isSelected(blockEntity)) return@forEach
+						val color = entityColors.getColor(blockEntity)
+						drawEsp<BlockEntity>(
+							blockEntity,
+							color,
+							{ worldOutline(it.pos, outlineStyle.toStyle(color)) },
+							{ entity ->
+								entity.cachedState.getOutlineShape(world, entity.pos).boundingBoxes.map { box ->
+									box.offset(entity.pos)
+								}
 							}
-						}
+						)
+					}
+				}
+			}
+		}
+	}
+
+	private fun <T> RenderBuilder.drawEsp(
+		entity: T,
+		color: Color,
+		outline: RenderBuilder.(T) -> Unit,
+		boxes: (T) -> Collection<Box>
+	) {
+		when (mode) {
+			EspMode.Shader -> outline(entity)
+			EspMode.Box -> {
+				boxes(entity).forEach { box ->
+					box(box, boxOutlineSettings) {
+						if (!drawFilled) hideFill()
+						else if (!drawOutline) hideOutline()
+						colors(color.setAlpha(fillAlpha), color.setAlpha(outlineAlpha))
 					}
 				}
 			}

@@ -86,6 +86,7 @@ object KillAura : Module(
     }
 
     init {
+        setModulePriority(90)
         setDefaultAutomationConfig {
             applyEdits {
                 hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)

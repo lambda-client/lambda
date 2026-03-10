@@ -31,15 +31,15 @@ import com.lambda.util.collections.LimitedDecayQueue
 abstract class PostActionHandler<T : ActionInfo> {
 	abstract val pendingActions: LimitedDecayQueue<T>
 
-	init {
-		listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
-			pendingActions.cleanUp()
-		}
+    init {
+        listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
+            pendingActions.cleanUp()
+        }
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-			pendingActions.clear()
-		}
-	}
+        listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+            pendingActions.clear()
+        }
+    }
 
 	fun T.startPending() {
 		pendingActions.add(this)

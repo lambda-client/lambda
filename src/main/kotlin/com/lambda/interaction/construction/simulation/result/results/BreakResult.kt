@@ -46,6 +46,24 @@ sealed class BreakResult : BuildResult() {
     override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
 
     /**
+     * The break target is out of the world border.
+     * @param pos The position of the block that is outside the world border.
+     */
+    data class OutOfBorder(
+        override val pos: BlockPos,
+    ) : Drawable, BreakResult() {
+        override val name: String get() = "$pos is outside the world border."
+        override val rank = Rank.OutOfWorld
+        private val color = Color(3, 148, 252, 100)
+
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
+            }
+        }
+    }
+
+    /**
      * Represents a successful break. All checks have been passed.
      * @param context The context of the break.
      */

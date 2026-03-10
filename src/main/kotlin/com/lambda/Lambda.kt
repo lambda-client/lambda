@@ -19,8 +19,8 @@ package com.lambda
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.lambda.config.serializer.BlockPosCodec
 import com.lambda.config.serializer.BlockCodec
+import com.lambda.config.serializer.BlockPosCodec
 import com.lambda.config.serializer.ColorSerializer
 import com.lambda.config.serializer.GameProfileCodec
 import com.lambda.config.serializer.ItemCodec
@@ -45,7 +45,6 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.PotionItem
 import net.minecraft.item.RangedWeaponItem
-import net.minecraft.registry.DynamicRegistryManager
 import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
@@ -92,7 +91,7 @@ object Lambda : ClientModInitializer {
 
     init {
         // We want the opengl context to be created
-        listenOnceUnsafe<ClientEvent.Startup>(priority = Int.MAX_VALUE) {
+        listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
             LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
             if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
             true

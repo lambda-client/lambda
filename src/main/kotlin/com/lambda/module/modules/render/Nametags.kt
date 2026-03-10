@@ -46,7 +46,6 @@ import org.joml.component2
 import java.awt.Color
 import kotlin.math.max
 
-//ToDo: implement all settings
 object Nametags : Module(
 	name = "Nametags",
 	description = "Displays information about entities above them",
@@ -60,8 +59,8 @@ object Nametags : Module(
 	}
 
 	private enum class TextGroup(override val displayName: String): NamedEnum {
-		Friend("Friend"),
-		Other("Other")
+		Other("Other"),
+		Friend("Friend")
 	}
 
 	private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f).group(Group.General)
@@ -76,7 +75,11 @@ object Nametags : Module(
 	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }.group(Group.General)
 	private val itemCount by setting("Item Count", true).group(Group.General)
 	private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }.group(Group.General)
-	private val entitySelectionSettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities))
+	private val entitySelectionSettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities)).apply {
+		applyEdits {
+			hide(::blockEntities)
+		}
+	}
 	private val background by setting("Background", true).group(Group.Background)
 	private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }.group(Group.Background)
 	private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }.group(Group.Background)

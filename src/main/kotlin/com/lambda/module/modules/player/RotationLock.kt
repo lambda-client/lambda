@@ -51,24 +51,25 @@ object RotationLock : Module(
 		}
 	}
 
-	init {
-		listen<TickEvent.Pre> {
-			val yaw = when (yawMode) {
-				Mode.Custom -> customYaw
-				Mode.Snap -> {
-					val normalizedYaw = (player.yaw % 360.0 + 360.0) % 360.0
-					(normalizedYaw / yawStep).roundToInt() * yawStep
-				}
-				Mode.None -> null
-			}
-			val pitch = when (pitchMode) {
-				Mode.Custom -> customPitch
-				Mode.Snap -> {
-					val clampedPitch = player.pitch.coerceIn(-90f, 90f)
-					(clampedPitch / pitchStep).roundToInt() * pitchStep
-				}
-				Mode.None -> null
-			}
+    init {
+        setModulePriority(100)
+        listen<TickEvent.Pre> {
+            val yaw = when (yawMode) {
+                Mode.Custom -> customYaw
+                Mode.Snap -> {
+                    val normalizedYaw = (player.yaw % 360.0 + 360.0) % 360.0
+                    (normalizedYaw / yawStep).roundToInt() * yawStep
+                }
+                Mode.None -> null
+            }
+            val pitch = when (pitchMode) {
+                Mode.Custom -> customPitch
+                Mode.Snap -> {
+                    val clampedPitch = player.pitch.coerceIn(-90f, 90f)
+                    (clampedPitch / pitchStep).roundToInt() * pitchStep
+                }
+                Mode.None -> null
+            }
 
 			if (yaw == null && pitch == null) return@listen
 

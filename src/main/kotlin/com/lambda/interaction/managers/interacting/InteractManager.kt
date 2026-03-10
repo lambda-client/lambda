@@ -84,25 +84,25 @@ object InteractManager : Manager<InteractRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			activeRequest = null
-			placementsThisTick = 0
-			potentialPlacements.clear()
-			if (interactCooldown > 0) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            activeRequest = null
+            placementsThisTick = 0
+            potentialPlacements.clear()
+	        if (interactCooldown > 0) {
 				interactCooldown--
 			}
 		}
 
-		listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
-			if (shouldSneak) {
-				shouldSneak = false
-				it.input.sneaking = true
-			}
-		}
+        listen<MovementEvent.InputUpdate>({ Int.MIN_VALUE }) {
+            if (shouldSneak) {
+                shouldSneak = false
+                it.input.sneaking = true
+            }
+        }
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-			interactCooldown = 0
-		}
+	    listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+		    interactCooldown = 0
+	    }
 
 		return "Loaded Place Manager"
 	}

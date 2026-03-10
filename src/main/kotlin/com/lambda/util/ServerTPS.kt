@@ -29,7 +29,7 @@ object ServerTPS {
     private var lastUpdate = 0L
 
     init {
-        listen<PacketEvent.Receive.Pre>(priority = 10000) {
+        listen<PacketEvent.Receive.Pre>({ 10000 }) {
             if (it.packet !is WorldTimeUpdateS2CPacket) return@listen
             val currentTime = System.currentTimeMillis()
 
