@@ -21,16 +21,15 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
-import com.lambda.gui.components.QuickSearch.WINDOW_FLAGS
 import com.lambda.gui.dsl.ImGuiBuilder.popupModal
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runIO
 import com.lambda.util.Communication.debug
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import imgui.ImGui
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
 import java.net.URI
@@ -60,6 +59,13 @@ object AutoUpdater : Module(
         Snapshot
     }
 
+    const val WINDOW_FLAGS =
+        ImGuiWindowFlags.AlwaysAutoResize or
+                ImGuiWindowFlags.NoMove or
+                ImGuiWindowFlags.NoResize or
+                ImGuiWindowFlags.NoScrollbar or
+                ImGuiWindowFlags.NoScrollWithMouse
+
     init {
         onEnable {
             if (mc.currentScreen is LambdaScreen && !showUninstallModal)
@@ -75,11 +81,20 @@ object AutoUpdater : Module(
 
         listen<GuiEvent.NewFrame>(alwaysListen = true) {
             if (showInstallModal) {
-                ImGui.openPopup("Install Loader")
-                popupModal("Install Loader", WINDOW_FLAGS) {
-                    text("Do you want to install Lambda Client?")
+                ImGui.openPopup("Installation Wizard")
+                popupModal("Installation Wizard", WINDOW_FLAGS) {
+                    text("Enable Auto Updater")
+                    separator()
                     spacing()
-                    text("This will close the client automatically once the install is finished.")
+                    text("The auto updater replaces your current version-specific Lambda mod file")
+                    text("with a lightweight loader that automatically checks for the latest version")
+                    text("on every launch and loads it for you.")
+                    spacing()
+                    text("This means you'll always be running the newest version of Lambda")
+                    text("without having to manually download and swap out the jar file.")
+                    spacing()
+                    separator()
+                    text("Note: The game will close after installation to apply the changes.")
                     spacing()
 
                     button("Install", 120f, 0f) {
@@ -102,7 +117,7 @@ object AutoUpdater : Module(
                 ImGui.openPopup("Uninstall Loader")
                 popupModal("Uninstall Loader", WINDOW_FLAGS) {
                     text("Do you want to uninstall Lambda Loader?")
-                    spacing()
+                    separator()
                     text("This will close the client automatically once the uninstall is finished.")
                     spacing()
 
@@ -125,14 +140,14 @@ object AutoUpdater : Module(
     }
 
     private fun installLoader() {
-        runBlocking(Dispatchers.IO) {
+        runIO {
             try {
-                debug("Starting Lambda loader install...")
+                debug("Starting Lambda Loader install...")
 
                 val loaderJar = downloadLatestLoader()
                 if (loaderJar == null) {
                     logError("Failed to download latest Lambda loader")
-                    return@runBlocking
+                    return@runIO
                 }
 
                 val clientJarPath = getModJarPath("lambda")
@@ -152,14 +167,14 @@ object AutoUpdater : Module(
     }
 
     private fun installClient() {
-        runBlocking(Dispatchers.IO) {
+        runIO {
             try {
                 debug("Starting Lambda client install...")
 
                 val clientJar = downloadLatestClient()
                 if (clientJar == null) {
                     logError("Failed to download latest Lambda client")
-                    return@runBlocking
+                    return@runIO
                 }
 
                 val loaderJarPath = getModJarPath("lambda-loader")
