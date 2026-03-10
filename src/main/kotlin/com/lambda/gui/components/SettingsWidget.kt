@@ -38,7 +38,7 @@ object SettingsWidget {
      */
     fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
         group {
-            if (config is Module && config !== AutoUpdater) {
+            if (config is Module && config != AutoUpdater) {
 				button("Module Settings") {
 					ImGui.openPopup("##module-settings-popup-${config.name}")
 				}
