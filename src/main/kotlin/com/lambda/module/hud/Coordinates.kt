@@ -67,12 +67,11 @@ object Coordinates : HudModule(
 				else "$position $otherDimensionPos"
 
 			val withDimension =
-				if (showDimension && showBiome) "$text ${world.dimensionName} in"
-				else if (showDimension) "$text ${world.dimensionName}"
+				if (showDimension) "$text ${world.dimensionName}"
 				else text
 
 			val withBiome =
-				if (showBiome) "$withDimension ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
+				if (showBiome) "$withDimension in ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
 				else withDimension
 			textCopyable(withBiome)
 		}
