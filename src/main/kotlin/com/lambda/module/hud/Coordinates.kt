@@ -67,17 +67,13 @@ object Coordinates : HudModule(
 				else "$position $otherDimensionPos"
 
 			val withDimension =
-				// TwinkNet start - show biome
 				if (showDimension && showBiome) "$text ${world.dimensionName} in"
 				else if (showDimension) "$text ${world.dimensionName}"
-				// TwinkNet end
 				else text
 
-			// TwinkNet start - Show biome
 			val withBiome =
 				if (showBiome) "$withDimension ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
 				else withDimension
-			// TwinkNet end
 			textCopyable(withBiome)
 		}
 	}
