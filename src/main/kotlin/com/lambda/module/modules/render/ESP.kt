@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,7 +90,11 @@ object ESP : Module(
 							blockEntity,
 							color,
 							{ worldOutline(it.pos, outlineStyle.toStyle(color)) },
-							{ it.cachedState.getOutlineShape(world, it.pos).boundingBoxes }
+							{ entity ->
+								entity.cachedState.getOutlineShape(world, entity.pos).boundingBoxes.map { box ->
+									box.offset(entity.pos)
+								}
+							}
 						)
 					}
 				}
