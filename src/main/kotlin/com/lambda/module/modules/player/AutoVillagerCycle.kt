@@ -18,6 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
@@ -93,7 +94,11 @@ object AutoVillagerCycle : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig()
+		setDefaultAutomationConfig() {
+			applyEdits {
+				hideAllGroupsExcept(rotationConfig, inventoryConfig, breakConfig, interactConfig, buildConfig)
+			}
+		}
 
 		onEnable {
 			allEnchantments.clear()
