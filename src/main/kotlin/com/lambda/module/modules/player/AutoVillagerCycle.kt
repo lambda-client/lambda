@@ -37,6 +37,7 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.NamedEnum
@@ -56,7 +57,7 @@ import net.minecraft.util.math.BlockPos
 
 
 object AutoVillagerCycle : Module(
-	name = "AutoVillagerCycler",
+	name = "AutoVillagerCycle",
 	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
 	tag = ModuleTag.PLAYER
 ) {
@@ -74,19 +75,19 @@ object AutoVillagerCycle : Module(
 	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks").group(Group.General)
 	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling").group(Group.General)
 		.onPress {
-			if (cycleState != CycleState.IDLE) {
+			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")
-				switchState(CycleState.IDLE)
+				switchState(CycleState.Idle)
 			} else {
 				info("Started villager cycling.")
 				buildTask?.cancel()
 				buildTask = null
-				switchState(CycleState.PLACE_LECTERN)
+				switchState(CycleState.PlaceLectern)
 			}
 		}
 	private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments).group(Group.Enchantments)
 
-	private var cycleState = CycleState.IDLE
+	private var cycleState = CycleState.Idle
 	private var tickCounter = 0
 
 	private var buildTask: Task<*>? = null
@@ -97,12 +98,12 @@ object AutoVillagerCycle : Module(
 		onEnable {
 			allEnchantments.clear()
 			allEnchantments.addAll(getEnchantmentList())
-			cycleState = CycleState.IDLE
+			cycleState = CycleState.Idle
 			tickCounter = 0
 		}
 
 		onDisable {
-			cycleState = CycleState.IDLE
+			cycleState = CycleState.Idle
 			tickCounter = 0
 			buildTask?.cancel()
 			buildTask = null
@@ -116,24 +117,24 @@ object AutoVillagerCycle : Module(
 			}
 
 			when (cycleState) {
-				CycleState.IDLE -> {}
-				CycleState.PLACE_LECTERN -> handlePlaceLectern()
-				CycleState.WAIT_LECTERN -> {}
-				CycleState.OPEN_VILLAGER -> handleOpenVillager()
-				CycleState.BREAK_LECTERN -> handleBreakLectern()
-				CycleState.WAIT_BREAK -> {}
+				CycleState.Idle -> {}
+				CycleState.PlaceLectern -> handlePlaceLectern()
+				CycleState.WaitLectern -> {}
+				CycleState.OpenVillager -> handleOpenVillager()
+				CycleState.BreakLectern -> handleBreakLectern()
+				CycleState.WaitBreak -> {}
 			}
 		}
 
 		listen<PacketEvent.Receive.Pre> { event ->
 			if (event.packet !is SetTradeOffersS2CPacket) return@listen
-			if (cycleState != CycleState.OPEN_VILLAGER) return@listen
+			if (cycleState != CycleState.OpenVillager) return@listen
 
 			val tradeOfferPacket = event.packet
 			val trades = tradeOfferPacket.offers
 			if (trades.isEmpty()) {
 				logError("Villager has no trades!")
-				switchState(CycleState.IDLE)
+				switchState(CycleState.Idle)
 				return@listen
 			}
 
@@ -154,14 +155,14 @@ object AutoVillagerCycle : Module(
 				findDesiredEnchantment(storedEnchantments)?.let {
 					info("Found desired enchantment: ${it.description().string}!")
 					playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
-					switchState(CycleState.IDLE)
+					switchState(CycleState.Idle)
 					return@listen
 				}
 			}
 
 			// No desired enchantment found, break lectern and try again
 			tickCounter = 0
-			switchState(CycleState.BREAK_LECTERN)
+			switchState(CycleState.BreakLectern)
 		}
 	}
 
@@ -178,19 +179,19 @@ object AutoVillagerCycle : Module(
 
 		if (lecternPos == BlockPos.ORIGIN) {
 			logError("Lectern position is not set!")
-			switchState(CycleState.IDLE)
+			switchState(CycleState.Idle)
 			return
 		}
 
 		val state = blockState(lecternPos)
 
-		if (!state.isAir) {
+		if (!state.isEmpty) {
 			if (state.isOf(Blocks.LECTERN)) {
-				switchState(CycleState.OPEN_VILLAGER)
+				switchState(CycleState.OpenVillager)
 				return
 			}
 			logError("Block at lectern position is not air or a lectern!")
-			switchState(CycleState.IDLE)
+			switchState(CycleState.Idle)
 			return
 		}
 
@@ -199,11 +200,11 @@ object AutoVillagerCycle : Module(
 				.toBlueprint()
 				.build(finishOnDone = true)
 				.finally {
-					switchState(CycleState.OPEN_VILLAGER)
+					switchState(CycleState.OpenVillager)
 				}
 				.run()
 		}
-		switchState(CycleState.WAIT_LECTERN)
+		switchState(CycleState.WaitLectern)
 	}
 
 	private fun SafeContext.handleOpenVillager() {
@@ -215,32 +216,34 @@ object AutoVillagerCycle : Module(
 
 		// Verify lectern is still present
 		val state = blockState(lecternPos)
-		if (state.isAir) {
+		if (state.isEmpty) {
 			tickCounter = 0
-			switchState(CycleState.PLACE_LECTERN)
+			switchState(CycleState.PlaceLectern)
 			return
 		}
 		if (!state.isOf(Blocks.LECTERN)) {
 			logError("Block at lectern position is not a lectern!")
-			switchState(CycleState.IDLE)
+			switchState(CycleState.Idle)
 			return
 		}
 
 		val villager = closestEntity<VillagerEntity>(searchRange)
 		if (villager == null) {
 			logError("No villager found nearby!")
-			switchState(CycleState.IDLE)
+			switchState(CycleState.Idle)
 			return
 		}
 
 		runSafeAutomated {
 			lookAtEntity(villager)?.let {
-				rotationRequest {
+				val done = rotationRequest {
 					rotation(it.rotation)
-				}.submit()
-				interaction.interactEntityAtLocation(player, villager, it.hit as EntityHitResult?, Hand.MAIN_HAND)
-				interaction.interactEntity(player, villager, Hand.MAIN_HAND)
-				player.swingHand(Hand.MAIN_HAND)
+				}.submit().done
+				if (done) {
+					interaction.interactEntityAtLocation(player, villager, it.hit as EntityHitResult?, Hand.MAIN_HAND)
+					interaction.interactEntity(player, villager, Hand.MAIN_HAND)
+					player.swingHand(Hand.MAIN_HAND)
+				}
 			}
 		}
 
@@ -256,19 +259,19 @@ object AutoVillagerCycle : Module(
 
 		val state = blockState(lecternPos)
 
-		if (!state.isAir) {
+		if (!state.isEmpty) {
 			buildTask = runSafeAutomated {
 				lecternPos.toStructure(TargetState.Empty)
 					.build(finishOnDone = true)
 					.finally {
-						switchState(CycleState.PLACE_LECTERN)
+						switchState(CycleState.PlaceLectern)
 					}
 					.run()
 			}
-			switchState(CycleState.WAIT_BREAK)
+			switchState(CycleState.WaitBreak)
 			return
 		}
-		switchState(CycleState.PLACE_LECTERN)
+		switchState(CycleState.PlaceLectern)
 	}
 
 	private fun findDesiredEnchantment(enchantments: ItemEnchantmentsComponent): Enchantment? {
@@ -291,11 +294,11 @@ object AutoVillagerCycle : Module(
 	}
 
 	private enum class CycleState {
-		IDLE,
-		PLACE_LECTERN,
-		OPEN_VILLAGER,
-		WAIT_LECTERN,
-		BREAK_LECTERN,
-		WAIT_BREAK
+		Idle,
+		PlaceLectern,
+		OpenVillager,
+		WaitLectern,
+		BreakLectern,
+		WaitBreak
 	}
 }
