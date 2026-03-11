@@ -42,6 +42,9 @@ public class ScreenMixin {
             if (QuickSearch.INSTANCE.isOpen()) {
                 QuickSearch.INSTANCE.close();
                 cir.setReturnValue(true);
+            } else if (AutoUpdater.getShowFirstLaunchModal()) {
+                AutoUpdater.dismissFirstLaunchPrompt();
+                cir.setReturnValue(true);
             } else if (AutoUpdater.getShowInstallModal()) {
                 AutoUpdater.INSTANCE.disable();
                 AutoUpdater.setShowInstallModal(false);

@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.popupModal
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -44,9 +45,12 @@ object AutoUpdater : Module(
     private val debug by setting("Debug", false, "Enable debug logging")
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
     private val clientBranch by setting("Client Branch", Branch.Snapshot, "Select client update branch")
+    private var loaderPromptHandled by setting("Loader Prompt Handled", false) { false }
 
+    @JvmStatic var showFirstLaunchModal = false
     @JvmStatic var showInstallModal = false
     @JvmStatic var showUninstallModal = false
+    private var firstLaunchStateInitialized = false
 
     private const val MAVEN_URL = "https://maven.lambda-client.org"
     private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda-loader/maven-metadata.xml"
@@ -80,31 +84,50 @@ object AutoUpdater : Module(
         }
 
         listen<GuiEvent.NewFrame>(alwaysListen = true) {
-            if (showInstallModal) {
-                ImGui.openPopup("Installation Wizard")
-                popupModal("Installation Wizard", WINDOW_FLAGS) {
-                    text("Enable Auto Updater")
-                    separator()
-                    spacing()
-                    text("The auto updater replaces your current version-specific Lambda mod file")
-                    text("with a lightweight loader that automatically checks for the latest version")
-                    text("on every launch and loads it for you.")
-                    spacing()
-                    text("This means you'll always be running the newest version of Lambda")
-                    text("without having to manually download and swap out the jar file.")
-                    spacing()
-                    separator()
-                    text("Note: The game will close after installation to apply the changes.")
-                    spacing()
+            initializeFirstLaunchStateIfNeeded()
 
-                    button("Install", 120f, 0f) {
+            if (showFirstLaunchModal) {
+                if (mc.currentScreen !is LambdaScreen) return@listen
+
+                ImGui.openPopup("Loader Installation Wizard")
+                popupModal("Loader Installation Wizard", WINDOW_FLAGS) {
+                    renderLoaderInstallExplanation()
+
+                    val buttonWidth = (ImGui.getContentRegionAvailX() - ImGui.getStyle().itemSpacing.x) / 2f
+
+                    button("Switch To Loader", buttonWidth, 0f) {
+                        completeFirstLaunchPrompt()
+                        showInstallModal = false
+                        showUninstallModal = false
+                        installLoader()
+                    }
+
+                    sameLine()
+
+                    button("Keep Current Jar", buttonWidth, 0f) {
+                        completeFirstLaunchPrompt()
+                    }
+                }
+                return@listen
+            }
+
+            showFirstLaunchModal = false
+
+            if (showInstallModal) {
+                ImGui.openPopup("Loader Installation Wizard")
+                popupModal("Loader Installation Wizard", WINDOW_FLAGS) {
+                    renderLoaderInstallExplanation()
+
+                    val buttonWidth = (ImGui.getContentRegionAvailX() - ImGui.getStyle().itemSpacing.x) / 2f
+
+                    button("Switch To Loader", buttonWidth, 0f) {
                         installLoader()
                         showInstallModal = false
                     }
 
                     sameLine()
 
-                    button("Cancel", 120f, 0f) {
+                    button("Cancel", buttonWidth, 0f) {
                         disable()
                     }
                 }
@@ -364,6 +387,49 @@ object AutoUpdater : Module(
         val fabricLoader = FabricLoader.getInstance()
         val modContainer = fabricLoader.getModContainer(modId)
         return modContainer.get().origin.paths[0].toAbsolutePath()
+    }
+
+    private fun initializeFirstLaunchStateIfNeeded() {
+        if (firstLaunchStateInitialized) return
+        firstLaunchStateInitialized = true
+
+        val usingLoader = FabricLoader.getInstance().isModLoaded("lambda-loader")
+        if (usingLoader) {
+            completeFirstLaunchPrompt()
+            if (!isEnabled) enable()
+            return
+        }
+
+        showFirstLaunchModal = !loaderPromptHandled
+    }
+
+    private fun ImGuiBuilder.renderLoaderInstallExplanation() {
+        text("Switch to Lambda Loader?")
+        separator()
+        spacing()
+        text("Lambda Loader replaces this version-specific Lambda jar")
+        text("with a lightweight bootstrap that keeps Lambda up to date.")
+        spacing()
+        text("Benefits:")
+        text("- Automatic updates on launch")
+        text("- No manual jar replacement")
+        spacing()
+        text("If you choose to switch, Lambda will install the loader")
+        text("and close the game so changes apply on next start.")
+        spacing()
+        separator()
+        text("You can change this later from the AutoUpdater module.")
+        spacing()
+    }
+
+    @JvmStatic
+    fun dismissFirstLaunchPrompt() {
+        completeFirstLaunchPrompt()
+    }
+
+    private fun completeFirstLaunchPrompt() {
+        loaderPromptHandled = true
+        showFirstLaunchModal = false
     }
 
     private data class SnapshotInfo(
