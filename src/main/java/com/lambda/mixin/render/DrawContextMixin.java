@@ -90,7 +90,7 @@ public abstract class DrawContextMixin {
             return;
         }
 
-        if (data.isPresent()) {
+        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent) {
             ci.cancel();
             ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, x, y);
         }
