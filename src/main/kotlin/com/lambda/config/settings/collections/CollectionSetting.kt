@@ -63,26 +63,41 @@ open class CollectionSetting<R : Any>(
 	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
 	val modelSelected = mutableSetOf<R>()
+	val modelSelectedAdd = mutableSetOf<R>()
+	val modelSelectedRemove = mutableSetOf<R>()
 
 	context(setting: Setting<*, MutableCollection<R>>)
 	override fun ImGuiBuilder.buildLayout() {
-		val popupName = "${setting.name}##${setting.name}-CollectionSettingPopup"
+		buildPopupButtonAndModel("${setting.name}##${setting.name}-CollectionSettingPopup")
 
+		//		buildComboBox("item") { it.toString() }
+	}
+
+	/**
+	 * Builds a popup for editing the selection. It displays two lists side by side: available elements on the left and selected elements on the right.
+	 * Available elements represents all elements from the [immutableCollection] that are not currently in the setting's value, while
+	 * selected elements represents all elements selected in the [value] list.
+	 * Changes are only applied after the user clicks the "Save" button. When existing using the popup without saving changes are discarded.
+	 * Users can move items between the lists using ">>" and "<<" buttons. A search box allows filtering items in both lists. The popup also includes
+	 * "Select All" and "Clear Search" buttons for convenience.
+	 */
+	context(setting: Setting<*, MutableCollection<R>>)
+	private fun ImGuiBuilder.buildPopupButtonAndModel(popupName: String) {
 		val childWidth = 350f
 		val childHeight = 500f
 		val buttonColumnWidth = 60f
 		val totalWidth = (childWidth + 10f) * 2 + buttonColumnWidth + 20f
 		val totalHeight = childHeight + 190f
 
-		if (ImGui.button("Edit List##${setting.name}-Edit")) {
+		if (ImGui.button("${setting.name}: Edit Selection <${value.size} of ${immutableCollection.size} selected>##${setting.name}-Edit")) {
 			ImGui.openPopup(popupName)
 		}
 
 		ImGui.setNextWindowSize(totalWidth, totalHeight)
 		val pOpen = ImBoolean(true)
 		if (ImGui.beginPopupModal(popupName, pOpen, ImGuiWindowFlags.NoResize)) {
-			val availableItems = immutableCollection.filter { it !in value }
-			val selectedItems = value.toList()
+			val availableItems = (immutableCollection.filter { it !in value && it !in modelSelectedAdd } + modelSelectedRemove).toMutableSet()
+			val selectedItems = (value.toList() + modelSelectedAdd - modelSelectedRemove).toMutableSet()
 
 			inputText("##${setting.name}-SearchBox", ::searchFilter)
 			sameLine()
@@ -104,7 +119,7 @@ open class CollectionSetting<R : Any>(
 			ImGui.setColumnWidth(0, childWidth + 10f)
 			ImGui.setColumnWidth(1, buttonColumnWidth)
 
-			// Linke Seite: Verfügbare Elemente
+			// Left side: Available elements
 			ImGui.text("Values")
 			child("##${setting.name}-AvailableChild", childWidth, childHeight, ImGuiChildFlags.Border) {
 				availableItems.filter { item ->
@@ -121,7 +136,7 @@ open class CollectionSetting<R : Any>(
 
 			ImGui.nextColumn()
 
-			// Mittlere Spalte: Buttons
+			// Middle column: Buttons
 			ImGui.dummy(0f, 300f)
 			val columnWidth = ImGui.getColumnWidth()
 			val buttonWidth = 40f
@@ -134,10 +149,9 @@ open class CollectionSetting<R : Any>(
 						else item.toString().contains(q, ignoreCase = true)
 					}
 					.forEach { item ->
-					if (item in value) return@forEach
-					value.add(item)
-					runSafe { selectListeners.forEach { listener -> listener(item) } }
-				}
+						modelSelectedAdd.add(item)
+						modelSelectedRemove.remove(item)
+					}
 				modelSelected.clear()
 			}
 			ImGui.setCursorPosX(ImGui.getCursorPosX() + (columnWidth - buttonWidth) / 2f)
@@ -149,28 +163,28 @@ open class CollectionSetting<R : Any>(
 						else item.toString().contains(q, ignoreCase = true)
 					}
 					.forEach { item ->
-					if (item !in value) return@forEach
-					value.remove(item)
-					runSafe { deselectListeners.forEach { listener -> listener(item) } }
-				}
+						modelSelectedRemove.add(item)
+						modelSelectedAdd.remove(item)
+					}
 				modelSelected.clear()
 			}
 
 			ImGui.nextColumn()
 
-			// Rechte Seite: Ausgewählte Elemente
+			// Right side: Selected elements
 			ImGui.text("Selected")
 			child("##${setting.name}-SelectedChild", childWidth, childHeight, ImGuiChildFlags.Border) {
 				selectedItems.filter { item ->
 					val q = searchFilter.trim()
 					if (q.isEmpty()) true
 					else item.toString().contains(q, ignoreCase = true)
-				}.forEach { item ->
-					val selected = item in modelSelected
-					if (ImGui.selectable("$item##selected", selected)) {
-						modelSelected.add(item)
-					}
 				}
+					.forEach { item ->
+						val selected = item in modelSelected
+						if (ImGui.selectable("$item##selected", selected)) {
+							modelSelected.add(item)
+						}
+					}
 			}
 
 			ImGui.columns(1)
@@ -180,17 +194,30 @@ open class CollectionSetting<R : Any>(
 			val windowWidth = ImGui.getWindowWidth()
 			ImGui.setCursorPosX((windowWidth - closeButtonWidth) / 2f)
 			if (ImGui.button("Save", closeButtonWidth, 0f)) {
+				modelSelectedAdd.forEach { item ->
+					if (item !in value) {
+						value.add(item)
+						runSafe { selectListeners.forEach { listener -> listener(item) } }
+					}
+				}
+				modelSelectedRemove.forEach { item ->
+					if (item in value) {
+						value.remove(item)
+						runSafe { deselectListeners.forEach { listener -> listener(item) } }
+					}
+				}
 				modelSelected.clear()
+				modelSelectedRemove.clear()
+				modelSelectedAdd.clear()
 				ImGui.closeCurrentPopup()
 			}
 
 			ImGui.endPopup()
-		}
-		if (!pOpen.get()) {
+		} else {
 			modelSelected.clear()
+			modelSelectedRemove.clear()
+			modelSelectedAdd.clear()
 		}
-
-		buildComboBox("item") { it.toString() }
 	}
 
 	context(setting: Setting<*, MutableCollection<R>>)
