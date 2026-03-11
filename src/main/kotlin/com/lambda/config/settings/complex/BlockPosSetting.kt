@@ -26,11 +26,11 @@ import com.lambda.command.commands.ConfigCommand
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import net.minecraft.client.MinecraftClient
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
@@ -43,21 +43,16 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 ) {
 	context(setting: Setting<*, BlockPos>)
 	override fun ImGuiBuilder.buildLayout() {
-		treeNode("Coordinates", id = setting.name) {
+		treeNode(setting.name, id = setting.name) {
 			inputVec3i(setting.name, value) { value = it.blockPos }
 		}
 		lambdaTooltip(setting.description)
 		sameLine()
 		button("Set") {
-			runSafe {
-				mc.crosshairTarget?.blockResult?.blockPos?.let {
-					setting.trySetValue(it, logResponse = false)
-					ConfigCommand.info("Coordinates updated")
-				} ?: let {
-					info("No block under cursor")
-					return@runSafe
-				}
-			}
+			MinecraftClient.getInstance().crosshairTarget?.blockResult?.blockPos?.let {
+				setting.trySetValue(it, logResponse = false)
+				ConfigCommand.info("Coordinates updated")
+			} ?: info("No block under crosshair")
 		}
 		lambdaTooltip("Set the coordinates to the block you are currently looking at")
 	}
