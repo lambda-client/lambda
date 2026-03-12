@@ -149,7 +149,7 @@ abstract class Targeting(
 
         /**
          * Prioritizes entities based on their health.
-         * Entites that aren't an instanceof LivingEntity will be treated as if they have Double.MAX_VALUE health,
+         * Entities that aren't an instanceof LivingEntity will be treated as if they have Double.MAX_VALUE health,
          * therefore having least priority
          */
         Health({ (it as? LivingEntity)?.fullHealth ?: Double.MAX_VALUE }),
