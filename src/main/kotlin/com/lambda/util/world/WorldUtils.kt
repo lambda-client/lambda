@@ -28,7 +28,9 @@ import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Vec3d
 import kotlin.collections.asSequence
 import kotlin.math.ceil
 import kotlin.sequences.filter
@@ -69,7 +71,7 @@ object WorldUtils {
                                 ?.filterIsInstance<T>()
                                 ?.filter {
                                     it != player &&
-                                            pos distSq it.pos <= distance * distance &&
+                                            getDistSqToClosestSideOfBoundBox(pos.toVec3d(), it.boundingBox) <= distance * distance &&
                                             filter(it)
                                 } ?: emptySequence()
                         )
@@ -77,6 +79,19 @@ object WorldUtils {
                 }
             }
         }
+    }
+
+    /**
+     * Returns the distance squared to the closest side of a [Box] to the specified [point]
+     */
+    fun getDistSqToClosestSideOfBoundBox(point: Vec3d, box: Box): Double {
+        val closestX = point.x.coerceIn(box.minX, box.maxX)
+        val closestY = point.y.coerceIn(box.minY, box.maxY)
+        val closestZ = point.z.coerceIn(box.minZ, box.maxZ)
+        val dx = point.x - closestX
+        val dy = point.y - closestY
+        val dz = point.z - closestZ
+        return dx * dx + dy * dy + dz * dz
     }
 
     /**

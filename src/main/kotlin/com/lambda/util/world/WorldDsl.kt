@@ -147,9 +147,9 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
     range: Double,
-    pos: BlockPos = player.blockPos,
+    pos: FastVector = player.pos.toFastVec(),
     noinline filter: (T) -> Boolean = { true },
-) = internalGetFastEntities<T>(pos.toFastVec(), range, filter = filter)
+) = internalGetFastEntities<T>(pos, range, filter = filter)
 
 @DslMarker
 annotation class FluidMarker
