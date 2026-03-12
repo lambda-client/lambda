@@ -149,10 +149,10 @@ abstract class Targeting(
 
         /**
          * Prioritizes entities based on their health.
-         * Entites that aren't an instanceof LivingEntity will be treated as if they are at 0 health,
+         * Entites that aren't an instanceof LivingEntity will be treated as if they have Double.MAX_VALUE health,
          * therefore having least priority
          */
-        Health({ (it as? LivingEntity)?.fullHealth ?: 0.0 }),
+        Health({ (it as? LivingEntity)?.fullHealth ?: Double.MAX_VALUE }),
 
         /**
          * Prioritizes entities based on their angle relative to the player's field of view.
