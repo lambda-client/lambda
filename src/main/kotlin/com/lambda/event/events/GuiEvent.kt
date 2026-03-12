@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,9 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
+import net.minecraft.block.entity.SignBlockEntity
 
 sealed class GuiEvent {
     /**
@@ -33,4 +36,12 @@ sealed class GuiEvent {
      * By default, the game's framebuffer is bound.
      */
     data object EndFrame : Event
+
+    /**
+     * Triggered when the sign editor GUI is opened. Can be canceled.
+     */
+    data class SignEditorOpen(
+        var sign: SignBlockEntity,
+        var front: Boolean
+    ) : ICancellable by Cancellable()
 }

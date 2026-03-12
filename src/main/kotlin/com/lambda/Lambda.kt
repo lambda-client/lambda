@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import com.lambda.config.serializer.ItemStackCodec
 import com.lambda.config.serializer.KeyCodeCodec
 import com.lambda.config.serializer.OptionalCodec
 import com.lambda.config.serializer.TextCodec
+import com.lambda.config.serializer.UUIDCodec
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -72,6 +73,7 @@ object Lambda : ClientModInitializer {
 
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
+        .registerTypeAdapter(UUID::class.java, UUIDCodec)
         .registerTypeAdapter(KeyCode::class.java, KeyCodeCodec)
         .registerTypeAdapter(Color::class.java, ColorSerializer)
         .registerTypeAdapter(BlockPos::class.java, BlockPosCodec)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,8 +66,8 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block is outside the world so it cant be altered
-        if (!world.worldBorder.contains(pos) || world.isOutOfHeightLimit(pos)) {
-            result(PreSimResult.OutOfWorld(pos))
+        if (world.isOutOfHeightLimit(pos)) {
+            result(PreSimResult.OutOfHeightLimit(pos))
             return false
         }
 

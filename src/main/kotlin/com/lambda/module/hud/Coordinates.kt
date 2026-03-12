@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ object Coordinates : HudModule(
 	}
 
 	private val showDimension by setting("Show Dimension Name", true)
+	private val showBiome by setting("Show Biome Name", true)
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
 	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
@@ -69,7 +70,16 @@ object Coordinates : HudModule(
 				if (showDimension) "$text ${world.dimensionName}"
 				else text
 
-			textCopyable(withDimension)
+			val withBiome =
+				if (showBiome) "$withDimension in ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
+				else withDimension
+			textCopyable(withBiome)
 		}
 	}
+
+	fun beautifyBiome(biome: String): String = biome
+		.substringAfterLast(':')
+		.replace('_', ' ')
+		.split(' ')
+		.joinToString(" ") { it.replaceFirstChar(Char::uppercaseChar) }
 }

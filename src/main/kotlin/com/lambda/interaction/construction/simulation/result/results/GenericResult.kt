@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable

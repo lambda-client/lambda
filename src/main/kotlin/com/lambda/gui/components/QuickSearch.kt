@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.StringUtils.levenshteinDistance
@@ -54,12 +55,13 @@ object QuickSearch {
 
     private const val DOUBLE_SHIFT_WINDOW_MS = 500L
     private const val MAX_RESULTS = 50
-    private const val WINDOW_FLAGS = ImGuiWindowFlags.AlwaysAutoResize or
-            ImGuiWindowFlags.NoTitleBar or
-            ImGuiWindowFlags.NoMove or
-            ImGuiWindowFlags.NoResize or
-            ImGuiWindowFlags.NoScrollbar or
-            ImGuiWindowFlags.NoScrollWithMouse
+    const val WINDOW_FLAGS =
+        ImGuiWindowFlags.AlwaysAutoResize or
+                ImGuiWindowFlags.NoTitleBar or
+                ImGuiWindowFlags.NoMove or
+                ImGuiWindowFlags.NoResize or
+                ImGuiWindowFlags.NoScrollbar or
+                ImGuiWindowFlags.NoScrollWithMouse
 
     init {
         listenUnsafe<ButtonEvent.Keyboard.Press> { event ->
@@ -303,6 +305,7 @@ object QuickSearch {
     }
 
     private fun handleKeyPress(event: ButtonEvent.Keyboard.Press) {
+        if (AutoUpdater.showInstallModal || AutoUpdater.showUninstallModal) return
         if ((!event.isPressed || event.isRepeated) ||
             !(event.keyCode == KeyCode.LeftShift.code || event.keyCode == KeyCode.RightShift.code)) return
 
