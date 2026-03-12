@@ -105,7 +105,7 @@ abstract class Targeting(
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
          *
          * @param player The [ClientPlayerEntity] performing the targeting.
-         * @param entity The [LivingEntity] being evaluated.
+         * @param entity The [Entity] being evaluated.
          * @return `true` if the entity is valid for targeting, `false` otherwise.
          */
         override fun validate(player: ClientPlayerEntity, entity: Entity): Boolean {
