@@ -245,7 +245,7 @@ object CrystalAura : Module(
 
     private fun SafeContext.tick() {
         // Update the target
-        currentTarget = targeting.target()
+        currentTarget = targeting.target<LivingEntity>()
 
         // Update the blueprint
         currentTarget?.let {

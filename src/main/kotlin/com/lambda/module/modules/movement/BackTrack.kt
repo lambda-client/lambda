@@ -95,7 +95,7 @@ object BackTrack : Module(
     init {
         listen<TickEvent.Pre> {
             val prevTarget = target
-            target = if (KillAura.isDisabled) null else KillAura.target
+            target = KillAura.target.takeIf { KillAura.isEnabled } as? LivingEntity
             val currentTarget = target
 
             if (prevTarget != currentTarget || currentTarget == null) {
