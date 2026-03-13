@@ -66,10 +66,9 @@ object Printer : Module(
 
 	private fun inSchematic(pos: BlockPos): Boolean {
 		val placementManager = DataManager.getSchematicPlacementManager()
-		placementManager?.getAllPlacementsTouchingChunk(pos)?.forEach {
-			if (it.placement.isEnabled && it.bb.containsPos(pos)) return true
-		}
-		return false
+		return placementManager?.getAllPlacementsTouchingChunk(pos)?.any {
+			it.placement.isEnabled && it.bb.containsPos(pos)
+		} ?: false
 	}
 
 	private fun litematicaAvailable(): Boolean = runCatching {
