@@ -47,11 +47,7 @@ object InventoryCleaner : Module(
 	private val itemsCanTrash by setting("Items Can Trash", setOf<Item>(Items.NETHERRACK, Items.COBBLESTONE), ITEM.toSet(), description = "A list of items that the module can trash when trying to make space in the inventory.")
 
 	private val dropOnContainerClick by setting("Drop On Container Click", true, description = "If enabled, shift + left clicking an item in a container will drop a trash item out of the inventory if the player inventory is full.")
-	private val dropToPickup by setting(
-		"Drop To Pickup",
-		true,
-		description = "If enabled, the module will drop a trash item out of the inventory when the player is in pickup range of an item to pickup.\nItems to pickup can be configured in the 'Items to pickup' setting.\nTrash items to drop can be configured in the 'Items can trash' setting."
-	)
+	private val dropToPickup by setting("Drop To Pickup", true, description = "If enabled, the module will drop a trash item out of the inventory when the player is in pickup range of an item to pickup.\nItems to pickup can be configured in the 'Items to pickup' setting.\nTrash items to drop can be configured in the 'Items can trash' setting.")
 	private val itemsToPickup by setting("Items To Pickup", setOf(), ITEM.toSet()) { dropToPickup }
 
 	init {
@@ -111,15 +107,13 @@ object InventoryCleaner : Module(
 		}
 	}
 
-	fun SafeContext.dropOneTrashStack(): Boolean {
+	fun SafeContext.dropOneTrashStack() {
 		StackSelection.selectStack {
 			isOneOfItems(itemsCanTrash)
 		}.filterSlots(InventoryContainer.slots).firstOrNull()?.let {
 			inventoryRequest {
 				throwStack(it.id)
 			}.submit(true)
-			return true
 		}
-		return false
 	}
 }
