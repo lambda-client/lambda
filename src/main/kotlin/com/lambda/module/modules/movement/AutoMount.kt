@@ -18,13 +18,15 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.applyEdits
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker
 import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.findRotation
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
+import com.lambda.interaction.managers.rotating.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -52,13 +54,19 @@ class AutoMount : Module(
 	var interval by setting("Interval", 50, 1..200, 1, unit = "ms", description = "Interact interval")
 	var range by setting("Range", 4.0, 1.0..20.0, 0.1, description = "Mount range")
 	var rotate by setting("Rotate", false, description = "Rotate to the entity when mounting")
+	var packetUnCrouch by setting("Packet Crouch", true, description = "Send the mount packet with the crouch flag false")
 	var debug by setting("Debug", false, description = "Print debug messages")
 
 	val intervalTimer = Timer()
 	var lastEntity: Entity? = null
 
 	init {
-		setDefaultAutomationConfig("AutoMount")
+		setDefaultAutomationConfig("AutoMount") {
+			applyEdits {
+				hideAllGroupsExcept(rotationConfig, interactConfig)
+			}
+		}
+
 		onEnable {
 			intervalTimer.reset()
 			lastEntity = null
@@ -74,7 +82,6 @@ class AutoMount : Module(
 						autoMountEntityList.contains(it.type) && canRide(it) && it.findRotation(range, player.eyePos) != null
 					}.sortedBy { it.squaredDistanceTo(player.pos) }
 					entity.firstOrNull()?.let {
-						intervalTimer.reset()
 						interactEntity(it)
 						if (debug) info("Mounting ${it.name}")
 					}
@@ -92,30 +99,36 @@ class AutoMount : Module(
 					return@let
 				}
 				if (canRide(it)) {
-					intervalTimer.reset()
-					interactEntity(it)
+					runSafeAutomated {
+						interactEntity(it)
+					}
 				}
 			}
 		}
 	}
 
-	private fun SafeContext.interactEntity(entity: Entity) {
+	private fun AutomatedSafeContext.interactEntity(entity: Entity) {
+		intervalTimer.reset()
 		if (rotate) {
-			runSafeAutomated {
-				var hit: VisibilityChecker.CheckedHit? = null
-				rotationRequest {
-					hit = lookAtEntity(entity)
-				}.submit()
-				hit?.let {
-					val hitResult = it.hit as? EntityHitResult ?: return@let
-					interaction.interactEntityAtLocation(player, entity, hitResult, Hand.MAIN_HAND)
-					return@runSafeAutomated
-				} ?: run {
-					if (debug) debug("Not rotation found to mount entity")
-					return@runSafeAutomated
+			lookAtEntity(entity)?.let {
+				val done = rotationRequest {
+					lookAtHit(it.hit)
+				}.submit().done
+				if (!done) {
+					if (debug) debug("Rotation request failed to submit")
+					return
 				}
-				if (debug) debug("Invalid entity rotation")
+				val hitResult = it.hit as? EntityHitResult ?: return@let
+				// Send packet to manually set sneak state
+				val vec3d = hitResult.getPos().subtract(entity.x, entity.y, entity.z)
+				val crouch = if (packetUnCrouch) false else player.isSneaking
+				connection.sendPacket(PlayerInteractEntityC2SPacket.interactAt(entity, crouch, Hand.MAIN_HAND, vec3d))
+				return
+			} ?: run {
+				if (debug) debug("Not rotation found to mount entity")
+				return
 			}
+			if (debug) debug("Invalid entity rotation")
 		} else {
 			connection.sendPacket(PlayerInteractEntityC2SPacket.interactAt(entity, false, Hand.MAIN_HAND, Vec3d(0.5, 0.5, 0.5)))
 			connection.sendPacket(PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND))
