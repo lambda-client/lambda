@@ -17,7 +17,6 @@
 
 package com.lambda.util.math
 
-import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.sq
 import net.minecraft.entity.Entity
