@@ -17,10 +17,10 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.RotationSettings
-import com.lambda.context.SafeContext
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.context.SafeContext
+import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -84,9 +84,6 @@ object ElytraAltitudeControl : Module(
 
 	val useTimerOnChunkLoad by setting("Use Timer On Slow Chunk Loading", false, "Slows down the game when chunks load slow to keep momentum").group(Group.TimerControls)
 	val timerMinChunkDistance by setting("Min Chunk Distance", 4, 1..20, 1, "Min unloaded chunk distance to start timer effect", unit = " chunks") { useTimerOnChunkLoad }.group(Group.TimerControls)
-	val timerReturnValue by setting("Timer Return Value", 1.0, 0.0..1.0, 0.05, description = "Timer speed to return when above min chunk distance") { useTimerOnChunkLoad }.group(Group.TimerControls)
-
-	override val rotationConfig = RotationSettings(this, Group.Rotation)
 
 	var controlState = ControlState.AttitudeControl
 	var state = Pitch40State.GainSpeed
@@ -106,30 +103,18 @@ object ElytraAltitudeControl : Module(
 			}
 		}
 
+		listen<ClientEvent.TimerUpdate> {
+			val timerValue = getTimerValue()
+			if (timerValue != null) {
+				it.speed = timerValue
+			}
+		}
+
 		listen<TickEvent.Pre> {
 			if (player.isGliding) {
 				when (controlState) {
 					ControlState.AttitudeControl -> updateAltitudeControls()
 					ControlState.Pitch40Fly -> updatePitch40Controls()
-				}
-
-				if (useTimerOnChunkLoad) {
-					nearestUnloadedChunk(world, player)
-						?.distCenter(player.pos)
-						?.let {
-							if (it <= timerMinChunkDistance * 16.0) {
-								val speedFactor = 0.1f + (it / (timerMinChunkDistance * 16.0)) * 0.9f
-								Timer.enable()
-								Timer.timer = speedFactor.coerceIn(0.1, 1.0)
-							}
-						}
-						?: run {
-							// FixMe:
-							//  When the timer is changed in an unloaded chunk and the player stop gliding,
-							//  the timer value is never set back.
-							if (Timer.isEnabled)
-								Timer.timer = timerReturnValue
-						}
 				}
 
 				lastPos = player.pos
@@ -144,11 +129,20 @@ object ElytraAltitudeControl : Module(
 			controlState = ControlState.AttitudeControl
 			lastAngle = pitch40UpStartAngle
 		}
+	}
 
-		onDisable {
-			if (useTimerOnChunkLoad)
-				Timer.timer = timerReturnValue
-		}
+	private fun SafeContext.getTimerValue(): Double? {
+		if (!useTimerOnChunkLoad) return null
+		return nearestUnloadedChunk(world, player)
+			?.distCenter(player.pos)
+			?.let {
+				if (it <= timerMinChunkDistance * 16.0) {
+					val speedFactor = 0.1f + (it / (timerMinChunkDistance * 16.0)) * 0.9f
+					return@let speedFactor.coerceIn(0.1, 1.0)
+				} else {
+					return@let null
+				}
+			}
 	}
 
 	private fun SafeContext.updateAltitudeControls() {
