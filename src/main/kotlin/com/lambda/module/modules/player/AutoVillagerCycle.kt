@@ -248,11 +248,10 @@ object AutoVillagerCycle : Module(
 					interaction.interactEntityAtLocation(player, villager, it.hit as EntityHitResult?, Hand.MAIN_HAND)
 					interaction.interactEntity(player, villager, Hand.MAIN_HAND)
 					player.swingHand(Hand.MAIN_HAND)
+					tickCounter = 0
 				}
 			}
 		}
-
-		tickCounter = 0
 	}
 
 	private fun SafeContext.handleBreakLectern() {
