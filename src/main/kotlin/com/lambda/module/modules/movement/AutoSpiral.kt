@@ -53,7 +53,7 @@ object AutoSpiral : Module(
 			if (iterator == null) {
 				iterator = BlockPosIterators.SpiralIterator2d(10000)
 				if (setCenterOnEnable) {
-					center = BlockPos.ORIGIN
+					center = player.blockPos
 				}
 			}
 		}
@@ -72,19 +72,19 @@ object AutoSpiral : Module(
 			currentWaypoint?.let { waypoint ->
 				if (!world.isNether) {
 					rotationRequest {
-						lookAt(waypoint.toCenterPos()).yaw
+						yaw(lookAt(waypoint.toCenterPos()).yaw)
 					}.submit(true)
 				}
 			}
 		}
 	}
 
-	private fun SafeContext.waypointReached(): Boolean {
-		return currentWaypoint?.let {
+	private fun SafeContext.waypointReached() =
+		currentWaypoint?.let {
 			val distance = distanceXZ(player.blockPos, it)
-			return distance <= waypointTriggerDistance
+			distance <= waypointTriggerDistance
 		} ?: false
-	}
+
 
 	private fun distanceXZ(a: BlockPos, b: BlockPos): Double {
 		val dx = (a.x - b.x).toDouble()
