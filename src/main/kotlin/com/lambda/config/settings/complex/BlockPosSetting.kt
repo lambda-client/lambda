@@ -22,7 +22,6 @@ import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.command.commands.ConfigCommand
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -43,18 +42,18 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 ) {
 	context(setting: Setting<*, BlockPos>)
 	override fun ImGuiBuilder.buildLayout() {
+		button("Set") {
+			MinecraftClient.getInstance().crosshairTarget?.blockResult?.blockPos?.let {
+				setting.trySetValue(it, logResponse = false)
+				setting.info("Coordinates updated")
+			} ?: info("No block under crosshair")
+		}
+		lambdaTooltip("Set the coordinates to the block you are currently looking at")
+		sameLine()
 		treeNode(setting.name, id = setting.name) {
 			inputVec3i(setting.name, value) { value = it.blockPos }
 		}
 		lambdaTooltip(setting.description)
-		sameLine()
-		button("Set") {
-			MinecraftClient.getInstance().crosshairTarget?.blockResult?.blockPos?.let {
-				setting.trySetValue(it, logResponse = false)
-				ConfigCommand.info("Coordinates updated")
-			} ?: info("No block under crosshair")
-		}
-		lambdaTooltip("Set the coordinates to the block you are currently looking at")
 	}
 
 	context(setting: Setting<*, BlockPos>)
