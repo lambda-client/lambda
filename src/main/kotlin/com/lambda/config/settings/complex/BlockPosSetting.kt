@@ -51,7 +51,7 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 		lambdaTooltip("Set the coordinates to the block you are currently looking at")
 		sameLine()
 		treeNode(setting.name, id = setting.name) {
-			inputVec3i(setting.name, value) { value = it.blockPos }
+			inputVec3i("##${setting.name}", value) { value = it.blockPos }
 		}
 		lambdaTooltip(setting.description)
 	}
