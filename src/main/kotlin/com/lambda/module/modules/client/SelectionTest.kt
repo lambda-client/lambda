@@ -26,5 +26,5 @@ class SelectionTest : Module(
 	tag = ModuleTag.CLIENT
 ) {
 
-	var selection1 by setting("Selection 1", mutableListOf<String>(), mutableListOf("String 1", "String 2", "String 3"))
+	var selection1 by setting("Selection 1", listOf(), listOf("String 1", "String 2", "String 3"))
 }

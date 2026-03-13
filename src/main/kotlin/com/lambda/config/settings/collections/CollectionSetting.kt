@@ -68,9 +68,17 @@ open class CollectionSetting<R : Any>(
 
 	context(setting: Setting<*, MutableCollection<R>>)
 	override fun ImGuiBuilder.buildLayout() {
+		val showReset = setting.isModified
+		val resetButtonText = "R"
+
 		buildPopupButtonAndModel("${setting.name}##${setting.name}-CollectionSettingPopup")
 
-		//		buildComboBox("item") { it.toString() }
+		if (showReset) {
+			sameLine()
+			button(resetButtonText) {
+				setting.reset()
+			}
+		}
 	}
 
 	/**

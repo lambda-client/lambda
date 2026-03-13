@@ -176,7 +176,28 @@ class Setting<T : SettingCore<R>, R>(
 			return
 		}
 		if (!silent) ConfigCommand.info(resetMessage(value, core.defaultValue))
-		value = core.defaultValue
+		when (value) {
+			is List<*> -> {
+				@Suppress("UNCHECKED_CAST")
+				(core.value as MutableList<Any>).clear()
+				@Suppress("UNCHECKED_CAST")
+				(core.value as MutableList<Any>).addAll(core.defaultValue as List<Any>)
+			}
+			is Set<*> -> {
+				@Suppress("UNCHECKED_CAST")
+				(core.value as MutableSet<Any>).clear()
+				@Suppress("UNCHECKED_CAST")
+				(core.value as MutableSet<Any>).addAll(core.defaultValue as Set<Any>)
+			}
+			is Map<*, *> -> {
+				@Suppress("UNCHECKED_CAST")
+				(core.value as MutableMap<Any, Any>).clear()
+				@Suppress("UNCHECKED_CAST")
+				(core.value as MutableMap<Any, Any>).putAll(core.defaultValue as Map<Any, Any>)
+			}
+			else
+				-> value = core.defaultValue
+		}
 	}
 
 	fun restoreOriginalCore() {
