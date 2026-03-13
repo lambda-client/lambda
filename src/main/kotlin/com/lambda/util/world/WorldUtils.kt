@@ -20,6 +20,7 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
+import com.lambda.util.math.distanceToSide
 import com.lambda.util.world.WorldUtils.internalGetEntities
 import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.block.BlockState
@@ -71,7 +72,7 @@ object WorldUtils {
                                 ?.filterIsInstance<T>()
                                 ?.filter {
                                     it != player &&
-                                            getDistSqToClosestSideOfBoundBox(pos.toVec3d(), it.boundingBox) <= distance * distance &&
+                                            pos.toVec3d().distanceToSide(it.boundingBox) <= distance * distance &&
                                             filter(it)
                                 } ?: emptySequence()
                         )
@@ -79,19 +80,6 @@ object WorldUtils {
                 }
             }
         }
-    }
-
-    /**
-     * Returns the distance squared to the closest side of a [Box] to the specified [point]
-     */
-    fun getDistSqToClosestSideOfBoundBox(point: Vec3d, box: Box): Double {
-        val closestX = point.x.coerceIn(box.minX, box.maxX)
-        val closestY = point.y.coerceIn(box.minY, box.maxY)
-        val closestZ = point.z.coerceIn(box.minZ, box.maxZ)
-        val dx = point.x - closestX
-        val dy = point.y - closestY
-        val dz = point.z - closestZ
-        return dx * dx + dy * dy + dz * dz
     }
 
     /**

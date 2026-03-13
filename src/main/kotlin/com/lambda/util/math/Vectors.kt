@@ -21,6 +21,7 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.sq
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
@@ -201,6 +202,19 @@ infix fun Entity.dist(other: Entity): Double = distanceTo(other).toDouble()
 infix fun Entity.distSq(other: Vec3d): Double = pos distSq other
 infix fun Entity.distSq(other: Vec3i): Int = blockPos distSq other
 infix fun Entity.distSq(other: Entity): Double = squaredDistanceTo(other)
+
+/**
+ * Returns the distance squared to the closest side of a [Box]
+ */
+fun Vec3d.distanceToSide(box: Box): Double {
+    val closestX = x.coerceIn(box.minX, box.maxX)
+    val closestY = y.coerceIn(box.minY, box.maxY)
+    val closestZ = z.coerceIn(box.minZ, box.maxZ)
+    val dx = x - closestX
+    val dy = y - closestY
+    val dz = z - closestZ
+    return dx * dx + dy * dy + dz * dz
+}
 
 val UP = Vec3d(0.0, 1.0, 0.0)
 val DOWN = Vec3d(0.0, -1.0, 0.0)
