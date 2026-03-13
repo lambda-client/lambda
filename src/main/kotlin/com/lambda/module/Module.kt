@@ -28,27 +28,22 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.updateListenerSorting
 import com.lambda.event.Muteable
 import com.lambda.event.OwnerPriority
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.module.modules.client.ModuleNotifier
-import com.lambda.module.modules.client.ModuleNotifier.NotifyTarget
-import com.lambda.module.modules.client.ModuleNotifier.notifyTarget
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
-import com.lambda.threading.runSafe
-import com.lambda.util.Communication.log
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import net.minecraft.text.Text
-import net.minecraft.util.Colors
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -157,8 +152,12 @@ abstract class Module(
         get() = !isEnabled && !alwaysListening
 
     init {
-        onEnable { LambdaSound.ModuleOn.play() }
-        onDisable { LambdaSound.ModuleOff.play() }
+        onEnable {
+            LambdaSound.ModuleOn.play()
+        }
+        onDisable {
+            LambdaSound.ModuleOff.play()
+        }
 
         onEnableUnsafe { LambdaSound.ModuleOn.play() }
         onDisableUnsafe { LambdaSound.ModuleOff.play() }
@@ -169,31 +168,24 @@ abstract class Module(
     }
 
     fun enable() {
+        if (ModuleEvent.Enabled(this@Module).post().isCanceled()) {
+            return
+        }
         isEnabled = true
     }
 
     fun disable() {
+        if (ModuleEvent.Disabled(this@Module).post().isCanceled()) {
+            return
+        }
         isEnabled = false
     }
 
     fun toggle() {
-        isEnabled = !isEnabled
-
-        if (ModuleNotifier.isEnabled) {
-            runSafe {
-                val message = if (isEnabled) {
-                    Text.literal("on").withColor(Colors.GREEN)
-                } else {
-                    Text.literal("off").withColor(Colors.RED)
-                }
-                if (notifyTarget.contains(NotifyTarget.Chat)) {
-                    log(message, source = name)
-                }
-                if (notifyTarget.contains(NotifyTarget.ActionBar)) {
-                    log(message, source = name, inGameOverlay = true)
-                }
-            }
+        if (ModuleEvent.Toggle(this@Module, !isEnabled).post().isCanceled()) {
+            return
         }
+        isEnabled = !isEnabled
     }
 
     fun onEnable(block: SafeContext.() -> Unit) {

@@ -117,26 +117,6 @@ object Communication {
         }
     }
 
-    /**
-     * Logs messages to the in game chat if available while keeping the message styles
-     */
-    fun Any.log(
-        message: MutableText,
-        logLevel: LogLevel = LogLevel.Info,
-        source: String = "",
-        textSource: Text = Text.empty(),
-        inGameOverlay: Boolean = false
-    ) {
-        buildText {
-            text(this@log.source(logLevel, source, textSource))
-            literal(message)
-        }.let { log ->
-            runSafeGameScheduled {
-                player.sendMessage(log, inGameOverlay)
-            }
-        }
-    }
-
     private fun Any.source(
         logLevel: LogLevel,
         source: String = "",

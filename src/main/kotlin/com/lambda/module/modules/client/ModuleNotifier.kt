@@ -17,11 +17,16 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.event.events.ModuleEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
+import com.lambda.threading.runSafe
+import com.lambda.util.Communication.log
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
+import net.minecraft.text.Text
+import net.minecraft.util.Colors
 
-@Suppress("unused")
 object ModuleNotifier : Module(
 	name = "ModuleNotifier",
 	description = "Notifies you when a module is enabled or disabled",
@@ -32,5 +37,37 @@ object ModuleNotifier : Module(
 	enum class NotifyTarget(override val displayName: String, override val description: String) : Describable, NamedEnum {
 		Chat("Chat", "Sends a message to chat when a module is toggled"),
 		ActionBar("Action Bar", "Sends a message to the action bar when a module is toggled"),;
+	}
+
+	init {
+		listen<ModuleEvent.Enabled> {
+			runSafe {
+				logToTargets(Text.literal("on").withColor(Colors.GREEN))
+			}
+		}
+
+		listen<ModuleEvent.Disabled> {
+			runSafe {
+				logToTargets(Text.literal("off").withColor(Colors.RED))
+			}
+		}
+
+		listen<ModuleEvent.Toggle> {
+			runSafe {
+				val newState = if (it.newValue) "on" else "off"
+				val color = if (it.newValue) Colors.GREEN else Colors.RED
+				val message = Text.literal(newState).withColor(color)
+				logToTargets(message)
+			}
+		}
+	}
+
+	private fun logToTargets(message: Text) {
+		if (notifyTarget.contains(NotifyTarget.Chat)) {
+			log(message, source = name)
+		}
+		if (notifyTarget.contains(NotifyTarget.ActionBar)) {
+			log(message, source = name, inGameOverlay = true)
+		}
 	}
 }
