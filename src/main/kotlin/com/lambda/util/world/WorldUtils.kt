@@ -29,12 +29,8 @@ import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.util.math.Vec3d
-import kotlin.collections.asSequence
 import kotlin.math.ceil
-import kotlin.sequences.filter
 
 object WorldUtils {
     fun SafeContext.isLoaded(pos: BlockPos) =
