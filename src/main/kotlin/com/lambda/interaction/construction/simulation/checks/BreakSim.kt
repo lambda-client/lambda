@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,6 +82,11 @@ class BreakSim private constructor(simInfo: SimInfo)
 	}
 
 	private suspend fun AutomatedSafeContext.simBreaks() {
+		if (!world.worldBorder.contains(pos)) {
+			result(BreakResult.OutOfBorder(pos))
+			return
+		}
+
 		if (breakConfig.avoidSupporting) player.supportingBlockPos.getOrNull()?.let { support ->
 			if (support != pos) return@let
 			result(BreakResult.PlayerOnTop(pos, state))
@@ -94,7 +99,7 @@ class BreakSim private constructor(simInfo: SimInfo)
 			return
 		}
 
-		if (breakConfig.avoidLiquids && affectsFluids()) return
+		if (breakConfig.avoidFluids && affectsFluids()) return
 
 		val (swapStack, stackSelection) = getSwapStack() ?: return
 		val instant = instantBreakable(
@@ -265,15 +270,11 @@ class BreakSim private constructor(simInfo: SimInfo)
 		}
 
 		if (affectedFluids.isNotEmpty()) {
-			val liquidOutOfBounds = affectedFluids.any { !world.worldBorder.contains(it.key) }
-			if (liquidOutOfBounds) {
-				result(GenericResult.Ignored(pos))
-				return true
-			}
-
-			affectedFluids.forEach { (fluidPos, fluidState) ->
-				result(BreakResult.Submerge(fluidPos, fluidState))
-				sim(fluidPos, fluidState, TargetState.Solid(emptySet()))
+			if (breakConfig.fillFluids) {
+				affectedFluids.forEach { (fluidPos, fluidState) ->
+					result(BreakResult.Submerge(fluidPos, fluidState))
+					sim(fluidPos, fluidState, TargetState.Solid(emptySet()))
+				}
 			}
 			result(BreakResult.BlockedByFluid(pos, state, affectedFluids.keys))
 			return true

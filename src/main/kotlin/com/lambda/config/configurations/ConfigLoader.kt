@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ import com.lambda.config.Configuration
 import com.lambda.core.Loadable
 
 object ConfigLoader: Loadable {
-    override val priority = 0
     override fun load(): String {
         Configuration.configurations.forEach {
             it.tryLoad()

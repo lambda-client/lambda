@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,14 +54,14 @@ object FastBreak : Module(
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 					editTyped(
-						::checkSideVisibility,
 						::strictRayCast
-					) { defaultValue(false); hide() }
+					) { defaultValue(false); }
+					hide(::strictRayCast, ::checkSideVisibility)
 					::blockReach.edit { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {
 					editTyped(
-						::avoidLiquids,
+						::avoidFluids,
 						::avoidSupporting,
 						::efficientOnly,
 						::suitableToolsOnly

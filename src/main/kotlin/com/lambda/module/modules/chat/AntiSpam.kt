@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,13 +59,13 @@ object AntiSpam : Module(
 	private val detectSwears = ReplaceSettings("Swears", this, Group.Swears)
 	private val detectSexual = ReplaceSettings("Sexual", this, Group.Sexual)
 	private val detectDiscord = ReplaceSettings("Discord", this, Group.Discord)
-		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
+		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
 	private val detectAddresses = ReplaceSettings("Addresses", this, Group.Addresses)
-		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
+		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
 	private val detectHexBypass = ReplaceSettings("Hex", this, Group.Hex)
-		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
+		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
 	private val detectColors = ReplaceSettings("Colors", this, Group.Colors)
-		.apply { applyEdits { editTyped(::action) { defaultValue(ReplaceConfig.ActionStrategy.None) } } }
+		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.None) } } }
 
 	enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
@@ -79,6 +79,7 @@ object AntiSpam : Module(
 	}
 
 	init {
+		setModulePriority(100)
 		listen<ChatEvent.Receive> { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
@@ -137,8 +138,9 @@ object AntiSpam : Module(
 		name: String,
 		c: Configurable,
 		baseGroup: NamedEnum,
+		override val visibility: () -> Boolean = { true },
 	) : ReplaceConfig, SettingGroup(c) {
-		override val action by setting("$name Action Strategy", ReplaceConfig.ActionStrategy.Replace).group(baseGroup)
-		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { action == ReplaceConfig.ActionStrategy.Replace }.group(baseGroup)
+		override val action by setting("$name Action Strategy", ReplaceConfig.ActionStrategy.Replace, visibility = visibility).group(baseGroup)
+		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { visibility() && action == ReplaceConfig.ActionStrategy.Replace }.group(baseGroup)
 	}
 }

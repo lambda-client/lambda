@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import com.lambda.interaction.managers.hotbar.HotbarManager
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
+import net.minecraft.block.Blocks
 
 /**
  * Represents a result holding a [BuildContext].
@@ -36,13 +37,15 @@ interface Contextual : ComparableResult<Rank> {
         when (other) {
             is Contextual -> compareBy<BuildContext> {
                 if (it is InteractContext) BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
-                else BlockUtils.fluids.size
+                else BlockUtils.fluids.size - 1
             }.thenByDescending {
                 if (it is InteractContext && it.cachedState.fluidState.level != 0) it.blockPos.y
                 else Int.MIN_VALUE
             }.thenByDescending {
                 if (it is InteractContext) it.cachedState.fluidState.level
                 else Int.MIN_VALUE
+            }.thenByDescending {
+                it.expectedState.block != Blocks.OBSERVER
             }.thenByDescending {
                 context.sorter == ActionConfig.SortMode.Tool && it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {

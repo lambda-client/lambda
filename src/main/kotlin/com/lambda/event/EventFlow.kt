@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -96,6 +96,17 @@ object EventFlow {
         syncListeners.unsubscribe(this)
         concurrentListeners.unsubscribe(this)
     }
+
+    fun Any.updateListenerSorting() {
+        syncListeners.updateListenerSorting(this)
+        concurrentListeners.updateListenerSorting(this)
+    }
+
+    private fun Subscriber.updateListenerSorting(owner: Any) =
+        values.forEach { listeners ->
+            val matching = listeners.filter { it.owner === owner }
+            matching.forEach { listeners.remove(it); it.priority.update(); listeners.add(it) }
+        }
 
     init {
         // parallel event execution on dedicated threads

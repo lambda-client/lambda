@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,12 +43,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import java.util.Optional;
 
-/*
-Map slot rendering code
-Original source: https://github.com/Crec0/map-in-slot
-Copyright (c) 2022 Crec0
-Licensed under MIT License
- */
 @Mixin(DrawContext.class)
 public abstract class DrawContextMixin {
     @Shadow
@@ -88,7 +82,6 @@ public abstract class DrawContextMixin {
     @Inject(method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;Ljava/util/Optional;IILnet/minecraft/util/Identifier;)V", at = @At("HEAD"), cancellable = true)
     private void onDrawTooltip(TextRenderer textRenderer, List<Text> text, Optional<TooltipData> data, int x, int y, @Nullable Identifier texture, CallbackInfo ci) {
         if (!ContainerPreview.INSTANCE.isEnabled()) return;
-
         if (ContainerPreview.isRenderingSubTooltip()) return;
 
         if (ContainerPreview.isLocked()) {
@@ -97,9 +90,9 @@ public abstract class DrawContextMixin {
             return;
         }
 
-        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent component) {
+        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent) {
             ci.cancel();
-            ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, component, x, y);
+            ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, x, y);
         }
     }
 }

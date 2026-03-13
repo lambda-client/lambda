@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -143,7 +143,16 @@ data class BreakRequest private constructor(
 			nowOrNothing: Boolean = false,
 			builder: (BreakRequestBuilder.() -> Unit)? = null
 		) = asSequence()
-			.map { if (it is Dependent) it.lastDependency else it }
+			.breakRequest(pendingInteractions, nowOrNothing, builder)
+
+		@BreakRequestDsl
+		@JvmName("breakRequest3")
+		context(automated: Automated)
+		fun Sequence<BuildResult>.breakRequest(
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (BreakRequestBuilder.() -> Unit)? = null
+		) = map { if (it is Dependent) it.lastDependency else it }
 			.filterIsInstance<BreakResult.Break>()
 			.sorted()
 			.map { it.context }
@@ -152,7 +161,7 @@ data class BreakRequest private constructor(
 			?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
 
 		@BreakRequestDsl
-		@JvmName("breakRequest3")
+		@JvmName("breakRequest4")
 		fun Automated.breakRequest(
 			contexts: Collection<BreakContext>,
 			pendingInteractions: MutableCollection<BuildContext>,

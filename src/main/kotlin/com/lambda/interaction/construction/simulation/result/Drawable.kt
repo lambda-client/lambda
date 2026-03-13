@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,12 @@
 
 package com.lambda.interaction.construction.simulation.result
 
-import com.lambda.graphics.mc.TransientRegionESP
+import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.mc.renderer.TickedRenderer
 
 /**
  * Represents a [BuildResult] that can be rendered in-game.
  */
 interface Drawable {
-    fun render(esp: TransientRegionESP)
+    fun RenderBuilder.render()
 }

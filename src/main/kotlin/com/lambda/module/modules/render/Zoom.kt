@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,10 +59,6 @@ object Zoom : Module(
 			else extraZoom += delta
 			updateZoomTime()
 			event.cancel()
-		}
-
-		listen<RenderEvent.Render>(alwaysListen = true) {
-			updateCurrentZoom()
 		}
 
 		onEnable {

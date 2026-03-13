@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText
@@ -52,7 +53,8 @@ object PrefixCommand : LambdaCommand(
 				}
 				val prefixChar = prefix.first()
 				val configurable = Configuration.configurableByName("command") ?: return@executeWithResult failure("No command configurable found.")
-				val setting = configurable.settings.find { it.name == "prefix" } as? Setting<*, Char>
+				@Suppress("UNCHECKED_CAST")
+				val setting = configurable.settings.find { it.name == "prefix" } as? Setting<SettingCore<Char>, Char>
 					?: return@executeWithResult failure("Prefix setting is not a Char or can not be found.")
 				setting.trySetValue(prefixChar)
 				return@executeWithResult success()

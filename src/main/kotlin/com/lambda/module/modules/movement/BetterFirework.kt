@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
@@ -49,8 +51,12 @@ object BetterFirework : Module(
 	description = "Automatic takeoff with fireworks",
 	tag = ModuleTag.MOVEMENT,
 ) {
-	private var activateButton by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
+	private var activateButton: Bind by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
+			if (mc.crosshairTarget?.type == HitResult.Type.BLOCK &&
+				!middleClickCancel &&
+				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code) return@onPress
+
 			if (!player.isElytraEquipped) {
 				warn("You need to equip an elytra to use this module!")
 				return@onPress
@@ -91,6 +97,7 @@ object BetterFirework : Module(
 		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
 	init {
+		setModulePriority(1)
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(hotbarConfig, inventoryConfig)
@@ -130,7 +137,7 @@ object BetterFirework : Module(
 				!fireworkInteract ||
 						player.inventory.selectedStack?.item != Items.FIREWORK_ROCKET ||
 						player.isGliding || // No need to do special magic if we are already holding fireworks and flying
-						(mc.crosshairTarget != null && mc.crosshairTarget!!.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
+						(mc.crosshairTarget != null && mc.crosshairTarget?.type != HitResult.Type.MISS && !fireworkInteractCancel) -> false
 				else -> {
 					mc.itemUseCooldown += 4
 					val cancelInteract = player.canTakeoff || fireworkInteractCancel
@@ -145,33 +152,21 @@ object BetterFirework : Module(
 		} ?: false
 
 	/**
-	 * Returns true when the pick interaction should be canceled.
+	 * Returns true if the pick interaction should be canceled.
 	 */
 	@JvmStatic
-	fun onPick() =
-		runSafe {
-			when {
-				(mc.crosshairTarget?.type == HitResult.Type.BLOCK && !middleClickCancel) ||
-						activateButton.mouse != mc.options.pickItemKey.boundKey.code ||
-						takeoffState != TakeoffState.None -> false // Prevent using multiple times
-				else -> middleClickCancel
-			}
-		} ?: false
+	fun onPick() = if (activateButton.mouse == mc.options.pickItemKey.boundKey.code) middleClickCancel else false
 
 	fun SafeContext.sendSwing() {
-		if (clientSwing) {
-			player.swingHand(Hand.MAIN_HAND)
-		} else {
-			connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
-		}
+		if (clientSwing) player.swingHand(Hand.MAIN_HAND)
+		else connection.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
 	}
 
 	/**
 	 * Use a firework from the hotbar or inventory if possible.
 	 * Return true if a firework has been used
 	 */
-	@JvmStatic
-	fun SafeContext.startFirework(silent: Boolean) {
+	fun SafeContext.startFirework(inventory: Boolean) {
 		val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
 
 		stack.bestItemMatch(player.hotbarStacks)
@@ -185,7 +180,7 @@ object BetterFirework : Module(
 				return
 			}
 
-		if (!silent) return
+		if (!inventory) return
 
 		stack.bestItemMatch(player.hotbarAndInventoryStacks)
 			?.let {

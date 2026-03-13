@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,8 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.event.EventFlow;
+import com.lambda.event.events.HudRenderEvent;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.gui.DrawContext;
@@ -81,5 +83,14 @@ public class InGameHudMixin {
     @Inject(method = "renderCrosshair", at = @At("HEAD"), cancellable = true)
     private void injectRenderCrosshair(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         if (NoRender.INSTANCE.isEnabled() && NoRender.getNoCrosshair()) ci.cancel();
+    }
+
+    /**
+     * Fire HudRenderEvent at the end of HUD rendering to allow Lambda modules
+     * to render items and other GUI elements using the valid DrawContext.
+     */
+    @Inject(method = "render", at = @At("RETURN"))
+    private void onRenderEnd(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        EventFlow.post(new HudRenderEvent(context));
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,27 +38,16 @@ object Printer : Module(
 	description = "Automatically prints schematics",
 	tag = ModuleTag.PLAYER
 ) {
-	private fun isLitematicaAvailable(): Boolean = runCatching {
-		Class.forName("fi.dy.masa.litematica.Litematica")
-		true
-	}.getOrDefault(false)
-
 	private val range by setting("Range", 5, 1..7, 1)
 	private val air by setting("Air", false)
 
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				editTyped(buildConfig::pathing, buildConfig::stayInRange) { defaultValue(false) }
-				editTyped(breakConfig::efficientOnly, breakConfig::suitableToolsOnly) { defaultValue(false) }
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.Grim) }
-			}
-		}
+		setDefaultAutomationConfig()
 
 		onEnable {
-			if (!isLitematicaAvailable()) {
+			if (!litematicaAvailable()) {
 				logError("Litematica is not installed!")
 				disable()
 				return@onEnable
@@ -76,4 +65,9 @@ object Printer : Module(
 
 		onDisable { buildTask?.cancel(); buildTask = null }
 	}
+
+	private fun litematicaAvailable(): Boolean = runCatching {
+		Class.forName("fi.dy.masa.litematica.Litematica")
+		true
+	}.getOrDefault(false)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import com.lambda.context.SafeContext
  *
  * Currently not implemented:
  * - Elytra movement
- * - Movement in liquids
+ * - Movement in fluids
  * - Ladder climbing
  * - Movement in webs
  * - Sneaking safewalk

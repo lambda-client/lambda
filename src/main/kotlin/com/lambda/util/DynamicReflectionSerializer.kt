@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,6 +81,12 @@ object DynamicReflectionSerializer : Loadable {
 
     private val qualifiedMappings = runBlocking {
         cache.resolveFile(LambdaAPI.gameVersion)
+            .also {
+                if (it.exists() && !it.readText().contains("net.minecraft.client.MinecraftClient")) {
+                    LOG.debug("Re-downloading yarn mappings as the current cache is improperly generated")
+                    it.delete()
+                }
+            }
             .downloadIfNotPresent("${LambdaAPI.mappings}/${LambdaAPI.gameVersion}")
             .map(::buildMappingsMap)
             .getOrElse {

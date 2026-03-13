@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -163,10 +163,10 @@ interface IRotationRequest : Automated {
 		fun rotation(builder: SafeContext.() -> Rotation) { rotationBuilder = builder }
 
 		@RotationRequestDsl
-		fun rotation(pitch: Double, yaw: Double) { rotationBuilder = { Rotation(pitch, yaw) } }
+		fun rotation(yaw: Double, pitch: Double) { rotationBuilder = { Rotation(yaw, pitch) } }
 
 		@RotationRequestDsl
-		fun rotation(pitch: Float, yaw: Float) { rotationBuilder = { Rotation(pitch, yaw) } }
+		fun rotation(yaw: Float, pitch: Float) { rotationBuilder = { Rotation(yaw, pitch) } }
 
 		@RotationRequestDsl
 		fun rotation(rotation: Rotation) { rotationBuilder = { rotation } }

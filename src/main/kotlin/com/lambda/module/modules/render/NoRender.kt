@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,16 +17,16 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.DynamicReflectionSerializer.remappedName
+import com.lambda.util.EntityUtils.createNameMap
 import com.lambda.util.NamedEnum
 import com.lambda.util.reflections.scanResult
-import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
 import net.minecraft.entity.Entity
-import net.minecraft.entity.SpawnGroup
 
 //ToDo: Implement unimplemented settings. (Keep in mind compatibility with other mods like sodium)
 object NoRender : Module(
@@ -34,20 +34,7 @@ object NoRender : Module(
 	description = "Disables rendering of certain things",
 	tag = ModuleTag.RENDER,
 ) {
-	private val entities = scanResult
-		.getSubclasses(Entity::class.java)
-		.filter { !it.isAbstract && it.name.startsWith("net.minecraft") }
-
 	private val particleMap = createParticleNameMap()
-	private val blockEntityMap = createBlockEntityNameMap()
-	private val playerEntityMap = createEntityNameMap("net.minecraft.client.network.")
-	private val bossEntityMap = createEntityNameMap("net.minecraft.entity.boss.")
-	private val decorationEntityMap = createEntityNameMap("net.minecraft.entity.decoration.")
-	private val mobEntityMap = createEntityNameMap("net.minecraft.entity.mob.")
-	private val passiveEntityMap = createEntityNameMap("net.minecraft.entity.passive.")
-	private val projectileEntityMap = createEntityNameMap("net.minecraft.entity.projectile.")
-	private val vehicleEntityMap = createEntityNameMap("net.minecraft.entity.vehicle.")
-	private val miscEntityMap = createEntityNameMap("net.minecraft.entity.", strictDir = true)
 
 	private enum class Group(override val displayName: String) : NamedEnum {
 		Hud("Hud"),
@@ -76,6 +63,7 @@ object NoRender : Module(
 	@JvmStatic val noBossBar by setting("No Boss Bar", false).group(Group.Hud)
 	@JvmStatic val noScoreBoard by setting("No Score Board", false).group(Group.Hud)
 	@JvmStatic val noStatusEffects by setting("No Status Effects", false).group(Group.Hud)
+	@JvmStatic val no2b2tActionText by setting("No 2b2t Action Text", true, description = "Blocks the '2b2t.org' text from the action bar 2b2t randomly sends").group(Group.Hud)
 
 	@JvmStatic val noArmor by setting("No Armor", false).group(Group.Entity)
 	@JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }.group(Group.Entity)
@@ -86,15 +74,13 @@ object NoRender : Module(
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-	private val playerEntities by setting("Player Entities", emptySet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering").group(Group.Entity)
-	private val bossEntities by setting("Boss Entities", emptySet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering").group(Group.Entity)
-	private val decorationEntities by setting("Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering").group(Group.Entity)
-	private val mobEntities by setting("Mob Entities", emptySet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering").group(Group.Entity)
-	private val passiveEntities by setting("Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering").group(Group.Entity)
-	private val projectileEntities by setting("Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering").group(Group.Entity)
-	private val vehicleEntities by setting("Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering").group(Group.Entity)
-	private val miscEntities by setting("Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering").group(Group.Entity)
-	private val blockEntities by setting("Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering").group(Group.Entity)
+	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entity)).apply {
+		applyEdits {
+			editTyped(::playerEntities, ::mobEntities, ::bossEntities) {
+				defaultValue(mutableSetOf())
+			}
+		}
+	}
 
 	@JvmStatic val noTerrainFog by setting("No Terrain Fog", false).group(Group.World)
 	@JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)
@@ -112,37 +98,6 @@ object NoRender : Module(
 			.filter { !it.isAbstract }
 			.createNameMap("net.minecraft.client.particle.", "Particle")
 
-	private fun createEntityNameMap(directory: String, strictDir: Boolean = false) =
-		entities.createNameMap(directory, "Entity", strictDir)
-
-	private fun createBlockEntityNameMap() =
-		scanResult
-			.getSubclasses(BlockEntity::class.java)
-			.filter { !it.isAbstract }.createNameMap("net.minecraft.block.entity", "BlockEntity")
-
-	private fun Collection<ClassInfo>.createNameMap(
-		directory: String,
-		removePattern: String = "",
-		strictDirectory: Boolean = false
-	) = map {
-			val remappedName = it.name.remappedName
-			val displayName = remappedName
-				.substring(remappedName.indexOfLast { it == '.' } + 1)
-				.replace(removePattern, "")
-				.fancyFormat()
-			MappingInfo(it.simpleName, remappedName, displayName)
-		}
-		.sortedBy { it.displayName.lowercase() }
-		.filter { info ->
-			if (strictDirectory)
-				info.remapped.startsWith(directory) && !info.remapped.substring(directory.length).contains(".")
-			else info.remapped.startsWith(directory)
-		}
-		.associate { it.raw to it.displayName }
-
-	private fun String.fancyFormat() =
-		replace("$", " - ").replace("(?<!\\s)[A-Z]".toRegex(), " $0")
-
 	@JvmStatic
 	fun shouldOmitParticle(particle: Particle) =
 		isEnabled && particleMap[particle.javaClass.simpleName] in particles
@@ -152,35 +107,8 @@ object NoRender : Module(
 		isEnabled && particleMap[particle.simpleName] in particles
 
 	@JvmStatic
-	fun shouldOmitEntity(entity: Entity): Boolean {
-		val simpleName = entity.javaClass.simpleName
-		return isEnabled && when (entity.type.spawnGroup) {
-			SpawnGroup.MISC ->
-				miscEntityMap[simpleName] in miscEntities ||
-						playerEntityMap[simpleName] in playerEntities ||
-						projectileEntityMap[simpleName] in projectileEntities ||
-						vehicleEntityMap[simpleName] in vehicleEntities ||
-						decorationEntityMap[simpleName] in decorationEntities ||
-						passiveEntityMap[simpleName] in passiveEntities ||
-						mobEntityMap[simpleName] in mobEntities ||
-						bossEntityMap[simpleName] in bossEntities
-			SpawnGroup.WATER_AMBIENT,
-			SpawnGroup.WATER_CREATURE,
-			SpawnGroup.AMBIENT,
-			SpawnGroup.AXOLOTLS,
-			SpawnGroup.CREATURE,
-			SpawnGroup.UNDERGROUND_WATER_CREATURE -> passiveEntityMap[simpleName] in passiveEntities
-			SpawnGroup.MONSTER -> mobEntityMap[simpleName] in mobEntities
-		}
-	}
+	fun shouldOmitEntity(entity: Entity): Boolean = entitySettings.isSelected(entity)
 
 	@JvmStatic
-	fun shouldOmitBlockEntity(blockEntity: BlockEntity) =
-		isEnabled && blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities
-
-	private data class MappingInfo(
-		val raw: String,
-		val remapped: String,
-		val displayName: String
-	)
+	fun shouldOmitBlockEntity(blockEntity: BlockEntity) = entitySettings.isSelected(blockEntity)
 }

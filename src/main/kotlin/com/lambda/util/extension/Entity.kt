@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,9 @@ val Entity.rotation
 
 val LivingEntity.fullHealth: Double
     get() = health + absorptionAmount.toDouble()
+
+val LivingEntity.maxFullHealth: Double
+    get() = maxHealth + maxAbsorption.toDouble()
 
 var LivingEntity.isElytraFlying
     get() = isGliding

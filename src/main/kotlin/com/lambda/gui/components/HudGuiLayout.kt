@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
-import com.lambda.gui.snap.Guide
 import com.lambda.gui.snap.RectF
 import com.lambda.gui.snap.SnapManager
 import com.lambda.gui.snap.SnapManager.drawDragGrid
@@ -42,7 +41,6 @@ import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiWindowFlags
 import java.awt.Color
 import kotlin.math.PI
-import kotlin.math.max
 
 object HudGuiLayout : Loadable, Configurable(HudConfig) {
     override val name = "HUD"
@@ -146,7 +144,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
             ImGui.setNextWindowPos(override.first, override.second)
         }
 
-        val bg = hud.backgroundColor
+        val bg = hud.backgroundColor.value
         val hasBg = bg.alpha > 0
         val baseFlags = if (hasBg) {
             DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
@@ -160,12 +158,9 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
             val packed = ImColor.rgba(bg.red, bg.green, bg.blue, bg.alpha)
             ImGui.pushStyleColor(imgui.flag.ImGuiCol.WindowBg, packed)
             true
-        } else {
-            false
-        }
+        } else false
 
-        val outlineWidth = if (hud.outline) hud.outlineWidth else 0f
-        withStyleVar(ImGuiStyleVar.WindowBorderSize, outlineWidth) {
+        withStyleVar(ImGuiStyleVar.WindowBorderSize, 0f) {
             window("##${hud.name}", flags = hudFlags) {
                 if (ClickGuiLayout.open && !isLocked && activeDragHudName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
                     val mx = io.mousePos.x

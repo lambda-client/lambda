@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,9 +65,9 @@ object HotbarManager : Manager<HotbarRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			swapsThisTick = 0
-			if (swapDelay > 0) swapDelay--
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            swapsThisTick = 0
+            if (swapDelay > 0) swapDelay--
 
 			val currentStack = player.mainHandStack
 			if (previousStack != currentStack) swappedTicks = 1

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,7 +46,7 @@ interface RotationConfig : ISettingGroup {
 
     val tickStageMask: Set<TickEvent>
 
-    open class Instant(mode: RotationMode) : RotationConfig {
+    open class Instant(mode: RotationMode, override val visibility: () -> Boolean = { true }) : RotationConfig {
 	    override val settings = mutableListOf<Setting<*, *>>()
         override val rotationMode = mode
         override val keepTicks = 1

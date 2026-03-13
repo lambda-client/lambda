@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -119,11 +119,15 @@ class BuildTask private constructor(
     }
 
     private fun AutomatedSafeContext.simulateAndProcess() {
-        val results = runSafeAutomated { blueprint.structure.simulate() }
+        val results =
+            blueprint.structure
+                .simulate()
+                .asSequence()
 
         DEFAULT.drawables = results
             .filterIsInstance<Drawable>()
             .plus(pendingInteractions.toList())
+            .toList()
 
         val viableResults = results
             .filter { result ->
@@ -141,7 +145,7 @@ class BuildTask private constructor(
         handleResult(bestResult, viableResults)
     }
 
-    private fun AutomatedSafeContext.handleResult(result: BuildResult, allResults: List<BuildResult>) {
+    private fun AutomatedSafeContext.handleResult(result: BuildResult, allResults: Sequence<BuildResult>) {
         if (result !is Dependent && result !is Contextual && pendingInteractions.isNotEmpty()) return
 
         when (result) {

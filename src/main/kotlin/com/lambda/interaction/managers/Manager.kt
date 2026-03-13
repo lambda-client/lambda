@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,35 +65,35 @@ abstract class Manager<R : Request>(
 	override fun load(): String {
 		openStages.forEach { openRequestsFor(it::class, it) }
 
-		listen<TickEvent.Post>(Int.MIN_VALUE) {
-			activeThisTick = false
-			queuedRequest = null
-		}
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            activeThisTick = false
+            queuedRequest = null
+        }
 
 		return super.load()
 	}
 
-	/**
-	 * opens the handler for requests for the duration of the given event
-	 */
-	private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
-		listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
-			tickStage = stage
-			queuedRequest?.let { request ->
-				if (tickStage !in request.tickStageMask) return@let
-				request.runSafeAutomated { handleRequest(request) }
-				request.fresh = false
-				queuedRequest = null
-			}
-			acceptingRequests = true
-			onOpen?.invoke(this)
-		}
+    /**
+     * opens the handler for requests for the duration of the given event
+     */
+    private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
+        listen(instance, { (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority) }) {
+            tickStage = stage
+            queuedRequest?.let { request ->
+                if (tickStage !in request.tickStageMask) return@let
+                request.runSafeAutomated { handleRequest(request) }
+                request.fresh = false
+                queuedRequest = null
+            }
+            acceptingRequests = true
+            onOpen?.invoke(this)
+        }
 
-		listen(instance, priority = (Int.MIN_VALUE + 1) + stagePriority) {
-			onClose?.invoke(this)
-			acceptingRequests = false
-		}
-	}
+        listen(instance, { (Int.MIN_VALUE + 1) + stagePriority }) {
+            onClose?.invoke(this)
+            acceptingRequests = false
+        }
+    }
 
 	/**
 	 * Registers a new request

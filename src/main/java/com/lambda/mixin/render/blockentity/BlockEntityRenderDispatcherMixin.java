@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,18 +28,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Mixin to disable block entity rendering when NoRender is enabled.
- *
- * Note: In 1.21.11, BlockEntityRenderDispatcher was renamed to BlockEntityRenderManager
- * and uses a render state system. Returning null from getRenderState prevents rendering.
- */
 @Mixin(BlockEntityRenderManager.class)
 public class BlockEntityRenderDispatcherMixin {
     @Inject(method = "getRenderState", at = @At("HEAD"), cancellable = true)
-    private <E extends BlockEntity, S extends BlockEntityRenderState> void injectGetRenderState(
-            E blockEntity, float tickProgress, ModelCommandRenderer.@Nullable CrumblingOverlayCommand crumblingOverlay,
-            CallbackInfoReturnable<S> cir) {
+    private <E extends BlockEntity, S extends BlockEntityRenderState> void injectGetRenderState(E blockEntity, float tickProgress, ModelCommandRenderer.@Nullable CrumblingOverlayCommand crumblingOverlay, CallbackInfoReturnable<S> cir) {
         if (NoRender.shouldOmitBlockEntity(blockEntity)) {
             cir.setReturnValue(null);
         }

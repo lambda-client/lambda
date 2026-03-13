@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,15 +20,17 @@ package com.lambda.module
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
+import com.lambda.config.IMutableAutomationConfig
 import com.lambda.config.MutableAutomationConfig
-import com.lambda.config.MutableAutomationConfigImpl
 import com.lambda.config.SettingCore
 import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.updateListenerSorting
 import com.lambda.event.Muteable
+import com.lambda.event.OwnerPriority
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.listener.Listener
@@ -119,13 +121,23 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, Configurable(ModuleConfigs), MutableAutomationConfig by MutableAutomationConfigImpl() {
+) : Nameable, Muteable, OwnerPriority, Configurable(ModuleConfigs),
+    IMutableAutomationConfig by MutableAutomationConfig()
+{
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
+    val prioritySetting = setting("Module Priority", 0, -100..100, 1, "Priority over other modules") { false }
+		.onValueChangeUnsafe { _, to -> ownerPriority = to }
+    override var ownerPriority = 0
+        set(value) {
+            val oldVal = field
+            field = value
+            if (value != oldVal) updateListenerSorting()
+        }
     val keybindSetting = setting("Keybind", defaultKeybind, alwaysListening = true) { false }
         .onPress { toggle() }
         .onRelease { if (disableOnRelease) disable() }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }
-    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element")
+    val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
@@ -161,39 +173,44 @@ abstract class Module(
         isEnabled = !isEnabled
     }
 
-    protected fun onEnable(block: SafeContext.() -> Unit) {
+    fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisable(block: SafeContext.() -> Unit) {
+    fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
+    fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
-    protected fun onEnableUnsafe(block: () -> Unit) {
+    fun onEnableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisableUnsafe(block: () -> Unit) {
+    fun onDisableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
+    fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
+    }
+
+    protected fun setModulePriority(priority: Int) {
+        prioritySetting.value = priority
+        prioritySetting.core.defaultValue = priority
     }
 }

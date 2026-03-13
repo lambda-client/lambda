@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,20 +37,20 @@ import net.minecraft.util.Hand
 object RebreakHandler {
 	var rebreak: BreakInfo? = null
 
-	init {
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE + 1) {
-			rebreak?.run {
-				if (!progressedThisTick) {
-					breakingTicks++
-					progressedThisTick = true
-				}
-			}
-		}
+    init {
+        listen<TickEvent.Post>({ Int.MIN_VALUE + 1 }) {
+            rebreak?.run {
+                if (!progressedThisTick) {
+                    breakingTicks++
+                    progressedThisTick = true
+                }
+            }
+        }
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-			rebreak = null
-		}
-	}
+        listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+            rebreak = null
+        }
+    }
 
 	/**
 	 * Tests to see if the [BreakInfo] can be accepted. If not, nothing happens. Otherwise,

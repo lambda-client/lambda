@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,14 +29,25 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
 import com.lambda.module.modules.movement.BetterFirework.canTakeoff
+import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.Timer
 import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
+import com.lambda.util.player.SlotUtils.hotbarStacks
+import com.lambda.util.player.hasFirework
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
+import net.minecraft.item.ItemStack
+import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
+import net.minecraft.util.math.Vec3d
+import kotlin.time.Duration.Companion.seconds
 
 object ElytraFly : Module(
     name = "ElytraFly",
@@ -44,6 +55,7 @@ object ElytraFly : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic val mode by setting("Mode", FlyMode.Bounce)
+    private val inventory by setting("Inventory", true, "Allow using fireworks from the players inventory")
 
     //ToDo: Implement these commented out settings
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
@@ -54,13 +66,16 @@ object ElytraFly : Module(
 //    private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
 
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
-    private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0 ..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }
+    private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }
 
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
 
-    var jumpThisTick = false
-    var previouslyFlying: Boolean? = null
-    var glidePause = 0
+    private var jumpThisTick = false
+    private var previouslyFlying: Boolean? = null
+    private var glidePause = 0
+    private var flipFlop = false
+    private var lastDuration = 1.0
+    private val fireworkTimer = Timer()
 
     init {
         setDefaultAutomationConfig {
@@ -70,20 +85,8 @@ object ElytraFly : Module(
         }
 
         listen<TickEvent.Pre> {
-            if (mode != FlyMode.Bounce) return@listen
-            if (autoPitch) rotationRequest { pitch(pitch.toFloat()) }.submit()
-
-            if (!player.isGliding) {
-                if (takeoff && player.canTakeoff) {
-                    if (player.canOpenElytra) {
-                        player.startGliding()
-                        startFlyPacket()
-                    } else jumpThisTick = true
-                }
-                return@listen
-            }
-
-            startFlyPacket()
+            if (mode == FlyMode.GrimControl) onTickGrimControl()
+            else if (mode == FlyMode.Bounce) onTickBounce()
         }
 
         listen<TickEvent.Post> {
@@ -117,6 +120,59 @@ object ElytraFly : Module(
         }
     }
 
+    private fun SafeContext.onTickGrimControl() {
+        if (!player.isGliding) return
+        if (fireworkTimer.timePassed(lastDuration.seconds)) {
+            findFirework()?.let {
+                lastDuration = (it.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
+                startFirework(inventory)
+                fireworkTimer.reset()
+            }
+        }
+
+        var vec = Vec3d.ZERO
+        val yaw = player.yaw
+        if (mc.options.forwardKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw))
+        if (mc.options.backKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 180f))
+        if (mc.options.leftKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw - 90f))
+        if (mc.options.rightKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 90f))
+        if (mc.options.jumpKey.isPressed) vec = vec.add(Vec3d(0.0, 1.0, 0.0))
+        if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
+        if (vec.lengthSquared() < 1e-4 && player.hasFirework) {
+            if (flipFlop) {
+                flipFlop = false
+                rotationRequest { rotation(0f, 0f) }
+            } else {
+                flipFlop = true
+                rotationRequest { rotation(180f, 0f) }
+            }
+        } else {
+            val rot = vec.yawAndPitch
+            rotationRequest { rotation(rot.y, rot.x) }
+        }.submit()
+    }
+
+    private fun SafeContext.findFirework(): ItemStack? {
+        val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
+        return stack.bestItemMatch(player.hotbarStacks) ?: if (inventory) stack.bestItemMatch(player.hotbarAndInventoryStacks) else null
+    }
+
+    private fun SafeContext.onTickBounce() {
+        if (autoPitch) rotationRequest { pitch(pitch.toFloat()) }.submit()
+
+        if (!player.isGliding) {
+            if (takeoff && player.canTakeoff) {
+                if (player.canOpenElytra) {
+                    player.startGliding()
+                    startFlyPacket()
+                } else jumpThisTick = true
+            }
+            return
+        }
+
+        startFlyPacket()
+    }
+
     private fun SafeContext.startFlyPacket() =
         connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
 
@@ -136,12 +192,11 @@ object ElytraFly : Module(
 
     @JvmStatic
     fun boostRocket() = runSafe {
-        if (mode == FlyMode.Bounce) return@runSafe
         val vec = player.rotationVector
         val velocity = player.velocity
 
-        val d = 1.5 * rocketSpeed
-        val e = 0.1 * rocketSpeed
+        val d = 1.5 * if (mode == FlyMode.Enhanced) rocketSpeed else 1.0
+        val e = 0.1 * if (mode == FlyMode.Enhanced) rocketSpeed else 1.0
 
         player.velocity = velocity.add(
             vec.x * e + (vec.x * d - velocity.x) * 0.5,
@@ -152,6 +207,7 @@ object ElytraFly : Module(
 
     enum class FlyMode {
         Bounce,
-        Enhanced
+        Enhanced,
+        GrimControl
     }
 }

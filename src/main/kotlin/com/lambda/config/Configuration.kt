@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.Configuration.Companion.configurables
+import com.lambda.config.migration.ConfigMigrations
 import com.lambda.config.configurations.ModuleConfigs
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
@@ -65,7 +66,7 @@ abstract class Configuration : Jsonable, Loadable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     override fun load(): String {
-        listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
+        listenUnsafe<ClientEvent.Shutdown>({ Int.MIN_VALUE }) { trySave() }
         register()
         return super.load()
     }
@@ -87,13 +88,22 @@ abstract class Configuration : Jsonable, Loadable {
 
     override fun toJson() =
         JsonObject().apply {
+            val latestSchemaVersion = ConfigMigrations.latestVersion(configName)
+            if (latestSchemaVersion > 1) {
+                addProperty(
+                    ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY,
+                    latestSchemaVersion
+                )
+            }
             configurables.forEach {
                 add(it.name, it.toJson())
             }
         }
 
     override fun loadFromJson(serialized: JsonElement) {
+        val schemaKey = ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
+            if (name == schemaKey) return@forEach
             configurableByName(name)
                 ?.loadFromJson(value)
                 ?: LOG.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
@@ -128,7 +138,17 @@ abstract class Configuration : Jsonable, Loadable {
      */
     private fun load(file: File) = runCatching {
         file.ifNotExists { LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
-            .ifExists { loadFromJson(JsonParser.parseReader(it.reader()).asJsonObject) }
+            .ifExists {
+                val parsed = JsonParser.parseReader(it.reader()).asJsonObject
+                val migrationResult = ConfigMigrations.migrate(configName, parsed)
+
+                if (migrationResult.migrated && file == primary) {
+                    file.writeText(gson.toJson(migrationResult.json))
+                    file.copyTo(backup, true)
+                }
+
+                loadFromJson(migrationResult.json)
+            }
     }
 
     protected open fun internalTryLoad() {

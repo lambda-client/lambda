@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,12 +27,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Mixin to make blocks render as translucent for XRay functionality.
- *
- * Note: In 1.21.11, RenderLayers was split - BlockRenderLayers now handles
- * block/fluid layer determination and returns BlockRenderLayer enum instead of RenderLayer.
- */
 @Mixin(BlockRenderLayers.class)
 public class RenderLayersMixin {
     @Inject(method = "getBlockLayer", at = @At("HEAD"), cancellable = true)

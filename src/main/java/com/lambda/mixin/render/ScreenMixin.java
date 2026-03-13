@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.gui.components.QuickSearch;
+import com.lambda.module.modules.client.AutoUpdater;
 import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -37,9 +38,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE && QuickSearch.INSTANCE.isOpen()) {
-            QuickSearch.INSTANCE.close();
-            cir.setReturnValue(true);
+        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+            if (QuickSearch.INSTANCE.isOpen()) {
+                QuickSearch.INSTANCE.close();
+                cir.setReturnValue(true);
+            } else if (AutoUpdater.getShowFirstLaunchModal()) {
+                AutoUpdater.dismissFirstLaunchPrompt();
+                cir.setReturnValue(true);
+            } else if (AutoUpdater.getShowInstallModal()) {
+                AutoUpdater.INSTANCE.disable();
+                AutoUpdater.setShowInstallModal(false);
+                cir.setReturnValue(true);
+            } else if (AutoUpdater.getShowUninstallModal()) {
+                AutoUpdater.INSTANCE.enable();
+                AutoUpdater.setShowUninstallModal(false);
+                cir.setReturnValue(true);
+            }
         }
     }
 

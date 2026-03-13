@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,9 @@ import com.lambda.util.math.distSq
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 // ToDo: Should also include last packet info as HUD element and connection state.
@@ -44,7 +46,7 @@ object Rubberband : Module(
     private val showConnectionState by setting("Show Connection State", true)
     private val showRubberbandInfo by setting("Show Rubberband Info", true)
 
-    val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
+    val configurations = LimitedOrderedSet<Vec3d>(100)
 
     init {
         listen<PacketEvent.Receive.Pre> { event ->
@@ -58,7 +60,7 @@ object Rubberband : Module(
 
             val newPos = event.packet.change.position
             val last = configurations.minBy {
-                it.position distSq newPos
+                it distSq newPos
             }
 
             this@Rubberband.warn(buildText {
@@ -68,12 +70,12 @@ object Rubberband : Module(
                 }
                 literal(" ticks (deviation: ")
                 color(Color.YELLOW) {
-                    literal("%.3f".format(last.position dist newPos))
+                    literal("%.3f".format(last dist newPos))
                 }
                 literal(")")
             })
         }
 
-        listen<PlayerPacketEvent.Pre> { configurations.add(it) }
+        listen<PlayerPacketEvent.Send> { configurations.add(with(it.packet) { Vec3d(x, y, z) }) }
     }
 }

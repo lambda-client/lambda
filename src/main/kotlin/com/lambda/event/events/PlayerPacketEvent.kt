@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +20,11 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.managers.rotating.Rotation
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
-import net.minecraft.util.math.Vec3d
 
 sealed class PlayerPacketEvent {
-    data class Pre(
-        var position: Vec3d,
-        var rotation: Rotation,
-        var onGround: Boolean,
-        var isSprinting: Boolean,
-        var isCollidingHorizontally: Boolean,
-    ) : Event
-
     data class Send(
-        val packet: PlayerMoveC2SPacket,
+        var packet: PlayerMoveC2SPacket,
     ) : ICancellable by Cancellable()
 
     class Post : Event

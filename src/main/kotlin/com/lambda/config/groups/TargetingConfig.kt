@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,12 +19,5 @@ package com.lambda.config.groups
 
 interface TargetingConfig {
     val targetingRange: Double
-
-    val players: Boolean
-    val friends: Boolean
-    val hostiles: Boolean
-    val animals: Boolean
-
-    val invisible: Boolean
-    val dead: Boolean
+    val targets: EntitySelectionConfig
 }

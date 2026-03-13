@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ object Scaffold : Module(
 ) {
 	private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
 	private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }
-	private val descend by setting("Descend", KeyCode.Unbound, "Lower the place position by one to allow the player to lower y level")
+	private val descend by setting("Descend", Bind.EMPTY, "Lower the place position by one to allow the player to lower y level")
 	private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()

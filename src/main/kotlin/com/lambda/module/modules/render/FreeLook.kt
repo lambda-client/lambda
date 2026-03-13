@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ object FreeLook : Module(
     name = "FreeLook",
     description = "Allows you to look around freely while moving",
     tag = ModuleTag.PLAYER,
+    autoDisable = true
 ) {
     @JvmStatic val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
     @JvmStatic val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")

@@ -31,10 +31,9 @@ import com.lambda.util.Communication.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
 import com.lambda.util.math.distCenter
-import com.lambda.util.world.fastEntitySearch
+import com.lambda.util.player.hasFirework
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.world.ClientWorld
-import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
@@ -93,9 +92,6 @@ object ElytraAltitudeControl : Module(
 
 	val usageDelay = com.lambda.util.Timer()
 
-	val SafeContext.hasFirework: Boolean
-		get() = fastEntitySearch<FireworkRocketEntity>(4.0) { it.shooter == this.player }.any()
-
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
@@ -146,7 +142,7 @@ object ElytraAltitudeControl : Module(
 	}
 
 	private fun SafeContext.updateAltitudeControls() {
-		if (disableOnFirework && hasFirework) return
+		if (disableOnFirework && player.hasFirework) return
 
 		if (usePitch40OnHeight) {
 			if (player.y < minHeightForPitch40) {
@@ -166,7 +162,7 @@ object ElytraAltitudeControl : Module(
 			pitch(outputPitch)
 		}.submit()
 
-		if (usageDelay.delayIfPassed(2.seconds) && !hasFirework) {
+		if (usageDelay.delayIfPassed(2.seconds) && !player.hasFirework) {
 			if (useFireworkOnHeight && minHeight > player.y)
 				startFirework(true)
 

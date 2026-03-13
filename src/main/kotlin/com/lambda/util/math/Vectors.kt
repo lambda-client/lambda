@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -183,6 +183,16 @@ infix operator fun Vec3i.times(other: Int): Vec3i = multiply(other)
 
 infix operator fun Vec3i.div(other: Vec3i): Vec3i = Vec3i(x / other.x, y / other.y, z / other.z)
 infix operator fun Vec3i.div(other: Int): Vec3i = times(1 / other)
+
+infix fun Vec2d.dist(other: Vec2d): Double = sqrt(this distSq other)
+infix fun Vec2d.dist(other: Vec2f): Double = sqrt(this distSq other)
+infix fun Vec2d.distSq(other: Vec2d): Double = (other.x - x).pow(2) + (other.y - y).pow(2)
+infix fun Vec2d.distSq(other: Vec2f): Double = (other.x - x).pow(2) + (other.y - y).pow(2)
+
+fun Vec2d.normal(): Vec2d {
+    val length = sqrt(x * x + y * y)
+    return if (length != 0.0) Vec2d(x / length, y / length) else Vec2d.ZERO
+}
 
 /* Entity */
 infix fun Entity.dist(other: Vec3d): Double = pos dist other

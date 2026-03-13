@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,6 @@ val Any.className: String get() = this::class.java.name
 val KClass<*>.className: String get() = java.name
     .substringAfter("${java.packageName}.")
     .replace('$', '.')
-
 
 /**
  * This function returns a instance of subtype [T].

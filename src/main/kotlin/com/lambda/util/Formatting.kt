@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -125,6 +125,7 @@ object Formatting {
 
     object Default : FormatterConfig {
 		override val settings = mutableListOf<Setting<*, *>>()
+        override val visibility: () -> Boolean = { true }
         override val locale: Locale = Locale.US
         override val separator: String = ","
         override val prefix: String = "("

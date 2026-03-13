@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.event.events.onStaticRender
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
@@ -65,9 +65,10 @@ object WorldEater : Module(
             BaritoneManager.cancel()
         }
 
-        onStaticRender { esp ->
-            esp.shapes(pos1.x.toDouble(), pos1.y.toDouble(), pos1.z.toDouble()) {
-                outline(Box.enclosing(pos1, pos2), Color.BLUE)
+        tickedRenderer("WorldEater Ticked Renderer") {
+            box(Box.enclosing(pos1, pos2)) {
+                hideFill()
+                outlineColor(Color.BLUE)
             }
         }
     }

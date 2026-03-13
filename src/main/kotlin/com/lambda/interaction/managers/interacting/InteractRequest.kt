@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -79,7 +79,16 @@ data class InteractRequest private constructor(
 			nowOrNothing: Boolean = false,
 			builder: (PlaceRequestBuilder.() -> Unit)? = null
 		) = asSequence()
-			.map { if (it is Dependent) it.lastDependency else it }
+			.interactRequest(pendingInteractions, nowOrNothing, builder)
+
+		@PlaceRequestDsl
+		@JvmName("interactRequest2")
+		context(automated: Automated)
+		fun Sequence<BuildResult>.interactRequest(
+			pendingInteractions: MutableCollection<BuildContext>,
+			nowOrNothing: Boolean = false,
+			builder: (PlaceRequestBuilder.() -> Unit)? = null
+		) = map { if (it is Dependent) it.lastDependency else it }
 			.filterIsInstance<InteractResult.Interact>()
 			.sorted()
 			.map { it.context }
@@ -88,7 +97,7 @@ data class InteractRequest private constructor(
 			?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
 
 		@PlaceRequestDsl
-		@JvmName("interactRequest2")
+		@JvmName("interactRequest3")
 		fun Automated.interactRequest(
 			contexts: Collection<InteractContext>,
 			pendingInteractions: MutableCollection<BuildContext>,

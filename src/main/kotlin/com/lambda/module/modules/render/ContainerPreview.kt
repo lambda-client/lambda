@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
+import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemUtils.shulkerBoxes
@@ -30,13 +32,14 @@ import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.tooltip.TooltipComponent
 import net.minecraft.client.gl.RenderPipelines
+import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.item.tooltip.TooltipData
+import net.minecraft.screen.slot.Slot
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
-import org.lwjgl.glfw.GLFW
 
 object ContainerPreview : Module(
     name = "ContainerPreview",
@@ -48,7 +51,12 @@ object ContainerPreview : Module(
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")
 
+    private var lockedSlot: Slot? = null
     private var lockedStack: ItemStack? = null
+        set(value) {
+            if (value !== field) lockedSlot = null
+            field = value
+        }
     private var lockedX: Int = 0
     private var lockedY: Int = 0
 
@@ -64,14 +72,7 @@ object ContainerPreview : Module(
 
     @JvmStatic
     val isLocked: Boolean
-        get() = lockedStack != null
-
-    @JvmStatic
-    fun isLockKeyPressed(): Boolean {
-        if (!isEnabled) return false
-        val handle = mc.window.handle
-        return GLFW.glfwGetKey(handle, lockKey.key) == GLFW.GLFW_PRESS
-    }
+        get() = lockedSlot != null
 
     private fun getTooltipWidth() = PADDING + COLS * SLOT_SIZE + PADDING
     private fun getTooltipHeight() = TITLE_HEIGHT + ROWS * SLOT_SIZE + PADDING
@@ -104,29 +105,31 @@ object ContainerPreview : Module(
     fun renderShulkerTooltip(
 	    context: DrawContext,
 	    textRenderer: TextRenderer,
-	    component: ContainerComponent,
 	    mouseX: Int,
 	    mouseY: Int
-	) {
+	) = runSafe {
+        val handledScreen = mc.currentScreen as? HandledScreen<*> ?: return@runSafe
+        val slot = handledScreen.focusedSlot ?: return@runSafe
+
         val width = getTooltipWidth()
         val height = getTooltipHeight()
 
-        val lockKeyPressed = isLockKeyPressed()
+        val lockKeyPressed = lockKey.isSatisfied()
 
-        if (lockKeyPressed && lockedStack == null) {
-            lockedStack = component.stack.copy()
+        if (lockKeyPressed && lockedSlot == null) {
+            lockedSlot = slot
             lockedX = calculateTooltipX(mouseX, width)
             lockedY = calculateTooltipY(mouseY, height)
-        } else if (!lockKeyPressed && lockedStack != null) {
-            lockedStack = null
+        } else if (!lockKeyPressed && lockedSlot != null) {
+            lockedSlot = null
         }
 
         if (isLocked) {
             renderLockedTooltipInternal(context, textRenderer)
-            return
+            return@runSafe
         }
 
-        renderTooltipForStack(context, textRenderer, component.stack, calculateTooltipX(mouseX, width), calculateTooltipY(mouseY, height), false)
+        renderTooltipForStack(context, textRenderer, slot.stack, calculateTooltipX(mouseX, width), calculateTooltipY(mouseY, height), false)
     }
 
     /**
@@ -134,8 +137,9 @@ object ContainerPreview : Module(
      */
     @JvmStatic
     fun renderLockedTooltip(context: DrawContext, textRenderer: TextRenderer) {
-        if (!isLockKeyPressed()) {
-            lockedStack = null
+        lockedStack = lockedSlot?.stack
+        if (!lockKey.isSatisfied() || lockedSlot?.stack?.isEmpty == true) {
+            lockedSlot = null
             return
         }
         renderLockedTooltipInternal(context, textRenderer)

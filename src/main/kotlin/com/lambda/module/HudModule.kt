@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,5 @@ abstract class HudModule(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
 ) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout {
-    val backgroundColor by setting("Background Color", Color(0, 0, 0, 0))
-    val outline by setting("Show Outline", false)
-    val outlineWidth by setting("Outline Width", 1f, 0f..10f, 0.1f) { outline }
+    val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
 }

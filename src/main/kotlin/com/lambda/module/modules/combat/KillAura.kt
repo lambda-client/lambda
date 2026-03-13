@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,7 @@ object KillAura : Module(
     private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
 
     // Targeting
-    private val targeting = Targeting.Combat(this, Group.Targeting)
+    private val targeting = Targeting.Combat(c = this, baseGroup = arrayOf(Group.Targeting))
 
     val target: LivingEntity?
         get() = targeting.target()
@@ -86,18 +86,26 @@ object KillAura : Module(
     }
 
     init {
+        setModulePriority(90)
         setDefaultAutomationConfig {
             applyEdits {
                 hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
                 buildConfig.apply {
-                    hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::blockReach)
+                    hide(
+                        ::pathing, ::stayInRange, ::collectDrops,
+                        ::spleefEntities, ::maxPendingActions, ::actionTimeout,
+                        ::maxBuildDependencies, ::blockReach
+                    )
+                }
+                hotbarConfig.apply {
+                    ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
                 }
             }
         }
 
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
-        listen<TickEvent.Input.Post> {
+        listen<TickEvent.Pre> {
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 var rotated = true

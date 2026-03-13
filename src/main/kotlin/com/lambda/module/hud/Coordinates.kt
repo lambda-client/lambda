@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,9 +41,11 @@ object Coordinates : HudModule(
 		OtherDimension("Other Dimension"),
 	}
 
-	private val showDimension by setting("Show Dimension", true)
+	private val showDimension by setting("Show Dimension Name", true)
+	private val showBiome by setting("Show Biome Name", true)
+	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
-	private val formatter = FormatterSettings(this, Group.CurrentDimension).apply {
+	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
 		applyEdits {
 			::timeFormat.edit { hide() }
 		}
@@ -60,13 +62,24 @@ object Coordinates : HudModule(
 				if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 				else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 
-			val text = "$position $otherDimensionPos"
+			val text =
+				if (showCurrentDimensionOnly) position
+				else "$position $otherDimensionPos"
 
 			val withDimension =
 				if (showDimension) "$text ${world.dimensionName}"
 				else text
 
-			textCopyable(withDimension)
+			val withBiome =
+				if (showBiome) "$withDimension in ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
+				else withDimension
+			textCopyable(withBiome)
 		}
 	}
+
+	fun beautifyBiome(biome: String): String = biome
+		.substringAfterLast(':')
+		.replace('_', ' ')
+		.split(' ')
+		.joinToString(" ") { it.replaceFirstChar(Char::uppercaseChar) }
 }

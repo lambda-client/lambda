@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,6 @@ import imgui.glfw.ImGuiImplGlfw
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
-import org.lwjgl.opengl.GL32C
 import kotlin.math.abs
 
 object DearImGui : Loadable {

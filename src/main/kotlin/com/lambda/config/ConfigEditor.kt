@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -102,6 +102,13 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 		@SettingEditorDsl
 		fun groups(groups: MutableList<List<NamedEnum>>) =
 			settings.forEach { it.groups = groups }
+
+		@SettingEditorDsl
+		fun visibility(visibility: (() -> Boolean) -> () -> Boolean) {
+			settings.forEach {
+				it.visibility = visibility(it.visibility)
+			}
+		}
 	}
 
 	class TypedEditBuilder<T : Any>(

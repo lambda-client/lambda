@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
+import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
 import com.lambda.interaction.managers.interacting.InteractManager.maxPlacementsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
@@ -47,6 +48,7 @@ import com.lambda.util.player.gamemode
 import com.lambda.util.player.isItemOnCooldown
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
+import net.minecraft.block.SculkVeinBlock.place
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.BlockItem
@@ -82,25 +84,25 @@ object InteractManager : Manager<InteractRequest>(
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
-			activeRequest = null
-			placementsThisTick = 0
-			potentialPlacements.clear()
-			if (interactCooldown > 0) {
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            activeRequest = null
+            placementsThisTick = 0
+            potentialPlacements.clear()
+	        if (interactCooldown > 0) {
 				interactCooldown--
 			}
 		}
 
-		listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
-			if (shouldSneak) {
-				shouldSneak = false
-				it.input.sneaking = true
-			}
-		}
+        listen<MovementEvent.InputUpdate>({ Int.MIN_VALUE }) {
+            if (shouldSneak) {
+                shouldSneak = false
+                it.input.sneaking = true
+            }
+        }
 
-		listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
-			interactCooldown = 0
-		}
+	    listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+		    interactCooldown = 0
+	    }
 
 		return "Loaded Place Manager"
 	}
@@ -138,8 +140,7 @@ object InteractManager : Manager<InteractRequest>(
 
 		val iterator = potentialPlacements.iterator()
 		while (iterator.hasNext()) {
-			if (interactCooldown > 0) break
-			if (placementsThisTick + 1 > maxPlacementsThisTick) break
+			if (!canInteractThisTick()) break
 			val ctx = iterator.next()
 
 			shouldSneak = ctx.sneak
@@ -147,8 +148,23 @@ object InteractManager : Manager<InteractRequest>(
 			if (!player.validSneak) return
 			if (tickStage !in interactConfig.tickStageMask) return
 
-			val actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, Hand.MAIN_HAND)
-			else interaction.interactBlock(player, Hand.MAIN_HAND, ctx.hitResult)
+			lateinit var actionResult: ActionResult
+			fun doAction() {
+				val hand = if (interactConfig.airPlace == AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
+				actionResult = if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
+				else interaction.interactBlock(player, if (ctx.preProcessingInfo.item != null) hand else Hand.MAIN_HAND, ctx.hitResult)
+			}
+
+			//ToDo: Once we add 30bps placements we will need to move the air place bypass logic out of the loop to avoid excess packet spam
+			if (interactConfig.airPlace == AirPlaceMode.Grim) {
+				val inventoryRequest = inventoryRequest {
+					swapHands()
+					action { doAction() }
+					swapHands()
+				}.submit(queueIfMismatchedStage = false)
+				if (!inventoryRequest.done) actionResult = ActionResult.PASS
+			} else doAction()
+
 			if (actionResult.isAccepted && interactConfig.swing) {
 				swingHand(interactConfig.swingType, Hand.MAIN_HAND)
 
@@ -158,7 +174,8 @@ object InteractManager : Manager<InteractRequest>(
 					mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
 				}
 			}
-			interactCooldown = ctx.interactConfig.interactDelay + 1
+			val interactDelay = ctx.interactConfig.interactDelay
+			interactCooldown = if (interactDelay == 0) 0 else interactDelay + 1
 			placementsThisTick++
 			iterator.remove()
 		}
@@ -166,6 +183,9 @@ object InteractManager : Manager<InteractRequest>(
 			if (activeRequest != null) activeRequest = null
 		}
 	}
+
+	fun canInteractThisTick() =
+		interactCooldown <= 0 && placementsThisTick < maxPlacementsThisTick
 
 	/**
 	 * Filters the [request]'s [InteractContext]s, placing them into the [potentialPlacements] collection, and
@@ -224,7 +244,7 @@ object InteractManager : Manager<InteractRequest>(
 			}
 		}
 
-		val stack = player.mainHandStack
+		val stack = player.getStackInHand(hand)
 
 		if (!stack.isEmpty && !isItemOnCooldown(stack)) {
 			val itemUsageContext = ItemUsageContext(player, hand, hitResult)
@@ -280,17 +300,7 @@ object InteractManager : Manager<InteractRequest>(
 		val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
 		val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
 
-		if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) {
-			val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
-			val inventoryRequest = inventoryRequest {
-				swapHands()
-				action { sendInteractPacket(placeHand, hitResult) }
-				swapHands()
-			}.submit(queueIfMismatchedStage = false)
-			if (!inventoryRequest.done) return ActionResult.FAIL
-		} else {
-			sendInteractPacket(hand, hitResult)
-		}
+		sendInteractPacket(hand, hitResult)
 
 		if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
 			InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()

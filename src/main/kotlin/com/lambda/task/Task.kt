@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@ package com.lambda.task
 
 import com.lambda.Lambda.LOG
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
@@ -38,6 +39,7 @@ typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 
 abstract class Task<Result> : Nameable, Muteable {
     var parent: Task<*>? = null
+    var parentPausing = false
     val subTasks = mutableListOf<Task<*>>()
     var state = State.Init
     override val isMuted: Boolean get() = state == State.Paused || state == State.Init
@@ -49,6 +51,10 @@ abstract class Task<Result> : Nameable, Muteable {
     private var nextTask: TaskGenerator<Result>? = null
     private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
     private var onFinish: TaskGeneratorUnit<Result>? = null
+
+    private var onFail: TaskGenerator<Unit>? = null
+    private var onFailOrNull: TaskGeneratorOrNull<Unit>? = null
+    private var softFail = false
 
     enum class State {
         Init,
@@ -113,9 +119,10 @@ abstract class Task<Result> : Nameable, Muteable {
         require(owner != this) { "Cannot execute a task as a child of itself" }
         owner.subTasks.add(this)
         parent = owner
-        LOG.info("${owner.name} started $name")
+        if (verboseDebug) LOG.info("${owner.name} started $name")
         if (pauseParent) {
-            LOG.info("$name pausing parent ${owner.name}")
+            parentPausing = true
+            if (verboseDebug) LOG.info("$name pausing parent ${owner.name}")
             if (owner !is RootTask) owner.pause()
         }
         state = State.Running
@@ -165,9 +172,13 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun cancel() {
+    fun cancel() = internalCancel(true)
+
+    private fun internalCancel(removeFromParent: Boolean = true) {
         runSafe { onCancel() }
         cancelSubTasks()
+        if (removeFromParent) parent?.subTasks?.remove(this)
+        if (parentPausing) parent?.activate()
         if (this is RootTask) return
         if (state == State.Completed || state == State.Cancelled) return
         state = State.Cancelled
@@ -176,11 +187,7 @@ abstract class Task<Result> : Nameable, Muteable {
 
     @Ta5kBuilder
     fun cancelSubTasks() {
-        subTasks.forEach { it.cancel() }
-    }
-
-    fun clear() {
-        subTasks.forEach { it.clear() }
+        subTasks.forEach { it.internalCancel(removeFromParent = false) }
         subTasks.clear()
     }
 
@@ -192,20 +199,39 @@ abstract class Task<Result> : Nameable, Muteable {
         e: Throwable,
         stacktrace: MutableList<Task<*>> = mutableListOf(),
     ) {
+        if (softFail) {
+            cancelSubTasks()
+            parent?.subTasks?.remove(this)
+        }
         state = State.Failed
         unsubscribe()
         stacktrace.add(this)
-        parent?.failure(e, stacktrace) ?: run {
-            val message = buildString {
-                stacktrace.firstOrNull()?.let { first ->
-                    append("${first.name} failed: ${e.message}\n")
-                    stacktrace.drop(1).forEach {
-                        append("  -> ${it.name}\n")
+        runSafe {
+            onFail?.let { taskGen ->
+                val task = taskGen(this, Unit)
+                onFail = null
+                parent?.let { owner -> task.execute(owner) }
+            } ?: onFailOrNull?.let { taskGen ->
+                val task = taskGen(this, Unit)
+                onFailOrNull = null
+                parent?.let { owner -> task?.execute(owner) }
+            }
+        } ?: if (softFail) {
+            if (parentPausing) parent?.activate()
+            return
+        } else parent?.failure(e, stacktrace) ?: run {
+            if (verboseDebug) {
+                val message = buildString {
+                    stacktrace.firstOrNull()?.let { first ->
+                        append("${first.name} failed: ${e.message}\n")
+                        stacktrace.drop(1).forEach {
+                            append("  -> ${it.name}\n")
+                        }
                     }
                 }
+                LOG.error(message, e)
+                logError(message)
             }
-            LOG.error(message, e)
-            logError(message)
         }
     }
 
@@ -283,6 +309,28 @@ abstract class Task<Result> : Nameable, Muteable {
     fun thenOrNull(taskGenerator: TaskGeneratorOrNull<Result>): Task<Result> {
         require(nextTask == null) { "Cannot link multiple tasks to a single task" }
         nextTaskOrNull = taskGenerator
+        return this
+    }
+
+    @Ta5kBuilder
+    fun onFail(taskGenerator: TaskGenerator<Unit>): Task<Result> {
+        require(onFail == null) { "Cannot have multiple onFail callbacks on a single task" }
+        onFail = taskGenerator
+        softFail()
+        return this
+    }
+
+    @Ta5kBuilder
+    fun onFailOrNull(taskGenerator: TaskGeneratorOrNull<Unit>): Task<Result> {
+        require(onFailOrNull == null) { "Cannot have multiple onFailOrNull callbacks on a single task" }
+        onFailOrNull = taskGenerator
+        softFail()
+        return this
+    }
+
+    @Ta5kBuilder
+    fun softFail(): Task<Result> {
+        softFail = true
         return this
     }
 

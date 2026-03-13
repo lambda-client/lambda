@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.extension.tickDelta
+import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -42,7 +42,6 @@ object AutoTotem : Module(
     description = "Swaps the your off-hand item to a totem",
     tag = ModuleTag.COMBAT,
 ) {
-    private val log by setting("Log Message", true).group(Group.General)
 	private val always by setting("Always", true, "Always attempt to keep a totem in offhand").group(Group.General)
 	private val ignoreWhenHolding by setting("Ignore When Holding", false, "Ignore swapping to offhand when already holding a totem").group(Group.General)
 	private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold to swap", unit = " half-hearts") { !always }.group(Group.General)
@@ -55,6 +54,7 @@ object AutoTotem : Module(
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }.group(Group.General)
 
     init {
+		setModulePriority(100)
 		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(inventoryConfig)
@@ -85,7 +85,7 @@ object AutoTotem : Module(
     enum class Reason(val check: SafeContext.() -> Boolean) {
         Health({ player.fullHealth < minimumHealth }),
         Creeper({ creeper && fastEntitySearch<CreeperEntity>(15.0).any {
-            it.getLerpedFuseTime(mc.tickDelta) > 0.0
+            it.getLerpedFuseTime(mc.tickDeltaF) > 0.0
                     && it.pos.distanceTo(player.pos) <= 5.0
         } }),
         Player({ players && fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).any { otherPlayer ->
