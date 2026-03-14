@@ -26,6 +26,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.IRotationRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -77,6 +78,7 @@ object Freecam : Module(
 	private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.") { mode == Mode.Free }
 	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
 	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
+	private val excludeRotation by setting("Exclude Rotation", FreecamRotationExclusion.None, description = "Exclude certain rotation changes from rotate mode") { rotateMode != FreecamRotationMode.None }
 	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
 	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free && relative }
 
@@ -141,14 +143,6 @@ object Freecam : Module(
 
 		onDisable {
 			mc.options.perspective = lastPerspective
-		}
-
-		listen<TickEvent.Pre> {
-			when (rotateMode) {
-				FreecamRotationMode.None -> return@listen
-				FreecamRotationMode.KeepRotation -> rotationRequest { rotation(rotation) }.submit()
-				FreecamRotationMode.LookAtTarget -> mc.crosshairTarget?.let { rotationRequest { rotation(lookAt(it.pos)) }.submit() }
-			}
 		}
 
 		listen<PlayerEvent.ChangeLookDirection> {
@@ -227,12 +221,45 @@ object Freecam : Module(
 			mc.crosshairTarget = rotation.rayCast(reach, lerpPos).orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
 			mc.crosshairTarget?.let { if (it.type != HitResult.Type.MISS) event.cancel() }
 		}
+
+		listen<TickEvent.Pre> {
+			when (rotateMode) {
+				FreecamRotationMode.None -> return@listen
+				FreecamRotationMode.KeepRotation -> rotationRequest {
+					buildRotationTo(rotation)
+				}.submit()
+				FreecamRotationMode.LookAtTarget -> mc.crosshairTarget?.let { rotationRequest {
+					buildRotationTo(lookAt(it.pos))
+				}.submit() }
+			}
+		}
+	}
+
+	context(rotationContext: IRotationRequest.RotationRequestBuilder)
+	private fun buildRotationTo(rotation: Rotation) {
+		when (excludeRotation) {
+			FreecamRotationExclusion.Pitch -> {
+				rotationContext.yaw(rotation.yaw)
+			}
+			FreecamRotationExclusion.Yaw -> {
+				rotationContext.pitch(rotation.pitch)
+			}
+			else -> {
+				rotationContext.rotation(rotation)
+			}
+		}
 	}
 
 	private enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		None("None", "No rotation changes"),
 		LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
 		KeepRotation("Keep Rotation", "Look in the same direction as the camera");
+	}
+
+	private enum class FreecamRotationExclusion(override val displayName: String, override val description: String) : NamedEnum, Describable {
+		Yaw("Yaw", "Don't change yaw"),
+		Pitch("Pitch", "Don't change pitch"),
+		None("None", "Don't exclude any rotation changes");
 	}
 
 	private enum class Mode(override val displayName: String, override val description: String) : NamedEnum, Describable {
