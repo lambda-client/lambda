@@ -159,12 +159,16 @@ abstract class Configurable(
         description: String = "",
         displayClassName: Boolean = false,
         serialize: Boolean = false,
+        selectionModel: Boolean = false,
         noinline visibility: () -> Boolean = { true },
     ) = Setting(
 	    name,
 	    description,
-        if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
+        if (displayClassName) {
+            ClassCollectionSetting(immutableList, defaultValue.toMutableList())
+        } else {
+            CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize, selectionModel = selectionModel)
+        },
 		this,
 	    visibility
 	).register()

@@ -26,5 +26,6 @@ class SelectionTest : Module(
 	tag = ModuleTag.CLIENT
 ) {
 
-	var selection1 by setting("Selection 1", listOf(), listOf("String 1", "String 2", "String 3"))
+	var selection1 by setting("Selection 1", listOf(), listOf("String 1", "String 2", "String 3"), selectionModel = false)
+	var selection2 by setting("Selection 2", listOf(), listOf("String 1", "String 2", "String 3"), selectionModel = true)
 }

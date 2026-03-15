@@ -51,6 +51,7 @@ open class CollectionSetting<R : Any>(
 	private var immutableCollection: Collection<R>,
 	type: Type,
 	private val serialize: Boolean,
+	val selectionModel: Boolean = false
 ) : SettingCore<MutableCollection<R>>(
 	defaultValue,
 	type
@@ -71,7 +72,11 @@ open class CollectionSetting<R : Any>(
 		val showReset = setting.isModified
 		val resetButtonText = "R"
 
-		buildPopupButtonAndModel("${setting.name}##${setting.name}-CollectionSettingPopup")
+		if (selectionModel) {
+			buildPopupButtonAndModel("${setting.name}##${setting.name}-CollectionSettingPopup")
+		} else {
+			buildComboBox("item") { it.toString() }
+		}
 
 		if (showReset) {
 			sameLine()
