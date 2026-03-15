@@ -103,6 +103,11 @@ abstract class Targeting(
          */
         val priority by c.setting("${prefix}Priority", Priority.Distance, visibility = visibility).group(*baseGroup).index()
 
+	    /**
+	     * Whether to target named entities (e.g., players with custom names). Configurable with default set to `true`.
+	     */
+	    val targetNamed by c.setting("${prefix}Target Named Entities", false, visibility = visibility).group(*baseGroup).index()
+
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
          *
@@ -114,6 +119,7 @@ abstract class Targeting(
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
             if (entity.uuid in illegalTargets) return false
             if (entity.isDead) return false
+	        if (entity.hasCustomName() && !targetNamed) return false
             return super.validate(player, entity)
         }
 
