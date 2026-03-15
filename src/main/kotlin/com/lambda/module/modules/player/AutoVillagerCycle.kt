@@ -146,17 +146,22 @@ object AutoVillagerCycle : Module(
 				return@listen
 			}
 
+			var bookFound = false
 			for (offer in trades) {
 				if (offer.isDisabled) continue
 
 				val sellItem = offer.sellItem
 				if (sellItem.item != Items.ENCHANTED_BOOK) continue
 
-				val storedEnchantments = sellItem.get(DataComponentTypes.STORED_ENCHANTMENTS) ?: continue
-
 				if (logFoundBooks) {
-					for (entry in storedEnchantments.enchantmentEntries) {
-						info("Found book: ${entry.key.value().description().string}")
+					val storedEnchantments = sellItem.get(DataComponentTypes.STORED_ENCHANTMENTS)
+					val foundEnchantments = mutableListOf<String>()
+					for (entry in storedEnchantments?.enchantmentEntries ?: emptyList()) {
+						foundEnchantments.add(entry.key.value().description().string)
+					}
+					if (foundEnchantments.isNotEmpty()) {
+						bookFound = true
+						info("Found book(s): ${foundEnchantments.joinToString(", ")}")
 					}
 				}
 
@@ -166,6 +171,9 @@ object AutoVillagerCycle : Module(
 					switchState(CycleState.Idle)
 					return@listen
 				}
+			}
+			if (!bookFound && logFoundBooks) {
+				info("No books found")
 			}
 
 			// No desired enchantment found, break lectern and try again
@@ -284,7 +292,8 @@ object AutoVillagerCycle : Module(
 	private fun findDesiredEnchantment(itemStack: ItemStack): Enchantment? {
 		if (desiredEnchantments.isEmpty()) return null
 
-		itemStack.enchantments.enchantmentEntries.forEach { (entry, level) ->
+		val enchantments = itemStack.get(DataComponentTypes.STORED_ENCHANTMENTS) ?: return null
+		enchantments.enchantmentEntries.forEach { (entry, level) ->
 			val enchantmentName = entry.value().description().string
 			if (desiredEnchantments.any { it.equals(enchantmentName, ignoreCase = true) && level >= minLevel }) {
 				return entry.value()
