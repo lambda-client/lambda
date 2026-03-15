@@ -41,41 +41,50 @@ class EntitySelectionSettings(
 	override val visibility: () -> Boolean = { true },
 ) : EntitySelectionConfig, SettingGroup(c) {
 	override val self by c.setting("${prefix}Self", false, "Render own player in third person").group(*baseGroup).index()
-	override val playerEntities by c.setting("${prefix}Player Entities", playerEntityMap.values.toSet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering").group(*baseGroup).index()
-	override val mobEntities by c.setting("${prefix}Mob Entities", mobEntityMap.values.toSet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering").group(*baseGroup).index()
-	override val passiveEntities by c.setting("${prefix}Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering").group(*baseGroup).index()
-	override val vehicleEntities by c.setting("${prefix}Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering").group(*baseGroup).index()
-	override val projectileEntities by c.setting("${prefix}Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering").group(*baseGroup).index()
-	override val bossEntities by c.setting("${prefix}Boss Entities", bossEntityMap.values.toSet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering").group(*baseGroup).index()
-	override val decorationEntities by c.setting("${prefix}Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering").group(*baseGroup).index()
-	override val blockEntities by c.setting("${prefix}Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering").group(*baseGroup).index()
-	override val miscEntities by c.setting("${prefix}Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering").group(*baseGroup).index()
+	override val enablePlayerEntities by c.setting("Enable Player Entities", true).group(*baseGroup).index()
+	override val playerEntities by c.setting("${prefix}Player Entities", playerEntityMap.values.toSet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering") { enablePlayerEntities }.group(*baseGroup).index()
+	override val enableMobEntities by c.setting("Enable Mob Entities", true).group(*baseGroup).index()
+	override val mobEntities by c.setting("${prefix}Mob Entities", mobEntityMap.values.toSet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering") { enableMobEntities }.group(*baseGroup).index()
+	override val enablePassiveEntities by c.setting("Enable Passive Entities", true).group(*baseGroup).index()
+	override val passiveEntities by c.setting("${prefix}Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering") { enablePassiveEntities }.group(*baseGroup).index()
+	override val enableVehicleEntities by c.setting("Enable Vehicle Entities", true).group(*baseGroup).index()
+	override val vehicleEntities by c.setting("${prefix}Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering") { enableVehicleEntities }.group(*baseGroup).index()
+	override val enableProjectileEntities by c.setting("Enable Projectile Entities", true).group(*baseGroup).index()
+	override val projectileEntities by c.setting("${prefix}Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering") { enableProjectileEntities }.group(*baseGroup).index()
+	override val enableBossEntities by c.setting("Enable Boss Entities", true).group(*baseGroup).index()
+	override val bossEntities by c.setting("${prefix}Boss Entities", bossEntityMap.values.toSet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering") { enableBossEntities }.group(*baseGroup).index()
+	override val enableDecorationEntities by c.setting("Enable Decoration Entities", true).group(*baseGroup).index()
+	override val decorationEntities by c.setting("${prefix}Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering") { enableDecorationEntities }.group(*baseGroup).index()
+	override val enableBlockEntities by c.setting("Enable Block Entities", true).group(*baseGroup).index()
+	override val blockEntities by c.setting("${prefix}Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering") { enableBlockEntities }.group(*baseGroup).index()
+	override val enableMiscEntities by c.setting("Enable Misc Entities", true).group(*baseGroup).index()
+	override val miscEntities by c.setting("${prefix}Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering") { enableMiscEntities }.group(*baseGroup).index()
 
 	fun isSelected(entity: Entity): Boolean {
 		val name = entity::class.simpleName
 		return if (entity == mc.player) self
 		else when (entity.type.spawnGroup) {
 			SpawnGroup.MISC ->
-				miscEntityMap[name] in miscEntities ||
-						playerEntityMap[name] in playerEntities ||
-						projectileEntityMap[name] in projectileEntities ||
-						vehicleEntityMap[name] in vehicleEntities ||
-						decorationEntityMap[name] in decorationEntities ||
-						passiveEntityMap[name] in passiveEntities ||
-						mobEntityMap[name] in mobEntities ||
-						bossEntityMap[name] in bossEntities
+				(enableMiscEntities && miscEntityMap[name] in miscEntities) ||
+						(enablePlayerEntities && playerEntityMap[name] in playerEntities) ||
+						(enableProjectileEntities && projectileEntityMap[name] in projectileEntities) ||
+						(enableVehicleEntities && vehicleEntityMap[name] in vehicleEntities) ||
+						(enableDecorationEntities && decorationEntityMap[name] in decorationEntities) ||
+						(enablePassiveEntities && passiveEntityMap[name] in passiveEntities) ||
+						(enableMobEntities && mobEntityMap[name] in mobEntities) ||
+						(enableBossEntities && bossEntityMap[name] in bossEntities)
 			SpawnGroup.WATER_AMBIENT,
 			SpawnGroup.WATER_CREATURE,
 			SpawnGroup.AMBIENT,
 			SpawnGroup.AXOLOTLS,
 			SpawnGroup.CREATURE,
-			SpawnGroup.UNDERGROUND_WATER_CREATURE -> passiveEntityMap[name] in passiveEntities
+			SpawnGroup.UNDERGROUND_WATER_CREATURE -> (enablePassiveEntities && passiveEntityMap[name] in passiveEntities)
 			SpawnGroup.MONSTER ->
-				mobEntityMap[name] in mobEntities ||
-						bossEntityMap[name] in bossEntities
+				(enableMobEntities && mobEntityMap[name] in mobEntities) ||
+						(enableBossEntities && bossEntityMap[name] in bossEntities)
 		}
 	}
 
 	fun isSelected(blockEntity: BlockEntity) =
-		blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities
+		(enableBlockEntities && blockEntityMap[blockEntity.javaClass.simpleName] in blockEntities)
 }
