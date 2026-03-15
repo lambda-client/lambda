@@ -41,6 +41,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
+import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.closestEntity
 import net.minecraft.block.Blocks
@@ -48,6 +49,7 @@ import net.minecraft.component.DataComponentTypes
 import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.passive.VillagerEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.s2c.play.SetTradeOffersS2CPacket
 import net.minecraft.registry.RegistryKeys
@@ -87,6 +89,7 @@ object AutoVillagerCycle : Module(
 			}
 		}
 	private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments).group(Group.Enchantments)
+	private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for").group(Group.Enchantments)
 
 	private var cycleState = CycleState.Idle
 	private var tickCounter = 0
@@ -157,7 +160,7 @@ object AutoVillagerCycle : Module(
 					}
 				}
 
-				findDesiredEnchantment(storedEnchantments)?.let {
+				findDesiredEnchantment(sellItem)?.let {
 					info("Found desired enchantment: ${it.description().string}!")
 					playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
 					switchState(CycleState.Idle)
@@ -278,13 +281,13 @@ object AutoVillagerCycle : Module(
 		switchState(CycleState.PlaceLectern)
 	}
 
-	private fun findDesiredEnchantment(enchantments: ItemEnchantmentsComponent): Enchantment? {
+	private fun findDesiredEnchantment(itemStack: ItemStack): Enchantment? {
 		if (desiredEnchantments.isEmpty()) return null
 
-		for (entry in enchantments.enchantmentEntries) {
-			val enchantmentName = entry.key.value().description().string
-			if (desiredEnchantments.any { it.equals(enchantmentName, ignoreCase = true) }) {
-				return entry.key.value()
+		itemStack.enchantments.enchantmentEntries.forEach { (entry, level) ->
+			val enchantmentName = entry.value().description().string
+			if (desiredEnchantments.any { it.equals(enchantmentName, ignoreCase = true) && level >= minLevel }) {
+				return entry.value()
 			}
 		}
 		return null
