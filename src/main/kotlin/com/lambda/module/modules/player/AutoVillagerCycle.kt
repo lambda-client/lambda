@@ -193,6 +193,12 @@ object AutoVillagerCycle : Module(
 	private fun SafeContext.handlePlaceLectern() {
 		player.closeHandledScreen()
 
+		if (desiredEnchantments.isEmpty()) {
+			logError("No desired enchantments set!")
+			switchState(CycleState.Idle)
+			return
+		}
+
 		if (lecternPos == BlockPos.ORIGIN) {
 			logError("Lectern position is not set!")
 			switchState(CycleState.Idle)
