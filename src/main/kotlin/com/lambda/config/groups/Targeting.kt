@@ -36,6 +36,8 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.toast.SystemToast.hide
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.PlayerLikeEntity
+import net.minecraft.entity.player.PlayerEntity
 import java.util.*
 
 /**
@@ -119,7 +121,7 @@ abstract class Targeting(
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
             if (entity.uuid in illegalTargets) return false
             if (entity.isDead) return false
-	        if (entity.hasCustomName() && !targetNamed) return false
+	        if (entity.hasCustomName() && entity !is PlayerLikeEntity && !targetNamed) return false
             return super.validate(player, entity)
         }
 
