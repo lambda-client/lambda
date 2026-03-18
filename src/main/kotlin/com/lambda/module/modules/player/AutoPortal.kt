@@ -22,6 +22,7 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -77,7 +78,9 @@ object AutoPortal : Module(
 	}
 
 	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal").group(Group.General)
+		.onPress { preview = true }
 		.onRelease {
+			preview = false
 			buildTask?.cancel()
 			val posStateMap =
 				obiPositions.associateWith {
@@ -120,6 +123,7 @@ object AutoPortal : Module(
 		}
 	}
 
+	private var preview = false
 	private var buildTask: Task<*>? = null
 
 	init {
@@ -137,8 +141,7 @@ object AutoPortal : Module(
 		}
 
 		immediateRenderer("AutoPortal Immediate Renderer", { depthTest }) { safeContext ->
-			if (!renders) return@immediateRenderer
-			if (!previewPlace.isSatisfied()) return@immediateRenderer
+			if (!renders || !preview) return@immediateRenderer
 			with (safeContext) {
 				val obiColor = blockColor(Blocks.OBSIDIAN.defaultState, BlockPos.ORIGIN)
 				obiPositions
