@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import baritone.api.pathing.goals.GoalXZ
+import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
@@ -108,11 +108,12 @@ object AutoPortal : Module(
 	private val sidewaysOffset by setting("Sideways Offset", 0, -5..5).group(Group.General)
 	private val yOffset by setting("Y Offset", 0, -5..5).group(Group.General)
 	private val lockToGround by setting("Lock To Ground", true).group(Group.General)
-	private val allowUpwardShift by setting("Allow Upward Shift", true).group(Group.General)
+	private val allowUpwardShift by setting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks").group(Group.General)
 
 	private val renders by setting("Renders", true).group(Group.Render)
-	private val depthTest by setting("Depth Test", false) { renders }.group(Group.Render)
 	private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }.group(Group.Render)
+	private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }.group(Group.Render)
+	private val depthTest by setting("Depth Test", false) { renders }.group(Group.Render)
 	private val outlineConfig = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Render)) { renders }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
@@ -156,7 +157,7 @@ object AutoPortal : Module(
 					}
 					.forEach { posAndBox ->
 						box(posAndBox.second, outlineConfig) {
-							colors(obiColor.setAlpha(0.3), obiColor)
+							colors(obiColor.setAlpha(fillAlpha), obiColor)
 							hideSides(buildSideMesh(posAndBox.first) { it in obiPositions }.inv())
 						}
 				}
@@ -183,11 +184,7 @@ object AutoPortal : Module(
 		fun tick() =
 			with(safeContext) {
 				if (!previewPlace.isSatisfied()) return@with
-				val offsetDir = when (val playerHorizontal = player.horizontalFacing) {
-					Direction.UP,
-					Direction.DOWN -> Direction.EAST
-					else -> playerHorizontal
-				}
+				val offsetDir = player.horizontalFacing
 
 				val baseAnchorPos = player.blockPos
 					.offset(offsetDir, forwardOffset)
@@ -288,7 +285,7 @@ object AutoPortal : Module(
 					}
 					swapPacket()
 					if (walkIn) {
-						BaritoneManager.setGoalAndPath(GoalXZ(pos.x, pos.z))
+						BaritoneManager.setGoalAndPath(GoalBlock(currAnchorPos.up()))
 					}
 					success()
 				}
