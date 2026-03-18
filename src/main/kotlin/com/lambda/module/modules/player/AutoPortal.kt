@@ -36,6 +36,7 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.modules.player.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.player.AutoPortal.PosHandler.obiPositions
+import com.lambda.module.modules.player.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.player.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -81,6 +82,8 @@ object AutoPortal : Module(
 			val posStateMap =
 				obiPositions.associateWith {
 					TargetState.Block(Blocks.OBSIDIAN)
+				} + portalPositions.associateWith {
+					TargetState.Air
 				}
 			//ToDo: implement non placement interactions like flint and steel in the build sim, in turn, simulating portal lighting too.
 //				+ portalPositions.associateWith {
@@ -100,16 +103,17 @@ object AutoPortal : Module(
 	private val corners by setting("Corners", false).group(Group.General)
 	private val light by setting("Light", true, "Attempts to automatically light the portal after building").group(Group.General)
 	private val walkIn by setting("Walk In", true, "Automatically paths into the portal with baritone") { light }.group(Group.General)
-	private val inventory by setting("Inventory", true, "Allows access to the players inventory when retrieving a flint and steel for lighting the portal")
+	private val inventory by setting("Inventory", true, "Allows access to the players inventory when retrieving a flint and steel for lighting the portal").group(Group.General)
 	private val forwardOffset by setting("Forward Offset", 3, 0..10).group(Group.General)
 	private val sidewaysOffset by setting("Sideways Offset", 0, -5..5).group(Group.General)
-	private val yOffset by setting("Y Offset", -1, -5..5).group(Group.General)
+	private val yOffset by setting("Y Offset", 0, -5..5).group(Group.General)
 	private val lockToGround by setting("Lock To Ground", true).group(Group.General)
 	private val allowUpwardShift by setting("Allow Upward Shift", true).group(Group.General)
 
-	private val depthTest by setting("Depth Test", false).group(Group.Render)
-	private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position").group(Group.Render)
-	private val outlineConfig = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Render)).apply {
+	private val renders by setting("Renders", true).group(Group.Render)
+	private val depthTest by setting("Depth Test", false) { renders }.group(Group.Render)
+	private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }.group(Group.Render)
+	private val outlineConfig = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Render)) { renders }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}
@@ -132,6 +136,7 @@ object AutoPortal : Module(
 		}
 
 		immediateRenderer("AutoPortal Immediate Renderer", { depthTest }) { safeContext ->
+			if (!renders) return@immediateRenderer
 			if (!previewPlace.isSatisfied()) return@immediateRenderer
 			with (safeContext) {
 				val obiColor = blockColor(Blocks.OBSIDIAN.defaultState, BlockPos.ORIGIN)
@@ -187,40 +192,44 @@ object AutoPortal : Module(
 				val baseAnchorPos = player.blockPos
 					.offset(offsetDir, forwardOffset)
 					.offset(offsetDir.rotateYClockwise(), sidewaysOffset)
-					.offset(Direction.UP, yOffset)
 
 				val lockedAnchorPos = if (lockToGround) run {
 					var scanPos = baseAnchorPos
-					if (blockState(scanPos).isNotEmpty && allowUpwardShift) {
-						while (blockState(scanPos).isEmpty && scanPos.y < 320) {
-							scanPos = scanPos.up()
+					if (blockState(scanPos).isNotEmpty) {
+						if (allowUpwardShift) {
+							while (blockState(scanPos).isNotEmpty && scanPos.y < 320) {
+								scanPos = scanPos.up()
+							}
 						}
-						if (scanPos.y >= 320) return@run null
-					} else {
-						while (blockState(scanPos.down()).isEmpty && scanPos.y > -64) {
-							scanPos = scanPos.down()
+						if (!allowUpwardShift || scanPos.y >= 320) {
+							scanPos = baseAnchorPos
+							while (blockState(scanPos.down()).isEmpty && scanPos.y > -64) {
+								scanPos = scanPos.down()
+							}
+							if (scanPos.y <= -64) return@run null
 						}
-						if (scanPos.y <= -64) return@run null
 					}
 					scanPos
 				} else baseAnchorPos
 
-				if (lockedAnchorPos == currAnchorPos || lockedAnchorPos == null) {
+				val yOffsetAnchorPos = lockedAnchorPos?.offset(Direction.UP, yOffset)
+
+				if (yOffsetAnchorPos == currAnchorPos || yOffsetAnchorPos == null) {
 					prevAnchorPos = currAnchorPos
 					return@with
 				}
 
 				prevAnchorPos = currAnchorPos
-				currAnchorPos = lockedAnchorPos
+				currAnchorPos = yOffsetAnchorPos
 				val originObi =
 					if (corners) originObiPositionsWithCorners
 					else originObiPositions
 				obiPositions = originObi
 					.rotatedTo(offsetDir)
-					.map { it.add(lockedAnchorPos) }
+					.map { it.add(yOffsetAnchorPos) }
 				portalPositions = originPortalPositions
 					.rotatedTo(offsetDir)
-					.map { it.add(lockedAnchorPos) }
+					.map { it.add(yOffsetAnchorPos) }
 			}
 
 		private fun List<BlockPos>.rotatedTo(direction: Direction): List<BlockPos> =
@@ -248,7 +257,7 @@ object AutoPortal : Module(
 			buildList {
 				(0..1).forEach { x ->
 					(1..3).forEach { y ->
-						add(BlockPos(0, x, y))
+						add(BlockPos(0, y, x))
 					}
 				}
 			}
