@@ -20,20 +20,22 @@ package com.lambda.module.modules.player
 import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.IRotationRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.rotation
@@ -77,9 +79,11 @@ object Freecam : Module(
 	private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1, "Freecam movement speed", unit = "m/s") { mode == Mode.Free }
 	private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.") { mode == Mode.Free }
 	private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
-	private val rotateMode by setting("Rotate Mode", FreecamRotationMode.None, "Rotation mode").onValueChange { _, it -> if (it == FreecamRotationMode.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
-	private val excludeRotation by setting("Exclude Rotation", FreecamRotationExclusion.None, description = "Exclude certain rotation changes from rotate mode") { rotateMode != FreecamRotationMode.None }
-	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
+	private val rotateMode by setting("Rotate Mode", RotationModeFreecam.None, "Rotation mode")
+		.onValueChange { _, it -> if (it == RotationModeFreecam.LookAtTarget) mc.crosshairTarget = BlockHitResult.createMissed(Vec3d.ZERO, Direction.UP, BlockPos.ORIGIN) }
+	private val excludeRotation by setting("Exclude Rotation", FreecamRotationExclusion.None, description = "Exclude certain rotation changes from rotate mode") { rotateMode != RotationModeFreecam.None }
+	private val relative by setting("Relative", false, "Moves freecam relative to player position") { mode == Mode.Free }
+		.onValueChange { _, it -> if (it) lastPlayerPosition = player.pos }
 	private val keepYLevel by setting("Keep Y Level", false, "Don't change the camera y-level on player movement") { mode == Mode.Free && relative }
 
 	// Follow Player settings
@@ -223,34 +227,39 @@ object Freecam : Module(
 		}
 
 		listen<TickEvent.Pre> {
-			when (rotateMode) {
-				FreecamRotationMode.None -> return@listen
-				FreecamRotationMode.KeepRotation -> rotationRequest {
-					buildRotationTo(rotation)
-				}.submit()
-				FreecamRotationMode.LookAtTarget -> mc.crosshairTarget?.let { rotationRequest {
-					buildRotationTo(lookAt(it.pos))
-				}.submit() }
+			runSafeAutomated {
+				when (rotateMode) {
+					RotationModeFreecam.None -> null
+					RotationModeFreecam.KeepRotation -> rotationRequest {
+						buildRotationTo(rotation)
+					}
+					RotationModeFreecam.LookAtTarget -> mc.crosshairTarget?.let { rotationRequest {
+						buildRotationTo(lookAt(it.pos))
+					} }
+				}?.submit()
 			}
 		}
 	}
 
-	context(rotationContext: IRotationRequest.RotationRequestBuilder)
-	private fun buildRotationTo(rotation: Rotation) {
-		when (excludeRotation) {
-			FreecamRotationExclusion.Pitch -> {
-				rotationContext.yaw(rotation.yaw)
-			}
-			FreecamRotationExclusion.Yaw -> {
-				rotationContext.pitch(rotation.pitch)
-			}
-			else -> {
-				rotationContext.rotation(rotation)
+	private fun AutomatedSafeContext.buildRotationTo(rotation: Rotation): RotationRequest {
+		return rotationRequest {
+			when (excludeRotation) {
+				FreecamRotationExclusion.Pitch -> yaw(rotation.yaw)
+				FreecamRotationExclusion.Yaw -> pitch(rotation.pitch)
+				else -> rotation(rotation)
 			}
 		}
 	}
 
-	private enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
+	private fun SafeContext.findFollowTarget(): PlayerEntity? {
+		if (player.gameMode != GameMode.SPECTATOR) {
+			return player
+		}
+		val players = world.players.filter { it !is ClientPlayerEntity }
+		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
+	}
+
+	private enum class RotationModeFreecam(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		None("None", "No rotation changes"),
 		LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
 		KeepRotation("Keep Rotation", "Look in the same direction as the camera");
@@ -265,13 +274,5 @@ object Freecam : Module(
 	private enum class Mode(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		Free("Free", "Move the camera freely with keyboard input"),
 		FollowPlayer("Follow Player", "Camera follows a player as if attached by an invisible string");
-	}
-
-	private fun SafeContext.findFollowTarget(): PlayerEntity? {
-		if (player.gameMode != GameMode.SPECTATOR) {
-			return player
-		}
-		val players = world.players.filter { it !is ClientPlayerEntity }
-		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
 	}
 }
