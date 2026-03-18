@@ -39,9 +39,7 @@ import net.minecraft.world.GameMode
 @Suppress("unused")
 object InventoryCleaner : Module(
 	name = "InventoryCleaner",
-	description = """
-		Automatically drops unwanted items when the player inventory is full.
-		""".trimIndent(),
+	description = "Automatically drops unwanted items when the player inventory is full",
 	tag = ModuleTag.PLAYER
 ) {
 	private val itemsCanTrash by setting("Items Can Trash", setOf<Item>(Items.NETHERRACK, Items.COBBLESTONE), ITEM.toSet(), description = "A list of items that the module can trash when trying to make space in the inventory.")

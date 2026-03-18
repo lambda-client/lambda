@@ -87,7 +87,7 @@ sealed class InventoryEvent {
 	/**
 	 * Represents an action performed on an inventory slot, such as clicking or interacting with it.
 	 */
-	abstract class SlotAction : Event, ICancellable {
+	open abstract class SlotAction : Event, ICancellable {
 		/**
 		 * Represents a click action performed on an inventory slot.
 		 *
