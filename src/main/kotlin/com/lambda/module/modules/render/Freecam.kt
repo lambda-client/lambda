@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
+import com.lambda.Lambda
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
@@ -91,7 +91,7 @@ object Freecam : Module(
 	private var position: Vec3d = Vec3d.ZERO
 	private val lerpPos: Vec3d
 		get() {
-			val tickProgress = mc.gameRenderer.camera.lastTickProgress
+			val tickProgress = Lambda.mc.gameRenderer.camera.lastTickProgress
 			return prevPosition.interpolate(tickProgress, position)
 		}
 
@@ -110,7 +110,7 @@ object Freecam : Module(
 				}
 			}
 		}
-		mc.gameRenderer.apply {
+		Lambda.mc.gameRenderer.apply {
 			camera.setRotation(rotation.yawF, rotation.pitchF)
 			camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
 		}
@@ -173,7 +173,7 @@ object Freecam : Module(
 					var moveVec = movementVector(moveDir, input.verticalMovement) * speed * sprintModifier
 					if (!input.isInputting) moveVec *= Vec3d(0.0, 1.0, 0.0)
 					// Apply movement
-					velocity += moveVec
+					velocity + moveVec
 					velocity *= 0.6
 					// Update position
 					prevPosition = position

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
@@ -27,18 +27,15 @@ import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.BoxBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
-import com.lambda.graphics.util.DirectionMask.buildSideMesh
+import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.material.StackSelection
 import com.lambda.module.Module
-import com.lambda.module.modules.player.AutoPortal.PosHandler.currAnchorPos
-import com.lambda.module.modules.player.AutoPortal.PosHandler.obiPositions
-import com.lambda.module.modules.player.AutoPortal.PosHandler.portalPositions
-import com.lambda.module.modules.player.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -70,22 +67,22 @@ import net.minecraft.util.math.Vec3d
 object AutoPortal : Module(
 	name = "AutoPortal",
 	description = "Automatically places and lights a nether portal",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
 		Render("Render")
 	}
 
-	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal").group(Group.General)
+	private val previewPlace by setting("Preview Place", Bind.Companion.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal").group(Group.General)
 		.onPress { preview = true }
 		.onRelease {
 			preview = false
 			buildTask?.cancel()
 			val posStateMap =
-				obiPositions.associateWith {
+				PosHandler.obiPositions.associateWith {
 					TargetState.Block(Blocks.OBSIDIAN)
-				} + portalPositions.associateWith {
+				} + PosHandler.portalPositions.associateWith {
 					TargetState.Air
 				}
 			//ToDo: implement non placement interactions like flint and steel in the build sim, in turn, simulating portal lighting too.
@@ -95,7 +92,7 @@ object AutoPortal : Module(
 			buildTask = posStateMap
 				.build()
 				.thenOrNull {
-					if (light) LightTask(currAnchorPos.up(), walkIn)
+					if (light) LightTask(PosHandler.currAnchorPos.up(), walkIn)
 					else null
 				}
 				.finally {
@@ -144,14 +141,14 @@ object AutoPortal : Module(
 			if (!renders || !preview) return@immediateRenderer
 			with (safeContext) {
 				val obiColor = blockColor(Blocks.OBSIDIAN.defaultState, BlockPos.ORIGIN)
-				obiPositions
+				PosHandler.obiPositions
 					.map {
 						val box = Box(it).let { box ->
 							if (interpolate) {
 								val offset = lerp(
 									1.0 - mc.tickDelta,
 									Vec3d.ZERO,
-									prevAnchorPos.subtract(currAnchorPos).vec3d
+									PosHandler.prevAnchorPos.subtract(PosHandler.currAnchorPos).vec3d
 								)
 								box.offset(offset)
 							} else box
@@ -161,7 +158,7 @@ object AutoPortal : Module(
 					.forEach { posAndBox ->
 						box(posAndBox.second, outlineConfig) {
 							colors(obiColor.setAlpha(fillAlpha), obiColor)
-							hideSides(buildSideMesh(posAndBox.first) { it in obiPositions }.inv())
+							hideSides(DirectionMask.buildSideMesh(posAndBox.first) { it in PosHandler.obiPositions }.inv())
 						}
 				}
 			}
@@ -186,7 +183,7 @@ object AutoPortal : Module(
 		context(safeContext: SafeContext)
 		fun tick() =
 			with(safeContext) {
-				if (!previewPlace.isSatisfied()) return@with
+				if (!preview) return@with
 				val offsetDir = player.horizontalFacing
 
 				val baseAnchorPos = player.blockPos
@@ -291,7 +288,7 @@ object AutoPortal : Module(
 					}
 					swapPacket()
 					if (walkIn) {
-						BaritoneManager.setGoalAndPath(GoalBlock(currAnchorPos.up()))
+						BaritoneManager.setGoalAndPath(GoalBlock(PosHandler.currAnchorPos.up()))
 					}
 					success()
 				}
@@ -313,7 +310,7 @@ object AutoPortal : Module(
 				return
 			}
 
-			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
+			val sel = StackSelection.selectStack(1) { isItem<FlintAndSteelItem>() }
 
 			val hotbarStack = sel.filterSlots(player.hotbarSlots).firstOrNull()
 			if (hotbarStack != null) {

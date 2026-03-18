@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -29,7 +29,6 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.module.Module
@@ -46,14 +45,12 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.world.RaycastContext
 import org.lwjgl.glfw.GLFW
-import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
-import kotlin.invoke
 
 object AirPlace : Module(
 	name = "AirPlace",
 	description = "Allows placing blocks in air",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),

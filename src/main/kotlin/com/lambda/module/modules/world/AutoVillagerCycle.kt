@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -32,7 +32,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager.playSound
+import com.lambda.sound.SoundManager
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
@@ -41,12 +41,10 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
-import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.closestEntity
 import net.minecraft.block.Blocks
 import net.minecraft.component.DataComponentTypes
-import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.passive.VillagerEntity
 import net.minecraft.item.ItemStack
@@ -58,11 +56,10 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.BlockPos
 
-
 object AutoVillagerCycle : Module(
 	name = "AutoVillagerCycle",
 	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
@@ -76,7 +73,7 @@ object AutoVillagerCycle : Module(
 	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks").group(Group.General)
 	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks").group(Group.General)
 	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks").group(Group.General)
-	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling").group(Group.General)
+	private val startCyclingBind by setting("Start Cycling", Bind.Companion.EMPTY, "Press to start/stop cycling").group(Group.General)
 		.onPress {
 			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")
@@ -97,7 +94,7 @@ object AutoVillagerCycle : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig() {
+		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(rotationConfig, inventoryConfig, breakConfig, interactConfig, buildConfig)
 			}
@@ -167,7 +164,7 @@ object AutoVillagerCycle : Module(
 
 				findDesiredEnchantment(sellItem)?.let {
 					info("Found desired enchantment: ${it.description().string}!")
-					playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
+					SoundManager.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
 					switchState(CycleState.Idle)
 					return@listen
 				}

@@ -22,7 +22,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
 import com.lambda.graphics.outline.OutlineManager;
-import com.lambda.module.modules.player.Freecam;
+import com.lambda.module.modules.render.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.NoRender;
 import net.minecraft.client.world.ClientWorld;
