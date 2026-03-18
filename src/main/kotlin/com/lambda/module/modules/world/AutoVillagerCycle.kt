@@ -32,7 +32,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager
+import com.lambda.sound.SoundManager.playSound
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
@@ -73,7 +73,7 @@ object AutoVillagerCycle : Module(
 	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks").group(Group.General)
 	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks").group(Group.General)
 	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks").group(Group.General)
-	private val startCyclingBind by setting("Start Cycling", Bind.Companion.EMPTY, "Press to start/stop cycling").group(Group.General)
+	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling").group(Group.General)
 		.onPress {
 			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")
@@ -164,7 +164,7 @@ object AutoVillagerCycle : Module(
 
 				findDesiredEnchantment(sellItem)?.let {
 					info("Found desired enchantment: ${it.description().string}!")
-					SoundManager.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
+					playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
 					switchState(CycleState.Idle)
 					return@listen
 				}

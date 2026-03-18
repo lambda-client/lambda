@@ -20,8 +20,8 @@ package com.lambda.module.modules.world
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.interaction.BaritoneManager
-import com.lambda.interaction.construction.blueprint.Blueprint
-import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
+import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -36,7 +36,7 @@ import com.lambda.util.extension.moveY
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
-import com.lambda.util.world.StructureUtils
+import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
@@ -113,9 +113,9 @@ object HighwayTools : Module(
     }
 
     private fun buildHighway() {
-        runningTask = PropagatingBlueprint.propagatingBlueprint {
+        runningTask = propagatingBlueprint {
 	        if (distance !in 0..distanceMoved) {
-		        var structure = Blueprint.emptyStructure()
+		        var structure = emptyStructure()
 		        val slice = generateSlice()
 		        repeat(sliceSize) {
 			        structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
@@ -127,7 +127,7 @@ object HighwayTools : Module(
 	        } else {
 		        this@HighwayTools.info("Highway built")
 		        disable()
-		        Blueprint.emptyStructure()
+		        emptyStructure()
 	        }
         }.build(collectDrops = buildConfig.collectDrops, lifeMaintenance = true)
             .run()
@@ -139,7 +139,7 @@ object HighwayTools : Module(
         val center = (width / 2.0).floorToInt()
 
         // Hole
-        structure += StructureUtils.generateDirectionalTube(
+        structure += generateDirectionalTube(
 	        orthogonal,
 	        width,
 	        height,
@@ -148,7 +148,7 @@ object HighwayTools : Module(
         ).associateWith { TargetState.Air }
 
         if (pavement != Material.None) {
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            width,
 	            1,
@@ -157,7 +157,7 @@ object HighwayTools : Module(
             ).associateWith { target(pavement, pavementMaterial) }
 
             // Left rim
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            1,
 	            rimHeight,
@@ -166,7 +166,7 @@ object HighwayTools : Module(
             ).associateWith { target(pavement, pavementMaterial) }
 
             // Right rim
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            1,
 	            rimHeight,
@@ -176,7 +176,7 @@ object HighwayTools : Module(
 
             if (cornerBlock == Corner.None && rimHeight > 0) {
                 // Support for the left rim
-                structure += StructureUtils.generateDirectionalTube(
+                structure += generateDirectionalTube(
 	                orthogonal,
 	                1,
 	                1,
@@ -185,7 +185,7 @@ object HighwayTools : Module(
                 ).associateWith { TargetState.Support(Direction.UP) }
 
                 // Support for the right rim
-                structure += StructureUtils.generateDirectionalTube(
+                structure += generateDirectionalTube(
 	                orthogonal,
 	                1,
 	                1,
@@ -196,7 +196,7 @@ object HighwayTools : Module(
         }
 
         if (ceiling != Material.None) {
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            width,
 	            1,
@@ -207,7 +207,7 @@ object HighwayTools : Module(
 
         val wallElevation = if (pavement != Material.None) rimHeight else 0 + if (pavement != Material.None) 1 else 0
         if (rightWall != Material.None) {
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            1,
 	            height - wallElevation,
@@ -217,7 +217,7 @@ object HighwayTools : Module(
         }
 
         if (leftWall != Material.None) {
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            1,
 	            height - wallElevation,
@@ -227,7 +227,7 @@ object HighwayTools : Module(
         }
 
         if (floor != Material.None) {
-            structure += StructureUtils.generateDirectionalTube(
+            structure += generateDirectionalTube(
 	            orthogonal,
 	            width,
 	            1,

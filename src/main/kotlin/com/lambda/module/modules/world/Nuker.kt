@@ -22,6 +22,7 @@ import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -64,7 +65,7 @@ object Nuker : Module(
 		}
 
 		onEnable {
-			task = TickingBlueprint.tickingBlueprint {
+			task = tickingBlueprint {
 				if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
 
 				val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
