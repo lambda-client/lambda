@@ -111,7 +111,7 @@ object AutoPortal : Module(
 	private val sidewaysOffset by setting("Sideways Offset", 0, -5..5).group(Group.General)
 	private val yOffset by setting("Y Offset", 0, -5..5).group(Group.General)
 	private val lockToGround by setting("Lock To Ground", true).group(Group.General)
-	private val allowUpwardShift by setting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks").group(Group.General)
+	private val allowUpwardShift by setting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks") { lockToGround }.group(Group.General)
 
 	private val renders by setting("Renders", true).group(Group.Render)
 	private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }.group(Group.Render)
@@ -193,24 +193,9 @@ object AutoPortal : Module(
 					.offset(offsetDir, forwardOffset)
 					.offset(offsetDir.rotateYClockwise(), sidewaysOffset)
 
-				val lockedAnchorPos = if (lockToGround) run {
-					var scanPos = baseAnchorPos
-					if (blockState(scanPos).isNotEmpty) {
-						if (allowUpwardShift) {
-							while (blockState(scanPos).isNotEmpty && scanPos.y < 320) {
-								scanPos = scanPos.up()
-							}
-						}
-						if (!allowUpwardShift || scanPos.y >= 320) {
-							scanPos = baseAnchorPos
-							while (blockState(scanPos.down()).isEmpty && scanPos.y > -64) {
-								scanPos = scanPos.down()
-							}
-							if (scanPos.y <= -64) return@run null
-						}
-					}
-					scanPos
-				} else baseAnchorPos
+				val lockedAnchorPos =
+					if (lockToGround) lockToGround(baseAnchorPos)
+					else baseAnchorPos
 
 				val yOffsetAnchorPos = lockedAnchorPos?.offset(Direction.UP, yOffset)
 
@@ -231,6 +216,24 @@ object AutoPortal : Module(
 					.rotatedTo(offsetDir)
 					.map { it.add(yOffsetAnchorPos) }
 			}
+
+		private fun SafeContext.lockToGround(pos: BlockPos): BlockPos? {
+			var scanPos = pos
+			val upShifting = blockState(scanPos).isNotEmpty && allowUpwardShift
+			if (upShifting) {
+				while (blockState(scanPos).isNotEmpty && scanPos.y < 320) {
+					scanPos = scanPos.up()
+				}
+			}
+			if (!upShifting || scanPos.y >= 320) {
+				scanPos = pos
+				while (blockState(scanPos.down()).isEmpty && scanPos.y > -64) {
+					scanPos = scanPos.down()
+				}
+				if (scanPos.y <= -64) return null
+			}
+			return scanPos
+		}
 
 		private fun List<BlockPos>.rotatedTo(direction: Direction): List<BlockPos> =
 			map { pos ->
