@@ -27,8 +27,7 @@ object Timer : Module(
 	description = "Modify client tick speed.",
 	tag = ModuleTag.MOVEMENT,
 ) {
-	@JvmStatic
-	var timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
+    private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
 
 	init {
 		listen<ClientEvent.TimerUpdate> {
