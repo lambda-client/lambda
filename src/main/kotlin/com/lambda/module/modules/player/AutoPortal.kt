@@ -34,7 +34,9 @@ import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
+import com.lambda.module.modules.player.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.player.AutoPortal.PosHandler.obiPositions
+import com.lambda.module.modules.player.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -45,7 +47,10 @@ import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
+import com.lambda.util.extension.tickDelta
+import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
+import com.lambda.util.math.vec3d
 import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import com.lambda.util.player.SlotUtils.hotbarSlots
 import net.minecraft.block.Blocks
@@ -58,6 +63,7 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 
 object AutoPortal : Module(
 	name = "AutoPortal",
@@ -83,7 +89,7 @@ object AutoPortal : Module(
 			buildTask = posStateMap
 				.build()
 				.thenOrNull {
-					if (light) LightTask(PosHandler.currAnchorPos.up(), walkIn)
+					if (light) LightTask(currAnchorPos.up(), walkIn)
 					else null
 				}
 				.finally {
@@ -94,7 +100,8 @@ object AutoPortal : Module(
 	private val corners by setting("Corners", false).group(Group.General)
 	private val light by setting("Light", true, "Attempts to automatically light the portal after building").group(Group.General)
 	private val walkIn by setting("Walk In", true, "Automatically paths into the portal with baritone") { light }.group(Group.General)
-	private val forwardOffset by setting("Forward Offset", 2, 0..10).group(Group.General)
+	private val inventory by setting("Inventory", true, "Allows access to the players inventory when retrieving a flint and steel for lighting the portal")
+	private val forwardOffset by setting("Forward Offset", 3, 0..10).group(Group.General)
 	private val sidewaysOffset by setting("Sideways Offset", 0, -5..5).group(Group.General)
 	private val yOffset by setting("Y Offset", -1, -5..5).group(Group.General)
 	private val lockToGround by setting("Lock To Ground", true).group(Group.General)
@@ -115,7 +122,7 @@ object AutoPortal : Module(
 			applyEdits {
 				hideGroup(eatConfig)
 				hotbarConfig::tickStageMask.edit {
-					defaultValue(mutableSetOf(TickEvent.Pre))
+					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
 				}
 			}
 		}
@@ -129,7 +136,19 @@ object AutoPortal : Module(
 			with (safeContext) {
 				val obiColor = blockColor(Blocks.OBSIDIAN.defaultState, BlockPos.ORIGIN)
 				obiPositions
-					.map { Pair(it, Box(it)) }
+					.map {
+						val box = Box(it).let { box ->
+							if (interpolate) {
+								val offset = lerp(
+									1.0 - mc.tickDelta,
+									Vec3d.ZERO,
+									prevAnchorPos.subtract(currAnchorPos).vec3d
+								)
+								box.offset(offset)
+							} else box
+						}
+						Pair(it, box)
+					}
 					.forEach { posAndBox ->
 						box(posAndBox.second, outlineConfig) {
 							colors(obiColor.setAlpha(0.3), obiColor)
@@ -143,7 +162,8 @@ object AutoPortal : Module(
 	private object PosHandler {
 		var currAnchorPos: BlockPos = BlockPos.ORIGIN
 			private set
-		private var prevAnchorPos = currAnchorPos
+		var prevAnchorPos = currAnchorPos
+			private set
 
 		var obiPositions = emptyList<BlockPos>()
 			private set
@@ -185,7 +205,10 @@ object AutoPortal : Module(
 					scanPos
 				} else baseAnchorPos
 
-				if (lockedAnchorPos == currAnchorPos || lockedAnchorPos == null) return@with
+				if (lockedAnchorPos == currAnchorPos || lockedAnchorPos == null) {
+					prevAnchorPos = currAnchorPos
+					return@with
+				}
 
 				prevAnchorPos = currAnchorPos
 				currAnchorPos = lockedAnchorPos
@@ -291,7 +314,9 @@ object AutoPortal : Module(
 				return
 			}
 
-			val invSlot = sel.filterSlots(player.hotbarAndInventorySlots).firstOrNull()
+			val invSlot =
+				if (inventory) sel.filterSlots(player.hotbarAndInventorySlots).firstOrNull()
+				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")
 				return
