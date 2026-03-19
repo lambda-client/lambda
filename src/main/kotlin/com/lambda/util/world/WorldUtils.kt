@@ -20,7 +20,7 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
-import com.lambda.util.math.distanceToSide
+import com.lambda.util.math.distanceToSideSq
 import com.lambda.util.world.WorldUtils.internalGetEntities
 import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.block.BlockState
@@ -68,7 +68,7 @@ object WorldUtils {
                                 ?.filterIsInstance<T>()
                                 ?.filter {
                                     it != player &&
-                                            pos.toVec3d().distanceToSide(it.boundingBox) <= distance * distance &&
+                                            pos.toVec3d().distanceToSideSq(it.boundingBox) <= distance * distance &&
                                             filter(it)
                                 } ?: emptySequence()
                         )

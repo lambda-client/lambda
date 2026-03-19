@@ -206,7 +206,7 @@ infix fun Entity.distSq(other: Entity): Double = squaredDistanceTo(other)
 /**
  * Returns the distance squared to the closest side of a [Box]
  */
-fun Vec3d.distanceToSide(box: Box, epsilon: Double = 1e-7): Double {
+fun Vec3d.distanceToSideSq(box: Box, epsilon: Double = 1e-7): Double {
     val closestX = x.coerceIn(box.minX - epsilon, box.maxX + epsilon)
     val closestY = y.coerceIn(box.minY - epsilon, box.maxY + epsilon)
     val closestZ = z.coerceIn(box.minZ - epsilon, box.maxZ + epsilon)
