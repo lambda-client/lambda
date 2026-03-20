@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -41,12 +41,10 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
-import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.closestEntity
 import net.minecraft.block.Blocks
 import net.minecraft.component.DataComponentTypes
-import net.minecraft.component.type.ItemEnchantmentsComponent
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.passive.VillagerEntity
 import net.minecraft.item.ItemStack
@@ -58,11 +56,10 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.BlockPos
 
-
 object AutoVillagerCycle : Module(
 	name = "AutoVillagerCycle",
 	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
@@ -97,7 +94,7 @@ object AutoVillagerCycle : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig() {
+		setDefaultAutomationConfig {
 			applyEdits {
 				hideAllGroupsExcept(rotationConfig, inventoryConfig, breakConfig, interactConfig, buildConfig)
 			}

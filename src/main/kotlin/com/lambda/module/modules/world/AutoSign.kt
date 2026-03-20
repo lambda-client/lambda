@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.ibm.icu.util.Calendar
 import com.lambda.event.events.GuiEvent
@@ -30,7 +30,7 @@ import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
 import net.minecraft.client.gui.screen.ingame.HangingSignEditScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
-import java.util.*
+import java.util.Date
 
 @Suppress("unused")
 object AutoSign : Module(
@@ -48,7 +48,7 @@ object AutoSign : Module(
 		|<mm> - Minute (00-59)
         |<ss> - Second (00-59)
 	""".trimMargin(),
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	var autoWrite by setting("Auto Write", true)
 	var line1 by setting("Line 1", "Welcome to Lambda!") { autoWrite }

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -33,14 +33,13 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.InputUtils.isSatisfied
-import com.lambda.util.KeyCode
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object Scaffold : Module(
 	name = "Scaffold",
 	description = "Places blocks under the player",
-	tag = ModuleTag.PLAYER,
+	tag = ModuleTag.WORLD,
 ) {
 	private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
 	private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }

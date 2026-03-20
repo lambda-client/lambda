@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
@@ -34,7 +34,7 @@ import net.minecraft.util.math.BlockPos
 object Printer : Module(
 	name = "Printer",
 	description = "Automatically prints schematics",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	private val range by setting("Range", 5, 1..7, 1, description = "The range around the player to check for blocks to print")
 	private val air by setting("Air", false, description = "Consider breaking blocks in the world that are air in the schematic.\nNote: Breaking can also be disabled in the Automation Config.")

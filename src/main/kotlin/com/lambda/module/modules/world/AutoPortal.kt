@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
@@ -28,17 +28,17 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
-import com.lambda.graphics.util.DirectionMask.buildSideMesh
+import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
-import com.lambda.module.modules.player.AutoPortal.PosHandler.currAnchorPos
-import com.lambda.module.modules.player.AutoPortal.PosHandler.obiPositions
-import com.lambda.module.modules.player.AutoPortal.PosHandler.portalPositions
-import com.lambda.module.modules.player.AutoPortal.PosHandler.prevAnchorPos
+import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
+import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
+import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
+import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -46,7 +46,6 @@ import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.tickDelta
@@ -70,7 +69,7 @@ import net.minecraft.util.math.Vec3d
 object AutoPortal : Module(
 	name = "AutoPortal",
 	description = "Automatically places and lights a nether portal",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
@@ -161,7 +160,7 @@ object AutoPortal : Module(
 					.forEach { posAndBox ->
 						box(posAndBox.second, outlineConfig) {
 							colors(obiColor.setAlpha(fillAlpha), obiColor)
-							hideSides(buildSideMesh(posAndBox.first) { it in obiPositions }.inv())
+							hideSides(DirectionMask.buildSideMesh(posAndBox.first) { it in obiPositions }.inv())
 						}
 				}
 			}
@@ -186,7 +185,7 @@ object AutoPortal : Module(
 		context(safeContext: SafeContext)
 		fun tick() =
 			with(safeContext) {
-				if (!previewPlace.isSatisfied()) return@with
+				if (!preview) return@with
 				val offsetDir = player.horizontalFacing
 
 				val baseAnchorPos = player.blockPos

@@ -15,12 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -39,7 +40,7 @@ import net.minecraft.util.math.Direction
 object Nuker : Module(
 	name = "Nuker",
 	description = "Breaks blocks around you",
-	tag = ModuleTag.PLAYER,
+	tag = ModuleTag.WORLD,
 	autoDisable = true
 ) {
 	private val height by setting("Height", 6, 1..8, 1)
