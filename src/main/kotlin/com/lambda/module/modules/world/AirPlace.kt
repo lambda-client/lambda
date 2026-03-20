@@ -57,7 +57,7 @@ object AirPlace : Module(
 		Render("Render")
 	}
 
-	private var distance by setting("Distance", 4.0, 1.0..7.0, 1.0).group(Group.General)
+	private var distance by setting("Distance", 4.0, 1.0..7.0, 0.01).group(Group.General)
 	private val scrollBind by setting("Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the ctrl key and scroll to adjust distance").group(Group.General)
 
 	private var placementPos: BlockPos? = null
