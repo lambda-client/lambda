@@ -38,6 +38,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.item.tooltip.TooltipData
 import net.minecraft.screen.slot.Slot
+import net.minecraft.util.Colors
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
 
@@ -98,7 +99,7 @@ object ContainerPreview : Module(
         val g = ((tintColor shr 8) and 0xFF) / 255f
         val b = (tintColor and 0xFF) / 255f
         val luminance = 0.299f * r + 0.587f * g + 0.114f * b
-        return if (luminance > 0.5f) 0x404040 else 0xFFFFFF
+        return if (luminance > 0.7f) Colors.DARK_GRAY else Colors.WHITE
     }
 
     @JvmStatic
