@@ -91,10 +91,10 @@ object LightLevels : Module(
 
 		val renderVec = pos.vec3d
 		val trueSize = (16 - size) / 32.0
-		val corner1 = renderVec.add(trueSize, 0.001, trueSize)
-		val corner2 = renderVec.add(1.0 - trueSize, 0.001, trueSize)
-		val corner3 = renderVec.add(1.0 - trueSize, 0.001, 1.0 - trueSize)
-		val corner4 = renderVec.add(trueSize, 0.001, 1.0 - trueSize)
+		val corner1 = renderVec.add(trueSize, 0.05, trueSize)
+		val corner2 = renderVec.add(1.0 - trueSize, 0.05, trueSize)
+		val corner3 = renderVec.add(1.0 - trueSize, 0.05, 1.0 - trueSize)
+		val corner4 = renderVec.add(trueSize, 0.05, 1.0 - trueSize)
 
 		if (world.getLightLevel(LightType.BLOCK, pos) > minLightLevel) return@with
 
@@ -112,10 +112,6 @@ object LightLevels : Module(
 		}
 	}
 
-	private fun refreshChunkedRenderer(ctx: SafeContext, from: Any? = null, to: Any? = null) {
-		if (mode == Mode.Chunked) chunkedRenderer.rebuild()
-	}
-
 	private fun SafeContext.hasSpawnPotential(pos: BlockPos) =
 		blockState(pos).let { state ->
 			!state.isFullCube(world, pos) &&
@@ -124,6 +120,10 @@ object LightLevels : Module(
 					!state.isIn(BlockTags.PREVENT_MOB_SPAWNING_INSIDE) &&
 					pos.down().let { blockState(it).isSideSolidFullSquare(world, it, Direction.UP) }
 		}
+
+	private fun refreshChunkedRenderer(ctx: SafeContext, from: Any? = null, to: Any? = null) {
+		if (mode == Mode.Chunked) chunkedRenderer.rebuild()
+	}
 
 	private enum class Mode {
 		Chunked,
