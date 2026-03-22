@@ -100,6 +100,11 @@ class ChunkedRenderer(
 	private fun getChunkKey(chunkX: Int, chunkZ: Int) =
 		(chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
 
+	context(safeContext: SafeContext)
+	fun rebuildChunk(x: Int, z: Int) {
+		safeContext.world.getChunk(x, z)?.chunkData?.markDirty()
+	}
+
 	fun rebuild() {
 		rebuildQueue.clear()
 		mc.world?.chunkManager?.chunks?.let { chunks ->

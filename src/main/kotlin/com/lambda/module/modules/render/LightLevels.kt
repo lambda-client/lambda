@@ -27,6 +27,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
@@ -42,16 +43,21 @@ object LightLevels : Module(
 	description = "Shows light level. Helpful for mob-proofing areas",
 	tag = ModuleTag.RENDER
 ) {
+	private enum class Group(override val displayName: String) : NamedEnum {
+		Fill("Fill"),
+		Line("Line")
+	}
+
 	private val mode: Mode by setting("Mode", Mode.Chunked)
 		.onValueChange { _, _ -> chunkedRenderer.clear(); refreshChunkedRenderer(this) }
 	private val minLightLevel by setting("Min Light Level", 0, 0..15).onValueChange(::refreshChunkedRenderer)
 	private val renderMode by setting("Render Mode", RenderMode.Square).onValueChange(::refreshChunkedRenderer)
 	private val color by setting("Color", Color.RED).onValueChange(::refreshChunkedRenderer)
 	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
-	private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	private val fillAlpha by setting("Fill Alpha", 20, 1..100) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
-	private val worldLineConfig = WorldLineSettings(c = this) { renderMode != RenderMode.Square || outline }.apply {
+	private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
+	private val fillAlpha by setting("Fill Alpha", 20, 1..100) { renderMode == RenderMode.Square && fill }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
+	private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.group(Group.Line).onValueChange(::refreshChunkedRenderer)
+	private val worldLineConfig = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Line)) { renderMode != RenderMode.Square || outline }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 			settings.forEach { it.onValueChange(::refreshChunkedRenderer) }
@@ -120,6 +126,11 @@ object LightLevels : Module(
 					!state.isIn(BlockTags.PREVENT_MOB_SPAWNING_INSIDE) &&
 					pos.down().let { blockState(it).isSideSolidFullSquare(world, it, Direction.UP) }
 		}
+
+	@JvmStatic
+	fun updateChunk(x: Int, z: Int) = runSafe {
+		if (mode == Mode.Chunked) chunkedRenderer.rebuildChunk(x, z)
+	}
 
 	private fun refreshChunkedRenderer(ctx: SafeContext, from: Any? = null, to: Any? = null) {
 		if (mode == Mode.Chunked) chunkedRenderer.rebuild()
