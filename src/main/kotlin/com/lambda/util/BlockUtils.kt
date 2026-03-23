@@ -99,7 +99,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
 object BlockUtils {
-
     val signs = setOf(
         Blocks.OAK_SIGN,
         Blocks.BIRCH_SIGN,

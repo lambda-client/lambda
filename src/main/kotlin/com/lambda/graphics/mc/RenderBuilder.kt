@@ -134,7 +134,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = boxes(pos, safeContext.blockState(pos), lineConfig, builder)
 
-	fun filledQuadGradient(
+	fun filledQuad(
 		corner1: Vec3d,
 		corner2: Vec3d,
 		corner3: Vec3d,
@@ -250,10 +250,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	fun circleLine(
 		center: Vec3d,
 		radius: Double,
-		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
 		color: Color,
-		segments: Int = 32,
 		width: Float = -0.0005f,
+		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
+		segments: Int = 32,
 		dashStyle: LineDashStyle? = null
 	) {
 		val up =

@@ -81,9 +81,9 @@ object ESP : Module(
 						{ listOf(it.interpolatedBox) }
 					)
 				}
-				val chunkMap = world.chunkManager.chunks
-				(0 until chunkMap.loadedChunkCount).forEach { chunk ->
-					chunkMap.chunks.get(chunk)?.blockEntities?.values?.forEach { blockEntity ->
+				val chunks = world.chunkManager.chunks.chunks
+				(0 until chunks.length()).forEach { chunk ->
+					chunks.get(chunk)?.blockEntities?.values?.forEach { blockEntity ->
 						if (!entitySettings.isSelected(blockEntity)) return@forEach
 						val color = entityColors.getColor(blockEntity)
 						drawEsp<BlockEntity>(

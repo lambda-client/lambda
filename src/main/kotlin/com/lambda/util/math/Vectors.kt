@@ -161,9 +161,7 @@ infix operator fun OpenEndRange<Float>.rangeTo(other: Float) =
 infix operator fun OpenEndRange<Int>.rangeTo(other: Int) = BlockPos.Mutable(start, endExclusive, other)
 
 /* Vec3i */
-val Vec3i.vec3d
-    get() =
-        Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
+val Vec3i.vec3d get() = Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
 
 infix fun Vec3i.dist(other: Vec3d): Double = sqrt(this distSq other)
 infix fun Vec3i.dist(other: Vec3i): Double = sqrt((this distSq other).toDouble())
