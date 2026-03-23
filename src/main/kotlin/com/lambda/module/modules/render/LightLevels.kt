@@ -41,6 +41,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.world.LightType
 import java.awt.Color
+import kotlin.collections.forEach
 
 object LightLevels : Module(
 	name = "LightLevels",
@@ -56,6 +57,7 @@ object LightLevels : Module(
 		.onValueChange { _, _ -> chunkedRenderer.clear(); refreshChunkedRenderer(this) }
 	private val minLightLevel by setting("Min Light Level", 0, 0..15).onValueChange(::refreshChunkedRenderer)
 	private val renderMode by setting("Render Mode", RenderMode.Square).onValueChange(::refreshChunkedRenderer)
+	private val areaMode by setting("Area Mode", AreaMode.Both, "Where to build renders around") { mode == Mode.Radius }
 	private val color by setting("Color", Color.RED).onValueChange(::refreshChunkedRenderer)
 	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
 	private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
@@ -78,14 +80,25 @@ object LightLevels : Module(
 	init {
 		tickedRenderer("LightLevels Ticked Renderer", { depthTest }) { safeContext ->
 			if (mode != Mode.Radius) return@tickedRenderer
-			val playerPos = mc.gameRenderer.camera.pos.flooredBlockPos
 
+			val positions = hashSetOf<BlockPos>()
 			val dashStyle = worldLineConfig.getDashStyle()
-			(playerPos.x - horizontalRange..playerPos.x + horizontalRange).forEach { x ->
-				(playerPos.z - horizontalRange..playerPos.z + horizontalRange).forEach { z ->
-					(playerPos.y - verticalRange..playerPos.y + verticalRange).forEach { y ->
-						with(safeContext) { buildRender(BlockPos(x, y, z), dashStyle) }
-					}
+
+			with(safeContext) {
+				if (areaMode.player) buildPositions(positions, player.blockPos)
+				if (areaMode.camera) buildPositions(positions, mc.gameRenderer.camera.pos.flooredBlockPos)
+				positions.forEach { pos ->
+					buildRender(pos, dashStyle)
+				}
+			}
+		}
+	}
+
+	private fun buildPositions(collection: MutableCollection<BlockPos>, center: BlockPos) {
+		(center.x - horizontalRange..center.x + horizontalRange).forEach { x ->
+			(center.z - horizontalRange..center.z + horizontalRange).forEach { z ->
+				(center.y - verticalRange..center.y + verticalRange).forEach { y ->
+					collection.add(BlockPos(x, y, z))
 				}
 			}
 		}
@@ -148,5 +161,11 @@ object LightLevels : Module(
 		Square,
 		Cross,
 		Circle
+	}
+
+	private enum class AreaMode(val player: Boolean, val camera: Boolean) {
+		Both(true, true),
+		Camera(false, true),
+		Player(true, false)
 	}
 }
