@@ -32,6 +32,8 @@ import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
 import com.lambda.util.world.toBlockPos
+import net.minecraft.block.Blocks
+import net.minecraft.block.SnowBlock
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -120,11 +122,16 @@ object LightLevels : Module(
 
 	private fun SafeContext.hasSpawnPotential(pos: BlockPos) =
 		blockState(pos).let { state ->
-			!state.isFullCube(world, pos) &&
+			(!state.block.collidable || (state.block === Blocks.SNOW && state.get(SnowBlock.LAYERS) <= 1)) &&
 					!state.emitsRedstonePower() &&
 					state.fluidState.isEmpty &&
 					!state.isIn(BlockTags.PREVENT_MOB_SPAWNING_INSIDE) &&
-					pos.down().let { blockState(it).isSideSolidFullSquare(world, it, Direction.UP) }
+					pos.down().let {
+						val underState = blockState(it)
+						underState.isSideSolidFullSquare(world, it, Direction.UP) &&
+								!underState.isTransparent &&
+								underState.block !== Blocks.BEDROCK
+					}
 		}
 
 	@JvmStatic
