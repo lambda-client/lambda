@@ -47,6 +47,7 @@ class ChunkedRenderer(
 	owner: Any,
 	name: String,
 	depthTest: SafeContext.() -> Boolean,
+	private val pauseUpdates: SafeContext.() -> Boolean,
 	private val update: RenderBuilder.(ClientWorld, FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
@@ -82,9 +83,10 @@ class ChunkedRenderer(
 		owner.listen<WorldEvent.Player.Leave> { rebuild() }
 
 		owner.listenConcurrently<TickEvent.Pre> {
-			val depth = depthTest()
+			if (pauseUpdates()) return@listenConcurrently
 			val queueSize = rebuildQueue.size
 			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
+			val depth = depthTest()
 			repeat(polls) { rebuildQueue.poll()?.rebuild(depth) }
 		}
 
@@ -187,8 +189,9 @@ class ChunkedRenderer(
 		fun Any.chunkedRenderer(
 			name: String,
 			depthTest: SafeContext.() -> Boolean = { false },
+			pauseUpdates: SafeContext.() -> Boolean = { false },
 			update: RenderBuilder.(ClientWorld, FastVector) -> Unit
-		) = ChunkedRenderer(this, name, depthTest, update).also { renderer ->
+		) = ChunkedRenderer(this, name, depthTest, pauseUpdates, update).also { renderer ->
 			(this as? Module)?.let { module ->
 				module.onEnable { renderer.rebuild() }
 				module.onDisable { renderer.rebuild() }

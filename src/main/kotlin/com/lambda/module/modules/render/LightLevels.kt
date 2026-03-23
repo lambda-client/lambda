@@ -70,7 +70,7 @@ object LightLevels : Module(
 	private val horizontalRange by setting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
 	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }
 
-	private val chunkedRenderer = chunkedRenderer("LightLevels Chunked Renderer", { depthTest }) { _, pos ->
+	private val chunkedRenderer = chunkedRenderer("LightLevels Chunked Renderer", { depthTest }, { mode != Mode.Chunked }) { _, pos ->
 		if (mode != Mode.Chunked) return@chunkedRenderer
 		runSafe { buildRender(pos.toBlockPos()) }
 	}

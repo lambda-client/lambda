@@ -25,7 +25,6 @@ import com.lambda.config.settings.collections.CollectionSetting.Companion.onSele
 import com.lambda.context.SafeContext
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -44,7 +43,6 @@ import com.lambda.util.extension.getBlockState
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
 import io.ktor.util.collections.ConcurrentMap
-import net.fabricmc.fabric.mixin.block.BlockStateMixin
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
@@ -63,8 +61,10 @@ object Search : Module(
     private val entities by setting("Entities", decorationEntityMap.values)
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
 
-    private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) outline = true }
-    private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh).onValueChange { _, to -> if (!to) fill = true }
+    private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
+        .onValueChange { _, to -> if (!to) outline = true }
+    private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
+        .onValueChange { _, to -> if (!to) fill = true }
     private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
 
