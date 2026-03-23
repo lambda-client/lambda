@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.context.SafeContext
+import com.lambda.graphics.mc.LineDashStyle
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
@@ -58,7 +59,7 @@ object LightLevels : Module(
 	private val color by setting("Color", Color.RED).onValueChange(::refreshChunkedRenderer)
 	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
 	private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
-	private val fillAlpha by setting("Fill Alpha", 20, 1..100) { renderMode == RenderMode.Square && fill }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
+	private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
 	private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.group(Group.Line).onValueChange(::refreshChunkedRenderer)
 	private val worldLineConfig = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Line)) { renderMode != RenderMode.Square || outline }.apply {
 		applyEdits {
@@ -71,8 +72,7 @@ object LightLevels : Module(
 	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }
 
 	private val chunkedRenderer = chunkedRenderer("LightLevels Chunked Renderer", { depthTest }, { mode != Mode.Chunked }) { _, pos ->
-		if (mode != Mode.Chunked) return@chunkedRenderer
-		runSafe { buildRender(pos.toBlockPos()) }
+		runSafe { buildRender(pos.toBlockPos(), worldLineConfig.getDashStyle()) }
 	}
 
 	init {
@@ -80,10 +80,11 @@ object LightLevels : Module(
 			if (mode != Mode.Radius) return@tickedRenderer
 			val playerPos = mc.gameRenderer.camera.pos.flooredBlockPos
 
+			val dashStyle = worldLineConfig.getDashStyle()
 			(playerPos.x - horizontalRange..playerPos.x + horizontalRange).forEach { x ->
 				(playerPos.z - horizontalRange..playerPos.z + horizontalRange).forEach { z ->
 					(playerPos.y - verticalRange..playerPos.y + verticalRange).forEach { y ->
-						with(safeContext) { buildRender(BlockPos(x, y, z)) }
+						with(safeContext) { buildRender(BlockPos(x, y, z), dashStyle) }
 					}
 				}
 			}
@@ -91,7 +92,7 @@ object LightLevels : Module(
 	}
 
 	context(safeContext: SafeContext)
-	private fun RenderBuilder.buildRender(pos: BlockPos) {
+	private fun RenderBuilder.buildRender(pos: BlockPos, dashStyle: LineDashStyle?) {
 		val level = safeContext.world.getLightLevel(LightType.BLOCK, pos)
 		if (level > minLightLevel || !safeContext.hasSpawnPotential(pos)) return
 
@@ -102,7 +103,6 @@ object LightLevels : Module(
 		val corner3 = renderVec.add(1.0 - trueSize, 0.05, 1.0 - trueSize)
 		val corner4 = renderVec.add(trueSize, 0.05, 1.0 - trueSize)
 
-		val dashStyle = worldLineConfig.getDashStyle()
 		when(renderMode) {
 			RenderMode.Square -> {
 				if (fill) filledQuad(corner1, corner2, corner3, corner4, color.setAlpha(fillAlpha))

@@ -47,7 +47,7 @@ class ChunkedRenderer(
 	owner: Any,
 	name: String,
 	depthTest: SafeContext.() -> Boolean,
-	private val pauseUpdates: SafeContext.() -> Boolean,
+	pauseUpdates: SafeContext.() -> Boolean,
 	private val update: RenderBuilder.(ClientWorld, FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
@@ -194,7 +194,7 @@ class ChunkedRenderer(
 		) = ChunkedRenderer(this, name, depthTest, pauseUpdates, update).also { renderer ->
 			(this as? Module)?.let { module ->
 				module.onEnable { renderer.rebuild() }
-				module.onDisable { renderer.rebuild() }
+				module.onDisable { renderer.clear() }
 			}
 		}
 	}
