@@ -82,7 +82,7 @@ object ESP : Module(
 					)
 				}
 				val chunkMap = world.chunkManager.chunks
-				(0 until chunkMap.loadedChunkCount).forEach { chunk ->
+				(0 until chunkMap.chunks.length()).forEach { chunk ->
 					chunkMap.chunks.get(chunk)?.blockEntities?.values?.forEach { blockEntity ->
 						if (!entitySettings.isSelected(blockEntity)) return@forEach
 						val color = entityColors.getColor(blockEntity)

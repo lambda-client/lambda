@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.context.SafeContext
@@ -66,8 +67,8 @@ object LightLevels : Module(
 		}
 	}
 	private val depthTest by setting("Depth Test", false, "Shows renders through terrain")
-	private val horizontalRange by setting("Horizontal Range", 8, 1..16) { mode == Mode.Radius }
-	private val verticalRange by setting("Vertical Range", 4, 1..16) { mode == Mode.Radius }
+	private val horizontalRange by setting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
+	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }
 
 	private val chunkedRenderer = chunkedRenderer("LightLevels Chunked Renderer", { depthTest }) { _, pos ->
 		if (mode != Mode.Chunked) return@chunkedRenderer
@@ -75,18 +76,14 @@ object LightLevels : Module(
 	}
 
 	init {
-		tickedRenderer("LightLevels Ticked Renderer", { depthTest }) {
+		tickedRenderer("LightLevels Ticked Renderer", { depthTest }) { safeContext ->
 			if (mode != Mode.Radius) return@tickedRenderer
-			runSafe {
-				val playerPos = mc.gameRenderer.camera.pos.flooredBlockPos
-				val x = playerPos.x - horizontalRange
-				val z = playerPos.z - horizontalRange
-				val y = playerPos.y - verticalRange
-				(x..x + (horizontalRange * 2)).forEach { x ->
-					(z..z + (horizontalRange * 2)).forEach { z ->
-						(y..z + (verticalRange * 2)).forEach { y ->
-							buildRender(BlockPos(x, y, z))
-						}
+			val playerPos = mc.gameRenderer.camera.pos.flooredBlockPos
+
+			(playerPos.x - horizontalRange..playerPos.x + horizontalRange).forEach { x ->
+				(playerPos.z - horizontalRange..playerPos.z + horizontalRange).forEach { z ->
+					(playerPos.y - verticalRange..playerPos.y + verticalRange).forEach { y ->
+						with(safeContext) { buildRender(BlockPos(x, y, z)) }
 					}
 				}
 			}
@@ -94,8 +91,9 @@ object LightLevels : Module(
 	}
 
 	context(safeContext: SafeContext)
-	private fun RenderBuilder.buildRender(pos: BlockPos) = with(safeContext) {
-		if (!hasSpawnPotential(pos)) return@with
+	private fun RenderBuilder.buildRender(pos: BlockPos) {
+		val level = safeContext.world.getLightLevel(LightType.BLOCK, pos)
+		if (level > minLightLevel || !safeContext.hasSpawnPotential(pos)) return
 
 		val renderVec = pos.vec3d
 		val trueSize = (16 - size) / 32.0
@@ -103,8 +101,6 @@ object LightLevels : Module(
 		val corner2 = renderVec.add(1.0 - trueSize, 0.05, trueSize)
 		val corner3 = renderVec.add(1.0 - trueSize, 0.05, 1.0 - trueSize)
 		val corner4 = renderVec.add(trueSize, 0.05, 1.0 - trueSize)
-
-		if (world.getLightLevel(LightType.BLOCK, pos) > minLightLevel) return@with
 
 		val dashStyle = worldLineConfig.getDashStyle()
 		when(renderMode) {

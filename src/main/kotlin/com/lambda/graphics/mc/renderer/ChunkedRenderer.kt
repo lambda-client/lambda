@@ -108,10 +108,10 @@ class ChunkedRenderer(
 	fun rebuild() {
 		rebuildQueue.clear()
 		mc.world?.chunkManager?.chunks?.let { chunks ->
-			val chunkCount = chunks.loadedChunkCount
-			(0..chunkCount).forEach { index ->
+			val chunkCount = chunks.chunks.length()
+			(0 until chunkCount).forEach { index ->
 				val chunk = chunks.chunks.get(index) ?: return@forEach
-				chunkMap.putIfAbsent(chunk.chunkKey, chunk.chunkData)
+				chunkMap.putIfAbsent(chunk.chunkKey, ChunkData(chunk))
 			}
 		}
 		rebuildQueue.addAll(chunkMap.values)
