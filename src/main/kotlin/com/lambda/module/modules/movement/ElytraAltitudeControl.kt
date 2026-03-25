@@ -71,7 +71,7 @@ object ElytraAltitudeControl : Module(
 	val speedController: PIController = PIController({ speedControllerP }, { speedControllerD }, { speedControllerI }, { 0.0 })
 	val altitudeController: PIController = PIController({ altitudeControllerP }, { altitudeControllerD }, { altitudeControllerI }, { altitudeControllerConst })
 
-	val usePitch40OnHeight by setting("Use Pitch 40 On Height", false, "Use Pitch 40 to gain height and speed")
+	val usePitch40OnHeight by setting("Use Pitch 40 On Height", false, "Use Pitch 40 to gain height and speed").onValueChange { _, to -> if (!to) controlState = ControlState.AttitudeControl }
 	val logHeightGain by setting("Log Height Gain", false, "Logs the height gained each cycle to the chat") { usePitch40OnHeight }.group(Group.Pitch40Control)
 	val minHeightForPitch40 by setting("Min Height For Pitch 40", 120, 0..256, 10, unit = " blocks", description = "Minimum height to use Pitch 40") { usePitch40OnHeight }.group(Group.Pitch40Control)
 	val pitch40ExitHeight by setting("Exit height", 190, 0..256, 10, unit = " blocks", description = "Height to exit Pitch 40 mode") { usePitch40OnHeight }.group(Group.Pitch40Control)
@@ -100,6 +100,7 @@ object ElytraAltitudeControl : Module(
 		}
 
 		listen<ClientEvent.TimerUpdate> {
+			if (!player.isGliding) return@listen
 			val timerValue = getTimerValue()
 			if (timerValue != null) {
 				it.speed = timerValue
