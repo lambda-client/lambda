@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.context.SafeContext
@@ -58,7 +57,8 @@ object LightLevels : Module(
 	private val minLightLevel by setting("Min Light Level", 0, 0..15).onValueChange(::refreshChunkedRenderer)
 	private val renderMode by setting("Render Mode", RenderMode.Square).onValueChange(::refreshChunkedRenderer)
 	private val areaMode by setting("Area Mode", AreaMode.Both, "Where to build renders around") { mode == Mode.Radius }
-	private val color by setting("Color", Color.RED).onValueChange(::refreshChunkedRenderer)
+	private val skyLightColor by setting("Sky Light Color", Color.YELLOW).onValueChange(::refreshChunkedRenderer)
+	private val blockLightColor by setting("Block Light Color", Color.RED).onValueChange(::refreshChunkedRenderer)
 	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
 	private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
 	private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
@@ -106,8 +106,8 @@ object LightLevels : Module(
 
 	context(safeContext: SafeContext)
 	private fun RenderBuilder.buildRender(pos: BlockPos, dashStyle: LineDashStyle?) {
-		val level = safeContext.world.getLightLevel(LightType.BLOCK, pos)
-		if (level > minLightLevel || !safeContext.hasSpawnPotential(pos)) return
+		val blockLevel = safeContext.world.getLightLevel(LightType.BLOCK, pos)
+		if (blockLevel > minLightLevel || !safeContext.hasSpawnPotential(pos)) return
 
 		val renderVec = pos.vec3d
 		val trueSize = (16 - size) / 32.0
@@ -115,6 +115,9 @@ object LightLevels : Module(
 		val corner2 = renderVec.add(1.0 - trueSize, 0.05, trueSize)
 		val corner3 = renderVec.add(1.0 - trueSize, 0.05, 1.0 - trueSize)
 		val corner4 = renderVec.add(trueSize, 0.05, 1.0 - trueSize)
+
+		val skyLevel  = safeContext.world.getLightLevel(LightType.SKY, pos)
+		val color = if (skyLevel > minLightLevel) skyLightColor else blockLightColor
 
 		when(renderMode) {
 			RenderMode.Square -> {
