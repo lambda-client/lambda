@@ -42,9 +42,9 @@ object AutoLevel : Module(
 	description = "Automatically uses xp bottles to level up to a certain level",
 	tag = ModuleTag.PLAYER
 ) {
-	var targetLevel by setting("Target Level", 2, 1..100)
-	var burstAmount by setting("Burst Amount", 5, 1..100)
-	var interval by setting("Interval", 5, 0..100, unit = "ticks")
+	var targetLevel by setting("Target Level", 2, 1..50, description = "Level to automatically use xp bottles until")
+	var burstAmount by setting("Burst Amount", 1, 1..10, description = "Amount of xp bottles to use each tick")
+	var interval by setting("Interval", 5, 0..100, unit = "ticks", description = "Interval between each burst of xp bottles")
 
 	var rotate by setting("Rotate", true)
 	var packetRotate by setting("Packet Rotate", true)
