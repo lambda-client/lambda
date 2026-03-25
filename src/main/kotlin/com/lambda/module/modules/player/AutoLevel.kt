@@ -22,8 +22,9 @@ import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.module.Module
@@ -31,6 +32,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Timer
 import net.minecraft.item.ExperienceBottleItem
 import net.minecraft.item.Items
+import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.util.Hand
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -44,12 +46,15 @@ object AutoLevel : Module(
 	var burstAmount by setting("Burst Amount", 5, 1..100)
 	var interval by setting("Interval", 5, 0..100, unit = "ticks")
 
+	var rotate by setting("Rotate", true)
+	var packetRotate by setting("Packet Rotate", true)
+
 	val timer = Timer()
 
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideGroup(eatConfig)
+				hideGroups(eatConfig, buildConfig, breakConfig, interactConfig, inventoryConfig)
 				hotbarConfig::tickStageMask.edit {
 					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
 				}
@@ -58,10 +63,18 @@ object AutoLevel : Module(
 		listen<TickEvent.Pre> {
 			if (player.experienceLevel >= targetLevel) return@listen
 
+			if (rotate && !packetRotate)
+				rotationRequest {
+					pitch(90f)
+				}.submit()
 			if (timer.timePassed((50 * interval).milliseconds)) {
 				withXp {
+					var pitch = if (rotate) 90f else RotationManager.activeRotation.pitch.toFloat()
+					var yaw = RotationManager.activeRotation.yaw.toFloat()
 					repeat(burstAmount) {
-						interaction.interactItem(mc.player, Hand.MAIN_HAND)
+						interaction.sendSequencedPacket(world) { seq ->
+							PlayerInteractItemC2SPacket(Hand.MAIN_HAND, seq, yaw, pitch)
+						}
 					}
 					timer.reset()
 				}
@@ -70,14 +83,17 @@ object AutoLevel : Module(
 	}
 
 	private fun SafeContext.withXp(block: () -> Unit) {
-		if (HotbarManager.currentSlot?.stack?.item == Items.EXPERIENCE_BOTTLE) {
+		if (player.mainHandStack?.item == Items.EXPERIENCE_BOTTLE) {
 			block()
 			return
 		}
-		val hotbarSlot = StackSelection.selectStack(count = 1) { isItem<ExperienceBottleItem>() }.filterSlots(HotbarContainer.slots).firstOrNull() ?: return
-		HotbarRequest(
+		val hotbarSlot = StackSelection.selectStack(count = 1) {
+			isItem<ExperienceBottleItem>()
+		}.filterSlots(HotbarContainer.slots).firstOrNull() ?: return
+		val done = HotbarRequest(
 			hotbarSlot.index,
 			this@AutoLevel
-		).submit(queueIfMismatchedStage = false).also { if (it.done) block() }
+		).submit(queueIfMismatchedStage = false).done
+		if (done) block()
 	}
 }

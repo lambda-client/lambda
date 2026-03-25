@@ -28,7 +28,6 @@ import com.lambda.interaction.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.managers.hotbar.HotbarManager.checkResetSwap
 import com.lambda.interaction.managers.hotbar.HotbarManager.setActiveRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.setActiveSlot
-import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.threading.runSafe
 import net.minecraft.item.ItemStack
 
@@ -55,9 +54,6 @@ object HotbarManager : Manager<HotbarRequest>(
 	val serverSlot get() = runSafe {
 		interaction.lastSelectedSlot
 	} ?: -1
-	val currentSlot get() = runSafe {
-		if (serverSlot != -1) HotbarContainer.slots[serverSlot] else null
-	}
 	//ToDo: something to manage stacks so the hotbar manager is strictly index based
 	private var previousStack: ItemStack? = null
 	private var swappedTicks = 0
