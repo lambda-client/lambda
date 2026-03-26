@@ -25,9 +25,9 @@ import com.lambda.interaction.managers.hotbar.HotbarConfig
 import com.lambda.util.NamedEnum
 
 class HotbarSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), HotbarConfig {
     override val swapMode by c.setting("${prefix}Swap Mode", HotbarConfig.SwapMode.Temporary, visibility = visibility).group(*baseGroup).index()

@@ -75,7 +75,7 @@ object Nametags : Module(
 	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }.group(Group.General)
 	private val itemCount by setting("Item Count", true).group(Group.General)
 	private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }.group(Group.General)
-	private val entitySelectionSettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities)).apply {
+	private val entitySelectionSettings = EntitySelectionSettings(this, Group.Entities).apply {
 		applyEdits {
 			hide(::blockEntities)
 		}
@@ -86,12 +86,12 @@ object Nametags : Module(
 	//ToDo: Implement
 //	private val enchantments by setting("Enchantments", false) { gear }
 
-	private val friendTextConfig = ScreenTextSettings("Friend ", this, Group.Text, TextGroup.Friend).apply {
+	private val friendTextConfig = ScreenTextSettings(this, TextGroup.Friend, prefix = "Friend ").apply {
 		applyEdits {
 			::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
 		}
 	}
-	private val otherTextConfig = ScreenTextSettings("Other ", this, Group.Text, TextGroup.Other)
+	private val otherTextConfig = ScreenTextSettings(this, TextGroup.Other, prefix = "Other ")
 
 	var heightWidthRatio = 0f
 	var trueItemScaleX = 0f

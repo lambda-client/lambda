@@ -52,6 +52,12 @@ open class CollectionSetting<R : Any>(
 	defaultValue,
 	type
 ) {
+	override var value
+		get() = super.value
+		set(newVal) {
+			super.value = newVal.toMutableList()
+		}
+
     private var searchFilter = ""
     private val strListType =
         TypeToken.getParameterized(Collection::class.java, String::class.java).type

@@ -116,7 +116,7 @@ object AutoPortal : Module(
 	private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }.group(Group.Render)
 	private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }.group(Group.Render)
 	private val depthTest by setting("Depth Test", false) { renders }.group(Group.Render)
-	private val outlineConfig = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Render)) { renders }.apply {
+	private val outlineConfig = WorldLineSettings(c = this, Group.Render) { renders }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}

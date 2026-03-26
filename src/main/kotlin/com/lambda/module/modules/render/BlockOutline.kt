@@ -42,14 +42,14 @@ object BlockOutline : Module(
 	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
 	private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
 	private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
-	private val lineConfig = WorldLineSettings("Outline ", this) { boxOutline && mode == Mode.Boxes }.apply {
+	private val lineConfig = WorldLineSettings(this, prefix = "Outline ") { boxOutline && mode == Mode.Boxes }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}
 	}
 	private val interpolate by setting("Interpolate", true) { mode == Mode.Boxes }
 	private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	private val outlineStyle = OutlineSettings("Outline", this) { mode == Mode.Outline }
+	private val outlineStyle = OutlineSettings(this, prefix = "Outline") { mode == Mode.Outline }
 	private val depthTest by setting("Depth Test", true)
 
 	var previous: List<Box>? = null

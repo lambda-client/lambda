@@ -51,13 +51,13 @@ object ESP : Module(
 	private val mode by setting("Mode", EspMode.Shader).group(Group.General)
 	private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world").group(Group.General)
 
-	private val outlineStyle = OutlineSettings(c = this, baseGroup = arrayOf(Group.Shader)) { mode == EspMode.Shader }
+	private val outlineStyle = OutlineSettings(this, Group.Shader) { mode == EspMode.Shader }
 
 	private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }.group(Group.Box)
 		.onValueChange { _, to -> if (!to && !drawOutline) drawOutline = true }
 	private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }.group(Group.Box)
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
-	private val boxOutlineSettings = WorldLineSettings(c = this, baseGroup = arrayOf(Group.Box)) { mode == EspMode.Box && drawOutline }.apply {
+	private val boxOutlineSettings = WorldLineSettings(this, Group.Box) { mode == EspMode.Box && drawOutline }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}
@@ -65,8 +65,8 @@ object ESP : Module(
 	private val fillAlpha by setting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { mode == EspMode.Box && drawFilled }.group(Group.Box)
 	private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }.group(Group.Box)
 
-	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities))
-	private val entityColors = EntityColorSettings(c = this, baseGroup = arrayOf(Group.Colors))
+	private val entitySettings = EntitySelectionSettings(this, Group.Entities)
+	private val entityColors = EntityColorSettings(this, Group.Colors)
 
 	init {
 		immediateRenderer("EntityESP Immediate Renderer", depthTest = { depthTest }) { safeContext ->

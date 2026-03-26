@@ -23,9 +23,9 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class ScreenTextSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), TextConfig {
     private enum class Group(override val displayName: String) : NamedEnum {

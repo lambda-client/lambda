@@ -35,9 +35,9 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup
 
 class EntitySelectionSettings(
-	prefix: String = "",
 	c: Configurable,
 	vararg baseGroup: NamedEnum,
+	prefix: String = "",
 	override val visibility: () -> Boolean = { true },
 ) : EntitySelectionConfig, SettingGroup(c) {
 	override val self by c.setting("${prefix}Self", false, "Render own player in third person").group(*baseGroup).index()

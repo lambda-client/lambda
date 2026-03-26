@@ -74,7 +74,7 @@ object NoRender : Module(
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entity)).apply {
+	private val entitySettings = EntitySelectionSettings(this, Group.Entity).apply {
 		applyEdits {
 			editTyped(::playerEntities, ::mobEntities, ::bossEntities) {
 				defaultValue(mutableSetOf())

@@ -79,13 +79,13 @@ object Search : Module(
     private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
     private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
-    private val outlineConfig = WorldLineSettings("Outline ", this) { outline }.apply {
+    private val outlineConfig = WorldLineSettings(this, prefix = "Outline ") { outline }.apply {
         applyEdits {
             hide(::startColor, ::endColor)
             settings.forEach { it.onValueChange(::rebuildMesh) }
         }
     }
-    private val tracerConfig = ScreenLineSettings("Tracer ", this).apply {
+    private val tracerConfig = ScreenLineSettings(this, prefix = "Tracer ").apply {
         applyEdits {
             editTyped(::startColor, ::endColor) {
                 visibility { { !useNaturalColor } }

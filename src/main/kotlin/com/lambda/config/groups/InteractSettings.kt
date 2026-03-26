@@ -27,9 +27,9 @@ import com.lambda.interaction.managers.interacting.InteractConfig.InteractConfir
 import com.lambda.util.NamedEnum
 
 class InteractSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InteractConfig {
     override val rotate by c.setting("${prefix}Rotate For Interact", true, "Rotate towards block while placing", visibility = visibility).group(*baseGroup).index()

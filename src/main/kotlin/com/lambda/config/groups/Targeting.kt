@@ -49,12 +49,12 @@ import java.util.*
  * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class Targeting(
-    prefix: String = "",
 	c: Configurable,
-    vararg baseGroup: NamedEnum,
-    defaultRange: Double,
-    maxRange: Double,
-    visibility: () -> Boolean = { true },
+	vararg baseGroup: NamedEnum,
+	defaultRange: Double,
+	maxRange: Double,
+	prefix: String = "",
+	visibility: () -> Boolean = { true },
 ) : SettingGroup(c), TargetingConfig {
 	/**
 	 * The range within which entities can be targeted. This value is configurable and constrained
@@ -84,13 +84,13 @@ abstract class Targeting(
      * @property priority The priority used to determine which entity is targeted when multiple candidates are available.
      */
     class Combat(
+	    c: Configurable,
+	    vararg baseGroup: NamedEnum,
+	    defaultRange: Double = 5.0,
+	    maxRange: Double = 16.0,
 	    prefix: String = "",
-        c: Configurable,
-        vararg baseGroup: NamedEnum,
-        defaultRange: Double = 5.0,
-        maxRange: Double = 16.0,
-        override val visibility: () -> Boolean = { true },
-    ) : Targeting(prefix, c, *baseGroup, defaultRange = defaultRange, maxRange = maxRange, visibility = visibility) {
+	    override val visibility: () -> Boolean = { true },
+    ) : Targeting(c, *baseGroup, defaultRange = defaultRange, maxRange = maxRange, prefix = prefix, visibility = visibility) {
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */

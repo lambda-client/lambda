@@ -24,9 +24,9 @@ import com.lambda.util.NamedEnum
 import kotlin.math.max
 
 class BuildSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), BuildConfig {
     enum class Group(override val displayName: String) : NamedEnum {

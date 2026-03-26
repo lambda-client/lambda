@@ -25,9 +25,9 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
 
 class InventorySettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InventoryConfig {
     enum class Group(override val displayName: String) : NamedEnum {

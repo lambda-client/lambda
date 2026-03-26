@@ -21,18 +21,16 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
-import com.lambda.module.hud.Coordinates.Group
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.format
-import com.lambda.util.NamedEnum
 
 object Rotation : HudModule(
 	name = "Rotation",
 	description = "Show your rotation",
 	tag = ModuleTag.HUD,
 ) {
-	private val formatter = FormatterSettings(c = this).apply {
+	private val formatter = FormatterSettings(c = this,).apply {
 		applyEdits {
 			::timeFormat.edit { hide() }
 		}

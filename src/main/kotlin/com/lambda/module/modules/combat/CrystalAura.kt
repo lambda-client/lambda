@@ -110,7 +110,7 @@ object CrystalAura : Module(
     private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }.group(Group.Prediction)
 
     /* Targeting */
-    private val targeting = Targeting.Combat(c = this, baseGroup = arrayOf(Group.Targeting), defaultRange = 10.0)
+    private val targeting = Targeting.Combat(c = this, Group.Targeting, defaultRange = 10.0)
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
