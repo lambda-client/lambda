@@ -24,6 +24,8 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.PacketLimitHandler
+import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
@@ -104,7 +106,10 @@ object InventoryManager : Manager<InventoryRequest>(
 		if (activeRequest != null) return
 
 		val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
-		if (inventoryActionCount > request.inventoryConfig.actionsPerSecond - actionsThisSecond &&
+		val playerActionCount = request.actions.count { it is InventoryAction.Player }
+		val canPerformAllPlayerActions = PacketLimitHandler.canSendPackets(playerActionCount, PacketType.PlayerAction)
+		val canPerformAllInventoryActions = inventoryActionCount <= request.inventoryConfig.actionsPerSecond - actionsThisSecond
+		if ((!canPerformAllInventoryActions || !canPerformAllPlayerActions) &&
 			!request.settleForLess &&
 			!request.mustPerform) return
 
@@ -139,6 +144,7 @@ object InventoryManager : Manager<InventoryRequest>(
 				if (action is InventoryAction.Inventory && actionsThisSecond + 1 > maxActionsThisSecond && !active.mustPerform)
 					break
 				action.action(this)
+				if (action is InventoryAction.Player) PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				if (DEFAULT.avoidDesync) indexInventoryChanges()
 				actionsThisTick++
 				actionsThisSecond++

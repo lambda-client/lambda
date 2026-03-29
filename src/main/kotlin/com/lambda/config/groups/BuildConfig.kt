@@ -34,6 +34,10 @@ interface BuildConfig : ISettingGroup {
     val actionTimeout: Int
     val maxBuildDependencies: Int
 
+    val limitTimeframe: Int
+    val actionPacketLimit: Int
+    val interactionPacketLimit: Int
+
     val blockReach: Double
     val entityReach: Double
     val scanReach: Double

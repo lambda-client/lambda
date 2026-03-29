@@ -77,7 +77,7 @@ class InventoryRequest private constructor(
 
 		@InvRequestDsl
 		fun swapHands() {
-			InventoryAction.Inventory {
+			InventoryAction.Player {
 				val offhandStack = player.getStackInHand(Hand.OFF_HAND)
 				player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
 				player.setStackInHand(Hand.MAIN_HAND, offhandStack)

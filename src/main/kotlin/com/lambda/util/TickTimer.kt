@@ -15,19 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.managers.inventory
+package com.lambda.util
 
-import com.lambda.context.SafeContext
+class TickTimer {
+	private var ticks = 0
 
-/**
- * Represents a type of action. Inventory actions are strictly inventory-related.
- * Other actions can be external actions that happen some time within the sequence of inventory actions
- * to avoid having to use multiple requests.
- */
-sealed interface InventoryAction {
-	val action: SafeContext.() -> Unit
+	fun tick() {
+		ticks++
+	}
 
-	class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
-	class Player(override val action: SafeContext.() -> Unit) : InventoryAction
-	class Other(override val action: SafeContext.() -> Unit) : InventoryAction
+	fun hasSurpassed(ticks: Int) = this.ticks > ticks
+
+	fun reset() {
+		ticks = 0
+	}
 }
