@@ -74,7 +74,7 @@ open class BreakSettings(
 
 	// Pending / Post
 	override val breakConfirmation by c.setting("${prefix}Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking", visibility = visibility).group(*baseGroup, Group.General).index()
-	override val breaksPerTick by c.setting("${prefix}Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val breaksPerTick by c.setting("${prefix}Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick", visibility = visibility).group(*baseGroup, Group.General).index()
 
 	// Block
 	override val ignoredBlocks by c.setting("${prefix}Ignored Blocks", emptySet<Block>(), description = "Blocks that wont be broken", visibility = visibility).group(*baseGroup, Group.General).index()

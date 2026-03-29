@@ -462,17 +462,20 @@ object BreakManager : Manager<BreakRequest>(
 	 *
 	 * @see initNewBreak
 	 */
-	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean = request.runSafeAutomated {
-		breaks.forEach { ctx ->
-			if (breaksThisTick >= maxBreaksThisTick) return false
-			if (!currentStackSelection.filterStack(player.inventory.getStack(ctx.hotbarIndex))) return@forEach
+	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean =
+		request.runSafeAutomated {
+			if (tickStage !in request.breakConfig.tickStageMask) return false
 
-			initNewBreak(ctx, request) ?: return false
-			breaks.remove(ctx)
-			return true
+			breaks.forEach { ctx ->
+				if (breaksThisTick >= maxBreaksThisTick) return false
+				if (!currentStackSelection.filterStack(player.inventory.getStack(ctx.hotbarIndex))) return@forEach
+
+				initNewBreak(ctx, request) ?: return false
+				breaks.remove(ctx)
+				return true
+			}
+			return false
 		}
-		return false
-	}
 
 	/**
 	 * Attempts to accept the [requestCtx] into the [breakInfos].
