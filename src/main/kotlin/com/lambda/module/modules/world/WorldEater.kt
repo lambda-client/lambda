@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.BaritoneManager
@@ -35,9 +35,9 @@ import java.awt.Color
 object WorldEater : Module(
     name = "WorldEater",
     description = "Eats the world",
-    tag = ModuleTag.PLAYER,
+    tag = ModuleTag.WORLD,
 ) {
-    //    private val height by setting("Height", 4, 1..10, 1)
+//    private val height by setting("Height", 4, 1..10, 1)
 //    private val width by setting("Width", 6, 1..30, 1)
     private val pos1 by setting("Position 1", BlockPos(351, 104, 103))
     private val pos2 by setting("Position 2", BlockPos(361, 70, 113))
@@ -52,7 +52,7 @@ object WorldEater : Module(
             val layerRanges = (area.minY..area.maxY step layerSize).reversed()
             work.addAll(layerRanges.mapNotNull { y ->
                 if (y == area.minY) return@mapNotNull null
-                BlockBox(area.minX, y - layerSize, area.minZ, area.maxX, y, area.maxZ)
+	            BlockBox(area.minX, y - layerSize, area.minZ, area.maxX, y, area.maxZ)
             })
 
             buildLayer()

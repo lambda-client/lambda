@@ -36,7 +36,7 @@ import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarStacks
-import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
@@ -59,8 +59,8 @@ object KillAura : Module(
     // Targeting
     private val targeting = Targeting.Combat(c = this, baseGroup = arrayOf(Group.Targeting))
 
-    val target: LivingEntity?
-        get() = targeting.target()
+    val target: Entity?
+        get() = targeting.target<Entity>()
 
     private var prevEntity = target
     private var validServerRot = false

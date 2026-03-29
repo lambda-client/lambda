@@ -17,7 +17,6 @@
 
 package com.lambda.config.groups
 
-import com.lambda.module.modules.render.ESP.Group
 import java.awt.Color
 
 interface EntityColorsConfig {

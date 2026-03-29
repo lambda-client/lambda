@@ -15,13 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -36,10 +34,10 @@ import net.minecraft.util.math.BlockPos
 object Printer : Module(
 	name = "Printer",
 	description = "Automatically prints schematics",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.WORLD
 ) {
-	private val range by setting("Range", 5, 1..7, 1)
-	private val air by setting("Air", false)
+	private val range by setting("Range", 5, 1..7, 1, description = "The range around the player to check for blocks to print")
+	private val air by setting("Air", false, description = "Consider breaking blocks in the world that are air in the schematic.\nNote: Breaking can also be disabled in the Automation Config.")
 
 	private var buildTask: Task<*>? = null
 
@@ -57,13 +55,20 @@ object Printer : Module(
 				BlockPos.iterateOutwards(player.blockPos, range, range, range)
 					.map { it.blockPos }
 					.asSequence()
-					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) }
+					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
 					.filter { air || !it.value.blockState.isAir }
 			}.build(finishOnDone = false).run()
 		}
 
 		onDisable { buildTask?.cancel(); buildTask = null }
+	}
+
+	private fun inSchematic(pos: BlockPos): Boolean {
+		val placementManager = DataManager.getSchematicPlacementManager()
+		return placementManager?.getAllPlacementsTouchingChunk(pos)?.any {
+			it.placement.isEnabled && it.bb.containsPos(pos)
+		} ?: false
 	}
 
 	private fun litematicaAvailable(): Boolean = runCatching {

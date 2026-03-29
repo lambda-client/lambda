@@ -381,17 +381,17 @@ class RegionRenderer {
 	fun hasScreenData(): Boolean = hasScreenData
 
 	fun clearData() {
-		faceVertexBuffer = null
-		edgeVertexBuffer = null
-		textVertexBuffer = null
+		faceVertexBuffer?.close(); faceVertexBuffer = null
+		edgeVertexBuffer?.close(); edgeVertexBuffer = null
+		textVertexBuffer?.close(); textVertexBuffer = null
 		faceIndexCount = 0
 		edgeIndexCount = 0
 		textIndexCount = 0
 		hasWorldData = false
 
-		screenFaceVertexBuffer = null
-		screenEdgeVertexBuffer = null
-		screenTextVertexBuffer = null
+		screenFaceVertexBuffer?.close(); screenFaceVertexBuffer = null
+		screenEdgeVertexBuffer?.close(); screenEdgeVertexBuffer = null
+		screenTextVertexBuffer?.close(); screenTextVertexBuffer = null
 		screenFaceIndexCount = 0
 		screenEdgeIndexCount = 0
 		screenTextIndexCount = 0

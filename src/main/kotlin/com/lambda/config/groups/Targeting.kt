@@ -26,15 +26,13 @@ import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
-import com.lambda.util.EntityUtils.EntityGroup
-import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
-import net.minecraft.client.toast.SystemToast.hide
+import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.PlayerLikeEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -78,7 +76,7 @@ abstract class Targeting(
 	 * @param entity The [LivingEntity] being evaluated.
 	 * @return `true` if the entity is valid for targeting, `false` otherwise.
 	 */
-    open fun validate(player: ClientPlayerEntity, entity: LivingEntity) =
+    open fun validate(player: ClientPlayerEntity, entity: Entity) =
 		targets.isSelected(entity) && (entity !is OtherClientPlayerEntity || !entity.isFriend)
 
     /**
@@ -114,24 +112,25 @@ abstract class Targeting(
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
          *
          * @param player The [ClientPlayerEntity] performing the targeting.
-         * @param entity The [LivingEntity] being evaluated.
+         * @param entity The [Entity] being evaluated.
          * @return `true` if the entity is valid for targeting, `false` otherwise.
          */
-        override fun validate(player: ClientPlayerEntity, entity: LivingEntity): Boolean {
+        override fun validate(player: ClientPlayerEntity, entity: Entity): Boolean {
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
             if (entity.uuid in illegalTargets) return false
             if (entity.isDead) return false
-	        if (entity.hasCustomName() && entity !is PlayerLikeEntity && !targetNamed) return false
+            if (entity.hasCustomName() && entity !is PlayerLikeEntity && !targetNamed) return false
+            if ((entity as? LivingEntity)?.isDead == true) return false
             return super.validate(player, entity)
         }
 
         /**
          * Gets the best target for combat based on the current settings and priority.
          *
-         * @return The best [LivingEntity] target, or `null` if no valid target is found.
+         * @return The best [Entity] target, or `null` if no valid target is found.
          */
-        fun target(): LivingEntity? = runSafe {
-            return@runSafe fastEntitySearch<LivingEntity>(targetingRange) {
+        inline fun <reified T : Entity> target(): T? = runSafe {
+            return@runSafe fastEntitySearch<T>(targetingRange) {
                 validate(player, it)
             }.minByOrNull {
                 priority.factor(this, it)
@@ -148,10 +147,10 @@ abstract class Targeting(
     /**
      * Enum representing the different priority factors used for determining the best target.
      *
-     * @property factor A lambda function that calculates the priority factor for a given [LivingEntity].
+     * @property factor A lambda function that calculates the priority factor for a given [Entity].
      */
     @Suppress("Unused")
-    enum class Priority(val factor: SafeContext.(LivingEntity) -> Double) {
+    enum class Priority(val factor: SafeContext.(Entity) -> Double) {
         /**
          * Prioritizes entities based on their distance from the player.
          */
@@ -159,8 +158,10 @@ abstract class Targeting(
 
         /**
          * Prioritizes entities based on their health.
+         * Entities that aren't an instanceof LivingEntity will be treated as if they have Double.MAX_VALUE health,
+         * therefore having least priority
          */
-        Health({ it.fullHealth }),
+        Health({ (it as? LivingEntity)?.fullHealth ?: Double.MAX_VALUE }),
 
         /**
          * Prioritizes entities based on their angle relative to the player's field of view.
