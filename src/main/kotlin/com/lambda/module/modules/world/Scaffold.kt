@@ -27,12 +27,17 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.InputUtils.isSatisfied
+import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.item.ItemUtils.blockItem
+import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -41,6 +46,7 @@ object Scaffold : Module(
 	description = "Places blocks under the player",
 	tag = ModuleTag.WORLD,
 ) {
+	private val blacklistedBlocks by setting("Blacklisted Blocks", mutableSetOf<Block>())
 	private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
 	private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }
 	private val descend by setting("Descend", Bind.EMPTY, "Lower the place position by one to allow the player to lower y level")
@@ -72,7 +78,8 @@ object Scaffold : Module(
 						::accessShulkerBoxes,
 						::accessEnderChest,
 						::accessChests,
-						::accessStashes
+						::accessStashes,
+						::disposables
 					)
 				}
 				hideAllGroupsExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig, inventoryConfig)
@@ -80,6 +87,9 @@ object Scaffold : Module(
 		}
 
 		listen<TickEvent.Pre> {
+			val stack = selectStack {
+				{ it.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks } }
+			}.filterStacks(HotbarContainer.stacks).firstOrNull() ?: return@listen
 			val playerSupport = player.blockPos.down()
 			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
 			if (alreadySupported) return@listen
@@ -87,7 +97,7 @@ object Scaffold : Module(
 			val beneath = playerSupport.down(offset)
 			runSafeAutomated {
 				scaffoldPositions(beneath)
-					.associateWith { TargetState.Solid(emptySet()) }
+					.associateWith { TargetState.State(stack.item.block.defaultState) }
 					.simulate()
 					.interactRequest(pendingActions)
 					?.submit()
