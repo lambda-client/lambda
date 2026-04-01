@@ -147,7 +147,7 @@ object InventoryManager : Manager<InventoryRequest>(
 				if (action is InventoryAction.Player) PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				if (DEFAULT.avoidDesync) indexInventoryChanges()
 				actionsThisTick++
-				actionsThisSecond++
+				if (action is InventoryAction.Inventory) actionsThisSecond++
 				iterator.remove()
 			}
 
