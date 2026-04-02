@@ -18,6 +18,7 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.Lambda.mc
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -29,7 +30,6 @@ import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import net.minecraft.client.MinecraftClient
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
@@ -42,10 +42,9 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 ) {
 	context(setting: Setting<*, BlockPos>)
 	override fun ImGuiBuilder.buildLayout() {
-		button("Set") {
-			MinecraftClient.getInstance().crosshairTarget?.blockResult?.blockPos?.let {
-				setting.trySetValue(it, logResponse = false)
-				setting.info("Coordinates updated")
+		button("Set##${setting.name}") {
+			mc.crosshairTarget?.blockResult?.blockPos?.let {
+				value = it
 			} ?: info("No block under crosshair")
 		}
 		lambdaTooltip("Set the coordinates to the block you are currently looking at")
