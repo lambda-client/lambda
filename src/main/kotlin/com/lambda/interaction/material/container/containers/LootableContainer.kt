@@ -29,12 +29,12 @@ import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
-import net.minecraft.block.entity.ChestBlockEntity
+import net.minecraft.block.entity.LootableContainerBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
-data class ChestContainer(
+data class LootableContainer(
     override var stacks: List<ItemStack>,
     val blockPos: BlockPos,
     val containedInStash: StashContainer? = null
@@ -42,13 +42,13 @@ data class ChestContainer(
     context(safeContext: SafeContext)
     override val slots
         get(): List<Slot> =
-            if (ContainerManager.lastInteractedBlockEntity is ChestBlockEntity)
+            if (ContainerManager.lastInteractedBlockEntity is LootableContainerBlockEntity)
                 safeContext.player.currentScreenHandler.containerSlots
             else emptyList()
 
     override val description =
         buildText {
-            literal("Chest at ")
+            literal("Container at ")
             highlighted(blockPos.toShortString())
             containedInStash?.let { stash ->
                 literal(" (contained in ")

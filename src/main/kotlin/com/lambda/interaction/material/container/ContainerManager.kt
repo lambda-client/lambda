@@ -26,14 +26,14 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.containers.ChestContainer
+import com.lambda.interaction.material.container.containers.LootableContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.entity.BlockEntity
-import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
+import net.minecraft.block.entity.LootableContainerBlockEntity
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
@@ -67,16 +67,14 @@ object ContainerManager : Loadable {
                     EnderChestContainer.update(handler.containerStacks)
                 }
 
-                is ChestBlockEntity -> {
-                    // ToDo: Handle double chests and single chests
-                    if (handler.type != ScreenHandlerType.GENERIC_9X6) return@listen
+                is LootableContainerBlockEntity -> {
                     val stacks = handler.containerStacks
 
                     containers
-                        .filterIsInstance<ChestContainer>()
+                        .filterIsInstance<LootableContainer>()
                         .find {
                             it.blockPos == block.pos
-                        }?.update(stacks) ?: runtimeContainers.add(ChestContainer(stacks, block.pos))
+                        }?.update(stacks) ?: runtimeContainers.add(LootableContainer(stacks, block.pos))
                 }
             }
             lastInteractedBlockEntity = null
