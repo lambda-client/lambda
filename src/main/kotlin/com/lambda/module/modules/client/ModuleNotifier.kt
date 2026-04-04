@@ -20,54 +20,54 @@ package com.lambda.module.modules.client
 import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.log
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
 import net.minecraft.text.Text
 import net.minecraft.util.Colors
+import java.awt.Color
 
 object ModuleNotifier : Module(
 	name = "ModuleNotifier",
 	description = "Notifies you when a module is enabled or disabled",
-	tag = com.lambda.module.tag.ModuleTag.CLIENT
+	tag = ModuleTag.CLIENT
 ) {
 	var notifyTarget by setting("Notify Target", setOf<NotifyTarget>(NotifyTarget.ActionBar), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
 
 	enum class NotifyTarget(override val displayName: String, override val description: String) : Describable, NamedEnum {
 		Chat("Chat", "Sends a message to chat when a module is toggled"),
-		ActionBar("Action Bar", "Sends a message to the action bar when a module is toggled"),;
+		ActionBar("Action Bar", "Sends a message to the action bar when a module is toggled"), ;
 	}
 
 	init {
-		listen<ModuleEvent.Enabled> {
-			runSafe {
-				logToTargets(Text.literal("on").withColor(Colors.GREEN))
-			}
+		listen<ModuleEvent.Enabled> { event ->
+			logToTargets(event.module, buildText {
+				color(Color(Colors.GREEN)) {
+					literal("on")
+				}
+			})
 		}
 
-		listen<ModuleEvent.Disabled> {
-			runSafe {
-				logToTargets(Text.literal("off").withColor(Colors.RED))
-			}
-		}
-
-		listen<ModuleEvent.Toggle> {
-			runSafe {
-				val newState = if (it.newValue) "on" else "off"
-				val color = if (it.newValue) Colors.GREEN else Colors.RED
-				val message = Text.literal(newState).withColor(color)
-				logToTargets(message)
-			}
+		listen<ModuleEvent.Disabled> { event ->
+			logToTargets(event.module, buildText {
+				color(Color(Colors.RED)) {
+					literal("off")
+				}
+			})
 		}
 	}
 
-	private fun logToTargets(message: Text) {
-		if (notifyTarget.contains(NotifyTarget.Chat)) {
-			log(message, source = name)
+	private fun logToTargets(module: Module, message: Text) {
+		if (NotifyTarget.Chat in notifyTarget) {
+			module.log(message)
 		}
-		if (notifyTarget.contains(NotifyTarget.ActionBar)) {
-			log(message, source = name, inGameOverlay = true)
+		if (NotifyTarget.ActionBar in notifyTarget) {
+			module.log(message, inGameOverlay = true)
 		}
 	}
 }

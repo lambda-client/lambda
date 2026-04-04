@@ -39,7 +39,6 @@ import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import com.lambda.util.text.text
 import net.minecraft.client.toast.SystemToast
-import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import java.awt.Color
 import java.time.LocalDateTime
@@ -97,9 +96,6 @@ object Communication {
         }
     }
 
-    /**
-     * Logs messages to the in game chat if available while stripping the message styles
-     */
     fun Any.log(
         message: Text,
         logLevel: LogLevel = LogLevel.Info,

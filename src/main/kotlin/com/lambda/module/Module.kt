@@ -168,14 +168,14 @@ abstract class Module(
     }
 
     fun enable() {
-        if (ModuleEvent.Enabled(this@Module).post().isCanceled()) {
+        if (!isEnabled && ModuleEvent.Enabled(this@Module).post().isCanceled()) {
             return
         }
         isEnabled = true
     }
 
     fun disable() {
-        if (ModuleEvent.Disabled(this@Module).post().isCanceled()) {
+        if (isEnabled && ModuleEvent.Disabled(this@Module).post().isCanceled()) {
             return
         }
         isEnabled = false
@@ -185,7 +185,7 @@ abstract class Module(
         if (ModuleEvent.Toggle(this@Module, !isEnabled).post().isCanceled()) {
             return
         }
-        isEnabled = !isEnabled
+        if (isEnabled) disable() else enable()
     }
 
     fun onEnable(block: SafeContext.() -> Unit) {
