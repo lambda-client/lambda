@@ -34,6 +34,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.PlayerLikeEntity
 import java.util.*
 
 /**
@@ -44,7 +45,7 @@ import java.util.*
  * are targetable, the range of targeting, and various other conditions for targeting.
  *
  * @param c The [Configurable] instance used to get and set configuration options for targeting.
- * @param vis The predicate used to determine whether the targeting settings are visible and active.
+ * @param visibility The predicate used to determine whether the targeting settings are visible and active.
  * @param defaultRange The default range within which entities can be targeted.
  * @param maxRange The maximum range within which entities can be targeted.
  */
@@ -101,6 +102,11 @@ abstract class Targeting(
          */
         val priority by c.setting("${prefix}Priority", Priority.Distance, visibility = visibility).group(*baseGroup).index()
 
+	    /**
+	     * Whether to target named entities that are not players. Configurable with default set to `true`.
+	     */
+	    val targetNamed by c.setting("${prefix}Target Named Entities", false, visibility = visibility).group(*baseGroup).index()
+
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
          *
@@ -111,7 +117,8 @@ abstract class Targeting(
         override fun validate(player: ClientPlayerEntity, entity: Entity): Boolean {
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
             if (entity.uuid in illegalTargets) return false
-	        if ((entity as? LivingEntity)?.isDead == true) return false
+            if (entity.hasCustomName() && entity !is PlayerLikeEntity && !targetNamed) return false
+            if ((entity as? LivingEntity)?.isDead == true) return false
             return super.validate(player, entity)
         }
 
