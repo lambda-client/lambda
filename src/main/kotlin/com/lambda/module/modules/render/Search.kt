@@ -103,7 +103,7 @@ object Search : Module(
 
     private val tracerBlockPositions = ConcurrentMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
 
-    val chunkedRenderer = chunkedRenderer("Chunked Search") { world, position ->
+    val chunkedRenderer = chunkedRenderer("Search Chunked Renderer") { world, position ->
         runSafe {
             val pos = position.toBlockPos()
             val state = world.getBlockState(pos)
@@ -143,7 +143,7 @@ object Search : Module(
     }
 
     init {
-        immediateRenderer("Immediate Search") { safeContext ->
+        immediateRenderer("Search Immediate Renderer") { safeContext ->
             safeContext.world.entities.forEach { entity ->
                 if (entity.entityGroup.nameToDisplayNameMap[entity::class.simpleName] in entities) {
                     val entityColor = getEntityColor(entity)

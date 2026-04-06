@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.managers.rotating.visibilty
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingData
@@ -26,6 +25,7 @@ import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.module.modules.client.Client
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
@@ -157,7 +157,7 @@ object VisibilityChecker {
 		val (scanBox, invalidSides) = getScanBox(preProcessing, allowInsideBox) ?: return
 		(visibleSides - invalidSides).forEach { side ->
 			val (minX, minY, minZ, maxX, maxY, maxZ) = scanBox
-				.offset(side.doubleVector.multiply(DEFAULT.shrinkFactor))
+				.offset(side.doubleVector.multiply(Client.scanShrinkFactor))
 				.bounds(side)
 
 			val stepX = (maxX - minX) / resolution
@@ -190,31 +190,31 @@ object VisibilityChecker {
 				val pos = when (side) {
 					Direction.DOWN -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
-						minY + DEFAULT.shrinkFactor,
+						minY + Client.scanShrinkFactor,
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.UP -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
-						maxY + DEFAULT.shrinkFactor,
+						maxY + Client.scanShrinkFactor,
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.NORTH -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
 						pov.y.coerceIn(minY, maxY),
-						minZ + DEFAULT.shrinkFactor
+						minZ + Client.scanShrinkFactor
 					)
 					Direction.SOUTH -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
 						pov.y.coerceIn(minY, maxY),
-						maxZ + DEFAULT.shrinkFactor
+						maxZ + Client.scanShrinkFactor
 					)
 					Direction.WEST -> Vec3d(
-						minX + DEFAULT.shrinkFactor,
+						minX + Client.scanShrinkFactor,
 						pov.y.coerceIn(minY, maxY),
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.EAST -> Vec3d(
-						maxX + DEFAULT.shrinkFactor,
+						maxX + Client.scanShrinkFactor,
 						pov.y.coerceIn(minY, maxY),
 						pov.z.coerceIn(minZ, maxZ)
 					)
@@ -240,7 +240,7 @@ object VisibilityChecker {
 		preProcessing: PreProcessingData?,
 		allowInsideBox: Boolean
 	): Pair<Box, Set<Direction>>? =
-		with(contract(DEFAULT.shrinkFactor)) {
+		with(contract(Client.scanShrinkFactor)) {
 			if (preProcessing == null || preProcessing.info.surfaceScan.mode == ScanMode.Full) return Pair(this, emptySet())
 
 			val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X,  preProcessing.info.surfaceScan)

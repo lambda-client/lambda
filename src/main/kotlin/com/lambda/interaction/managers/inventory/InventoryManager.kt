@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.managers.inventory
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
@@ -30,6 +29,7 @@ import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.managers.inventory.InventoryManager.processActiveRequest
+import com.lambda.module.modules.client.Client
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemStackUtils.equal
@@ -55,8 +55,8 @@ object InventoryManager : Manager<InventoryRequest>(
 	private var actions = mutableListOf<InventoryAction>()
 
 	private var slots = listOf<ItemStack>()
-	private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L)
-	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, DEFAULT.desyncTimeout * 50L)
+	private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout * 50L)
+	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout * 50L)
 
 	var screenHandler: ScreenHandler? = null
 		set(value) {
@@ -76,7 +76,7 @@ object InventoryManager : Manager<InventoryRequest>(
 		super.load()
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
-            if (DEFAULT.avoidDesync) indexInventoryChanges()
+            if (Client.avoidInventoryDesync) indexInventoryChanges()
             if (++secondCounter >= 20) {
                 secondCounter = 0
                 actionsThisSecond = 0
@@ -126,8 +126,8 @@ object InventoryManager : Manager<InventoryRequest>(
 		activeRequest = request
 		actions = request.actions.toMutableList()
 		maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
-		alteredSlots.setDecayTime(DEFAULT.desyncTimeout * 50L)
-		alteredPlayerSlots.setDecayTime(DEFAULT.desyncTimeout * 50L)
+		alteredSlots.setDecayTime(Client.desyncTimeout * 50L)
+		alteredPlayerSlots.setDecayTime(Client.desyncTimeout * 50L)
 	}
 
 	/**
@@ -145,7 +145,7 @@ object InventoryManager : Manager<InventoryRequest>(
 					break
 				action.action(this)
 				if (action is InventoryAction.Player) PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
-				if (DEFAULT.avoidDesync) indexInventoryChanges()
+				if (Client.avoidInventoryDesync) indexInventoryChanges()
 				actionsThisTick++
 				if (action is InventoryAction.Inventory) actionsThisSecond++
 				iterator.remove()
@@ -188,7 +188,7 @@ object InventoryManager : Manager<InventoryRequest>(
 	@JvmStatic
 	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){
 		runSafe {
-			if (!mc.isOnThread || !DEFAULT.avoidDesync) {
+			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
 				original.call(packet)
 				return
 			}
@@ -221,7 +221,7 @@ object InventoryManager : Manager<InventoryRequest>(
 	@JvmStatic
 	fun onSlotUpdate(packet: ScreenHandlerSlotUpdateS2CPacket, original: Operation<Void>) {
 		runSafe {
-			if (!mc.isOnThread || !DEFAULT.avoidDesync) {
+			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
 				original.call(packet)
 				return
 			}

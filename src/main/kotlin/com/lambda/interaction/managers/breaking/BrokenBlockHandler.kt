@@ -18,7 +18,8 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
+import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -61,7 +62,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			if (!info.broken) {
 				val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
-			} else if (!DEFAULT.ignoreItemDropWarnings) {
+			} else if (!Client.ignoreItemDropWarnings) {
 				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
 			}

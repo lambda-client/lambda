@@ -19,7 +19,6 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
@@ -50,6 +49,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
@@ -124,7 +124,7 @@ class BuildTask private constructor(
                 .simulate()
                 .asSequence()
 
-        DEFAULT.drawables = results
+        Client.drawables = results
             .filterIsInstance<Drawable>()
             .plus(pendingInteractions.toList())
             .toList()

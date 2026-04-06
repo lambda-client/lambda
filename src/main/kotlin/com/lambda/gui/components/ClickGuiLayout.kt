@@ -36,6 +36,7 @@ import com.lambda.gui.snap.SnapManager.drawDragGrid
 import com.lambda.gui.snap.SnapManager.drawSnapLines
 import com.lambda.gui.snap.SnapManager.updateDragAndSnapping
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import com.lambda.sound.LambdaSound
@@ -362,7 +363,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 			LambdaScreen.close()
 		} else {
 			if (!mc.currentScreen.hasInput) {
-				LambdaSound.ModuleOn.play()
+				if (Client.clientSounds) LambdaSound.ModuleOn.play()
 				mc.setScreen(LambdaScreen)
 				open = true
 				frameCount = 0
@@ -372,7 +373,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	}
 
 	fun close() {
-		LambdaSound.ModuleOff.play()
+		if (Client.clientSounds) LambdaSound.ModuleOff.play()
 		open = false
 	}
 
