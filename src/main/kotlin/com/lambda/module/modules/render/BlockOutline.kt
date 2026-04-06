@@ -67,7 +67,7 @@ object BlockOutline : Module(
 	var previous: List<Box>? = null
 
 	init {
-		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { !depthTest }) { safeContext ->
+		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { depthTest }) { safeContext ->
 			with(safeContext) {
 				val hitResult = mc.crosshairTarget?.blockResult ?: return@with
 				val pos = hitResult.blockPos

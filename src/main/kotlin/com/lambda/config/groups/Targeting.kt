@@ -35,6 +35,7 @@ import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.PlayerLikeEntity
+import net.minecraft.entity.Tameable
 import java.util.*
 
 /**
@@ -103,9 +104,14 @@ abstract class Targeting(
         val priority by c.setting("${prefix}Priority", Priority.Distance, visibility = visibility).group(*baseGroup).index()
 
 	    /**
-	     * Whether to target named entities that are not players. Configurable with default set to `true`.
+	     * Whether to target named entities that are not players.
 	     */
 	    val targetNamed by c.setting("${prefix}Target Named Entities", false, visibility = visibility).group(*baseGroup).index()
+	    /**
+	     * Whether to target tamed entities.
+	     */
+		val targetTamed by c.setting("${prefix}Target Tamed Entities", false, visibility = visibility).group(*baseGroup).index()
+		val owned by c.setting("${prefix}Owned", false) { visibility() && targetTamed }.group(*baseGroup).index()
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
@@ -119,6 +125,10 @@ abstract class Targeting(
             if (entity.uuid in illegalTargets) return false
             if (entity.hasCustomName() && entity !is PlayerLikeEntity && !targetNamed) return false
             if ((entity as? LivingEntity)?.isDead == true) return false
+	        if (entity is Tameable) run tamed@{
+				val owner = entity.owner ?: return@tamed
+		        if (!targetTamed || (!owned && owner.uuid == player.uuid)) return false
+	        }
             return super.validate(player, entity)
         }
 
