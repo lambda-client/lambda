@@ -19,9 +19,7 @@ package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo
-import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractRequest
 import com.lambda.interaction.managers.rotating.RotationRequest
 import net.minecraft.block.BlockState
@@ -65,4 +63,7 @@ data class InteractContext(
         } else true
         return validRotation
     }
+
+    override fun canUse() =
+        (buildConfig.interactBlocks && !preProcessingInfo.placing) || (buildConfig.placeBlocks && preProcessingInfo.placing)
 }

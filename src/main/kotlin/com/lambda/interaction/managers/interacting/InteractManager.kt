@@ -35,7 +35,6 @@ import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
-import com.lambda.interaction.managers.interacting.InteractManager.maxPlacementsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendingActions
@@ -73,10 +72,8 @@ object InteractManager : Manager<InteractRequest>(
 	private var potentialInteractions = mutableListOf<InteractContext>()
 
 	private var interactCooldown = 0
-	private var placementsThisTick = 0
-	private var maxPlacementsThisTick = 0
-
-	private var airPlacedThisTick = false
+	private var interactionsThisTick = 0
+	private var maxInteractionsThisTick = 0
 
 	private var shouldSneak = false
 	private val ClientPlayerEntity.validSneak get() = isSneaking == shouldSneak
@@ -89,8 +86,7 @@ object InteractManager : Manager<InteractRequest>(
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
             activeRequest = null
-	        airPlacedThisTick = false
-            placementsThisTick = 0
+            interactionsThisTick = 0
             potentialInteractions.clear()
 	        if (interactCooldown > 0) {
 				interactCooldown--
@@ -118,7 +114,7 @@ object InteractManager : Manager<InteractRequest>(
 	 * @see processRequest
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
-		if (!request.buildConfig.interactBlocks || activeRequest != null || request.contexts.isEmpty()) return
+		if (activeRequest != null || request.contexts.isEmpty()) return
 		if (BreakManager.activeThisTick) return
 
 		activeRequest = request
@@ -127,14 +123,14 @@ object InteractManager : Manager<InteractRequest>(
 			activeRequest = null
 			potentialInteractions = mutableListOf()
 		}
-		if (placementsThisTick > 0) activeThisTick = true
+		if (interactionsThisTick > 0) activeThisTick = true
 	}
 
 	/**
 	 * Returns immediately if [BreakManager] or [InteractManager] have been active this tick.
 	 * Otherwise, for fresh requests, [populateFrom] is called to fill the [potentialInteractions] collection.
 	 * It then attempts to perform as many placements as possible from the [potentialInteractions] collection within
-	 * the [maxPlacementsThisTick] limit.
+	 * the [maxInteractionsThisTick] limit.
 	 *
 	 * @see populateFrom
 	 */
@@ -188,7 +184,6 @@ object InteractManager : Manager<InteractRequest>(
 
 			if (actionResult.isAccepted) {
 				PacketLimitHandler.sentPackets(1, PacketType.Interaction)
-				airPlacedThisTick = true
 				if (interactConfig.swing) {
 					swingHand(interactConfig.swingType, Hand.MAIN_HAND)
 
@@ -201,7 +196,7 @@ object InteractManager : Manager<InteractRequest>(
 			}
 			val interactDelay = ctx.interactConfig.interactDelay
 			interactCooldown = if (interactDelay == 0) 0 else interactDelay + 1
-			placementsThisTick++
+			interactionsThisTick++
 			iterator.remove()
 		}
 		return InteractResult.Finished
@@ -209,7 +204,7 @@ object InteractManager : Manager<InteractRequest>(
 
 	private fun Automated.canInteractThisTick() =
 		interactCooldown <= 0 &&
-				placementsThisTick < maxPlacementsThisTick &&
+				interactionsThisTick < maxInteractionsThisTick &&
 				PacketLimitHandler.canSendPackets(1, PacketType.Interaction)
 
 	/**
@@ -226,7 +221,7 @@ object InteractManager : Manager<InteractRequest>(
 			.take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
 			.toMutableList()
 
-		maxPlacementsThisTick = interactConfig.interactionsPerTick
+		maxInteractionsThisTick = interactConfig.interactionsPerTick
 	}
 
 	/**

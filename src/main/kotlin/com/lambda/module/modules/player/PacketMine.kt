@@ -111,7 +111,8 @@ object PacketMine : Module(
 						::collectDrops,
 						::entityReach,
 						::breakBlocks,
-						::interactBlocks
+						::interactBlocks,
+						::placeBlocks
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 				}

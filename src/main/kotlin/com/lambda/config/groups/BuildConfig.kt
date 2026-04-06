@@ -24,6 +24,7 @@ import com.lambda.util.NamedEnum
 
 interface BuildConfig : ISettingGroup {
     val breakBlocks: Boolean
+    val placeBlocks: Boolean
     val interactBlocks: Boolean
 
     val pathing: Boolean

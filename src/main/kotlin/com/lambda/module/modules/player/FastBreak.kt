@@ -50,7 +50,8 @@ object FastBreak : Module(
 						::blockReach,
 						::entityReach,
 						::breakBlocks,
-						::interactBlocks
+						::interactBlocks,
+						::placeBlocks
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 					editTyped(

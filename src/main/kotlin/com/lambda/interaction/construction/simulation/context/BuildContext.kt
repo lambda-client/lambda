@@ -43,4 +43,6 @@ abstract class BuildContext : Drawable, Automated {
     open val sortDistance by lazy {
         runSafe { player.eyePos.distanceTo(hitResult.pos) } ?: Double.MAX_VALUE
     }
+
+    abstract fun canUse(): Boolean
 }

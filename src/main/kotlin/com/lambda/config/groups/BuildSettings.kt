@@ -37,7 +37,8 @@ class BuildSettings(
     }
 
     override val breakBlocks by c.setting("${prefix}Break", true, "Break blocks", visibility = visibility).group(*baseGroup, Group.General).index()
-    override val interactBlocks by c.setting("${prefix}Place / Interact", true, "Interact blocks", visibility = visibility).group(*baseGroup, Group.General).index()
+    override val placeBlocks by c.setting("${prefix}Place", true, "Place blocks", visibility = visibility).group(*baseGroup, Group.General).index()
+    override val interactBlocks by c.setting("${prefix}Interact", true, "Interact blocks", visibility = visibility).group(*baseGroup, Group.General).index()
 
     override val pathing by c.setting("${prefix}Pathing", false, "Path to blocks", visibility = visibility).group(*baseGroup, Group.General).index()
     override val stayInRange by c.setting("${prefix}Stay In Range", false, "Stay in range of blocks", visibility = visibility).group(*baseGroup, Group.General).index()

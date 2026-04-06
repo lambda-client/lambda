@@ -148,7 +148,7 @@ object CrystalAura : Module(
 				buildConfig.apply {
 					hide(
 						::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
-						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks
+						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
 					)
 				}
 			}
