@@ -76,6 +76,11 @@ object AutoPortal : Module(
 		Render("Render")
 	}
 
+	private enum class RenderGroup(override val displayName: String) : NamedEnum {
+		Fill("Fill"),
+		Outline("Outline")
+	}
+
 	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal").group(Group.General)
 		.onPress { preview = true }
 		.onRelease {
@@ -114,9 +119,9 @@ object AutoPortal : Module(
 
 	private val renders by setting("Renders", true).group(Group.Render)
 	private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }.group(Group.Render)
-	private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }.group(Group.Render)
 	private val depthTest by setting("Depth Test", false) { renders }.group(Group.Render)
-	private val outlineConfig = WorldLineSettings(c = this, Group.Render) { renders }.apply {
+	private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }.group(Group.Render, RenderGroup.Fill)
+	private val outlineConfig = WorldLineSettings(this, Group.Render, RenderGroup.Outline) { renders }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}

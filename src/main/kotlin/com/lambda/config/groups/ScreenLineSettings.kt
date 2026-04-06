@@ -28,7 +28,7 @@ class ScreenLineSettings(
 	prefix: String = "",
 	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), LineConfig {
-	private enum class Group(override val displayName: String) : NamedEnum {
+	enum class Group(override val displayName: String) : NamedEnum {
 		Color("Color"),
 		Dash("Dash")
 	}

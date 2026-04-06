@@ -39,7 +39,7 @@ object ESP : Module(
 	description = "Highlight entities with smooth interpolated rendering",
 	tag = ModuleTag.RENDER
 ) {
-	private enum class Group(override val displayName: String): NamedEnum {
+	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
 		Shader("Shader"),
 		Box("Box"),
@@ -48,16 +48,21 @@ object ESP : Module(
 		Colors("Colors")
 	}
 
+	private enum class BoxGroup(override val displayName: String) : NamedEnum {
+		Fill("Fill"),
+		Outline("Outline")
+	}
+
 	private val mode by setting("Mode", EspMode.Shader).group(Group.General)
 	private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world").group(Group.General)
 
 	private val outlineStyle = OutlineSettings(this, Group.Shader) { mode == EspMode.Shader }
 
-	private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }.group(Group.Box)
+	private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }.group(Group.Box, BoxGroup.Fill)
 		.onValueChange { _, to -> if (!to && !drawOutline) drawOutline = true }
-	private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }.group(Group.Box)
+	private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }.group(Group.Box, BoxGroup.Outline, WorldLineSettings.Group.General)
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
-	private val boxOutlineSettings = WorldLineSettings(this, Group.Box) { mode == EspMode.Box && drawOutline }.apply {
+	private val boxOutlineSettings = WorldLineSettings(this, Group.Box, BoxGroup.Outline) { mode == EspMode.Box && drawOutline }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}
