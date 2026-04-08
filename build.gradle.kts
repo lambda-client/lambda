@@ -67,6 +67,7 @@ configurations.all {
 
 repositories {
     mavenLocal() // Allow the use of local repositories
+    maven("https://maven.lambda-client.org/releases")
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
@@ -158,11 +159,11 @@ dependencies {
     includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
-    includeLib("io.github.spair:imgui-java-binding:$spairVersion")
-    includeLib("io.github.spair:imgui-java-lwjgl3:$spairVersion")
-    includeLib("io.github.spair:imgui-java-natives-windows:$spairVersion")
-    includeLib("io.github.spair:imgui-java-natives-linux:$spairVersion")
-    includeLib("io.github.spair:imgui-java-natives-macos:$spairVersion")
+    includeLib("com.lambda:lambda-imgui-java-binding:$spairVersion")
+    includeLib("com.lambda:lambda-imgui-java-lwjgl3:$spairVersion")
+    includeLib("com.lambda:lambda-imgui-java-natives-windows:$spairVersion")
+    includeLib("com.lambda:lambda-imgui-java-natives-linux:$spairVersion")
+    includeLib("com.lambda:lambda-imgui-java-natives-macos:$spairVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")

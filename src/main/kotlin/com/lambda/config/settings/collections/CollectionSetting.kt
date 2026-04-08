@@ -27,10 +27,10 @@ import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
-import imgui.ImGuiListClipper
-import imgui.callback.ImListClipperCallback
-import imgui.flag.ImGuiChildFlags
-import imgui.flag.ImGuiSelectableFlags.DontClosePopups
+import com.lambda.imgui.ImGuiListClipper
+import com.lambda.imgui.callback.ImListClipperCallback
+import com.lambda.imgui.flag.ImGuiChildFlags
+import com.lambda.imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**

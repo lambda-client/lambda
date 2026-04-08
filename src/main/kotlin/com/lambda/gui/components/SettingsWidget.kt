@@ -28,9 +28,9 @@ import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.util.NamedEnum
-import imgui.ImGui
-import imgui.flag.ImGuiPopupFlags
-import imgui.flag.ImGuiTabBarFlags
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiPopupFlags
+import com.lambda.imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
     /**

@@ -21,7 +21,7 @@ import com.lambda.gui.Layout
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
-import imgui.ImGui
+import com.lambda.imgui.ImGui
 
 class ModuleEntry(val module: Module): Layout {
     override fun ImGuiBuilder.buildLayout() {

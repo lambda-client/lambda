@@ -38,10 +38,10 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
-import imgui.ImGui.isMouseClicked
-import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiHoveredFlags
-import imgui.flag.ImGuiMouseButton
+import com.lambda.imgui.ImGui.isMouseClicked
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiHoveredFlags
+import com.lambda.imgui.flag.ImGuiMouseButton
 import net.minecraft.command.CommandRegistryAccess
 import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SUPER

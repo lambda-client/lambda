@@ -28,7 +28,7 @@ import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
-import imgui.flag.ImGuiInputTextFlags
+import com.lambda.imgui.flag.ImGuiInputTextFlags
 import net.minecraft.command.CommandRegistryAccess
 
 /**
