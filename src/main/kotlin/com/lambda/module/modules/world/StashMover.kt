@@ -63,6 +63,10 @@ import com.lambda.util.math.setAlpha
 import com.lambda.util.player.SlotUtils.allSlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarSlots
+import com.lambda.util.text.bold
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.ButtonBlock
 import net.minecraft.block.entity.LootableContainerBlockEntity
@@ -114,6 +118,8 @@ object StashMover : Module(
 	private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }.group(Group.General)
+	private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }
+	private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }
 	private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role").group(Group.General)
 		.onPress { event ->
 			event.cancel()
@@ -297,8 +303,27 @@ object StashMover : Module(
 		StashMover.info("Starting ${if (role == Role.MoverBot) "MoverBot" else "PearlBot"}!")
 		task = role
 			.createTask()
+			.onFailOrNull {
+				if (disconnectOnFail) connection.connection.disconnect(
+					buildText {
+						bold {
+							literal("StashMover")
+							color(Color.RED) { literal(" Failed") }
+						}
+					}
+				)
+				null
+			}
 			.finally { message ->
 				StashMover.info("Finished! $message")
+				if (disconnectOnFinish) connection.connection.disconnect(
+					buildText {
+						bold {
+							literal("StashMover")
+							color(Color.GREEN) { literal(" Finished!") }
+						}
+					}
+				)
 			}
 			.run()
 	}
@@ -342,6 +367,9 @@ object StashMover : Module(
 		private var tickTimer = TickTimer()
 
 		private var putContainer: BlockPos? = null
+
+		private var finished = false
+		private var finishedMessage = ""
 
 		init {
 			listen<TickEvent.Pre> {
@@ -406,6 +434,10 @@ object StashMover : Module(
 				if (moverState != MoverState.AwaitingTeleport) return@listen
 				val packet = event.packet
 				if (packet !is PlayerPositionLookS2CPacket) return@listen
+				if (finished && player.hotbarAndInventoryStacks.all { it.isEmpty }) {
+					success(finishedMessage)
+					return@listen
+				}
 				moverState = MoverState.OpeningPutContainer
 			}
 
@@ -419,7 +451,9 @@ object StashMover : Module(
 		private fun SafeContext.handleOpeningPullContainer() {
 			val target = pullContainers.minByOrNull { it distSq player.blockPos }
 				?: run {
-					success("Pull containers exhausted!")
+					finished = true
+					finishedMessage = "Pull containers exhausted!"
+					moverState = MoverState.MessagingForPearl
 					return
 				}
 
@@ -508,6 +542,10 @@ object StashMover : Module(
 						return
 					}
 				}
+			}
+			if (finished) {
+				success(finishedMessage)
+				return
 			}
 			moverState = MoverState.DispensingPearl
 		}
