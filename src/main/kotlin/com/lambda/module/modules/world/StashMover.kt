@@ -50,6 +50,7 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
@@ -294,7 +295,12 @@ object StashMover : Module(
 			return
 		}
 		StashMover.info("Starting ${if (role == Role.MoverBot) "MoverBot" else "PearlBot"}!")
-		task = role.createTask().run()
+		task = role
+			.createTask()
+			.finally { message ->
+				StashMover.info("Finished! $message")
+			}
+			.run()
 	}
 
 	private fun consumeSelection(callback: (pos: BlockPos) -> Unit) {
@@ -507,7 +513,7 @@ object StashMover : Module(
 		}
 
 		private fun SafeContext.handleDispensingPearl() {
-			val dispensePos = pearlDispensePos ?: run { failure("No pearl button set!"); return }
+			val dispensePos = pearlDispensePos ?: run { failWithLog("No pearl button set!"); return }
 			if (player.blockPos != dispensePos) {
 				BaritoneManager.setGoalAndPath(GoalBlock(dispensePos))
 				return
@@ -522,13 +528,13 @@ object StashMover : Module(
 		}
 
 		private fun SafeContext.handleThrowingPearl() {
-			val throwPos = pearlThrowPos ?: run { failure("No pearl throw pos set!"); return }
+			val throwPos = pearlThrowPos ?: run { failWithLog("No pearl throw pos set!"); return }
 			if (player.blockPos != throwPos) {
 				BaritoneManager.setGoalAndPath(GoalBlock(throwPos))
 				return
 			}
 			if (BaritoneManager.isActive) return
-			val rotation = pearlRotation ?: run { failure("No pearl rotation set!"); return }
+			val rotation = pearlRotation ?: run { failWithLog("No pearl rotation set!"); return }
 			val rotationRequest = rotationRequest {
 				rotation(rotation)
 			}.submit()
@@ -542,7 +548,7 @@ object StashMover : Module(
 				} else {
 					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
 					if (inventorySlot == null) {
-						failure("No pearl in inventory!")
+						failWithLog("No pearl in inventory!")
 						return
 					}
 					val inventoryRequest = inventoryRequest {
@@ -586,7 +592,7 @@ object StashMover : Module(
 		}
 	}
 
-	private class PearlBot : Task<String>() {
+	private class PearlBot : Task<Unit>() {
 		override val name
 			get() = "Pearling $moverBotName for stash moving, current state: $pearlState"
 		var pearlState = PearlState.Waiting
@@ -595,7 +601,7 @@ object StashMover : Module(
 			listen<TickEvent.Pre> {
 				when (pearlState) {
 					PearlState.Pressing -> {
-						val buttonPos = pearlBotButton ?: run { failure("No pearl bot button set!"); return@listen }
+						val buttonPos = pearlBotButton ?: run { failWithLog("No pearl bot button set!"); return@listen }
 						getButtonPressTask(buttonPos)
 							?.finally {
 								pearlState = PearlState.Waiting
@@ -619,7 +625,7 @@ object StashMover : Module(
 	}
 
 	context(safeContext: SafeContext)
-	private fun Task<String>.getButtonPressTask(pos: BlockPos): Task<*>? =
+	private fun Task<*>.getButtonPressTask(pos: BlockPos): Task<*>? =
 		with (safeContext) {
 			val buttonState = blockState(pos)
 			if (buttonState.block !is ButtonBlock) {
@@ -632,4 +638,9 @@ object StashMover : Module(
 				}
 			} else null
 		}
+
+	private fun Task<*>.failWithLog(message: String) {
+		failure(message)
+		StashMover.logError(message)
+	}
 }
