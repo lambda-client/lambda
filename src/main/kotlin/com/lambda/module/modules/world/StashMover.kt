@@ -118,8 +118,8 @@ object StashMover : Module(
 	private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }.group(Group.General)
-	private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }
-	private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }
+	private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }.group(Group.General)
+	private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }.group(Group.General)
 	private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role").group(Group.General)
 		.onPress { event ->
 			event.cancel()
