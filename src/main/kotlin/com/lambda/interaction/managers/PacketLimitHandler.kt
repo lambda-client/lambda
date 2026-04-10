@@ -27,7 +27,7 @@ object PacketLimitHandler {
 	private val packetLimitMap = PacketType.entries.associateWith { LimitHandler(0, 0, 0) }
 
 	init {
-		listen<TickEvent.Pre>(priority = { Int.MIN_VALUE }) {
+		listen<TickEvent.Pre>(priority = { Int.MAX_VALUE }) {
 			packetLimitMap.values.forEach { limitHandler ->
 				with(limitHandler) {
 					tickTimer.tick()
@@ -60,6 +60,6 @@ object PacketLimitHandler {
 }
 
 enum class PacketType(val maxPacketsPerTimeframe: BuildConfig.() -> Int) {
-	PlayerAction({ actionPacketLimit }),
+	PlayerAction({ actionLimit }),
 	Interaction({ interactionPacketLimit })
 }

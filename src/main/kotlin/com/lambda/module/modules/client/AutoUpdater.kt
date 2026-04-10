@@ -83,7 +83,7 @@ object AutoUpdater : Module(
             showInstallModal = false
         }
 
-        listen<GuiEvent.NewFrame>(alwaysListen = true) {
+        listen<GuiEvent.NewImguiFrame>(alwaysListen = true) {
             initializeFirstLaunchStateIfNeeded()
 
             if (showFirstLaunchModal) {

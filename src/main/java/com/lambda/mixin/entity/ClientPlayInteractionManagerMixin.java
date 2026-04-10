@@ -21,6 +21,8 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.inventory.InventoryManager;
+import com.lambda.interaction.managers.rotating.RotationManager;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -71,6 +73,18 @@ public class ClientPlayInteractionManagerMixin {
         if (EventFlow.post(new PlayerEvent.Interact.Item(hand)).isCanceled()) {
             cir.setReturnValue(ActionResult.FAIL);
         }
+    }
+
+    @ModifyExpressionValue(method = "method_41929", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
+    private float modifyHand(float original) {
+        var headYaw = RotationManager.getHeadYaw();
+        return headYaw != null ? headYaw : original;
+    }
+
+    @ModifyExpressionValue(method = "method_41929", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getPitch()F"))
+    private float modifySequence(float original) {
+        var headPitch = RotationManager.getHeadPitch();
+        return headPitch != null ? headPitch : original;
     }
 
     @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)

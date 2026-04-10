@@ -115,9 +115,9 @@ object DearImGui : Loadable {
         ClickGuiLayout.applyStyle(lastScale)
         ImGui.newFrame()
 
-        GuiEvent.NewFrame.post()
+        GuiEvent.NewImguiFrame.post()
         ImGui.render()
-        GuiEvent.EndFrame.post()
+        GuiEvent.EndImguiFrame.post()
 
         implGl3.renderDrawData(ImGui.getDrawData())
 

@@ -20,6 +20,7 @@ package com.lambda.mixin;
 import com.lambda.core.TimerManager;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
+import com.lambda.event.events.GuiEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.gui.DearImGui;
@@ -204,5 +205,11 @@ public class MinecraftClientMixin {
         if (!ClickGuiLayout.getSetLambdaWindowTitle()) return;
         WindowUtils.setLambdaTitle();
         ci.cancel();
+    }
+
+    @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
+    private void injectSetScreen(Screen screen, CallbackInfo ci) {
+        var event = new GuiEvent.ScreenOpen(screen);
+        if (EventFlow.post(event).isCanceled()) ci.cancel();
     }
 }
