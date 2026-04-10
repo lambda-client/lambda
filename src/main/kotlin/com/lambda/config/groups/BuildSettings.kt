@@ -48,8 +48,8 @@ class BuildSettings(
     override val actionTimeout by c.setting("${prefix}Action Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks", visibility = visibility).group(*baseGroup, Group.General).index()
     override val maxBuildDependencies by c.setting("${prefix}Max Sim Dependencies", 3, 0..10, 1, "Maximum dependency build results", visibility = visibility).group(*baseGroup, Group.General).index()
 
-    override val limitTimeframe by c.setting("${prefix}Limit Timeframe", 6, 1..30, 1, "The timeframe in which the limit is bound to", "ticks", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
-    override val actionLimit by c.setting("${prefix}Action Limit", 50, 1..100, 1, "The maximum allowed action packets to be sent to the server per given timeframe", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
+    override val limitTimeframe by c.setting("${prefix}Limit Timeframe", 310, 50..1500, 1, "The timeframe in which the limit is bound to", "ms", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
+    override val actionLimit by c.setting("${prefix}Action Limit", 59, 1..100, 1, "The maximum allowed action packets to be sent to the server per given timeframe", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
     override val interactionPacketLimit by c.setting("Interaction Limit", 9, 1..20, 1, "The maximum allowed interaction packets to be sent to the server per given timeframe", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
 
     override var blockReach by c.setting("${prefix}Interact Reach", 4.5, 1.0..7.0, 0.01, "Maximum block interaction distance", visibility = visibility).group(*baseGroup, Group.Reach).index()
