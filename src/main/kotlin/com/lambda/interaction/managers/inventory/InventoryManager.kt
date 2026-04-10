@@ -234,7 +234,7 @@ object InventoryManager : Manager<InventoryRequest>(
 
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
 			val matches = alteredSlots.removeIf {
-				it.syncId == packet.slot && it.after.equal(itemStack)
+				it.slotId == packet.slot && it.after.equal(itemStack)
 			}
 
 			if (packet.syncId == 0) {
@@ -267,7 +267,7 @@ object InventoryManager : Manager<InventoryRequest>(
 	}
 
 	private data class InventoryChange(
-		val syncId: Int,
+		val slotId: Int,
 		val before: ItemStack,
 		val after: ItemStack
 	)

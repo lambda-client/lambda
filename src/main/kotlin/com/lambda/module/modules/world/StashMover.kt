@@ -35,6 +35,7 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
@@ -48,6 +49,7 @@ import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
@@ -74,6 +76,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
+import kotlin.run
 import kotlin.to
 
 object StashMover : Module(
@@ -88,8 +91,7 @@ object StashMover : Module(
 
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
-		CommandBinds("Command Binds"),
-		Render("Render")
+		CommandBinds("Command Binds")
 	}
 
 	private val role: Role by setting("Role", Role.MoverBot).group(Group.General)
@@ -104,69 +106,43 @@ object StashMover : Module(
 	private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }.group(Group.General)
 	private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }.group(Group.General)
 	private var chestPullSelMode: Boolean by setting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }.group(Group.General)
-		.onValueChange { _, to -> if (to) chestPutSelMode = false }
+		.onValueChange { _, to -> if (to) { chestPutSelMode = false; StashMover.info("Enabled chest pull selection mode!") } }
 	private var chestPutSelMode: Boolean by setting("Chest Put Sel Mode", false, "Enables the mod to select the stash containers you want to move items into") { role == Role.MoverBot }.group(Group.General)
-		.onValueChange { _, to -> if (to) chestPullSelMode = false }
-	private val pearlMsgTimeout by setting("Pearl Msg Timeout", 200, 0..1500, 1, "Ticks before messaging the pearl bot again", "ticks") { role == Role.MoverBot }.group(Group.General)
-	private val pearlButtonTimeout by setting("Pearl Button Timeout", 200, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
-	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 200, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
+		.onValueChange { _, to -> if (to) { chestPullSelMode = false; StashMover.info("Enabled chest put selection mode!") } }
+	private val pearlMsgTimeout by setting("Pearl Msg Timeout", 100, 0..1500, 1, "Ticks before messaging the pearl bot again", "ticks") { role == Role.MoverBot }.group(Group.General)
+	private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
+	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }.group(Group.General)
 	private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role").group(Group.General)
 		.onPress { event ->
 			event.cancel()
-			chestPullSelMode = false
-			chestPutSelMode = false
-			task?.let { runningTask ->
-				runningTask.cancel()
-				task = null
-				return@onPress
-			}
-			task = role.createTask().run()
+			startStop()
 		}
 
 	private val indexSelectedContainers by setting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }.group(Group.CommandBinds)
 		.onPress { event ->
 			event.cancel()
-			consumeSelection { pos ->
-				if (blockEntity(pos) !is LootableContainerBlockEntity) return@consumeSelection
-				if (chestPullSelMode) pullContainers.add(pos)
-				else if (chestPutSelMode) putContainers.add(pos)
-			}
+			indexSelectedContainers()
 		}
 	private val removeSelectedContainers by setting("Remove Selected Containers", Bind.EMPTY, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }.group(Group.CommandBinds)
 		.onPress { event ->
 			event.cancel()
-			consumeSelection { pos ->
-				if (blockEntity(pos) !is LootableContainerBlockEntity) return@consumeSelection
-				if (chestPullSelMode) pullContainers.remove(pos)
-				else if (chestPutSelMode) putContainers.remove(pos)
-			}
+			removeSelectedContainers()
 		}
 	private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }.group(Group.CommandBinds)
 		.onPress { event ->
 			event.cancel()
-			val pos = mc.crosshairTarget?.blockResult?.blockPos ?: return@onPress
-			if (blockState(pos).block !is ButtonBlock) {
-				warn("Given position does not contain a button!")
-				return@onPress
-			}
-			pearlDispensePos = pos
+			setPearlButtonPos()
 		}
 	private val setPearlThrowPosAndRotation by setting("Set Pearl Throw", Bind.EMPTY, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }.group(Group.CommandBinds)
 		.onPress { event ->
 			event.cancel()
-			pearlThrowPos = player.blockPos
-			pearlRotation = player.rotation
+			setPearlThrow()
 		}
 	private val setPearlBotButton by setting("Set PearlBot Button", Bind.EMPTY, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }.group(Group.CommandBinds)
 		.onPress { event ->
 			event.cancel()
-			val pos = mc.crosshairTarget?.blockResult?.blockPos ?: return@onPress
-			if (blockState(pos).block !is ButtonBlock) {
-				warn("Given position does not contain a button!")
-				return@onPress
-			}
-			pearlBotButton = pos
+			setPearlBotButton()
 		}
 
 	private var sel1: BlockPos? = null
@@ -189,7 +165,8 @@ object StashMover : Module(
 		setModulePriority(100)
 		setDefaultAutomationConfig {
 			applyEdits {
-				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+				buildConfig::checkSideVisibility.edit { defaultValue(true) }
+				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
 			}
 		}
 
@@ -225,6 +202,16 @@ object StashMover : Module(
 		immediateRenderer("StashMover Immediate Renderer") {
 			if (!chestPullSelMode && !chestPutSelMode) return@immediateRenderer
 			sel1?.let { sel1 ->
+				box(Box(sel1)) {
+					colors(Color.PINK.setAlpha(0.1), Color.PINK)
+				}
+			}
+			sel2?.let { sel2 ->
+				box(Box(sel2)) {
+					colors(Color.MAGENTA.setAlpha(0.1), Color.MAGENTA)
+				}
+			}
+			sel1?.let { sel1 ->
 				sel2?.let { sel2 ->
 					val box = Box(sel1).union(Box(sel2))
 					box(box) {
@@ -234,6 +221,80 @@ object StashMover : Module(
 				}
 			}
 		}
+	}
+
+	context(safeContext: SafeContext)
+	fun indexSelectedContainers() {
+		var addCount = 0
+		consumeSelection { pos ->
+			if (safeContext.blockEntity(pos) !is LootableContainerBlockEntity) return@consumeSelection
+			addCount++
+			pulledContainers.remove(pos)
+			filledContainers.remove(pos)
+			if (chestPullSelMode) {
+				putContainers.remove(pos)
+				pullContainers.add(pos)
+			}
+			else if (chestPutSelMode) {
+				pullContainers.remove(pos)
+				putContainers.add(pos)
+			}
+		}
+		StashMover.info("Indexed $addCount ${if (chestPullSelMode) "pull" else "put"} containers!")
+	}
+
+	context(safeContext: SafeContext)
+	fun removeSelectedContainers() {
+		var removeCount = 0
+		consumeSelection { pos ->
+			if (safeContext.blockEntity(pos) !is LootableContainerBlockEntity) return@consumeSelection
+			if (pullContainers.remove(pos) ||
+				pulledContainers.remove(pos) ||
+				putContainers.remove(pos) ||
+				filledContainers.remove(pos)) removeCount++
+		}
+		StashMover.info("Removed $removeCount containers!")
+	}
+
+	context(safeContext: SafeContext)
+	fun setPearlButtonPos() {
+		val pos = mc.crosshairTarget?.blockResult?.blockPos ?: return
+		if (safeContext.blockState(pos).block !is ButtonBlock) {
+			StashMover.warn("Given position does not contain a button!")
+			return
+		}
+		pearlDispensePos = pos
+		StashMover.info("Set pearl button position!")
+	}
+
+	context(safeContext: SafeContext)
+	fun setPearlThrow() {
+		pearlThrowPos = safeContext.player.blockPos
+		pearlRotation = safeContext.player.rotation
+		StashMover.info("Set pearl throw position and rotation!")
+	}
+
+	context(safeContext: SafeContext)
+	fun setPearlBotButton() {
+		val pos = mc.crosshairTarget?.blockResult?.blockPos ?: return
+		if (safeContext.blockState(pos).block !is ButtonBlock) {
+			StashMover.warn("Given position does not contain a button!")
+			return
+		}
+		pearlBotButton = pos
+		StashMover.info("Set pearl bot button position!")
+	}
+
+	fun startStop() {
+		chestPullSelMode = false
+		chestPutSelMode = false
+		task?.let { runningTask ->
+			runningTask.cancel()
+			task = null
+			return
+		}
+		StashMover.info("Starting ${if (role == Role.MoverBot) "MoverBot" else "PearlBot"}!")
+		task = role.createTask().run()
 	}
 
 	private fun consumeSelection(callback: (pos: BlockPos) -> Unit) {
@@ -285,123 +346,17 @@ object StashMover : Module(
 				}
 
 				when (moverState) {
-					MoverState.OpeningPullContainer -> {
-						val target = pullContainers.minByOrNull { it distSq player.blockPos }
-							?: run {
-								success("Pull containers exhausted!")
-								return@listen
-							}
-
-						OpenContainerTask(
-							target,
-							StashMover
-						).finally {
-							pullContainer = target
-							moverState = MoverState.TakingItems
-						}.execute(this@MoverBot)
-					}
-
-					MoverState.TakingItems -> {
-						val screenHandler = player.currentScreenHandler
-						if (screenHandler === player.playerScreenHandler) {
-							moverState = MoverState.OpeningPullContainer
-							return@listen
-						}
-						val pullSlots = screenHandler.containerSlots.filter { !it.stack.isEmpty }
-						if (player.hotbarAndInventoryStacks.any { it.isEmpty } && pullSlots.isNotEmpty()) {
-							val request = inventoryRequest(settleForLess = true) {
-								pullSlots.forEach { slot ->
-									quickMove(slot.id)
-								}
-							}.submit()
-							if (!request.done) return@listen
-						}
-						player.closeScreen()
-						pullContainer?.let { container ->
-							if (screenHandler.containerStacks.all { it.isEmpty }) {
-								pullContainers.remove(container)
-								pulledContainers.add(container)
-								if (player.hotbarAndInventoryStacks.any { it.isEmpty }) {
-									moverState = MoverState.OpeningPullContainer
-									return@listen
-								}
-							}
-						}
-						moverState = MoverState.MessagingForPearl
-					}
-
-					MoverState.MessagingForPearl -> {
-						tickTimer.reset()
-						connection.sendChatCommand("msg $pearlBotName ${Math.random() * Double.MAX_VALUE}")
-						moverState = MoverState.AwaitingTeleport
-					}
-
+					MoverState.OpeningPullContainer -> handleOpeningPullContainer()
+					MoverState.TakingItems -> handleTakingItems()
+					MoverState.MessagingForPearl -> handleMessagingForPearl()
 					MoverState.AwaitingTeleport -> {
 						tickTimer.tick()
 						if (tickTimer.hasSurpassed(pearlMsgTimeout))
 							moverState = MoverState.MessagingForPearl
 					}
-
-					MoverState.OpeningPutContainer -> {
-						val target = putContainers.minByOrNull { it distSq player.blockPos }
-							?: run {
-								success("Put containers are full!")
-								return@listen
-							}
-
-						OpenContainerTask(
-							target,
-							StashMover
-						).finally {
-							putContainer = target
-							moverState = MoverState.PuttingItems
-						}.execute(this@MoverBot)
-					}
-
-					MoverState.PuttingItems -> {
-						val screenHandler = player.currentScreenHandler
-						if (screenHandler === player.playerScreenHandler) {
-							moverState = MoverState.OpeningPutContainer
-							return@listen
-						}
-						val putSlots = screenHandler.playerSlots.filter { !it.stack.isEmpty }
-						if (screenHandler.containerStacks.any { it.isEmpty } && putSlots.isNotEmpty()) {
-							val request = inventoryRequest(settleForLess = true) {
-								putSlots.forEach { slot ->
-									quickMove(slot.id)
-								}
-							}.submit()
-							if (!request.done) return@listen
-						}
-						player.closeScreen()
-						putContainer?.let { container ->
-							if (screenHandler.containerStacks.all { !it.isEmpty }) {
-								putContainers.remove(container)
-								filledContainers.add(container)
-								if (player.hotbarAndInventoryStacks.any { !it.isEmpty }) {
-									moverState = MoverState.OpeningPutContainer
-									return@listen
-								}
-							}
-						}
-						moverState = MoverState.DispensingPearl
-					}
-
-					MoverState.DispensingPearl -> {
-						val dispensePos = pearlDispensePos ?: run { failure("No pearl button set!"); return@listen }
-						if (player.blockPos != dispensePos) {
-							BaritoneManager.setGoalAndPath(GoalBlock(dispensePos))
-							return@listen
-						}
-						if (BaritoneManager.isActive) return@listen
-						getButtonPressTask(dispensePos)
-							?.finally {
-								tickTimer.reset()
-								moverState = MoverState.AwaitingPearl
-							}
-							?.execute(this@MoverBot)
-					}
-
+					MoverState.OpeningPutContainer -> handleOpeningPutContainer()
+					MoverState.PuttingItems -> handlePuttingItems()
+					MoverState.DispensingPearl -> handleDispensingPearl()
 					MoverState.AwaitingPearl -> {
 						tickTimer.tick()
 						if (player.hotbarAndInventoryStacks.any { it.item === Items.ENDER_PEARL }) {
@@ -411,49 +366,8 @@ object StashMover : Module(
 						if (tickTimer.hasSurpassed(pearlButtonTimeout))
 							moverState = MoverState.DispensingPearl
 					}
-
-					MoverState.ThrowingPearl -> {
-						val throwPos = pearlThrowPos ?: run { failure("No pearl throw pos set!"); return@listen }
-						if (player.blockPos != throwPos) {
-							BaritoneManager.setGoalAndPath(GoalBlock(throwPos))
-							return@listen
-						}
-						if (BaritoneManager.isActive) return@listen
-						val rotation = pearlRotation ?: run { failure("No pearl rotation set!"); return@listen }
-						val rotationRequest = rotationRequest {
-							rotation(rotation)
-						}.submit()
-						if (!rotationRequest.done) return@listen
-						while (player.mainHandStack.item != Items.ENDER_PEARL) {
-							val hotbarSlot = player.hotbarSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
-							if (hotbarSlot != null) {
-								val hotbarRequest = HotbarRequest(hotbarSlot.index, StashMover).submit()
-								if (!hotbarRequest.done) return@listen
-								break
-							} else {
-								val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
-								if (inventorySlot == null) {
-									failure("No pearl in inventory!")
-									return@listen
-								}
-								val inventoryRequest = inventoryRequest {
-									swap(inventorySlot.id, 0)
-								}.submit()
-								if (!inventoryRequest.done) return@listen
-							}
-						}
-						RotationManager.withoutVanillaOverrides {
-							interaction.interactItem(player, Hand.MAIN_HAND)
-						}
-						moverState = MoverState.Killing
-					}
-
-					MoverState.Killing -> {
-						tickTimer.reset()
-						connection.sendChatCommand("kill")
-						moverState = MoverState.AwaitingDeath
-					}
-
+					MoverState.ThrowingPearl -> handleThrowingPearl()
+					MoverState.Killing -> handleKilling()
 					else -> {}
 				}
 			}
@@ -465,13 +379,7 @@ object StashMover : Module(
 						if (tickTimer.hasSurpassed(killRespawnTimeout))
 							moverState = MoverState.Killing
 					}
-
-					MoverState.Respawning -> {
-						tickTimer.reset()
-						mc.networkHandler?.sendPacket(ClientStatusC2SPacket(ClientStatusC2SPacket.Mode.PERFORM_RESPAWN))
-						moverState = MoverState.AwaitingRespawn
-					}
-
+					MoverState.Respawning -> handleRespawning()
 					MoverState.AwaitingRespawn -> {
 						tickTimer.tick()
 						if (tickTimer.hasSurpassed(killRespawnTimeout))
@@ -500,6 +408,165 @@ object StashMover : Module(
 				if (event.screen !is DeathScreen) return@listen
 				moverState = MoverState.Respawning
 			}
+		}
+
+		private fun SafeContext.handleOpeningPullContainer() {
+			val target = pullContainers.minByOrNull { it distSq player.blockPos }
+				?: run {
+					success("Pull containers exhausted!")
+					return
+				}
+
+			OpenContainerTask(
+				target,
+				StashMover
+			).finally {
+				pullContainer = target
+				moverState = MoverState.TakingItems
+			}.execute(this@MoverBot)
+		}
+
+		private fun SafeContext.handleTakingItems() {
+			val screenHandler = player.currentScreenHandler
+			if (screenHandler === player.playerScreenHandler) {
+				moverState = MoverState.OpeningPullContainer
+				return
+			}
+			val pullSlots = screenHandler.containerSlots.filter { !it.stack.isEmpty }
+			if (player.hotbarAndInventoryStacks.any { it.isEmpty } && pullSlots.isNotEmpty()) {
+				val request = inventoryRequest(settleForLess = true) {
+					pullSlots.forEach { slot ->
+						quickMove(slot.id)
+					}
+				}.submit()
+				if (!request.done) return
+			}
+			player.closeHandledScreen()
+			pullContainer?.let { container ->
+				if (screenHandler.containerStacks.all { it.isEmpty }) {
+					pullContainers.remove(container)
+					pulledContainers.add(container)
+					if (player.hotbarAndInventoryStacks.any { it.isEmpty }) {
+						moverState = MoverState.OpeningPullContainer
+						return
+					}
+				}
+			}
+			moverState = MoverState.MessagingForPearl
+		}
+
+		private fun SafeContext.handleMessagingForPearl() {
+			tickTimer.reset()
+			connection.sendChatCommand("msg $pearlBotName ${Math.random() * Double.MAX_VALUE}")
+			moverState = MoverState.AwaitingTeleport
+		}
+
+		private fun SafeContext.handleOpeningPutContainer() {
+			val target = putContainers.minByOrNull { it distSq player.blockPos }
+				?: run {
+					success("Put containers are full!")
+					return
+				}
+
+			OpenContainerTask(
+				target,
+				StashMover
+			).finally {
+				putContainer = target
+				moverState = MoverState.PuttingItems
+			}.execute(this@MoverBot)
+		}
+
+		private fun SafeContext.handlePuttingItems() {
+			val screenHandler = player.currentScreenHandler
+			if (screenHandler === player.playerScreenHandler) {
+				moverState = MoverState.OpeningPutContainer
+				return
+			}
+			val putSlots = screenHandler.playerSlots.filter { !it.stack.isEmpty }
+			if (screenHandler.containerStacks.any { it.isEmpty } && putSlots.isNotEmpty()) {
+				val request = inventoryRequest(settleForLess = true) {
+					putSlots.forEach { slot ->
+						quickMove(slot.id)
+					}
+				}.submit()
+				if (!request.done) return
+			}
+			player.closeHandledScreen()
+			putContainer?.let { container ->
+				if (screenHandler.containerStacks.all { !it.isEmpty }) {
+					putContainers.remove(container)
+					filledContainers.add(container)
+					if (player.hotbarAndInventoryStacks.any { !it.isEmpty }) {
+						moverState = MoverState.OpeningPutContainer
+						return
+					}
+				}
+			}
+			moverState = MoverState.DispensingPearl
+		}
+
+		private fun SafeContext.handleDispensingPearl() {
+			val dispensePos = pearlDispensePos ?: run { failure("No pearl button set!"); return }
+			if (player.blockPos != dispensePos) {
+				BaritoneManager.setGoalAndPath(GoalBlock(dispensePos))
+				return
+			}
+			if (BaritoneManager.isActive) return
+			getButtonPressTask(dispensePos)
+				?.finally {
+					tickTimer.reset()
+					moverState = MoverState.AwaitingPearl
+				}
+				?.execute(this@MoverBot)
+		}
+
+		private fun SafeContext.handleThrowingPearl() {
+			val throwPos = pearlThrowPos ?: run { failure("No pearl throw pos set!"); return }
+			if (player.blockPos != throwPos) {
+				BaritoneManager.setGoalAndPath(GoalBlock(throwPos))
+				return
+			}
+			if (BaritoneManager.isActive) return
+			val rotation = pearlRotation ?: run { failure("No pearl rotation set!"); return }
+			val rotationRequest = rotationRequest {
+				rotation(rotation)
+			}.submit()
+			if (!rotationRequest.done) return
+			while (player.mainHandStack.item != Items.ENDER_PEARL) {
+				val hotbarSlot = player.hotbarSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
+				if (hotbarSlot != null) {
+					val hotbarRequest = HotbarRequest(hotbarSlot.index, StashMover, nowOrNothing = false).submit()
+					if (!hotbarRequest.done) return
+					break
+				} else {
+					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
+					if (inventorySlot == null) {
+						failure("No pearl in inventory!")
+						return
+					}
+					val inventoryRequest = inventoryRequest {
+						swap(inventorySlot.id, 0)
+					}.submit()
+					if (!inventoryRequest.done) return
+				}
+			}
+			RotationManager.withoutVanillaOverrides {
+				interaction.interactItem(player, Hand.MAIN_HAND)
+			}
+			moverState = MoverState.Killing
+		}
+
+		private fun SafeContext.handleKilling() {
+			tickTimer.reset()
+			connection.sendChatCommand("kill")
+			moverState = MoverState.AwaitingDeath
+		}
+
+		private fun handleRespawning() {
+			tickTimer.reset()
+			mc.networkHandler?.sendPacket(ClientStatusC2SPacket(ClientStatusC2SPacket.Mode.PERFORM_RESPAWN))
+			moverState = MoverState.AwaitingRespawn
 		}
 
 		private enum class MoverState {
