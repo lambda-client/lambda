@@ -21,13 +21,17 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.context.Automated
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ComparableTimeMark
+import kotlin.time.TimeSource
 
 object PacketLimitHandler {
 	private val packetLimitMap = PacketType.entries.associateWith { LimitHandler() }
 
 	init {
 		listen<TickEvent.Pre>(priority = { Int.MAX_VALUE }) {
-			val currentTime = System.currentTimeMillis()
+			val currentTime = TimeSource.Monotonic.markNow()
 			packetLimitMap.values.forEach { it.removeStale(currentTime) }
 		}
 	}
@@ -36,14 +40,14 @@ object PacketLimitHandler {
 	fun canSendPackets(packetCount: Int, packetType: PacketType): Boolean {
 		val handler = packetLimitMap[packetType] ?: return false
 		handler.maxPacketsThisTimeframe = packetType.maxPacketsPerTimeframe(automated.buildConfig)
-		handler.timeframeMillis = automated.buildConfig.limitTimeframe
-		handler.removeStale(System.currentTimeMillis())
+		handler.timeframe = automated.buildConfig.limitTimeframe.milliseconds
+		handler.removeStale(TimeSource.Monotonic.markNow())
 		return handler.packetTimestamps.size + packetCount <= handler.maxPacketsThisTimeframe
 	}
 
 	fun sentPackets(packetCount: Int, packetType: PacketType) {
 		packetLimitMap[packetType]?.let { handler ->
-			val currentTime = System.currentTimeMillis()
+			val currentTime = TimeSource.Monotonic.markNow()
 			repeat((0 until packetCount).count()) {
 				handler.packetTimestamps.addLast(currentTime)
 			}
@@ -52,12 +56,12 @@ object PacketLimitHandler {
 
 	private class LimitHandler {
 		var maxPacketsThisTimeframe = 0
-		var timeframeMillis = 0
-		val packetTimestamps = ArrayDeque<Long>()
+		var timeframe: Duration = Duration.ZERO
+		val packetTimestamps = ArrayDeque<ComparableTimeMark>()
 
-		fun removeStale(currentTime: Long) {
-			if (timeframeMillis <= 0) return
-			while (packetTimestamps.isNotEmpty() && packetTimestamps.first() <= currentTime - timeframeMillis) {
+		fun removeStale(currentTime: ComparableTimeMark) {
+			if (timeframe <= Duration.ZERO) return
+			while (packetTimestamps.isNotEmpty() && packetTimestamps.first() <= currentTime - timeframe) {
 				packetTimestamps.removeFirst()
 			}
 		}
@@ -66,5 +70,5 @@ object PacketLimitHandler {
 
 enum class PacketType(val maxPacketsPerTimeframe: BuildConfig.() -> Int) {
 	PlayerAction({ actionLimit }),
-	Interaction({ interactionPacketLimit })
+	Interaction({ interactionLimit })
 }

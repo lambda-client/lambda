@@ -50,7 +50,7 @@ class BuildSettings(
 
     override val limitTimeframe by c.setting("${prefix}Limit Timeframe", 310, 50..1500, 1, "The timeframe in which the limit is bound to", "ms", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
     override val actionLimit by c.setting("${prefix}Action Limit", 59, 1..100, 1, "The maximum allowed action packets to be sent to the server per given timeframe", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
-    override val interactionPacketLimit by c.setting("Interaction Limit", 9, 1..20, 1, "The maximum allowed interaction packets to be sent to the server per given timeframe", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
+    override val interactionLimit by c.setting("Interaction Limit", 9, 1..20, 1, "The maximum allowed interaction packets to be sent to the server per given timeframe", visibility = visibility).group(*baseGroup, Group.PacketLimits).index()
 
     override var blockReach by c.setting("${prefix}Interact Reach", 4.5, 1.0..7.0, 0.01, "Maximum block interaction distance", visibility = visibility).group(*baseGroup, Group.Reach).index()
     override var entityReach by c.setting("${prefix}Attack Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance", visibility = visibility).group(*baseGroup, Group.Reach).index()

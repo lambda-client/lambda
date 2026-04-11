@@ -37,7 +37,7 @@ interface BuildConfig : ISettingGroup {
 
     val limitTimeframe: Int
     val actionLimit: Int
-    val interactionPacketLimit: Int
+    val interactionLimit: Int
 
     val blockReach: Double
     val entityReach: Double
