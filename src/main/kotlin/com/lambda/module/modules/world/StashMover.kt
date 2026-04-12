@@ -40,7 +40,9 @@ import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inve
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.Module
+import com.lambda.module.modules.combat.KillAura.target
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -56,11 +58,11 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.containerStacks
-import com.lambda.util.extension.playerSlots
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.distSq
 import com.lambda.util.math.setAlpha
 import com.lambda.util.player.SlotUtils.allSlots
+import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.text.bold
@@ -68,19 +70,24 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import net.minecraft.block.Blocks
 import net.minecraft.block.ButtonBlock
 import net.minecraft.block.entity.LootableContainerBlockEntity
 import net.minecraft.client.gui.screen.DeathScreen
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientStatusC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
+import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.slot.Slot
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
+import kotlin.math.min
 import kotlin.run
 import kotlin.to
 
@@ -118,6 +125,13 @@ object StashMover : Module(
 	private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }.group(Group.General)
+	private val useEnderChest by setting("Use Ender Chest", false, "Uses the ender chest to move more items at once") { role == Role.MoverBot }.group(Group.General)
+		.onValueChange { _, to ->
+			if (!to) {
+				pullEnderChests.clear()
+				putEnderChests.clear()
+			}
+		}
 	private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }.group(Group.General)
 	private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }.group(Group.General)
 	private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role").group(Group.General)
@@ -156,8 +170,10 @@ object StashMover : Module(
 	private var sel2: BlockPos? = null
 
 	private val pullContainers = hashSetOf<BlockPos>()
+	private val pullEnderChests = hashSetOf<BlockPos>()
 	private val pulledContainers = hashSetOf<BlockPos>()
 	private val putContainers = hashSetOf<BlockPos>()
+	private val putEnderChests = hashSetOf<BlockPos>()
 	private val filledContainers = hashSetOf<BlockPos>()
 
 	private var pearlDispensePos: BlockPos? = null
@@ -234,15 +250,25 @@ object StashMover : Module(
 	fun indexSelectedContainers() {
 		var addCount = 0
 		consumeSelection { pos ->
-			if (safeContext.blockEntity(pos) !is LootableContainerBlockEntity) return@consumeSelection
-			addCount++
 			pulledContainers.remove(pos)
 			filledContainers.remove(pos)
+			if (useEnderChest && safeContext.blockState(pos).block === Blocks.ENDER_CHEST) {
+				addCount++
+				if (chestPullSelMode) {
+					putEnderChests.remove(pos)
+					pullEnderChests.add(pos)
+				} else if (chestPutSelMode) {
+					pullEnderChests.remove(pos)
+					putEnderChests.add(pos)
+				}
+				return@consumeSelection
+			}
+			if (safeContext.blockEntity(pos) !is LootableContainerBlockEntity) return@consumeSelection
+			addCount++
 			if (chestPullSelMode) {
 				putContainers.remove(pos)
 				pullContainers.add(pos)
-			}
-			else if (chestPutSelMode) {
+			} else if (chestPutSelMode) {
 				pullContainers.remove(pos)
 				putContainers.add(pos)
 			}
@@ -379,27 +405,57 @@ object StashMover : Module(
 					delayingNextAction = false
 				}
 
+				val screenHandler = player.currentScreenHandler
+
 				when (moverState) {
-					MoverState.OpeningPullContainer -> handleOpeningPullContainer()
-					MoverState.TakingItems -> handleTakingItems()
-					MoverState.MessagingForPearl -> handleMessagingForPearl()
-					MoverState.AwaitingTeleport -> {
-						tickTimer.tick()
-						if (tickTimer.hasSurpassed(pearlMsgTimeout))
-							moverState = MoverState.MessagingForPearl
-					}
-					MoverState.OpeningPutContainer -> handleOpeningPutContainer()
-					MoverState.PuttingItems -> handlePuttingItems()
-					MoverState.DispensingPearl -> handleDispensingPearl()
-					MoverState.AwaitingPearl -> {
-						tickTimer.tick()
-						if (player.hotbarAndInventoryStacks.any { it.item === Items.ENDER_PEARL }) {
-							moverState = MoverState.ThrowingPearl
-							return@listen
+					MoverState.OpeningPullContainer ->
+						openClosestContainer(
+							pullContainers,
+							{
+								finished = true
+								finishedMessage = "Pull containers exhausted!"
+								moverState = MoverState.MessagingForPearl
+							}
+						) { pos ->
+							pullContainer = pos
+							moverState = MoverState.TakingItems
 						}
-						if (tickTimer.hasSurpassed(pearlButtonTimeout))
-							moverState = MoverState.DispensingPearl
-					}
+					MoverState.TakingItems -> handleTakingItems(screenHandler)
+					MoverState.OpeningPullEnderChest ->
+						openClosestContainer(
+							pullEnderChests,
+							{ failWithLog("No pull ender chests indexed!") }
+						) { moverState = MoverState.PuttingInEnderChest }
+					MoverState.PuttingInEnderChest -> handlePuttingInEnderChest(screenHandler)
+					MoverState.MessagingForPearl -> handleMessagingForPearl()
+					MoverState.AwaitingTeleport ->
+						checkTimerProgress(
+							MoverState.MessagingForPearl,
+							pearlMsgTimeout
+						)
+					MoverState.OpeningPutContainer ->
+						openClosestContainer(
+							putContainers,
+							{ success("Put containers are full!") }
+						) { pos ->
+							putContainer = pos
+							moverState = MoverState.PuttingItems
+						}
+					MoverState.PuttingItems -> handlePuttingItems(screenHandler)
+					MoverState.OpeningPutEnderChest ->
+						openClosestContainer(
+							putEnderChests,
+							{ failWithLog("No put ender chests indexed!") }
+						) { moverState = MoverState.PullingFromEnderChest }
+					MoverState.PullingFromEnderChest -> handlePullingFromEnderChest(screenHandler)
+					MoverState.DispensingPearl -> handleDispensingPearl()
+					MoverState.AwaitingPearl ->
+						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
+							if (player.hotbarAndInventoryStacks.any { it.item === Items.ENDER_PEARL }) {
+								moverState = MoverState.ThrowingPearl
+								true
+							} else false
+						}
 					MoverState.ThrowingPearl -> handleThrowingPearl()
 					MoverState.Killing -> handleKilling()
 					else -> {}
@@ -408,18 +464,9 @@ object StashMover : Module(
 
 			listenUnsafe<TickEvent.Pre> {
 				when (moverState) {
-					MoverState.AwaitingDeath -> {
-						tickTimer.tick()
-						if (tickTimer.hasSurpassed(killRespawnTimeout))
-							moverState = MoverState.Killing
-					}
+					MoverState.AwaitingDeath -> checkTimerProgress(MoverState.Killing, killRespawnTimeout)
 					MoverState.Respawning -> handleRespawning()
-					MoverState.AwaitingRespawn -> {
-						tickTimer.tick()
-						if (tickTimer.hasSurpassed(killRespawnTimeout))
-							moverState = MoverState.Respawning
-					}
-
+					MoverState.AwaitingRespawn -> checkTimerProgress(MoverState.Respawning, killRespawnTimeout)
 					else -> {}
 				}
 			}
@@ -448,40 +495,12 @@ object StashMover : Module(
 			}
 		}
 
-		private fun SafeContext.handleOpeningPullContainer() {
-			val target = pullContainers.minByOrNull { it distSq player.blockPos }
-				?: run {
-					finished = true
-					finishedMessage = "Pull containers exhausted!"
-					moverState = MoverState.MessagingForPearl
-					return
-				}
-
-			OpenContainerTask(
-				target,
-				StashMover
-			).finally {
-				pullContainer = target
-				moverState = MoverState.TakingItems
-			}.execute(this@MoverBot)
-		}
-
-		private fun SafeContext.handleTakingItems() {
-			val screenHandler = player.currentScreenHandler
+		private fun SafeContext.handleTakingItems(screenHandler: ScreenHandler) {
 			if (screenHandler === player.playerScreenHandler) {
 				moverState = MoverState.OpeningPullContainer
 				return
 			}
-			val pullSlots = screenHandler.containerSlots.filter { !it.stack.isEmpty }
-			if (player.hotbarAndInventoryStacks.any { it.isEmpty } && pullSlots.isNotEmpty()) {
-				val request = inventoryRequest(settleForLess = true) {
-					pullSlots.forEach { slot ->
-						quickMove(slot.id)
-					}
-				}.submit()
-				if (!request.done) return
-			}
-			player.closeHandledScreen()
+			if (!moveFromContainerToContainer(screenHandler.containerSlots, player.hotbarAndInventoryStacks)) return
 			pullContainer?.let { container ->
 				if (screenHandler.containerStacks.all { it.isEmpty }) {
 					pullContainers.remove(container)
@@ -492,7 +511,21 @@ object StashMover : Module(
 					}
 				}
 			}
+			if (useEnderChest && EnderChestContainer.stacks.any { it.isEmpty }) {
+				moverState = MoverState.OpeningPullEnderChest
+				return
+			}
 			moverState = MoverState.MessagingForPearl
+		}
+
+		private fun SafeContext.handlePuttingInEnderChest(screenHandler: ScreenHandler) {
+			if (screenHandler === player.playerScreenHandler) {
+				moverState = MoverState.OpeningPullEnderChest
+				return
+			}
+			if (moveFromContainerToContainer(player.hotbarAndInventorySlots, screenHandler.containerStacks)) {
+				moverState = MoverState.OpeningPullContainer
+			}
 		}
 
 		private fun SafeContext.handleMessagingForPearl() {
@@ -501,37 +534,12 @@ object StashMover : Module(
 			moverState = MoverState.AwaitingTeleport
 		}
 
-		private fun SafeContext.handleOpeningPutContainer() {
-			val target = putContainers.minByOrNull { it distSq player.blockPos }
-				?: run {
-					success("Put containers are full!")
-					return
-				}
-
-			OpenContainerTask(
-				target,
-				StashMover
-			).finally {
-				putContainer = target
-				moverState = MoverState.PuttingItems
-			}.execute(this@MoverBot)
-		}
-
-		private fun SafeContext.handlePuttingItems() {
-			val screenHandler = player.currentScreenHandler
+		private fun SafeContext.handlePuttingItems(screenHandler: ScreenHandler) {
 			if (screenHandler === player.playerScreenHandler) {
 				moverState = MoverState.OpeningPutContainer
 				return
 			}
-			val putSlots = screenHandler.playerSlots.filter { !it.stack.isEmpty }
-			if (screenHandler.containerStacks.any { it.isEmpty } && putSlots.isNotEmpty()) {
-				val request = inventoryRequest(settleForLess = true) {
-					putSlots.forEach { slot ->
-						quickMove(slot.id)
-					}
-				}.submit()
-				if (!request.done) return
-			}
+			if (!moveFromContainerToContainer(player.hotbarAndInventorySlots, screenHandler.containerStacks)) return
 			player.closeHandledScreen()
 			putContainer?.let { container ->
 				if (screenHandler.containerStacks.all { !it.isEmpty }) {
@@ -543,11 +551,25 @@ object StashMover : Module(
 					}
 				}
 			}
+			if (useEnderChest && EnderChestContainer.stacks.any { !it.isEmpty }) {
+				moverState = MoverState.OpeningPutEnderChest
+				return
+			}
 			if (finished) {
 				success(finishedMessage)
 				return
 			}
 			moverState = MoverState.DispensingPearl
+		}
+
+		private fun SafeContext.handlePullingFromEnderChest(screenHandler: ScreenHandler) {
+			if (screenHandler === player.playerScreenHandler) {
+				moverState = MoverState.OpeningPutEnderChest
+				return
+			}
+			if (moveFromContainerToContainer(screenHandler.containerSlots, player.hotbarAndInventoryStacks)) {
+				moverState = MoverState.OpeningPutContainer
+			}
 		}
 
 		private fun SafeContext.handleDispensingPearl() {
@@ -613,13 +635,66 @@ object StashMover : Module(
 			moverState = MoverState.AwaitingRespawn
 		}
 
+		private fun SafeContext.openClosestContainer(
+			positions: Collection<BlockPos>,
+			onNoneAvailable: () -> Unit,
+			finally: SafeContext.(pos: BlockPos) -> Unit
+		) {
+			val pos = positions.minByOrNull { it distSq player.blockPos }
+				?: run {
+					onNoneAvailable()
+					return
+				}
+
+			OpenContainerTask(
+				pos,
+				StashMover
+			).finally {
+				finally(pos)
+			}.execute(this@MoverBot)
+		}
+
+		private fun SafeContext.moveFromContainerToContainer(
+			from: Collection<Slot>,
+			to: Collection<ItemStack>
+		): Boolean {
+			val filteredFrom = from.filter { !it.stack.isEmpty }
+			val filteredTo = to.filter { it.isEmpty }
+			if (filteredTo.isEmpty() || filteredFrom.isEmpty()) return true
+			val moveSlots = filteredFrom.subList(0, min(filteredTo.size, filteredFrom.size))
+			if (moveSlots.isNotEmpty()) {
+				val request = inventoryRequest(settleForLess = true) {
+					moveSlots.forEach { slot ->
+						quickMove(slot.id)
+					}
+				}.submit()
+				if (!request.done) return false
+			}
+			player.closeHandledScreen()
+			return true
+		}
+
+		private fun checkTimerProgress(
+			fallbackState: MoverState,
+			timeout: Int,
+			progressionCheck: (() -> Boolean)? = null
+		) {
+			tickTimer.tick()
+			if (progressionCheck?.invoke() == true) return
+			if (tickTimer.hasSurpassed(timeout)) moverState = fallbackState
+		}
+
 		private enum class MoverState {
 			OpeningPullContainer,
 			TakingItems,
+			OpeningPullEnderChest,
+			PuttingInEnderChest,
 			MessagingForPearl,
 			AwaitingTeleport,
 			OpeningPutContainer,
 			PuttingItems,
+			OpeningPutEnderChest,
+			PullingFromEnderChest,
 			DispensingPearl,
 			AwaitingPearl,
 			ThrowingPearl,
