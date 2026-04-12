@@ -50,6 +50,7 @@ object KillAura : Module(
     // Interact
     private val rotate by setting("Rotate", true).group(Group.General)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+    private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra").group(Group.General)
     private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
     private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
@@ -106,6 +107,8 @@ object KillAura : Module(
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
         listen<TickEvent.Pre> {
+            if (disableWhileGliding && player.isGliding) return@listen
+
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 var rotated = true
