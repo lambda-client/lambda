@@ -65,6 +65,9 @@ import com.lambda.util.player.SlotUtils.allSlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarSlots
+import com.lambda.util.player.SlotUtils.hotbarStacks
+import com.lambda.util.player.SlotUtils.inventoryStacks
+import com.lambda.util.player.SlotUtils.offHandSlots
 import com.lambda.util.text.bold
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -108,8 +111,7 @@ object StashMover : Module(
 
 	private enum class DropOffMode(override val displayName: String) : NamedEnum {
 		Chests("Chests"),
-		Drop("Drop"),
-		Death("Death")
+		Drop("Drop")
 	}
 
 	val role: Role by setting("Role", Role.MoverBot).group(Group.General)
@@ -427,6 +429,8 @@ object StashMover : Module(
 		private var actionDelayTimer = TickTimer()
 		private var delayingNextAction = false
 
+		private var pearlThrown = false
+
 		private var pullContainer: BlockPos? = null
 		private var tickTimer = TickTimer()
 
@@ -472,6 +476,16 @@ object StashMover : Module(
 							MoverState.MessagingForPearl,
 							pearlMsgTimeout
 						)
+					MoverState.DispensingPearl -> handleDispensingPearl()
+					MoverState.AwaitingPearl ->
+						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
+							if (player.hotbarAndInventoryStacks.any { it.item === Items.ENDER_PEARL }) {
+								pearlThrown = false
+								moverState = MoverState.ThrowingPearl
+								true
+							} else false
+						}
+					MoverState.ThrowingPearl -> handleThrowingPearl()
 					MoverState.DroppingItems -> handleDroppingItems()
 					MoverState.OpeningPutContainer ->
 						openClosestContainer(
@@ -488,15 +502,6 @@ object StashMover : Module(
 							{ failWithLog("No put ender chests indexed!") }
 						) { moverState = MoverState.PullingFromEnderChest }
 					MoverState.PullingFromEnderChest -> handlePullingFromEnderChest(screenHandler)
-					MoverState.DispensingPearl -> handleDispensingPearl()
-					MoverState.AwaitingPearl ->
-						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
-							if (player.hotbarAndInventoryStacks.any { it.item === Items.ENDER_PEARL }) {
-								moverState = MoverState.ThrowingPearl
-								true
-							} else false
-						}
-					MoverState.ThrowingPearl -> handleThrowingPearl()
 					MoverState.Killing -> handleKilling()
 					else -> {}
 				}
@@ -525,7 +530,7 @@ object StashMover : Module(
 					success(finishedMessage)
 					return@listen
 				}
-				putOrThrowItems()
+				moverState = MoverState.DispensingPearl
 			}
 
 			listen<GuiEvent.ScreenOpen> { event ->
@@ -649,6 +654,18 @@ object StashMover : Module(
 				return
 			}
 			if (BaritoneManager.isActive) return
+			if (player.hotbarStacks.none { it.isEmpty }) {
+				val firstSlot = player.hotbarSlots.getOrNull(0) ?: run { failWithLog("No first slot? This shouldn't occur."); return }
+				if (player.inventoryStacks.any { it.isEmpty }) {
+					inventoryRequest { quickMove(firstSlot.id) }.submit()
+					return
+				} else if (player.offHandStack.isEmpty) {
+					inventoryRequest { swap(firstSlot.id, 40) }.submit()
+					return
+				}
+				failWithLog("No free slots for an ender pearl!")
+				return
+			}
 			getButtonPressTask(dispensePos)
 				?.finally {
 					tickTimer.reset()
@@ -664,33 +681,44 @@ object StashMover : Module(
 				return
 			}
 			if (BaritoneManager.isActive) return
+
+			if (pearlThrown) {
+				if (!player.offHandStack.isEmpty) {
+					if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
+						failWithLog("No free slots to return the offhand stack to!")
+						return
+					}
+					val offhandSlot = player.offHandSlots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur."); return }
+					inventoryRequest { quickMove(offhandSlot.id) }.submit()
+				}
+				putOrThrowItems()
+				return
+			}
+
 			val rotation = pearlRotation ?: run { failWithLog("No pearl rotation set!"); return }
 			val rotationRequest = rotationRequest {
 				rotation(rotation)
 			}.submit()
 			if (!rotationRequest.done) return
-			while (player.mainHandStack.item != Items.ENDER_PEARL) {
+			if (player.mainHandStack.item != Items.ENDER_PEARL) {
 				val hotbarSlot = player.hotbarSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
 				if (hotbarSlot != null) {
 					val hotbarRequest = HotbarRequest(hotbarSlot.index, StashMover, nowOrNothing = false).submit()
 					if (!hotbarRequest.done) return
-					break
 				} else {
 					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
 					if (inventorySlot == null) {
 						failWithLog("No pearl in inventory!")
 						return
 					}
-					val inventoryRequest = inventoryRequest {
-						swap(inventorySlot.id, 0)
-					}.submit()
-					if (!inventoryRequest.done) return
+					inventoryRequest { swap(inventorySlot.id, 0) }.submit()
+					return
 				}
 			}
 			RotationManager.withoutVanillaOverrides {
 				interaction.interactItem(player, Hand.MAIN_HAND)
+				pearlThrown = true
 			}
-			moverState = MoverState.Killing
 		}
 
 		private fun SafeContext.handleKilling() {
@@ -720,14 +748,14 @@ object StashMover : Module(
 				success(finishedMessage)
 				return
 			}
-			moverState = MoverState.DispensingPearl
+			moverState = MoverState.Killing
 		}
 
 		private fun putOrThrowItems() {
 			moverState =
 				when (dropOffMode) {
 					DropOffMode.Chests -> MoverState.OpeningPutContainer
-					else -> MoverState.DroppingItems
+					DropOffMode.Drop -> MoverState.DroppingItems
 				}
 		}
 
@@ -791,14 +819,14 @@ object StashMover : Module(
 			BreakingEmptyPullContainers,
 			MessagingForPearl,
 			AwaitingTeleport,
+			DispensingPearl,
+			AwaitingPearl,
+			ThrowingPearl,
 			DroppingItems,
 			OpeningPutContainer,
 			PuttingItems,
 			OpeningPullEnderChest,
 			PullingFromEnderChest,
-			DispensingPearl,
-			AwaitingPearl,
-			ThrowingPearl,
 			Killing,
 			AwaitingDeath,
 			Respawning,
