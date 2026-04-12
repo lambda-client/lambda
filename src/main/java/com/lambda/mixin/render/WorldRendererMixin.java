@@ -127,11 +127,14 @@ public abstract class WorldRendererMixin {
         Set<BlockPos> xRayTargets = OutlineManager.INSTANCE.getXrayBlockStyles().keySet();
         Set<BlockPos> depthTargets = OutlineManager.INSTANCE.getDepthTestedBlockStyles().keySet();
 
+        Set<BlockPos> alreadyCollected = new java.util.HashSet<>();
+        for (BlockEntityRenderState s : renderStates.blockEntityRenderStates) {
+            alreadyCollected.add(s.pos);
+        }
+
         for (BlockPos target : Sets.union(xRayTargets, depthTargets)) {
             if (!this.world.getChunkManager().isChunkLoaded(target.getX() >> 4, target.getZ() >> 4)) continue;
-            boolean alreadyCollected = renderStates.blockEntityRenderStates.stream()
-                    .anyMatch(state -> state.pos.equals(target));
-            if (alreadyCollected) continue;
+            if (alreadyCollected.contains(target)) continue;
 
             BlockEntity blockEntity = this.world.getBlockEntity(target);
             if (blockEntity != null && !blockEntity.isRemoved()) {
