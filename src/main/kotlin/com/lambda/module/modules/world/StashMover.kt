@@ -39,6 +39,7 @@ import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.Module
@@ -95,20 +96,27 @@ object StashMover : Module(
 	description = "Moves items from one stash location to another",
 	tag = ModuleTag.WORLD
 ) {
+	private enum class Group(override val displayName: String) : NamedEnum {
+		General("General"),
+		CommandBinds("Command Binds")
+	}
+
 	enum class Role(val createTask: () -> Task<*>) {
 		MoverBot({ MoverBot() }),
 		PearlBot({ PearlBot() })
 	}
 
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		CommandBinds("Command Binds")
+	private enum class DropOffMode(override val displayName: String) : NamedEnum {
+		Chests("Chests"),
+		Drop("Drop"),
+		Death("Death")
 	}
 
 	val role: Role by setting("Role", Role.MoverBot).group(Group.General)
 		.onValueChange { _, to -> if (to == Role.PearlBot) clearModule() }
 	private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }.group(Group.General)
 	private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }.group(Group.General)
+	private val dropOffMode by setting("Drop-Off Mode", DropOffMode.Chests) { role == Role.MoverBot }.group(Group.General)
 	private var chestPullSelMode: Boolean by setting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }.group(Group.General)
 		.onValueChange { _, to -> if (to) { chestPutSelMode = false; StashMover.info("Enabled chest pull selection mode!") } }
 	private var chestPutSelMode: Boolean by setting("Chest Put Sel Mode", false, "Enables the mod to select the stash containers you want to move items into") { role == Role.MoverBot }.group(Group.General)
@@ -148,6 +156,11 @@ object StashMover : Module(
 			event.cancel()
 			removeSelectedContainers()
 		}
+	private val setItemThrowPosAndRotation by setting("Set Item Throw", Bind.EMPTY, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }.group(Group.CommandBinds)
+		.onPress { event ->
+			event.cancel()
+			setItemThrow()
+		}
 	private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }.group(Group.CommandBinds)
 		.onPress { event ->
 			event.cancel()
@@ -173,6 +186,9 @@ object StashMover : Module(
 	private val putContainers = hashSetOf<BlockPos>()
 	private val pullEnderChests = hashSetOf<BlockPos>()
 	private val filledContainers = hashSetOf<BlockPos>()
+
+	private var itemThrowPos: BlockPos? = null
+	private var itemThrowRotation: Rotation? = null
 
 	private var pearlDispensePos: BlockPos? = null
 	private var pearlThrowPos: BlockPos? = null
@@ -296,6 +312,12 @@ object StashMover : Module(
 				filledContainers.remove(pos)) removeCount++
 		}
 		StashMover.info("Removed $removeCount containers!")
+	}
+
+	context(safeContext: SafeContext)
+	fun setItemThrow() {
+		itemThrowPos = safeContext.player.blockPos
+		itemThrowRotation = safeContext.player.rotation
 	}
 
 	context(safeContext: SafeContext)
@@ -430,9 +452,7 @@ object StashMover : Module(
 							{
 								finished = true
 								finishedMessage = "Pull containers exhausted!"
-								moverState =
-									if (breakEmptyPullContainers) MoverState.BreakingEmptyPullContainers
-									else MoverState.MessagingForPearl
+								breakPulledOrPearl()
 							}
 						) { pos ->
 							pullContainer = pos
@@ -452,6 +472,7 @@ object StashMover : Module(
 							MoverState.MessagingForPearl,
 							pearlMsgTimeout
 						)
+					MoverState.DroppingItems -> handleDroppingItems()
 					MoverState.OpeningPutContainer ->
 						openClosestContainer(
 							putContainers,
@@ -504,7 +525,7 @@ object StashMover : Module(
 					success(finishedMessage)
 					return@listen
 				}
-				moverState = MoverState.OpeningPutContainer
+				putOrThrowItems()
 			}
 
 			listen<GuiEvent.ScreenOpen> { event ->
@@ -530,15 +551,11 @@ object StashMover : Module(
 					}
 				}
 			}
-			if (useEnderChest && EnderChestContainer.stacks.any { it.isEmpty }) {
+			if (useEnderChest && (EnderChestContainer.stacks.isEmpty() || EnderChestContainer.stacks.any { it.isEmpty })) {
 				moverState = MoverState.OpeningPutEnderChest
 				return
 			}
-			if (breakEmptyPullContainers) {
-				moverState = MoverState.BreakingEmptyPullContainers
-				return
-			}
-			moverState = MoverState.MessagingForPearl
+			breakPulledOrPearl()
 		}
 
 		private fun SafeContext.handlePuttingInEnderChest(screenHandler: ScreenHandler) {
@@ -572,6 +589,30 @@ object StashMover : Module(
 			moverState = MoverState.AwaitingTeleport
 		}
 
+		private fun SafeContext.handleDroppingItems() {
+			val throwPos = itemThrowPos ?: run { failWithLog("No item throw pos set!"); return }
+			if (player.blockPos != throwPos) {
+				BaritoneManager.setGoalAndPath(GoalBlock(throwPos))
+				return
+			}
+			if (BaritoneManager.isActive) return
+			val rotation = itemThrowRotation ?: run { failWithLog("No item throw rotation set!"); return }
+			val rotationRequest = rotationRequest {
+				rotation(rotation)
+			}.submit()
+			if (!rotationRequest.done || rotation dist RotationManager.serverRotation > 0.001) return
+			val throwSlots = player.hotbarAndInventorySlots.filter { !it.stack.isEmpty }
+			if (throwSlots.isNotEmpty()) {
+				val inventoryRequest = inventoryRequest(settleForLess = true) {
+					throwSlots.forEach { slot ->
+						throwStack(slot.id)
+					}
+				}.submit()
+				if (!inventoryRequest.done) return
+			}
+			pullFromEnderChestOrContinue()
+		}
+
 		private fun SafeContext.handlePuttingItems(screenHandler: ScreenHandler) {
 			if (screenHandler === player.playerScreenHandler) {
 				moverState = MoverState.OpeningPutContainer
@@ -588,15 +629,7 @@ object StashMover : Module(
 					}
 				}
 			}
-			if (useEnderChest && EnderChestContainer.stacks.any { !it.isEmpty }) {
-				moverState = MoverState.OpeningPullEnderChest
-				return
-			}
-			if (finished) {
-				success(finishedMessage)
-				return
-			}
-			moverState = MoverState.DispensingPearl
+			pullFromEnderChestOrContinue()
 		}
 
 		private fun SafeContext.handlePullingFromEnderChest(screenHandler: ScreenHandler) {
@@ -605,7 +638,7 @@ object StashMover : Module(
 				return
 			}
 			if (moveFromContainerToContainer(screenHandler.containerSlots, player.hotbarAndInventoryStacks)) {
-				moverState = MoverState.OpeningPutContainer
+				putOrThrowItems()
 			}
 		}
 
@@ -672,6 +705,32 @@ object StashMover : Module(
 			moverState = MoverState.AwaitingRespawn
 		}
 
+		private fun breakPulledOrPearl() {
+			moverState =
+				if (breakEmptyPullContainers && pulledContainers.isNotEmpty()) MoverState.BreakingEmptyPullContainers
+				else MoverState.MessagingForPearl
+		}
+
+		private fun pullFromEnderChestOrContinue() {
+			if (useEnderChest && (EnderChestContainer.stacks.isEmpty() || EnderChestContainer.stacks.any { !it.isEmpty })) {
+				moverState = MoverState.OpeningPullEnderChest
+				return
+			}
+			if (finished) {
+				success(finishedMessage)
+				return
+			}
+			moverState = MoverState.DispensingPearl
+		}
+
+		private fun putOrThrowItems() {
+			moverState =
+				when (dropOffMode) {
+					DropOffMode.Chests -> MoverState.OpeningPutContainer
+					else -> MoverState.DroppingItems
+				}
+		}
+
 		private fun SafeContext.openClosestContainer(
 			positions: Collection<BlockPos>,
 			onNoneAvailable: () -> Unit,
@@ -732,6 +791,7 @@ object StashMover : Module(
 			BreakingEmptyPullContainers,
 			MessagingForPearl,
 			AwaitingTeleport,
+			DroppingItems,
 			OpeningPutContainer,
 			PuttingItems,
 			OpeningPullEnderChest,

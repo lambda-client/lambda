@@ -37,6 +37,9 @@ object StashMoverCommand : LambdaCommand(
 		required(literal("remove_selected_containers")) {
 			execute { runSafe { StashMover.removeSelectedContainers() } }
 		}
+		required(literal("set_item_throw")) {
+			execute { runSafe { StashMover.setItemThrow() } }
+		}
 		required(literal("set_pearl_button_pos")) {
 			execute { runSafe { StashMover.setPearlButtonPos() } }
 		}
