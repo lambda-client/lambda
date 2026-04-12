@@ -31,7 +31,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -42,7 +42,6 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.Module
-import com.lambda.module.modules.combat.KillAura.target
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -51,6 +50,7 @@ import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
@@ -107,14 +107,7 @@ object StashMover : Module(
 	}
 
 	private val role: Role by setting("Role", Role.MoverBot).group(Group.General)
-		.onValueChange { _, to ->
-			if (to == Role.PearlBot) {
-				chestPullSelMode = false
-				chestPutSelMode = false
-				sel1 = null
-				sel2 = null
-			}
-		}
+		.onValueChange { _, to -> if (to == Role.PearlBot) clearModule() }
 	private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }.group(Group.General)
 	private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }.group(Group.General)
 	private var chestPullSelMode: Boolean by setting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }.group(Group.General)
@@ -125,13 +118,14 @@ object StashMover : Module(
 	private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
 	private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }.group(Group.General)
-	private val useEnderChest by setting("Use Ender Chest", false, "Uses the ender chest to move more items at once") { role == Role.MoverBot }.group(Group.General)
+	private val useEnderChest by setting("Use Ender Chest", false, "Uses the ender chest to move more items at once. (Ender chests are included in the pull/put selections)") { role == Role.MoverBot }.group(Group.General)
 		.onValueChange { _, to ->
 			if (!to) {
-				pullEnderChests.clear()
 				putEnderChests.clear()
+				pullEnderChests.clear()
 			}
 		}
+	private val breakEmptyPullContainers by setting("Break Empty Pull Containers", false, "Breaks empty pull containers after taking their items") { role == Role.MoverBot }.group(Group.General)
 	private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }.group(Group.General)
 	private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }.group(Group.General)
 	private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role").group(Group.General)
@@ -170,10 +164,10 @@ object StashMover : Module(
 	private var sel2: BlockPos? = null
 
 	private val pullContainers = hashSetOf<BlockPos>()
-	private val pullEnderChests = hashSetOf<BlockPos>()
+	private val putEnderChests = hashSetOf<BlockPos>()
 	private val pulledContainers = hashSetOf<BlockPos>()
 	private val putContainers = hashSetOf<BlockPos>()
-	private val putEnderChests = hashSetOf<BlockPos>()
+	private val pullEnderChests = hashSetOf<BlockPos>()
 	private val filledContainers = hashSetOf<BlockPos>()
 
 	private var pearlDispensePos: BlockPos? = null
@@ -188,8 +182,15 @@ object StashMover : Module(
 		setModulePriority(100)
 		setDefaultAutomationConfig {
 			applyEdits {
-				buildConfig::checkSideVisibility.edit { defaultValue(true) }
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
+					hide(::pathing, ::startStop, ::collectDrops, ::spleefEntities, ::entityReach)
+					hideGroup(eatConfig)
+				}
 				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+				breakConfig.apply {
+					editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
+				}
 			}
 		}
 
@@ -207,23 +208,10 @@ object StashMover : Module(
 			}
 		}
 
-		onDisable {
-			task?.cancel()
-			task = null
-			sel1 = null
-			sel2 = null
-			pullContainers.clear()
-			pulledContainers.clear()
-			putContainers.clear()
-			filledContainers.clear()
-			pearlDispensePos = null
-			pearlThrowPos = null
-			pearlRotation = null
-			pearlBotButton = null
-		}
+		onDisable { clearModule() }
 
-		immediateRenderer("StashMover Immediate Renderer") {
-			if (!chestPullSelMode && !chestPutSelMode) return@immediateRenderer
+		tickedRenderer("StashMover Immediate Renderer") {
+			if (!chestPullSelMode && !chestPutSelMode) return@tickedRenderer
 			sel1?.let { sel1 ->
 				box(Box(sel1)) {
 					colors(Color.PINK.setAlpha(0.1), Color.PINK)
@@ -246,6 +234,23 @@ object StashMover : Module(
 		}
 	}
 
+	private fun clearModule() {
+		task?.cancel()
+		task = null
+		sel1 = null
+		sel2 = null
+		pullContainers.clear()
+		putEnderChests.clear()
+		pulledContainers.clear()
+		putContainers.clear()
+		pullEnderChests.clear()
+		filledContainers.clear()
+		pearlDispensePos = null
+		pearlThrowPos = null
+		pearlRotation = null
+		pearlBotButton = null
+	}
+
 	context(safeContext: SafeContext)
 	fun indexSelectedContainers() {
 		var addCount = 0
@@ -255,11 +260,11 @@ object StashMover : Module(
 			if (useEnderChest && safeContext.blockState(pos).block === Blocks.ENDER_CHEST) {
 				addCount++
 				if (chestPullSelMode) {
-					putEnderChests.remove(pos)
-					pullEnderChests.add(pos)
-				} else if (chestPutSelMode) {
 					pullEnderChests.remove(pos)
 					putEnderChests.add(pos)
+				} else if (chestPutSelMode) {
+					putEnderChests.remove(pos)
+					pullEnderChests.add(pos)
 				}
 				return@consumeSelection
 			}
@@ -338,6 +343,7 @@ object StashMover : Module(
 						}
 					}
 				)
+				task = null
 				null
 			}
 			.finally { message ->
@@ -350,6 +356,7 @@ object StashMover : Module(
 						}
 					}
 				)
+				task = null
 			}
 			.run()
 	}
@@ -414,19 +421,22 @@ object StashMover : Module(
 							{
 								finished = true
 								finishedMessage = "Pull containers exhausted!"
-								moverState = MoverState.MessagingForPearl
+								moverState =
+									if (breakEmptyPullContainers) MoverState.BreakingEmptyPullContainers
+									else MoverState.MessagingForPearl
 							}
 						) { pos ->
 							pullContainer = pos
 							moverState = MoverState.TakingItems
 						}
 					MoverState.TakingItems -> handleTakingItems(screenHandler)
-					MoverState.OpeningPullEnderChest ->
+					MoverState.OpeningPutEnderChest ->
 						openClosestContainer(
-							pullEnderChests,
+							putEnderChests,
 							{ failWithLog("No pull ender chests indexed!") }
 						) { moverState = MoverState.PuttingInEnderChest }
 					MoverState.PuttingInEnderChest -> handlePuttingInEnderChest(screenHandler)
+					MoverState.BreakingEmptyPullContainers -> handleBreakingEmptyPullContainers()
 					MoverState.MessagingForPearl -> handleMessagingForPearl()
 					MoverState.AwaitingTeleport ->
 						checkTimerProgress(
@@ -442,9 +452,9 @@ object StashMover : Module(
 							moverState = MoverState.PuttingItems
 						}
 					MoverState.PuttingItems -> handlePuttingItems(screenHandler)
-					MoverState.OpeningPutEnderChest ->
+					MoverState.OpeningPullEnderChest ->
 						openClosestContainer(
-							putEnderChests,
+							pullEnderChests,
 							{ failWithLog("No put ender chests indexed!") }
 						) { moverState = MoverState.PullingFromEnderChest }
 					MoverState.PullingFromEnderChest -> handlePullingFromEnderChest(screenHandler)
@@ -512,7 +522,11 @@ object StashMover : Module(
 				}
 			}
 			if (useEnderChest && EnderChestContainer.stacks.any { it.isEmpty }) {
-				moverState = MoverState.OpeningPullEnderChest
+				moverState = MoverState.OpeningPutEnderChest
+				return
+			}
+			if (breakEmptyPullContainers) {
+				moverState = MoverState.BreakingEmptyPullContainers
 				return
 			}
 			moverState = MoverState.MessagingForPearl
@@ -520,12 +534,27 @@ object StashMover : Module(
 
 		private fun SafeContext.handlePuttingInEnderChest(screenHandler: ScreenHandler) {
 			if (screenHandler === player.playerScreenHandler) {
-				moverState = MoverState.OpeningPullEnderChest
+				moverState = MoverState.OpeningPutEnderChest
 				return
 			}
 			if (moveFromContainerToContainer(player.hotbarAndInventorySlots, screenHandler.containerStacks)) {
 				moverState = MoverState.OpeningPullContainer
 			}
+		}
+
+		private fun handleBreakingEmptyPullContainers() {
+			pulledContainers
+				.associateWith { TargetState.Empty }
+				.build()
+				.onFailOrNull {
+					failWithLog("Failed to break empty pull containers!")
+					null
+				}
+				.finally {
+					pulledContainers.clear()
+					moverState = MoverState.MessagingForPearl
+				}
+				.execute(this)
 		}
 
 		private fun SafeContext.handleMessagingForPearl() {
@@ -540,7 +569,6 @@ object StashMover : Module(
 				return
 			}
 			if (!moveFromContainerToContainer(player.hotbarAndInventorySlots, screenHandler.containerStacks)) return
-			player.closeHandledScreen()
 			putContainer?.let { container ->
 				if (screenHandler.containerStacks.all { !it.isEmpty }) {
 					putContainers.remove(container)
@@ -552,7 +580,7 @@ object StashMover : Module(
 				}
 			}
 			if (useEnderChest && EnderChestContainer.stacks.any { !it.isEmpty }) {
-				moverState = MoverState.OpeningPutEnderChest
+				moverState = MoverState.OpeningPullEnderChest
 				return
 			}
 			if (finished) {
@@ -564,7 +592,7 @@ object StashMover : Module(
 
 		private fun SafeContext.handlePullingFromEnderChest(screenHandler: ScreenHandler) {
 			if (screenHandler === player.playerScreenHandler) {
-				moverState = MoverState.OpeningPutEnderChest
+				moverState = MoverState.OpeningPullEnderChest
 				return
 			}
 			if (moveFromContainerToContainer(screenHandler.containerSlots, player.hotbarAndInventoryStacks)) {
@@ -660,7 +688,10 @@ object StashMover : Module(
 		): Boolean {
 			val filteredFrom = from.filter { !it.stack.isEmpty }
 			val filteredTo = to.filter { it.isEmpty }
-			if (filteredTo.isEmpty() || filteredFrom.isEmpty()) return true
+			if (filteredTo.isEmpty() || filteredFrom.isEmpty()) {
+				player.closeHandledScreen()
+				return true
+			}
 			val moveSlots = filteredFrom.subList(0, min(filteredTo.size, filteredFrom.size))
 			if (moveSlots.isNotEmpty()) {
 				val request = inventoryRequest(settleForLess = true) {
@@ -687,13 +718,14 @@ object StashMover : Module(
 		private enum class MoverState {
 			OpeningPullContainer,
 			TakingItems,
-			OpeningPullEnderChest,
+			OpeningPutEnderChest,
 			PuttingInEnderChest,
+			BreakingEmptyPullContainers,
 			MessagingForPearl,
 			AwaitingTeleport,
 			OpeningPutContainer,
 			PuttingItems,
-			OpeningPutEnderChest,
+			OpeningPullEnderChest,
 			PullingFromEnderChest,
 			DispensingPearl,
 			AwaitingPearl,

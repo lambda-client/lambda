@@ -104,6 +104,7 @@ class OpenContainerTask @Ta5kBuilder constructor(
             if (interactConfig.rotate && !rotationRequest { rotation(checkedHit.rotation) }.submit().done) return@listen
 
             interaction.interactBlock(player, Hand.MAIN_HAND, checkedHit.hit.blockResult ?: return@listen)
+            player.swingHand(Hand.MAIN_HAND)
 
             containerState = State.Opening
         }
