@@ -50,7 +50,6 @@ import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
@@ -96,7 +95,7 @@ object StashMover : Module(
 	description = "Moves items from one stash location to another",
 	tag = ModuleTag.WORLD
 ) {
-	private enum class Role(val createTask: () -> Task<*>) {
+	enum class Role(val createTask: () -> Task<*>) {
 		MoverBot({ MoverBot() }),
 		PearlBot({ PearlBot() })
 	}
@@ -106,7 +105,7 @@ object StashMover : Module(
 		CommandBinds("Command Binds")
 	}
 
-	private val role: Role by setting("Role", Role.MoverBot).group(Group.General)
+	val role: Role by setting("Role", Role.MoverBot).group(Group.General)
 		.onValueChange { _, to -> if (to == Role.PearlBot) clearModule() }
 	private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }.group(Group.General)
 	private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }.group(Group.General)
@@ -132,6 +131,11 @@ object StashMover : Module(
 		.onPress { event ->
 			event.cancel()
 			startStop()
+		}
+	private val pauseUnpause by setting("Pause/Unpause", Bind.EMPTY, "Pauses and unpauses the selected role").group(Group.General)
+		.onPress { event ->
+			event.cancel()
+			pauseUnpause()
 		}
 
 	private val indexSelectedContainers by setting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }.group(Group.CommandBinds)
@@ -359,6 +363,11 @@ object StashMover : Module(
 				task = null
 			}
 			.run()
+	}
+
+	fun pauseUnpause() {
+		if (task?.isMuted == true) task?.activate()
+		else task?.pause()
 	}
 
 	private fun consumeSelection(callback: (pos: BlockPos) -> Unit) {

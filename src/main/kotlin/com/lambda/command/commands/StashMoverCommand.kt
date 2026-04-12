@@ -27,6 +27,7 @@ import com.lambda.util.extension.CommandBuilder
 
 object StashMoverCommand : LambdaCommand(
 	name = "stashmover",
+	usage = "stashmover <command>",
 	description = "Set configurations for the StashMover module"
 ) {
 	override fun CommandBuilder.create() {
@@ -47,6 +48,9 @@ object StashMoverCommand : LambdaCommand(
 		}
 		required(literal("start-stop")) {
 			execute { runSafe { StashMover.startStop() } }
+		}
+		required(literal("pause-unpause")) {
+			execute { runSafe { StashMover.pauseUnpause() } }
 		}
 	}
 }
