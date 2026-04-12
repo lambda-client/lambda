@@ -55,7 +55,7 @@ open class CollectionSetting<R : Any>(
 	override var value
 		get() = super.value
 		set(newVal) {
-			super.value = newVal.toMutableList()
+			super.value = LinkedHashSet(newVal)
 		}
 
     private var searchFilter = ""
@@ -121,7 +121,7 @@ open class CollectionSetting<R : Any>(
 			if (serialize) gson.fromJson(serialized, type)
 			else gson.fromJson<Collection<String>>(serialized, strListType)
 				.mapNotNull { str -> immutableCollection.find { it.toString() == str } }
-				.toMutableList()
+				.toMutableSet()
 
 		value = strList
 	}

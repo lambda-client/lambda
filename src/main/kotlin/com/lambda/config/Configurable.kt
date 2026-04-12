@@ -140,7 +140,7 @@ abstract class Configurable(
         immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
+    ) = Setting(name, description, BlockCollectionSetting(immutableCollection, LinkedHashSet(defaultValue)), this, visibility).register()
 
 	@JvmName("collectionSetting2")
     fun setting(
@@ -149,7 +149,7 @@ abstract class Configurable(
         immutableCollection: Collection<Item> = Registries.ITEM.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility).register()
+    ) = Setting(name, description, ItemCollectionSetting(immutableCollection, LinkedHashSet(defaultValue)), this, visibility).register()
 
 	@JvmName("collectionSetting3")
     inline fun <reified T : Any> setting(
@@ -163,8 +163,8 @@ abstract class Configurable(
     ) = Setting(
 	    name,
 	    description,
-        if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
+        if (displayClassName) ClassCollectionSetting(immutableList, LinkedHashSet(defaultValue))
+                else CollectionSetting(LinkedHashSet(defaultValue), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
 		this,
 	    visibility
 	).register()

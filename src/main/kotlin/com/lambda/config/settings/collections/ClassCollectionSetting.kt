@@ -50,7 +50,7 @@ class ClassCollectionSetting<T : Any>(
 	override fun loadFromJson(serialized: JsonElement) {
 		val strList = gson.fromJson<MutableList<String>>(serialized, type)
 			.mapNotNull { str -> immutableCollection.find { it.className == str } }
-			.toMutableList()
+			.toMutableSet()
 
 		value = strList
 	}
