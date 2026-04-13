@@ -29,7 +29,7 @@ import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import com.lambda.util.text.text
 import com.mojang.authlib.GameProfile
-import net.minecraft.client.network.OtherClientPlayerEntity
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
 import java.awt.Color
 import java.util.*
@@ -99,11 +99,11 @@ object FriendManager : Configurable(FriendConfig), Loadable {
 
     fun friendDisplayName(uuid: UUID): String = gameProfile(uuid)?.name ?: uuid.toString()
 
-    val OtherClientPlayerEntity.isFriend: Boolean
+    val PlayerEntity.isFriend: Boolean
         get() = isFriend(gameProfile)
 
-    fun OtherClientPlayerEntity.befriend() = befriend(gameProfile)
-    fun OtherClientPlayerEntity.unfriend() = unfriend(gameProfile)
+    fun PlayerEntity.befriend() = befriend(gameProfile)
+    fun PlayerEntity.unfriend() = unfriend(gameProfile)
 
     override fun load() = "Loaded ${friends.size} friends"
 

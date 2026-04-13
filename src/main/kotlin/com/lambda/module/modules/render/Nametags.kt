@@ -116,7 +116,7 @@ object Nametags : Module(
 					.sortedByDescending { it distSq mc.gameRenderer.camera.pos }
 					.forEach { entity ->
 						val textConfig =
-							if (entity is OtherClientPlayerEntity && entity.isFriend) friendTextConfig
+							if (entity is PlayerEntity && entity.isFriend) friendTextConfig
 							else otherTextConfig
 						val textStyle = textConfig.getSDFStyle()
 						val textSize = textConfig.size
