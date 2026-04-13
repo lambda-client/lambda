@@ -36,6 +36,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.extension.move
+import net.minecraft.command.CommandSource.suggestMatching
 import java.nio.file.InvalidPathException
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -51,8 +52,7 @@ object BuildCommand : LambdaCommand(
         required(literal("place")) {
             required(greedyString("structure")) { structure ->
                 suggests { _, builder ->
-                    StructureRegistry.forEach { key, _ -> builder.suggest(key) }
-                    builder.buildFuture()
+                    suggestMatching(StructureRegistry.keys, builder)
                 }
                 executeWithResult {
                     val pathString = structure().value()
@@ -72,9 +72,9 @@ object BuildCommand : LambdaCommand(
 
                                     return@executeWithResult success()
                                 }
-                        } catch (e: InvalidPathException) {
+                        } catch (_: InvalidPathException) {
                             return@executeWithResult failure("Invalid path $pathString")
-                        } catch (e: NoSuchFileException) {
+                        } catch (_: NoSuchFileException) {
                             return@executeWithResult failure("Structure $pathString not found")
                         } catch (e: Exception) {
                             return@executeWithResult failure(

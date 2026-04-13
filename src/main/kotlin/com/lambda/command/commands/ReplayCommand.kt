@@ -30,6 +30,7 @@ import com.lambda.module.modules.player.Replay
 import com.lambda.util.FileUtils.listRecursive
 import com.lambda.util.FolderRegister
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandSource.suggestMatching
 import kotlin.io.path.exists
 
 object ReplayCommand : LambdaCommand(
@@ -50,10 +51,11 @@ object ReplayCommand : LambdaCommand(
             required(greedyString("replay filepath")) { replayName ->
                 suggests { _, builder ->
                     val dir = FolderRegister.replay.toFile()
-                    dir.listRecursive { it.isFile }.forEach {
-                        builder.suggest(it.relativeTo(dir).path)
-                    }
-                    builder.buildFuture()
+                    val paths = dir
+                        .listRecursive { it.isFile }
+                        .map { it.relativeTo(dir).path }
+                        .toList()
+                    suggestMatching(paths, builder)
                 }
 
                 executeWithResult {
