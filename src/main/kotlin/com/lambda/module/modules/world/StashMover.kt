@@ -94,6 +94,7 @@ import kotlin.math.min
 import kotlin.run
 import kotlin.to
 
+@Suppress("unused")
 object StashMover : Module(
 	name = "StashMover",
 	description = "Moves items from one stash location to another",
@@ -206,7 +207,7 @@ object StashMover : Module(
 			applyEdits {
 				buildConfig.apply {
 					editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
-					hide(::pathing, ::startStop, ::collectDrops, ::spleefEntities, ::entityReach)
+					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
 					hideGroup(eatConfig)
 				}
 				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
@@ -681,6 +682,7 @@ object StashMover : Module(
 				return
 			}
 			if (BaritoneManager.isActive) return
+			if (player.velocity.y < -0.08) return
 
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
