@@ -21,6 +21,8 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FontConfig
 import com.lambda.core.Loadable
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.util.FolderRegister
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.notExists
@@ -49,9 +51,9 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 		getOrLoadFont(defaultFontInfo) ?: throw IllegalStateException("Failed to load default font")
 	}
 
-	private val selectedFont by setting("Selected Font", defaultFontInfo.path, description = "The local path (from the lambda folder) to the font file, including the .ttf file extension")
+	private val selectedFont by setting("Selected Font", defaultFontInfo.path, description = "The file name of the font you want to use. (The font must be placed in the fonts folder in the lambda directory)")
 		.onValueChangeUnsafe { _, to ->
-			activeFont = getFont(to) ?: defaultFont
+			activeFont = getOrLoadFont(to) ?: defaultFont
 		}
 
 	var activeFont = defaultFont
@@ -59,7 +61,12 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 
 	override fun load(): String {
 		discoverFonts()
-		activeFont = getFont(selectedFont) ?: defaultFont
+		activeFont = getOrLoadFont(selectedFont) ?: defaultFont
+
+		listen<ClientEvent.Shutdown> {
+			cleanup()
+		}
+
 		return "Loaded ${discoveredFonts.size} font definitions"
 	}
 
@@ -102,19 +109,9 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 	}
 
 	/**
-	 * Get all discoverable fonts (for settings UI)
-	 */
-	fun getAvailableFonts(): List<FontInfo> = discoveredFonts.toList()
-
-	/**
-	 * Get a specific font by its FontInfo (loads if not already loaded)
-	 */
-	fun getFont(fontInfo: FontInfo): SDFFontAtlas? = getOrLoadFont(fontInfo)
-
-	/**
 	 * Get a specific font by its path (loads if not already loaded)
 	 */
-	fun getFont(path: String, size: Float = 128f): SDFFontAtlas? {
+	fun getOrLoadFont(path: String, size: Float = 128f): SDFFontAtlas? {
 		val fontInfo = discoveredFonts.find { it.path.endsWith(path) && it.size == size }
 			?: FontInfo(path.substringAfterLast("/"), path = path, size = size)
 		return getOrLoadFont(fontInfo)
@@ -136,24 +133,6 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 			}
 		}
 	}
-
-	/**
-	 * Set the active font to be used for rendering
-	 */
-	fun setActiveFont(fontInfo: FontInfo): Boolean {
-		val font = getFont(fontInfo)
-		if (font != null) {
-			activeFont = font
-			return true
-		}
-		return false
-	}
-
-	fun isFontLoaded(fontInfo: FontInfo) = loadedAtlases.containsKey(fontInfo.key)
-
-	fun isFontLoaded(path: String, size: Float = 128f) = loadedAtlases.containsKey("$path@$size")
-
-	fun getLoadedFontKeys(): Set<String> = loadedAtlases.keys.toSet()
 
 	fun getStringWidthNormalized(text: String, normalizedSize: Float) =
 		activeFont.getStringWidthNormalized(text, normalizedSize)
