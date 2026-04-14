@@ -132,7 +132,6 @@ class BuildTask private constructor(
             .toList()
 
         val viableResults = results
-            .filter { buildResultPredicate.test(it) }
             .filter { result ->
                 val finalResult = (result as? Dependent)?.lastDependency ?: result
                 pendingInteractions.none { it.blockPos == finalResult.pos } &&
@@ -142,6 +141,7 @@ class BuildTask private constructor(
                             else -> buildConfig.interactBlocks
                         })
             }
+            .filter { buildResultPredicate.test(it) }
             .sorted()
 
         val bestResult = viableResults.firstOrNull() ?: return
