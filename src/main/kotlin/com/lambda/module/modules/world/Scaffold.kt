@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.containers.HotbarContainer
@@ -62,7 +63,9 @@ object Scaffold : Module(
 						defaultValue(false)
 						hide()
 					}
+					::checkSideVisibility.edit { defaultValue(true) }
 				}
+				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
 				rotationConfig.apply {
 					::instant.edit { defaultValue(false) }
 					::mean.edit { defaultValue(120.0) }
