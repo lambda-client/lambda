@@ -164,7 +164,7 @@ abstract class Configurable(
 	    name,
 	    description,
         if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
+        else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
 		this,
 	    visibility
 	).register()

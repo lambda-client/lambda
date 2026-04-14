@@ -17,71 +17,171 @@
 
 package com.lambda.graphics.text
 
+import com.lambda.Lambda.LOG
+import com.lambda.config.Configurable
+import com.lambda.config.configurations.FontConfig
+import com.lambda.core.Loadable
+import com.lambda.util.FolderRegister
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.io.path.notExists
 
 /**
  * Central handler for font loading and caching.
- * 
- * Manages SDF font atlases with automatic caching by path and size.
- * Use this instead of creating SDFFontAtlas instances directly.
  *
- * Usage:
- * ```kotlin
- * val font = FontHandler.loadFont("fonts/MyFont.ttf", 128f)
- * val defaultFont = FontHandler.getDefaultFont()
- * ```
+ * Manages SDF font atlases with automatic caching by path and size.
+ * Fonts are discovered at startup but only loaded when actually used.
  */
-object FontHandler {
-	private val fonts = ConcurrentHashMap<String, SDFFontAtlas>()
-	private var defaultFont: SDFFontAtlas? = null
+object FontHandler : Loadable, Configurable(FontConfig) {
+	override val name = "Font"
+
+	private val loadedAtlases = ConcurrentHashMap<String, SDFFontAtlas>()
+
+	private val baseFonts = listOf(
+		FontInfo("Minecraft Default", "fonts/MinecraftDefault-Regular.ttf"),
+		FontInfo("FiraSans Regular", "fonts/FiraSans-Regular.ttf"),
+		FontInfo("FiraSans Bold", "fonts/FiraSans-Bold.ttf")
+	)
+
+	private val discoveredFonts = baseFonts.toMutableList()
+
+	val defaultFontInfo = baseFonts[0]
+	val defaultFont by lazy {
+		getOrLoadFont(defaultFontInfo) ?: throw IllegalStateException("Failed to load default font")
+	}
+
+	private val selectedFont by setting("Selected Font", defaultFontInfo.path, description = "The local path (from the lambda folder) to the font file, including the .ttf file extension")
+		.onValueChangeUnsafe { _, to ->
+			activeFont = getFont(to) ?: defaultFont
+		}
+
+	var activeFont = defaultFont
+		private set
+
+	override fun load(): String {
+		discoverFonts()
+		activeFont = getFont(selectedFont) ?: defaultFont
+		return "Loaded ${discoveredFonts.size} font definitions"
+	}
+
+	fun discoverFonts() {
+		discoveredFonts.clear()
+
+		val fontsFolder = FolderRegister.fonts
+
+		if (fontsFolder.notExists()) {
+			fontsFolder.toFile().mkdirs()
+		}
+
+		val fontFiles = fontsFolder.toFile().listFiles()
+			?.filter { it.isFile && it.extension.lowercase() in setOf("ttf", "otf") }
+			?: emptyList()
+
+		fontFiles.forEach { fontFile ->
+			val displayName = fontFile.nameWithoutExtension
+				.replace("_", " ")
+				.replace("-", " ")
+				.split(" ")
+				.joinToString(" ") { word ->
+					word.lowercase().replaceFirstChar { it.uppercase() }
+				}
+
+			if (discoveredFonts.none { it.displayName == displayName }) {
+				discoveredFonts.add(
+					FontInfo(
+						displayName = displayName,
+						path = fontFile.path,
+						userFont = true,
+					)
+				)
+			}
+		}
+
+		discoveredFonts.sortBy { it.displayName }
+
+		LOG.info("[FontHandler] Discovered ${discoveredFonts.size} fonts")
+	}
 
 	/**
-	 * Load an SDF font from resources.
-	 *
-	 * @param path Resource path to TTF/OTF file (e.g., "fonts/MinecraftDefault-Regular.ttf")
-	 * @param size Base font size for SDF generation (larger = higher quality, default 128)
-	 * @return The loaded SDFFontAtlas, or null if loading failed
+	 * Get all discoverable fonts (for settings UI)
 	 */
-	fun loadFont(path: String, size: Float = 128f): SDFFontAtlas? {
-		val key = "$path@$size"
-		return fonts.getOrPut(key) {
+	fun getAvailableFonts(): List<FontInfo> = discoveredFonts.toList()
+
+	/**
+	 * Get a specific font by its FontInfo (loads if not already loaded)
+	 */
+	fun getFont(fontInfo: FontInfo): SDFFontAtlas? = getOrLoadFont(fontInfo)
+
+	/**
+	 * Get a specific font by its path (loads if not already loaded)
+	 */
+	fun getFont(path: String, size: Float = 128f): SDFFontAtlas? {
+		val fontInfo = discoveredFonts.find { it.path.endsWith(path) && it.size == size }
+			?: FontInfo(path.substringAfterLast("/"), path = path, size = size)
+		return getOrLoadFont(fontInfo)
+	}
+
+	/**
+	 * Internal method to load a font if not already cached
+	 */
+	private fun getOrLoadFont(fontInfo: FontInfo): SDFFontAtlas? {
+		val key = fontInfo.key
+
+		return loadedAtlases.getOrPut(key) {
 			try {
-				SDFFontAtlas(path, size)
+				LOG.info("[FontHandler] Loading SDF atlas for: ${fontInfo.displayName}")
+				SDFFontAtlas(fontInfo.path, fontInfo.userFont, fontInfo.size).apply { upload() }
 			} catch (e: Exception) {
-				println("[FontHandler] Failed to load font: $path - ${e.message}")
+				LOG.error("[FontHandler] Failed to load font: ${fontInfo.path} - ${e.message}")
 				return null
 			}
 		}
 	}
 
 	/**
-	 * Get or create the default font.
-	 * Uses MinecraftDefault-Regular.ttf at 128px base size.
+	 * Set the active font to be used for rendering
 	 */
-	fun getDefaultFont(size: Float = 128f): SDFFontAtlas {
-		defaultFont?.let { return it }
-
-		val key = "fonts/MinecraftDefault-Regular.ttf@$size"
-		val font = fonts[key] ?: run {
-			val newFont = SDFFontAtlas("fonts/MinecraftDefault-Regular.ttf", size)
-			fonts[key] = newFont
-			newFont
+	fun setActiveFont(fontInfo: FontInfo): Boolean {
+		val font = getFont(fontInfo)
+		if (font != null) {
+			activeFont = font
+			return true
 		}
-		defaultFont = font
-		return font
+		return false
 	}
 
-	fun isFontLoaded(path: String, size: Float = 128f) = fonts.containsKey("path@$size")
+	fun isFontLoaded(fontInfo: FontInfo) = loadedAtlases.containsKey(fontInfo.key)
 
-	fun getLoadedFonts(): Set<String> = fonts.keys.toSet()
+	fun isFontLoaded(path: String, size: Float = 128f) = loadedAtlases.containsKey("$path@$size")
+
+	fun getLoadedFontKeys(): Set<String> = loadedAtlases.keys.toSet()
+
+	fun getStringWidthNormalized(text: String, normalizedSize: Float) =
+		activeFont.getStringWidthNormalized(text, normalizedSize)
+
+	fun getDescentNormalized(normalizedSize: Float) =
+		activeFont.getDescentNormalized(normalizedSize)
+
+	fun getStringDimensionsNormalized(text: String, normalizedSize: Float) =
+		activeFont.getStringDimensionsNormalized(text, normalizedSize)
+
+	fun getSizeForWidthNormalized(text: String, targetWidthNormalized: Float) =
+		activeFont.getSizeForWidthNormalized(text, targetWidthNormalized)
 
 	/**
 	 * Clean up all loaded fonts and release GPU resources.
 	 * Call this when shutting down or when fonts are no longer needed.
 	 */
 	fun cleanup() {
-		fonts.values.forEach { it.close() }
-		fonts.clear()
-		defaultFont = null
+		loadedAtlases.values.forEach { it.close() }
+		loadedAtlases.clear()
+	}
+
+	data class FontInfo(
+		val displayName: String,
+		val path: String = "",
+		val userFont: Boolean = false,
+		val size: Float = 128f
+	) {
+		val key = "$path@$size"
 	}
 }
