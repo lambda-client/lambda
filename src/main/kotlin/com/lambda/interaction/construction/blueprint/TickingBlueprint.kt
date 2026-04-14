@@ -25,7 +25,7 @@ import net.minecraft.util.math.Vec3i
 import java.util.function.Predicate
 
 data class TickingBlueprint(
-    val buildResultPredicate: Predicate<BuildResult> = Predicate { true },
+    val buildResultPredicate: SafeContext.(BuildResult) -> Boolean = { true },
     val onTick: SafeContext.(Structure) -> Structure? = { it }
 ) : Blueprint() {
     fun tick() =
@@ -51,7 +51,8 @@ data class TickingBlueprint(
         }
 
         fun tickingBlueprint(
-            onTick: SafeContext.(Structure) -> Structure?,
-        ) = TickingBlueprint(onTick = onTick)
+            buildResultPredicate: SafeContext.(BuildResult) -> Boolean = { true },
+            onTick: SafeContext.(Structure) -> Structure?
+        ) = TickingBlueprint(onTick = onTick, buildResultPredicate = buildResultPredicate)
     }
 }

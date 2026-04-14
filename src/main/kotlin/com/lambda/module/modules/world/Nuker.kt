@@ -20,8 +20,6 @@ package com.lambda.module.modules.world
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
-import com.lambda.interaction.BaritoneManager
-import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -30,12 +28,11 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.math.MathUtils.ceilToInt
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
+import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
+import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
+import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 
 object Nuker : Module(
 	name = "Nuker",
@@ -72,9 +69,9 @@ object Nuker : Module(
 					.asSequence()
 					.map { it.blockPos }
 					.filter { !world.isAir(it) }
-					.filter { flattenMode == FlattenMode.None || isInFlatten(it) }
+					.filter { flattenMode == FlattenMode.None || isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, false) }
 					.filter { isWithinDigDirection(it) }
-					.filter { isInBaritoneSelection(it) == !inverseSelection }
+					.filter { !baritoneSelection || isInBaritoneSelection(it) == !inverseSelection }
 					.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
 
 				if (fillFloor) {
@@ -94,43 +91,6 @@ object Nuker : Module(
 		}
 	}
 
-	private fun SafeContext.isInFlatten(pos: BlockPos): Boolean {
-		if (flattenMode == FlattenMode.Staircase) {
-			val up = pos.up()
-			if ((blockState(up).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up)))
-				|| (blockState(up.east()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.east())))
-				|| (blockState(up.south()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.south())))
-				|| (blockState(up.west()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.west())))
-				|| (blockState(up.north()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.north())))
-			)  { return false }
-		}
-
-		val flattenY = player.y.ceilToInt()
-		val playerPos = player.blockPos
-		val flattenLevel =
-			if (sneakLowersFlatten && player.isSneaking) flattenY - 1
-			else flattenY
-
-		if (!flattenMode.isSmart && pos.y < flattenLevel)
-			return false
-
-		if (pos == player.supportingBlockPos) return false
-
-		val playerLookDir = player.horizontalFacing
-		val smartFlattenDir =
-			if (flattenMode == FlattenMode.Smart) playerLookDir
-			else playerLookDir?.opposite
-
-		if (pos.y >= flattenLevel) return true
-
-		val zeroedPos = pos.add(-playerPos.x, -flattenY, -playerPos.z)
-
-		return (zeroedPos.x < 0 && smartFlattenDir == Direction.EAST)
-				|| (zeroedPos.z < 0 && smartFlattenDir == Direction.SOUTH)
-				|| (zeroedPos.x > 0 && smartFlattenDir == Direction.WEST)
-				|| (zeroedPos.z > 0 && smartFlattenDir == Direction.NORTH)
-	}
-
 	private fun SafeContext.isWithinDigDirection(pos: BlockPos): Boolean {
 		val playerPos = player.blockPos
 		return when (directionalDig) {
@@ -140,27 +100,6 @@ object Nuker : Module(
 			DigDirection.North -> playerPos.z >= pos.z
 			DigDirection.South -> playerPos.z <= pos.z
 		}
-	}
-
-	private fun isInBaritoneSelection(pos: BlockPos) =
-		if (!baritoneSelection) true
-		else BaritoneManager.primary?.selectionManager?.selections?.any {
-			val min = it.min()
-			val max = it.max()
-			pos.x >= min.x && pos.x <= max.x
-					&& pos.y >= min.y && pos.y <= max.y
-					&& pos.z >= min.z && pos.z <= max.z
-		} ?: false
-
-	private enum class FlattenMode {
-		None,
-		Standard,
-		Smart,
-		ReverseSmart,
-		Staircase;
-
-		val isSmart
-			get() = this == Smart || this == ReverseSmart
 	}
 
 	private enum class DigDirection {

@@ -19,7 +19,6 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
@@ -31,16 +30,16 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.Communication.logError
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
-import com.lambda.util.math.MathUtils.ceilToInt
+import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
+import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
+import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
+import com.lambda.util.PlayerBuildLayerUtils.inSchematic
 import fi.dy.masa.litematica.data.DataManager
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 
 object Printer : Module(
 	name = "Printer",
@@ -66,7 +65,7 @@ object Printer : Module(
 				disable()
 				return@onEnable
 			}
-			buildTask = TickingBlueprint(onTick = {
+			buildTask = TickingBlueprint(buildResultPredicate = { filterBuildResults(it) }) {
 				val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@TickingBlueprint emptyMap()
 				BlockPos.iterateOutwards(player.blockPos, range, range, range)
 					.map { it.blockPos }
@@ -74,7 +73,7 @@ object Printer : Module(
 					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
 					.filter { air || !it.value.blockState.isAir }
-			}, buildResultPredicate = { filterBuildResults(it) }).build(finishOnDone = false).run()
+			}.build(finishOnDone = false).run()
 		}
 
 		onDisable { buildTask?.cancel(); buildTask = null }
@@ -86,104 +85,30 @@ object Printer : Module(
 	 * @return true if the build result should be built, false if it should be ignored
 	 */
 	private fun SafeContext.filterBuildResults(buildResult: BuildResult): Boolean {
-		if (baritoneSelection) {
-			val inSelection = isInBaritoneSelection(buildResult.pos)
-			if (inverseSelection && inSelection) return false
-			if (!inverseSelection && !inSelection) return false
-		}
+		val inSelection = isInBaritoneSelection(buildResult.pos)
+		if (inverseSelection && inSelection) return false
+		if (!inverseSelection && !inSelection) return false
 
 		if (flattenModeApply == FlattenModeApply.Both) {
-			return isInFlatten(buildResult.pos)
+			return isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
 		}
 		return when (buildResult) {
 			is InteractResult.Interact -> {
-				if (flattenModeApply != FlattenModeApply.PlaceOnly) {
-					return true
-				}
-				isInFlatten(buildResult.pos)
+				if (flattenModeApply != FlattenModeApply.PlaceOnly) true
+				else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
 			}
 			is BreakResult.Break -> {
-				if (flattenModeApply != FlattenModeApply.BreakOnly) {
-					return true
-				}
-				isInFlatten(buildResult.pos)
+				if (flattenModeApply != FlattenModeApply.BreakOnly) true
+				else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
 			}
 			else -> true
 		}
-	}
-
-	private fun inSchematic(pos: BlockPos): Boolean {
-		val placementManager = DataManager.getSchematicPlacementManager()
-		return placementManager?.getAllPlacementsTouchingChunk(pos)?.any {
-			it.placement.isEnabled && it.bb.containsPos(pos)
-		} ?: false
 	}
 
 	private fun litematicaAvailable(): Boolean = runCatching {
 		Class.forName("fi.dy.masa.litematica.Litematica")
 		true
 	}.getOrDefault(false)
-
-	private fun SafeContext.isInFlatten(pos: BlockPos): Boolean {
-		if (flattenMode == FlattenMode.None) return true
-		if (flattenMode == FlattenMode.Staircase) {
-			val up = pos.up()
-			if ((blockState(up).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up)))
-				|| (blockState(up.east()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.east())))
-				|| (blockState(up.south()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.south())))
-				|| (blockState(up.west()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.west())))
-				|| (blockState(up.north()).isNotEmpty && (!baritoneSelection || isInBaritoneSelection(up.north())))
-			) {
-				return false
-			}
-		}
-
-		val flattenY = player.y.ceilToInt()
-		val playerPos = player.blockPos
-		val flattenLevel =
-			if (sneakLowersFlatten && player.isSneaking) flattenY - 1
-			else flattenY
-
-		if (!flattenMode.isSmart && pos.y < flattenLevel)
-			return false
-
-		if (pos == player.supportingBlockPos) return false
-
-		val playerLookDir = player.horizontalFacing
-		val smartFlattenDir =
-			if (flattenMode == FlattenMode.Smart) playerLookDir
-			else playerLookDir?.opposite
-
-		if (pos.y >= flattenLevel) return true
-
-		val zeroedPos = pos.add(-playerPos.x, -flattenY, -playerPos.z)
-
-		return (zeroedPos.x < 0 && smartFlattenDir == Direction.EAST)
-				|| (zeroedPos.z < 0 && smartFlattenDir == Direction.SOUTH)
-				|| (zeroedPos.x > 0 && smartFlattenDir == Direction.WEST)
-				|| (zeroedPos.z > 0 && smartFlattenDir == Direction.NORTH)
-	}
-
-	private fun isInBaritoneSelection(pos: BlockPos) =
-		if (!baritoneSelection) true
-		else BaritoneManager.primary?.selectionManager?.selections?.any {
-			val min = it.min()
-			val max = it.max()
-			pos.x >= min.x && pos.x <= max.x
-					&& pos.y >= min.y && pos.y <= max.y
-					&& pos.z >= min.z && pos.z <= max.z
-		} ?: false
-
-	private enum class FlattenMode {
-		None,
-		Standard,
-		Smart,
-		ReverseSmart,
-		Staircase;
-
-		val isSmart
-			get() = this == Smart || this == ReverseSmart
-	}
 
 	private enum class FlattenModeApply(
 		override val displayName: String,
