@@ -18,12 +18,15 @@
 package com.lambda.interaction.construction.blueprint
 
 import com.lambda.context.SafeContext
+import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
+import java.util.function.Predicate
 
 data class TickingBlueprint(
-    val onTick: SafeContext.(Structure) -> Structure? = { it },
+    val buildResultPredicate: Predicate<BuildResult> = Predicate { true },
+    val onTick: SafeContext.(Structure) -> Structure? = { it }
 ) : Blueprint() {
     fun tick() =
         runSafe {
@@ -49,6 +52,6 @@ data class TickingBlueprint(
 
         fun tickingBlueprint(
             onTick: SafeContext.(Structure) -> Structure?,
-        ) = TickingBlueprint(onTick)
+        ) = TickingBlueprint(onTick = onTick)
     }
 }

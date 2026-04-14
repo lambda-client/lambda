@@ -60,13 +60,15 @@ import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.function.Predicate
 
 class BuildTask private constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean,
     private val collectDrops: Boolean,
     private val lifeMaintenance: Boolean,
-    automated: Automated
+    automated: Automated,
+    private val buildResultPredicate: Predicate<BuildResult> = Predicate { true }
 ) : Task<Structure>(), Automated by automated {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
@@ -130,6 +132,7 @@ class BuildTask private constructor(
             .toList()
 
         val viableResults = results
+            .filter { buildResultPredicate.test(it) }
             .filter { result ->
                 val finalResult = (result as? Dependent)?.lastDependency ?: result
                 pendingInteractions.none { it.blockPos == finalResult.pos } &&
@@ -243,33 +246,37 @@ class BuildTask private constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
+            buildResultPredicate: Predicate<BuildResult> = Predicate { true },
             blueprint: () -> Blueprint
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this, buildResultPredicate = buildResultPredicate)
 
         @Ta5kBuilder
         context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
+            lifeMaintenance: Boolean = false,
+            buildResultPredicate: Predicate<BuildResult> = Predicate { true }
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated, buildResultPredicate = buildResultPredicate)
 
         @Ta5kBuilder
         context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
+            lifeMaintenance: Boolean = false,
+            buildResultPredicate: Predicate<BuildResult> = Predicate { true }
+        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated, buildResultPredicate = buildResultPredicate)
 
         @Ta5kBuilder
         fun Automated.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            lifeMaintenance: Boolean = false
+            lifeMaintenance: Boolean = false,
+            buildResultPredicate: Predicate<BuildResult> = Predicate { true }
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, true, lifeMaintenance, this
+            finishOnDone, true, lifeMaintenance, this, buildResultPredicate = buildResultPredicate
         )
     }
 }

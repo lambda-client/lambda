@@ -21,6 +21,9 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
+import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -63,24 +66,50 @@ object Printer : Module(
 				disable()
 				return@onEnable
 			}
-			buildTask = TickingBlueprint {
+			buildTask = TickingBlueprint(onTick = {
 				val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@TickingBlueprint emptyMap()
 				BlockPos.iterateOutwards(player.blockPos, range, range, range)
 					.map { it.blockPos }
 					.asSequence()
 					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
-					.filter {
-						if (flattenModeApply == FlattenModeApply.PlaceOnly && it.value.blockState.isAir) return@filter true
-						if (flattenModeApply == FlattenModeApply.BreakOnly && !it.value.blockState.isAir) return@filter true
-						return@filter isInFlatten(it.key)
-					}
-					.filterNot { isInBaritoneSelection(it.key) == inverseSelection }
 					.filter { air || !it.value.blockState.isAir }
-			}.build(finishOnDone = false).run()
+			}, buildResultPredicate = { filterBuildResults(it) }).build(finishOnDone = false).run()
 		}
 
 		onDisable { buildTask?.cancel(); buildTask = null }
+	}
+
+	/**
+	 * Checks a block position against the current settings to determine whether a build result at that position should be considered for building.
+	 *
+	 * @return true if the build result should be built, false if it should be ignored
+	 */
+	private fun SafeContext.filterBuildResults(buildResult: BuildResult): Boolean {
+		if (baritoneSelection) {
+			val inSelection = isInBaritoneSelection(buildResult.pos)
+			if (inverseSelection && inSelection) return false
+			if (!inverseSelection && !inSelection) return false
+		}
+
+		if (flattenModeApply == FlattenModeApply.Both) {
+			return isInFlatten(buildResult.pos)
+		}
+		return when (buildResult) {
+			is InteractResult.Interact -> {
+				if (flattenModeApply != FlattenModeApply.PlaceOnly) {
+					return true
+				}
+				isInFlatten(buildResult.pos)
+			}
+			is BreakResult.Break -> {
+				if (flattenModeApply != FlattenModeApply.BreakOnly) {
+					return true
+				}
+				isInFlatten(buildResult.pos)
+			}
+			else -> true
+		}
 	}
 
 	private fun inSchematic(pos: BlockPos): Boolean {
