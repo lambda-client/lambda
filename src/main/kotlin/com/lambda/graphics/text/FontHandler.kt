@@ -35,6 +35,7 @@ import kotlin.io.path.notExists
  */
 object FontHandler : Loadable, Configurable(FontConfig) {
 	override val name = "Font"
+	override val priority = -1
 
 	private val loadedAtlases = ConcurrentHashMap<String, SDFFontAtlas>()
 
@@ -80,7 +81,7 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 		}
 
 		val fontFiles = fontsFolder.toFile().listFiles()
-			?.filter { it.isFile && it.extension.lowercase() in setOf("ttf", "otf") }
+			?.filter { it.isFile && it.extension.lowercase() in setOf("ttf") }
 			?: emptyList()
 
 		fontFiles.forEach { fontFile ->
