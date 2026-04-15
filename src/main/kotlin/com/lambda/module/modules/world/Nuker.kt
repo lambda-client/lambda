@@ -66,12 +66,12 @@ object Nuker : Module(
 				if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
 
 				val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
-					.asSequence()
 					.map { it.blockPos }
+					.asSequence()
 					.filter { !world.isAir(it) }
-					.filter { flattenMode == FlattenMode.None || isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, false) }
+					.filter { !baritoneSelection || isInBaritoneSelection(it) != inverseSelection }
+					.filter { isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection) }
 					.filter { isWithinDigDirection(it) }
-					.filter { !baritoneSelection || isInBaritoneSelection(it) == !inverseSelection }
 					.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
 
 				if (fillFloor) {

@@ -18,14 +18,11 @@
 package com.lambda.interaction.construction.blueprint
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
-import java.util.function.Predicate
 
 data class TickingBlueprint(
-    val buildResultPredicate: SafeContext.(BuildResult) -> Boolean = { true },
     val onTick: SafeContext.(Structure) -> Structure? = { it }
 ) : Blueprint() {
     fun tick() =
@@ -51,8 +48,7 @@ data class TickingBlueprint(
         }
 
         fun tickingBlueprint(
-            buildResultPredicate: SafeContext.(BuildResult) -> Boolean = { true },
             onTick: SafeContext.(Structure) -> Structure?
-        ) = TickingBlueprint(onTick = onTick, buildResultPredicate = buildResultPredicate)
+        ) = TickingBlueprint(onTick)
     }
 }

@@ -19,8 +19,9 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.blueprint.TickingBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.simulation.result.BuildResult
+import com.lambda.interaction.construction.simulation.result.Contextual
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
@@ -65,15 +66,16 @@ object Printer : Module(
 				disable()
 				return@onEnable
 			}
-			buildTask = TickingBlueprint(buildResultPredicate = { filterBuildResults(it) }) {
-				val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@TickingBlueprint emptyMap()
+			buildTask = tickingBlueprint {
+				val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@tickingBlueprint emptyMap()
 				BlockPos.iterateOutwards(player.blockPos, range, range, range)
 					.map { it.blockPos }
 					.asSequence()
+					.filter { pos -> !baritoneSelection || isInBaritoneSelection(pos) != inverseSelection }
 					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
 					.filter { air || !it.value.blockState.isAir }
-			}.build(finishOnDone = false).run()
+			}.build(finishOnDone = false, buildResultFilter = { filterBuildResults(it) }).run()
 		}
 
 		onDisable { buildTask?.cancel(); buildTask = null }
@@ -85,24 +87,10 @@ object Printer : Module(
 	 * @return true if the build result should be built, false if it should be ignored
 	 */
 	private fun SafeContext.filterBuildResults(buildResult: BuildResult): Boolean {
-		val inSelection = isInBaritoneSelection(buildResult.pos)
-		if (inverseSelection && inSelection) return false
-		if (!inverseSelection && !inSelection) return false
-
-		if (flattenModeApply == FlattenModeApply.Both) {
-			return isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
-		}
-		return when (buildResult) {
-			is InteractResult.Interact -> {
-				if (flattenModeApply != FlattenModeApply.PlaceOnly) true
-				else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
-			}
-			is BreakResult.Break -> {
-				if (flattenModeApply != FlattenModeApply.BreakOnly) true
-				else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
-			}
-			else -> true
-		}
+		return if (buildResult !is Contextual ||
+			buildResult is InteractResult && !flattenModeApply.placing ||
+			buildResult is BreakResult && !flattenModeApply.breaking) true
+		else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
 	}
 
 	private fun litematicaAvailable(): Boolean = runCatching {
@@ -112,10 +100,12 @@ object Printer : Module(
 
 	private enum class FlattenModeApply(
 		override val displayName: String,
+		val breaking: Boolean,
+		val placing: Boolean,
 		override val description: String
 	) : NamedEnum, Describable {
-		BreakOnly("Break Only", "Only applies flattening logic to blocks that are being broken"),
-		PlaceOnly("Place Only", "Only applies flattening logic to blocks that are being placed"),
-		Both("Both", "Applies flattening logic to all blocks, whether being placed or broken")
+		BreakOnly("Break Only", true, false, "Only applies flattening logic to blocks that are being broken"),
+		PlaceOnly("Place Only", false, true, "Only applies flattening logic to blocks that are being placed"),
+		Both("Both", true, true, "Applies flattening logic to all blocks, whether being placed or broken")
 	}
 }

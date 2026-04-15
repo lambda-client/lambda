@@ -28,13 +28,15 @@ import net.minecraft.util.math.Direction
 
 object PlayerBuildLayerUtils {
 	fun SafeContext.isInFlatten(pos: BlockPos, flattenMode: FlattenMode, sneakLowersFlatten: Boolean, baritoneSelection: Boolean, baritoneSelectionInverted: Boolean): Boolean {
+		if (flattenMode == FlattenMode.None) return true
+
 		if (flattenMode == FlattenMode.Staircase) {
 			val up = pos.up()
-			if ((blockState(up).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up) && !baritoneSelectionInverted)))
-				|| (blockState(up.east()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.east()) && !baritoneSelectionInverted)))
-				|| (blockState(up.south()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.south()) && !baritoneSelectionInverted)))
-				|| (blockState(up.west()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.west()) && !baritoneSelectionInverted)))
-				|| (blockState(up.north()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.north()) && !baritoneSelectionInverted)))
+			if ((blockState(up).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up) == !baritoneSelectionInverted)))
+				|| (blockState(up.east()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.east()) == !baritoneSelectionInverted)))
+				|| (blockState(up.south()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.south()) == !baritoneSelectionInverted)))
+				|| (blockState(up.west()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.west()) == !baritoneSelectionInverted)))
+				|| (blockState(up.north()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.north()) == !baritoneSelectionInverted)))
 			)  { return false }
 		}
 
@@ -72,7 +74,6 @@ object PlayerBuildLayerUtils {
 					&& pos.y >= min.y && pos.y <= max.y
 					&& pos.z >= min.z && pos.z <= max.z
 		} ?: false
-
 
 	fun inSchematic(pos: BlockPos): Boolean {
 		val placementManager = DataManager.getSchematicPlacementManager()
