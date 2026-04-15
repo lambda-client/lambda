@@ -163,7 +163,7 @@ object Nametags : Module(
 							val maxWidth =
 								if (itemName) max(itemNameWidth, combinedWidth)
 								else combinedWidth
-							screenRect(nameX - trueBGSizeX, anchorY - trueBGSizeY, maxWidth + (trueBGSizeX * 2), textSize + itemNameSize + trueSpacingY + (trueBGSizeY * 2), backgroundColor)
+							screenRect((anchorX - (maxWidth * 0.5f)) - trueBGSizeX, anchorY - trueBGSizeY, maxWidth + (trueBGSizeX * 2), textSize + itemNameSize + trueSpacingY + (trueBGSizeY * 2), backgroundColor)
 						}
 
 						if (itemName) {
