@@ -33,5 +33,5 @@ class ItemCollectionSetting(
 	serialize = true,
 ) {
 	context(setting: Setting<*, MutableCollection<Item>>)
-	override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { ItemCodec.stringify(it) }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemCodec.stringify(it) }
 }
