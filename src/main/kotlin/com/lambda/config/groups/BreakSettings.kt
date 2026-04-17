@@ -29,6 +29,7 @@ import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
+import net.minecraft.registry.Registries
 import java.awt.Color
 
 open class BreakSettings(
@@ -77,7 +78,7 @@ open class BreakSettings(
 	override val breaksPerTick by c.setting("${prefix}Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick", visibility = visibility).group(*baseGroup, Group.General).index()
 
 	// Block
-	override val ignoredBlocks by c.setting("${prefix}Ignored Blocks", emptySet<Block>(), description = "Blocks that wont be broken", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val blocks by c.setting("${prefix}Blocks", Registries.BLOCK.toList(), description = "Blocks that are allowed to be broken", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val avoidFluids by c.setting("${prefix}Avoid Fluids", true, "Avoids breaking blocks that would cause fluids to spill", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val avoidSupporting by c.setting("${prefix}Avoid Supporting", true, "Avoids breaking the block supporting the player", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val fillFluids by c.setting("Fill Fluids", true, "Fills fluids in order to break blocks that would initially spill them") { visibility() && avoidFluids }.group(*baseGroup, Group.General).index()
