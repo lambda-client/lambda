@@ -230,13 +230,13 @@ class Setting<T : SettingCore<R>, R>(
 		buttonMenu = menu
 	}
 
-	fun trySetValue(newValue: R, logResponse: Boolean = true) {
+	fun trySetValue(newValue: R) {
 		if (newValue == value) {
-			if (logResponse) ConfigCommand.info(notChangedMessage())
+			ConfigCommand.info(notChangedMessage())
 		} else {
 			val previous = value
 			value = newValue
-			if (logResponse) ConfigCommand.info(setMessage(previous, newValue))
+			ConfigCommand.info(setMessage(previous, newValue))
 		}
 	}
 
