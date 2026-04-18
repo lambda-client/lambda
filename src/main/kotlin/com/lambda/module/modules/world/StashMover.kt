@@ -116,7 +116,7 @@ object StashMover : Module(
 	}
 
 	val role: Role by setting("Role", Role.MoverBot).group(Group.General)
-		.onValueChange { _, to -> if (to == Role.PearlBot) clearModule() }
+		.onValueChange { _, _ -> clearModule() }
 	private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }.group(Group.General)
 	private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }.group(Group.General)
 	private val dropOffMode by setting("Drop-Off Mode", DropOffMode.Chests) { role == Role.MoverBot }.group(Group.General)
@@ -272,6 +272,8 @@ object StashMover : Module(
 		pearlThrowPos = null
 		pearlRotation = null
 		pearlBotButton = null
+		itemThrowPos = null
+		itemThrowRotation = null
 	}
 
 	context(safeContext: SafeContext)
@@ -353,6 +355,7 @@ object StashMover : Module(
 	}
 
 	fun startStop() {
+		if (isDisabled) return
 		chestPullSelMode = false
 		chestPutSelMode = false
 		task?.let { runningTask ->
@@ -391,6 +394,7 @@ object StashMover : Module(
 	}
 
 	fun pauseUnpause() {
+		if (isDisabled) return
 		if (task?.isMuted == true) task?.activate()
 		else task?.pause()
 	}
