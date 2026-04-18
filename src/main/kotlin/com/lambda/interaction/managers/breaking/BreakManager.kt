@@ -558,6 +558,15 @@ object BreakManager : Manager<BreakRequest>(
 						info.nullify()
 						return@forEach
 					}
+					info.request.runSafeAutomated {
+						val breakDelta = cachedState.calcBreakDelta(info.context.blockPos, player.mainHandStack)
+						val ticksToBreak = 1.0 / breakDelta
+						val ticksPast = info.breakingTicks - ticksToBreak
+						if (ticksPast >= 200) {
+							info.nullify()
+							return@forEach
+						}
+					}
 					info.progressedThisTick = true
 					info.breakingTicks++
 				} else info.cancelBreak()
@@ -640,7 +649,7 @@ object BreakManager : Manager<BreakRequest>(
 					if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@safeContext
 				}
 				nullify()
-				setBreakingTextureStage(player, world, -1)
+				setBreakingTextureStage(-1)
 				abortBreakPacket()
 				PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				request.onCancel?.invoke(this, context.blockPos)
@@ -648,7 +657,7 @@ object BreakManager : Manager<BreakRequest>(
 			Secondary -> {
 				if (breakConfig.unsafeCancels) {
 					type = RedundantSecondary
-					setBreakingTextureStage(player, world, -1)
+					setBreakingTextureStage(-1)
 					request.onCancel?.invoke(this, context.blockPos)
 				} else abandoned = true
 			}
@@ -727,7 +736,7 @@ object BreakManager : Manager<BreakRequest>(
 			}
 
 			if (breakConfig.particles) world.spawnBlockBreakingParticle(ctx.blockPos, hitResult.side)
-			if (breakConfig.breakingTexture) info.setBreakingTextureStage(player, world)
+			if (breakConfig.breakingTexture) info.setBreakingTextureStage()
 
 			val swing = breakConfig.swing
 			if (progress >= info.getBreakThreshold()) {
@@ -826,7 +835,7 @@ object BreakManager : Manager<BreakRequest>(
 				breaking = true
 				breakingTicks = 1
 				soundsCooldown = 0.0f
-				if (breakConfig.breakingTexture) setBreakingTextureStage(player, world)
+				if (breakConfig.breakingTexture) setBreakingTextureStage()
 			}
 		}
 

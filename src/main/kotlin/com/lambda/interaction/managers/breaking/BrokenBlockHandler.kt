@@ -160,6 +160,6 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 		val setState = world.setBlockState(ctx.blockPos, fluidState.blockState, 11)
 		if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
 
-		if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
+		if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(-1)
 	}
 }
