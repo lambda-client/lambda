@@ -64,7 +64,7 @@ object Scaffold : Module(
 						hide()
 					}
 					::checkSideVisibility.edit { defaultValue(true) }
-					hide(::inventoryLimit, ::breakBlocks)
+					hide(::breakBlocks)
 				}
 				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
 				rotationConfig.apply {
