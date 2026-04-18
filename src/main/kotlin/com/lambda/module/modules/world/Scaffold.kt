@@ -62,6 +62,7 @@ object Scaffold : Module(
 						defaultValue(false)
 						hide()
 					}
+					hide(::inventoryLimit, ::breakBlocks)
 				}
 				rotationConfig.apply {
 					::instant.edit { defaultValue(false) }
@@ -70,7 +71,6 @@ object Scaffold : Module(
 				}
 				inventoryConfig.apply {
 					hide(
-						::actionsPerSecond,
 						::tickStageMask,
 						::swapWithDisposables,
 						::providerPriority,

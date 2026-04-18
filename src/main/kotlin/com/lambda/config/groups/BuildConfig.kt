@@ -38,6 +38,7 @@ interface BuildConfig : ISettingGroup {
     val limitTimeframe: Int
     val actionLimit: Int
     val interactionLimit: Int
+    val inventoryLimit: Int
 
     val blockReach: Double
     val entityReach: Double

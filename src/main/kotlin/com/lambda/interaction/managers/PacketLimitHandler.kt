@@ -70,5 +70,6 @@ object PacketLimitHandler {
 
 enum class PacketType(val maxPacketsPerTimeframe: BuildConfig.() -> Int) {
 	PlayerAction({ actionLimit }),
-	Interaction({ interactionLimit })
+	Interaction({ interactionLimit }),
+	Inventory({ inventoryLimit })
 }
