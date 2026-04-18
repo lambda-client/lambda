@@ -81,7 +81,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     private const val TWO_PI_F = (2f * PI).toFloat()
 
     init {
-        listen<GuiEvent.NewFrame> {
+        listen<GuiEvent.NewImguiFrame> {
             if (mc.options.hudHidden) return@listen
 
             buildLayout {

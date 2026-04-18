@@ -54,7 +54,7 @@ object SnapManager : Loadable {
 	)
 
 	init {
-		listen<GuiEvent.NewFrame> {
+		listen<GuiEvent.NewImguiFrame> {
 			val vp = ImGui.getMainViewport()
 			val io = ImGui.getIO()
 			beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)

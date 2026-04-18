@@ -36,8 +36,9 @@ interface BuildConfig : ISettingGroup {
     val maxBuildDependencies: Int
 
     val limitTimeframe: Int
-    val actionPacketLimit: Int
-    val interactionPacketLimit: Int
+    val actionLimit: Int
+    val interactionLimit: Int
+    val inventoryLimit: Int
 
     val blockReach: Double
     val entityReach: Double

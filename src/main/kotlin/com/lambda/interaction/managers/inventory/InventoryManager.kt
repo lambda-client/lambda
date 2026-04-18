@@ -23,7 +23,8 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.PacketLimitHandler
+import com.lambda.interaction.managers.PacketLimitHandler.canSendPackets
+import com.lambda.interaction.managers.PacketLimitHandler.sentPackets
 import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
@@ -31,6 +32,7 @@ import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.managers.inventory.InventoryManager.processActiveRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemStackUtils.equal
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
@@ -67,9 +69,6 @@ object InventoryManager : Manager<InventoryRequest>(
 			field = value
 		}
 
-	private var maxActionsThisSecond = 0
-	private var actionsThisSecond = 0
-	private var secondCounter = 0
 	private var actionsThisTick = 0
 
 	override fun load(): String {
@@ -77,10 +76,6 @@ object InventoryManager : Manager<InventoryRequest>(
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
             if (Client.avoidInventoryDesync) indexInventoryChanges()
-            if (++secondCounter >= 20) {
-                secondCounter = 0
-                actionsThisSecond = 0
-            }
             actionsThisTick = 0
             activeRequest = null
             actions = mutableListOf()
@@ -105,11 +100,11 @@ object InventoryManager : Manager<InventoryRequest>(
 	override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
 		if (activeRequest != null) return
 
-		val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
 		val playerActionCount = request.actions.count { it is InventoryAction.Player }
-		val canPerformAllPlayerActions = PacketLimitHandler.canSendPackets(playerActionCount, PacketType.PlayerAction)
-		val canPerformAllInventoryActions = inventoryActionCount <= request.inventoryConfig.actionsPerSecond - actionsThisSecond
-		if ((!canPerformAllInventoryActions || !canPerformAllPlayerActions) &&
+		val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
+		val canPerformAllPlayerActions = canSendPackets(playerActionCount, PacketType.PlayerAction)
+		val canPerformAllInventoryActions = canSendPackets(inventoryActionCount, PacketType.Inventory)
+		if ((!canPerformAllPlayerActions || !canPerformAllInventoryActions) &&
 			!request.settleForLess &&
 			!request.mustPerform) return
 
@@ -125,7 +120,6 @@ object InventoryManager : Manager<InventoryRequest>(
 	private fun populateFrom(request: InventoryRequest) {
 		activeRequest = request
 		actions = request.actions.toMutableList()
-		maxActionsThisSecond = request.inventoryConfig.actionsPerSecond
 		alteredSlots.setDecayTime(Client.desyncTimeout * 50L)
 		alteredPlayerSlots.setDecayTime(Client.desyncTimeout * 50L)
 	}
@@ -136,18 +130,19 @@ object InventoryManager : Manager<InventoryRequest>(
 	 * The [activeRequest] is then set to null.
 	 */
 	private fun SafeContext.processActiveRequest() {
-		activeRequest?.let { active ->
+		val active = activeRequest ?: return
+		active.runSafeAutomated {
 			if (tickStage !in active.inventoryConfig.tickStageMask && active.nowOrNothing) return
 			val iterator = actions.iterator()
 			while (iterator.hasNext()) {
 				val action = iterator.next()
-				if (action is InventoryAction.Inventory && actionsThisSecond + 1 > maxActionsThisSecond && !active.mustPerform)
-					break
+				if (action is InventoryAction.Player && !canSendPackets(1, PacketType.PlayerAction)) break
+				else if (action is InventoryAction.Inventory && !canSendPackets(1, PacketType.Inventory)) break
 				action.action(this)
-				if (action is InventoryAction.Player) PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
+				if (action is InventoryAction.Player) sentPackets(1, PacketType.PlayerAction)
+				else if (action is InventoryAction.Inventory) sentPackets(1, PacketType.Inventory)
 				if (Client.avoidInventoryDesync) indexInventoryChanges()
 				actionsThisTick++
-				if (action is InventoryAction.Inventory) actionsThisSecond++
 				iterator.remove()
 			}
 
@@ -234,7 +229,7 @@ object InventoryManager : Manager<InventoryRequest>(
 
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
 			val matches = alteredSlots.removeIf {
-				it.syncId == packet.slot && it.after.equal(itemStack)
+				it.slotId == packet.slot && it.after.equal(itemStack)
 			}
 
 			if (packet.syncId == 0) {
@@ -267,7 +262,7 @@ object InventoryManager : Manager<InventoryRequest>(
 	}
 
 	private data class InventoryChange(
-		val syncId: Int,
+		val slotId: Int,
 		val before: ItemStack,
 		val after: ItemStack
 	)

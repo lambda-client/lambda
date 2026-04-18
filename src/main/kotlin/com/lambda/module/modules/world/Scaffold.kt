@@ -64,6 +64,7 @@ object Scaffold : Module(
 						hide()
 					}
 					::checkSideVisibility.edit { defaultValue(true) }
+					hide(::breakBlocks)
 				}
 				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
 				rotationConfig.apply {
@@ -71,21 +72,7 @@ object Scaffold : Module(
 					::mean.edit { defaultValue(120.0) }
 					::spread.edit { defaultValue(0.0) }
 				}
-				inventoryConfig.apply {
-					hide(
-						::actionsPerSecond,
-						::tickStageMask,
-						::swapWithDisposables,
-						::providerPriority,
-						::storePriority,
-						::accessShulkerBoxes,
-						::accessEnderChest,
-						::accessChests,
-						::accessStashes,
-						::disposables
-					)
-				}
-				hideAllGroupsExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig, inventoryConfig)
+				hideAllGroupsExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig)
 			}
 		}
 

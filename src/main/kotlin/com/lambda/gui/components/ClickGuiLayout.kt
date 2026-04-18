@@ -244,7 +244,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	val modalWindowDimBg by setting("Modal Window Dim Background", Color(35, 0, 14, 90)).group(Group.Colors)
 
 	init {
-		listen<GuiEvent.NewFrame> {
+		listen<GuiEvent.NewImguiFrame> {
 			if (!open) return@listen
 
 			buildLayout {

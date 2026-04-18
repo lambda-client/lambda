@@ -24,7 +24,7 @@ class TickTimer {
 		ticks++
 	}
 
-	fun hasSurpassed(ticks: Int) = this.ticks > ticks
+	fun hasSurpassed(ticks: Int) = this.ticks >= ticks
 
 	fun reset() {
 		ticks = 0

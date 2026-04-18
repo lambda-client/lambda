@@ -61,7 +61,7 @@ data class ChestContainer(
     override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>): Task<*> =
         OpenContainerTask(blockPos, automatedSafeContext).then {
             taskGenerator.invoke(automatedSafeContext, Unit).finally {
-                if (exitAfter) automatedSafeContext.player.closeScreen()
+                if (exitAfter) automatedSafeContext.player.closeHandledScreen()
             }
         }
 }

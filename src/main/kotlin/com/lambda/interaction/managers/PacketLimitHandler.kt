@@ -21,45 +21,55 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.context.Automated
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.util.TickTimer
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ComparableTimeMark
+import kotlin.time.TimeSource
 
 object PacketLimitHandler {
-	private val packetLimitMap = PacketType.entries.associateWith { LimitHandler(0, 0, 0) }
+	private val packetLimitMap = PacketType.entries.associateWith { LimitHandler() }
 
 	init {
-		listen<TickEvent.Pre>(priority = { Int.MIN_VALUE }) {
-			packetLimitMap.values.forEach { limitHandler ->
-				with(limitHandler) {
-					tickTimer.tick()
-					if (tickTimer.hasSurpassed(timeframe)) {
-						packetsThisTimeframe = 0
-						tickTimer.reset()
-					}
-				}
-			}
+		listen<TickEvent.Pre>(priority = { Int.MAX_VALUE }) {
+			val currentTime = TimeSource.Monotonic.markNow()
+			packetLimitMap.values.forEach { it.removeStale(currentTime) }
 		}
 	}
 
 	context(automated: Automated)
-	fun canSendPackets(packetCount: Int, packetType: PacketType) =
-		packetLimitMap[packetType]?.let {
-			it.maxPacketsThisTimeframe = packetType.maxPacketsPerTimeframe(automated.buildConfig)
-			it.timeframe = automated.buildConfig.limitTimeframe
-			it.packetsThisTimeframe + packetCount <= it.maxPacketsThisTimeframe
-		} ?: false
+	fun canSendPackets(packetCount: Int, packetType: PacketType): Boolean {
+		val handler = packetLimitMap[packetType] ?: return false
+		handler.maxPacketsThisTimeframe = packetType.maxPacketsPerTimeframe(automated.buildConfig)
+		handler.timeframe = automated.buildConfig.limitTimeframe.milliseconds
+		handler.removeStale(TimeSource.Monotonic.markNow())
+		return handler.packetTimestamps.size + packetCount <= handler.maxPacketsThisTimeframe
+	}
 
-	fun sentPackets(packetCount: Int, packetType: PacketType) =
-		packetLimitMap[packetType]?.let { limitHandler ->
-			if (limitHandler.packetsThisTimeframe == 0) limitHandler.tickTimer.reset()
-			limitHandler.packetsThisTimeframe += packetCount
+	fun sentPackets(packetCount: Int, packetType: PacketType) {
+		packetLimitMap[packetType]?.let { handler ->
+			val currentTime = TimeSource.Monotonic.markNow()
+			repeat((0 until packetCount).count()) {
+				handler.packetTimestamps.addLast(currentTime)
+			}
 		}
+	}
 
-	private data class LimitHandler(var maxPacketsThisTimeframe: Int, var packetsThisTimeframe: Int, var timeframe: Int) {
-		val tickTimer = TickTimer()
+	private class LimitHandler {
+		var maxPacketsThisTimeframe = 0
+		var timeframe: Duration = Duration.ZERO
+		val packetTimestamps = ArrayDeque<ComparableTimeMark>()
+
+		fun removeStale(currentTime: ComparableTimeMark) {
+			if (timeframe <= Duration.ZERO) return
+			while (packetTimestamps.isNotEmpty() && packetTimestamps.first() <= currentTime - timeframe) {
+				packetTimestamps.removeFirst()
+			}
+		}
 	}
 }
 
 enum class PacketType(val maxPacketsPerTimeframe: BuildConfig.() -> Int) {
-	PlayerAction({ actionPacketLimit }),
-	Interaction({ interactionPacketLimit })
+	PlayerAction({ actionLimit }),
+	Interaction({ interactionLimit }),
+	Inventory({ inventoryLimit })
 }
