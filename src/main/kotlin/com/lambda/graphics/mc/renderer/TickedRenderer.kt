@@ -25,7 +25,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.text.SDFFontAtlas
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
@@ -43,9 +42,6 @@ class TickedRenderer(
 	private val renderer = RegionRenderer()
 
 	private var tickCameraPos: Vec3d? = null
-
-	private var _currentFontAtlas: SDFFontAtlas? = null
-	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
 	init {
 		owner.listen<TickEvent.Pre> {
@@ -69,7 +65,6 @@ class TickedRenderer(
 
 	fun upload(renderBuilder: RenderBuilder) {
 		renderer.upload(renderBuilder.collector)
-		_currentFontAtlas = renderBuilder.fontAtlas
 	}
 
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {

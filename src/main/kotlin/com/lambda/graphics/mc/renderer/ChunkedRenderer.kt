@@ -28,8 +28,6 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.text.FontHandler
-import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.world.FastVector
@@ -61,9 +59,6 @@ class ChunkedRenderer(
 
 	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
-
-	override val currentFontAtlas: SDFFontAtlas
-		get() = FontHandler.getDefaultFont()
 
 	init {
 		owner.listen<WorldEvent.BlockUpdate.Client> { event ->

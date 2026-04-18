@@ -53,7 +53,7 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 	val avoidFluids: Boolean
 	val fillFluids: Boolean
 	val avoidSupporting: Boolean
-	val ignoredBlocks: Collection<Block>
+	val blocks: Collection<Block>
 
 	val efficientOnly: Boolean
 	val suitableToolsOnly: Boolean

@@ -23,11 +23,12 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.network.CapeManager
+import com.lambda.network.CapeManager.availableCapes
 import com.lambda.network.CapeManager.updateCape
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandSource.suggestMatching
 
 object CapeCommand : LambdaCommand(
     name = "cape",
@@ -38,10 +39,7 @@ object CapeCommand : LambdaCommand(
         required(literal("set")) {
             required(string("id")) { id ->
                 suggests { _, builder ->
-                    CapeManager.availableCapes
-                        .forEach { builder.suggest(it) }
-
-                    builder.buildFuture()
+                    suggestMatching(availableCapes, builder)
                 }
 
                 execute {

@@ -28,8 +28,6 @@ import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
@@ -118,10 +116,8 @@ data class BreakInfo(
 
 	context(safeContext: SafeContext)
 	fun setBreakingTextureStage(
-		player: ClientPlayerEntity,
-		world: ClientWorld,
 		stage: Int = getBreakTextureProgress()
-	) = world.setBlockBreakingInfo(player.id, context.blockPos, stage)
+	) = safeContext.world.setBlockBreakingInfo(safeContext.player.id, context.blockPos, stage)
 
 	context(safeContext: SafeContext)
 	private fun getBreakTextureProgress(): Int = with(safeContext) {

@@ -66,7 +66,8 @@ class BuildTask private constructor(
     private val finishOnDone: Boolean,
     private val collectDrops: Boolean,
     private val lifeMaintenance: Boolean,
-    automated: Automated
+    automated: Automated,
+    private val buildResultFilter: SafeContext.(BuildResult) -> Boolean,
 ) : Task<Structure>(), Automated by automated {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
@@ -136,6 +137,7 @@ class BuildTask private constructor(
                     it.blockPos == finalResult.pos
                 } && (finalResult !is Contextual || finalResult.context.canUse())
             }
+            .filter { buildResultFilter(it) }
             .sorted()
 
         val bestResult = viableResults.firstOrNull() ?: return
@@ -240,33 +242,37 @@ class BuildTask private constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
+            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
             blueprint: () -> Blueprint
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this, buildResultFilter)
 
         @Ta5kBuilder
         context(automated: Automated)
         fun Structure.build(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated)
+            lifeMaintenance: Boolean = false,
+            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated, buildResultFilter)
 
         @Ta5kBuilder
         context(automated: Automated)
         fun Blueprint.build(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false
-        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated)
+            lifeMaintenance: Boolean = false,
+            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
+        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated, buildResultFilter)
 
         @Ta5kBuilder
         fun Automated.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
-            lifeMaintenance: Boolean = false
+            lifeMaintenance: Boolean = false,
+            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
         ) = BuildTask(
-            blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, true, lifeMaintenance, this
+            blockPos.toStructure(TargetState.Empty).toBlueprint(),
+            finishOnDone, true, lifeMaintenance, this, buildResultFilter
         )
     }
 }

@@ -15,23 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.collections
+package com.lambda.command.commands
 
-import com.google.gson.reflect.TypeToken
-import com.lambda.config.Setting
-import com.lambda.config.serializer.BlockCodec
-import com.lambda.gui.dsl.ImGuiBuilder
-import net.minecraft.block.Block
+import com.lambda.brigadier.execute
+import com.lambda.command.LambdaCommand
+import com.lambda.graphics.text.FontHandler
+import com.lambda.util.extension.CommandBuilder
 
-class BlockCollectionSetting(
-	immutableCollection: Collection<Block>,
-	defaultValue: MutableCollection<Block>,
-) : CollectionSetting<Block>(
-	defaultValue,
-	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Block::class.java).type,
-	serialize = true,
+object RefreshFontsCommand : LambdaCommand(
+	name = "refresh_fonts",
+	usage = "refresh_fonts",
+	description = "refreshes the font cache"
 ) {
-	context(setting: Setting<*, MutableCollection<Block>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockCodec.stringify(it) }
+	override fun CommandBuilder.create() {
+		execute {
+			FontHandler.discoverFonts()
+		}
+	}
 }

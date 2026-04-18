@@ -48,7 +48,7 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block should be ignored
-        if (state.block in breakConfig.ignoredBlocks && this@hasBasicRequirements is BreakSimInfo) {
+        if (this@hasBasicRequirements is BreakSimInfo && state.block !in breakConfig.blocks) {
             result(GenericResult.Ignored(pos))
             return false
         }

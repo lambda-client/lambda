@@ -15,23 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.collections
+package com.lambda.config.configurations
 
-import com.google.gson.reflect.TypeToken
-import com.lambda.config.Setting
-import com.lambda.config.serializer.BlockCodec
-import com.lambda.gui.dsl.ImGuiBuilder
-import net.minecraft.block.Block
+import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
+import java.io.File
 
-class BlockCollectionSetting(
-	immutableCollection: Collection<Block>,
-	defaultValue: MutableCollection<Block>,
-) : CollectionSetting<Block>(
-	defaultValue,
-	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Block::class.java).type,
-	serialize = true,
-) {
-	context(setting: Setting<*, MutableCollection<Block>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockCodec.stringify(it) }
+
+object FontConfig : Configuration() {
+	override val configName = "font"
+	override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
 }

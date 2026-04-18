@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -161,7 +160,8 @@ object Freecam : Module(
 			mc.options.perspective = Perspective.FIRST_PERSON
 
 			// Don't block baritone from working
-			if (!event.input.handledByBaritone) {                // Reset actual input
+			if (!event.input.handledByBaritone) {
+				// Reset actual input
 				event.input.cancel()
 			}
 

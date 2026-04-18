@@ -23,7 +23,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.text.SDFFontAtlas
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import org.joml.Vector3f
@@ -36,9 +35,6 @@ class ImmediateRenderer(
 	update: RenderBuilder.(SafeContext) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
-
-	private var _currentFontAtlas: SDFFontAtlas? = null
-	override val currentFontAtlas: SDFFontAtlas? get() = _currentFontAtlas
 
 	init {
 		owner.listen<RenderEvent.PreRenderWorld> {
@@ -56,7 +52,6 @@ class ImmediateRenderer(
 
 	fun upload(renderBuilder: RenderBuilder) {
 		renderer.upload(renderBuilder.collector)
-		_currentFontAtlas = renderBuilder.fontAtlas
 	}
 
 	override fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>> {

@@ -68,6 +68,7 @@ object DearImGui : Loadable {
         with(io.fonts) {
             clear()
             addFontFromMemoryTTF("fonts/FiraSans-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("fonts/FiraSans-Bold.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
             addFontFromMemoryTTF("fonts/MinecraftDefault-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
             build()
         }
