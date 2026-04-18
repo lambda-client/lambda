@@ -682,7 +682,7 @@ object StashMover : Module(
 				return
 			}
 			if (BaritoneManager.isActive) return
-			if (player.velocity.y < -0.08) return
+			if (player.velocity.y < -0.08 || player.velocity.x !in -0.001..0.001 || player.velocity.z !in -0.001..0.001) return
 
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
