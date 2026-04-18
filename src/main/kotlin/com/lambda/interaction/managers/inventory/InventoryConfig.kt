@@ -28,7 +28,6 @@ import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
 
 interface InventoryConfig : ISettingGroup {
-	val actionsPerSecond: Int
 	val tickStageMask: Collection<TickEvent>
 	val disposables: Collection<Item>
 	val swapWithDisposables: Boolean
