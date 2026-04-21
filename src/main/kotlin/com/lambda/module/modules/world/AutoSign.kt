@@ -50,14 +50,14 @@ object AutoSign : Module(
 	""".trimMargin(),
 	tag = ModuleTag.WORLD
 ) {
-	var autoWrite by setting("Auto Write", true)
-	var line1 by setting("Line 1", "Welcome to Lambda!") { autoWrite }
-	var line2 by setting("Line 2", "Enjoy your stay.") { autoWrite }
-	var line3 by setting("Line 3", "Have fun!") { autoWrite }
-	var line4 by setting("Line 4", "Lambda <dd>/<M>/<yy>") { autoWrite }
-	var writeOnFront by setting("Write Front", true, description = "Write on front side of the sign") { autoWrite }
+	private var autoWrite by setting("Auto Write", true)
+	private var line1 by setting("Line 1", "Welcome to Lambda!") { autoWrite }
+	private var line2 by setting("Line 2", "Enjoy your stay.") { autoWrite }
+	private var line3 by setting("Line 3", "Have fun!") { autoWrite }
+	private var line4 by setting("Line 4", "Lambda <dd>/<M>/<yy>") { autoWrite }
+	private var writeOnFront by setting("Write Front", true, description = "Write on front side of the sign") { autoWrite }
 
-	var autoClose by setting("Auto Close", true)
+	private var autoClose by setting("Auto Close", true)
 	var signWriteDelay by setting("Sign Write Delay", 400L, 100L..1000L, 50L, description = "Delay in milliseconds before sending the sign text to the server") { autoClose }
 
 	init {
@@ -68,7 +68,7 @@ object AutoSign : Module(
 				val calendar = Calendar.getInstance()
 				val month = calendar.get(Calendar.MONTH) + 1 // Months are 0-based in Calendar
 
-				for (i in 0 until 4) {
+				(0 until 4).forEach { i ->
 					val formattedLine = formatLines[i]
 						.replace("<dd>", String.format($$"%1$td", Date()))
 						.replace("<d>", String.format($$"%1$te", Date()))
@@ -88,20 +88,23 @@ object AutoSign : Module(
 
 			var editor: AbstractSignEditScreen = if (event.sign is HangingSignBlockEntity) HangingSignEditScreen(event.sign, event.front, mc.shouldFilterText())
 			else SignEditScreen(event.sign, event.front, mc.shouldFilterText())
-			for (i in 0 until 4) editor.messages[i] = lines[i]
+			(0 until 4).forEach { i -> editor.messages[i] = lines[i] }
 			if (autoClose) {
 				val pos = event.sign.pos
 				val messages = editor.messages.copyOf()
 				runConcurrent {
 					delay(signWriteDelay)
 					runSafeGameScheduled {
-						if (writeOnFront) connection.sendPacket(UpdateSignC2SPacket(pos, true, messages[0], messages[1], messages[2], messages[3]))
-						else connection.sendPacket(UpdateSignC2SPacket(pos, false, messages[0], messages[1], messages[2], messages[3]))
+						connection.sendPacket(
+							UpdateSignC2SPacket(
+								pos,
+								writeOnFront,
+								messages[0], messages[1], messages[2], messages[3]
+							)
+						)
 					}
 				}
-			} else {
-				mc.setScreen(editor)
-			}
+			} else mc.setScreen(editor)
 			event.cancel()
 		}
 	}

@@ -21,6 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -41,13 +42,18 @@ import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendin
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.setPendingConfigs
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.startPending
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.module.modules.world.AutoSign.signWriteDelay
+import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.isItemOnCooldown
 import com.lambda.util.player.swingHand
+import kotlinx.coroutines.delay
+import net.minecraft.block.AbstractSignBlock
 import net.minecraft.block.BlockState
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.client.network.ClientPlayerEntity
@@ -56,6 +62,7 @@ import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
+import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.ActionResult
 import net.minecraft.util.ActionResult.PassToDefaultBlockAction
@@ -81,6 +88,8 @@ object InteractManager : Manager<InteractRequest>(
 	override val blockedPositions
 		get() = pendingActions.map { it.context.blockPos }
 
+	private var cancellingSignScreens = 0
+
 	override fun load(): String {
 		super.load()
 
@@ -103,6 +112,13 @@ object InteractManager : Manager<InteractRequest>(
 	    listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
 		    interactCooldown = 0
 	    }
+
+		listen<GuiEvent.SignEditorOpen> { event ->
+			if (cancellingSignScreens > 0) {
+				event.cancel()
+				cancellingSignScreens--
+			}
+		}
 
 		return "Loaded Place Manager"
 	}
@@ -191,6 +207,18 @@ object InteractManager : Manager<InteractRequest>(
 					val stackCountPre = stackInHand.count
 					if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
 						mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
+					}
+				}
+				val expectedState = ctx.expectedState
+				if (ctx.preProcessingInfo.placing && expectedState.block is AbstractSignBlock) {
+					cancellingSignScreens++
+					runConcurrent {
+						delay(signWriteDelay)
+						runSafeGameScheduled {
+							connection.sendPacket(
+								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")
+							)
+						}
 					}
 				}
 			}
