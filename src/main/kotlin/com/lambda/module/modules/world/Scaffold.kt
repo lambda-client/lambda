@@ -42,6 +42,7 @@ import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
+@Suppress("unused")
 object Scaffold : Module(
 	name = "Scaffold",
 	description = "Places blocks under the player",
@@ -77,9 +78,11 @@ object Scaffold : Module(
 		}
 
 		listen<TickEvent.Pre> {
-			val stack = selectStack {
+			val selection = selectStack {
 				{ it.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks } }
-			}.filterStacks(HotbarContainer.stacks).firstOrNull() ?: return@listen
+			}
+			val stack = player.mainHandStack.takeIf { selection.filterStack(it) }
+				?: selection.filterStacks(HotbarContainer.stacks).firstOrNull() ?: return@listen
 			val playerSupport = player.blockPos.down()
 			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
 			if (alreadySupported) return@listen
