@@ -42,9 +42,7 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
 import net.minecraft.block.BlockState
-import net.minecraft.fluid.FlowableFluid
 import net.minecraft.item.BlockItem
-import net.minecraft.item.BucketItem
 import net.minecraft.item.DebugStickItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.state.property.Properties
@@ -69,7 +67,6 @@ object AirPlace : Module(
 	}
 
 	private var distance by setting("Distance", 4.0, 1.0..7.0, 0.01).group(Group.General)
-	private val buckets by setting("Buckets", true, "Enables air placement for buckets filled with fluids").group(Group.General)
 	private val distanceScrollBind by setting("Distance Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the given key and scroll to adjust distance").group(Group.General)
 	private val rotationScrollBind by setting("Rotation Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_ALT), "Allows you to hold the given key and scroll to adjust the rotation of the block you're placing").group(Group.General)
 
@@ -123,15 +120,6 @@ object AirPlace : Module(
 				)
 				setPosAndState(placementContext.blockPos, blockItem.getPlacementState(placementContext))
 				return@listen
-			}
-
-			if (buckets) run bucket@{
-				val item = selectedStack.item
-				if (item !is BucketItem) return@bucket
-				val fluid = item.fluid as? FlowableFluid ?: return@bucket
-				if (item.fluid !is FlowableFluid) return@bucket
-				placementPos = getHitResult().blockPos
-				placementState = fluid.defaultState.blockState
 			}
 			setPosAndState()
 			return@listen
