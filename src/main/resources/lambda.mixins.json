@@ -8,6 +8,7 @@
     "MinecraftClientMixin",
     "baritone.BaritonePlayerContextMixin",
     "baritone.LookBehaviourMixin",
+    "baritone.ComeCommandMixin",
     "client.sound.SoundSystemMixin",
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
