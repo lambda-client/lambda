@@ -230,6 +230,14 @@ object Freecam : Module(
 		}
 	}
 
+	private fun SafeContext.findFollowTarget(): PlayerEntity? {
+		if (player.gameMode != GameMode.SPECTATOR) {
+			return player
+		}
+		val players = world.players.filter { it !is ClientPlayerEntity }
+		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
+	}
+
 	private enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		None("None", "No rotation changes"),
 		LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
@@ -239,13 +247,5 @@ object Freecam : Module(
 	private enum class Mode(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		Free("Free", "Move the camera freely with keyboard input"),
 		FollowPlayer("Follow Player", "Camera follows a player as if attached by an invisible string");
-	}
-
-	private fun SafeContext.findFollowTarget(): PlayerEntity? {
-		if (player.gameMode != GameMode.SPECTATOR) {
-			return player
-		}
-		val players = world.players.filter { it !is ClientPlayerEntity }
-		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
 	}
 }
