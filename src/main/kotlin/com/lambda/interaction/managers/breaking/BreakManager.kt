@@ -169,10 +169,9 @@ object BreakManager : Manager<BreakRequest>(
 		}
 
 		listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+			if (primaryBreak?.breaking == false) primaryBreak = null
 			breakInfos.forEach { it?.tickChecks() }
-			if (breakCooldown > 0) {
-			breakCooldown--
-			}
+			if (breakCooldown > 0) breakCooldown--
 			activeRequest = null
 			breaks = mutableListOf()
 			breaksThisTick = 0
@@ -396,7 +395,7 @@ object BreakManager : Manager<BreakRequest>(
 			}
 
 		breaks = newBreaks
-			.take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
+			.take((buildConfig.maxPendingActions - request.pendingInteractions.size).coerceAtLeast(0))
 			.toMutableList()
 
 		maxBreaksThisTick = breakConfig.breaksPerTick
