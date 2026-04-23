@@ -115,6 +115,10 @@ object ItemStackUtils {
         stack.components.get(DataComponentTypes.CONTAINER)?.stream()?.toList() ?: emptyList()
     }
 
+    val ItemStack.bundleContents: List<ItemStack> by cacheable { stack ->
+        stack.components.get(DataComponentTypes.BUNDLE_CONTENTS)?.stream()?.toList() ?: emptyList()
+    }
+
     /**
      * Checks if the given item stacks are equal, including the item count and NBT.
      */

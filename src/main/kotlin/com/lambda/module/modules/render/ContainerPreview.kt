@@ -25,15 +25,25 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
+import com.lambda.util.item.ItemStackUtils.bundleContents
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
+import com.lambda.util.item.ItemUtils.bundles
 import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
 import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.client.font.TextRenderer
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.tooltip.TooltipComponent
 import net.minecraft.client.gl.RenderPipelines
+import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.render.state.GuiRenderState
+import net.minecraft.client.gui.render.state.ItemGuiElementRenderState
+import net.minecraft.client.gui.render.state.TextGuiElementRenderState
 import net.minecraft.client.gui.screen.ingame.HandledScreen
+import net.minecraft.client.gui.tooltip.TooltipComponent
+import net.minecraft.client.render.item.KeyedItemRenderState
+import net.minecraft.entity.LivingEntity
 import net.minecraft.item.BlockItem
+import net.minecraft.item.ItemDisplayContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.item.tooltip.TooltipData
@@ -41,6 +51,9 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.Colors
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
+import net.minecraft.world.World
+import org.joml.Matrix3x2f
+
 
 object ContainerPreview : Module(
     name = "ContainerPreview",
@@ -49,6 +62,11 @@ object ContainerPreview : Module(
 ) {
     private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
     private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color")
+
+    private val previewItem by setting("Preview Item", true, "Show a preview of the most common item in a shulker on the shulker item")
+    private val previewItemScale by setting("Preview Item Scale", 13f, 1f..32f, 0.1f, "Scale of the item icons on a shulker item") { previewItem }
+    private val previewItemXOffset by setting("Preview Item X Offset", 0f, -32f..32f, 0.1f, "X Offset of the item icons on a shulker item") { previewItem }
+    private val previewItemYOffset by setting("Preview Item Y Offset", 0f, -32f..32f, 0.1f, "Y Offset of the item icons on a shulker item") { previewItem }
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")
 
@@ -64,6 +82,14 @@ object ContainerPreview : Module(
     @JvmStatic
     var isRenderingSubTooltip: Boolean = false
         private set
+
+    // Cache for shulker box contents summery
+    // Cache size is limited to 200 entries
+    val shulkerCache = object : LinkedHashMap<Int, ContainerPreviewInfo>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, ContainerPreviewInfo>): Boolean {
+            return size > 200
+        }
+    }
 
     private const val ROWS = 3
     private const val COLS = 9
@@ -325,6 +351,27 @@ object ContainerPreview : Module(
         return null
     }
 
+    private fun getPreviewItemForContainer(container: ItemStack): ContainerPreviewInfo {
+        val hash = container.hashCode()
+
+        return shulkerCache.computeIfAbsent(hash) {
+	        val contents = container.shulkerBoxContents + container.bundleContents
+            if (contents.isEmpty()) return@computeIfAbsent ContainerPreviewInfo(null, false)
+
+            val group = contents.filter { stack -> stack.item != Items.AIR }
+                .groupBy { stack -> stack.item }
+                .map { (item, stacks) ->
+                stacks.first() to stacks.sumOf { it.count }
+            }
+            val unique = group.size
+            val mostCommon = group.maxByOrNull { (_, count) -> count }?.let { (stack, count) ->
+                stack.copyWithCount(count.coerceAtMost(stack.maxCount))
+            }
+
+            ContainerPreviewInfo(mostCommon, unique > 1)
+        }
+    }
+
     @JvmStatic
     fun isShulkerBox(stack: ItemStack) = stack.item in shulkerBoxes
 
@@ -334,9 +381,52 @@ object ContainerPreview : Module(
     @JvmStatic
     fun isPreviewableContainer(stack: ItemStack) = isShulkerBox(stack) || isEnderChest(stack)
 
+    @JvmStatic
+    fun isBundle(stack: ItemStack) = stack.item in bundles
+
+	@JvmStatic
+	fun drawOnItem(drawContext: DrawContext, state: GuiRenderState, entity: LivingEntity?, world: World?, stack: ItemStack, x: Int, y: Int, seed: Int) {
+        if (!previewItem) return
+		if (!isShulkerBox(stack) && !isBundle(stack)) return
+        val preview = getPreviewItemForContainer(stack)
+        if (preview.stack == null) return
+
+		// Apply scaling
+		val scale = previewItemScale / 16.0f
+		val itemMatrix = Matrix3x2f(drawContext.matrices)
+
+		// Required to center the icon correctly, due to how the item gets centered by the renderer
+		val shift = 8 * (1 - scale) // 0 at scale 1.0, 8 at scale 0.0
+
+		val newScreenX = ((x + previewItemXOffset + shift) / scale).toInt()
+		val newScreenY = ((y + previewItemYOffset + shift) / scale).toInt()
+
+        itemMatrix.scale(scale, scale)
+
+		val keyedItemRenderState = KeyedItemRenderState();
+        mc.itemModelManager.clearAndUpdate(keyedItemRenderState, preview.stack, ItemDisplayContext.GUI, world, entity, seed);
+
+		state.addItem(
+			ItemGuiElementRenderState(
+                preview.stack.item.name.toString(), itemMatrix, keyedItemRenderState, newScreenX, newScreenY, drawContext.scissorStack.peekLast()
+			)
+		)
+        if (preview.hasMore) {
+            state.addText(
+                TextGuiElementRenderState(
+                    mc.textRenderer, buildText {
+                        literal("+")
+                    }.asOrderedText(), itemMatrix, newScreenX + 14, newScreenY - 2, -1, Integer.MIN_VALUE, true, false, drawContext.scissorStack.peekLast()
+                )
+            )
+        }
+	}
+
     open class ContainerComponent(val stack: ItemStack) : TooltipData, TooltipComponent {
         override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, width: Int, height: Int, context: DrawContext) {}
         override fun getHeight(textRenderer: TextRenderer): Int = 0
         override fun getWidth(textRenderer: TextRenderer): Int = 0
     }
+
+    data class ContainerPreviewInfo(val stack: ItemStack?, val hasMore: Boolean)
 }
