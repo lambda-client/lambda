@@ -68,6 +68,7 @@ object AirPlace : Module(
 
 	private var distance by setting("Distance", 4.0, 1.0..7.0, 0.01).group(Group.General)
 	private val distanceScrollBind by setting("Distance Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the given key and scroll to adjust distance").group(Group.General)
+	// Credit to THCFree for the rotation scroll idea
 	private val rotationScrollBind by setting("Rotation Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_ALT), "Allows you to hold the given key and scroll to adjust the rotation of the block you're placing").group(Group.General)
 
 	private val renderState by setting("Render State", true).group(Group.Render)

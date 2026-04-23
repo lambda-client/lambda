@@ -39,6 +39,8 @@ import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.hasFirework
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.module.hud.Speedometer
+import com.lambda.util.SpeedUnit
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
@@ -55,12 +57,15 @@ object ElytraFly : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic val mode by setting("Mode", FlyMode.Bounce)
-    private val inventory by setting("Inventory", true, "Allow using fireworks from the players inventory")
+    private val inventory by setting("Inventory", true, "Allow using fireworks from the players inventory") { mode == FlyMode.GrimControl }
 
     //ToDo: Implement these commented out settings
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
     private val pitch by setting("Pitch", 80, 0..90, 1) { autoPitch && mode == FlyMode.Bounce }
+    private val yMotion by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
+    private val yMotionStartSpeed by setting("Y Motion Start Speed", 20, 5..30, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+    private val speedLimit by setting("Speed Limit", 110, 10..720, 1, "bps") { mode == FlyMode.Bounce && yMotion }
     private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 20, 0..100, 1, "How long to pause if the server flags you for a movement check") { mode == FlyMode.Bounce }
 //    private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
@@ -85,8 +90,11 @@ object ElytraFly : Module(
         }
 
         listen<TickEvent.Pre> {
-            if (mode == FlyMode.GrimControl) onTickGrimControl()
-            else if (mode == FlyMode.Bounce) onTickBounce()
+            when (mode) {
+                FlyMode.Bounce -> onTickBounce()
+                FlyMode.GrimControl -> onTickGrimControl()
+                else -> {}
+            }
         }
 
         listen<TickEvent.Post> {
@@ -170,8 +178,21 @@ object ElytraFly : Module(
             return
         }
 
-        startFlyPacket()
+        if (!player.getFlag(Entity.GLIDING_FLAG_INDEX) || yMotion) {
+            player.setFlag(Entity.GLIDING_FLAG_INDEX, true)
+            startFlyPacket()
+        }
     }
+
+    @JvmStatic
+    fun getModifiedBounceVelocity(original: Vec3d) =
+        runSafe {
+            if (!yMotion || !player.isGliding || !player.isOnGround) return@runSafe original
+            val speed = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond)
+            if (speed >= speedLimit) return@runSafe original
+            if (speed <= yMotionStartSpeed) return@runSafe original
+            Vec3d(original.x, 0.0, original.z)
+        } ?: original
 
     private fun SafeContext.startFlyPacket() =
         connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
