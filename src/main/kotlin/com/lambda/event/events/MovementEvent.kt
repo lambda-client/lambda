@@ -123,5 +123,5 @@ sealed class MovementEvent {
      *
      * @property height The height of the jump. Can be modified!
      */
-    data class Jump(var height: Double) : ICancellable by Cancellable()
+    data class Jump(var height: Float) : ICancellable by Cancellable()
 }
