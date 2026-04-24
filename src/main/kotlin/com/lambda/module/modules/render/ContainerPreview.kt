@@ -410,8 +410,8 @@ object ContainerPreview : Module(
 
         itemMatrix.scale(scale, scale)
 
-		val keyedItemRenderState = KeyedItemRenderState();
-        mc.itemModelManager.clearAndUpdate(keyedItemRenderState, preview.stack, ItemDisplayContext.GUI, world, entity, seed);
+		val keyedItemRenderState = KeyedItemRenderState()
+		mc.itemModelManager.clearAndUpdate(keyedItemRenderState, preview.stack, ItemDisplayContext.GUI, world, entity, seed)
 
 		state.addItem(
 			ItemGuiElementRenderState(
