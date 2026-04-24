@@ -28,7 +28,6 @@ import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMod
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
 import com.lambda.util.NamedEnum
-import net.minecraft.block.Block
 import net.minecraft.registry.Registries
 import java.awt.Color
 
@@ -88,12 +87,6 @@ open class BreakSettings(
 	override val forceSilkTouch by c.setting("${prefix}Force Silk Touch", false, "Force silk touch when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 	override val forceFortunePickaxe by c.setting("${prefix}Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 	override val minFortuneLevel by c.setting("${prefix}Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { visibility() && swapMode.isEnabled() && forceFortunePickaxe }.group(*baseGroup, Group.General).index()
-	override val useWoodenTools by c.setting("${prefix}Use Wooden Tools", true, "Use wooden tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useStoneTools by c.setting("${prefix}Use Stone Tools", true, "Use stone tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useIronTools by c.setting("${prefix}Use Iron Tools", true, "Use iron tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useDiamondTools by c.setting("${prefix}Use Diamond Tools", true, "Use diamond tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useGoldTools by c.setting("${prefix}Use Gold Tools", true, "Use gold tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useNetheriteTools by c.setting("${prefix}Use Netherite Tools", true, "Use netherite tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 
 	// Cosmetics
 	override val sounds by c.setting("${prefix}Break Sounds", true, "Plays the breaking sounds", visibility = visibility).group(*baseGroup, Group.Cosmetic).index()

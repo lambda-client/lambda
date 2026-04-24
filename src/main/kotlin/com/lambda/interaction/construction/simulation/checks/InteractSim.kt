@@ -77,8 +77,8 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		InteractResult.Dependency(pos, buildResult)
 
 	companion object {
-		context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
 		@SimDsl
+		context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
 		suspend fun InteractSimInfo.simInteraction() =
 			InteractSim(this).run {
 				withDependent(dependent) {

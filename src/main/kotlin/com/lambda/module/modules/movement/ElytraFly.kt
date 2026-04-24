@@ -64,7 +64,7 @@ object ElytraFly : Module(
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
     private val pitch by setting("Pitch", 80, 0..90, 1) { autoPitch && mode == FlyMode.Bounce }
     private val yMotion by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
-    private val yMotionStartSpeed by setting("Y Motion Start Speed", 20, 5..30, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+    private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..30, 1, "bps") { mode == FlyMode.Bounce && yMotion }
     private val speedLimit by setting("Speed Limit", 110, 10..720, 1, "bps") { mode == FlyMode.Bounce && yMotion }
     private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 20, 0..100, 1, "How long to pause if the server flags you for a movement check") { mode == FlyMode.Bounce }

@@ -61,13 +61,6 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 	val forceFortunePickaxe: Boolean
 	val minFortuneLevel: Int
 
-	val useWoodenTools: Boolean
-	val useStoneTools: Boolean
-	val useIronTools: Boolean
-	val useDiamondTools: Boolean
-	val useGoldTools: Boolean
-	val useNetheriteTools: Boolean
-
 	val sounds: Boolean
 	val particles: Boolean
 	val breakingTexture: Boolean
