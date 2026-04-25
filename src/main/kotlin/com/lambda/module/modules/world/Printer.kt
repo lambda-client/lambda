@@ -21,7 +21,6 @@ import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.simulation.result.BuildResult
-import com.lambda.interaction.construction.simulation.result.Contextual
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
@@ -87,8 +86,7 @@ object Printer : Module(
 	 * @return true if the build result should be built, false if it should be ignored
 	 */
 	private fun SafeContext.filterBuildResults(buildResult: BuildResult): Boolean {
-		return if (buildResult !is Contextual ||
-			buildResult is InteractResult && !flattenModeApply.placing ||
+		return if (buildResult is InteractResult && !flattenModeApply.placing ||
 			buildResult is BreakResult && !flattenModeApply.breaking) true
 		else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
 	}
@@ -105,7 +103,7 @@ object Printer : Module(
 		override val description: String
 	) : NamedEnum, Describable {
 		BreakOnly("Break Only", true, false, "Only applies flattening logic to blocks that are being broken"),
-		PlaceOnly("Place Only", false, true, "Only applies flattening logic to blocks that are being placed"),
+		InteractOnly("Place/Interact Only", false, true, "Only applies flattening logic to blocks that are being placed"),
 		Both("Both", true, true, "Applies flattening logic to all blocks, whether being placed or broken")
 	}
 }
