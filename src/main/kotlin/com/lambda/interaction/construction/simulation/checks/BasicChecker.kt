@@ -24,6 +24,7 @@ import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
+import com.lambda.interaction.managers.breaking.BreakConfig.WhitelistMode
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
@@ -48,9 +49,14 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block should be ignored
-        if (this@hasBasicRequirements is BreakSimInfo && state.block !in breakConfig.blocks) {
-            result(GenericResult.Ignored(pos))
-            return false
+        if (this@hasBasicRequirements is BreakSimInfo) {
+            val mode = breakConfig.whitelistMode
+            if ((mode == WhitelistMode.Whitelist && state.block !in breakConfig.whitelist) ||
+                (mode == WhitelistMode.Blacklist && state.block in breakConfig.blacklist)
+                ) {
+                result(GenericResult.Ignored(pos))
+                return false
+            }
         }
 
         // the player is in the wrong game mode to alter the block state

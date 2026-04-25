@@ -27,6 +27,7 @@ import com.lambda.interaction.managers.breaking.BreakConfig.AnimationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
+import com.lambda.interaction.managers.breaking.BreakConfig.WhitelistMode
 import com.lambda.util.NamedEnum
 import net.minecraft.registry.Registries
 import java.awt.Color
@@ -77,7 +78,9 @@ open class BreakSettings(
 	override val breaksPerTick by c.setting("${prefix}Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick", visibility = visibility).group(*baseGroup, Group.General).index()
 
 	// Block
-	override val blocks by c.setting("${prefix}Blocks", Registries.BLOCK.toList(), description = "Blocks that are allowed to be broken", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val whitelistMode by c.setting("${prefix}Whitelist Mode", WhitelistMode.None, "The type of block selection used", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val whitelist by c.setting("${prefix}Whitelist", mutableSetOf(), Registries.BLOCK.toMutableSet(), "Only these selected blocks are allowed to be broken") { visibility() && whitelistMode == WhitelistMode.Whitelist }.group(*baseGroup, Group.General).index()
+	override val blacklist by c.setting("${prefix}Blacklist", mutableSetOf(), Registries.BLOCK.toMutableSet(), "These selected blocks are not allowed to be broken") { visibility() && whitelistMode == WhitelistMode.Blacklist }.group(*baseGroup, Group.General).index()
 	override val avoidFluids by c.setting("${prefix}Avoid Fluids", true, "Avoids breaking blocks that would cause fluids to spill", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val avoidSupporting by c.setting("${prefix}Avoid Supporting", true, "Avoids breaking the block supporting the player", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val fillFluids by c.setting("Fill Fluids", true, "Fills fluids in order to break blocks that would initially spill them") { visibility() && avoidFluids }.group(*baseGroup, Group.General).index()
