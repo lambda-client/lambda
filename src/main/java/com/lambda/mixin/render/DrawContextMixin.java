@@ -103,11 +103,7 @@ public abstract class DrawContextMixin {
         }
     }
 
-    @Inject(method = "drawItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;III)V",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/state/GuiRenderState;addItem(Lnet/minecraft/client/gui/render/state/ItemGuiElementRenderState;)V"
-                    , shift = At.Shift.AFTER
-            )
-    )
+    @Inject(method = "drawItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;III)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/state/GuiRenderState;addItem(Lnet/minecraft/client/gui/render/state/ItemGuiElementRenderState;)V", shift = At.Shift.AFTER))
     private void onDrawItem(LivingEntity entity, World world, ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
         if (!ContainerPreview.INSTANCE.isEnabled()) return;
         ContainerPreview.drawOnItem((DrawContext) (Object) this, state, entity, world, stack, x, y, seed);

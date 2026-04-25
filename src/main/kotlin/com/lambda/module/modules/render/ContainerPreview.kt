@@ -67,10 +67,10 @@ object ContainerPreview : Module(
     private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color").group(Group.ContainerTooltip)
 
     private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories").group(Group.ContentPreview)
-    private val previewItemScale by setting("Preview Item Scale", 13f, 1f..32f, 0.1f, "Scale of the item icons on a container item", visibility = { contentPreview }).group(Group.ContentPreview)
-    private val previewItemXOffset by setting("Preview Item X Offset", 0f, -32f..32f, 0.1f, "X Offset of the item icons on a container item", visibility = { contentPreview }).group(Group.ContentPreview)
-    private val previewItemYOffset by setting("Preview Item Y Offset", 0f, -32f..32f, 0.1f, "Y Offset of the item icons on a container item", visibility = { contentPreview }).group(Group.ContentPreview)
-    private val previewItemWeightedCount by setting("Preview weighted count", true, description = "Count items for preview in containers relative to max stack size", visibility = { contentPreview }).group(Group.ContentPreview)
+    private val previewItemScale by setting("Item Scale", 13f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemXOffset by setting("Item X Offset", 0f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemYOffset by setting("Item Y Offset", 0f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }.group(Group.ContentPreview)
         .onValueChange { _, _ ->
             containerCache.clear()
         }
@@ -361,15 +361,15 @@ object ContainerPreview : Module(
         val hash = container.hashCode()
 
         return containerCache.computeIfAbsent(hash) {
-	        val contents = container.shulkerBoxContents + container.bundleContents
+            val contents = container.shulkerBoxContents + container.bundleContents
             if (contents.isEmpty()) return@computeIfAbsent ContainerPreviewInfo(null, false)
 
             val group = contents.filter { stack -> stack.item != Items.AIR }
                 .groupBy { stack -> stack.item }
                 .map { (item, stacks) ->
                     val stackWeight = if (previewItemWeightedCount) 64f / item.maxCount else 1f
-                stacks.first() to (stacks.sumOf { it.count } * stackWeight)
-            }
+                    stacks.first() to (stacks.sumOf { it.count } * stackWeight)
+                }
             val unique = group.size
             val mostCommon = group.maxByOrNull { (_, weightedCount) -> weightedCount }?.let { (stack, count) ->
                 stack.copyWithCount(max(1, count.toInt().coerceAtMost(stack.maxCount)))
