@@ -30,6 +30,7 @@ import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 import net.fabricmc.loader.api.FabricLoader
 
+@Suppress("unused")
 object BaritoneHandler : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
     override val name = "baritone"
 

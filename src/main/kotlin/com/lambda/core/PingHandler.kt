@@ -25,9 +25,9 @@ import net.minecraft.network.packet.c2s.query.QueryPingC2SPacket
 import net.minecraft.network.packet.s2c.query.PingResultS2CPacket
 import net.minecraft.util.Util
 
+@Suppress("unused")
 object PingHandler : Loadable {
     private val pings: LimitedOrderedSet<Long> = LimitedOrderedSet(100)
-    private const val INTERVAL = 1
 
     override fun load(): String {
         listen<TickEvent.Pre> {

@@ -81,6 +81,7 @@ object HighwayTools : Module(
         Block("Block", "Paves the highway with a specific block. Will use the block you specified in the settings"),
     }
 
+	@Suppress("unused")
     enum class Corner(
         override val displayName: String,
         override val description: String

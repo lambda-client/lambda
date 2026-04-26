@@ -43,6 +43,7 @@ import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
 import java.util.UUID
 
+@Suppress("unused")
 object FriendCommand : LambdaCommand(
     name = "friends",
     usage = "friends <add <name> | add-uuid <uuid> | remove <name> | remove-uuid <uuid>>",

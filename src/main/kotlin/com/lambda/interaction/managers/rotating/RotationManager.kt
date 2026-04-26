@@ -55,6 +55,7 @@ import kotlin.math.sin
 /**
  * Manager designed to rotate the player and adjust movement input to match the camera's direction.
  */
+@Suppress("unused")
 object RotationManager : Manager<RotationRequest>(
 	1,
 	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),

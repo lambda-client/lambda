@@ -48,6 +48,7 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
+@Suppress("unused")
 object CapeHandler : Configurable(SecretsConfig), Loadable {
     override val name: String = "capes"
 

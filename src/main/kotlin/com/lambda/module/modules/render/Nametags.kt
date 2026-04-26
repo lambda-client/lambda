@@ -51,6 +51,7 @@ object Nametags : Module(
 	description = "Displays information about entities above them",
 	tag = ModuleTag.RENDER
 ) {
+	@Suppress("unused")
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
 		Entities("Entities"),
@@ -249,6 +250,7 @@ object Nametags : Module(
 		(entity !== mc.player || !mc.options.perspective.isFirstPerson) &&
 				entitySelectionSettings.isSelected(entity) && (entity !is LivingEntity || entity.isAlive)
 
+	@Suppress("unused")
 	private enum class DurabilityMode(val text: Boolean, val bar: Boolean) {
 		None(false, false),
 		Text(true, false),

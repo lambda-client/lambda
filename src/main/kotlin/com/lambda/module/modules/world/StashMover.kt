@@ -94,6 +94,7 @@ import kotlin.math.min
 import kotlin.run
 import kotlin.to
 
+@Suppress("unused")
 object StashMover : Module(
 	name = "StashMover",
 	description = "Moves items from one stash location to another",

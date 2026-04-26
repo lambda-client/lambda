@@ -1477,6 +1477,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle, activeOutlineId)
 	}
 
+	@Suppress("SameParameterValue")
 	private fun transformPoint(matrix: Matrix4f, x: Float, y: Float, z: Float): Vector3f {
 		val result = Vector4f(x, y, z, 1f)
 		matrix.transform(result)

@@ -114,6 +114,7 @@ import com.lambda.util.Nameable
  *
  * See [SafeListener] and [UnsafeListener] for more details.
  */
+@Suppress("unused")
 abstract class Module(
     override val name: String,
     val description: String = "",

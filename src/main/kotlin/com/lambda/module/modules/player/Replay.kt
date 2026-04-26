@@ -81,6 +81,7 @@ import kotlin.time.toDuration
 //  - Record other types of inputs: (place, break, inventory, etc.)
 //  - Add HUD for recording / replaying info
 //  - Maybe use a custom binary format to store the data (Protobuf / DB?)
+@Suppress("unused")
 object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",

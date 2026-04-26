@@ -30,6 +30,7 @@ import com.lambda.util.Communication.logError
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 
+@Suppress("unused")
 object CapeCommand : LambdaCommand(
     name = "cape",
     usage = "set <id>",

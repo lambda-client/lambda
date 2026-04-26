@@ -20,7 +20,6 @@ package com.lambda.util
 import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
-import com.lambda.core.Loadable
 import com.lambda.event.events.ButtonEvent
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap
 import org.lwjgl.glfw.GLFW

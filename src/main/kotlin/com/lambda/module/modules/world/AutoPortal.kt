@@ -66,6 +66,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
+@Suppress("unused")
 object AutoPortal : Module(
 	name = "AutoPortal",
 	description = "Automatically places and lights a nether portal",

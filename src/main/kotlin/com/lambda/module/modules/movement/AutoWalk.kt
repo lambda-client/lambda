@@ -18,17 +18,13 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Timer
 import com.lambda.util.player.MovementUtils.forward
 import com.lambda.util.player.MovementUtils.strafe
 import com.lambda.util.player.MovementUtils.update
 import net.minecraft.util.math.Vec2f
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 @Suppress("unused")
 object AutoWalk : Module(

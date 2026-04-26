@@ -60,6 +60,7 @@ import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.client.util.Icons
 import java.awt.Color
 
+@Suppress("unused")
 object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	override val name = "GUI"
 	var open = false
@@ -182,7 +183,6 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	val primaryColor by setting("Primary Color", Color(130, 200, 255)).group(Group.Colors)
 	val secondaryColor by setting("Secondary Color", Color(225, 130, 225)).group(Group.Colors)
 
-	@Suppress("unused")
 	val shade by setting("Shade", true).group(Group.Colors)
 	val colorWidth by setting("Shade Width", 200.0, 10.0..1000.0, 10.0).group(Group.Colors)
 	val colorHeight by setting("Shade Height", 200.0, 10.0..1000.0, 10.0).group(Group.Colors)

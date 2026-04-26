@@ -130,6 +130,7 @@ public class MinecraftClientMixin {
      * Inject after the thread field is set so that {@link ThreadExecutor#getThread}
      * is available
      */
+    @SuppressWarnings("JavadocReference")
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0, opcode = Opcodes.PUTFIELD), method = "run")
     private void onStartup(CallbackInfo ci) {
         EventFlow.post(new ClientEvent.Startup());
