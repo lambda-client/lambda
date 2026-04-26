@@ -63,7 +63,7 @@
     "render.RenderLayersMixin",
     "render.ScreenHandlerMixin",
     "render.ScreenMixin",
-    "render.SodiumBlockOcclusionCacheMixin",
+    "render.AbstractBlockRenderContextMixin",
     "render.SodiumBlockRendererMixin",
     "render.SodiumFluidRendererImplMixin",
     "render.SodiumLightDataAccessMixin",
