@@ -86,6 +86,7 @@ object ElytraFly : Module(
     private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
     private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
+    private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
     private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
     private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
     private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
@@ -118,6 +119,10 @@ object ElytraFly : Module(
                 FlyMode.GrimControl -> onTickGrimControl()
                 else -> {}
             }
+        }
+
+        listen<TickEvent.Post> {
+            if (glidePause > 0 && !applyPauseAfterBaritone) glidePause--
         }
 
         onEnable {
@@ -217,7 +222,7 @@ object ElytraFly : Module(
             return
         }
 
-        if (glidePause > 0) {
+        if (glidePause > 0 && applyPauseAfterBaritone) {
             glidePause--
             return
         }

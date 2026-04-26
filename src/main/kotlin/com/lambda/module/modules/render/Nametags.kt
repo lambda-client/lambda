@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.config.groups.ScreenTextSettings
@@ -114,12 +115,12 @@ object Nametags : Module(
 				world.entities
 					.sortedByDescending { it distSq mc.gameRenderer.camera.pos }
 					.forEach { entity ->
+						if (!shouldRenderNametag(entity)) return@forEach
 						val textConfig =
 							if (entity is PlayerEntity && entity.isFriend) friendTextConfig
 							else otherTextConfig
 						val textStyle = textConfig.getSDFStyle()
 						val textSize = textConfig.size
-						if (!shouldRenderNametag(entity)) return@forEach
 						val nameText = entity.displayName?.string ?: return@forEach
 						val nameWidth = FontHandler.getStringWidthNormalized(nameText, textSize)
 						val box = entity.interpolatedBox
@@ -245,7 +246,8 @@ object Nametags : Module(
 
 	@JvmStatic
 	fun shouldRenderNametag(entity: Entity) =
-		entitySelectionSettings.isSelected(entity) && (entity !is LivingEntity || entity.isAlive)
+		(entity !== mc.player || !mc.options.perspective.isFirstPerson) &&
+				entitySelectionSettings.isSelected(entity) && (entity !is LivingEntity || entity.isAlive)
 
 	private enum class DurabilityMode(val text: Boolean, val bar: Boolean) {
 		None(false, false),
