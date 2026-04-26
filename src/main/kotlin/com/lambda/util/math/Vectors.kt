@@ -17,6 +17,8 @@
 
 package com.lambda.util.math
 
+import com.lambda.context.SafeContext
+import com.lambda.util.BlockUtils.isLoaded
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.sq
 import net.minecraft.entity.Entity
@@ -199,6 +201,9 @@ infix fun Entity.dist(other: Entity): Double = distanceTo(other).toDouble()
 infix fun Entity.distSq(other: Vec3d): Double = pos distSq other
 infix fun Entity.distSq(other: Vec3i): Int = blockPos distSq other
 infix fun Entity.distSq(other: Entity): Double = squaredDistanceTo(other)
+
+context(safeContext: SafeContext)
+val Vec3d.isLoaded get() = flooredBlockPos.isLoaded
 
 val UP = Vec3d(0.0, 1.0, 0.0)
 val DOWN = Vec3d(0.0, -1.0, 0.0)
