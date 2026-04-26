@@ -26,7 +26,7 @@ import net.minecraft.registry.Registry
 import net.minecraft.registry.SimpleRegistry
 import net.minecraft.sound.SoundEvent
 
-object SoundManager : Loadable {
+object SoundHandler : Loadable {
     fun playSound(event: SoundEvent, pitch: Double = 1.0) {
         mc.soundManager.play(
             PositionedSoundInstance.master(event, pitch.toFloat())

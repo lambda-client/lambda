@@ -25,7 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.network.NetworkManager.updateToken
+import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.linkDiscord
 import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.warn
@@ -40,6 +40,7 @@ import dev.cbyrne.kdiscordipc.data.activity.smallImage
 import dev.cbyrne.kdiscordipc.data.activity.timestamps
 import kotlinx.coroutines.delay
 
+@Suppress("unused")
 object Discord : Module(
     name = "Discord",
     description = "Discord Rich Presence configuration",

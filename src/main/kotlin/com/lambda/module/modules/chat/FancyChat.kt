@@ -20,7 +20,7 @@ package com.lambda.module.modules.chat
 import com.lambda.command.CommandRegistry.prefix
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ChatUtils.toBlue
@@ -28,6 +28,7 @@ import com.lambda.util.ChatUtils.toGreen
 import com.lambda.util.ChatUtils.toLeet
 import com.lambda.util.ChatUtils.toUwu
 
+@Suppress("unused")
 object FancyChat : Module(
 	name = "FancyChat",
 	description = "Makes messages you send - fancy",
@@ -40,7 +41,7 @@ object FancyChat : Module(
 
 	init {
 		listen<ChatEvent.Send> {
-			val isBaritone = BaritoneManager.baritoneSettings?.prefix?.value
+			val isBaritone = BaritoneHandler.baritoneSettings?.prefix?.value
 				?.let { setting -> it.message.startsWith(setting)}
 				?: false
 

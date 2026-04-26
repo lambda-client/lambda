@@ -21,7 +21,7 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntityColorSettings
 import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.friend.FriendManager.isFriend
+import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module
@@ -35,6 +35,7 @@ import org.joml.Vector2f
 import org.joml.component1
 import org.joml.component2
 
+@Suppress("unused")
 object Tracers : Module(
 	name = "Tracers",
 	description = "Draws lines to entities within the world",

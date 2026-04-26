@@ -19,7 +19,7 @@ package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
 import com.lambda.module.modules.client.Capes;
-import com.lambda.network.CapeManager;
+import com.lambda.network.CapeHandler;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.feature.CapeFeatureRenderer;
@@ -43,8 +43,8 @@ public class CapeFeatureRendererMixin {
         if (entry == null) return original;
 
         var profile = entry.getProfile();
-        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.getCache().containsKey(profile.id())) return original;
+        if (!Capes.INSTANCE.isEnabled() || !CapeHandler.INSTANCE.getCache().containsKey(profile.id())) return original;
 
-        return Identifier.of("lambda", CapeManager.INSTANCE.getCache().get(profile.id()));
+        return Identifier.of("lambda", CapeHandler.INSTANCE.getCache().get(profile.id()));
     }
 }

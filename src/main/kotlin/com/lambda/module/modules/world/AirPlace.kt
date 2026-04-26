@@ -56,6 +56,7 @@ import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
 
+@Suppress("unused")
 object AirPlace : Module(
 	name = "AirPlace",
 	description = "Allows placing blocks in air",

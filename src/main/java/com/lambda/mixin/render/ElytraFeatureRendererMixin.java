@@ -20,7 +20,7 @@ package com.lambda.mixin.render;
 import com.lambda.Lambda;
 import com.lambda.module.modules.client.Capes;
 import com.lambda.module.modules.render.NoRender;
-import com.lambda.network.CapeManager;
+import com.lambda.network.CapeHandler;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -50,10 +50,10 @@ public class ElytraFeatureRendererMixin {
 
         var profile = entry.getProfile();
 
-        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.getCache().containsKey(profile.id()))
+        if (!Capes.INSTANCE.isEnabled() || !CapeHandler.INSTANCE.getCache().containsKey(profile.id()))
             return original;
 
-        return Identifier.of("lambda", CapeManager.INSTANCE.getCache().get(profile.id()));
+        return Identifier.of("lambda", CapeHandler.INSTANCE.getCache().get(profile.id()));
     }
 
     @WrapMethod(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;ILnet/minecraft/client/render/entity/state/BipedEntityRenderState;FF)V")

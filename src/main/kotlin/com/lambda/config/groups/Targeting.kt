@@ -21,7 +21,7 @@ import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
-import com.lambda.friend.FriendManager.isFriend
+import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo

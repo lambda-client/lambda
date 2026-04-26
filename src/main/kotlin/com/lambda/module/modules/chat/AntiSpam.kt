@@ -23,7 +23,7 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.ReplaceConfig
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.friend.FriendManager
+import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ChatUtils.addresses
@@ -40,6 +40,7 @@ import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
 
+@Suppress("unused")
 object AntiSpam : Module(
 	name = "AntiSpam",
 	description = "Keeps your chat clean",
@@ -105,7 +106,7 @@ object AntiSpam : Module(
 					cancelled ||
 					filterSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
 					filterDms && DirectMessage.Receive.matches(raw) ||
-					filterFriends && author?.let { FriendManager.isFriend(it) } == true ||
+					filterFriends && author?.let { FriendHandler.isFriend(it) } == true ||
 					filterSelf && MessageType.Self.matches(raw)
 				) return
 

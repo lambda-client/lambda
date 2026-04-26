@@ -27,6 +27,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.hit.HitResult
 
+@Suppress("unused")
 object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,

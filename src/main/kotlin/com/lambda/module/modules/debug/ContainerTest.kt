@@ -26,6 +26,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.AcquireMaterialTask.Companion.acquire
 import net.minecraft.item.Items
 
+@Suppress("unused")
 object ContainerTest : Module(
     name = "ContainerTest",
     description = "Test container",

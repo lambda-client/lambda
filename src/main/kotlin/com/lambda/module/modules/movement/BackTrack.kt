@@ -54,6 +54,7 @@ import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
 
+@Suppress("unused")
 object BackTrack : Module(
     name = "BackTrack",
     description = "Gives reach advantage by delaying your packets",

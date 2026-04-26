@@ -34,6 +34,7 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 
+@Suppress("unused")
 object InventoryDebug : Module(
     name = "InventoryDebug",
     description = "Debugs the inventory",

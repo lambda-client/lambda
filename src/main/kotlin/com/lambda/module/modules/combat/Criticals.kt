@@ -35,6 +35,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
+@Suppress("unused")
 object Criticals : Module(
     name = "Criticals",
     description = "Forces your hits to be critical",

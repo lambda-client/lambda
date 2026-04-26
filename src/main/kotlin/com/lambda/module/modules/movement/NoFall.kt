@@ -34,6 +34,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
+@Suppress("unused")
 object NoFall : Module(
     name = "NoFall",
     description = "Reduces fall damage",

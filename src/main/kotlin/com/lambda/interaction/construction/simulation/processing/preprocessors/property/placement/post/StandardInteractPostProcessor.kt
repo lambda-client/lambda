@@ -27,7 +27,6 @@ import net.minecraft.block.DoorBlock
 import net.minecraft.block.TrapdoorBlock
 import net.minecraft.util.math.BlockPos
 
-// Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object StandardInteractPostProcessor : PropertyPostProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =

@@ -22,7 +22,7 @@ import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.friend.FriendManager
+import com.lambda.friend.FriendHandler
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.Module
@@ -37,6 +37,7 @@ import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
 
+@Suppress("unused")
 object AutoTotem : Module(
     name = "AutoTotem",
     description = "Swaps the your off-hand item to a totem",
@@ -91,7 +92,7 @@ object AutoTotem : Module(
         Player({ players && fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).any { otherPlayer ->
             otherPlayer != player
                     && player.distanceTo(otherPlayer) <= minPlayerDistance
-                    && (!friends || !FriendManager.isFriend(otherPlayer.uuid))
+                    && (!friends || !FriendHandler.isFriend(otherPlayer.uuid))
         } }),
         EndCrystal({ crystals && hasDeadlyCrystal() }),
         FallDamage({ falls && isFallDeadly() && player.fallDistance > fallDistance })

@@ -17,13 +17,10 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import net.minecraft.client.render.VertexConsumerProvider
-import net.minecraft.client.render.debug.DebugRenderer
-import net.minecraft.client.util.math.MatrixStack
 
+@Suppress("unused")
 object DebugRendererModule: Module(
     name = "Debug Renderer",
     description = "Renders debug information of minecraft internals",

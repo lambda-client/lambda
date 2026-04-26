@@ -32,7 +32,7 @@ import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.transferByTask
+import com.lambda.interaction.material.container.ContainerHandler.transferByTask
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
 import net.minecraft.block.BlockState

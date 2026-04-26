@@ -21,7 +21,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.BlockCodec
 import com.lambda.config.serializer.BlockPosCodec
-import com.lambda.config.serializer.ColorSerializer
+import com.lambda.config.serializer.ColorCodec
 import com.lambda.config.serializer.GameProfileCodec
 import com.lambda.config.serializer.ItemCodec
 import com.lambda.config.serializer.ItemStackCodec
@@ -75,7 +75,7 @@ object Lambda : ClientModInitializer {
         .setPrettyPrinting()
         .registerTypeAdapter(UUID::class.java, UUIDCodec)
         .registerTypeAdapter(KeyCode::class.java, KeyCodeCodec)
-        .registerTypeAdapter(Color::class.java, ColorSerializer)
+        .registerTypeAdapter(Color::class.java, ColorCodec)
         .registerTypeAdapter(BlockPos::class.java, BlockPosCodec)
         .registerTypeAdapter(Block::class.java, BlockCodec)
         .registerTypeAdapter(GameProfile::class.java, GameProfileCodec)

@@ -30,6 +30,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
 
+@Suppress("unused")
 object RenderTest : Module(
     name = "Render:shrimp:Test:canned_food:",
     description = "RenderTest",

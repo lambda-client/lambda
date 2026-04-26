@@ -40,6 +40,7 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.ItemTags
 import net.minecraft.screen.slot.Slot
 
+@Suppress("unused")
 object AutoArmor : Module(
 	name = "AutoArmor",
 	description = "Automatically equips armor",

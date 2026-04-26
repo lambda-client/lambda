@@ -26,10 +26,10 @@ import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.gui.snap.RectF
-import com.lambda.gui.snap.SnapManager
-import com.lambda.gui.snap.SnapManager.drawDragGrid
-import com.lambda.gui.snap.SnapManager.drawSnapLines
-import com.lambda.gui.snap.SnapManager.updateDragAndSnapping
+import com.lambda.gui.snap.SnapHandler
+import com.lambda.gui.snap.SnapHandler.drawDragGrid
+import com.lambda.gui.snap.SnapHandler.drawSnapLines
+import com.lambda.gui.snap.SnapHandler.updateDragAndSnapping
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.NamedEnum
@@ -69,7 +69,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     private var dragOffsetY = 0f
     private val lastBounds = mutableMapOf<String, RectF>()
     private val pendingPositions = mutableMapOf<String, Pair<Float, Float>>()
-    private val snapOverlays = mutableMapOf<String, SnapManager.SnapVisual>()
+    private val snapOverlays = mutableMapOf<String, SnapHandler.SnapVisual>()
     private var mousePressedThisFrameGlobal = false
 
     var isShownInGUI = true
@@ -117,7 +117,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                 val (huds, notShown) = ModuleRegistry.modules
                     .filterIsInstance<HudModule>()
                     .partition { it.isEnabled }
-                notShown.forEach { SnapManager.unregisterElement(it.name) }
+                notShown.forEach { SnapHandler.unregisterElement(it.name) }
 
                 if (ClickGuiLayout.open) {
 					registerContextMenu(notShown)
@@ -180,7 +180,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     popupContextWindow("##ctx-${hud.name}") {
                         menuItem("Remove HUD Element") {
                             hud.disable()
-                            SnapManager.unregisterElement(hud.name)
+                            SnapHandler.unregisterElement(hud.name)
                         }
                         separator()
                         buildConfigSettingsContext(hud)
@@ -189,7 +189,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
                     if (!isLocked) drawHudCornerArcs(windowDrawList, windowPos.x, windowPos.y, windowSize.x, windowSize.y)
                 }
                 val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
-                SnapManager.registerElement(hud.name, rect)
+                SnapHandler.registerElement(hud.name, rect)
                 lastBounds[hud.name] = rect
             }
         }

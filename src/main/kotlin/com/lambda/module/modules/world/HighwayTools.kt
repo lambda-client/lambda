@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -108,7 +108,7 @@ object HighwayTools : Module(
             runningTask?.cancel()
             runningTask = null
             distanceMoved = 0
-            BaritoneManager.cancel()
+            BaritoneHandler.cancel()
         }
     }
 

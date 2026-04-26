@@ -29,6 +29,7 @@ import com.lambda.task.tasks.EatTask
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
 
+@Suppress("unused")
 object AutoEat : Module(
     name = "AutoEat",
     description = "Eats food when you are hungry",

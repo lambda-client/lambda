@@ -24,6 +24,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 
+@Suppress("unused")
 object TimerTest : Module(
     name = "TimerTest",
     tag = ModuleTag.DEBUG,

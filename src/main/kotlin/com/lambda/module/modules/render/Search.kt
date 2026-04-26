@@ -52,6 +52,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
+@Suppress("unused")
 object Search : Module(
     name = "Search",
     description = "Highlight blocks within the rendered world",

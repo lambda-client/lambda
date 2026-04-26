@@ -34,6 +34,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.math.Box
 import java.awt.Color
 
+@Suppress("unused")
 object ESP : Module(
 	name = "ESP",
 	description = "Highlight entities with smooth interpolated rendering",

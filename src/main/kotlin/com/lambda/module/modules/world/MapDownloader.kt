@@ -33,6 +33,7 @@ import net.minecraft.item.map.MapState
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 
+@Suppress("unused")
 object MapDownloader : Module(
     name = "MapDownloader",
     description = "Save map data to your computer",

@@ -32,6 +32,7 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.MathHelper.wrapDegrees
 import kotlin.random.Random
 
+@Suppress("unused")
 object AntiAim : Module(
     name = "AntiAim",
     description = "Rotates the player using the given configs",

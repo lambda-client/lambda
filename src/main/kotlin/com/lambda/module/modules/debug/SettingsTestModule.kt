@@ -24,6 +24,7 @@ import com.lambda.config.groups.WorldTextSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object SettingsTestModule : Module(
     name = "SettingsTestModule",
     description = "Test module for Line and Text Config Settings",

@@ -36,6 +36,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
+@Suppress("unused")
 object ChatTimestamp : Module(
 	name = "ChatTimestamp",
 	description = "Displays the time a message was sent next to it",

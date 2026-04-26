@@ -39,7 +39,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 
-object CommandManager {
+object CommandHandler {
     private const val ERROR_PADDING = 10
 
     val dispatcher by lazy { CommandDispatcher<CommandSource>() }
@@ -58,7 +58,7 @@ object CommandManager {
             } catch (syntax: CommandSyntaxException) {
                 createFeedback(syntax, reader)
             } catch (e: CommandException) {
-                this@CommandManager.logError(e.info)
+                this@CommandHandler.logError(e.info)
             }
         }
     }
@@ -89,7 +89,7 @@ object CommandManager {
     ) {
         val debugMessage = syntax.message ?: return
 
-        this@CommandManager.logError(debugMessage)
+        this@CommandHandler.logError(debugMessage)
         if (syntax.input == null || syntax.cursor < 0) {
             return
         }

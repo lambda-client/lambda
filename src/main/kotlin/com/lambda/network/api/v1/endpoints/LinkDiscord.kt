@@ -20,7 +20,7 @@ package com.lambda.network.api.v1.endpoints
 import com.lambda.network.LambdaAPI.apiUrl
 import com.lambda.network.LambdaAPI.apiVersion
 import com.lambda.network.LambdaHttp
-import com.lambda.network.NetworkManager
+import com.lambda.network.NetworkHandler
 import com.lambda.network.api.v1.models.Authentication
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -35,7 +35,7 @@ import io.ktor.http.*
 suspend fun linkDiscord(discordToken: String) = runCatching {
     LambdaHttp.post("${apiUrl}/api/$apiVersion/link/discord") {
         setBody("""{ "token": "$discordToken" }""")
-        bearerAuth(NetworkManager.accessToken)
+        bearerAuth(NetworkHandler.accessToken)
         contentType(ContentType.Application.Json)
     }.body<Authentication>()
 }

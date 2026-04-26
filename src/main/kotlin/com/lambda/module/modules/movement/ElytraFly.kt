@@ -26,7 +26,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.Module
@@ -131,7 +131,7 @@ object ElytraFly : Module(
 
         onDisable {
             passingToPos = null
-            if (passObstacles) BaritoneManager.cancel()
+            if (passObstacles) BaritoneHandler.cancel()
         }
 
         listen<PacketEvent.Receive.Pre> { event ->
@@ -201,7 +201,7 @@ object ElytraFly : Module(
     }
 
     private fun SafeContext.onTickBounce() {
-        if (!BaritoneManager.isActive) passingToPos = null
+        if (!BaritoneHandler.isActive) passingToPos = null
 
         val playerPos = player.pos
         if (passObstacles && playerPos.let { Vec3d(it.x, startPos.y, it.z) } dist startPos > 0.1) run obstacleChecks@{
@@ -265,7 +265,7 @@ object ElytraFly : Module(
 
     private fun passTo(pos: Vec3d) {
         passingToPos = pos
-        BaritoneManager.setGoalAndPath(GoalGetToBlock(pos.flooredBlockPos))
+        BaritoneHandler.setGoalAndPath(GoalGetToBlock(pos.flooredBlockPos))
     }
 
     context(safeContext: SafeContext)
@@ -340,7 +340,7 @@ object ElytraFly : Module(
             mode == FlyMode.Bounce &&
             previouslyFlying == true &&
             glidePause <= 0 &&
-            !BaritoneManager.isActive) true
+            !BaritoneHandler.isActive) true
         else {
             previouslyFlying = original
             original

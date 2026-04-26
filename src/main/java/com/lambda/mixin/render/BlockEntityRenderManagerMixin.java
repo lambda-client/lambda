@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.graphics.outline.OutlineManager;
+import com.lambda.graphics.outline.OutlineHandler;
 import com.lambda.graphics.outline.OutlineCapturingQueue;
 import com.lambda.graphics.outline.VertexCapture;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -42,7 +42,7 @@ public class BlockEntityRenderManagerMixin {
             Operation<Void> original) {
         BlockPos pos = renderState.pos;
 
-        if (pos != null && OutlineManager.shouldCapture(pos)) {
+        if (pos != null && OutlineHandler.shouldCapture(pos)) {
             VertexCapture.INSTANCE.beginCapture(pos);
 
             boolean outlineOnly = !Vec3d.ofCenter(pos).isInRange(cameraState.pos, renderer.getRenderDistance());

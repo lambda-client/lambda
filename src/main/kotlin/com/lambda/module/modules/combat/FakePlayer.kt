@@ -37,6 +37,7 @@ import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.seconds
 
+@Suppress("unused")
 object FakePlayer : Module(
     name = "FakePlayer",
     description = "Spawns a fake player",

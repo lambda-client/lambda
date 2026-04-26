@@ -29,6 +29,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import java.util.concurrent.ConcurrentLinkedQueue
 
+@Suppress("unused")
 object FastBreak : Module(
 	name = "FastBreak",
 	description = "Break blocks faster.",

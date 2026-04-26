@@ -25,6 +25,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.combat.DamageUtils.fallDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 
+@Suppress("unused")
 object FallTest : Module(
     name = "FallTest",
     tag = ModuleTag.DEBUG,

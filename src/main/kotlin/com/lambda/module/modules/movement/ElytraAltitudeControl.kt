@@ -37,8 +37,9 @@ import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
+@Suppress("unused")
 object ElytraAltitudeControl : Module(
-	name = "ElytraAttitudeControl",
+	name = "ElytraAltitudeControl",
 	description = "Automatically control attitude or speed while elytra flying",
 	tag = ModuleTag.MOVEMENT,
 ) {

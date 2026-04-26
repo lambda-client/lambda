@@ -23,6 +23,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.Hand
 
+@Suppress("unused")
 object AntiAFK : Module(
     name = "AntiAFK",
     description = "Keeps you from getting kicked",

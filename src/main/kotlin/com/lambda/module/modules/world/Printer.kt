@@ -41,6 +41,7 @@ import fi.dy.masa.litematica.data.DataManager
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
 
+@Suppress("unused")
 object Printer : Module(
 	name = "Printer",
 	description = "Automatically prints schematics",

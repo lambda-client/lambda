@@ -31,6 +31,7 @@ import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
+@Suppress("unused")
 object StackReplenish : Module(
 	name = "StackReplenish",
 	description = "Automatically refills stacks from your inventory",

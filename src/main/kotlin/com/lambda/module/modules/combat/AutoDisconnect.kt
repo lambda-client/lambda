@@ -21,10 +21,10 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.friend.FriendManager
+import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager.playSound
+import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.Communication
 import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.format
@@ -50,6 +50,7 @@ import net.minecraft.text.Text
 import net.minecraft.world.GameMode
 import java.awt.Color
 
+@Suppress("unused")
 object AutoDisconnect : Module(
     name = "AutoDisconnect",
     description = "Automatically disconnects when in danger or on low health",
@@ -245,7 +246,7 @@ object AutoDisconnect : Module(
             fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).find { otherPlayer ->
                 otherPlayer != player
                         && player.distanceTo(otherPlayer) <= minPlayerDistance
-                        && (!friends || !FriendManager.isFriend(otherPlayer.uuid))
+                        && (!friends || !FriendHandler.isFriend(otherPlayer.uuid))
             }?.let { otherPlayer ->
                 buildText {
                     literal("The player ")

@@ -28,6 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 import kotlin.math.roundToInt
 
+@Suppress("unused")
 object RotationLock : Module(
 	name = "RotationLock",
 	description = "Locks the player rotation to the given configuration",

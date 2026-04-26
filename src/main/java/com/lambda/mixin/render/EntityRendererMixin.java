@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.graphics.outline.OutlineManager;
+import com.lambda.graphics.outline.OutlineHandler;
 import com.lambda.module.modules.render.NoRender;
 import net.minecraft.client.render.Frustum;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
@@ -37,7 +37,7 @@ public class EntityRendererMixin {
     @Inject(method = "shouldRender(Lnet/minecraft/entity/Entity;Lnet/minecraft/client/render/Frustum;DDD)Z", at = @At("HEAD"), cancellable = true)
     private void injectShouldRender(Entity entity, Frustum frustum, double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
         if (NoRender.shouldOmitEntity(entity)) cir.cancel();
-        else if (OutlineManager.shouldCapture(entity.getId())) cir.setReturnValue(true);
+        else if (OutlineHandler.shouldCapture(entity.getId())) cir.setReturnValue(true);
     }
 
     @Inject(method = "renderLabelIfPresent", at = @At("HEAD"), cancellable = true)

@@ -21,12 +21,11 @@ import baritone.api.pathing.goals.GoalXZ
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.BlockPosIterators
 import com.lambda.util.extension.isNether
 import net.minecraft.util.math.BlockPos
@@ -61,7 +60,7 @@ object AutoSpiral : Module(
 		onDisable {
 			iterator = null
 			currentWaypoint = null
-			BaritoneManager.cancel()
+			BaritoneHandler.cancel()
 		}
 
 		listen<TickEvent.Pre> {
@@ -97,9 +96,9 @@ object AutoSpiral : Module(
 			val scaled = pos.multiply(spiralSpacing)
 			val w = scaled.add(center)
 			if (world.isNether) {
-				BaritoneManager.setGoalAndElytraPath(GoalXZ(w.x, w.z))
+				BaritoneHandler.setGoalAndElytraPath(GoalXZ(w.x, w.z))
 			} else {
-				if (setBaritoneGoal) BaritoneManager.setGoal(GoalXZ(w.x, w.z))
+				if (setBaritoneGoal) BaritoneHandler.setGoal(GoalXZ(w.x, w.z))
 			}
 			currentWaypoint = w
 		}

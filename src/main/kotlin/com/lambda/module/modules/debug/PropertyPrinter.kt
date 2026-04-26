@@ -24,6 +24,7 @@ import com.lambda.util.extension.resolveFile
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 
+@Suppress("unused")
 object PropertyPrinter : Module(
     name = "PropertyPrinter",
     description = "Prints all properties coupled with all the states that use them into a text file",

@@ -35,6 +35,7 @@ import net.minecraft.block.entity.BeaconBlockEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
 
+@Suppress("unused")
 object RadiusESP : Module(
 	name = "RadiusESP",
 	description = "Shows the radius for blocks with abnormal functionality",

@@ -33,6 +33,7 @@ import com.lambda.util.player.SlotUtils.inventorySlots
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
+@Suppress("unused")
 object ToolSaver : Module(
 	name = "ToolSaver",
 	description = "Moves tools from your hotbar into your inventory when they get too damaged",

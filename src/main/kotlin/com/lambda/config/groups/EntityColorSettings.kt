@@ -20,7 +20,7 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.config.SettingGroup
 import com.lambda.context.SafeContext
-import com.lambda.friend.FriendManager.isFriend
+import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.util.EntityUtils
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum

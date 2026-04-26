@@ -21,7 +21,7 @@ import com.google.common.collect.Sets;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
-import com.lambda.graphics.outline.OutlineManager;
+import com.lambda.graphics.outline.OutlineHandler;
 import com.lambda.module.modules.render.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.NoRender;
@@ -102,7 +102,7 @@ public abstract class WorldRendererMixin {
 
     @ModifyExpressionValue(method = "fillEntityRenderStates", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;isRenderingReady(Lnet/minecraft/util/math/BlockPos;)Z"))
     private boolean lambda$bypassIsRenderingReady(boolean original) {
-        if (this.lambda$currentEntity != null && OutlineManager.shouldCapture(this.lambda$currentEntity.getId()))
+        if (this.lambda$currentEntity != null && OutlineHandler.shouldCapture(this.lambda$currentEntity.getId()))
             return true;
         return original;
     }
@@ -122,10 +122,10 @@ public abstract class WorldRendererMixin {
 
     @Inject(method = "fillBlockEntityRenderStates", at = @At("TAIL"))
     private void injectOutlineBlockEntities(Camera camera, float tickProgress, WorldRenderState renderStates, CallbackInfo ci) {
-        if (!OutlineManager.INSTANCE.hasBlockOutlines()) return;
+        if (!OutlineHandler.INSTANCE.hasBlockOutlines()) return;
 
-        Set<BlockPos> xRayTargets = OutlineManager.INSTANCE.getXrayBlockStyles().keySet();
-        Set<BlockPos> depthTargets = OutlineManager.INSTANCE.getDepthTestedBlockStyles().keySet();
+        Set<BlockPos> xRayTargets = OutlineHandler.INSTANCE.getXrayBlockStyles().keySet();
+        Set<BlockPos> depthTargets = OutlineHandler.INSTANCE.getDepthTestedBlockStyles().keySet();
 
         for (BlockPos target : Sets.union(xRayTargets, depthTargets)) {
             if (!this.world.getChunkManager().isChunkLoaded(target.getX() >> 4, target.getZ() >> 4)) continue;

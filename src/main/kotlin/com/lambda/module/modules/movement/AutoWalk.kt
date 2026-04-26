@@ -30,6 +30,7 @@ import net.minecraft.util.math.Vec2f
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+@Suppress("unused")
 object AutoWalk : Module(
 	name = "AutoWalk",
 	description = "Automatically makes your character walk forward",

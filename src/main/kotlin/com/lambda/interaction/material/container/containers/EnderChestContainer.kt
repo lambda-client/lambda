@@ -20,8 +20,8 @@ package com.lambda.interaction.material.container.containers
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ContainerManager
-import com.lambda.interaction.material.container.ContainerManager.findSlotsWithMaterial
+import com.lambda.interaction.material.container.ContainerHandler
+import com.lambda.interaction.material.container.ContainerHandler.findSlotsWithMaterial
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.TaskGenerator
@@ -40,7 +40,7 @@ object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContain
 	context(safeContext: SafeContext)
 	override val slots
 		get() =
-			if (ContainerManager.lastInteractedBlockEntity is EnderChestBlockEntity)
+			if (ContainerHandler.lastInteractedBlockEntity is EnderChestBlockEntity)
 				safeContext.player.currentScreenHandler.containerSlots
 			else emptyList()
 	override var stacks = emptyList<ItemStack>()

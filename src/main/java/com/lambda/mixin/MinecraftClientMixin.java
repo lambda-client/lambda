@@ -17,7 +17,7 @@
 
 package com.lambda.mixin;
 
-import com.lambda.core.TimerManager;
+import com.lambda.core.TimerHandler;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.GuiEvent;
@@ -194,10 +194,10 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "getTargetMillisPerTick")
     float getTargetMillisPerTick(float millis, Operation<Float> original) {
-        var length = TimerManager.INSTANCE.getLength();
+        var length = TimerHandler.INSTANCE.getLength();
 
-        if (length == TimerManager.DEFAULT_LENGTH) return original.call(millis);
-        else return (float) TimerManager.INSTANCE.getLength();
+        if (length == TimerHandler.DEFAULT_LENGTH) return original.call(millis);
+        else return (float) TimerHandler.INSTANCE.getLength();
     }
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)

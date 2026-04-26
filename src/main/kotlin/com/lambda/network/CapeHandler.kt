@@ -48,7 +48,7 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
-object CapeManager : Configurable(SecretsConfig), Loadable {
+object CapeHandler : Configurable(SecretsConfig), Loadable {
     override val name: String = "capes"
 
     var currentCape by setting("cape", "")

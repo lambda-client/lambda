@@ -34,6 +34,7 @@ import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
 import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
 import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 
+@Suppress("unused")
 object Nuker : Module(
 	name = "Nuker",
 	description = "Breaks blocks around you",
