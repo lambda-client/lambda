@@ -34,6 +34,7 @@ import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 
+@Suppress("unused")
 object PrefixCommand : LambdaCommand(
 	"prefix",
 	usage = "prefix <prefix>",

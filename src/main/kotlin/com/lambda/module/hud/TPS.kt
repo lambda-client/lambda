@@ -25,6 +25,7 @@ import com.lambda.util.Formatting.format
 import com.lambda.util.ServerTPS
 import com.lambda.util.ServerTPS.recentData
 
+@Suppress("unused")
 object TPS : HudModule(
 	name = "TPS",
 	description = "Display the server's tick rate",

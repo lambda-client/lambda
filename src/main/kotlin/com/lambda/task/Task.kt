@@ -37,6 +37,7 @@ typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
 typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
 typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 
+@Suppress("unused")
 abstract class Task<Result> : Nameable, Muteable {
     var parent: Task<*>? = null
     var parentPausing = false

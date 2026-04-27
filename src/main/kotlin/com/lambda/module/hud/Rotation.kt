@@ -25,6 +25,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.format
 
+@Suppress("unused")
 object Rotation : HudModule(
 	name = "Rotation",
 	description = "Show your rotation",

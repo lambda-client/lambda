@@ -23,6 +23,7 @@ import net.minecraft.util.Identifier
 import java.security.MessageDigest
 import java.util.*
 
+@Suppress("unused")
 object StringUtils {
     fun String.sanitizeForFilename() =
         replace(Regex("[\\\\/:*?\"<>|]"), "_")

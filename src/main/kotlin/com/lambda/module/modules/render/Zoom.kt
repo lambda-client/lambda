@@ -82,6 +82,7 @@ object Zoom : Module(
 		if (lerpedZoom == targetZoom) lerpedZoom = targetZoom
 	}
 
+	@Suppress("unused")
 	private enum class ZoomStyle(
 		override val displayName: String,
 		val apply: (Float, Float, Float) -> Float,

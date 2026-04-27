@@ -31,6 +31,7 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
+@Suppress("unused")
 object Coordinates : HudModule(
 	name = "Coordinates",
 	description = "Show your coordinates",

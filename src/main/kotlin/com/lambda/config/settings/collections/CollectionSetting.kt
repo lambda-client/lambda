@@ -182,6 +182,7 @@ open class CollectionSetting<R : Any>(
 		value = strList
 	}
 
+	@Suppress("unused")
 	companion object {
 		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onSelect(block: SafeContext.(R) -> Unit) = apply {
 			core.selectListeners.add(block)

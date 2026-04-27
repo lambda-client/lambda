@@ -150,6 +150,7 @@ object LightLevels : Module(
 		if (mode == Mode.Chunked) chunkedRenderer.rebuildChunk(x, z)
 	}
 
+	@Suppress("unused")
 	private fun refreshChunkedRenderer(ctx: SafeContext, from: Any? = null, to: Any? = null) {
 		if (mode == Mode.Chunked) chunkedRenderer.rebuild()
 	}
@@ -165,6 +166,7 @@ object LightLevels : Module(
 		Circle
 	}
 
+	@Suppress("unused")
 	private enum class AreaMode(val player: Boolean, val camera: Boolean) {
 		Both(true, true),
 		Camera(false, true),

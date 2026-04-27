@@ -23,6 +23,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3i
 
+@Suppress("unused")
 enum class PlaceDirection(
 	val rotation: Rotation,
 	val vector: Vec3i,

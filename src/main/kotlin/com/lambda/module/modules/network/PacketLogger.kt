@@ -80,6 +80,7 @@ object PacketLogger : Module(
     enum class Scope {
         Any, Whitelist, Blacklist;
 
+        @Suppress("unused")
         fun shouldLog(packet: Packet<*>) = when (this) {
             Any -> true
             Whitelist -> false//packet::class.simpleName in whitelist

@@ -23,6 +23,7 @@ import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object Baritone : HudModule(
     name = "Baritone",
     description = "Look inside of Baritones head",

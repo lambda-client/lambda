@@ -94,13 +94,8 @@ class SDFFontAtlas(
 	val descent: Float
 	val scale: Float
 
-	val sdfPixelRange: Float get() = (sdfSpread * 2).toFloat()
-
 	val textureView: GpuTextureView? get() = glTextureView
-
 	val sampler: GpuSampler? get() = gpuSampler
-
-	val isUploaded: Boolean get() = glTexture != null
 
 	init {
 		val fontBytes =

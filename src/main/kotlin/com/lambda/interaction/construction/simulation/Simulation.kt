@@ -36,6 +36,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
+@Suppress("unused")
 data class Simulation(
     val blueprint: Blueprint,
     private val automated: Automated

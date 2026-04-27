@@ -23,6 +23,7 @@ import com.lambda.imgui.ImGui
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object Watermark : HudModule(
     name = "Watermark",
     tag = ModuleTag.HUD,

@@ -1965,7 +1965,7 @@ object ImGuiBuilder {
      * @param value Float value
      * @param block Content of the scope
      *
-     * @see imgui.flag.ImGuiStyleVar
+     * @see com.lambda.imgui.flag.ImGuiStyleVar
      */
     @ImGuiDsl
     inline fun withStyleVar(styleVar: Int, value: Float, block: ProcedureBlock) {

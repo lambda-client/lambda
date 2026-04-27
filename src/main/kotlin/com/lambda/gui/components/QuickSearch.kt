@@ -44,6 +44,7 @@ import net.minecraft.client.gui.screen.ChatScreen
 import kotlin.math.max
 
 // ToDo: Add support for searching of menu bar entries
+@Suppress("unused")
 object QuickSearch {
     private val searchInput = ImString(256)
     var isOpen = false

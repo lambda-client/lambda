@@ -409,8 +409,6 @@ class RegionRenderer {
 	fun hasData(): Boolean = hasWorldData
 
 	companion object {
-		fun createRenderPass(label: String): RenderPass? = createRenderPass(label, useMcDepth = true)
-
 		fun createRenderPass(label: String, useMcDepth: Boolean): RenderPass? {
 			val framebuffer = mc.framebuffer ?: return null
 

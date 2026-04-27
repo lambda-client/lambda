@@ -24,6 +24,7 @@ import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
+@Suppress("unused")
 object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
@@ -41,7 +42,7 @@ object ModuleList : HudModule(
         enabled.forEach {
             val bound = it.keybind.key != 0 || it.keybind.mouse != -1
             if (onlyBound && !bound) return@forEach
-            text(it.name);
+            text(it.name)
 
 	        if (showKeybind) {
 		        val color = if (!bound) Color.RED else Color.GREEN

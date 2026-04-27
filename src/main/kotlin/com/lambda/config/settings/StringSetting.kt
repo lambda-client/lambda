@@ -61,15 +61,14 @@ class StringSetting(
         }
     }
 
+    @Suppress("unused", "unchecked_cast")
     companion object {
         @SettingEditorDsl
-        @Suppress("unchecked_cast")
         fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
             (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
         }
 
         @SettingEditorDsl
-        @Suppress("unchecked_cast")
         fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
             (settings as Collection<StringSetting>).forEach { it.flags = flags }
         }

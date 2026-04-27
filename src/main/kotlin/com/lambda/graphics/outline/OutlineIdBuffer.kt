@@ -100,10 +100,7 @@ object OutlineIdBuffer {
     fun getSilhouetteDepthView(): GpuTextureView? = depthTextureView
     
     fun getTextureView(): GpuTextureView? = idTextureView
-    
-    fun getWidth(): Int = bufferWidth
-    fun getHeight(): Int = bufferHeight
-    
+
     fun cleanup() {
         idTextureView?.close()
         idTexture?.close()
