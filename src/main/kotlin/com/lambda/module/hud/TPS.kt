@@ -18,12 +18,12 @@
 package com.lambda.module.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImVec2
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Formatting.format
 import com.lambda.util.ServerTPS
 import com.lambda.util.ServerTPS.recentData
-import com.lambda.imgui.ImVec2
 
 object TPS : HudModule(
 	name = "TPS",

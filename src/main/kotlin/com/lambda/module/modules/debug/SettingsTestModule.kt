@@ -18,8 +18,8 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.groups.ScreenTextSettings
+import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.groups.WorldTextSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

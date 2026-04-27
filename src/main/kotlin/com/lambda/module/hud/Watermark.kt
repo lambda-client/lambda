@@ -19,9 +19,9 @@ package com.lambda.module.hud
 
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.imgui.ImGui
 
 object Watermark : HudModule(
     name = "Watermark",

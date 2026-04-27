@@ -24,13 +24,13 @@ import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
 import com.lambda.config.configurations.UserAutomationConfigs
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiPopupFlags
+import com.lambda.imgui.flag.ImGuiTabBarFlags
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.util.NamedEnum
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.flag.ImGuiPopupFlags
-import com.lambda.imgui.flag.ImGuiTabBarFlags
 
 object SettingsWidget {
     /**

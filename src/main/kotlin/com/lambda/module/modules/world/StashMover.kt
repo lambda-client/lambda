@@ -91,8 +91,6 @@ import net.minecraft.util.math.Box
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import kotlin.math.min
-import kotlin.run
-import kotlin.to
 
 @Suppress("unused")
 object StashMover : Module(

@@ -24,8 +24,8 @@ import com.lambda.config.configurations.LambdaConfig
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.login
 import com.lambda.util.StringUtils.hash

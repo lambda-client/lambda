@@ -41,7 +41,7 @@ import com.lambda.util.text.styled
 import kotlinx.coroutines.runBlocking
 import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
-import java.util.UUID
+import java.util.*
 
 @Suppress("unused")
 object FriendCommand : LambdaCommand(

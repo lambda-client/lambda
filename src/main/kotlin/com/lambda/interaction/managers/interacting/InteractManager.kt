@@ -36,7 +36,9 @@ import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
+import com.lambda.interaction.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
+import com.lambda.interaction.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendingActions
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.setPendingConfigs

@@ -21,7 +21,7 @@ import com.lambda.Lambda
 import com.lambda.Lambda.gson
 import net.minecraft.util.Identifier
 import java.security.MessageDigest
-import java.util.Base64
+import java.util.*
 
 object StringUtils {
     fun String.sanitizeForFilename() =

@@ -21,8 +21,8 @@ import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
@@ -32,7 +32,6 @@ import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.relativeMCPath
 import com.lambda.util.Formatting.getTime
-import com.lambda.util.reflections.getInstances
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent

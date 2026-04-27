@@ -35,6 +35,12 @@ import com.lambda.gui.snap.SnapHandler
 import com.lambda.gui.snap.SnapHandler.drawDragGrid
 import com.lambda.gui.snap.SnapHandler.drawSnapLines
 import com.lambda.gui.snap.SnapHandler.updateDragAndSnapping
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.extension.implot.ImPlot
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiCond
+import com.lambda.imgui.flag.ImGuiHoveredFlags
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
@@ -45,12 +51,6 @@ import com.lambda.util.Describable
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.extension.implot.ImPlot
-import com.lambda.imgui.flag.ImGuiCol
-import com.lambda.imgui.flag.ImGuiCond
-import com.lambda.imgui.flag.ImGuiHoveredFlags
-import com.lambda.imgui.flag.ImGuiWindowFlags
 import net.minecraft.SharedConstants
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen

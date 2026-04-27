@@ -28,6 +28,11 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.imgui.flag.ImGuiStyleVar
+import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.imgui.type.ImString
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
@@ -35,11 +40,6 @@ import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.StringUtils.levenshteinDistance
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.flag.ImGuiInputTextFlags
-import com.lambda.imgui.flag.ImGuiStyleVar
-import com.lambda.imgui.flag.ImGuiWindowFlags
-import com.lambda.imgui.type.ImString
 import net.minecraft.client.gui.screen.ChatScreen
 import kotlin.math.max
 

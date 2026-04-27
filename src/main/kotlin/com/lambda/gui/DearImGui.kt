@@ -22,9 +22,6 @@ import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.GuiEvent
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.util.stream
-import com.mojang.blaze3d.opengl.GlStateManager
-import com.mojang.blaze3d.systems.RenderSystem
 import com.lambda.imgui.ImFontConfig
 import com.lambda.imgui.ImFontGlyphRangesBuilder
 import com.lambda.imgui.ImGui
@@ -33,6 +30,9 @@ import com.lambda.imgui.extension.implot.ImPlot
 import com.lambda.imgui.flag.ImGuiConfigFlags
 import com.lambda.imgui.gl3.ImGuiImplGl3
 import com.lambda.imgui.glfw.ImGuiImplGlfw
+import com.lambda.util.stream
+import com.mojang.blaze3d.opengl.GlStateManager
+import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER

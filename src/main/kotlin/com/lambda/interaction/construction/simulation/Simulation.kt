@@ -20,7 +20,6 @@ package com.lambda.interaction.construction.simulation
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.result.BuildResult

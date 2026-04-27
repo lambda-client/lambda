@@ -30,8 +30,7 @@ import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.system.MemoryUtil
-import java.util.OptionalDouble
-import java.util.OptionalInt
+import java.util.*
 
 object OutlineRenderer {
     private var silhouetteTexture: GpuTexture? = null

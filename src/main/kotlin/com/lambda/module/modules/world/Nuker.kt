@@ -28,11 +28,11 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
+import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
+import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
-import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
-import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
-import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 
 @Suppress("unused")
 object Nuker : Module(

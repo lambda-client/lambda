@@ -25,8 +25,8 @@ import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.Configuration.Companion.configurables
-import com.lambda.config.migration.ConfigMigrations
 import com.lambda.config.configurations.ModuleConfigs
+import com.lambda.config.migration.ConfigMigrations
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe

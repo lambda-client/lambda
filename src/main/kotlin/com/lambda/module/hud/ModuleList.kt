@@ -18,10 +18,10 @@
 package com.lambda.module.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.imgui.flag.ImGuiCol
 import java.awt.Color
 
 object ModuleList : HudModule(

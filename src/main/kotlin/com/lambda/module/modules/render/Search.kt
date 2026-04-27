@@ -43,7 +43,7 @@ import com.lambda.util.extension.entityColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
-import io.ktor.util.collections.ConcurrentMap
+import io.ktor.util.collections.*
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity

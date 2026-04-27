@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.simulation.result
 
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 
 /**
  * Represents a [BuildResult] that can be rendered in-game.

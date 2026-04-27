@@ -30,9 +30,6 @@ import com.lambda.gui.snap.SnapHandler
 import com.lambda.gui.snap.SnapHandler.drawDragGrid
 import com.lambda.gui.snap.SnapHandler.drawSnapLines
 import com.lambda.gui.snap.SnapHandler.updateDragAndSnapping
-import com.lambda.module.HudModule
-import com.lambda.module.ModuleRegistry
-import com.lambda.util.NamedEnum
 import com.lambda.imgui.ImColor
 import com.lambda.imgui.ImDrawList
 import com.lambda.imgui.ImGui
@@ -40,6 +37,9 @@ import com.lambda.imgui.flag.ImDrawListFlags
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.module.HudModule
+import com.lambda.module.ModuleRegistry
+import com.lambda.util.NamedEnum
 import java.awt.Color
 import kotlin.math.PI
 

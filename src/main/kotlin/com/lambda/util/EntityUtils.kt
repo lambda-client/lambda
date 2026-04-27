@@ -24,8 +24,8 @@ import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
-import kotlin.jvm.java
 
+@Suppress("unused")
 object EntityUtils {
     val entities: Collection<ClassInfo> = scanResult
         .getSubclasses(Entity::class.java)

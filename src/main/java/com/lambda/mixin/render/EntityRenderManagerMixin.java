@@ -18,8 +18,8 @@
 package com.lambda.mixin.render;
 
 import com.lambda.graphics.outline.IEntityRenderState;
-import com.lambda.graphics.outline.OutlineHandler;
 import com.lambda.graphics.outline.OutlineCapturingQueue;
+import com.lambda.graphics.outline.OutlineHandler;
 import com.lambda.graphics.outline.VertexCapture;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;

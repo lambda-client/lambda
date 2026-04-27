@@ -37,8 +37,8 @@
 package com.lambda.gui.dsl
 
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.dsl.ImGuiBuilder.openPopup
 import com.lambda.gui.dsl.ImGuiBuilder.text
-import com.lambda.util.math.Vec2d
 import com.lambda.imgui.ImDrawList
 import com.lambda.imgui.ImFont
 import com.lambda.imgui.ImGui
@@ -130,6 +130,7 @@ import com.lambda.imgui.ImGui.isWindowAppearing
 import com.lambda.imgui.ImGui.isWindowCollapsed
 import com.lambda.imgui.ImGui.isWindowHovered
 import com.lambda.imgui.ImGui.plotHistogram
+import com.lambda.imgui.ImGui.plotLines
 import com.lambda.imgui.ImGui.popFont
 import com.lambda.imgui.ImGui.popID
 import com.lambda.imgui.ImGui.popItemWidth
@@ -157,6 +158,7 @@ import com.lambda.imgui.ImGuiTextFilter
 import com.lambda.imgui.ImGuiViewport
 import com.lambda.imgui.ImVec2
 import com.lambda.imgui.flag.ImDrawListFlags
+import com.lambda.imgui.flag.ImGuiChildFlags
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiColorEditFlags
 import com.lambda.imgui.flag.ImGuiComboFlags
@@ -174,13 +176,12 @@ import com.lambda.imgui.type.ImDouble
 import com.lambda.imgui.type.ImFloat
 import com.lambda.imgui.type.ImInt
 import com.lambda.imgui.type.ImString
+import com.lambda.util.math.Vec2d
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import java.awt.Color
 import kotlin.reflect.KMutableProperty0
-import com.lambda.imgui.ImGui.plotLines
-import com.lambda.imgui.flag.ImGuiChildFlags
 
 typealias ProcedureBlock = ImGuiBuilder.() -> Unit
 typealias WrappedBlock<In, Out> = ImGuiBuilder.(In) -> Out

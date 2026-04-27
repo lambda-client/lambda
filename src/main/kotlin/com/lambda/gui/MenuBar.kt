@@ -35,6 +35,11 @@ import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.ImGui.closeCurrentPopup
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiStyleVar
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
@@ -46,11 +51,6 @@ import com.lambda.util.Diagnostics.gatherDiagnostics
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.minecraft
 import com.mojang.blaze3d.platform.TextureUtil
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.closeCurrentPopup
-import com.lambda.imgui.flag.ImGuiCol
-import com.lambda.imgui.flag.ImGuiStyleVar
-import com.lambda.imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.gui.screen.DebugOptionsScreen
 import net.minecraft.network.packet.c2s.play.ChangeGameModeC2SPacket

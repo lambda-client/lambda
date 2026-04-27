@@ -18,8 +18,6 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.module.modules.client.Client
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -30,6 +28,8 @@ import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMod
 import com.lambda.interaction.managers.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.managers.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
+import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.fluidState

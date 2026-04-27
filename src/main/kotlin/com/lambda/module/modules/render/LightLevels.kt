@@ -40,7 +40,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.world.LightType
 import java.awt.Color
-import kotlin.collections.forEach
 
 object LightLevels : Module(
 	name = "LightLevels",

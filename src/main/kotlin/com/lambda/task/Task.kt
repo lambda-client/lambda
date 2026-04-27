@@ -18,13 +18,13 @@
 package com.lambda.task
 
 import com.lambda.Lambda.LOG
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable

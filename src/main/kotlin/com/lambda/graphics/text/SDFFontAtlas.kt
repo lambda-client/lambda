@@ -24,6 +24,9 @@ import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.minecraft.client.gl.GpuSampler
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.stb.STBTTFontinfo
@@ -43,12 +46,9 @@ import org.lwjgl.stb.STBTruetype.stbtt_ScaleForPixelHeight
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import java.nio.ByteBuffer
-import kotlin.math.sqrt
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
 import kotlin.io.path.readBytes
+import kotlin.math.sqrt
 
 class SDFFontAtlas(
 	fontPath: String,

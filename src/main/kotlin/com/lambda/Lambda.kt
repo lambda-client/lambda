@@ -53,7 +53,6 @@ import org.apache.logging.log4j.Logger
 import java.awt.Color
 import java.util.*
 
-
 object Lambda : ClientModInitializer {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"

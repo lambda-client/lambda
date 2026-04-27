@@ -18,9 +18,9 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.mc.renderer.RendererUtils
 import com.lambda.graphics.mc.renderer.upload
+import com.lambda.graphics.outline.OutlineStyle
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem

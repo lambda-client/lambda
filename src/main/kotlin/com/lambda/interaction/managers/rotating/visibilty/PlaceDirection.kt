@@ -22,7 +22,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3i
-import kotlin.math.sin
 
 enum class PlaceDirection(
 	val rotation: Rotation,

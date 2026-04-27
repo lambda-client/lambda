@@ -18,11 +18,11 @@
 package com.lambda.interaction.managers.interacting
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler
 import com.lambda.interaction.managers.interacting.InteractManager.placeSound
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.warn

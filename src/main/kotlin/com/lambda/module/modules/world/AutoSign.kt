@@ -30,7 +30,7 @@ import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
 import net.minecraft.client.gui.screen.ingame.HangingSignEditScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
-import java.util.Date
+import java.util.*
 
 @Suppress("unused")
 object AutoSign : Module(

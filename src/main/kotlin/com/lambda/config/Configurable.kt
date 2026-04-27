@@ -43,10 +43,10 @@ import com.lambda.config.settings.numeric.FloatSetting
 import com.lambda.config.settings.numeric.IntegerSetting
 import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.event.Muteable
+import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import com.lambda.imgui.flag.ImGuiInputTextFlags
 import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.registry.Registries
@@ -113,8 +113,7 @@ abstract class Configurable(
         name: String,
         defaultValue: T,
         description: String = "",
-        noinline
-        visibility: () -> Boolean = { true },
+        noinline visibility: () -> Boolean = { true },
     ) = Setting(name, description,EnumSetting(defaultValue), this, visibility).register()
 
     fun setting(

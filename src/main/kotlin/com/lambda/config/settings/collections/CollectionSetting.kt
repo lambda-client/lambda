@@ -28,12 +28,12 @@ import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.getContentRegionAvail
-import com.lambda.threading.runSafe
 import com.lambda.imgui.ImGuiListClipper
 import com.lambda.imgui.callback.ImListClipperCallback
 import com.lambda.imgui.flag.ImGuiChildFlags
 import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.imgui.flag.ImGuiSelectableFlags.DontClosePopups
+import com.lambda.threading.runSafe
 import java.lang.reflect.Type
 
 /**
