@@ -22,7 +22,6 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.threading.runConcurrent
-import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.Pointer
 import com.lambda.util.collections.updatable
@@ -109,13 +108,13 @@ class SafeListener<T : Event>(
          *     player.sendMessage("Event received: $event")
          * }
          *
-         * listen<MyEvent>(priority = 1) { event ->
+         * listen<MyEvent>(priority = { 1 }) { event ->
          *     player.sendMessage("Event received before the previous listener: $event")
          * }
          * ```
          *
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is { 0 }.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
@@ -150,14 +149,14 @@ class SafeListener<T : Event>(
          *     player.sendMessage("Event received: $event")
          * }
          *
-         * listen(MyEvent::class, priority = 1) { event ->
+         * listen(MyEvent::class, priority = { 1 }) { event ->
          *     player.sendMessage("Event received before the previous listener: $event")
          * }
          * ```
          *
          * @param kClass The KClass instance of covariant type [T] used to circumvent type erasure.
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is { 0 }.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
@@ -199,7 +198,7 @@ class SafeListener<T : Event>(
          * ```
          *
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is { 0 }.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
          * @return The newly created and registered [SafeListener].
          */
@@ -241,12 +240,12 @@ class SafeListener<T : Event>(
          *     // no safe access to player or world
          * }
          *
-         * listenConcurrently<MyEvent>(priority = 1) { event ->
+         * listenConcurrently<MyEvent>(priority = { 1 }) { event ->
          *     println("Concurrent event received before the previous listener: $event")
          * }
          * ```
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is { 0 }.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
