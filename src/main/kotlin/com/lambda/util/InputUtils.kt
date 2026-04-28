@@ -89,6 +89,7 @@ object InputUtils {
 		(key == -1 ||  glfwGetKey(mc.window.handle, key).pressedOrRepeated) &&
 				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
 				trueMods.all { glfwGetKey(mc.window.handle, it.code).pressedOrRepeated }
+
 	private val Int.pressedOrRepeated
 		get() = this == 1 || this == 2
 

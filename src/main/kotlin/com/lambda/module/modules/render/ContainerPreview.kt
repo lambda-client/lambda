@@ -67,9 +67,9 @@ object ContainerPreview : Module(
     private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color").group(Group.ContainerTooltip)
 
     private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories").group(Group.ContentPreview)
-    private val previewItemScale by setting("Item Scale", 13f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemXOffset by setting("Item X Offset", 0f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemYOffset by setting("Item Y Offset", 0f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
     private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }.group(Group.ContentPreview)
         .onValueChange { _, _ ->
             containerCache.clear()
@@ -90,7 +90,7 @@ object ContainerPreview : Module(
     var isRenderingSubTooltip: Boolean = false
         private set
 
-    // Cache for container contents summary   // Cache size is limited to 200 entries
+    // Cache for container contents summary
     val containerCache = object : LinkedHashMap<Int, ContainerPreviewInfo>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, ContainerPreviewInfo>): Boolean {
             return size > 200
@@ -111,7 +111,7 @@ object ContainerPreview : Module(
     private fun getTooltipHeight() = TITLE_HEIGHT + ROWS * SLOT_SIZE + PADDING
 
     /**
-     * Check if mouse is over the locked tooltip area (for click blocking)
+     * Check if the mouse is over the locked tooltip area (for click blocking)
      */
     @JvmStatic
     fun isMouseOverLockedTooltip(mouseX: Int, mouseY: Int): Boolean {
@@ -186,14 +186,13 @@ object ContainerPreview : Module(
     private fun renderTooltipForStack(context: DrawContext, textRenderer: TextRenderer, stack: ItemStack, x: Int, y: Int, allowHover: Boolean) {
         val contents = getContainerContents(stack)
         val width = getTooltipWidth()
-        val height = getTooltipHeight()
 
         val matrices = context.matrices
         matrices.pushMatrix()
 
         val tintColor = getContainerTintColor(stack)
 
-        drawBackground(context, x, y, width, height, tintColor)
+        drawBackground(context, x, y, width, tintColor)
         val name = stack.name
         val textColor = getTextColor(tintColor)
         context.drawText(textRenderer, name, x + PADDING, y + 4, textColor, false)
@@ -301,7 +300,7 @@ object ContainerPreview : Module(
         return y
     }
 
-    private fun drawBackground(context: DrawContext, x: Int, y: Int, width: Int, height: Int, tintColor: Int) {
+    private fun drawBackground(context: DrawContext, x: Int, y: Int, width: Int, tintColor: Int) {
         // Draw the shulker box texture background with tint
         // The shulker_box.png texture is 176x166
         // Top part (title area): y=0 to y=17
@@ -406,7 +405,7 @@ object ContainerPreview : Module(
 		val shift = 8 * (1 - scale) // 0 at scale 1.0, 8 at scale 0.0
 
 		val newScreenX = ((x + previewItemXOffset + shift) / scale).toInt()
-		val newScreenY = ((y + previewItemYOffset + shift) / scale).toInt()
+		val newScreenY = (((y - previewItemYOffset) + shift) / scale).toInt()
 
         itemMatrix.scale(scale, scale)
 

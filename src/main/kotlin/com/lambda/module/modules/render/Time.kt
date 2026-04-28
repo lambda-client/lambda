@@ -15,28 +15,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.movement
+package com.lambda.module.modules.render
 
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
 
-object Velocity : Module(
-    name = "Velocity",
-    description = "Modifies your velocity",
-    tag = ModuleTag.MOVEMENT,
+object Time : Module(
+	name = "Time",
+	description = "Changes the time of day",
+	tag = ModuleTag.RENDER
 ) {
-    @JvmStatic val pushed by setting("Pushed", true, "Prevents the player from getting pushed by other entities")
-    private val knockback by setting("Knockback", true, "Prevents the player from taking knockback when being attacked")
-    @JvmStatic val explosion by setting("Explosion", true, "Prevents the player from taking knockback from explosions")
+	private val time by setting("Time", 12000L, 0L..24000L, 100L)
 
-    init {
-        listen<PacketEvent.Receive.Pre> { event ->
-            when (event.packet) {
-                is EntityVelocityUpdateS2CPacket if (knockback && event.packet.entityId == mc.player?.id) -> event.cancel()
-            }
-        }
-    }
+	private var prevTime = 0L
+
+	init {
+		onEnable { prevTime = world.levelProperties.timeOfDay }
+		onDisable { world.levelProperties.timeOfDay = prevTime }
+
+		listen<TickEvent.Pre> {
+			world.levelProperties.timeOfDay = time
+		}
+
+		listen<PacketEvent.Receive.Pre> { event ->
+			if (event.packet !is WorldTimeUpdateS2CPacket) return@listen
+			event.cancel()
+		}
+	}
 }

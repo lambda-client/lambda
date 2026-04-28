@@ -23,6 +23,7 @@ import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.BaritoneHandler
@@ -52,20 +53,37 @@ import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inve
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
+import com.lambda.threading.runConcurrent
+import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.EntityUtils.getClosestPointTo
+import com.lambda.util.EntityUtils.getPositionsWithinBox
 import com.lambda.util.Formatting.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.playerSlots
+import com.lambda.util.math.dist
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.runBlocking
+import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
+import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
+import java.util.Collections
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.sqrt
 
 class BuildTask private constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean,
     private val collectDrops: Boolean,
     private val lifeMaintenance: Boolean,
+    private val async: Boolean,
     automated: Automated,
     private val buildResultFilter: SafeContext.(BuildResult) -> Boolean,
 ) : Task<Structure>(), Automated by automated {
@@ -85,52 +103,132 @@ class BuildTask private constructor(
             dropsToCollect.add(item)
         } else null
 
+    private var firstSim = true
+    private var job: Job? = null
+    private var results: Collection<BuildResult> = mutableSetOf()
+    private var reSimPositions = Collections.synchronizedSet(linkedSetOf<BlockPos>())
+    private var viableResults: Sequence<BuildResult> = emptySequence()
+
     override fun SafeContext.onStart() {
         iteratePropagating()
     }
 
     init {
-        listen<TickEvent.Pre> {
-            when {
-                lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
-                    eatTask = eat()
-                    eatTask?.finally {
-                        eatTask = null
-                    }?.execute(this@BuildTask)
+        listen<TickEvent.Post> {
+            if (!firstSim || !async) {
+                if (checkEmpty() || !async) return@listen
+            }
+            firstSim = false
+            runSafeAutomated {
+                if (preSim()) {
+                    job = null
                     return@listen
                 }
-                eatTask != null -> return@listen
+                startSimulation()
             }
-
-            if (blueprint is TickingBlueprint) {
-                blueprint.tick() ?: failure("Failed to tick the ticking blueprint")
-            }
-
-            if (collectDrops()) return@listen
-
-            runSafeAutomated { simulateAndProcess() }
         }
 
-        listen<TickEvent.Post> {
-            if (finishOnDone && blueprint.structure.isEmpty()) {
-                failure("Structure is empty")
-                return@listen
+        listen<TickEvent.Pre> {
+            runSafeAutomated {
+                if (async) {
+                    if (job != null) {
+                        runBlocking { job?.join(); job = null }
+                        results =
+                            results.filter { it.pos !in reSimPositions } +
+                                    blueprint.structure.filter {
+                                        it.key in reSimPositions
+                                    }.simulate()
+                        reSimPositions.clear()
+                        setViableResults()
+                        processResults()
+                    }
+                    return@listen
+                }
+
+                if (preSim()) return@listen
+                simulate()
+                setViableResults()
+                processResults()
+            }
+        }
+
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!async) return@listen
+            runSafe {
+                when (val packet = event.packet) {
+                    is PlayerPositionLookS2CPacket -> {
+                        job?.cancel(CancellationException("Player position moved, all simulations are compromised."))
+                        job = null
+                    }
+                    is BlockUpdateS2CPacket -> checkReSims(packet.pos, packet.state)
+                    is ChunkDeltaUpdateS2CPacket -> packet.visitUpdates { pos, state -> checkReSims(pos.toImmutable(), state) }
+                    is EntityPositionS2CPacket -> {
+                        val entity = world.getEntityById(packet.entityId) ?: return@listen
+                        val currentBox = entity.boundingBox
+                        val maxDist = buildConfig.blockReach + sqrt(3.0)
+                        val eyePos = player.eyePos
+                        val newBox = currentBox.offset(packet.change.position.subtract(entity.pos))
+                        if (currentBox.getClosestPointTo(eyePos) dist eyePos > maxDist &&
+                            newBox.getClosestPointTo(eyePos) dist eyePos > maxDist) return@listen
+                        reSimPositions.addAll(currentBox.getPositionsWithinBox() + newBox.getPositionsWithinBox())
+                    }
+                }
             }
         }
     }
 
-    private fun AutomatedSafeContext.simulateAndProcess() {
-        val results =
-            blueprint.structure
-                .simulate()
-                .asSequence()
+    private fun SafeContext.checkReSims(pos: BlockPos, state: BlockState) {
+        val currentState = blockState(pos)
+        if (currentState === state) return
+        val pos = pos
+        reSimPositions.addAll(
+            arrayOf(
+                pos,
+                pos.up(),
+                pos.down(),
+                pos.north(),
+                pos.south(),
+                pos.east(),
+                pos.west()
+            )
+        )
+    }
 
-        Client.drawables = results
-            .filterIsInstance<Drawable>()
-            .plus(pendingInteractions.toList())
-            .toList()
+    private fun AutomatedSafeContext.startSimulation() {
+        if (job != null) return
+        job = runConcurrent { simulate() }
+    }
 
-        val viableResults = results
+    private fun AutomatedSafeContext.preSim(): Boolean {
+        when {
+            lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
+                eatTask = eat()
+                eatTask?.finally {
+                    eatTask = null
+                }?.execute(this@BuildTask)
+                return true
+            }
+            eatTask != null -> return true
+        }
+
+        if (blueprint is TickingBlueprint) {
+            blueprint.tick() ?: run {
+                failure("Failed to tick the ticking blueprint")
+                return true
+            }
+        }
+
+        return collectDrops()
+    }
+
+    private fun AutomatedSafeContext.simulate() {
+        results = blueprint.structure
+            .simulate()
+    }
+
+    private fun SafeContext.setViableResults() {
+        viableResults = results
+            .asSequence()
             .filter { result ->
                 val finalResult = (result as? Dependent)?.lastDependency ?: result
                 pendingInteractions.none {
@@ -139,9 +237,24 @@ class BuildTask private constructor(
             }
             .filter { buildResultFilter(it) }
             .sorted()
+    }
+
+    private fun AutomatedSafeContext.processResults() {
+        Client.drawables = results
+            .filterIsInstance<Drawable>()
+            .plus(pendingInteractions.toList())
+            .toList()
 
         val bestResult = viableResults.firstOrNull() ?: return
         handleResult(bestResult, viableResults)
+    }
+
+    private fun checkEmpty(): Boolean {
+        if (finishOnDone && blueprint.structure.isEmpty()) {
+            failure("Structure is empty")
+            return true
+        }
+        return false
     }
 
     private fun AutomatedSafeContext.handleResult(result: BuildResult, allResults: Sequence<BuildResult>) {
@@ -153,11 +266,7 @@ class BuildTask private constructor(
             is PreSimResult.Restricted,
             is PreSimResult.NoPermission,
             is GenericResult.Ignored -> {
-                if (iteratePropagating()) {
-                    simulateAndProcess()
-                    return
-                }
-
+                if (iteratePropagating()) return
                 if (finishOnDone) success(blueprint.structure)
             }
 
@@ -242,9 +351,10 @@ class BuildTask private constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
+            async: Boolean = false,
             buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
             blueprint: () -> Blueprint
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, this, buildResultFilter)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, async, this, buildResultFilter)
 
         @Ta5kBuilder
         context(automated: Automated)
@@ -252,8 +362,9 @@ class BuildTask private constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = automated.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
+            async: Boolean = false,
             buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, automated, buildResultFilter)
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
 
         @Ta5kBuilder
         context(automated: Automated)
@@ -261,18 +372,20 @@ class BuildTask private constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = automated.buildConfig.collectDrops,
             lifeMaintenance: Boolean = false,
+            async: Boolean = false,
             buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, automated, buildResultFilter)
+        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
 
         @Ta5kBuilder
         fun Automated.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             lifeMaintenance: Boolean = false,
+            async: Boolean = false,
             buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
         ) = BuildTask(
             blockPos.toStructure(TargetState.Empty).toBlueprint(),
-            finishOnDone, true, lifeMaintenance, this, buildResultFilter
+            finishOnDone, true, lifeMaintenance, async, this, buildResultFilter
         )
     }
 }

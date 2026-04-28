@@ -145,6 +145,11 @@ object AutoPortal : Module(
 			PosHandler.tick()
 		}
 
+		onDisable {
+			buildTask?.cancel()
+			buildTask = null
+		}
+
 		immediateRenderer("AutoPortal Immediate Renderer", { depthTest }) { safeContext ->
 			if (!renders || !preview) return@immediateRenderer
 			with (safeContext) {

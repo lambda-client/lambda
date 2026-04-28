@@ -50,8 +50,10 @@ object Nuker : Module(
 	private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 	private val inverseSelection by setting("Inverse Selection", false, "Breaks blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
 	private val sneakLowersFlatten by setting("Sneak Lowers Flatten", false)
+	private val async by setting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
+		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
-	private var task: Task<*>? = null
+	private var buildTask: Task<*>? = null
 
 	init {
 		setDefaultAutomationConfig {
@@ -63,33 +65,39 @@ object Nuker : Module(
 		}
 
 		onEnable {
-			task = tickingBlueprint {
-				if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
-
-				val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
-					.map { it.blockPos }
-					.asSequence()
-					.filter { !world.isAir(it) }
-					.filter { !baritoneSelection || isInBaritoneSelection(it) != inverseSelection }
-					.filter { isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection) }
-					.filter { isWithinDigDirection(it) }
-					.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
-
-				if (fillFloor) {
-					val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
-						.map { it.blockPos }
-						.associateWith { TargetState.Solid(setOf(Blocks.MAGMA_BLOCK)) }
-					return@tickingBlueprint selection + floor
-				}
-
-				selection
-			}.build(finishOnDone = false)
-				.run()
+			startBuildTask()
 		}
 
 		onDisable {
-			task?.cancel()
+			buildTask?.cancel()
+			buildTask = null
 		}
+	}
+
+	private fun startBuildTask() {
+		buildTask?.cancel()
+		buildTask = tickingBlueprint {
+			if (onGround && !player.isOnGround) return@tickingBlueprint emptyMap()
+
+			val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
+				.map { it.blockPos }
+				.asSequence()
+				.filter { !world.isAir(it) }
+				.filter { !baritoneSelection || isInBaritoneSelection(it) != inverseSelection }
+				.filter { isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection) }
+				.filter { isWithinDigDirection(it) }
+				.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
+
+			if (fillFloor) {
+				val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
+					.map { it.blockPos }
+					.associateWith { TargetState.Solid(setOf(Blocks.MAGMA_BLOCK)) }
+				return@tickingBlueprint selection + floor
+			}
+
+			selection
+		}.build(finishOnDone = false, async = async)
+			.run()
 	}
 
 	private fun SafeContext.isWithinDigDirection(pos: BlockPos): Boolean {
