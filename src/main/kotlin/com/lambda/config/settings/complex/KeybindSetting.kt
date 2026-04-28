@@ -215,7 +215,7 @@ data class Bind(
     val modifiers: Int,
     val mouse: Int = -1,
 ) {
-    val truemods = buildList {
+    val trueMods = buildList {
         if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
         if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
         if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LeftAlt)
@@ -237,14 +237,14 @@ data class Bind(
             val list = mutableListOf<Any>()
 
             if (mouse >= 0) list.add(Mouse.entries[mouse])
-            if (modifiers > 0) list.add(truemods.joinToString(separator = "+") { it.name })
+            if (modifiers > 0) list.add(trueMods.joinToString(separator = "+") { it.name })
             if (key > 0) list.add(KeyCode.fromKeyCode(key))
 
             return list.joinToString(separator = "+") { it.toString() }
         }
 
     override fun toString() =
-        "Key Code: $key, Modifiers: ${truemods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
+        "Key Code: $key, Modifiers: ${trueMods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
         val EMPTY = Bind(0, 0, -1)

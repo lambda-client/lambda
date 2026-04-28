@@ -190,7 +190,7 @@ object VisibilityChecker {
 				val pos = when (side) {
 					Direction.DOWN -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
-						minY + Client.scanShrinkFactor,
+						minY - Client.scanShrinkFactor,
 						pov.z.coerceIn(minZ, maxZ)
 					)
 					Direction.UP -> Vec3d(
@@ -201,7 +201,7 @@ object VisibilityChecker {
 					Direction.NORTH -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
 						pov.y.coerceIn(minY, maxY),
-						minZ + Client.scanShrinkFactor
+						minZ - Client.scanShrinkFactor
 					)
 					Direction.SOUTH -> Vec3d(
 						pov.x.coerceIn(minX, maxX),
@@ -209,7 +209,7 @@ object VisibilityChecker {
 						maxZ + Client.scanShrinkFactor
 					)
 					Direction.WEST -> Vec3d(
-						minX + Client.scanShrinkFactor,
+						minX - Client.scanShrinkFactor,
 						pov.y.coerceIn(minY, maxY),
 						pov.z.coerceIn(minZ, maxZ)
 					)
@@ -243,7 +243,7 @@ object VisibilityChecker {
 		with(contract(Client.scanShrinkFactor)) {
 			if (preProcessing == null || preProcessing.info.surfaceScan.mode == ScanMode.Full) return Pair(this, emptySet())
 
-			val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X,  preProcessing.info.surfaceScan)
+			val (newXBounds, shrunkXSide) = toScanRange(minX, maxX, preProcessing.pos.x, Direction.Axis.X, preProcessing.info.surfaceScan)
 			val (newYBounds, shrunkYSide) = toScanRange(minY, maxY, preProcessing.pos.y, Direction.Axis.Y, preProcessing.info.surfaceScan)
 			val (newZBounds, shrunkZSide) = toScanRange(minZ, maxZ, preProcessing.pos.z, Direction.Axis.Z, preProcessing.info.surfaceScan)
 
@@ -271,8 +271,8 @@ object VisibilityChecker {
 	): Pair<ClosedRange<Double>, Direction?> {
 		val range = if (scan.axis == axis) {
 			when (scan.mode) {
-				ScanMode.GreaterBlockHalf -> max(origin + 0.501, min)..max
-				else -> min..min(origin + 0.499, max)
+				ScanMode.GreaterBlockHalf -> max(origin + 0.5 + Client.scanShrinkFactor, min)..max
+				else -> min..min(origin + 0.5 - Client.scanShrinkFactor, max)
 			}
 		} else min..max
 		return Pair(

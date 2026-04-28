@@ -26,7 +26,8 @@ import com.lambda.util.NamedEnum
 object Client : Module(
 	name = "Client",
 	description = "Global settings for Lambda",
-	tag = ModuleTag.CLIENT
+	tag = ModuleTag.CLIENT,
+	enabledByDefault = true
 ) {
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),

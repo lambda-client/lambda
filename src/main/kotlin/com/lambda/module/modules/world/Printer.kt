@@ -53,6 +53,8 @@ object Printer : Module(
 	private val baritoneSelection by setting("Baritone Selection", false, "Restricts block breaking and placing to your baritone selection")
 	private val inverseSelection by setting("Inverse Selection", false, "Break and place blocks outside of the baritone selection and ignores blocks inside") { baritoneSelection }
 	private val sneakLowersFlatten by setting("Sneak Lowers Flatten", false, "When enabled, sneaking will lower the flattening level by 1, allowing you to mine the block below you")
+	private val async by setting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
+		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
 	private var buildTask: Task<*>? = null
 
@@ -60,24 +62,32 @@ object Printer : Module(
 		setDefaultAutomationConfig()
 
 		onEnable {
-			if (!litematicaAvailable()) {
-				logError("Litematica is not installed!")
-				disable()
-				return@onEnable
-			}
-			buildTask = tickingBlueprint {
-				val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@tickingBlueprint emptyMap()
-				BlockPos.iterateOutwards(player.blockPos, range, range, range)
-					.map { it.blockPos }
-					.asSequence()
-					.filter { pos -> !baritoneSelection || isInBaritoneSelection(pos) != inverseSelection }
-					.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
-					.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
-					.filter { air || !it.value.blockState.isAir }
-			}.build(finishOnDone = false, buildResultFilter = { filterBuildResults(it) }).run()
+			startBuildTask()
 		}
 
-		onDisable { buildTask?.cancel(); buildTask = null }
+		onDisable {
+			buildTask?.cancel()
+			buildTask = null
+		}
+	}
+
+	private fun startBuildTask() {
+		if (!litematicaAvailable()) {
+			logError("Litematica is not installed!")
+			disable()
+			return
+		}
+		buildTask?.cancel()
+		buildTask = tickingBlueprint {
+			val schematicWorld = SchematicWorldHandler.getSchematicWorld() ?: return@tickingBlueprint emptyMap()
+			BlockPos.iterateOutwards(player.blockPos, range, range, range)
+				.map { it.blockPos }
+				.asSequence()
+				.filter { pos -> !baritoneSelection || isInBaritoneSelection(pos) != inverseSelection }
+				.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
+				.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
+				.filter { air || !it.value.blockState.isAir }
+		}.build(finishOnDone = false, async = async) { filterBuildResults(it) }.run()
 	}
 
 	/**

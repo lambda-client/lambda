@@ -90,7 +90,7 @@ object ContainerPreview : Module(
     var isRenderingSubTooltip: Boolean = false
         private set
 
-    // Cache for container contents summary   // Cache size is limited to 200 entries
+    // Cache for container contents summary
     val containerCache = object : LinkedHashMap<Int, ContainerPreviewInfo>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, ContainerPreviewInfo>): Boolean {
             return size > 200
@@ -111,7 +111,7 @@ object ContainerPreview : Module(
     private fun getTooltipHeight() = TITLE_HEIGHT + ROWS * SLOT_SIZE + PADDING
 
     /**
-     * Check if mouse is over the locked tooltip area (for click blocking)
+     * Check if the mouse is over the locked tooltip area (for click blocking)
      */
     @JvmStatic
     fun isMouseOverLockedTooltip(mouseX: Int, mouseY: Int): Boolean {
@@ -186,14 +186,13 @@ object ContainerPreview : Module(
     private fun renderTooltipForStack(context: DrawContext, textRenderer: TextRenderer, stack: ItemStack, x: Int, y: Int, allowHover: Boolean) {
         val contents = getContainerContents(stack)
         val width = getTooltipWidth()
-        val height = getTooltipHeight()
 
         val matrices = context.matrices
         matrices.pushMatrix()
 
         val tintColor = getContainerTintColor(stack)
 
-        drawBackground(context, x, y, width, height, tintColor)
+        drawBackground(context, x, y, width, tintColor)
         val name = stack.name
         val textColor = getTextColor(tintColor)
         context.drawText(textRenderer, name, x + PADDING, y + 4, textColor, false)
@@ -301,7 +300,7 @@ object ContainerPreview : Module(
         return y
     }
 
-    private fun drawBackground(context: DrawContext, x: Int, y: Int, width: Int, height: Int, tintColor: Int) {
+    private fun drawBackground(context: DrawContext, x: Int, y: Int, width: Int, tintColor: Int) {
         // Draw the shulker box texture background with tint
         // The shulker_box.png texture is 176x166
         // Top part (title area): y=0 to y=17

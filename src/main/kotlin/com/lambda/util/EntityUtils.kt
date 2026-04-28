@@ -24,6 +24,8 @@ import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 import kotlin.jvm.java
 
 object EntityUtils {
@@ -61,13 +63,28 @@ object EntityUtils {
         return EntityGroup.entries.first { simpleName in it.nameToDisplayNameMap }
     }
 
-    fun Entity.getPositionsWithinHitboxXZ(minY: Int, maxY: Int): Set<BlockPos> {
-        val hitbox = boundingBox
-        val minX = hitbox.minX.floorToInt()
-        val maxX = hitbox.maxX.floorToInt()
-        val minZ = hitbox.minZ.floorToInt()
-        val maxZ = hitbox.maxZ.floorToInt()
-        val positions = mutableSetOf<BlockPos>()
+    fun Box.getClosestPointTo(vec: Vec3d) =
+        Vec3d(
+            vec.x.coerceIn(minX, maxX),
+            vec.y.coerceIn(minY, maxY),
+            vec.z.coerceIn(minZ, maxZ)
+        )
+
+    fun Entity.getPositionsWithinHitbox() =
+        getPositionsWithinHitboxXZ(boundingBox.minY.floorToInt(), boundingBox.maxY.floorToInt())
+
+    fun Entity.getPositionsWithinHitboxXZ(minY: Int, maxY: Int) =
+        boundingBox.getPositionsWithinBoxXZ(minY, maxY)
+
+    fun Box.getPositionsWithinBox() =
+        getPositionsWithinBoxXZ(minY.floorToInt(), maxY.floorToInt())
+
+    fun Box.getPositionsWithinBoxXZ(minY: Int, maxY: Int): HashSet<BlockPos> {
+        val minX = minX.floorToInt()
+        val maxX = maxX.floorToInt()
+        val minZ = minZ.floorToInt()
+        val maxZ = maxZ.floorToInt()
+        val positions = hashSetOf<BlockPos>()
         (minX..maxX).forEach { x ->
             (minY..maxY).forEach { y ->
                 (minZ..maxZ).forEach { z ->
