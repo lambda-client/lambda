@@ -125,9 +125,7 @@ class SafeListener<T : Event>(
             alwaysListen: Boolean = false,
             noinline function: SafeContext.(T) -> Unit = {}
         ): SafeListener<T> {
-            val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
-                runGameScheduled { function(event) }
-            }
+            val listener = SafeListener<T>(priority, this, alwaysListen) { function(it) }
 
             EventFlow.syncListeners.subscribe(listener)
 
@@ -170,9 +168,7 @@ class SafeListener<T : Event>(
             alwaysListen: Boolean = false,
             function: SafeContext.(T) -> Unit = {},
         ): SafeListener<T> {
-            val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
-                runGameScheduled { function(event) }
-            }
+            val listener = SafeListener<T>(priority, this, alwaysListen) { function(it) }
 
             EventFlow.syncListeners.subscribe(kClass, listener)
 
