@@ -135,7 +135,9 @@ class BuildTask private constructor(
                         runBlocking { job?.join(); job = null }
                         results =
                             results.filter { it.pos !in reSimPositions } +
-                                    blueprint.structure.filter { it.key in reSimPositions }.simulate()
+                                    blueprint.structure.filter {
+                                        it.key in reSimPositions
+                                    }.simulate()
                         reSimPositions.clear()
                         setViableResults()
                         processResults()

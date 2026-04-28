@@ -67,9 +67,9 @@ object ContainerPreview : Module(
     private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color").group(Group.ContainerTooltip)
 
     private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories").group(Group.ContentPreview)
-    private val previewItemScale by setting("Item Scale", 13f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemXOffset by setting("Item X Offset", 0f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemYOffset by setting("Item Y Offset", 0f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
+    private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
     private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }.group(Group.ContentPreview)
         .onValueChange { _, _ ->
             containerCache.clear()
@@ -405,7 +405,7 @@ object ContainerPreview : Module(
 		val shift = 8 * (1 - scale) // 0 at scale 1.0, 8 at scale 0.0
 
 		val newScreenX = ((x + previewItemXOffset + shift) / scale).toInt()
-		val newScreenY = ((y + previewItemYOffset + shift) / scale).toInt()
+		val newScreenY = (((y - previewItemYOffset) + shift) / scale).toInt()
 
         itemMatrix.scale(scale, scale)
 
