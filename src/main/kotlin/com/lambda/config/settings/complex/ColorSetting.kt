@@ -31,7 +31,7 @@ import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class ColorSetting(defaultValue: Color) : SettingCore<Color>(
 	defaultValue,

@@ -17,14 +17,14 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class OutlineSettings(
-	c: Configurable,
+	c: Config,
 	vararg baseGroup: NamedEnum,
 	prefix: String = "",
 	override val visibility: () -> Boolean = { true },

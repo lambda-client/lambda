@@ -17,16 +17,16 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class WorldLineSettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), LineConfig {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),

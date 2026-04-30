@@ -21,9 +21,9 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImVec2
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Formatting.format
-import com.lambda.util.ServerTPS
-import com.lambda.util.ServerTPS.recentData
+import com.lambda.util.FormattingUtils.format
+import com.lambda.util.ServerTPSUtils
+import com.lambda.util.ServerTPSUtils.recentData
 
 @Suppress("unused")
 object TPS : HudModule(
@@ -31,7 +31,7 @@ object TPS : HudModule(
 	description = "Display the server's tick rate",
 	tag = ModuleTag.HUD,
 ) {
-	private val format by setting("Tick format", ServerTPS.TickFormat.Tps)
+	private val format by setting("Tick format", ServerTPSUtils.TickFormat.Tps)
 	private val showGraph by setting("Show TPS Graph", false)
 	private val graphHeight by setting("Graph Height", 40f, 10f..200f, 1f)
 	private val graphWidth by setting("Graph Width", 200f, 10f..500f, 1f)

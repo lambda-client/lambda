@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -29,7 +29,7 @@ import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.breaking.BreakConfig
+import com.lambda.config.groups.BreakConfig
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

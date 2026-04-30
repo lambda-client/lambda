@@ -23,7 +23,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.NamedEnum
 
 object SilentSwap : Module(

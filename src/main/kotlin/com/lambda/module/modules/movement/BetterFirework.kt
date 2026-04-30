@@ -19,7 +19,7 @@ package com.lambda.module.modules.movement
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -32,7 +32,7 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks

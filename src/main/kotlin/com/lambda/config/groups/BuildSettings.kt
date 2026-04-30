@@ -17,17 +17,17 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.interaction.managers.rotating.visibilty.PointSelection
 import com.lambda.util.NamedEnum
 import kotlin.math.max
 
 class BuildSettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), BuildConfig {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),

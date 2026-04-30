@@ -25,58 +25,56 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configuration
-import com.lambda.util.Communication.info
+import com.lambda.config.ConfigLoader
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 
 object ConfigCommand : LambdaCommand(
     name = "config",
     aliases = setOf("cfg", "settings", "setting"),
-    usage = "config <save | load | set> <configurable> <setting> <value>",
+    usage = "config <save | load | set> <config> <setting> <value>",
     description = "Save or load configuration files, or set any settings value",
     examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
 ) {
     override fun CommandBuilder.create() {
         required(literal("save")) {
             executeWithResult {
-                Configuration.configurations.forEach { config ->
+                ConfigLoader.configCategories.forEach { config ->
                     config.trySave(true)
                 }
-                this@ConfigCommand.info("Saved ${Configuration.configurations.size} configuration files.")
+                this@ConfigCommand.info("Saved ${ConfigLoader.configCategories.size} configuration files.")
                 return@executeWithResult success()
             }
         }
         required(literal("load")) {
             executeWithResult {
-                Configuration.configurations.forEach { config ->
+                ConfigLoader.configCategories.forEach { config ->
                     config.tryLoad()
                 }
-                this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
+                this@ConfigCommand.info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
                 return@executeWithResult success()
             }
         }
         required(literal("reset")) {
             required(string("config")) { config ->
                 suggests { _, builder ->
-                    suggestMatching(Configuration.configurables.map { it.commandName }, builder)
+                    suggestMatching(ConfigLoader.configs.map { it.commandName }, builder)
                 }
                 required(string("setting")) { setting ->
                     suggests { ctx, builder ->
                         val conf = config(ctx).value()
-                        Configuration.configurableByName(conf)?.let { configurable ->
-                            suggestMatching(configurable.settings.map { it.commandName }, builder)
+                        ConfigLoader.configByName(conf)?.let { config ->
+                            suggestMatching(config.settings.map { it.commandName }, builder)
                         } ?: builder.buildFuture()
                     }
                     executeWithResult {
-                        val confName = config().value()
+                        val confName = this.config().value()
                         val settingName = setting().value()
-                        val configurable = Configuration.configurableByCommandName(confName) ?: run {
-                            return@executeWithResult failure("$confName is not a valid configurable.")
-                        }
-                        val setting = Configuration.settingByCommandName(configurable, settingName) ?: run {
-                            return@executeWithResult failure("$settingName is not a valid setting for $confName.")
-                        }
+                        val config = ConfigLoader.configByCommandName(confName)
+                            ?: return@executeWithResult failure("$confName is not a valid config.")
+                        val setting = ConfigLoader.settingByCommandName(config, settingName)
+                            ?: return@executeWithResult failure("$settingName is not a valid setting for $confName.")
                         setting.reset()
                         return@executeWithResult success()
                     }
@@ -84,9 +82,9 @@ object ConfigCommand : LambdaCommand(
             }
         }
         required(literal("set")) {
-            Configuration.configurables.forEach { configurable ->
-                required(literal(configurable.commandName)) {
-                    configurable.settings.forEach { setting ->
+            ConfigLoader.configs.forEach { config ->
+                required(literal(config.commandName)) {
+                    config.settings.forEach { setting ->
                         required(literal(setting.commandName)) {
                             with(setting) {
                                 buildCommand(registry)

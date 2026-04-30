@@ -17,14 +17,14 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
 import com.lambda.interaction.managers.PostActionHandler
-import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.config.groups.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.managers.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
@@ -36,7 +36,7 @@ import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.gamemode
 import net.minecraft.block.OperatorBlock

@@ -31,8 +31,8 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
+import com.lambda.util.PlaceDirection
+import com.lambda.util.player.RotationUtils.CheckedHit
 import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection

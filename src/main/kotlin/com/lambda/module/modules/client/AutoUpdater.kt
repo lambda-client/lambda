@@ -28,9 +28,9 @@ import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
-import com.lambda.util.Communication.debug
-import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.debug
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.CommunicationUtils.warn
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
 import java.net.URI

@@ -29,7 +29,7 @@ import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class BooleanSetting(defaultValue: Boolean) : SettingCore<Boolean>(
 	defaultValue,

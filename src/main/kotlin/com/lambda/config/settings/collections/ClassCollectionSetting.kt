@@ -22,11 +22,11 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.Setting
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.reflections.className
+import com.lambda.util.ReflectionUtils.className
 
 /**
  * @see [com.lambda.config.settings.collections.CollectionSetting]
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class ClassCollectionSetting<T : Any>(
 	private val immutableCollection: Collection<T>,
@@ -43,10 +43,8 @@ class ClassCollectionSetting<T : Any>(
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
 	// If we do serialize the classes we'll run into missing type adapters errors by Gson.
 	// This is intended behaviour. If you wish your collection settings to display something else then you must extend this class.
-	context(setting: Setting<*, MutableCollection<T>>)
 	override fun toJson(): JsonElement = gson.toJsonTree(value.map { it.className })
 
-	context(setting: Setting<*, MutableCollection<T>>)
 	override fun loadFromJson(serialized: JsonElement) {
 		val strList = gson.fromJson<MutableList<String>>(serialized, type)
 			.mapNotNull { str -> immutableCollection.find { it.className == str } }

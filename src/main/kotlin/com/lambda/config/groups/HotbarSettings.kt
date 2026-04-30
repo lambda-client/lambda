@@ -17,18 +17,18 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.managers.hotbar.HotbarConfig
+import com.lambda.config.groups.HotbarConfig
 import com.lambda.util.NamedEnum
 
 class HotbarSettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), HotbarConfig {
     override val swapMode by c.setting("${prefix}Swap Mode", HotbarConfig.SwapMode.Temporary, visibility = visibility).group(*baseGroup).index()
     override val keepTicks by c.setting("${prefix}Keep Ticks", 1, 0..20, 1, "The number of ticks to keep the current hotbar selection active", " ticks") { visibility() && swapMode == HotbarConfig.SwapMode.Temporary }.group(*baseGroup).index()

@@ -23,7 +23,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 
 @Suppress("unused")
 object Rotation : HudModule(

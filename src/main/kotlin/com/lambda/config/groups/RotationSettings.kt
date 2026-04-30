@@ -17,11 +17,11 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.managers.rotating.RotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.util.NamedEnum
 import kotlin.math.PI
@@ -32,10 +32,10 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 class RotationSettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), RotationConfig {
     override var rotationMode by c.setting("${prefix}Mode", RotationMode.Sync, "How the player is being rotated on interaction", visibility = visibility).group(*baseGroup).index()
 

@@ -23,7 +23,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import java.lang.reflect.Type
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class MapSetting<K, V>(
 	defaultValue: MutableMap<K, V>,

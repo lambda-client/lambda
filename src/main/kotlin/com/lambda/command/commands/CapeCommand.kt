@@ -25,8 +25,8 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.network.CapeHandler.availableCapes
 import com.lambda.network.CapeHandler.updateCape
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 

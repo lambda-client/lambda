@@ -19,39 +19,18 @@ package com.lambda
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.lambda.config.serializer.BlockCodec
-import com.lambda.config.serializer.BlockPosCodec
-import com.lambda.config.serializer.ColorCodec
-import com.lambda.config.serializer.GameProfileCodec
-import com.lambda.config.serializer.ItemCodec
-import com.lambda.config.serializer.ItemStackCodec
-import com.lambda.config.serializer.KeyCodeCodec
-import com.lambda.config.serializer.OptionalCodec
-import com.lambda.config.serializer.TextCodec
-import com.lambda.config.serializer.UUIDCodec
+import com.lambda.config.Codec
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.util.KeyCode
+import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
-import com.mojang.authlib.GameProfile
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
-import net.minecraft.item.ArrowItem
-import net.minecraft.item.BlockItem
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.item.PotionItem
-import net.minecraft.item.RangedWeaponItem
-import net.minecraft.text.Text
-import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import java.awt.Color
-import java.util.*
 
 object Lambda : ClientModInitializer {
     const val MOD_NAME = "Lambda"
@@ -72,20 +51,12 @@ object Lambda : ClientModInitializer {
 
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
-        .registerTypeAdapter(UUID::class.java, UUIDCodec)
-        .registerTypeAdapter(KeyCode::class.java, KeyCodeCodec)
-        .registerTypeAdapter(Color::class.java, ColorCodec)
-        .registerTypeAdapter(BlockPos::class.java, BlockPosCodec)
-        .registerTypeAdapter(Block::class.java, BlockCodec)
-        .registerTypeAdapter(GameProfile::class.java, GameProfileCodec)
-        .registerTypeAdapter(Optional::class.java, OptionalCodec)
-        .registerTypeAdapter(ItemStack::class.java, ItemStackCodec)
-        .registerTypeAdapter(Text::class.java, TextCodec) // ToDo: Find out if needed
-        .registerTypeAdapter(Item::class.java, ItemCodec)
-        .registerTypeAdapter(BlockItem::class.java, ItemCodec)
-        .registerTypeAdapter(ArrowItem::class.java, ItemCodec)
-        .registerTypeAdapter(PotionItem::class.java, ItemCodec)
-        .registerTypeAdapter(RangedWeaponItem::class.java, ItemCodec)
+        .apply {
+            getInstances<Codec<*>>()
+                .forEach { codec ->
+                    registerTypeAdapter(codec.type, codec)
+                }
+        }
         .create()
 
     override fun onInitializeClient() {} // nop

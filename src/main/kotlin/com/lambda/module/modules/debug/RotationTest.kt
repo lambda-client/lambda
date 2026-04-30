@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.AutomationConfig
+import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

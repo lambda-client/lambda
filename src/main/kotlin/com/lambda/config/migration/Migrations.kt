@@ -22,7 +22,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
+import com.lambda.util.ReflectionUtils.getInstances
 import java.util.*
 import kotlin.math.max
 

@@ -22,7 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.hotbar.HotbarConfig.SwapMode
+import com.lambda.config.groups.HotbarConfig.SwapMode
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.managers.hotbar.HotbarManager.checkResetSwap
@@ -142,7 +142,7 @@ object HotbarManager : Manager<HotbarRequest>(
 	/**
 	 * Called after every [tickStage] closes. This method checks if the current [activeRequest] should be stopped.
 	 * This action is counted as another swap, so the conditions for a regular swap must be met. If the requests
-	 * [HotbarConfig.tickStageMask] does not contain the current tick stage, no actions can be performed.
+	 * [com.lambda.config.groups.HotbarConfig.tickStageMask] does not contain the current tick stage, no actions can be performed.
 	 *
 	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.syncSelectedSlot
 	 */

@@ -21,9 +21,9 @@ import baritone.api.BaritoneAPI
 import baritone.api.IBaritone
 import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
-import com.lambda.config.AutomationConfig
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.LambdaConfig
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.LambdaCategory
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.util.BlockUtils.blockPos
@@ -31,7 +31,7 @@ import com.lambda.util.NamedEnum
 import net.fabricmc.loader.api.FabricLoader
 
 @Suppress("unused")
-object BaritoneHandler : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
+object BaritoneHandler : Config(LambdaCategory), Automated by AutomationConfig.Companion.DEFAULT {
     override val name = "baritone"
 
     val isBaritoneLoaded = FabricLoader.getInstance().isModLoaded("baritone")

@@ -18,7 +18,7 @@
 package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalGetToBlock
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent

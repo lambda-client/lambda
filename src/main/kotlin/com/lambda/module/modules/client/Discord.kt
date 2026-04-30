@@ -28,7 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.linkDiscord
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.Nameable
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.fullHealth

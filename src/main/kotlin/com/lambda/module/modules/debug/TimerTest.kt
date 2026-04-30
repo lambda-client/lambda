@@ -22,7 +22,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 
 @Suppress("unused")
 object TimerTest : Module(

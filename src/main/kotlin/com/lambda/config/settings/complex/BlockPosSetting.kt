@@ -27,14 +27,14 @@ import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 	defaultValue,

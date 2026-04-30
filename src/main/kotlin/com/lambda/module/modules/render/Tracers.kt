@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.Config.StandardTabs.GENERAL_TAB
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntityColorSettings
 import com.lambda.config.groups.EntitySelectionSettings
@@ -41,20 +42,13 @@ object Tracers : Module(
 	description = "Draws lines to entities within the world",
 	tag = ModuleTag.RENDER
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Entities("Entities"),
-		Colors("Colors"),
-		LineStyle("Line Style")
-	}
-
 	private enum class LineGroup(override val displayName: String) : NamedEnum {
 		Other("Other"),
 		Friend("Friend")
 	}
 
-	private val target by setting("Target", TracerMode.Feet).group(Group.General)
-	private val stem by setting("Stem", true).group(Group.General)
+	@Tab(GENERAL_TAB) private val target by setting("Target", TracerMode.Feet)
+	@Tab(GENERAL_TAB) private val stem by setting("Stem", true)
 	private val entitySettings = EntitySelectionSettings(this, Group.Entities).apply {
 		applyEdits {
 			hide(::self, ::blockEntities)

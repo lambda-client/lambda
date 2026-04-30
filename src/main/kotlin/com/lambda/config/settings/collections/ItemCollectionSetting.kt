@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.Setting
-import com.lambda.config.serializer.ItemCodec
+import com.lambda.config.codecs.ItemCodec
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
 

@@ -24,6 +24,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeGameScheduled
+import com.lambda.util.PacketUtils.sendPacket
 import kotlinx.coroutines.delay
 import net.minecraft.block.entity.HangingSignBlockEntity
 import net.minecraft.client.gui.screen.ingame.AbstractSignEditScreen
@@ -95,13 +96,13 @@ object AutoSign : Module(
 				runConcurrent {
 					delay(signWriteDelay)
 					runSafeGameScheduled {
-						connection.sendPacket(
+						connection.sendPacket {
 							UpdateSignC2SPacket(
 								pos,
 								writeOnFront,
 								messages[0], messages[1], messages[2], messages[3]
 							)
-						)
+						}
 					}
 				}
 			} else mc.setScreen(editor)

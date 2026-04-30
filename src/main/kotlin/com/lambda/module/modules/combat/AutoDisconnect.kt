@@ -25,9 +25,9 @@ import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
-import com.lambda.util.Communication
-import com.lambda.util.Communication.prefix
-import com.lambda.util.Formatting.format
+import com.lambda.util.CommunicationUtils
+import com.lambda.util.CommunicationUtils.prefix
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -161,13 +161,13 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
-        text(prefix(Communication.LogLevel.Warn.logoColor))
+        text(prefix(CommunicationUtils.LogLevel.Warn.logoColor))
         text(text)
         literal("\n\n")
         literal("Disconnected at ")
         highlighted(player.pos.format())
         literal(" on ")
-        highlighted(Communication.currentTime())
+        highlighted(CommunicationUtils.currentTime())
         literal(" with ")
         highlighted(player.fullHealth.format())
         literal(" health.")

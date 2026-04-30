@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.EatConfig.Companion.reasonEating
 import com.lambda.event.events.TickEvent

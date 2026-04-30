@@ -25,12 +25,12 @@ import kotlin.reflect.jvm.isAccessible
 annotation class SettingEditorDsl
 
 @SettingEditorDsl
-fun <T : Configurable> T.applyEdits(edits: ConfigurableEditor<T>.() -> Unit) {
-	ConfigurableEditor(this).apply(edits)
+fun <T : Config> T.applyEdits(edits: ConfigEditor<T>.() -> Unit) {
+	ConfigEditor(this).apply(edits)
 }
 
 @Suppress("unchecked_cast", "unused")
-open class SettingGroupEditor<T : Configurable>(open val c: T) {
+open class SettingGroupEditor<T : Config>(open val c: T) {
 	val KProperty0<*>.delegate
 		get() = try {
 			apply { isAccessible = true }.getDelegate()
@@ -125,7 +125,7 @@ open class SettingGroupEditor<T : Configurable>(open val c: T) {
 }
 
 @Suppress("unchecked_cast", "unused")
-class ConfigurableEditor<T : Configurable>(override val c: T) : SettingGroupEditor<T>(c) {
+class ConfigEditor<T : Config>(override val c: T) : SettingGroupEditor<T>(c) {
 	@SettingEditorDsl
 	fun hideGroup(settingGroup: ISettingGroup) = hide(settingGroup.settings)
 

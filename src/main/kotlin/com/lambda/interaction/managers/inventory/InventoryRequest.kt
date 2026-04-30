@@ -20,6 +20,7 @@ package com.lambda.interaction.managers.inventory
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.Request
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.player.SlotUtils.clickSlot
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
@@ -81,13 +82,13 @@ class InventoryRequest private constructor(
 				val offhandStack = player.getStackInHand(Hand.OFF_HAND)
 				player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
 				player.setStackInHand(Hand.MAIN_HAND, offhandStack)
-				connection.sendPacket(
+				connection.sendPacket {
 					PlayerActionC2SPacket(
 						PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
 						BlockPos.ORIGIN,
 						Direction.DOWN
 					)
-				)
+				}
 			}.addToActions()
 		}
 

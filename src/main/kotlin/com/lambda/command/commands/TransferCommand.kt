@@ -27,7 +27,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.config.AutomationConfig
+import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerHandler
 import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
@@ -35,7 +35,7 @@ import com.lambda.interaction.material.container.ContainerHandler.findContainers
 import com.lambda.task.RootTask
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 

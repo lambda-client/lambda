@@ -30,7 +30,7 @@ import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class BlockSetting(defaultValue: Block) : SettingCore<Block>(
 	defaultValue,

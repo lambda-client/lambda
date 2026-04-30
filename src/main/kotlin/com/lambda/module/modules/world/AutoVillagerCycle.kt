@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -39,8 +39,8 @@ import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.NamedEnum
 import com.lambda.util.world.closestEntity
 import net.minecraft.block.Blocks

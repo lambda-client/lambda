@@ -19,8 +19,8 @@ package com.lambda.network
 
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.LambdaConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.LambdaCategory
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
@@ -42,7 +42,7 @@ import net.minecraft.text.Text
 import java.math.BigInteger
 import kotlin.jvm.optionals.getOrElse
 
-object LambdaAPI : Configurable(LambdaConfig) {
+object LambdaAPI : Config(LambdaCategory) {
     override val name = "api"
 
     val authServer by setting("Auth Server", "auth.lambda-client.org")

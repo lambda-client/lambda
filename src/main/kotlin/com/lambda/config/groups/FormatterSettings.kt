@@ -17,15 +17,15 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
 
 class FormatterSettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : FormatterConfig, SettingGroup(c) {
     val localeEnum by c.setting("${prefix}Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers", visibility = visibility).group(*baseGroup).index()
     override val locale get() = localeEnum.locale

@@ -34,8 +34,6 @@ open class FunctionSetting<T>(defaultValue: () -> T) : SettingCore<() -> T>(
         lambdaTooltip(setting.description)
     }
 
-	context(setting: Setting<*, () -> T>)
     override fun toJson(): JsonElement = JsonNull.INSTANCE
-	context(setting: Setting<*, () -> T>)
     override fun loadFromJson(serialized: JsonElement) { value = defaultValue }
 }

@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.Targeting
+import com.lambda.config.groups.TargetingSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
@@ -28,7 +28,7 @@ import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.util.player.RotationUtils.getVisibleSurfaces
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerHandler.transfer
 import com.lambda.interaction.material.container.containers.HotbarContainer
@@ -39,7 +39,7 @@ import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
@@ -111,7 +111,7 @@ object CrystalAura : Module(
     private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }.group(Group.Prediction)
 
     /* Targeting */
-    private val targeting = Targeting.Combat(c = this, Group.Targeting, defaultRange = 10.0)
+    private val targetingSettings = TargetingSettings.CombatSettings(c = this, Group.Targeting, defaultRange = 10.0)
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
@@ -246,7 +246,7 @@ object CrystalAura : Module(
 
     private fun SafeContext.tick() {
         // Update the target
-        currentTarget = targeting.target<LivingEntity>()
+        currentTarget = targetingSettings.target<LivingEntity>()
 
         // Update the blueprint
         currentTarget?.let {

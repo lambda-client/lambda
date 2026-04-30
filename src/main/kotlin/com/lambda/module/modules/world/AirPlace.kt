@@ -18,7 +18,7 @@
 package com.lambda.module.modules.world
 
 import com.lambda.Lambda.mc
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext

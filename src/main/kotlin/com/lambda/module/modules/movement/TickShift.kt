@@ -26,7 +26,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import kotlinx.coroutines.delay

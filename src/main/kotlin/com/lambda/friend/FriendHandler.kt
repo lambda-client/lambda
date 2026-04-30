@@ -18,8 +18,8 @@
 package com.lambda.friend
 
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.FriendConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.FriendCategory
 import com.lambda.core.Loadable
 import com.lambda.network.mojang.getProfile
 import com.lambda.util.text.ClickEvents
@@ -34,7 +34,7 @@ import net.minecraft.text.Text
 import java.awt.Color
 import java.util.*
 
-object FriendHandler : Configurable(FriendConfig), Loadable {
+object FriendHandler : Config(FriendCategory), Loadable {
     override val name = "friends"
     val friends by setting("friends", emptySet<UUID>(), serialize = true)
 

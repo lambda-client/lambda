@@ -18,7 +18,8 @@
 package com.lambda.module
 
 import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
+import com.lambda.util.ReflectionUtils.getInstances
+import com.lambda.util.getInstances
 
 object ModuleRegistry : Loadable {
     override val priority = 1

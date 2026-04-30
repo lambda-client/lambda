@@ -19,8 +19,8 @@ package com.lambda.network
 
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.SecretsConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.SecretsCategory
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -34,7 +34,7 @@ import com.lambda.util.FileUtils.downloadCompare
 import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FileUtils.ifNotExists
 import com.lambda.util.FileUtils.isOlderThan
-import com.lambda.util.FolderRegister.capes
+import com.lambda.util.FolderRegistry.capes
 import com.lambda.util.StringUtils.asIdentifier
 import com.lambda.util.extension.resolveFile
 import kotlinx.coroutines.runBlocking
@@ -49,7 +49,7 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 @Suppress("unused")
-object CapeHandler : Configurable(SecretsConfig), Loadable {
+object CapeHandler : Config(SecretsCategory), Loadable {
     override val name: String = "capes"
 
     var currentCape by setting("cape", "")

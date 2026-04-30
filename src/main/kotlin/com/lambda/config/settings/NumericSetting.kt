@@ -31,7 +31,7 @@ import java.text.NumberFormat
 import java.util.*
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 abstract class NumericSetting<T>(
 	defaultValue: T,

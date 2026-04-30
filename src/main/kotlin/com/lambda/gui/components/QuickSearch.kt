@@ -20,8 +20,8 @@ package com.lambda.gui.components
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configurable
-import com.lambda.config.Configuration
+import com.lambda.config.Config
+import com.lambda.config.ConfigLoader
 import com.lambda.config.Setting
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
@@ -102,8 +102,8 @@ object QuickSearch {
         }
     }
 
-    private class SettingResult(val setting: Setting<*, *>, val configurable: Configurable) : SearchResult {
-        override val breadcrumb: String by lazy { buildSettingBreadcrumb(configurable.name, setting) }
+    private class SettingResult(val setting: Setting<*, *>, val config: Config) : SearchResult {
+        override val breadcrumb: String by lazy { buildSettingBreadcrumb(config.name, setting) }
 
         override fun ImGuiBuilder.buildLayout() {
             with(setting) {
@@ -261,13 +261,13 @@ object QuickSearch {
                 } else null
             }
 
-            val settingResults = Configuration.configurations.flatMap {
-                it.configurables.flatMap { configurable ->
-                    configurable.settings
+            val settingResults = ConfigLoader.configCategories.flatMap {
+                it.configs.flatMap { config ->
+                    config.settings
                         .filter { setting -> setting.visibility() }
                         .mapNotNull { setting ->
                             val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
-                            if (score > 0) RankedSearchResult(SettingResult(setting, configurable), score) else null
+                            if (score > 0) RankedSearchResult(SettingResult(setting, config), score) else null
                         }
                 }
             }
@@ -297,12 +297,12 @@ object QuickSearch {
         }
     }
 
-    private fun buildSettingBreadcrumb(configurableName: String, setting: Setting<*, *>): String {
+    private fun buildSettingBreadcrumb(configName: String, setting: Setting<*, *>): String {
         val group = setting.groups
             .minByOrNull { it.size }
             ?.joinToString(" » ") { it.displayName }
-            ?: return configurableName
-        return "$configurableName » $group"
+            ?: return configName
+        return "$configName » $group"
     }
 
     private fun handleKeyPress(event: ButtonEvent.Keyboard.Press) {

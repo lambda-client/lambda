@@ -18,7 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.util.EntityUtils.blockEntityMap
 import com.lambda.util.EntityUtils.bossEntityMap
@@ -35,7 +35,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup
 
 class EntitySelectionSettings(
-	c: Configurable,
+	c: Config,
 	vararg baseGroup: NamedEnum,
 	prefix: String = "",
 	override val visibility: () -> Boolean = { true },

@@ -30,7 +30,7 @@ import net.minecraft.command.CommandRegistryAccess
 import kotlin.math.roundToInt
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class FloatSetting(
     defaultValue: Float,

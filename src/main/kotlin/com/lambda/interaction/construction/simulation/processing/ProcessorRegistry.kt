@@ -23,7 +23,7 @@ import com.lambda.core.Loadable
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.matches
-import com.lambda.util.reflections.getInstances
+import com.lambda.util.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
 import net.minecraft.state.property.Properties

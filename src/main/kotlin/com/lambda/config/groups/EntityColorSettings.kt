@@ -17,7 +17,7 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
@@ -34,7 +34,7 @@ import net.minecraft.entity.Entity
 import java.awt.Color
 
 class EntityColorSettings(
-	c: Configurable,
+	c: Config,
 	vararg baseGroup: NamedEnum,
 	prefix: String = "",
 	override val visibility: () -> Boolean = { true },

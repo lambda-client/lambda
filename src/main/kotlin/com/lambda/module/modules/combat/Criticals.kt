@@ -24,6 +24,7 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.component1
 import com.lambda.util.math.component2
@@ -55,13 +56,13 @@ object Criticals : Module(
                     posPacket(-0.000000001, rotation = player.eyePos.rotationTo(it.entity.boundingBox.center))
 
                     connection.sendPacket(PlayerInteractItemC2SPacket(Hand.OFF_HAND, 0, player.yaw, player.pitch)) // TODO: This is wrong, fix it
-                    connection.sendPacket(
+                    connection.sendPacket {
                         PlayerActionC2SPacket(
                             PlayerActionC2SPacket.Action.RELEASE_USE_ITEM,
                             BlockPos.ORIGIN,
                             Direction.DOWN
                         )
-                    )
+                    }
                 }
             }
         }

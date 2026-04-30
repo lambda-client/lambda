@@ -18,7 +18,7 @@
 package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.settings.complex.Bind
@@ -47,6 +47,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.NamedEnum
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
@@ -309,13 +310,13 @@ object AutoPortal : Module(
 		}
 
 		private fun SafeContext.swapPacket() =
-			connection.sendPacket(
+			connection.sendPacket {
 				PlayerActionC2SPacket(
 					PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
 					BlockPos.ORIGIN,
 					Direction.DOWN
 				)
-			)
+			}
 
 		private fun SafeContext.withFlintAndSteel(block: SafeContext.() -> Unit) {
 			if (player.mainHandStack.item == Items.FLINT_AND_STEEL) {

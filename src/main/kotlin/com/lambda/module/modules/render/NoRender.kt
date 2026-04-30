@@ -23,7 +23,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.createNameMap
 import com.lambda.util.NamedEnum
-import com.lambda.util.reflections.scanResult
+import com.lambda.util.scanResult
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
 import net.minecraft.entity.Entity

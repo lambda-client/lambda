@@ -17,6 +17,7 @@
 
 package com.lambda.config
 
+import com.google.common.base.Defaults.defaultValue
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
@@ -33,7 +34,7 @@ import com.lambda.config.Setting.ValueListener
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
 import com.lambda.util.Nameable
 import com.lambda.util.NamedEnum
@@ -92,72 +93,16 @@ import kotlin.reflect.KProperty
  * @property defaultValue The default value of the setting.
  * @property type The type reflection of the setting.
  */
-abstract class SettingCore<T>(
-	var defaultValue: T,
-	val type: Type
-) {
-    open var value = defaultValue
-	    set(value) {
-		    val oldValue = field
-		    field = value
-		    listeners.forEach {
-			    if (it.requiresValueChange && oldValue == value) return@forEach
-			    it.execute(oldValue, value)
-		    }
-		}
-	val listeners = mutableListOf<ValueListener<T>>()
-
-	context(setting: Setting<*, T>)
-	abstract fun ImGuiBuilder.buildLayout()
-
-	context(setting: Setting<*, T>)
-	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-		required(string("value as JSON")) { value ->
-			executeWithResult {
-				val valueString = value().value()
-				val parsed = try {
-					JsonParser.parseString("\"$valueString\"")
-				} catch (_: Exception) {
-					return@executeWithResult failure("$valueString is not a valid JSON string.")
-				}
-					?: return@executeWithResult failure("No config found for $name.")
-				val previous = this@SettingCore.value
-				try {
-					loadFromJson(parsed)
-				} catch (_: Exception) {
-					return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${setting.configurable.name}.")
-				}
-				ConfigCommand.info(setting.setMessage(previous, this@SettingCore.value))
-				return@executeWithResult success()
-			}
-		}
-	}
-
-	context(setting: Setting<*, T>)
-	open fun toJson(): JsonElement =
-		gson.toJsonTree(value, type)
-
-	context(setting: Setting<*, T>)
-	open fun loadFromJson(serialized: JsonElement) {
-		runCatching {
-			value = gson.fromJson(serialized, type)
-		}.onFailure {
-			LOG.warn("Failed to load setting ${setting.name} with value $serialized. Resetting to default value $defaultValue")
-			value = defaultValue
-		}
-	}
-}
-
+@Suppress("unused")
 class Setting<T : SettingCore<R>, R>(
 	override val name: String,
 	override val description: String,
 	var core: T,
-	val configurable: Configurable,
+	val config: Config,
 	var visibility: () -> Boolean,
-) : Nameable, Describable {
+) : Nameable, Describable, Jsonable {
 	val originalCore = core
 	var disabled = { false }
-	var groups: MutableList<List<NamedEnum>> = mutableListOf()
 	var buttonMenu: NamedEnum? = null
 
 	var value by this
@@ -185,8 +130,14 @@ class Setting<T : SettingCore<R>, R>(
 	fun ImGuiBuilder.buildLayout() = with(core) { buildLayout() }
 	fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) = with(core) { buildCommand(registry) }
 
-	fun toJson() = originalCore.toJson()
-	fun loadFromJson(serialized: JsonElement) = originalCore.loadFromJson(serialized)
+	override fun toJson() = originalCore.toJson()
+	override fun loadFromJson(serialized: JsonElement) {
+		runCatching {
+			originalCore.loadFromJson(serialized)
+		}.onFailure {
+			LOG.warn("Failed to load setting $name with value $serialized. Resetting to default value ${core.defaultValue}")
+		}
+	}
 
 	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 
@@ -214,18 +165,6 @@ class Setting<T : SettingCore<R>, R>(
 		disabled = predicate
 	}
 
-	fun group(path: List<NamedEnum>, vararg continuation: NamedEnum) = apply {
-		groups.add(path + continuation)
-	}
-
-	fun group(vararg path: NamedEnum) = apply {
-		groups.add(path.toList())
-	}
-
-	fun group(path: NamedEnum?) = apply {
-		path?.let { groups.add(listOf(it)) }
-	}
-
 	fun buttonMenu(menu: NamedEnum) = apply {
 		buttonMenu = menu
 	}
@@ -243,7 +182,7 @@ class Setting<T : SettingCore<R>, R>(
 	fun setMessage(previousValue: R, newValue: R) = buildText {
 		literal("Set ")
 		changedMessage(previousValue, newValue)
-		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${configurable.commandName} $commandName")) {
+		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${config.commandName} $commandName")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to reset to default value ")
 				highlighted(core.defaultValue.toString())
@@ -267,7 +206,7 @@ class Setting<T : SettingCore<R>, R>(
 	}
 
 	private fun TextBuilder.changedMessage(previousValue: R, newValue: R) {
-		highlighted(configurable.name)
+		highlighted(config.name)
 		literal(" > ")
 		highlighted(name)
 		literal(" from ")
@@ -275,7 +214,7 @@ class Setting<T : SettingCore<R>, R>(
 		literal(" to ")
 		highlighted(newValue.toString())
 		literal(".")
-		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${configurable.commandName} $commandName $previousValue")) {
+		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${config.commandName} $commandName $previousValue")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to undo to previous value ")
 				highlighted(previousValue.toString())
@@ -286,7 +225,53 @@ class Setting<T : SettingCore<R>, R>(
 	}
 
 	override fun toString() = "Setting $name: $value of type ${core.type.typeName}"
+}
 
-	override fun equals(other: Any?) = other is Setting<*, *> && name == other.name
-	override fun hashCode() = name.hashCode()
+abstract class SettingCore<T>(
+	var defaultValue: T,
+	val type: Type
+) : Jsonable {
+	open var value = defaultValue
+		set(value) {
+			val oldValue = field
+			field = value
+			listeners.forEach {
+				if (it.requiresValueChange && oldValue == value) return@forEach
+				it.execute(oldValue, value)
+			}
+		}
+	val listeners = mutableListOf<ValueListener<T>>()
+
+	context(setting: Setting<*, T>)
+	abstract fun ImGuiBuilder.buildLayout()
+
+	context(setting: Setting<*, T>)
+	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(string("value as JSON")) { value ->
+			executeWithResult {
+				val valueString = value().value()
+				val parsed = try {
+					JsonParser.parseString("\"$valueString\"")
+				} catch (_: Exception) {
+					return@executeWithResult failure("$valueString is not a valid JSON string.")
+				}
+					?: return@executeWithResult failure("No config found for $name.")
+				val previous = this@SettingCore.value
+				try {
+					loadFromJson(parsed)
+				} catch (_: Exception) {
+					return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${setting.config.name}.")
+				}
+				ConfigCommand.info(setting.setMessage(previous, this@SettingCore.value))
+				return@executeWithResult success()
+			}
+		}
+	}
+
+	override fun toJson(): JsonElement =
+		gson.toJsonTree(value, type)
+
+	override fun loadFromJson(serialized: JsonElement) {
+		value = gson.fromJson(serialized, type)
+	}
 }

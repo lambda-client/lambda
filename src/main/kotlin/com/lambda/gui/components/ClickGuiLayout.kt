@@ -18,8 +18,8 @@
 package com.lambda.gui.components
 
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.GuiConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.GuiCategory
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
@@ -61,7 +61,7 @@ import net.minecraft.client.util.Icons
 import java.awt.Color
 
 @Suppress("unused")
-object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
+object ClickGuiLayout : Loadable, Config(GuiCategory) {
 	override val name = "GUI"
 	var open = false
 	var developerMode = false

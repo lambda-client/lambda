@@ -29,9 +29,9 @@ import com.lambda.command.CommandRegistry.prefix
 import com.lambda.command.LambdaCommand
 import com.lambda.module.ModuleRegistry
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.joinToText
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.joinToText
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.StringUtils.findSimilarStrings
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents.suggestCommand

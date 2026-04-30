@@ -24,7 +24,7 @@ import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled

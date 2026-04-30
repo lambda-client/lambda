@@ -18,12 +18,12 @@
 package com.lambda.module
 
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configurable
-import com.lambda.config.Configuration
-import com.lambda.config.IMutableAutomationConfig
-import com.lambda.config.MutableAutomationConfig
+import com.lambda.config.Config
+import com.lambda.config.ConfigCategory
+import com.lambda.config.automation.IMutableAutomationConfig
+import com.lambda.config.automation.MutableAutomationConfig
 import com.lambda.config.SettingCore
-import com.lambda.config.configurations.ModuleConfigs
+import com.lambda.config.categories.ModuleCategory
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
@@ -46,7 +46,7 @@ import com.lambda.util.Nameable
 
 /**
  * A [Module] is a feature or tool for the utility mod.
- * It represents a [Configurable] component of the mod,
+ * It represents a [Config] component of the mod,
  * with its own set of behaviors and properties.
  *
  * Each [Module] has a [name], which is displayed in-game.
@@ -61,7 +61,7 @@ import com.lambda.util.Nameable
  * If a module does not need to be activated by a key (like [ClickGui]),
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
- * [Module]s are [Configurable]s with [settings] (see [SettingCore] for all setting types).
+ * [Module]s are [Config]s with [settings] (see [SettingCore] for all setting types).
  * Example:
  * ```
  * private val foo by setting("Foo", true)
@@ -69,7 +69,7 @@ import com.lambda.util.Nameable
  * ```
  *
  * These settings are persisted in the `lambda/config/modules.json` config file.
- * See [ModuleConfigs.primary] and [Configuration] for more details.
+ * See [ModuleCategory.primary] and [ConfigCategory] for more details.
  *
  * In the `init` block, you can add hooks like [onEnable], [onDisable], [onToggle] and add listeners.
  *
@@ -123,7 +123,7 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, OwnerPriority, Configurable(ModuleConfigs),
+) : Nameable, Muteable, OwnerPriority, Config(ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }

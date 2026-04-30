@@ -17,8 +17,8 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.HudConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.HudCategory
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -43,7 +43,7 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 import kotlin.math.PI
 
-object HudGuiLayout : Loadable, Configurable(HudConfig) {
+object HudGuiLayout : Loadable, Config(HudCategory) {
     override val name = "HUD"
 
     enum class Group(override val displayName: String) : NamedEnum {

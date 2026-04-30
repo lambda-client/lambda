@@ -22,7 +22,7 @@ interface ISettingGroup {
 	val visibility: () -> Boolean
 }
 
-abstract class SettingGroup(c: Configurable) : ISettingGroup {
+abstract class SettingGroup(c: Config) : ISettingGroup {
     override val settings = mutableListOf<Setting<*, *>>()
 
 	init {

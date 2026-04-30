@@ -36,7 +36,7 @@ import net.minecraft.command.CommandRegistryAccess
 import kotlin.properties.Delegates
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
 	defaultValue,
@@ -46,7 +46,6 @@ class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
         value = value.enumValues[to % value.enumValues.size]
     }
 
-	context(setting: Setting<*, T>)
     override fun loadFromJson(serialized: JsonElement) {
         super.loadFromJson(serialized)
         index = value.ordinal // super bug fix for imgui

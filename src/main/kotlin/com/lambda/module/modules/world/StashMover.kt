@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -35,7 +35,7 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.interacting.InteractConfig
+import com.lambda.config.groups.InteractConfig
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
@@ -51,9 +51,9 @@ import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.extension.containerSlots

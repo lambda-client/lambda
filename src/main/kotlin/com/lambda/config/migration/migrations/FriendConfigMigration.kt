@@ -25,14 +25,15 @@ import com.lambda.config.migration.objectOrCreate
 import com.lambda.config.migration.parseUuidOrNull
 import java.util.*
 
+@Suppress("unused")
 object FriendConfigMigration : StepConfigMigration() {
     override val configName = "friends"
     override val latestVersion = 2
 
     init {
         step(1, 2) {
-            val configurable = objectOrCreate("friends")
-            val rawFriends = configurable.arrayOrCreate("friends")
+            val config = objectOrCreate("friends")
+            val rawFriends = config.arrayOrCreate("friends")
             val migrated = JsonArray()
             val seen = mutableSetOf<UUID>()
             var dropped = 0
@@ -45,7 +46,7 @@ object FriendConfigMigration : StepConfigMigration() {
                     ?: run { dropped++ }
             }
 
-            configurable.add("friends", migrated)
+            config.add("friends", migrated)
             LOG.info("Migrated Friend config schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
         }
     }

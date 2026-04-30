@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.Targeting
+import com.lambda.config.groups.TargetingSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
@@ -58,10 +58,10 @@ object KillAura : Module(
     private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
 
     // Targeting
-    private val targeting = Targeting.Combat(c = this, Group.Targeting)
+    private val targetingSettings = TargetingSettings.CombatSettings(c = this, Group.Targeting)
 
     val target: Entity?
-        get() = targeting.target<Entity>()
+        get() = targetingSettings.target<Entity>()
 
     private var prevEntity = target
     private var validServerRot = false

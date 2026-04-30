@@ -36,19 +36,19 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.RotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.FileUtils.locationBoundDirectory
-import com.lambda.util.FolderRegister
-import com.lambda.util.Formatting.format
-import com.lambda.util.Formatting.getTime
+import com.lambda.util.FolderRegistry
+import com.lambda.util.FormattingUtils.format
+import com.lambda.util.FormattingUtils.getTime
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.sanitizeForFilename
 import com.lambda.util.extension.rotation
@@ -424,7 +424,7 @@ object Replay : Module(
             this@Replay.warn("Recording too short. Minimum length: 5 ticks.")
             return
         }
-        val file = FolderRegister.replay.toFile().locationBoundDirectory().resolve("$name.json")
+        val file = FolderRegistry.replay.toFile().locationBoundDirectory().resolve("$name.json")
 
         lambdaScope.launch(Dispatchers.IO) {
             file.writeText(gsonCompact.toJson(recording))

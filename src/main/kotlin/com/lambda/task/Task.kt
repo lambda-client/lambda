@@ -26,7 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
 import kotlin.time.Duration.Companion.milliseconds

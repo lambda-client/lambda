@@ -17,23 +17,23 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.config.applyEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.managers.breaking.BreakConfig
-import com.lambda.interaction.managers.breaking.BreakConfig.AnimationMode
-import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
-import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
-import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
-import com.lambda.interaction.managers.breaking.BreakConfig.WhitelistMode
+import com.lambda.config.groups.BreakConfig
+import com.lambda.config.groups.BreakConfig.AnimationMode
+import com.lambda.config.groups.BreakConfig.BreakConfirmationMode
+import com.lambda.config.groups.BreakConfig.BreakMode
+import com.lambda.config.groups.BreakConfig.SwingMode
+import com.lambda.config.groups.BreakConfig.WhitelistMode
 import com.lambda.util.NamedEnum
 import net.minecraft.registry.Registries
 import java.awt.Color
 
 open class BreakSettings(
-	c: Configurable,
+	c: Config,
 	vararg baseGroup: NamedEnum,
 	prefix: String = "",
 	override val visibility: () -> Boolean = { true },

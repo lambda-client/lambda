@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ReplaceConfig
@@ -137,7 +137,7 @@ object AntiSpam : Module(
 
 	class ReplaceSettings(
 		name: String,
-		c: Configurable,
+		c: Config,
 		baseGroup: NamedEnum,
 		override val visibility: () -> Boolean = { true },
 	) : ReplaceConfig, SettingGroup(c) {

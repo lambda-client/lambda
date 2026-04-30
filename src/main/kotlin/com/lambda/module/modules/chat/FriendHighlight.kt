@@ -23,7 +23,7 @@ import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.text.MessageType
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal

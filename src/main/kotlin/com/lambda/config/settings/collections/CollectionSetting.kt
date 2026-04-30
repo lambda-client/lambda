@@ -44,7 +44,7 @@ import java.lang.reflect.Type
  * If you wish to use a different codec or simply display values differently, you must create your own
  * collection setting.
  *
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 open class CollectionSetting<R : Any>(
 	defaultValue: MutableCollection<R>,
@@ -167,11 +167,9 @@ open class CollectionSetting<R : Any>(
 		}
 	}
 
-	context(setting: Setting<*, MutableCollection<R>>)
     override fun toJson(): JsonElement =
 		gson.toJsonTree(value, type)
 
-	context(setting: Setting<*, MutableCollection<R>>)
     override fun loadFromJson(serialized: JsonElement) {
 		val strList =
 			if (serialize) gson.fromJson(serialized, type)

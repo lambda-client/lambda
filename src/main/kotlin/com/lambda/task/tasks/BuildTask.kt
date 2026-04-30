@@ -59,7 +59,7 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.playerSlots
 import com.lambda.util.math.dist

@@ -17,20 +17,20 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.managers.interacting.InteractConfig
-import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
-import com.lambda.interaction.managers.interacting.InteractConfig.InteractConfirmationMode
+import com.lambda.config.groups.InteractConfig
+import com.lambda.config.groups.InteractConfig.AirPlaceMode
+import com.lambda.config.groups.InteractConfig.InteractConfirmationMode
 import com.lambda.util.NamedEnum
 
 class InteractSettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InteractConfig {
     override val rotate by c.setting("${prefix}Rotate For Interact", true, "Rotate towards block while placing", visibility = visibility).group(*baseGroup).index()
     override val airPlace by c.setting("${prefix}Air Place", AirPlaceMode.Grim, "Allows for placing blocks without adjacent faces", visibility = visibility).group(*baseGroup).index()

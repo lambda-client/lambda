@@ -23,7 +23,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether

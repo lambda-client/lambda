@@ -17,12 +17,13 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.AutomationConfig
-import com.lambda.config.Configurable
-import com.lambda.config.IMutableAutomationConfig
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.Config
+import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.Setting
 import com.lambda.config.UserAutomationConfig
-import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.config.automation.UserAutomationConfig
+import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.flag.ImGuiPopupFlags
@@ -34,9 +35,9 @@ import com.lambda.util.NamedEnum
 
 object SettingsWidget {
     /**
-     * Builds the settings context popup content for the given configurable.
+     * Builds the settings context popup content for the given config.
      */
-    fun ImGuiBuilder.buildConfigSettingsContext(config: Configurable) {
+    fun ImGuiBuilder.buildConfigSettingsContext(config: Config) {
         group {
             if (config is Module && config != AutoUpdater) {
 				button("Module Settings") {
@@ -68,7 +69,7 @@ object SettingsWidget {
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
 	                combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
-		                val addItem: (Configurable) -> Unit = { item ->
+		                val addItem: (Config) -> Unit = { item ->
 			                val selected = item === config.backingAutomationConfig
 
 			                selectable(item.name, selected) {
@@ -80,7 +81,7 @@ object SettingsWidget {
 			                }
 		                }
 		                addItem(config.defaultAutomationConfig)
-						UserAutomationConfigs.configurables.forEach { addItem(it) }
+						UserAutomationCategory.configs.forEach { addItem(it) }
 	                }
                     buildConfigSettingsContext(config.automationConfig)
                 }
@@ -106,7 +107,7 @@ object SettingsWidget {
     private fun ImGuiBuilder.renderGroup(
 	    settings: List<Setting<*, *>>,
 	    parentPath: List<NamedEnum>,
-	    config: Configurable
+	    config: Config
     ) {
         settings.filter { it.groups.contains(parentPath) }.forEach {
             it.withDisabled { buildLayout() }

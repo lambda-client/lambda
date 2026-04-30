@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -26,7 +26,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.NamedEnum
 import com.lambda.util.SpeedUnit
 import com.lambda.util.Timer

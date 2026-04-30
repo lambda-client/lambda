@@ -17,18 +17,18 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.Configurable
+import com.lambda.config.Config
 import com.lambda.config.SettingGroup
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.managers.inventory.InventoryConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
 
 class InventorySettings(
-    c: Configurable,
-    vararg baseGroup: NamedEnum,
-    prefix: String = "",
-    override val visibility: () -> Boolean = { true },
+	c: Config,
+	vararg baseGroup: NamedEnum,
+	prefix: String = "",
+	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InventoryConfig {
     enum class Group(override val displayName: String) : NamedEnum {
         General("General"),

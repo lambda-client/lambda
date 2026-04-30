@@ -26,7 +26,7 @@ import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.friend.FriendHandler.unfriend
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.client.network.OtherClientPlayerEntity

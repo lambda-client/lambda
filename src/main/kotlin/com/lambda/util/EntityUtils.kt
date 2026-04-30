@@ -19,7 +19,6 @@ package com.lambda.util
 
 import com.lambda.util.DynamicReflectionSerializer.remappedName
 import com.lambda.util.math.MathUtils.floorToInt
-import com.lambda.util.reflections.scanResult
 import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
