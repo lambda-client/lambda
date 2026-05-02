@@ -17,7 +17,7 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.ISettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.material.ContainerSelection
@@ -27,7 +27,7 @@ import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
 
-interface InventoryConfig : ISettingGroup {
+interface InventoryConfig : SettingBlock {
 	val tickStageMask: Collection<TickEvent>
 	val disposables: Collection<Item>
 	val swapWithDisposables: Boolean

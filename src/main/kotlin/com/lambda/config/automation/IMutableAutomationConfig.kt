@@ -43,7 +43,7 @@ interface IMutableAutomationConfig : Automated {
 }
 
 class MutableAutomationConfig : IMutableAutomationConfig {
-	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Companion.DEFAULT
+	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.DEFAULT
 		set(value) {
 			field = value
 			automationConfig = value
@@ -53,11 +53,11 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 		set(value) {
 			if (value === defaultAutomationConfig) {
 				if (backingAutomationConfig !== defaultAutomationConfig) {
-					field.settings.forEach(Setting<*, *>::restoreOriginalCore)
+					field.settingContainers.forEach(Setting<*, *>::restoreOriginalCore)
 				}
 				field = value
-			} else field.settings.forEach { setting ->
-				value.settings.forEach { newSetting ->
+			} else field.settingContainers.forEach { setting ->
+				value.settingContainers.forEach { newSetting ->
 					if (setting.name == newSetting.name) {
 						if (setting.core.type != newSetting.core.type)
 							throw IllegalStateException("Settings with the same name do not have the same type.")

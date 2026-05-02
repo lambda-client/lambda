@@ -19,7 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.util.EntityUtils.blockEntityMap
 import com.lambda.util.EntityUtils.bossEntityMap
 import com.lambda.util.EntityUtils.decorationEntityMap
@@ -34,31 +34,26 @@ import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup
 
-class EntitySelectionSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : EntitySelectionConfig, SettingGroup(c) {
-	override val self by c.setting("${prefix}Self", false, "Render own player in third person").group(*baseGroup).index()
-	override val enablePlayerEntities by c.setting("${prefix}Enable Player Entities", true).group(*baseGroup).index()
-	override val playerEntities by c.setting("${prefix}Player Entities", playerEntityMap.values.toSet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering") { enablePlayerEntities }.group(*baseGroup).index()
-	override val enableMobEntities by c.setting("${prefix}Enable Mob Entities", true).group(*baseGroup).index()
-	override val mobEntities by c.setting("${prefix}Mob Entities", mobEntityMap.values.toSet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering") { enableMobEntities }.group(*baseGroup).index()
-	override val enablePassiveEntities by c.setting("${prefix}Enable Passive Entities", true).group(*baseGroup).index()
-	override val passiveEntities by c.setting("${prefix}Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering") { enablePassiveEntities }.group(*baseGroup).index()
-	override val enableVehicleEntities by c.setting("${prefix}Enable Vehicle Entities", true).group(*baseGroup).index()
-	override val vehicleEntities by c.setting("${prefix}Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering") { enableVehicleEntities }.group(*baseGroup).index()
-	override val enableProjectileEntities by c.setting("${prefix}Enable Projectile Entities", true).group(*baseGroup).index()
-	override val projectileEntities by c.setting("${prefix}Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering") { enableProjectileEntities }.group(*baseGroup).index()
-	override val enableBossEntities by c.setting("${prefix}Enable Boss Entities", true).group(*baseGroup).index()
-	override val bossEntities by c.setting("${prefix}Boss Entities", bossEntityMap.values.toSet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering") { enableBossEntities }.group(*baseGroup).index()
-	override val enableDecorationEntities by c.setting("${prefix}Enable Decoration Entities", true).group(*baseGroup).index()
-	override val decorationEntities by c.setting("${prefix}Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering") { enableDecorationEntities }.group(*baseGroup).index()
-	override val enableBlockEntities by c.setting("${prefix}Enable Block Entities", true).group(*baseGroup).index()
-	override val blockEntities by c.setting("${prefix}Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering") { enableBlockEntities }.group(*baseGroup).index()
-	override val enableMiscEntities by c.setting("${prefix}Enable Misc Entities", true).group(*baseGroup).index()
-	override val miscEntities by c.setting("${prefix}Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering") { enableMiscEntities }.group(*baseGroup).index()
+class EntitySelectionSettings(override val c: Config) : SettingBlock, EntitySelectionConfig {
+	override val self by c.setting("Self", false, "Render own player in third person")
+	override val enablePlayerEntities by c.setting("Enable Player Entities", true)
+	override val playerEntities by c.setting("Player Entities", playerEntityMap.values.toSet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering") { enablePlayerEntities }
+	override val enableMobEntities by c.setting("Enable Mob Entities", true)
+	override val mobEntities by c.setting("Mob Entities", mobEntityMap.values.toSet(), mobEntityMap.values.toSet(), "Mob entities to omit from rendering") { enableMobEntities }
+	override val enablePassiveEntities by c.setting("Enable Passive Entities", true)
+	override val passiveEntities by c.setting("Passive Entities", emptySet(), passiveEntityMap.values.toSet(), "Passive entities to omit from rendering") { enablePassiveEntities }
+	override val enableVehicleEntities by c.setting("Enable Vehicle Entities", true)
+	override val vehicleEntities by c.setting("Vehicle Entities", emptySet(), vehicleEntityMap.values.toSet(), "Vehicle entities to omit from rendering") { enableVehicleEntities }
+	override val enableProjectileEntities by c.setting("Enable Projectile Entities", true)
+	override val projectileEntities by c.setting("Projectile Entities", emptySet(), projectileEntityMap.values.toSet(), "Projectile entities to omit from rendering") { enableProjectileEntities }
+	override val enableBossEntities by c.setting("Enable Boss Entities", true)
+	override val bossEntities by c.setting("Boss Entities", bossEntityMap.values.toSet(), bossEntityMap.values.toSet(), "Boss entities to omit from rendering") { enableBossEntities }
+	override val enableDecorationEntities by c.setting("Enable Decoration Entities", true)
+	override val decorationEntities by c.setting("Decoration Entities", emptySet(), decorationEntityMap.values.toSet(), "Decoration entities to omit from rendering") { enableDecorationEntities }
+	override val enableBlockEntities by c.setting("Enable Block Entities", true)
+	override val blockEntities by c.setting("Block Entities", emptySet(), blockEntityMap.values.toSet(), "Block entities to omit from rendering") { enableBlockEntities }
+	override val enableMiscEntities by c.setting("Enable Misc Entities", true)
+	override val miscEntities by c.setting("Misc Entities", emptySet(), miscEntityMap.values.toSet(), "Miscellaneous entities to omit from rendering") { enableMiscEntities }
 
 	fun isSelected(entity: Entity): Boolean {
 		val name = entity::class.simpleName

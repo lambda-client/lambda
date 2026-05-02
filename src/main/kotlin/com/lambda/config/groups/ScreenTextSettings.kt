@@ -18,38 +18,34 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.Config.Group
+import com.lambda.config.SettingBlock
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
-class ScreenTextSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : SettingGroup(c), TextConfig {
-    enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Outline("Outline"),
-        Glow("Glow"),
-        Shadow("Shadow")
+class ScreenTextSettings(override val c: Config) : SettingBlock, TextConfig {
+    companion object {
+        private const val GROUP_GENERAL = "General"
+        private const val GROUP_OUTLINE = "Outline"
+        private const val GROUP_GLOW = "Glow"
+        private const val GROUP_SHADOW = "Shadow"
     }
 
-    override val textColor by c.setting("${prefix}Text Color", Color.WHITE, "The main text color", visibility = visibility).group(*baseGroup, Group.General).index()
-    val sizeSetting by c.setting("${prefix}Text Size", 18, 1..50, 1, visibility = visibility).group(*baseGroup, Group.General).index()
+    @Group(GROUP_GENERAL) override val textColor by c.setting("Text Color", Color.WHITE, "The main text color")
+    @Group(GROUP_GENERAL) val sizeSetting by c.setting("Text Size", 18, 1..50, 1)
     override val size get() = sizeSetting * 0.001f
 
-    override val outlineEnabled by c.setting("${prefix}Outline", false, "Enable text outline", visibility = visibility).group(*baseGroup, Group.Outline).index()
-    override val outlineColor by c.setting("${prefix}Outline Color", Color.BLACK, "Color of the outline") { visibility() && outlineEnabled }.group(*baseGroup, Group.Outline).index()
-    override val outlineWidth by c.setting("${prefix}Outline Width", 0.1f, 0f..0.4f, 0.005f, "Width of the outline") { visibility() && outlineEnabled }.group(*baseGroup, Group.Outline).index()
+    @Group(GROUP_OUTLINE) override val outlineEnabled by c.setting("Outline", false, "Enable text outline")
+    @Group(GROUP_OUTLINE) override val outlineColor by c.setting("Outline Color", Color.BLACK, "Color of the outline") { outlineEnabled }
+    @Group(GROUP_OUTLINE) override val outlineWidth by c.setting("Outline Width", 0.1f, 0f..0.4f, 0.005f, "Width of the outline") { outlineEnabled }
 
-    override val glowEnabled by c.setting("${prefix}Glow", false, "Enable text glow effect", visibility = visibility).group(*baseGroup, Group.Glow).index()
-    override val glowColor by c.setting("${prefix}Glow Color", Color.WHITE, "Color of the glow") { visibility() && glowEnabled }.group(*baseGroup, Group.Glow).index()
-    override val glowRadius by c.setting("${prefix}Glow Radius", 0.2f, 0f..0.5f, 0.01f, "Radius of the glow effect") { visibility() && glowEnabled }.group(*baseGroup, Group.Glow).index()
+    @Group(GROUP_GLOW) override val glowEnabled by c.setting("Glow", false, "Enable text glow effect")
+    @Group(GROUP_GLOW) override val glowColor by c.setting("Glow Color", Color.WHITE, "Color of the glow") { glowEnabled }
+    @Group(GROUP_GLOW) override val glowRadius by c.setting("Glow Radius", 0.2f, 0f..0.5f, 0.01f, "Radius of the glow effect") { glowEnabled }
 
-    override val shadowEnabled by c.setting("${prefix}Shadow", true, "Enable text shadow", visibility = visibility).group(*baseGroup, Group.Shadow).index()
-    override val shadowColor by c.setting("${prefix}Shadow Color", Color(0, 0, 0, 180), "Color of the shadow") { visibility() && shadowEnabled }.group(*baseGroup, Group.Shadow).index()
-    override val shadowOffset by c.setting("${prefix}Shadow Offset", 0.05f, 0f..0.5f, 0.005f, "Distance of shadow from text") { visibility() && shadowEnabled }.group(*baseGroup, Group.Shadow).index()
-    override val shadowAngle by c.setting("${prefix}Shadow Angle", 135f, 0f..360f, 1f, "Angle of the shadow") { visibility() && shadowEnabled }.group(*baseGroup, Group.Shadow).index()
-    override val shadowSoftness by c.setting("${prefix}Shadow Softness", 0f, 0f..0.5f, 0.01f, "Softness of shadow edges") { visibility() && shadowEnabled }.group(*baseGroup, Group.Shadow).index()
+    @Group(GROUP_SHADOW) override val shadowEnabled by c.setting("Shadow", true, "Enable text shadow")
+    @Group(GROUP_SHADOW) override val shadowColor by c.setting("Shadow Color", Color(0, 0, 0, 180), "Color of the shadow") { shadowEnabled }
+    @Group(GROUP_SHADOW) override val shadowOffset by c.setting("Shadow Offset", 0.05f, 0f..0.5f, 0.005f, "Distance of shadow from text") { shadowEnabled }
+    @Group(GROUP_SHADOW) override val shadowAngle by c.setting("Shadow Angle", 135f, 0f..360f, 1f, "Angle of the shadow") { shadowEnabled }
+    @Group(GROUP_SHADOW) override val shadowSoftness by c.setting("Shadow Softness", 0f, 0f..0.5f, 0.01f, "Softness of shadow edges") { shadowEnabled }
 }

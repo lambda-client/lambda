@@ -17,7 +17,10 @@
 
 package com.lambda.config.groups
 
-interface InteractConfig : ActionConfig, com.lambda.config.ISettingGroup {
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
+
+interface InteractConfig : ActionConfig {
 	val rotate: Boolean
 	val airPlace: AirPlaceMode
 	val axisRotateSetting: Boolean
@@ -29,10 +32,11 @@ interface InteractConfig : ActionConfig, com.lambda.config.ISettingGroup {
 	val swingType: BuildConfig.SwingType
 	val sounds: Boolean
 
+	@Suppress("unused")
 	enum class AirPlaceMode(
 		override val displayName: String,
 		override val description: String
-	) : com.lambda.util.NamedEnum, com.lambda.util.Describable {
+	) : NamedEnum, Describable {
 		None("None", "Do not attempt air placements; only place against valid supports."),
 		Standard("Standard", "Try common air-place techniques for convenience; moderate compatibility."),
 		Grim("Grim", "Use grim specific air placing.");
@@ -43,7 +47,7 @@ interface InteractConfig : ActionConfig, com.lambda.config.ISettingGroup {
 	enum class InteractConfirmationMode(
 		override val displayName: String,
 		override val description: String
-	) : com.lambda.util.NamedEnum, com.lambda.util.Describable {
+	) : NamedEnum, Describable {
 		None("No confirmation", "Interact immediately without waiting for the server; possible desync."),
 		PlaceThenAwait("Interact now, confirm later", "Interact immediately, then wait for server confirmation to verify."),
 		AwaitThenPlace("Confirm first, then Interact", "Wait for server response before interacting; safest, adds a short delay.")

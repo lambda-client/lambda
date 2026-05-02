@@ -17,7 +17,9 @@
 
 package com.lambda.config.groups
 
-interface TargetingConfig {
+import com.lambda.config.SettingBlock
+
+interface TargetingConfig : SettingBlock {
     val targetingRange: Double
     val targets: EntitySelectionConfig
 }

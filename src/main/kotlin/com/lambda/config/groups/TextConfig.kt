@@ -17,10 +17,11 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.SettingBlock
 import com.lambda.graphics.mc.RenderBuilder
 import java.awt.Color
 
-interface TextConfig {
+interface TextConfig : SettingBlock {
 	val size: Float
 	val textColor: Color
 

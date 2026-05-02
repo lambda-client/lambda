@@ -19,7 +19,6 @@ package com.lambda.module
 
 import com.lambda.core.Loadable
 import com.lambda.util.ReflectionUtils.getInstances
-import com.lambda.util.getInstances
 
 object ModuleRegistry : Loadable {
     override val priority = 1
@@ -30,5 +29,5 @@ object ModuleRegistry : Loadable {
     val moduleNameMap = modules.associateBy { it.name }
 
     override fun load() =
-        "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+        "Loaded ${modules.size} modules with ${modules.sumOf { it.settingContainers.size }} settings"
 }

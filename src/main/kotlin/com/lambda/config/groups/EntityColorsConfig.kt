@@ -17,9 +17,10 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.SettingBlock
 import java.awt.Color
 
-interface EntityColorsConfig {
+interface EntityColorsConfig : SettingBlock {
 	val useNaturalColors: Boolean
 	val playerColor: Color
 	val playerDistanceGradient: Boolean

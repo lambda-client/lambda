@@ -19,17 +19,16 @@ package com.lambda.config
 
 import com.lambda.core.Loadable
 
-@Suppress("unused")
 object ConfigLoader: Loadable {
     val configCategories = mutableSetOf<ConfigCategory>()
     val configs: Set<Config>
         get() = configCategories.flatMapTo(mutableSetOf()) { it.configs }
     val settings: List<Setting<*, *>>
-        get() = configs.flatMapTo(mutableListOf()) { it.settings }
+        get() = configs.flatMapTo(mutableListOf()) { it.settingContainers }
 
     override fun load(): String {
         configCategories.forEach {
-            it.tryLoad()
+            it.tryLoadFromFile()
         }
         return "Loading ${configCategories.size} config categories"
     }
@@ -40,6 +39,6 @@ object ConfigLoader: Loadable {
     fun configByCommandName(name: String) =
         configs.find { it.commandName == name }
 
-    fun settingByCommandName(config: Config, name: String) =
-        config.settings.find { it.commandName == name }
+    fun settingByCommandName(config: Config, tab: String?, group: String?, name: String) =
+        config.settingContainers.find { it.commandName == name }
 }

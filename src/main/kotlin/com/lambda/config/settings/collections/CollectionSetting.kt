@@ -23,7 +23,7 @@ import com.lambda.Lambda.gson
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingGroupEditor
+import com.lambda.config.ConfigEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
@@ -192,7 +192,7 @@ open class CollectionSetting<R : Any>(
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T : Any> SettingGroupEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+        fun <T : Any> ConfigEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
             (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
         }
     }

@@ -41,7 +41,7 @@ object ConfigCommand : LambdaCommand(
         required(literal("save")) {
             executeWithResult {
                 ConfigLoader.configCategories.forEach { config ->
-                    config.trySave(true)
+                    config.trySaveToFile(true)
                 }
                 this@ConfigCommand.info("Saved ${ConfigLoader.configCategories.size} configuration files.")
                 return@executeWithResult success()
@@ -50,7 +50,7 @@ object ConfigCommand : LambdaCommand(
         required(literal("load")) {
             executeWithResult {
                 ConfigLoader.configCategories.forEach { config ->
-                    config.tryLoad()
+                    config.tryLoadFromFile()
                 }
                 this@ConfigCommand.info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
                 return@executeWithResult success()
@@ -65,7 +65,7 @@ object ConfigCommand : LambdaCommand(
                     suggests { ctx, builder ->
                         val conf = config(ctx).value()
                         ConfigLoader.configByName(conf)?.let { config ->
-                            suggestMatching(config.settings.map { it.commandName }, builder)
+                            suggestMatching(config.settingContainers.map { it.commandName }, builder)
                         } ?: builder.buildFuture()
                     }
                     executeWithResult {
@@ -84,7 +84,7 @@ object ConfigCommand : LambdaCommand(
         required(literal("set")) {
             ConfigLoader.configs.forEach { config ->
                 required(literal(config.commandName)) {
-                    config.settings.forEach { setting ->
+                    config.settingContainers.forEach { setting ->
                         required(literal(setting.commandName)) {
                             with(setting) {
                                 buildCommand(registry)

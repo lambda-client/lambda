@@ -18,7 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.util.EntityUtils
@@ -33,27 +33,22 @@ import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.Entity
 import java.awt.Color
 
-class EntityColorSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : EntityColorsConfig, SettingGroup(c) {
-	override val useNaturalColors by c.setting("${prefix}Use Natural Colors", false, "Uses an average color from the entities texture").group(*baseGroup).index()
-	override val playerColor by c.setting("${prefix}Player Color", Color(255, 50, 50)) { !useNaturalColors }.group(*baseGroup).index()
-	override val playerDistanceGradient by c.setting("${prefix}Player Distance Gradient", true).group(*baseGroup).index()
-	override val playerDistanceColorFar by c.setting("${prefix}Player Far Color", Color.GREEN) { playerDistanceGradient }.group(*baseGroup).index()
-	override val playerDistanceColorClose by c.setting("${prefix}Player Close Color", Color.RED) { playerDistanceGradient }.group(*baseGroup).index()
-	override val separateFriendColor by c.setting("${prefix}Separate Friend Color", true) { useNaturalColors }.group(*baseGroup).index()
-	override val friendColor by c.setting("${prefix}Friend Color", Color(0, 255, 255)) { !useNaturalColors || separateFriendColor }.group(*baseGroup).index()
-	override val mobColor by c.setting("${prefix}Mob Color", Color(255, 70, 50)) { !useNaturalColors }.group(*baseGroup).index()
-	override val passiveColor by c.setting("${prefix}Passive Color", Color(0, 255, 0)) { !useNaturalColors }.group(*baseGroup).index()
-	override val vehicleColor by c.setting("${prefix}Vehicle Color", Color(200, 150, 100)) { !useNaturalColors }.group(*baseGroup).index()
-	override val projectileColor by c.setting("${prefix}Projectile Color", Color(200, 200, 200)) { !useNaturalColors }.group(*baseGroup).index()
-	override val bossColor by c.setting("${prefix}Boss Color", Color(255, 100, 0)) { !useNaturalColors }.group(*baseGroup).index()
-	override val decorationColor by c.setting("${prefix}Decoration Color", Color(100, 100, 255)) { !useNaturalColors }.group(*baseGroup).index()
-	override val blockColor by c.setting("${prefix}Block Color", Color(200, 200, 200)) { !useNaturalColors }.group(*baseGroup).index()
-	override val miscColor by c.setting("${prefix}Misc Color", Color(255, 0, 255)) { !useNaturalColors }.group(*baseGroup).index()
+class EntityColorSettings(override val c: Config) : SettingBlock, EntityColorsConfig {
+	override val useNaturalColors by c.setting("Use Natural Colors", false, "Uses an average color from the entities texture")
+	override val playerColor by c.setting("Player Color", Color(255, 50, 50)) { !useNaturalColors }
+	override val playerDistanceGradient by c.setting("Player Distance Gradient", true)
+	override val playerDistanceColorFar by c.setting("Player Far Color", Color.GREEN) { playerDistanceGradient }
+	override val playerDistanceColorClose by c.setting("Player Close Color", Color.RED) { playerDistanceGradient }
+	override val separateFriendColor by c.setting("Separate Friend Color", true) { useNaturalColors }
+	override val friendColor by c.setting("Friend Color", Color(0, 255, 255)) { !useNaturalColors || separateFriendColor }
+	override val mobColor by c.setting("Mob Color", Color(255, 70, 50)) { !useNaturalColors }
+	override val passiveColor by c.setting("Passive Color", Color(0, 255, 0)) { !useNaturalColors }
+	override val vehicleColor by c.setting("Vehicle Color", Color(200, 150, 100)) { !useNaturalColors }
+	override val projectileColor by c.setting("Projectile Color", Color(200, 200, 200)) { !useNaturalColors }
+	override val bossColor by c.setting("Boss Color", Color(255, 100, 0)) { !useNaturalColors }
+	override val decorationColor by c.setting("Decoration Color", Color(100, 100, 255)) { !useNaturalColors }
+	override val blockColor by c.setting("Block Color", Color(200, 200, 200)) { !useNaturalColors }
+	override val miscColor by c.setting("Misc Color", Color(255, 0, 255)) { !useNaturalColors }
 
 	context(safeContext: SafeContext)
 	fun getColor(entity: Entity): Color {

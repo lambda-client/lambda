@@ -46,6 +46,13 @@ object Coordinates : HudModule(
 	private val showBiome by setting("Show Biome Name", true)
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
+	private const val CURRENT_DIMENSION_TAB = "Current Dimension"
+	@Tab(CURRENT_DIMENSION_TAB) private val formatter = settingBlock(FormatterSettings(this)) {
+		applyEdits {
+			::timeFormat.edit { hide() }
+		}
+	}
+
 	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
 		applyEdits {
 			::timeFormat.edit { hide() }

@@ -56,7 +56,6 @@ object ReflectionUtils {
         return when {
             clazz.isInterface -> scanResult.getClassesImplementing(clazz)
             Modifier.isAbstract(clazz.modifiers) -> scanResult.getSubclasses(clazz)
-
             else -> throw IllegalStateException("class ${clazz.name} is neither an interface or open class")
         }.filter { block(it) }
             .mapNotNull { createInstance<T>(Class.forName(it.name)) }
@@ -86,12 +85,11 @@ object ReflectionUtils {
         scanResult.getResourcesMatchingWildcard(pattern)
             .filter { block(it) }
 
-    inline fun <reified T> createInstance(clazz: Class<*>): T? {
-        return when {
-            clazz.isInterface || clazz.isEnum || clazz.isAnnotation || clazz.isObject -> {
+    inline fun <reified T> createInstance(clazz: Class<*>) =
+        when {
+            clazz.isInterface || clazz.isEnum || clazz.isAnnotation || clazz.isObject ->
                 // Handle objects (singletons) or invalid types
                 clazz.objectInstance as? T
-            }
             else -> {
                 // Look for a constructor with no parameters
                 clazz.constructors
@@ -99,5 +97,4 @@ object ReflectionUtils {
                     .firstOrNull { it.parameterCount == 0 }?.newInstance() as? T
             }
         }
-    }
 }

@@ -18,35 +18,31 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.Config.Group
+import com.lambda.config.SettingBlock
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
-class ScreenLineSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : SettingGroup(c), LineConfig {
-	enum class Group(override val displayName: String) : NamedEnum {
-		Color("Color"),
-		Dash("Dash")
+class ScreenLineSettings(override val c: Config) : SettingBlock, LineConfig {
+	companion object {
+		private const val GROUP_COLOR = "Color"
+		private const val GROUP_DASH = "Dash"
 	}
 
-	val widthSetting by c.setting("${prefix}Width", 20, 1..100, 1, "The width of the line", visibility = visibility).group(*baseGroup).index()
+	val widthSetting by c.setting("Width", 20, 1..100, 1, "The width of the line")
 	override val width get() = widthSetting * 0.00005f
 
-	override val startColor by c.setting("${prefix}Start Color", Color.WHITE, "The color at the start of the line", visibility = visibility).group(*baseGroup, Group.Color).index()
-	override val endColor by c.setting("${prefix}End Color", Color.WHITE, "The color at the end of the line", visibility = visibility).group(*baseGroup, Group.Color).index()
+	@Group(GROUP_COLOR) override val startColor by c.setting("Start Color", Color.WHITE, "The color at the start of the line")
+	@Group(GROUP_COLOR) override val endColor by c.setting("End Color", Color.WHITE, "The color at the end of the line")
 
-	override val dashEnabled by c.setting("${prefix}Dashed", false, "Enable dashed line pattern", visibility = visibility).group(*baseGroup, Group.Dash).index()
-	val dashLengthSetting by c.setting("${prefix}Dash Length", 30, 1..50, 1, "Length of each dash") { visibility() && dashEnabled }.group(*baseGroup, Group.Dash).index()
+	@Group(GROUP_DASH) override val dashEnabled by c.setting("Dashed", false, "Enable dashed line pattern")
+	@Group(GROUP_DASH) val dashLengthSetting by c.setting("Dash Length", 30, 1..50, 1, "Length of each dash") { dashEnabled }
 	override val dashLength get() = dashLengthSetting * 0.001f
-	val gapLengthSetting by c.setting("${prefix}Gap Length", 15, 1..50, 1, "Length of gaps between dashes") { visibility() && dashEnabled }.group(*baseGroup, Group.Dash).index()
+	@Group(GROUP_DASH) val gapLengthSetting by c.setting("Gap Length", 15, 1..50, 1, "Length of gaps between dashes") { dashEnabled }
 	override val gapLength get() = gapLengthSetting * 0.001f
-	override val animated by c.setting("${prefix}Animated", true, "Animate the dash pattern") { visibility() && dashEnabled }.group(*baseGroup, Group.Dash).index()
-	val dashOffsetSetting by c.setting("${prefix}Dash Offset", 0, 0..100, 1, "Offset of the dash pattern") { visibility() && dashEnabled && !animated }.group(*baseGroup, Group.Dash).index()
+	@Group(GROUP_DASH) override val animated by c.setting("Animated", true, "Animate the dash pattern") { dashEnabled }
+	@Group(GROUP_DASH) val dashOffsetSetting by c.setting("Dash Offset", 0, 0..100, 1, "Offset of the dash pattern") { dashEnabled && !animated }
 	override val dashOffset get() = dashOffsetSetting * 0.01f
-	val animationSpeedSetting by c.setting("${prefix}Animation Speed", 30, -100..100, 1, "Speed of dash animation (negative = reverse)") { visibility() && dashEnabled && animated }.group(*baseGroup, Group.Dash).index()
+	@Group(GROUP_DASH) val animationSpeedSetting by c.setting("Animation Speed", 30, -100..100, 1, "Speed of dash animation (negative = reverse)") { dashEnabled && animated }
 	override val animationSpeed get() = animationSpeedSetting * 0.1f
 }

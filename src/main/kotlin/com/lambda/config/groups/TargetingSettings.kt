@@ -18,7 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.config.applyEdits
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
@@ -46,25 +46,22 @@ import java.util.*
  * are targetable, the range of targeting, and various other conditions for targeting.
  *
  * @param c The [Config] instance used to get and set configuration options for targeting.
- * @param visibility The predicate used to determine whether the targeting settings are visible and active.
  * @param defaultRange The default range within which entities can be targeted.
  * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class TargetingSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
+	override val c: Config,
 	defaultRange: Double,
 	maxRange: Double,
-	prefix: String = "",
-	visibility: () -> Boolean = { true },
-) : SettingGroup(c), TargetingConfig {
+) : SettingBlock, TargetingConfig {
+
 	/**
 	 * The range within which entities can be targeted. This value is config and constrained
 	 * between 1.0 and [maxRange].
 	 */
-	override val targetingRange by c.setting("${prefix}Targeting Range", defaultRange, 1.0..maxRange, 0.05, visibility = visibility).group(*baseGroup).index()
-    override val targets = EntitySelectionSettings(c = c, baseGroup = baseGroup).apply {
-		c.applyEdits {
+	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
+    override val targets = EntitySelectionSettings(c).apply {
+		applyEdits {
 			hide(::self, ::blockEntities)
 		}
     }
@@ -87,31 +84,28 @@ abstract class TargetingSettings(
      */
     class CombatSettings(
 	    c: Config,
-	    vararg baseGroup: NamedEnum,
 	    defaultRange: Double = 5.0,
 	    maxRange: Double = 16.0,
-	    prefix: String = "",
-	    override val visibility: () -> Boolean = { true },
-    ) : TargetingSettings(c, *baseGroup, defaultRange = defaultRange, maxRange = maxRange, prefix = prefix, visibility = visibility) {
+    ) : TargetingSettings(c, defaultRange, maxRange) {
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
-        val fov by c.setting("${prefix}FOV Limit", 180, 5..180, 1) { visibility() && priority == Priority.Fov }.group(*baseGroup).index()
+        val fov by c.setting("FOV Limit", 180, 5..180, 1) { priority == Priority.Fov }
 
         /**
          * The priority used to determine which entity is targeted. Configurable with default set to [Priority.Distance].
          */
-        val priority by c.setting("${prefix}Priority", Priority.Distance, visibility = visibility).group(*baseGroup).index()
+        val priority by c.setting("Priority", Priority.Distance)
 
 	    /**
 	     * Whether to target named entities that are not players.
 	     */
-	    val targetNamed by c.setting("${prefix}Target Named Entities", false, visibility = visibility).group(*baseGroup).index()
+	    val targetNamed by c.setting("Target Named Entities", false)
 	    /**
 	     * Whether to target tamed entities.
 	     */
-		val targetTamed by c.setting("${prefix}Target Tamed Entities", false, visibility = visibility).group(*baseGroup).index()
-		val owned by c.setting("${prefix}Owned", false) { visibility() && targetTamed }.group(*baseGroup).index()
+		val targetTamed by c.setting("Target Tamed Entities", false)
+		val owned by c.setting("Owned", false) { targetTamed }
 
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.

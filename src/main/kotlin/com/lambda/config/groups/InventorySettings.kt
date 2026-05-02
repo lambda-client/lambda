@@ -18,32 +18,27 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.Config.Group
+import com.lambda.config.SettingBlock
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
 
-class InventorySettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : SettingGroup(c), InventoryConfig {
-    enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Container("Container"),
-        Access("Access")
+class InventorySettings(override val c: Config) : SettingBlock, InventoryConfig {
+    companion object {
+        private const val GROUP_GENERAL = "General"
+        private const val GROUP_CONTAINER = "Container"
+        private const val GROUP_ACCESS = "Access"
     }
 
-    override val tickStageMask by c.setting("${prefix}Inventory Stage Mask", ALL_STAGES.toSet(), description = "The sub-tick timing at which inventory actions are performed", displayClassName = true, visibility = visibility).group(*baseGroup, Group.General).index()
-    override val disposables by c.setting("${prefix}Disposables", ItemUtils.defaultDisposables, description = "Items that will be ignored when checking for a free slot", visibility = visibility).group(*baseGroup, Group.Container).index()
-    override val swapWithDisposables by c.setting("${prefix}Swap With Disposables", true, "Swap items with disposable ones", visibility = visibility).group(*baseGroup, Group.Container).index()
-    override val providerPriority by c.setting("${prefix}Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from", visibility = visibility).group(*baseGroup, Group.Container).index()
-    override val storePriority by c.setting("${prefix}Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to", visibility = visibility).group(*baseGroup, Group.Container).index()
+    @Group(GROUP_GENERAL) override val tickStageMask by c.setting("Inventory Stage Mask", ALL_STAGES.toSet(), description = "The sub-tick timing at which inventory actions are performed", displayClassName = true)
+    @Group(GROUP_CONTAINER) override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, description = "Items that will be ignored when checking for a free slot")
+    @Group(GROUP_CONTAINER) override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones")
+    @Group(GROUP_CONTAINER) override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from")
+    @Group(GROUP_CONTAINER) override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to")
 
-    override val accessShulkerBoxes by c.setting("${prefix}Access Shulker Boxes", false, "Allow access to the player's shulker boxes", visibility = visibility).group(*baseGroup, Group.Access).index()
-    override val accessChests by c.setting("${prefix}Access Chests", false, "Allow access to the player's normal chests", visibility = visibility).group(*baseGroup, Group.Access).index()
-    override val accessEnderChest by c.setting("${prefix}Access Ender Chest", false, "Allow access to the player's ender chest", visibility = visibility).group(*baseGroup, Group.Access).index()
-    override val accessStashes by c.setting("${prefix}Access Stashes", false, "Allow access to the player's stashes", visibility = visibility).group(*baseGroup, Group.Access).index()
+    @Group(GROUP_ACCESS) override val accessShulkerBoxes by c.setting("Access Shulker Boxes", false, "Allow access to the player's shulker boxes")
+    @Group(GROUP_ACCESS) override val accessChests by c.setting("Access Chests", false, "Allow access to the player's normal chests")
+    @Group(GROUP_ACCESS) override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest")
+    @Group(GROUP_ACCESS) override val accessStashes by c.setting("Access Stashes", false, "Allow access to the player's stashes")
 }

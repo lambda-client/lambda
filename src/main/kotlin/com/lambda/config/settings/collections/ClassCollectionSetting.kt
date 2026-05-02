@@ -25,7 +25,7 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.ReflectionUtils.className
 
 /**
- * @see [com.lambda.config.settings.collections.CollectionSetting]
+ * @see [CollectionSetting]
  * @see [com.lambda.config.Config]
  */
 class ClassCollectionSetting<T : Any>(

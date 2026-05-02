@@ -17,10 +17,11 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.SettingBlock
 import com.lambda.graphics.mc.LineDashStyle
 import java.awt.Color
 
-interface LineConfig {
+interface LineConfig : SettingBlock {
 	val startColor: Color
 	val endColor: Color
 	val width: Float

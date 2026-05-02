@@ -17,7 +17,7 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.ISettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.event.events.TickEvent
 
 /**
@@ -25,7 +25,7 @@ import com.lambda.event.events.TickEvent
  *
  * @param priority The priority of this configuration.
  */
-interface HotbarConfig : ISettingGroup {
+interface HotbarConfig : SettingBlock {
 	val swapMode: SwapMode
 	/**
 	 * The number of ticks to keep the current hotbar selection active.

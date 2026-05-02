@@ -263,7 +263,7 @@ object QuickSearch {
 
             val settingResults = ConfigLoader.configCategories.flatMap {
                 it.configs.flatMap { config ->
-                    config.settings
+                    config.settingContainers
                         .filter { setting -> setting.visibility() }
                         .mapNotNull { setting ->
                             val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)

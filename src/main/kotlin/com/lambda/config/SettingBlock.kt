@@ -17,20 +17,6 @@
 
 package com.lambda.config
 
-interface ISettingGroup {
-	val settings: MutableList<Setting<*, *>>
-	val visibility: () -> Boolean
-}
-
-abstract class SettingGroup(c: Config) : ISettingGroup {
-    override val settings = mutableListOf<Setting<*, *>>()
-
-	init {
-		c.settingGroups.add(this)
-	}
-
-    fun <T : SettingCore<R>, R : Any> Setting<T, R>.index(): Setting<T, R> {
-        settings.add(this)
-        return this
-    }
+interface SettingBlock {
+	val c: Config
 }

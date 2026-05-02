@@ -61,7 +61,7 @@ import com.lambda.util.Nameable
  * If a module does not need to be activated by a key (like [ClickGui]),
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
- * [Module]s are [Config]s with [settings] (see [SettingCore] for all setting types).
+ * [Module]s are [Config]s with [settingContainers] (see [SettingCore] for all setting types).
  * Example:
  * ```
  * private val foo by setting("Foo", true)

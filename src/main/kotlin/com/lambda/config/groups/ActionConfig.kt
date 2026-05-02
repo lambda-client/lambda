@@ -17,11 +17,12 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.SettingBlock
 import com.lambda.event.events.TickEvent
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 
-interface ActionConfig {
+interface ActionConfig : SettingBlock {
 	val sorter: SortMode
 	val tickStageMask: Collection<TickEvent>
 

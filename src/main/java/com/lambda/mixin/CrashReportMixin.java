@@ -65,7 +65,7 @@ public class CrashReportMixin {
                     .forEach(module -> {
                         list.add(String.format("\t%s", module.getName()));
 
-                        module.getSettings()
+                        module.getSettingContainers()
                                 .stream()
                                 .filter(Setting::isModified)
                                 .forEach(setting -> list.add(String.format("\t\t%s -> %s", setting.getName(), setting.getValue())));

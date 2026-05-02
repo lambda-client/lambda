@@ -21,7 +21,6 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.Config
 import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.Setting
-import com.lambda.config.UserAutomationConfig
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -53,7 +52,7 @@ object SettingsWidget {
 			            with(config.backgroundColor) { buildLayout() }
 		            }
 		            smallButton("Reset") {
-			            config.settings.forEach { it.reset(silent = true) }
+			            config.settingContainers.forEach { it.reset(silent = true) }
 		            }
 	            }
             }
@@ -88,7 +87,7 @@ object SettingsWidget {
             }
         }
 
-        val visibleSettings = config.settings.filter { it.visibility() }
+        val visibleSettings = config.settingContainers.filter { it.visibility() }
 	    if (visibleSettings.isEmpty()) return
 	    else separator()
         val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }

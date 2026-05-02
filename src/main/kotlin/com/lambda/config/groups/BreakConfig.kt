@@ -17,13 +17,13 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.ISettingGroup
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
 import java.awt.Color
 
-interface BreakConfig : ActionConfig, ISettingGroup {
+@Suppress("unused")
+interface BreakConfig : ActionConfig {
 	val breakMode: BreakMode
 	val rebreak: Boolean
 

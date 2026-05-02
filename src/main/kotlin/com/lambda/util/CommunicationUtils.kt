@@ -21,7 +21,6 @@ import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
-import com.lambda.config.ConfigCategory
 import com.lambda.config.ConfigLoader
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
@@ -208,7 +207,7 @@ object CommunicationUtils {
                 literal(
                     "Settings: ${
                         ConfigLoader.configCategories.sumOf { config ->
-                            config.configs.sumOf { it.settings.size }
+                            config.configs.sumOf { it.settingContainers.size }
                         }
                     }"
                 )

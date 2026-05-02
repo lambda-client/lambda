@@ -54,7 +54,7 @@ object PrefixCommand : LambdaCommand(
 				val prefixChar = prefix.first()
 				val config = ConfigLoader.configByName("command") ?: return@executeWithResult failure("No command config found.")
 				@Suppress("UNCHECKED_CAST")
-				val setting = config.settings.find { it.name == "prefix" } as? Setting<SettingCore<Char>, Char>
+				val setting = config.settingContainers.find { it.name == "prefix" } as? Setting<SettingCore<Char>, Char>
 					?: return@executeWithResult failure("Prefix setting is not a Char or can not be found.")
 				setting.trySetValue(prefixChar)
 				return@executeWithResult success()

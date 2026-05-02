@@ -18,29 +18,24 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.util.NamedEnum
 
-class FormatterSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : FormatterConfig, SettingGroup(c) {
-    val localeEnum by c.setting("${prefix}Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers", visibility = visibility).group(*baseGroup).index()
+class FormatterSettings(override val c: Config) : SettingBlock, FormatterConfig {
+    val localeEnum by c.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers")
     override val locale get() = localeEnum.locale
 
-    val sep by c.setting("${prefix}Separator", FormatterConfig.TupleSeparator.Comma, "Separator for string serialization of tuple data structures", visibility = visibility).group(*baseGroup).index()
-    val customSep by c.setting("${prefix}Custom Separator", "") { visibility() && sep == FormatterConfig.TupleSeparator.Custom }.group(*baseGroup).index()
+    val sep by c.setting("Separator", FormatterConfig.TupleSeparator.Comma, "Separator for string serialization of tuple data structures")
+    val customSep by c.setting("Custom Separator", "") { sep == FormatterConfig.TupleSeparator.Custom }
     override val separator get() = if (sep == FormatterConfig.TupleSeparator.Custom) customSep else sep.separator
 
-    val group by c.setting("${prefix}Tuple Prefix", FormatterConfig.TupleGrouping.Parentheses, visibility = visibility).group(*baseGroup).index()
-    override val prefix get() = group.prefix
-    override val postfix get() = group.postfix
+    val tupleGroup by c.setting("Tuple Prefix", FormatterConfig.TupleGrouping.Parentheses)
+    override val prefix get() = tupleGroup.prefix
+    override val postfix get() = tupleGroup.postfix
 
-    val floatingPrecision by c.setting("${prefix}Floating Precision", 3, 0..6, 1, "Precision for floating point numbers", visibility = visibility).group(*baseGroup).index()
+    val floatingPrecision by c.setting("Floating Precision", 3, 0..6, 1, "Precision for floating point numbers")
     override val precision get() = floatingPrecision
 
-    val timeFormat by c.setting("${prefix}Time Format", FormatterConfig.Time.IsoDateTime, visibility = visibility).group(*baseGroup).index()
+    val timeFormat by c.setting("Time Format", FormatterConfig.Time.IsoDateTime)
     override val format get() = timeFormat.format
 }

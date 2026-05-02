@@ -17,9 +17,10 @@
 
 package com.lambda.config.groups
 
+import com.lambda.config.SettingBlock
 import com.lambda.util.Describable
 
-interface ReplaceConfig {
+interface ReplaceConfig : SettingBlock {
 	val action: ActionStrategy
 	val replace: ReplaceStrategy
 
@@ -32,6 +33,7 @@ interface ReplaceConfig {
 		None("Don't do anything."),
 	}
 
+	@Suppress("unused")
 	enum class ReplaceStrategy(val block: (String) -> String) {
 		CensorAll({ it.replaceRange(0..<it.length, "*".repeat(it.length))}),
 		CensorHalf({ it.foldIndexed("") { i, acc, char -> if (i % 2 == 0) acc + char else "$acc*" } }),

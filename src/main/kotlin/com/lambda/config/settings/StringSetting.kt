@@ -25,7 +25,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingGroupEditor
+import com.lambda.config.ConfigEditor
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.extension.CommandBuilder
@@ -64,12 +64,12 @@ class StringSetting(
     @Suppress("unused", "unchecked_cast")
     companion object {
         @SettingEditorDsl
-        fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
+        fun ConfigEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
             (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
         }
 
         @SettingEditorDsl
-        fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
+        fun ConfigEditor.TypedEditBuilder<String>.flags(flags: Int) {
             (settings as Collection<StringSetting>).forEach { it.flags = flags }
         }
     }

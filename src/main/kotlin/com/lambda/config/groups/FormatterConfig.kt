@@ -17,13 +17,14 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.ISettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-interface FormatterConfig : ISettingGroup {
+@Suppress("unused")
+interface FormatterConfig : SettingBlock {
     val locale: Locale
     val separator: String
     val prefix: String

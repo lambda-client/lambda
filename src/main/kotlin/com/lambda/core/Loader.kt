@@ -20,7 +20,7 @@ package com.lambda.core
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.util.CommunicationUtils.ascii
-import com.lambda.util.getInstances
+import com.lambda.util.ReflectionUtils.getInstances
 import kotlin.system.measureTimeMillis
 import kotlin.time.Duration.Companion.milliseconds
 

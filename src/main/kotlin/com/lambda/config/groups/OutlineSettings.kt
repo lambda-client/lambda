@@ -18,29 +18,24 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.util.NamedEnum
 import java.awt.Color
 
-class OutlineSettings(
-	c: Config,
-	vararg baseGroup: NamedEnum,
-	prefix: String = "",
-	override val visibility: () -> Boolean = { true },
-) : SettingGroup(c) {
-	val thicknessSetting by c.setting("${prefix}Line Width", 25, 1..100, 1, "The width of the outline", visibility = visibility).group(*baseGroup).index()
+class OutlineSettings(override val c: Config) : SettingBlock {
+	val thicknessSetting by c.setting("Line Width", 25, 1..100, 1, "The width of the outline")
 	val thickness get() = thicknessSetting * 0.00005f
 
-	val glowIntensitySetting by c.setting("${prefix}Glow Intensity", 50, 0..100, 1, "Intensity of the outline glow", visibility = visibility).group(*baseGroup).index()
+	val glowIntensitySetting by c.setting("Glow Intensity", 50, 0..100, 1, "Intensity of the outline glow")
 	val glowIntensity get() = glowIntensitySetting * 0.01f
 
-	val glowRadiusSetting by c.setting("${prefix}Glow Radius", 20, 0..100, 1, "Radius of the outline glow", visibility = visibility).group(*baseGroup).index()
+	val glowRadiusSetting by c.setting("Glow Radius", 20, 0..100, 1, "Radius of the outline glow")
 	val glowRadius get() = glowRadiusSetting * 0.00005f
 
-	val fill by c.setting("${prefix}Fill", true, "Fill the entity silhouette", visibility = visibility).group(*baseGroup).index()
+	val fill by c.setting("Fill", true, "Fill the entity silhouette")
 
-	val fillOpacitySetting by c.setting("${prefix}Fill Opacity", 10, 0..100, 1, "Opacity of the fill") { visibility() && fill }.group(*baseGroup).index()
+	val fillOpacitySetting by c.setting("Fill Opacity", 10, 0..100, 1, "Opacity of the fill") { fill }
 	val fillOpacity get() = fillOpacitySetting * 0.01f
 
 	fun toStyle(color: Color) = OutlineStyle(

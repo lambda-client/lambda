@@ -20,6 +20,7 @@ package com.lambda.config.migration.migrations
 import com.lambda.Lambda.LOG
 import com.lambda.config.migration.StepConfigMigration
 
+@Suppress("unused")
 object AutomationConfigMigration : StepConfigMigration() {
 	override val configName = "automation"
 	override val latestVersion = 2

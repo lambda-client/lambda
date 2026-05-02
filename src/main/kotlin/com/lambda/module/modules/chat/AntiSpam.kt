@@ -18,7 +18,7 @@
 package com.lambda.module.modules.chat
 
 import com.lambda.config.Config
-import com.lambda.config.SettingGroup
+import com.lambda.config.SettingBlock
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ReplaceConfig
 import com.lambda.event.events.ChatEvent
@@ -140,7 +140,7 @@ object AntiSpam : Module(
 		c: Config,
 		baseGroup: NamedEnum,
 		override val visibility: () -> Boolean = { true },
-	) : ReplaceConfig, SettingGroup(c) {
+	) : ReplaceConfig, SettingBlock(c) {
 		override val action by setting("$name Action Strategy", ReplaceConfig.ActionStrategy.Replace, visibility = visibility).group(baseGroup)
 		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { visibility() && action == ReplaceConfig.ActionStrategy.Replace }.group(baseGroup)
 	}

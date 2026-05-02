@@ -60,10 +60,12 @@ import java.awt.Color
  *
  * This class also provides a series of helper methods ([setting]) for creating different types of settings.
  *
- * @property settings A set of [SettingCore]s that this config manages.
+ * @property settingContainers A set of [SettingCore]s that this config manages.
  */
 abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
-    val settings = mutableListOf<Setting<*, *>>()
+    val settingContainers = mutableListOf<SettingContainer>()
+    val settingTabs = mutableListOf<SettingContainer.Tab>()
+    val settingGroups = mutableListOf<SettingContainer.Group>()
 
     init {
         if (configs.any { it.name == name })
@@ -71,28 +73,63 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         configCategory.configs.add(this)
     }
 
-    fun <T : SettingCore<R>, R : Any> Setting<T, R>.register() = apply {
-        if (settings.any { it.name == name })
-            throw IllegalStateException("Setting with name $name already exists for config: ${this@Config.name}")
-	    settings.add(this)
-    }
-
-    override fun toJson() =
+    final override fun toJson() =
         JsonObject().apply {
-            settings.forEach { setting ->
-                try {
-                    add(setting.name, setting.toJson())
-                } catch (e: Exception) {
-                    logError("Failed to serialize $setting in ${this::class.simpleName}", e)
+            fun JsonObject.addSettings(settings: Collection<SettingContainer>) {
+                settings.forEach { container ->
+                    when (container) {
+                        is SettingContainer.Single ->
+                            try {
+                                add(container.setting.name, container.setting.toJson())
+                            } catch(e: Throwable) {
+                                logError("Failed to serialize '${container.setting}' in ${this::class.simpleName}", e)
+                            }
+                        is SettingContainer.Multiple -> {
+                            val grouped = JsonObject()
+                            grouped.addSettings(container.settings)
+                            try {
+                                add(container.name, grouped)
+                            } catch(e: Throwable) {
+                                logError("Failed to serialize ${container.type}: ${container.name} in ${this::class.simpleName}", e)
+                            }
+                        }
+                    }
                 }
             }
+            addSettings(settingContainers)
         }
 
-    override fun loadFromJson(serialized: JsonElement) {
-        serialized.asJsonObject.entrySet().forEach { (name, value) ->
-            settings.find { it.name == name }?.loadFromJson(value)
-                ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
+    final override fun loadFromJson(serialized: JsonElement) {
+        val rootObj = serialized.asJsonObject
+
+        fun loadFromObject(obj: JsonObject, containers: Collection<SettingContainer>) {
+	        containers.forEach { container ->
+		        when (container) {
+			        is SettingContainer.Single -> {
+				        val jsonValue = obj[container.setting.name]
+				        if (jsonValue != null) {
+					        try {
+						        container.setting.loadFromJson(jsonValue)
+					        } catch (e: Throwable) {
+						        logError("Failed to deserialize setting '${container.setting.name}'", e)
+					        }
+				        } else {
+					        LOG.warn("No saved value for setting '${container.setting.name}' in ${this::class.simpleName}")
+				        }
+			        }
+			        is SettingContainer.Multiple -> {
+				        val nestedObj = obj[container.name]?.asJsonObject
+				        if (nestedObj != null) {
+					        loadFromObject(nestedObj, container.settings)
+				        } else {
+					        LOG.debug("No data for group/tab '${container.name}' in ${this::class.simpleName}")
+				        }
+			        }
+		        }
+	        }
         }
+
+        loadFromObject(rootObj, settingContainers)
     }
 
     fun setting(
@@ -278,6 +315,9 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         visibility: () -> Boolean = { true }
     ) = Setting(name, description, FunctionSetting(defaultValue), this, visibility)
 
+    fun <T : SettingBlock> settingBlock(settingBlock: T, block: (T.() -> Unit)? = null) =
+        settingBlock.apply { block?.invoke(this) }
+
     @Target(AnnotationTarget.PROPERTY)
     @Retention(AnnotationRetention.RUNTIME)
     annotation class Tab(vararg val tab: String)
@@ -286,15 +326,28 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     @Retention(AnnotationRetention.RUNTIME)
     annotation class Group(vararg val group: String)
 
-    @Suppress("unused")
-    object StandardTabs {
-        const val GENERAL_TAB = "General"
-        const val RENDER_TAB = "Render"
-    }
+    sealed interface SettingContainer {
+        class Single(val setting: Setting<*, *>) : SettingContainer
 
-    @Suppress("unused")
-    object StandardGroups {
-        const val GENERAL_GROUP = "General"
-        const val RENDER_GROUP = "Render"
+        sealed class Multiple(
+            val name: String,
+            val settings: Collection<SettingContainer>
+        ) : SettingContainer {
+            abstract val type: String
+        }
+
+        class Tab(
+            name: String,
+            settings: Collection<SettingContainer>
+        ) : Multiple(name, settings) {
+            override val type = "tab"
+        }
+
+        class Group(
+            name: String,
+            settings: Collection<SettingContainer>
+        ) : Multiple(name, settings) {
+            override val type = "group"
+        }
     }
 }

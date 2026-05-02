@@ -117,24 +117,24 @@ object MenuBar {
     private fun ImGuiBuilder.buildLambdaMenu() {
         menu("Save Config...") {
             menuItem("Save All Configs") {
-                ConfigLoader.configCategories.forEach { it.trySave(true) }
+                ConfigLoader.configCategories.forEach { it.trySaveToFile(true) }
                 info("Saved ${ConfigLoader.configCategories.size} configuration files.")
             }
             ConfigLoader.configCategories.forEach { config ->
                 menuItem("Save ${config.configName}") {
-                    config.trySave(true)
+                    config.trySaveToFile(true)
                     info("Saved ${config.configName}")
                 }
             }
         }
         menu("Load Config...") {
             menuItem("Load All Configs") {
-                ConfigLoader.configCategories.forEach { it.tryLoad() }
+                ConfigLoader.configCategories.forEach { it.tryLoadFromFile() }
                 info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
             }
             ConfigLoader.configCategories.forEach { config ->
                 menuItem("Load ${config.configName}") {
-                    config.tryLoad()
+                    config.tryLoadFromFile()
                     info("Loaded ${config.configName}")
                 }
             }
@@ -469,7 +469,7 @@ object MenuBar {
                 text("Modules: ${ModuleRegistry.modules.size}")
                 text("Commands: ${CommandRegistry.commands.size}")
                 val totalSettings = ConfigLoader.configCategories.sumOf { cfg ->
-                    cfg.configs.sumOf { it.settings.size }
+                    cfg.configs.sumOf { it.settingContainers.size }
                 }
                 text("Settings: $totalSettings")
                 text("Synchronous listeners: ${EventFlow.syncListeners.size}")

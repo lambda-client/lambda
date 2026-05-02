@@ -17,12 +17,16 @@
 
 package com.lambda.config.groups
 
-import com.lambda.config.ISettingGroup
-import com.lambda.interaction.managers.rotating.visibilty.PointSelection
+import com.lambda.config.SettingBlock
+import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
+import com.lambda.util.math.distSq
+import com.lambda.util.math.times
+import com.lambda.util.player.CheckedHit
 
-interface BuildConfig : ISettingGroup {
+interface BuildConfig : SettingBlock {
     val breakBlocks: Boolean
     val placeBlocks: Boolean
     val interactBlocks: Boolean
@@ -56,5 +60,34 @@ interface BuildConfig : ISettingGroup {
         Vanilla("Vanilla", "Play the hand swing locally and also notify the server (default, looks and works as expected)."),
         Server("Server", "Only notify the server to swing; local animation may not play unless the server echoes it."),
         Client("Client", "Only play the local swing animation; does not notify the server (purely visual).")
+    }
+
+    @Suppress("unused")
+    enum class PointSelection(
+        override val displayName: String,
+        override val description: String,
+        val select: (Collection<CheckedHit>) -> CheckedHit?
+    ) : NamedEnum, Describable {
+        ByRotation(
+            "By Rotation",
+            "Choose the point that needs the least rotation from your current view (minimal camera turn).",
+            select = { hits ->
+                hits.minByOrNull { RotationManager.activeRotation dist it.rotation }
+            }
+        ),
+        Optimum(
+            "Optimum",
+            "Choose the point closest to the average of all candidates (balanced and stable aim).",
+            select = { hits ->
+                val optimum = hits
+                    .mapNotNull { it.hit.pos }
+                    .reduceOrNull { acc, pos -> acc.add(pos) }
+                    ?.times(1 / hits.size.toDouble())
+
+                optimum?.let { center ->
+                    hits.minByOrNull { it.hit.pos?.distSq(center) ?: 0.0 }
+                }
+            }
+        )
     }
 }

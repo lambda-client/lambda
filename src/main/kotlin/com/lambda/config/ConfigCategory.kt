@@ -40,6 +40,10 @@ import com.lambda.util.FileUtils.ifNotExists
 import com.lambda.util.StringUtils.capitalize
 import java.io.File
 import kotlin.concurrent.fixedRateTimer
+import kotlin.reflect.KClass
+import kotlin.reflect.KClassifier
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.jvm.isAccessible
 import kotlin.time.Duration.Companion.minutes
 
 
@@ -58,33 +62,54 @@ import kotlin.time.Duration.Companion.minutes
  * @property configs A set of [Config] objects that this configuration manages.
  */
 abstract class ConfigCategory : Jsonable, Loadable {
-    override val priority = 1
     abstract val configName: String
     abstract val primary: File
+    override val priority = 1
 
     val configs = mutableSetOf<Config>()
     private val backup: File
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
-    override fun load(): String {
+    final override fun load(): String {
         if (configCategories.any { it.configName == configName })
             throw IllegalStateException("Configuration with name $configName already exists")
+
+        configs.forEach { config ->
+            val settings = config::class.declaredMemberProperties.mapNotNull { prop ->
+                val returnType = prop.returnType
+	            val classifier = returnType.classifier ?: return@mapNotNull null
+
+	            when {
+                    classifier.isOf<Setting<*, *>>() || classifier.isOf<SettingBlock>() -> {
+                        prop.isAccessible = true
+                        prop to prop.getter.call(config) // returns the Setting instance
+                    }
+                    else -> null
+                }
+            }
+        }
 
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-config-${configName}",
             initialDelay = 5.minutes.inWholeMilliseconds,
             period = 5.minutes.inWholeMilliseconds,
-        ) { trySave() }
+        ) { trySaveToFile() }
 
         configCategories.add(this)
 
-        listenUnsafe<ClientEvent.Shutdown>({ Int.MIN_VALUE }) { trySave() }
+        listenUnsafe<ClientEvent.Shutdown>({ Int.MIN_VALUE }) { trySaveToFile() }
 
         return super.load()
     }
 
-    override fun toJson() =
+    private inline fun <reified T> KClassifier.isOf() =
+        this == T::class || (this is KClass<*> && T::class.java.isAssignableFrom(java))
+
+    fun tryLoadFromFile() = runIO { internalTryLoad() }
+    fun trySaveToFile(logToChat: Boolean = false) = runIO { internalTrySave(logToChat) }
+
+    final override fun toJson() =
         JsonObject().apply {
             val latestSchemaVersion = ConfigMigrations.latestVersion(configName)
             if (latestSchemaVersion > 1) {
@@ -98,7 +123,7 @@ abstract class ConfigCategory : Jsonable, Loadable {
             }
         }
 
-    override fun loadFromJson(serialized: JsonElement) {
+    final override fun loadFromJson(serialized: JsonElement) {
         val schemaKey = ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
             if (name == schemaKey) return@forEach
@@ -108,16 +133,32 @@ abstract class ConfigCategory : Jsonable, Loadable {
         }
     }
 
-    private fun save() = runCatching {
-        primary.createIfNotExists()
-            .let {
-                it.writeText(gson.toJson(toJson()))
-                it.copyTo(backup, true)
+    protected open fun internalTryLoad() {
+        loadFromFile(primary)
+            .onSuccess {
+                val message = "${configName.capitalize()} config loaded."
+                LOG.info(message)
+                info(message)
+            }
+            .onFailure { primaryError ->
+                LOG.error(primaryError)
+
+                runCatching { loadFromFile(backup) }
+                    .onSuccess {
+                        val message = "${configName.capitalize()} config loaded from backup"
+                        LOG.info(message)
+                        info(message)
+                    }
+                    .onFailure { error ->
+                        val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                        LOG.error(message, error)
+                        logError(message)
+                    }
             }
     }
 
     protected open fun internalTrySave(logToChat: Boolean) {
-        save()
+        saveToFile()
             .onSuccess {
                 val message = "Saved ${configName.capitalize()} config."
                 LOG.info(message)
@@ -134,7 +175,7 @@ abstract class ConfigCategory : Jsonable, Loadable {
      * Loads the config from the [file]
      * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
      */
-    private fun load(file: File) = runCatching {
+    private fun loadFromFile(file: File) = runCatching {
         file.ifNotExists { LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
             .ifExists {
                 val parsed = JsonParser.parseReader(it.reader()).asJsonObject
@@ -149,30 +190,11 @@ abstract class ConfigCategory : Jsonable, Loadable {
             }
     }
 
-    protected open fun internalTryLoad() {
-        load(primary)
-            .onSuccess {
-                val message = "${configName.capitalize()} config loaded."
-                LOG.info(message)
-                info(message)
-            }
-            .onFailure { primaryError ->
-                LOG.error(primaryError)
-
-                runCatching { load(backup) }
-                    .onSuccess {
-                        val message = "${configName.capitalize()} config loaded from backup"
-                        LOG.info(message)
-                        info(message)
-                    }
-                    .onFailure { error ->
-                        val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
-                        LOG.error(message, error)
-                        logError(message)
-                    }
+    private fun saveToFile() = runCatching {
+        primary.createIfNotExists()
+            .let {
+                it.writeText(gson.toJson(toJson()))
+                it.copyTo(backup, true)
             }
     }
-
-    fun tryLoad() = runIO { internalTryLoad() }
-    fun trySave(logToChat: Boolean = false) = runIO { internalTrySave(logToChat) }
 }
