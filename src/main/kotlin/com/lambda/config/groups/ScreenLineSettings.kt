@@ -20,7 +20,6 @@ package com.lambda.config.groups
 import com.lambda.config.Config
 import com.lambda.config.Config.Group
 import com.lambda.config.SettingBlock
-import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class ScreenLineSettings(override val c: Config) : SettingBlock, LineConfig {

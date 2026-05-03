@@ -53,6 +53,11 @@ import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.jvm.java
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.jvm.javaField
 
 /**
  * Represents a set of [SettingCore]s that are associated with the [name] of the [Config].
@@ -64,13 +69,79 @@ import java.awt.Color
  */
 abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     val settingContainers = mutableListOf<SettingContainer>()
-    val settingTabs = mutableListOf<SettingContainer.Tab>()
-    val settingGroups = mutableListOf<SettingContainer.Group>()
+    private val registrationQueue = ArrayDeque<List<ContainerSpec>>()
 
     init {
-        if (configs.any { it.name == name })
-            throw IllegalStateException("Configs with name $name already exists")
+        if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists")
+        enqueueProperties(this::class, emptyList())
         configCategory.configs.add(this)
+    }
+
+    /**
+     * Recursively reflects over [klass]'s declared properties to build the [registrationQueue].
+     * For each property:
+     * - If its backing field is a [Setting], enqueue its annotation path.
+     * - If its backing field is a [SettingBlock], recurse into that class with the current path as outer context.
+     * - If it has no backing field (computed property), skip it.
+     */
+    private fun enqueueProperties(klass: KClass<*>, outerPath: List<ContainerSpec>) {
+        klass.declaredMemberProperties.forEach { property ->
+            val path = outerPath + buildPathFromAnnotations(property)
+            val fieldType = property.javaField?.type
+            when {
+                fieldType == null -> {}
+                SettingBlock::class.java.isAssignableFrom(fieldType) ->
+                    enqueueProperties(fieldType.kotlin, path)
+                Setting::class.java.isAssignableFrom(fieldType) ->
+                    registrationQueue.addLast(path)
+            }
+        }
+    }
+
+    /**
+     * Reads [Tab] and [Group] annotations from a property and builds a nesting path.
+     * Annotation order in source determines nesting order.
+     */
+    private fun buildPathFromAnnotations(property: KProperty<*>): List<ContainerSpec> {
+        val path = mutableListOf<ContainerSpec>()
+	    property.annotations.forEach { annotation ->
+		    when (annotation) {
+			    is Tab -> annotation.tabs.forEach { path.add(ContainerSpec(ContainerType.Tab, it)) }
+			    is Group -> annotation.groups.forEach { path.add(ContainerSpec(ContainerType.Group, it)) }
+		    }
+	    }
+        return path
+    }
+
+    /**
+     * Registers a [Setting] into the [settingContainers] tree.
+     * Dequeues the next path from [registrationQueue] and navigates/creates
+     * the container hierarchy, coalescing containers with the same name and type.
+     */
+    fun register(setting: Setting<*, *>) {
+        val path = registrationQueue.removeFirst()
+        var currentList = settingContainers
+
+	    path.forEach { spec ->
+		    val existing = currentList.firstOrNull {
+			    it is SettingContainer.Multiple &&
+					    it.name == spec.name &&
+					    ((spec.type == ContainerType.Tab && it is SettingContainer.Tab) ||
+							    (spec.type == ContainerType.Group && it is SettingContainer.Group))
+		    } as? SettingContainer.Multiple
+
+		    if (existing != null) currentList = existing.settings
+		    else {
+			    val newContainer = when (spec.type) {
+				    ContainerType.Tab -> SettingContainer.Tab(spec.name, mutableListOf())
+				    ContainerType.Group -> SettingContainer.Group(spec.name, mutableListOf())
+			    }
+			    currentList.add(newContainer)
+			    currentList = newContainer.settings
+		    }
+	    }
+
+        currentList.add(SettingContainer.Single(setting))
     }
 
     final override fun toJson() =
@@ -90,7 +161,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
                             try {
                                 add(container.name, grouped)
                             } catch(e: Throwable) {
-                                logError("Failed to serialize ${container.type}: ${container.name} in ${this::class.simpleName}", e)
+                                logError("Failed to serialize ${container.typeStr}: ${container.name} in ${this::class.simpleName}", e)
                             }
                         }
                     }
@@ -318,36 +389,39 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     fun <T : SettingBlock> settingBlock(settingBlock: T, block: (T.() -> Unit)? = null) =
         settingBlock.apply { block?.invoke(this) }
 
-    @Target(AnnotationTarget.PROPERTY)
-    @Retention(AnnotationRetention.RUNTIME)
-    annotation class Tab(vararg val tab: String)
+    private enum class ContainerType { Tab, Group }
+    private data class ContainerSpec(val type: ContainerType, val name: String)
 
     @Target(AnnotationTarget.PROPERTY)
     @Retention(AnnotationRetention.RUNTIME)
-    annotation class Group(vararg val group: String)
+    annotation class Tab(vararg val tabs: String)
+
+    @Target(AnnotationTarget.PROPERTY)
+    @Retention(AnnotationRetention.RUNTIME)
+    annotation class Group(vararg val groups: String)
 
     sealed interface SettingContainer {
         class Single(val setting: Setting<*, *>) : SettingContainer
 
         sealed class Multiple(
             val name: String,
-            val settings: Collection<SettingContainer>
+            val settings: MutableList<SettingContainer>
         ) : SettingContainer {
-            abstract val type: String
+            abstract val typeStr: String
         }
 
         class Tab(
             name: String,
-            settings: Collection<SettingContainer>
+            settings: MutableList<SettingContainer>
         ) : Multiple(name, settings) {
-            override val type = "tab"
+            override val typeStr = "tab"
         }
 
         class Group(
             name: String,
-            settings: Collection<SettingContainer>
+            settings: MutableList<SettingContainer>
         ) : Multiple(name, settings) {
-            override val type = "group"
+            override val typeStr = "group"
         }
     }
 }

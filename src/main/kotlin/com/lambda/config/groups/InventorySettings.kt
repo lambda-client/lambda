@@ -21,7 +21,6 @@ import com.lambda.config.Config
 import com.lambda.config.Config.Group
 import com.lambda.config.SettingBlock
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemUtils
 
 class InventorySettings(override val c: Config) : SettingBlock, InventoryConfig {

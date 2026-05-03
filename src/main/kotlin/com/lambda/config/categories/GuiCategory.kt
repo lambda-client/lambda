@@ -18,10 +18,5 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
-import com.lambda.util.FolderRegistry
-import java.io.File
 
-object GuiCategory : ConfigCategory() {
-    override val configName get() = "gui"
-    override val primary: File = FolderRegistry.config.resolve("$configName.json").toFile()
-}
+object GuiCategory : ConfigCategory("gui")

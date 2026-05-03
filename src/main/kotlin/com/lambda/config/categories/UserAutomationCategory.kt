@@ -19,18 +19,13 @@ package com.lambda.config.categories
 
 import com.google.gson.JsonParser
 import com.lambda.config.ConfigCategory
-import com.lambda.config.UserAutomationConfig
+import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.util.FileUtils.ifExists
-import com.lambda.util.FolderRegistry
-import java.io.File
 
-object UserAutomationCategory : ConfigCategory() {
-    override val configName = "custom-automation"
-    override val primary: File = FolderRegistry.config.resolve("${configName}.json").toFile()
-
+object UserAutomationCategory : ConfigCategory("custom-automation") {
     override fun internalTryLoad() {
-        primary.ifExists {
+        primaryFile.ifExists {
             JsonParser.parseReader(it.reader()).asJsonObject.entrySet().forEach { (name, _) ->
                 if (configs.any { config -> config.name == name }) return@forEach
                 UserAutomationConfig(name)

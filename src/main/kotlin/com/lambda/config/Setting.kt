@@ -109,6 +109,10 @@ class Setting<T : SettingCore<R>, R>(
 
 	val isModified get() = value != core.defaultValue
 
+	init {
+		config.register(this)
+	}
+
 	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
 		core.value = value
