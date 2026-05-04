@@ -18,8 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
@@ -29,7 +29,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -51,6 +50,7 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
+import com.lambda.util.player.RotationUtils.lookAt
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.option.Perspective
@@ -127,7 +127,7 @@ object Freecam : Module(
 				rotationConfig::rotationMode.edit {
 					defaultValue(RotationMode.Lock)
 				}
-				hideAllGroupsExcept(rotationConfig)
+				hideAllBlocksExcept(rotationConfig)
 			}
 		}
 

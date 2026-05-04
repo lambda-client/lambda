@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.Group
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.context.SafeContext
@@ -28,7 +29,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.NamedEnum
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
@@ -46,10 +46,8 @@ object LightLevels : Module(
 	description = "Shows light level. Helpful for mob-proofing areas",
 	tag = ModuleTag.RENDER
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		Fill("Fill"),
-		Line("Line")
-	}
+	private const val FILL_GROUP = "Fill"
+	private const val LINE_GROUP = "Line"
 
 	private val mode: Mode by setting("Mode", Mode.Chunked)
 		.onValueChange { _, _ -> chunkedRenderer.clear(); refreshChunkedRenderer(this) }
@@ -59,15 +57,16 @@ object LightLevels : Module(
 	private val skyLightColor by setting("Sky Light Color", Color.YELLOW).onValueChange(::refreshChunkedRenderer)
 	private val blockLightColor by setting("Block Light Color", Color.RED).onValueChange(::refreshChunkedRenderer)
 	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
-	private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
-	private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.group(Group.Fill).onValueChange(::refreshChunkedRenderer)
-	private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.group(Group.Line, WorldLineSettings.Group.General).onValueChange(::refreshChunkedRenderer)
-	private val worldLineConfig = WorldLineSettings(this, Group.Line) { renderMode != RenderMode.Square || outline }.apply {
-		applyEdits {
-			hide(::startColor, ::endColor)
-			settings.forEach { it.onValueChange(::refreshChunkedRenderer) }
+	@Group(FILL_GROUP) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
+	@Group(FILL_GROUP) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
+	@Group(LINE_GROUP) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
+	@Group(LINE_GROUP) private val worldLineConfig =
+		settingBlock(WorldLineSettings(this), { renderMode != RenderMode.Square || outline }) {
+			applyEdits {
+				hide(::startColor, ::endColor)
+				forEachSetting { it.onValueChange(::refreshChunkedRenderer) }
+			}
 		}
-	}
 	private val depthTest by setting("Depth Test", false, "Shows renders through terrain")
 	private val horizontalRange by setting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
 	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }

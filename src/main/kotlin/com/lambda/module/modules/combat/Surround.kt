@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -53,7 +53,7 @@ object Surround : Module(
 						::collectDrops
 					) { defaultValue(false); hide() }
 				}
-				hideGroup(eatConfig)
+				hideBlock(eatConfig)
 			}
 		}
 

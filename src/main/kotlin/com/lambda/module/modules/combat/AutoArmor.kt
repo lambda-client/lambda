@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
@@ -97,7 +97,7 @@ object AutoArmor : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(inventoryConfig)
+				hideAllBlocksExcept(inventoryConfig)
 			}
 		}
 

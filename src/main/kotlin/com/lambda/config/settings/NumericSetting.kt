@@ -18,10 +18,10 @@
 package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
-import com.lambda.config.ConfigEditor
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.calcTextSize

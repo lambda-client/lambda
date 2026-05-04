@@ -18,20 +18,19 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.config.Config.Group
+import com.lambda.config.Group
 import com.lambda.config.SettingBlock
 import java.awt.Color
 
 class ScreenTextSettings(override val c: Config) : SettingBlock, TextConfig {
     companion object {
-        private const val GROUP_GENERAL = "General"
         private const val GROUP_OUTLINE = "Outline"
         private const val GROUP_GLOW = "Glow"
         private const val GROUP_SHADOW = "Shadow"
     }
 
-    @Group(GROUP_GENERAL) override val textColor by c.setting("Text Color", Color.WHITE, "The main text color")
-    @Group(GROUP_GENERAL) val sizeSetting by c.setting("Text Size", 18, 1..50, 1)
+    override val textColor by c.setting("Text Color", Color.WHITE, "The main text color")
+    val sizeSetting by c.setting("Text Size", 18, 1..50, 1)
     override val size get() = sizeSetting * 0.001f
 
     @Group(GROUP_OUTLINE) override val outlineEnabled by c.setting("Outline", false, "Enable text outline")

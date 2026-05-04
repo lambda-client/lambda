@@ -34,7 +34,6 @@ object CustomChat : Module(
 ) {
 	private val decoration by setting("Decoration", Decoration.Separator)
 	private val text by setting("Text", Text.Lambda)
-
 	private val customText by setting("Custom Text", "") { text == Text.Custom }
 
 	init {

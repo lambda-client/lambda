@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.Tab
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.groups.TargetingSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
@@ -26,7 +27,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -35,6 +35,7 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
+import com.lambda.util.player.RotationUtils.lookAtEntity
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
@@ -47,18 +48,19 @@ object KillAura : Module(
     description = "Attacks entities",
     tag = ModuleTag.COMBAT,
 ) {
-    // Interact
-    private val rotate by setting("Rotate", true).group(Group.General)
-    private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
-    private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra").group(Group.General)
-    private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
-    private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
-    private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
-    private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
-    private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
+    private const val GENERAL_TAB = "General"
+    private const val TARGETING_TAB = "Targeting"
 
-    // Targeting
-    private val targetingSettings = TargetingSettings.CombatSettings(c = this, Group.Targeting)
+    @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB) private val swap by setting("Swap", true, "Swap to the item with the highest damage")
+    @Tab(GENERAL_TAB) private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra")
+    @Tab(GENERAL_TAB) private val damageMode by setting("Damage Mode", DamageMode.DPS)
+    @Tab(GENERAL_TAB) private val attackMode by setting("Attack Mode", AttackMode.Cooldown)
+    @Tab(GENERAL_TAB) private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }
+    @Tab(GENERAL_TAB) private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
+    @Tab(GENERAL_TAB) private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
+
+    @Tab(TARGETING_TAB) private val targetingSettings = settingBlock(TargetingSettings.CombatSettings(this))
 
     val target: Entity?
         get() = targetingSettings.target<Entity>()
@@ -90,7 +92,7 @@ object KillAura : Module(
         setModulePriority(90)
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllGroupsExcept(buildConfig, hotbarConfig, rotationConfig)
+                hideAllBlocksExcept(buildConfig, hotbarConfig, rotationConfig)
                 buildConfig.apply {
                     hide(
                         ::pathing, ::stayInRange, ::collectDrops,

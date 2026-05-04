@@ -21,6 +21,7 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
+import com.lambda.module.hud.Coordinates.formatter
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.FormattingUtils.format

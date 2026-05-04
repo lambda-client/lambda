@@ -45,6 +45,7 @@ object AutoUpdater : Module(
     private val debug by setting("Debug", false, "Enable debug logging")
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
     private val clientBranch by setting("Client Branch", Branch.Snapshot, "Select client update branch")
+    //ToDo: Saving arbitrary data to configs without weird setting display workarounds
     private var loaderPromptHandled by setting("Loader Prompt Handled", false) { false }
 
     @JvmStatic var showFirstLaunchModal = false

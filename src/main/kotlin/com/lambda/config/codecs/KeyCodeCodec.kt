@@ -25,7 +25,6 @@ import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.lambda.config.Codec
 import com.lambda.util.KeyCode
-import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 import java.lang.reflect.Type
 
 @Suppress("unused")

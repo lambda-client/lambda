@@ -18,14 +18,13 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
 import kotlin.math.roundToInt
 
 @Suppress("unused")
@@ -34,26 +33,23 @@ object RotationLock : Module(
 	description = "Locks the player rotation to the given configuration",
 	tag = ModuleTag.PLAYER,
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Rotation("Rotation")
-	}
-
-	@JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap).group(Group.General)
-	private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 0.1) { yawMode == Mode.Snap }.group(Group.General)
-	private val customYaw by setting("Custom Yaw", 0.0, -179.0..180.0, 0.1) { yawMode == Mode.Custom }.group(Group.General)
-	@JvmStatic val pitchMode by setting("Pitch Mode", Mode.None).group(Group.General)
-	private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 0.1) { pitchMode == Mode.Snap }.group(Group.General)
-	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 0.1) { pitchMode == Mode.Custom }.group(Group.General)
-
-	override val rotationConfig = RotationSettings(this, Group.Rotation).apply {
-		applyEdits {
-			::rotationMode.edit { defaultValue(RotationMode.Lock) }
-		}
-	}
+	@JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap)
+	private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 0.1) { yawMode == Mode.Snap }
+	private val customYaw by setting("Custom Yaw", 0.0, -179.0..180.0, 0.1) { yawMode == Mode.Custom }
+	@JvmStatic val pitchMode by setting("Pitch Mode", Mode.None)
+	private val pitchStep by setting("Pitch Step", 45.0, 1.0..90.0, 0.1) { pitchMode == Mode.Snap }
+	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 0.1) { pitchMode == Mode.Custom }
 
     init {
         setModulePriority(100)
+
+	    setDefaultAutomationConfig {
+			applyEdits {
+				hideAllBlocksExcept(rotationConfig)
+				rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
+			}
+	    }
+
         listen<TickEvent.Pre> {
             val yaw = when (yawMode) {
                 Mode.Custom -> customYaw

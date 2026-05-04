@@ -19,6 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.config.Config
 import com.lambda.config.Config.Group
+import com.lambda.config.Group
 import com.lambda.config.SettingBlock
 import java.awt.Color
 

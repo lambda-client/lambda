@@ -18,6 +18,7 @@
 package com.lambda.util
 
 import com.lambda.util.DynamicReflectionSerializer.remappedName
+import com.lambda.util.ReflectionUtils.scanResult
 import com.lambda.util.math.MathUtils.floorToInt
 import io.github.classgraph.ClassInfo
 import net.minecraft.block.entity.BlockEntity
@@ -25,7 +26,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
-import kotlin.jvm.java
 
 @Suppress("unused")
 object EntityUtils {

@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.Config.StandardTabs.GENERAL_TAB
+import com.lambda.config.Group
+import com.lambda.config.Tab
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntityColorSettings
 import com.lambda.config.groups.EntitySelectionSettings
@@ -47,21 +48,31 @@ object Tracers : Module(
 		Friend("Friend")
 	}
 
+	private const val GENERAL_TAB = "General"
+	private const val ENTITY_TAB = "Entities"
+	private const val COLOR_TAB = "Colors"
+	private const val TRACERS_GROUP = "Tracers"
+
+	private const val FRIENDS_LINE_GROUP = "Friends"
+	private const val OTHERS_LINE_GROUP = "Others"
+
 	@Tab(GENERAL_TAB) private val target by setting("Target", TracerMode.Feet)
 	@Tab(GENERAL_TAB) private val stem by setting("Stem", true)
-	private val entitySettings = EntitySelectionSettings(this, Group.Entities).apply {
-		applyEdits {
-			hide(::self, ::blockEntities)
-		}
-	}
-	private val entityColors = EntityColorSettings(this, Group.Colors)
 
-	private val friendLineConfig = ScreenLineSettings(this, Group.LineStyle, LineGroup.Friend, prefix = "Friend ").apply {
-		applyEdits { hide(::startColor, ::endColor) }
-	}
-	private val otherLineConfig = ScreenLineSettings(this, Group.LineStyle, LineGroup.Other, prefix = "Other ").apply {
-		applyEdits { hide(::startColor, ::endColor) }
-	}
+	@Tab(GENERAL_TAB) @Group(FRIENDS_LINE_GROUP) private val friendLineConfig =
+		settingBlock(ScreenLineSettings(this)) {
+			applyEdits { hide(::startColor, ::endColor) }
+		}
+	@Tab(GENERAL_TAB) @Group(OTHERS_LINE_GROUP) private val otherLineConfig =
+		settingBlock(ScreenLineSettings(this)) {
+			applyEdits { hide(::startColor, ::endColor) }
+		}
+
+	@Tab(ENTITY_TAB) private val entitySettings =
+		settingBlock(EntitySelectionSettings(this)) {
+			applyEdits { hide(::self, ::blockEntities) }
+		}
+	@Tab(COLOR_TAB) private val entityColors = settingBlock(EntityColorSettings(this))
 
 	init {
 		immediateRenderer("Tracers Immediate Renderer") { safeContext ->

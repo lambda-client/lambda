@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -25,7 +24,6 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
@@ -38,38 +36,24 @@ object AntiAim : Module(
     description = "Rotates the player using the given configs",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Rotation("Rotation")
-    }
+    private const val GENERAL_TAB = "General"
+    private const val ROTATION_TAB = "Rotation"
 
-    private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw").group(Group.General)
-        .onValueChange { _, to ->
-            if (to == YawMode.Custom) {
-                // To bypass recursion issue
-                setConfigCustomYaw(player.yaw)
-            }
-        }
-    private val spinMode by setting("Spin Mode", LeftRight.Right) { yaw == YawMode.Spin }.group(Group.General)
-    private val sideMode by setting("Side Mode", LeftRight.Left) { yaw == YawMode.Sideways }.group(Group.General)
-    private var customYaw by setting("Custom Yaw", 0f, -179f..180f, 1f) { yaw == YawMode.Custom }.group(Group.General)
-    private val yawPlayerMode by setting("Yaw Player mode", PlayerMode.Closest) { yaw == YawMode.Player }.group(Group.General)
+    private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw")
+        .onValueChange { _, to -> if (to == YawMode.Custom) customYaw = player.yaw }
+    private val spinMode by setting("Spin Mode", LeftRight.Right) { yaw == YawMode.Spin }
+    private val sideMode by setting("Side Mode", LeftRight.Left) { yaw == YawMode.Sideways }
+    private var customYaw: Float by setting("Custom Yaw", 0f, -179f..180f, 1f) { yaw == YawMode.Custom }
+    private val yawPlayerMode by setting("Yaw Player mode", PlayerMode.Closest) { yaw == YawMode.Player }
 
-    private val pitch by setting("Pitch Mode", PitchMode.UpAndDown, "The mode used when setting the players pitch").group(Group.General)
-        .onValueChange { _, to ->
-            if (to == PitchMode.Custom) {
-                // To bypass recursion issue
-                setConfigCustomPitch(player.pitch)
-            }
-        }
-    private val verticalMode by setting("Vertical Mode", VerticalMode.Up) { pitch == PitchMode.Vertical }.group(Group.General)
-    private var customPitch by setting("Custom Pitch", 0f, -90f..90f, 1f) { pitch == PitchMode.Custom }.group(Group.General)
-    private val pitchPlayerMode by setting("Pitch Player Mode", PlayerMode.Closest) { pitch == PitchMode.Player }.group(Group.General)
+    private val pitch by setting("Pitch Mode", PitchMode.UpAndDown, "The mode used when setting the players pitch")
+        .onValueChange { _, to -> if (to == PitchMode.Custom) customPitch = player.pitch }
+    private val upDownMode by setting("Vertical Mode", UpDown.Up) { pitch == PitchMode.Vertical }
+    private var customPitch: Float by setting("Custom Pitch", 0f, -90f..90f, 1f) { pitch == PitchMode.Custom }
+    private val pitchPlayerMode by setting("Pitch Player Mode", PlayerMode.Closest) { pitch == PitchMode.Player }
 
-    private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { yaw != YawMode.None }.group(Group.General)
-    private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { pitch != PitchMode.None }.group(Group.General)
-
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
+    private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { yaw != YawMode.None }
+    private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { pitch != PitchMode.None }
 
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f
@@ -142,9 +126,9 @@ object AntiAim : Module(
                     }
                 }
                 PitchMode.Vertical -> {
-                    when (verticalMode) {
-                        VerticalMode.Up -> -90f
-                        VerticalMode.Down -> 90f
+                    when (upDownMode) {
+                        UpDown.Up -> -90f
+                        UpDown.Down -> 90f
                     }
                 }
                 PitchMode.Custom -> customPitch
@@ -177,10 +161,6 @@ object AntiAim : Module(
         customYaw = newYaw
     }
 
-    private fun setConfigCustomPitch(newPitch: Float) {
-        customPitch = newPitch
-    }
-
     private enum class YawMode {
         None,
         Spin,
@@ -211,7 +191,7 @@ object AntiAim : Module(
         Player
     }
 
-    private enum class VerticalMode {
+    private enum class UpDown {
         Up,
         Down
     }

@@ -22,8 +22,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.ReflectionUtils.className
 import com.lambda.util.collections.LimitedDecayQueue
-import com.lambda.util.className
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround

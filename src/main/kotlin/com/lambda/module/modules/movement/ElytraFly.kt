@@ -109,7 +109,7 @@ object ElytraFly : Module(
     init {
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllGroupsExcept(inventoryConfig, rotationConfig)
+                hideAllBlocksExcept(inventoryConfig, rotationConfig)
             }
         }
 

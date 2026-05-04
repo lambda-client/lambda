@@ -20,7 +20,6 @@ package com.lambda.config.groups
 import com.lambda.config.Config
 import com.lambda.config.SettingBlock
 import com.lambda.graphics.outline.OutlineStyle
-import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class OutlineSettings(override val c: Config) : SettingBlock {

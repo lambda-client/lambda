@@ -19,14 +19,14 @@ package com.lambda.config.automation
 
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.groups.BreakConfig
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.EatConfig
-import com.lambda.context.Automated
-import com.lambda.config.groups.BreakConfig
 import com.lambda.config.groups.HotbarConfig
 import com.lambda.config.groups.InteractConfig
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.config.groups.RotationConfig
+import com.lambda.context.Automated
 
 interface IMutableAutomationConfig : Automated {
     var defaultAutomationConfig: AutomationConfig

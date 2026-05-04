@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.groups.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -26,7 +27,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.config.groups.InteractConfig
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.containers.HotbarContainer
@@ -73,7 +73,7 @@ object Scaffold : Module(
 					::mean.edit { defaultValue(120.0) }
 					::spread.edit { defaultValue(0.0) }
 				}
-				hideAllGroupsExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig)
+				hideAllBlocksExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig)
 			}
 		}
 

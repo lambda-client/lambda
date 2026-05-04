@@ -19,7 +19,6 @@ package com.lambda.config.groups
 
 import com.lambda.config.Config
 import com.lambda.config.SettingBlock
-import com.lambda.util.NamedEnum
 
 class FormatterSettings(override val c: Config) : SettingBlock, FormatterConfig {
     val localeEnum by c.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers")

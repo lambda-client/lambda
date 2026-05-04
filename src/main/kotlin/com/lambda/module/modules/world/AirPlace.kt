@@ -18,8 +18,9 @@
 package com.lambda.module.modules.world
 
 import com.lambda.Lambda.mc
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.Group
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
@@ -62,19 +63,16 @@ object AirPlace : Module(
 	description = "Allows placing blocks in air",
 	tag = ModuleTag.WORLD
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Render("Render")
-	}
+	private const val RENDER_GROUP = "Renders"
 
-	private var distance by setting("Distance", 4.0, 1.0..7.0, 0.01).group(Group.General)
-	private val distanceScrollBind by setting("Distance Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the given key and scroll to adjust distance").group(Group.General)
+	private var distance by setting("Distance", 4.0, 1.0..7.0, 0.01)
+	private val distanceScrollBind by setting("Distance Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_CONTROL), "Allows you to hold the given key and scroll to adjust distance")
 	// Credit to THCFree for the rotation scroll idea
-	private val rotationScrollBind by setting("Rotation Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_ALT), "Allows you to hold the given key and scroll to adjust the rotation of the block you're placing").group(Group.General)
+	private val rotationScrollBind by setting("Rotation Scroll Bind", Bind(KeyCode.Unbound.code, GLFW.GLFW_MOD_ALT), "Allows you to hold the given key and scroll to adjust the rotation of the block you're placing")
 
-	private val renderState by setting("Render State", true).group(Group.Render)
-	private val lineColor by setting("Line Color", Color.WHITE).group(Group.Render)
-	private val stateAlpha by setting("State Alpha", 0.5, 0.01..1.0, 0.01).group(Group.Render)
+	@Group(RENDER_GROUP) private val renderState by setting("Render State", true)
+	@Group(RENDER_GROUP) private val lineColor by setting("Line Color", Color.WHITE)
+	@Group(RENDER_GROUP) private val stateAlpha by setting("State Alpha", 0.5, 0.01..1.0, 0.01)
 
 	private var placementPos: BlockPos? = null
 	private var backingState: BlockState? = null
@@ -96,7 +94,7 @@ object AirPlace : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(interactConfig)
+				hideAllBlocksExcept(interactConfig)
 			}
 		}
 

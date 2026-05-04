@@ -17,10 +17,10 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.Config
-import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.Setting
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -30,7 +30,6 @@ import com.lambda.imgui.flag.ImGuiTabBarFlags
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.AutoUpdater
-import com.lambda.util.NamedEnum
 
 object SettingsWidget {
     /**
@@ -52,12 +51,12 @@ object SettingsWidget {
 			            with(config.backgroundColor) { buildLayout() }
 		            }
 		            smallButton("Reset") {
-			            config.settingContainers.forEach { it.reset(silent = true) }
+			            resetContainers(config.settingContainers)
 		            }
 	            }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
-            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.Companion.DEFAULT) {
+            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.DEFAULT) {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }
@@ -87,55 +86,96 @@ object SettingsWidget {
             }
         }
 
-        val visibleSettings = config.settingContainers.filter { it.visibility() }
-	    if (visibleSettings.isEmpty()) return
-	    else separator()
-        val (grouped, ungrouped) = visibleSettings.partition { it.groups.isNotEmpty() }
-	    ungrouped.forEach {
-            it.withDisabled { buildLayout() }
-        }
-        renderGroup(grouped, emptyList(), config)
+	    if (!hasVisibleSettings(config.settingContainers)) return
+	    separator()
+	    renderContainers(config.settingContainers, config.name)
     }
 
-    private fun Setting<*, *>.withDisabled(block: Setting<*, *>.() -> Unit) {
-        if (disabled()) ImGui.beginDisabled()
-        block()
-        if (disabled()) ImGui.endDisabled()
+    /**
+     * Recursively renders [Config.SettingContainer]s in order.
+     * - [Config.SettingContainer.Single]: renders the setting with visibility/disabled checks.
+     * - [Config.SettingContainer.Tab]: renders as ImGui tab bar with tab items.
+     * - [Config.SettingContainer.Group]: renders as a collapsible tree node with indent.
+     */
+    private fun ImGuiBuilder.renderContainers(containers: List<Config.SettingContainer>, idPrefix: String) {
+	    val runs = mutableListOf<Any>()
+	    containers.forEach { container ->
+		    if (container is Config.SettingContainer.Tab) {
+			    val last = runs.lastOrNull()
+			    if (last is MutableList<*>) {
+				    @Suppress("UNCHECKED_CAST")
+				    (last as MutableList<Config.SettingContainer.Tab>).add(container)
+			    } else {
+				    runs.add(mutableListOf(container))
+			    }
+		    } else {
+			    runs.add(container)
+		    }
+	    }
+
+	    runs.forEach { run ->
+		    when (run) {
+			    is Config.SettingContainer.Single -> renderSetting(run.setting)
+			    is Config.SettingContainer.Group -> {
+				    if (hasVisibleSettings(run.settings)) {
+					    treeNode("${run.name}##$idPrefix-group-${run.name}") {
+						    renderContainers(run.settings, "$idPrefix-${run.name}")
+					    }
+				    }
+			    }
+			    is List<*> -> {
+				    @Suppress("UNCHECKED_CAST")
+				    renderTabBar(run as List<Config.SettingContainer.Tab>, idPrefix)
+			    }
+		    }
+	    }
     }
 
-    private fun ImGuiBuilder.renderGroup(
-	    settings: List<Setting<*, *>>,
-	    parentPath: List<NamedEnum>,
-	    config: Config
-    ) {
-        settings.filter { it.groups.contains(parentPath) }.forEach {
-            it.withDisabled { buildLayout() }
-        }
+    /**
+     * Renders a group of [Config.SettingContainer.Tab]s as a single ImGui tab bar.
+     */
+    private fun ImGuiBuilder.renderTabBar(tabs: List<Config.SettingContainer.Tab>, idPrefix: String) {
+	    val visibleTabs = tabs.filter { hasVisibleSettings(it.settings) }
+	    if (visibleTabs.isEmpty()) return
+	    tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
+		    visibleTabs.forEach { tab ->
+			    tabItem(tab.name) {
+				    renderContainers(tab.settings, "$idPrefix-${tab.name}")
+			    }
+		    }
+	    }
+    }
 
-        val subGroupSettings = settings.filter { s ->
-            s.groups.any { it.size > parentPath.size && it.subList(0, parentPath.size) == parentPath }
-        }
-        val subTabs = subGroupSettings
-            .flatMap { s ->
-                s.groups.mapNotNull { path ->
-                    if (path.size > parentPath.size && path.subList(0, parentPath.size) == parentPath)
-                        path[parentPath.size] else null
-                }
-            }.distinct()
+    /**
+     * Renders a single [Setting] with visibility and disabled state checks.
+     */
+    private fun ImGuiBuilder.renderSetting(setting: Setting<*, *>) {
+	    if (!setting.visibility()) return
+	    if (setting.disabled()) ImGui.beginDisabled()
+	    with(setting) { buildLayout() }
+	    if (setting.disabled()) ImGui.endDisabled()
+    }
 
-        if (subTabs.isNotEmpty()) {
-            val id = "##${config.name}-tabs-${parentPath.joinToString("-") { it.displayName }}"
-            tabBar(id, ImGuiTabBarFlags.FittingPolicyResizeDown) {
-                subTabs.forEach { tab ->
-                    tabItem(tab.displayName) {
-                        val newParentPath = parentPath + tab
-                        val settingsForSubGroup = subGroupSettings.filter { s ->
-                            s.groups.any { it.size >= newParentPath.size && it.subList(0, newParentPath.size) == newParentPath }
-                        }
-                        renderGroup(settingsForSubGroup, newParentPath, config)
-                    }
-                }
-            }
-        }
+    /**
+     * Checks if any [Config.SettingContainer] in the tree has a visible setting.
+     */
+    private fun hasVisibleSettings(containers: List<Config.SettingContainer>): Boolean =
+	    containers.any { container ->
+		    when (container) {
+			    is Config.SettingContainer.Single -> container.setting.visibility()
+			    is Config.SettingContainer.Multiple -> hasVisibleSettings(container.settings)
+		    }
+	    }
+
+    /**
+     * Recursively resets all settings in the container tree.
+     */
+    private fun resetContainers(containers: List<Config.SettingContainer>) {
+	    containers.forEach { container ->
+		    when (container) {
+			    is Config.SettingContainer.Single -> container.setting.reset(silent = true)
+			    is Config.SettingContainer.Multiple -> resetContainers(container.settings)
+		    }
+	    }
     }
 }

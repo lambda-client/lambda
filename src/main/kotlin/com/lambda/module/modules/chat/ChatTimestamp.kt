@@ -42,12 +42,16 @@ object ChatTimestamp : Module(
 	description = "Displays the time a message was sent next to it",
 	tag = ModuleTag.CHAT,
 ) {
-	var color: Formatting by setting("Color", Formatting.GRAY)
+	private var color: Formatting by setting("Color", Formatting.GRAY)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
+	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val javaColor: Color get() = Color(color.colorValue!! and 16777215)
-
-	val formatter = FormatterSettings(c = this,).apply { applyEdits { hide(::localeEnum, ::sep, ::customSep, ::group, ::floatingPrecision); editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) } } }
+	val formatter = settingBlock(FormatterSettings(this)) {
+		applyEdits {
+			hide(::localeEnum, ::sep, ::customSep, ::floatingPrecision)
+			editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) }
+		}
+	}
 
 	private val currentTime get() =
 		ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())

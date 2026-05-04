@@ -24,7 +24,6 @@ import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.lambda.config.Codec
 import com.lambda.config.Stringifiable
-import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 import java.awt.Color
 import java.lang.reflect.Type
 

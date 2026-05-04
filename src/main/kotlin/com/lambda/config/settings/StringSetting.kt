@@ -22,10 +22,10 @@ import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
+import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
-import com.lambda.config.ConfigEditor
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.extension.CommandBuilder

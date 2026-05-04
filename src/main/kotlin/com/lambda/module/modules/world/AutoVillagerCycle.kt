@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.Group
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
@@ -29,7 +30,6 @@ import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStruc
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
@@ -42,6 +42,7 @@ import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.NamedEnum
+import com.lambda.util.player.RotationUtils.lookAtEntity
 import com.lambda.util.world.closestEntity
 import net.minecraft.block.Blocks
 import net.minecraft.component.DataComponentTypes
@@ -62,19 +63,14 @@ object AutoVillagerCycle : Module(
 	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
 	tag = ModuleTag.WORLD
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Enchantments("Enchantments")
-	}
-
 	private val allEnchantments = ArrayList<String>()
 
-	private val lecternPos by setting("Lectern Pos", BlockPos.ORIGIN, "Position where the lectern should be placed/broken").group(Group.General)
-	private val logFoundBooks by setting("Log Found Books", true, "Log all enchanted books found during cycling").group(Group.General)
-	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks").group(Group.General)
-	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks").group(Group.General)
-	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks").group(Group.General)
-	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling").group(Group.General)
+	private val lecternPos by setting("Lectern Pos", BlockPos.ORIGIN, "Position where the lectern should be placed/broken")
+	private val logFoundBooks by setting("Log Found Books", true, "Log all enchanted books found during cycling")
+	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks")
+	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks")
+	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks")
+	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling")
 		.onPress {
 			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")
@@ -86,8 +82,10 @@ object AutoVillagerCycle : Module(
 				switchState(CycleState.PlaceLectern)
 			}
 		}
-	private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments).group(Group.Enchantments)
-	private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for").group(Group.Enchantments)
+
+	private const val ENCHANTMENTS_GROUP = "Enchantments"
+	@Group(ENCHANTMENTS_GROUP) private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments)
+	@Group(ENCHANTMENTS_GROUP) private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
 
 	private var cycleState = CycleState.Idle
 	private var tickCounter = 0
@@ -97,7 +95,7 @@ object AutoVillagerCycle : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(rotationConfig, inventoryConfig, breakConfig, interactConfig, buildConfig)
+				hideAllBlocksExcept(rotationConfig, inventoryConfig, breakConfig, interactConfig, buildConfig)
 			}
 		}
 

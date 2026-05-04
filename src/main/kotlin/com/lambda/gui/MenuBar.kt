@@ -21,8 +21,8 @@ import com.lambda.Lambda
 import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
-import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.ConfigLoader
+import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.core.Loader

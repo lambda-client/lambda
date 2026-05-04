@@ -42,11 +42,11 @@ object Criticals : Module(
     description = "Forces your hits to be critical",
     tag = ModuleTag.COMBAT,
 ) {
-    private val mode by setting("Mode", Mode.Grim)
-
     enum class Mode {
         Grim
     }
+
+    private val mode by setting("Mode", Mode.Grim)
 
     init {
         listen<PlayerEvent.Attack.Entity> {

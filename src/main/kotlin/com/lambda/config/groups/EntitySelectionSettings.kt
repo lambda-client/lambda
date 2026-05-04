@@ -29,7 +29,6 @@ import com.lambda.util.EntityUtils.passiveEntityMap
 import com.lambda.util.EntityUtils.playerEntityMap
 import com.lambda.util.EntityUtils.projectileEntityMap
 import com.lambda.util.EntityUtils.vehicleEntityMap
-import com.lambda.util.NamedEnum
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup

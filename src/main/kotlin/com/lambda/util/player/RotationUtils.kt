@@ -42,8 +42,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import java.util.EnumSet
-import kotlin.collections.minus
+import java.util.*
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.max

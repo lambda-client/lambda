@@ -38,17 +38,16 @@ object FriendHighlight : Module(
 	description = "Highlights your friends names in chat",
 	tag = ModuleTag.CHAT,
 ) {
-	var color: Formatting by setting("Color", Formatting.GREEN)
+	private var color: Formatting by setting("Color", Formatting.GREEN)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
+	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val javaColor: Color get() = Color(color.colorValue!! and 16777215)
+	private val bold by setting("Bold", true)
+	private val italic by setting("Italic", false)
+	private val underlined by setting("Underlined", false)
+	private val strikethrough by setting("Strikethrough", false)
 
-	val bold by setting("Bold", true)
-	val italic by setting("Italic", false)
-	val underlined by setting("Underlined", false)
-	val strikethrough by setting("Strikethrough", false)
-
-	val ping by setting("Ping On Message", true)
+	private val ping by setting("Ping On Message", true)
 
 	init {
 		onEnable {

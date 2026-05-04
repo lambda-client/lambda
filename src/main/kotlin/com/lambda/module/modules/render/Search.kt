@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.Group
+import com.lambda.config.Tab
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ScreenLineSettings
 import com.lambda.config.groups.WorldLineSettings
@@ -58,49 +60,55 @@ object Search : Module(
     description = "Highlight blocks within the rendered world",
     tag = ModuleTag.RENDER,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Fill("Fill"),
-        Outline("Outline"),
-        Tracers("Tracers")
-    }
+    private const val FILL_GROUP = "Fill"
+    private const val OUTLINE_GROUP = "Outline"
+    private const val TRACERS_GROUP = "Tracers"
 
-    private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks").group(Group.General)
+    private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks")
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
-    private val entities by setting("Entities", decorationEntityMap.values).group(Group.General)
+    private val entities by setting("Entities", decorationEntityMap.values)
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
 
-    private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").group(Group.Fill).onValueChange(::rebuildMesh)
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
+
+    private val useNaturalColor by setting("Use Natural Color", true, "Use the color of the block instead").onValueChange(::rebuildMesh)
+    private val naturalColorAlpha by setting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
+
+    @Group(FILL_GROUP) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) outline = true }
-    private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").group(Group.Outline).onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+
+    @Group(OUTLINE_GROUP) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) fill = true }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").group(Group.General).onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    private val useNaturalColor by setting("Use Natural Color", true, "Use the color of the block instead").group(Group.General).onValueChange(::rebuildMesh)
-    private val naturalColorAlpha by setting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.group(Group.General).onValueChange(::rebuildMesh)
-    private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.group(Group.General).onValueChange(::rebuildMesh)
-    private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.group(Group.General).onValueChange(::rebuildMesh)
-
-    private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.group(Group.Fill).onValueChange(::rebuildMesh)
-    private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.group(Group.Outline).onValueChange(::rebuildMesh)
-    private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.group(Group.Fill).onValueChange(::rebuildMesh)
-    private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.group(Group.Outline).onValueChange(::rebuildMesh)
-
-    private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.group(Group.Outline, WorldLineSettings.Group.General).onValueChange(::rebuildMesh)
-    private val outlineConfig = WorldLineSettings(this, Group.Outline, prefix = "Outline ") { outline }.apply {
-        applyEdits {
-            hide(::startColor, ::endColor)
-            settings.forEach { it.onValueChange(::rebuildMesh) }
-        }
-    }
-    private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position").group(Group.Tracers)
-    private val tracerConfig = ScreenLineSettings(this, Group.Tracers, prefix = "Tracer ") { tracers }.apply {
-        applyEdits {
-            editTyped(::startColor, ::endColor) {
-                visibility { { !useNaturalColor } }
+    @Group(OUTLINE_GROUP) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val outlineConfig =
+        settingBlock(
+            WorldLineSettings(this),
+            { outline }
+        ) {
+            applyEdits {
+                hide(::startColor, ::endColor)
+                forEachSetting { it.onValueChange(::rebuildMesh) }
             }
         }
-    }
+    @Group(TRACERS_GROUP) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
+    @Group(TRACERS_GROUP) private val tracerConfig =
+        settingBlock(
+            ScreenLineSettings(this),
+            { tracers }
+        ) {
+            applyEdits {
+                editTyped(::startColor, ::endColor) {
+                    visibility { { !useNaturalColor } }
+                }
+            }
+        }
 
     private val tracerBlockPositions = ConcurrentMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
 

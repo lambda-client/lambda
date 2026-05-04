@@ -17,7 +17,6 @@
 
 package com.lambda.util
 
-import com.lambda.config.Setting
 import com.lambda.config.groups.FormatterConfig
 import com.lambda.util.math.Vec2d
 import net.minecraft.util.math.Vec2f
@@ -124,8 +123,6 @@ object FormattingUtils {
     }
 
     object Default : FormatterConfig {
-		override val settings = mutableListOf<Setting<*, *>>()
-        override val visibility: () -> Boolean = { true }
         override val locale: Locale = Locale.US
         override val separator: String = ","
         override val prefix: String = "("

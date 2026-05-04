@@ -18,10 +18,10 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Config
-import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.config.groups.InteractConfig.AirPlaceMode
 import com.lambda.config.groups.InteractConfig.InteractConfirmationMode
+import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
 class InteractSettings(override val c: Config) : InteractConfig {
     override val rotate by c.setting("Rotate For Interact", true, "Rotate towards block while placing")

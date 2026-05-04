@@ -20,13 +20,13 @@ package com.lambda.config.groups
 import com.lambda.config.Config
 import com.lambda.config.Config.Group
 import com.lambda.config.applyEdits
-import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.config.groups.BreakConfig.AnimationMode
 import com.lambda.config.groups.BreakConfig.BreakConfirmationMode
 import com.lambda.config.groups.BreakConfig.BreakMode
 import com.lambda.config.groups.BreakConfig.SwingMode
 import com.lambda.config.groups.BreakConfig.WhitelistMode
+import com.lambda.event.events.TickEvent
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import net.minecraft.registry.Registries
 import java.awt.Color
 

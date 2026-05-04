@@ -71,6 +71,7 @@ object BetterFirework : Module(
 			if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
+	@Suppress("unused")
 	private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
 		.onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
 	private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
@@ -100,7 +101,7 @@ object BetterFirework : Module(
 		setModulePriority(1)
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(hotbarConfig, inventoryConfig)
+				hideAllBlocksExcept(hotbarConfig, inventoryConfig)
 				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
 				inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
 			}

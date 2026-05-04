@@ -23,8 +23,6 @@ object ConfigLoader: Loadable {
     val configCategories = mutableSetOf<ConfigCategory>()
     val configs: Set<Config>
         get() = configCategories.flatMapTo(mutableSetOf()) { it.configs }
-    val settings: List<Setting<*, *>>
-        get() = configs.flatMapTo(mutableListOf()) { it.settingContainers }
 
     override fun load(): String {
         configCategories.forEach {
@@ -39,6 +37,19 @@ object ConfigLoader: Loadable {
     fun configByCommandName(name: String) =
         configs.find { it.commandName == name }
 
-    fun settingByCommandName(config: Config, tab: String?, group: String?, name: String) =
-        config.settingContainers.find { it.commandName == name }
+    fun settingByCommandName(name: String, config: Config, vararg layers: String): Setting<*, *>? {
+        var settingContainers = config.settingContainers.asSequence()
+        layers.forEach { layer ->
+            settingContainers = settingContainers
+                .filterIsInstance<Config.SettingContainer.Multiple>()
+                .find { container ->
+                    container.commandName == layer
+                }?.settings
+                ?.asSequence() ?: return null
+        }
+        return settingContainers
+            .filterIsInstance<Config.SettingContainer.Single>()
+            .find { it.setting.commandName == name }
+            ?.setting
+    }
 }

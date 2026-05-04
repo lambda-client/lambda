@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
@@ -63,7 +63,7 @@ object PlayerTrap : Module(
 						::collectDrops
 					) { defaultValue(false); hide() }
 				}
-				hideGroup(eatConfig)
+				hideBlock(eatConfig)
 			}
 		}
 

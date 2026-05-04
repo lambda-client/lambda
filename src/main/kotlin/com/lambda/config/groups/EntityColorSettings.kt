@@ -23,7 +23,6 @@ import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.util.EntityUtils
 import com.lambda.util.EntityUtils.entityGroup
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.entityColor
 import com.lambda.util.math.dist

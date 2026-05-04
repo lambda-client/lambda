@@ -17,14 +17,14 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.config.groups.RotationConfig
-import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
@@ -49,19 +49,18 @@ object Speed : Module(
     tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic
-    val mode by setting("Mode", Mode.GrimStrafe).onValueChange { _, _ -> reset() }
+    val mode by setting("Mode", Mode.GrimStrafe)
+        .onValueChange { _, _ -> reset() }
 
     // Grim
-    private val diagonal by setting("Diagonal", true).group(Mode.GrimStrafe)
-    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.7, 0.01).group(Mode.GrimStrafe)
+    private val diagonal by setting("Diagonal", true) { mode == Mode.GrimStrafe }
+    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.7, 0.01) { mode == Mode.GrimStrafe }
 
     // NCP
-    private val strict by setting("Strict", true).group(Mode.NcpStrafe)
-    private val lowerJump by setting("Lower Jump", true).group(Mode.NcpStrafe)
-    private val ncpAutoJump by setting("Auto Jump", false).group(Mode.NcpStrafe)
-    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01).group(Mode.NcpStrafe)
-
-    override val rotationConfig = RotationConfig.Instant(RotationMode.Sync)
+    private val strict by setting("Strict", true) { mode == Mode.NcpStrafe }
+    private val lowerJump by setting("Lower Jump", true) { mode == Mode.NcpStrafe }
+    private val ncpAutoJump by setting("Auto Jump", false) { mode == Mode.NcpStrafe }
+    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NcpStrafe }
 
     // NCP state variables
     const val NCP_BASE_SPEED = 0.2873
@@ -82,6 +81,12 @@ object Speed : Module(
     }
 
     init {
+        setDefaultAutomationConfig {
+            applyEdits {
+                hideAllBlocksExcept(rotationConfig)
+            }
+        }
+
         listen<MovementEvent.Player.Pre> {
             if (!shouldWork()) {
                 reset()

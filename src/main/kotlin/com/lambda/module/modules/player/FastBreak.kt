@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -40,7 +40,7 @@ object FastBreak : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
+				hideAllBlocksExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
 				buildConfig.apply {
 					hide(
 						::pathing,

@@ -26,6 +26,9 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
+import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerHandler
@@ -36,7 +39,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.config.groups.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
@@ -103,7 +105,7 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    override val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
+    override val rotationConfig = object : RotationConfig.Instant(this, RotationMode.Sync) {
         override val rotationMode = if (lockCamera) RotationMode.Lock else RotationMode.Sync
     }
 

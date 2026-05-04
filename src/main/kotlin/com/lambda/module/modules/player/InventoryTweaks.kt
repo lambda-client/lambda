@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -49,7 +49,7 @@ object InventoryTweaks : Module(
     init {
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllGroupsExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
+                hideAllBlocksExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
             }
         }
 

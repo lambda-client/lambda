@@ -31,11 +31,7 @@ object SilentSwap : Module(
     description = "SilentSwap",
     tag = ModuleTag.DEBUG,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        Hotbar("Hotbar")
-    }
-
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
+    override val hotbarConfig = HotbarSettings(this)
 
     init {
         listen<PlayerEvent.Attack.Block> {

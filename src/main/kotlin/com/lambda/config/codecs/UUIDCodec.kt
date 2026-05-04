@@ -23,7 +23,6 @@ import com.google.gson.JsonParseException
 import com.google.gson.JsonSerializationContext
 import com.lambda.config.Codec
 import com.lambda.config.Stringifiable
-import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 import java.lang.reflect.Type
 import java.util.*
 

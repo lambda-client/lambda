@@ -19,8 +19,10 @@
 
 package com.lambda.config
 
+import com.lambda.config.Config.SettingContainer
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaField
 
 @DslMarker
 annotation class SettingEditorDsl
@@ -82,9 +84,13 @@ class ConfigEditor<T : Config>(val c: T) {
 		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
 	) = TypedEditBuilder(this, settings.map { it.setting() }).edits(other.settingCore())
 
+	/**
+	 * Recursively removes matching [Setting]s from the [Config.settingContainers] tree.
+	 * After removal, any [SettingContainer.Multiple] (group/tab) left empty is also pruned.
+	 */
 	@SettingEditorDsl
 	fun hide(settings: Collection<Setting<*, *>>) {
-		c.settingContainers.removeAll(settings)
+		removeFromContainers(c.settingContainers, settings.toSet())
 	}
 
 	@SettingEditorDsl
@@ -92,21 +98,27 @@ class ConfigEditor<T : Config>(val c: T) {
 		hide(settings.map { it.setting() })
 
 	@SettingEditorDsl
-	fun hideGroup(settingGroup: SettingBlock) = hide(settingGroup.settings)
+	fun hideBlock(settingGroup: SettingBlock) = hide(settingGroup.collectSettings())
 
 	@SettingEditorDsl
-	fun hideGroupExcept(settingGroup: SettingBlock, vararg except: KProperty0<Any>) {
-		val exceptSettings = except.map { it.setting() }.toSet()
-		hide(settingGroup.settings.filter { it !in exceptSettings })
+	fun hideBlockExcept(settingGroup: SettingBlock, vararg except: KProperty0<Any>) {
+		val exceptSettings = except.map { it.setting() }
+		hide(settingGroup.collectSettings().filter { it !in exceptSettings })
 	}
 
 	@SettingEditorDsl
-	fun hideGroups(vararg settingGroups: SettingBlock) =
-		settingGroups.forEach { hide(it.settings) }
+	fun hideBlocks(vararg settingGroups: SettingBlock) =
+		settingGroups.forEach { hide(it.collectSettings()) }
 
 	@SettingEditorDsl
-	fun hideAllGroupsExcept(vararg except: SettingBlock) =
-		hideGroups(*(c.settingGroups - except.toSet()).toTypedArray())
+	fun hideAllBlocksExcept(vararg except: SettingBlock) {
+		val toHide = c.collectSettingBlocks().filter { it !in except }
+		toHide.forEach { hide(it.collectSettings()) }
+	}
+
+	@SettingEditorDsl
+	fun SettingBlock.forEachSetting(block: (Setting<*, *>) -> Unit) =
+		Config.forEachSetting(this, block)
 
 	open class BasicEditBuilder(val c: ConfigEditor<*>, open val settings: Collection<Setting<*, *>>) {
 		@SettingEditorDsl
@@ -130,5 +142,52 @@ class ConfigEditor<T : Config>(val c: T) {
 				it.core.defaultValue = value
 				it.core.value = value
 			}
+	}
+
+	/**
+	 * Recursively removes [SettingContainer.Single] entries whose [Setting] is in [toRemove],
+	 * and prunes any [SettingContainer.Multiple] (group/tab) left empty after removal.
+	 */
+	private fun removeFromContainers(
+		containers: MutableList<SettingContainer>,
+		toRemove: Set<Setting<*, *>>
+	) {
+		val iterator = containers.iterator()
+		while (iterator.hasNext()) {
+			when (val container = iterator.next()) {
+				is SettingContainer.Single -> {
+					if (container.setting in toRemove) iterator.remove()
+				}
+				is SettingContainer.Multiple -> {
+					removeFromContainers(container.settings, toRemove)
+					if (container.settings.isEmpty()) iterator.remove()
+				}
+			}
+		}
+	}
+
+	/**
+	 * Collects all [Setting] instances from a [SettingBlock] via reflection,
+	 * recursing into nested [SettingBlock] fields.
+	 */
+	private fun SettingBlock.collectSettings(): List<Setting<*, *>> {
+		val result = mutableListOf<Setting<*, *>>()
+		collectSettingsRecursive(this, result)
+		return result
+	}
+
+	private fun collectSettingsRecursive(instance: Any, result: MutableList<Setting<*, *>>) {
+		Config.forEachSettingProperty(instance::class,
+			onSetting = { property ->
+				val field = property.javaField ?: return@forEachSettingProperty
+				field.isAccessible = true
+				(field.get(instance) as? Setting<*, *>)?.let { result.add(it) }
+			},
+			onSettingBlock = { property, _ ->
+				val field = property.javaField ?: return@forEachSettingProperty
+				field.isAccessible = true
+				field.get(instance)?.let { collectSettingsRecursive(it, result) }
+			}
+		)
 	}
 }

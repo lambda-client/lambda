@@ -24,7 +24,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 @Suppress("unused")
-interface FormatterConfig : SettingBlock {
+interface FormatterConfig {
     val locale: Locale
     val separator: String
     val prefix: String

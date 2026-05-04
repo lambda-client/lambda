@@ -18,11 +18,11 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
+import com.lambda.config.groups.RotationConfig
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.config.groups.RotationConfig
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -52,7 +52,7 @@ object InventoryMove : Module(
 	private val disableSneak by setting("Disable Sneak", false)
 	private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
 	private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
-	override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
+	override val rotationConfig = settingBlock(RotationConfig.Instant(this, RotationMode.Lock))
 
 	@JvmStatic
 	val shouldMove get() = isEnabled && !mc.currentScreen.hasInputOrNull

@@ -19,9 +19,7 @@ package com.lambda.config
 
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonSerializer
-import com.sun.org.apache.bcel.internal.classfile.JavaClass
 import java.lang.reflect.Type
-import kotlin.jvm.java
 
 interface Stringifiable<T> { fun stringify(value: T): String }
 

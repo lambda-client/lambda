@@ -33,6 +33,7 @@ object StateInfo : Module(
     description = "Prints the target block's state into chat",
     tag = ModuleTag.DEBUG,
 ) {
+    @Suppress("unused")
     private val printBind by setting("Print", KeyCode.Unbound, "The bind used to print the info to chat")
         .onPress {
             val crosshair = mc.crosshairTarget ?: return@onPress

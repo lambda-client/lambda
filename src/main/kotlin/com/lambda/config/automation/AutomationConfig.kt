@@ -19,6 +19,7 @@ package com.lambda.config.automation
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
+import com.lambda.config.Tab
 import com.lambda.config.categories.AutomationCategory
 import com.lambda.config.groups.BreakSettings
 import com.lambda.config.groups.BuildSettings

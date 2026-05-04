@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -43,7 +43,7 @@ object StackReplenish : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllGroupsExcept(inventoryConfig)
+				hideAllBlocksExcept(inventoryConfig)
 				inventoryConfig.apply {
 					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
 				}
