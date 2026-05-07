@@ -1,111 +1,267 @@
-<p align="center">
-    <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%" alt="logo">
-</p>
+# 🚀 Lambda Client — The Future of Minecraft Utility Mods™ 🧠⚡
 
-![Minecraft](https://img.shields.io/badge/minecraft-1.21.11-green?link=https%3A%2F%2Fwww.minecraft.net%2F)
-![GitHub Downloads](https://img.shields.io/github/downloads/lambda-client/lambda/total)
-![Discord](https://img.shields.io/discord/834570721070022687?logo=Discord&logoColor=white&link=https%3A%2F%2Fdiscord.gg%2FMBAEzyFn)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?logo=gradle)
-![GitHub Contributors](https://img.shields.io/github/contributors/lambda-client/lambda)
-![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)
-![GitHub License](https://img.shields.io/github/license/lambda-client/lambda?logo=gplv3&link=https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fgpl-3.0.en.html)
+Welcome to **Lambda Client**, the next-generation open-source Fabric utility mod engineered for players who demand unparalleled automation, performance, and customization. Built from the ground up over the course of **2+ years**, Lambda represents a complete reimagining of what a Minecraft client can achieve in the modern era.
 
-Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda-legacy).
-
-<p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/0.1.0%2B1.21.11/lambda-0.1.0+1.21.11.jar"><img alt="Click Here to download the latest Lambda release" src="https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/download.svg" width="70%" height="70%"></a>
-</p>
-
-<p align="center">
-  <a href="https://discord.gg/3y3ah5BtjB"><img src="https://invidget.switchblade.xyz/3y3ah5BtjB" alt="Link to the lambda discord server https://discord.gg/3y3ah5BtjB"></a>
-</p>
-
-Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element.io/#/room/#lambda-client:matrix.org).
-
-> [\!WARNING]
-> **Alpha Status:** This version of Lambda is a complete rewrite (2+ years in the making) and is currently in an **Alpha** state. While highly capable, please expect bugs and incomplete features as we progress toward Beta. Old addons are not compatible with this version.
-
------
-
-## Features
-
-### Automation Engine
-* **Build Engine:** Full integration with **Litematica** and schematic files for seamless automated building.
-* **Block State Handling:** The build engine natively supports special block states including rotations, attachments (doors, signs, bells), slabs, stairs, repeater delay, and even edge cases like flower pots with plants.
-* **Conflict-Free Orchestration:** A centralized manager system handles all core interactions (placing, breaking, rotating, inventory) to ensure zero conflicts between concurrently running modules.
-
-### Unmatched Performance
-* **High-Speed ESP:** Rendering is optimized to handle extreme scenarios—capable of visualizing all obsidian at the 2b2t spawn without dropping frames.
-* **Modern Framework:** Built on modern modding frameworks with efficient rendering pipelines that outperform legacy clients.
-
-### Sophisticated User Experience
-* **Fine-Grained Control:** Access over **1000+ settings**, allowing you to tune every aspect of the client to your exact needs.
-* **Advanced GUI:** The **Dear ImGui** interface is designed for clarity and depth, featuring quick search, context menus, and easy keybind editing.
-* **Automation Profiles:** Use linkable configs to apply complex configurations across multiple modules instantly.
-
-### Stability & Safety
-* **Anticheat Ready:** Built with **Grim** and other modern anticheats in mind.
-* **Type-Safe Commands:** Uses Minecraft's statically typed command system to ensure input accuracy and reliability.
-
-### Specialized Tools
-* **HighwayTools:** Completely rewritten for efficient infrastructure maintenance.
-
------
-
-## Installation
-<a href="https://fabricmc.net/wiki/install"><img src="https://cdn.jonasjones.dev/mod-badges/support-fabric.png" width="150px" alt="Fabric Supported"></a>
-1. Install the Minecraft version corresponding to the mod release [(download)](https://www.minecraft.net/)
-2. Install Fabric [(download)](https://fabricmc.net/use/installer/)
-3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/0.1.0%2B1.21.11/lambda-0.1.0+1.21.11.jar)
-4. Get the corresponding [Baritone](https://github.com/cabaletta/baritone/releases) api fabric build
-5. Get [Kotlin For Fabric](https://modrinth.com/mod/fabric-language-kotlin)
-6. Get the latest [Fabric API](https://modrinth.com/mod/fabric-api/) release
-7. Put the files in your `.minecraft/mods` folder
-
-## Getting Started
-
-How do I...
-
-<details>
-<summary><strong>... open the ClickGUI?</strong></summary>
-
-> Press `Y`.
-
-</details>
-
-<details>
-<summary><strong>... I execute a command?</strong></summary>
-
-> Use the ingame chat with the prefix `;`.
-
-</details>
-
-<p align="center">
-    <img alt="" src="https://raw.githubusercontent.com/lambda-client/assets/main/footer.png">
-</p>
-
-## Developing
-
-### MSA authentication setup
-
-Add `--msa --msa-no-dialog` to your CLI arguments to enable MSA authentication when launching from the IDE.
-
-
-### Stargazers
-
-[![Stargazers over time](https://starchart.cc/lambda-client/lambda.svg?variant=adaptive)](https://starchart.cc/lambda-client/lambda)
-
-## Thanks to...
-
-[![GitHub contributors](https://contrib.rocks/image?repo=lambda-client/lambda)](https://github.com/lambda-client/lambda/graphs/contributors)
-
-We need the help of the community to support the growth of this project. Whether that be developers contributing to the codebase, creating addons, or users giving feedback.
+Whether you're optimizing large-scale infrastructure projects, automating repetitive gameplay systems, or simply seeking the smoothest utility experience possible — Lambda is designed to deliver a premium, cutting-edge experience unlike anything else currently available in the Minecraft ecosystem. 🌌
 
 ---
 
-If you have any questions, concerns, or suggestions,
-you can visit our [official Discord server](https://discord.gg/MBAEzyFn).
+## ✨ Why Lambda?
 
-> ### Disclaimer
-> Lambda is not affiliated with Mojang Studios. Minecraft is a registered trademark of Mojang Studios.
-Use of the Lambda software is subject to the terms outlined in the license agreement [GNU General Public License v3.0](https://github.com/lambda-client/lambda/blob/master/LICENSE.md).
+Because modern Minecraft problems require modern Minecraft solutions.
+
+Lambda isn’t built for gameplay — it’s built for operational efficiency at scale.
+
+Lambda combines:
+- ⚡ Blazing-fast rendering
+- 🤖 Advanced automation systems
+- 🧩 Deep modular architecture
+- 🎛️ Highly configurable workflows
+- 🛡️ Modern anticheat-aware design
+- 🖥️ A sleek Dear ImGui interface
+
+All wrapped together into a cohesive experience focused on power, flexibility, and long-term scalability.
+
+Think of it like:
+> **if a productivity suite, a rendering engine, and a space program had a Minecraft client baby.**
+
+---
+
+# 🔥 Core Features
+
+## 🏗️ Advanced Automation Engine
+
+Lambda’s automation framework has been architected to support highly complex and repeatable workflows with minimal user micromanagement.
+
+### ✅ Litematica Integration
+Full support for:
+- schematic-based building
+- automated placement systems
+- intelligent rotation handling
+- advanced block state support
+
+Including:
+- slabs
+- stairs
+- repeaters
+- doors
+- signs
+- bells
+- flower pots
+- directional blocks
+- attachment states
+
+Because manually placing blocks in 2026 is honestly just inefficient.
+
+---
+
+## ⚡ Industry-Leading Performance
+
+### 👁️ High-Speed ESP Rendering
+Lambda is capable of rendering massive datasets with exceptional performance characteristics.
+
+Even in extreme scenarios such as:
+- enormous block scans
+- dense entity rendering
+- large-scale visualization tasks
+
+the client remains highly responsive and performant.
+
+### 🧠 Modern Rendering Pipeline
+Unlike legacy clients built on outdated systems, Lambda utilizes a modernized architecture optimized for:
+- rendering throughput
+- responsiveness
+- modularity
+- future expansion
+
+Resulting in:
+- smoother gameplay
+- lower overhead
+- improved scalability
+- enhanced visual stability
+
+---
+
+## 🎛️ Deep Customization
+
+### ⚙️ 1000+ Settings
+Lambda offers an extraordinary level of configurability.
+
+Users can fine-tune:
+- automation logic
+- rendering behavior
+- module interaction
+- timing systems
+- visuals
+- controls
+- inventory workflows
+- movement logic
+
+If customization is important to you, Lambda was built with that philosophy at its core.
+
+---
+
+## 🖥️ Sophisticated UI/UX
+
+### Dear ImGui Interface
+The included ImGui-based GUI provides:
+- 🔍 fast searching
+- 🧩 intuitive organization
+- ⌨️ seamless keybind editing
+- 📋 advanced context menus
+- ⚡ rapid workflow navigation
+
+Designed to maximize efficiency while maintaining clarity and usability.
+
+---
+
+## 🛡️ Stability & Reliability
+
+Lambda has been developed with modern multiplayer environments in mind.
+
+### ✅ Anticheat Conscious Design
+Built with awareness of:
+- Grim
+- modern movement validation systems
+- contemporary server-side checks
+
+### ✅ Type-Safe Command System
+Commands leverage Minecraft’s modern typed command architecture for:
+- improved reliability
+- better validation
+- cleaner execution behavior
+
+---
+
+# 🛣️ Specialized Infrastructure Tooling
+
+## HighwayTools
+Completely rewritten infrastructure tooling focused on:
+- highway maintenance
+- path management
+- large-scale travel systems
+- efficient construction workflows
+
+Optimized for advanced technical gameplay environments.
+
+---
+
+# 📦 Installation
+
+## Requirements
+- Minecraft 1.21.11
+- Fabric Loader
+- Fabric API
+- Kotlin for Fabric
+- Baritone API build
+
+---
+
+## 📥 Setup Steps
+
+### 1️⃣ Install Minecraft
+https://www.minecraft.net/
+
+### 2️⃣ Install Fabric
+https://fabricmc.net/use/installer/
+
+### 3️⃣ Download Lambda
+https://github.com/lambda-client/lambda/releases
+
+### 4️⃣ Install Baritone API
+https://github.com/cabaletta/baritone/releases
+
+### 5️⃣ Install Kotlin For Fabric
+https://modrinth.com/mod/fabric-language-kotlin
+
+### 6️⃣ Install Fabric API
+https://modrinth.com/mod/fabric-api/
+
+### 7️⃣ Move all files into:
+```text
+.minecraft/mods
+```
+
+---
+
+# 🚀 Getting Started
+
+## Opening the GUI
+Press:
+```text
+Y
+```
+
+---
+
+## Executing Commands
+Use the in-game chat prefix:
+```text
+;
+```
+
+Example:
+```text
+;help
+```
+
+---
+
+# 👨‍💻 Development
+
+## Microsoft Authentication
+Launch with:
+```bash
+--msa --msa-no-dialog
+```
+
+to enable MSA authentication within your IDE environment.
+
+---
+
+# 🌍 Community
+
+## Discord
+Join the official community:
+https://discord.gg/MBAEzyFn
+
+## Matrix
+Backup Matrix Space:
+https://app.element.io/#/room/#lambda-client:matrix.org
+
+---
+
+# ⭐ Open Source
+
+Lambda is fully open-source and community-driven.
+
+We deeply appreciate:
+- contributors
+- testers
+- addon developers
+- bug reporters
+- community feedback
+
+Every contribution helps shape the future of the project.
+
+---
+
+# ⚠️ Alpha Notice
+
+> Lambda is currently in Alpha.
+>
+> As this is a complete rewrite of the original client, some systems remain under active development and refinement.
+>
+> Bugs, incomplete features, and compatibility limitations may still exist during this phase.
+
+---
+
+# ⚖️ Disclaimer
+
+Lambda is not affiliated with Mojang Studios.
+
+Minecraft is a registered trademark of Mojang Studios.
+
+README written by yours truly — ChatGPT 5.5, by OpenAI.
+
+Licensed under the GNU General Public License v3.0.
