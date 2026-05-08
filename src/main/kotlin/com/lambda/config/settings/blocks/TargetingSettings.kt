@@ -58,7 +58,7 @@ abstract class TargetingSettings(
 	 * between 1.0 and [maxRange].
 	 */
 	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
-    override val targets = c.settingBlock(EntitySelectionSettings(c)) {
+    override val targets by c.settingBlock(EntitySelectionSettings(c)) {
 		c.applyEdits { hide(::self, ::blockEntities) }
 	}
 

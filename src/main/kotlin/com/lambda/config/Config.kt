@@ -73,7 +73,7 @@ private annotation class SettingDsl
 abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     internal val settingLayers = SettingLayer.Root()
 	internal val settingBlockLayers = BlockLayer.Root()
-    private val registrationQueue = ArrayDeque<List<SettingLayerSpec>>()
+    private val registrationQueue = ArrayDeque<LayerSpecInfo>()
 
     init {
         if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists")
@@ -86,13 +86,25 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 		forEachConfigProperty(
 			klass,
 			onSetting = { setting ->
-				registrationQueue.addLast(outerPath + buildPathFromAnnotations(setting))
+				registrationQueue.addLast(
+					LayerSpecInfo(
+						outerPath + buildPathFromAnnotations(setting),
+						outerBlockPath
+					)
+				)
 			},
 			onSettingBlock = { settingBlock, blockClass ->
+				val fullBlockPath = outerBlockPath + childBlockIndex
 				enqueueProperties(
 					blockClass,
 					outerPath + buildPathFromAnnotations(settingBlock),
-					outerBlockPath + childBlockIndex
+					fullBlockPath
+				)
+				registrationQueue.addLast(
+					LayerSpecInfo(
+						emptyList(),
+						fullBlockPath
+					)
 				)
 				childBlockIndex++
 			}
@@ -388,10 +400,9 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 	): SettingBlockWrapper<T> =
 		settingBlock
 			.apply { block?.invoke(this) }
-			.also { if (visibility != null) forEachSetting(settingBlock) { it.visibility = { it.visibility() && visibility() } } }
 			.let { settingBlock ->
 				val path = try {
-					settingBlockRegistration.removeFirst()
+					registrationQueue.removeFirst().settingBlockSpecs
 				} catch(_: NoSuchElementException) {
 					throw IllegalStateException("Setting block registered from an unknown location; layer path was not queued before setting initialization")
 				}
@@ -402,26 +413,35 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 					val existing = currentLayer.layers.getOrNull(index)
 					if (existing != null) currentLayer = existing
 					else {
-						val layer = BlockLayer.Block(settingBlock, currentLayer)
-						currentLayer.layers[index] = layer
+						val layer = BlockLayer.Block(currentLayer)
+						currentLayer.layers.add(layer)
 						currentLayer = layer
 					}
 				}
 
-				SettingBlockWrapper(settingBlock, currentLayer)
+				if (visibility != null) {
+					currentLayer.settingLayers.forEach { settingLayer ->
+						val setting = settingLayer.setting
+						setting.visibility = { setting.visibility() && visibility() }
+					}
+				}
+
+				SettingBlockWrapper(settingBlock, currentLayer).also { wrapper ->
+					(currentLayer as? BlockLayer.Block)?.settingBlock = wrapper
+				}
 			}
 
 	@PublishedApi
 	internal fun <T : SettingCore<R>, R : Any> setting(name: String, description: String, settingCore: T, visibility: () -> Boolean): Setting<T, R> {
-		val path = try {
+		val layerSpecInfo = try {
 			registrationQueue.removeFirst()
 		} catch(_: NoSuchElementException) {
 			throw IllegalStateException("Setting registered from an unknown location; layer path was not queued before setting initialization")
 		}
-		var currentLayer: SettingLayer.Multiple = settingLayers
 
-		path.forEach { spec ->
-			val existing = currentLayer.layers
+		var currentSettingLayer: SettingLayer.Multiple = settingLayers
+		layerSpecInfo.settingLayerSpecs.forEach { spec ->
+			val existing = currentSettingLayer.layers
 				.asSequence()
 				.filterIsInstance<SettingLayer.Multiple>()
 				.filter { it.name == spec.name }
@@ -433,31 +453,85 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 				}
 				.firstOrNull()
 
-			if (existing != null) currentLayer = existing
+			if (existing != null) currentSettingLayer = existing
 			else {
-				val newContainer = when (spec.type) {
-					SettingLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentLayer)
-					SettingLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentLayer)
+				val newSettingLayer = when (spec.type) {
+					SettingLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentSettingLayer)
+					SettingLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentSettingLayer)
 					SettingLayerType.Root -> throw IllegalStateException("Multiple root setting layers; only the base class root layer should ever be created")
 				}
-				currentLayer.layers.add(newContainer)
-				currentLayer = newContainer
+				currentSettingLayer.layers.add(newSettingLayer)
+				currentSettingLayer = newSettingLayer
 			}
 		}
 
-		val layer = SettingLayer.Single(currentLayer, name, description, settingCore, this@Config, visibility)
-		currentLayer.layers.add(layer)
+		var currentBlockLayer: BlockLayer = settingBlockLayers
+		layerSpecInfo.settingBlockSpecs.forEach { index ->
+			val existing = currentBlockLayer.layers.getOrNull(index)
+			if (existing != null) currentBlockLayer = existing
+			else {
+				val newBlockLayer = BlockLayer.Block(currentBlockLayer)
+				currentBlockLayer.layers.add(newBlockLayer)
+				currentBlockLayer = newBlockLayer
+			}
+		}
+
+		val layer = SettingLayer.Single(
+			currentSettingLayer,
+			currentBlockLayer,
+			name,
+			description,
+			settingCore,
+			this@Config,
+			visibility
+		)
+		currentSettingLayer.layers.add(layer)
+		currentBlockLayer.settingLayers.add(layer)
 		return layer.setting
 	}
 
     enum class SettingLayerType { Root, Tab, Group }
     private data class SettingLayerSpec(val type: SettingLayerType, val name: String)
+	private data class LayerSpecInfo(val settingLayerSpecs: List<SettingLayerSpec>, val settingBlockSpecs: List<Int>)
 
     sealed interface SettingLayer {
 		val parent: SettingLayer?
 
+	    sealed class Multiple(
+		    override val name: String,
+		    val layers: MutableList<SettingLayer>,
+		    override val parent: Multiple?
+	    ) : SettingLayer, Nameable {
+		    abstract val type: SettingLayerType
+	    }
+
+	    class Root : Multiple(
+		    "Root",
+		    mutableListOf(),
+		    null
+	    ) {
+		    override val type = SettingLayerType.Root
+	    }
+
+	    class Tab(
+		    name: String,
+		    layers: MutableList<SettingLayer>,
+		    parent: Multiple
+	    ) : Multiple(name, layers, parent) {
+		    override val type = SettingLayerType.Tab
+	    }
+
+	    class Group(
+		    name: String,
+		    layers: MutableList<SettingLayer>,
+		    parent: Multiple
+	    ) : Multiple(name, layers, parent) {
+		    override val type = SettingLayerType.Group
+	    }
+
         class Single<T : SettingCore<R>, R : Any>(
 	        override val parent: Multiple,
+	        val blockLayer: BlockLayer,
 	        name: String,
 	        description: String,
 	        settingCore: T,
@@ -466,89 +540,23 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 		) : SettingLayer {
 			val setting = Setting(name, description, settingCore, config, this, visibility)
 		}
-
-        sealed class Multiple(
-	        override val name: String,
-	        val layers: MutableList<SettingLayer>,
-			override val parent: Multiple?
-        ) : SettingLayer, Nameable {
-            abstract val type: SettingLayerType
-        }
-
-	    class Root : Multiple(
-		    "Root",
-		    mutableListOf(),
-		    null
-		) {
-			override val type = SettingLayerType.Root
-		}
-
-        class Tab(
-	        name: String,
-	        layers: MutableList<SettingLayer>,
-	        parent: Multiple
-        ) : Multiple(name, layers, parent) {
-            override val type = SettingLayerType.Tab
-        }
-
-        class Group(
-	        name: String,
-	        layers: MutableList<SettingLayer>,
-	        parent: Multiple
-        ) : Multiple(name, layers, parent) {
-            override val type = SettingLayerType.Group
-        }
     }
 
-	sealed interface BlockLayer {
-		val parent: BlockLayer?
-		val layers: MutableList<BlockLayer.Block>
+	sealed class BlockLayer {
+		open val parent: BlockLayer? = null
+		val layers = mutableListOf<BlockLayer.Block>()
+		val settingLayers = mutableListOf<SettingLayer.Single<*, *>>()
 
-		class Root : BlockLayer {
+		class Root : BlockLayer() {
 			override val parent = null
-			override val layers = mutableListOf<BlockLayer.Block>()
 		}
 
 		class Block(
-			val settingBlock: SettingBlock,
 			override val parent: BlockLayer?
-		) : BlockLayer {
-			override val layers = mutableListOf<BlockLayer.Block>()
+		) : BlockLayer() {
+			var settingBlock: SettingBlockWrapper<*>? = null
 		}
 	}
-
-    companion object {
-	    fun forEachSetting(
-		    instance: Any,
-		    block: (Setting<*, *>) -> Unit
-		) {
-		    instance::class.declaredMemberProperties.forEach { property ->
-			    val field = property.javaField ?: return@forEach
-			    field.isAccessible = true
-			    val fieldValue = field.get(instance) ?: return@forEach
-			    when {
-				    Setting::class.java.isAssignableFrom(field.type) ->
-					    block(fieldValue as Setting<*, *>)
-				    SettingBlockWrapper::class.java.isAssignableFrom(field.type) ->
-					    forEachSetting(fieldValue as SettingBlockWrapper<*>, block)
-			    }
-		    }
-	    }
-
-	    fun forEachSettingBlockWrapper(
-		    instance: Any,
-		    block: (SettingBlockWrapper<SettingBlock>) -> Unit
-		) {
-			instance::class.java.declaredFields.forEach { field ->
-				field.isAccessible = true
-				val fieldValue = field.get(instance) ?: return@forEach
-				if (SettingBlockWrapper::class.java.isAssignableFrom(field.type)) {
-					block(fieldValue as SettingBlockWrapper<SettingBlock>)
-					forEachSettingBlockWrapper(fieldValue, block)
-				}
-			}
-		}
-    }
 }
 
 @Target(AnnotationTarget.PROPERTY)

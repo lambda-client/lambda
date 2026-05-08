@@ -19,22 +19,21 @@
 
 package com.lambda.config
 
-import com.lambda.config.Config.Companion.forEachSetting
+import com.lambda.config.Config.BlockLayer
 import com.lambda.config.Config.SettingLayer
+import net.minecraft.client.toast.SystemToast.hide
 import kotlin.reflect.KProperty0
-import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.isAccessible
-import kotlin.reflect.jvm.javaField
 
 @DslMarker
 annotation class SettingEditorDsl
 
 @SettingEditorDsl
-fun <T : Config> T.applyEdits(edits: ConfigEditor<T>.() -> Unit) {
+fun Config.applyEdits(edits: ConfigEditor.() -> Unit) {
 	ConfigEditor(this).apply(edits)
 }
 
-class ConfigEditor<T : Config>(val c: T) {
+open class ConfigEditor(val c: Config) {
 	private typealias Property<T> = KProperty0<T>
 	private typealias SettingProperty<T> = KProperty0<T>
 	private typealias SettingBlockProperty<T> = KProperty0<T>
@@ -59,59 +58,63 @@ class ConfigEditor<T : Config>(val c: T) {
 	@SettingEditorDsl
 	fun <T : Any> SettingProperty<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
 		val delegate = setting
-		TypedEditBuilder(this@ConfigEditor, listOf(delegate)).edits(delegate.core)
+		TypedEditBuilder(c, listOf(delegate)).edits(delegate.core)
 	}
 
 	@SettingEditorDsl
 	fun edit(
-		vararg settings: SettingProperty<*>,
+		vararg settings: SettingProperty<Any>,
 		edits: BasicEditBuilder.() -> Unit
-	) = BasicEditBuilder(this, settings.map { (it as SettingProperty<Any>).setting }).apply(edits)
+	) = BasicEditBuilder(c, settings.map { it.setting }).apply(edits)
 
 	@SettingEditorDsl
 	fun <T : Any> editTyped(
 		vararg settings: SettingProperty<T>,
 		edits: TypedEditBuilder<T>.() -> Unit
-	) = TypedEditBuilder(this, settings.map { it.setting }).apply(edits)
+	) = TypedEditBuilder(c, settings.map { it.setting }).apply(edits)
 
 	@SettingEditorDsl
 	fun hide(vararg settings: SettingProperty<Any>) =
-		hide(settings.map { it.setting })
+		hide(settings.map { it.setting.layer })
 
 	@SettingEditorDsl
-	fun <T : SettingBlock> hideBlock(settingGroup: SettingBlockProperty<T>) {
-		forEachSetting(settingGroup.settingBlock) { setting ->
-			hide(setting)
-		}
+	fun <T : SettingBlock> hideBlock(settingBlock: SettingBlockProperty<T>) {
+		settingBlock.settingBlock.layer.settingLayers.forEach(::hide)
 	}
 
 	@SettingEditorDsl
-	fun hideBlocks(vararg settingGroups: SettingBlockProperty<SettingBlock>) =
-		settingGroups.forEach { hideBlock(it) }
+	fun hideBlocks(vararg settingBlocks: SettingBlockProperty<SettingBlock>) =
+		settingBlocks.forEach { hideBlock(it) }
 
 	@SettingEditorDsl
-	fun <T : SettingBlock> hideBlockExcept(settingGroup: SettingBlockProperty<T>, vararg except: SettingProperty<Any>) {
+	fun <T : SettingBlock> hideBlockExcept(settingBlock: SettingBlockProperty<T>, vararg except: SettingProperty<Any>) {
 		val exceptSettings = except.map { it.setting }
-		forEachSetting(settingGroup.settingBlock) { setting ->
-			if (setting !in exceptSettings) hide(setting)
+		settingBlock.settingBlock.layer.settingLayers.forEach { layer ->
+			if (layer.setting !in exceptSettings) hide(layer)
 		}
 	}
 
 	@SettingEditorDsl
-	fun hideAllBlocksExcept(vararg except: SettingBlockWrapper<SettingBlock>) {
-		Config.forEachSettingBlockWrapper(c) { block ->
-			if (block !in except) hideBlock(block)
+	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>) {
+		val exceptBlocks = except.map { it.settingBlock.layer }
+		fun processBlock(blockLayer: BlockLayer.Block) {
+			blockLayer.layers.forEach(::processBlock)
+			if (blockLayer !in exceptBlocks) blockLayer.settingLayers.forEach(::hide)
 		}
-		toHide.forEach { hide(it.collectSettings()) }
+
+		c.settingBlockLayers.layers.forEach(::processBlock)
 	}
 
-	@SettingEditorDsl
-	fun SettingBlock.forEachSetting(block: (Setting<*, *>) -> Unit) =
-		forEachSetting(this, block)
-
-	open class BasicEditBuilder(val c: ConfigEditor<*>, open val settings: Collection<Setting<*, *>>) {
+	open class BasicEditBuilder(
+		c: Config,
+		open val settings: Collection<Setting<*, *>>
+	) : ConfigEditor(c) {
 		@SettingEditorDsl
-		fun hide() = c.hide(settings)
+		fun hide() {
+			settings.forEach {
+				hide(it.layer)
+			}
+		}
 
 		@SettingEditorDsl
 		fun visibility(visibility: (() -> Boolean) -> () -> Boolean) {
@@ -122,7 +125,7 @@ class ConfigEditor<T : Config>(val c: T) {
 	}
 
 	class TypedEditBuilder<T : Any>(
-		c: ConfigEditor<*>,
+		c: Config,
 		override val settings: Collection<Setting<SettingCore<T>, T>>
 	) : BasicEditBuilder(c, settings) {
 		@SettingEditorDsl
@@ -133,13 +136,13 @@ class ConfigEditor<T : Config>(val c: T) {
 			}
 	}
 
-	private fun hide(settings: Collection<Setting<*, *>>) {
-		settings.forEach(::hide)
+	protected fun hide(layers: Collection<SettingLayer.Single<*, *>>) {
+		layers.forEach(::hide)
 	}
 
-	private fun hide(setting: Setting<*, *>) {
-		val parentLayer = setting.layer.parent
-		parentLayer.layers.remove(setting.layer)
+	protected fun hide(layer: SettingLayer.Single<*, *>) {
+		val parentLayer = layer.parent
+		parentLayer.layers.remove(layer)
 		if (parentLayer.layers.isEmpty())
 			parentLayer.parent?.layers?.remove(parentLayer)
 	}
