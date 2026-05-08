@@ -18,9 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.config.Group
-import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
@@ -40,22 +39,22 @@ import java.awt.Color
 object RadiusESP : Module(
 	name = "RadiusESP",
 	description = "Shows the radius for blocks with abnormal functionality",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
-	private const val RENDER_GROUP = "Render"
-	private const val OUTLINE_GROUP = "Outline"
+	private const val RenderGroup = "Render"
+	private const val OutlineGroup = "Outline"
 
 	private val beacons by setting("Beacons", true).onValueChange(::rebuildMesh)
 	private val spawners by setting("Spawners", true).onValueChange(::rebuildMesh)
 
-	@Group(RENDER_GROUP) private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
-	@Group(RENDER_GROUP) private val spawnerColor by setting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.onValueChange(::rebuildMesh)
-	@Group(RENDER_GROUP) private var fill: Boolean by setting("Fill", true).onValueChange(::rebuildMesh)
+	@Group(RenderGroup) private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
+	@Group(RenderGroup) private val spawnerColor by setting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.onValueChange(::rebuildMesh)
+	@Group(RenderGroup) private var fill: Boolean by setting("Fill", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) outline = true }
-	@Group(RENDER_GROUP) private var outline: Boolean by setting("Outline", true).onValueChange(::rebuildMesh)
+	@Group(RenderGroup) private var outline: Boolean by setting("Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
-	@Group(RENDER_GROUP) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
-	@Group(RENDER_GROUP, OUTLINE_GROUP) private val worldLineConfig =
+	@Group(RenderGroup) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
+	@Group(RenderGroup, OutlineGroup) private val worldLineConfig =
 		settingBlock(
 			WorldLineSettings(this),
 			{ outline }

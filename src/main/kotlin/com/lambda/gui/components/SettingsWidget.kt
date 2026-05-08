@@ -51,7 +51,7 @@ object SettingsWidget {
 			            with(config.backgroundColor) { buildLayout() }
 		            }
 		            smallButton("Reset") {
-			            resetContainers(config.settingContainers)
+			            resetContainers(config.settingLayers)
 		            }
 	            }
             }
@@ -86,25 +86,25 @@ object SettingsWidget {
             }
         }
 
-	    if (!hasVisibleSettings(config.settingContainers)) return
+	    if (!hasVisibleSettings(config.settingLayers)) return
 	    separator()
-	    renderContainers(config.settingContainers, config.name)
+	    renderContainers(config.settingLayers, config.name)
     }
 
     /**
-     * Recursively renders [Config.SettingContainer]s in order.
-     * - [Config.SettingContainer.Single]: renders the setting with visibility/disabled checks.
-     * - [Config.SettingContainer.Tab]: renders as ImGui tab bar with tab items.
-     * - [Config.SettingContainer.Group]: renders as a collapsible tree node with indent.
+     * Recursively renders [Config.SettingLayer]s in order.
+     * - [Config.SettingLayer.Single]: renders the setting with visibility/disabled checks.
+     * - [Config.SettingLayer.Tab]: renders as ImGui tab bar with tab items.
+     * - [Config.SettingLayer.Group]: renders as a collapsible tree node with indent.
      */
-    private fun ImGuiBuilder.renderContainers(containers: List<Config.SettingContainer>, idPrefix: String) {
+    private fun ImGuiBuilder.renderContainers(containers: List<Config.SettingLayer>, idPrefix: String) {
 	    val runs = mutableListOf<Any>()
 	    containers.forEach { container ->
-		    if (container is Config.SettingContainer.Tab) {
+		    if (container is Config.SettingLayer.Tab) {
 			    val last = runs.lastOrNull()
 			    if (last is MutableList<*>) {
 				    @Suppress("UNCHECKED_CAST")
-				    (last as MutableList<Config.SettingContainer.Tab>).add(container)
+				    (last as MutableList<Config.SettingLayer.Tab>).add(container)
 			    } else {
 				    runs.add(mutableListOf(container))
 			    }
@@ -115,32 +115,32 @@ object SettingsWidget {
 
 	    runs.forEach { run ->
 		    when (run) {
-			    is Config.SettingContainer.Single -> renderSetting(run.setting)
-			    is Config.SettingContainer.Group -> {
-				    if (hasVisibleSettings(run.settings)) {
+			    is Config.SettingLayer.Single -> renderSetting(run.setting)
+			    is Config.SettingLayer.Group -> {
+				    if (hasVisibleSettings(run.layers)) {
 					    treeNode("${run.name}##$idPrefix-group-${run.name}") {
-						    renderContainers(run.settings, "$idPrefix-${run.name}")
+						    renderContainers(run.layers, "$idPrefix-${run.name}")
 					    }
 				    }
 			    }
 			    is List<*> -> {
 				    @Suppress("UNCHECKED_CAST")
-				    renderTabBar(run as List<Config.SettingContainer.Tab>, idPrefix)
+				    renderTabBar(run as List<Config.SettingLayer.Tab>, idPrefix)
 			    }
 		    }
 	    }
     }
 
     /**
-     * Renders a group of [Config.SettingContainer.Tab]s as a single ImGui tab bar.
+     * Renders a group of [Config.SettingLayer.Tab]s as a single ImGui tab bar.
      */
-    private fun ImGuiBuilder.renderTabBar(tabs: List<Config.SettingContainer.Tab>, idPrefix: String) {
-	    val visibleTabs = tabs.filter { hasVisibleSettings(it.settings) }
+    private fun ImGuiBuilder.renderTabBar(tabs: List<Config.SettingLayer.Tab>, idPrefix: String) {
+	    val visibleTabs = tabs.filter { hasVisibleSettings(it.layers) }
 	    if (visibleTabs.isEmpty()) return
 	    tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
 		    visibleTabs.forEach { tab ->
 			    tabItem(tab.name) {
-				    renderContainers(tab.settings, "$idPrefix-${tab.name}")
+				    renderContainers(tab.layers, "$idPrefix-${tab.name}")
 			    }
 		    }
 	    }
@@ -157,24 +157,24 @@ object SettingsWidget {
     }
 
     /**
-     * Checks if any [Config.SettingContainer] in the tree has a visible setting.
+     * Checks if any [Config.SettingLayer] in the tree has a visible setting.
      */
-    private fun hasVisibleSettings(containers: List<Config.SettingContainer>): Boolean =
+    private fun hasVisibleSettings(containers: List<Config.SettingLayer>): Boolean =
 	    containers.any { container ->
 		    when (container) {
-			    is Config.SettingContainer.Single -> container.setting.visibility()
-			    is Config.SettingContainer.Multiple -> hasVisibleSettings(container.settings)
+			    is Config.SettingLayer.Single -> container.setting.visibility()
+			    is Config.SettingLayer.Multiple -> hasVisibleSettings(container.layers)
 		    }
 	    }
 
     /**
      * Recursively resets all settings in the container tree.
      */
-    private fun resetContainers(containers: List<Config.SettingContainer>) {
+    private fun resetContainers(containers: List<Config.SettingLayer>) {
 	    containers.forEach { container ->
 		    when (container) {
-			    is Config.SettingContainer.Single -> container.setting.reset(silent = true)
-			    is Config.SettingContainer.Multiple -> resetContainers(container.settings)
+			    is Config.SettingLayer.Single -> container.setting.reset(silent = true)
+			    is Config.SettingLayer.Multiple -> resetContainers(container.layers)
 		    }
 	    }
     }

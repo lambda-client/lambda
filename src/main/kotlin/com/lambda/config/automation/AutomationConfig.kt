@@ -21,13 +21,13 @@ import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
 import com.lambda.config.Tab
 import com.lambda.config.categories.AutomationCategory
-import com.lambda.config.groups.BreakSettings
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.EatSettings
-import com.lambda.config.groups.HotbarSettings
-import com.lambda.config.groups.InteractSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.settings.blocks.BreakSettings
+import com.lambda.config.settings.blocks.BuildSettings
+import com.lambda.config.settings.blocks.EatSettings
+import com.lambda.config.settings.blocks.HotbarSettings
+import com.lambda.config.settings.blocks.InteractSettings
+import com.lambda.config.settings.blocks.InventorySettings
+import com.lambda.config.settings.blocks.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.module.Module
 
@@ -36,22 +36,22 @@ open class AutomationConfig(
 	override val name: String,
 	configCategory: ConfigCategory = AutomationCategory
 ) : Config(configCategory), Automated {
-	@Tab(BUILD_TAB) override val buildConfig = BuildSettings(this)
-	@Tab(BREAK_TAB) override val breakConfig = BreakSettings(this)
-	@Tab(INTERACT_TAB) override val interactConfig = InteractSettings(this)
-	@Tab(ROTATION_TAB) override val rotationConfig = RotationSettings(this)
-	@Tab(INVENTORY_TAB) override val inventoryConfig = InventorySettings(this)
-	@Tab(HOTBAR_TAB) override val hotbarConfig = HotbarSettings(this)
-	@Tab(EAT_TAB) override val eatConfig = EatSettings(this)
+	@Tab(BuildTab) override val buildConfig = BuildSettings(this)
+	@Tab(BreakTab) override val breakConfig = BreakSettings(this)
+	@Tab(InteractTab) override val interactConfig = InteractSettings(this)
+	@Tab(RotationTab) override val rotationConfig = RotationSettings(this)
+	@Tab(InventoryTab) override val inventoryConfig = InventorySettings(this)
+	@Tab(HotbarTab) override val hotbarConfig = HotbarSettings(this)
+	@Tab(EatTab) override val eatConfig = EatSettings(this)
 
 	companion object {
-		private const val BUILD_TAB = "Build"
-		private const val BREAK_TAB = "Break"
-		private const val INTERACT_TAB = "Interact"
-		private const val ROTATION_TAB = "Rotation"
-		private const val INVENTORY_TAB = "Inventory"
-		private const val HOTBAR_TAB = "Hotbar"
-		private const val EAT_TAB = "Eat"
+		private const val BuildTab = "Build"
+		private const val BreakTab = "Break"
+		private const val InteractTab = "Interact"
+		private const val RotationTab = "Rotation"
+		private const val InventoryTab = "Inventory"
+		private const val HotbarTab = "Hotbar"
+		private const val EatTab = "Eat"
 
 		context(module: Module)
         fun IMutableAutomationConfig.setDefaultAutomationConfig(

@@ -20,9 +20,9 @@ package com.lambda.module.modules.render
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.EntityColorSettings
-import com.lambda.config.groups.EntitySelectionSettings
-import com.lambda.config.groups.ScreenLineSettings
+import com.lambda.config.blocks.EntityColorSettings
+import com.lambda.config.blocks.EntitySelectionSettings
+import com.lambda.config.blocks.ScreenLineSettings
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
@@ -41,38 +41,37 @@ import org.joml.component2
 object Tracers : Module(
 	name = "Tracers",
 	description = "Draws lines to entities within the world",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
 	private enum class LineGroup(override val displayName: String) : NamedEnum {
 		Other("Other"),
 		Friend("Friend")
 	}
 
-	private const val GENERAL_TAB = "General"
-	private const val ENTITY_TAB = "Entities"
-	private const val COLOR_TAB = "Colors"
-	private const val TRACERS_GROUP = "Tracers"
+	private const val GeneralTab = "General"
+	private const val EntityTab = "Entities"
+	private const val ColorsTab = "Colors"
 
-	private const val FRIENDS_LINE_GROUP = "Friends"
-	private const val OTHERS_LINE_GROUP = "Others"
+	@Tab(GeneralTab) private val target by setting("Target", TracerMode.Feet)
+	@Tab(GeneralTab) private val stem by setting("Stem", true)
 
-	@Tab(GENERAL_TAB) private val target by setting("Target", TracerMode.Feet)
-	@Tab(GENERAL_TAB) private val stem by setting("Stem", true)
+	private const val FriendsLineGroup = "Friends"
+	private const val OthersLineGroup = "Others"
 
-	@Tab(GENERAL_TAB) @Group(FRIENDS_LINE_GROUP) private val friendLineConfig =
+	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig =
 		settingBlock(ScreenLineSettings(this)) {
 			applyEdits { hide(::startColor, ::endColor) }
 		}
-	@Tab(GENERAL_TAB) @Group(OTHERS_LINE_GROUP) private val otherLineConfig =
+	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig =
 		settingBlock(ScreenLineSettings(this)) {
 			applyEdits { hide(::startColor, ::endColor) }
 		}
 
-	@Tab(ENTITY_TAB) private val entitySettings =
+	@Tab(EntityTab) private val entitySettings =
 		settingBlock(EntitySelectionSettings(this)) {
 			applyEdits { hide(::self, ::blockEntities) }
 		}
-	@Tab(COLOR_TAB) private val entityColors = settingBlock(EntityColorSettings(this))
+	@Tab(ColorsTab) private val entityColors = settingBlock(EntityColorSettings(this))
 
 	init {
 		immediateRenderer("Tracers Immediate Renderer") { safeContext ->

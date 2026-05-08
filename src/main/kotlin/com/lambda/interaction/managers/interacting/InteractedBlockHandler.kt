@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.interacting
 
 import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.groups.InteractConfig
+import com.lambda.config.blocks.InteractConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler

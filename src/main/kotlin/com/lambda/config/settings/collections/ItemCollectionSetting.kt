@@ -32,6 +32,6 @@ class ItemCollectionSetting(
 	TypeToken.getParameterized(Collection::class.java, Item::class.java).type,
 	serialize = true,
 ) {
-	context(setting: Setting<*, MutableCollection<Item>>)
+	context(_: Setting<*, MutableCollection<Item>>)
 	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemCodec.stringify(it) }
 }

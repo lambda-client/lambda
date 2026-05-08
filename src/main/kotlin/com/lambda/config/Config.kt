@@ -52,12 +52,11 @@ import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.collections.toMutableList
 import kotlin.jvm.java
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
-import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaField
 
 @DslMarker
@@ -69,143 +68,115 @@ private annotation class SettingDsl
  *
  * This class also provides a series of helper methods ([setting]) for creating different types of settings.
  *
- * @property settingContainers A set of [SettingCore]s that this config manages.
+ * @property settingLayers A set of [SettingCore]s that this config manages.
  */
 abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
-    val settingContainers = mutableListOf<SettingContainer>()
-    private val registrationQueue = ArrayDeque<List<ContainerSpec>>()
+    internal val settingLayers = SettingLayer.Root()
+	internal val settingBlockLayers = BlockLayer.Root()
+    private val registrationQueue = ArrayDeque<List<SettingLayerSpec>>()
 
     init {
         if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists")
-        enqueueProperties(this::class, emptyList())
+        enqueueProperties(this::class, emptyList(), emptyList())
         configCategory.configs.add(this)
     }
 
-    /**
-     * Recursively reflects over [klass]'s declared properties to build the [registrationQueue].
-     * For each property:
-     * - If its backing field is a [Setting], enqueue its annotation path.
-     * - If its backing field is a [SettingBlock], recurse into that class with the current path as outer context.
-     * - If it has no backing field (computed property), skip it.
-     */
-    private fun enqueueProperties(klass: KClass<*>, outerPath: List<ContainerSpec>) {
-        forEachSettingProperty(
-	        klass,
-            onSetting = { setting ->
-                registrationQueue.addLast(outerPath + buildPathFromAnnotations(setting))
-            },
-            onSettingBlock = { settingBlock, blockClass ->
-                enqueueProperties(blockClass, outerPath + buildPathFromAnnotations(settingBlock))
-            }
-        )
-    }
+	private fun enqueueProperties(klass: KClass<*>, outerPath: List<SettingLayerSpec>, outerBlockPath: List<Int>) {
+		var childBlockIndex = 0
+		forEachConfigProperty(
+			klass,
+			onSetting = { setting ->
+				registrationQueue.addLast(outerPath + buildPathFromAnnotations(setting))
+			},
+			onSettingBlock = { settingBlock, blockClass ->
+				enqueueProperties(
+					blockClass,
+					outerPath + buildPathFromAnnotations(settingBlock),
+					outerBlockPath + childBlockIndex
+				)
+				childBlockIndex++
+			}
+		)
+	}
 
-    /**
-     * Reads [Tab] and [Group] annotations from a property and builds a nesting path.
-     * Annotation order in source determines nesting order.
-     */
-    private fun buildPathFromAnnotations(property: KProperty<*>): List<ContainerSpec> {
-        val path = mutableListOf<ContainerSpec>()
-	    property.annotations.forEach { annotation ->
-		    when (annotation) {
-			    is Tab -> annotation.tabs.forEach { path.add(ContainerSpec(ContainerType.Tab, it)) }
-			    is Group -> annotation.groups.forEach { path.add(ContainerSpec(ContainerType.Group, it)) }
-		    }
-	    }
-        return path
-    }
-
-    /**
-     * Registers a [Setting] into the [settingContainers] tree.
-     * Dequeues the next path from [registrationQueue] and navigates/creates
-     * the container hierarchy, coalescing containers with the same name and type.
-     */
-    fun register(setting: Setting<*, *>) {
-        val path = try {
-			registrationQueue.removeFirst()
-        } catch(_: NoSuchElementException) {
-			logError("Setting registered from an unknown location; layer path was not queued before setting initialization")
-			return
+	private fun forEachConfigProperty(
+		klass: KClass<*>,
+		onSetting: (property: KProperty<*>) -> Unit = {},
+		onSettingBlock: (property: KProperty<*>, blockClass: KClass<*>) -> Unit = { _, _ -> }
+	) {
+		klass.declaredMemberProperties.forEach { property ->
+			val fieldType = property.javaField?.type ?: return@forEach
+			when {
+				Setting::class.java.isAssignableFrom(fieldType) -> onSetting(property)
+				SettingBlock::class.java.isAssignableFrom(fieldType) -> onSettingBlock(property, fieldType.kotlin)
+			}
 		}
-        var currentList = settingContainers
+	}
 
-	    path.forEach { spec ->
-		    val existing = currentList
-				.asSequence()
-			    .filterIsInstance<SettingContainer.Multiple>()
-			    .filter { it.name == spec.name }
-				.firstOrNull {
-					(spec.type == ContainerType.Tab && it is SettingContainer.Tab) ||
-							(spec.type == ContainerType.Group && it is SettingContainer.Group)
-				}
-
-		    if (existing != null) currentList = existing.settings
-		    else {
-			    val newContainer = when (spec.type) {
-				    ContainerType.Tab -> SettingContainer.Tab(spec.name, mutableListOf())
-				    ContainerType.Group -> SettingContainer.Group(spec.name, mutableListOf())
-			    }
-			    currentList.add(newContainer)
-			    currentList = newContainer.settings
-		    }
-	    }
-
-        currentList.add(SettingContainer.Single(setting))
-    }
+	private fun buildPathFromAnnotations(property: KProperty<*>): List<SettingLayerSpec> {
+		val path = mutableListOf<SettingLayerSpec>()
+		property.annotations.forEach { annotation ->
+			when (annotation) {
+				is Tab -> annotation.tabs.forEach { path.add(SettingLayerSpec(SettingLayerType.Tab, it)) }
+				is Group -> annotation.groups.forEach { path.add(SettingLayerSpec(SettingLayerType.Group, it)) }
+			}
+		}
+		return path
+	}
 
     final override fun toJson() =
         JsonObject().apply {
-            fun JsonObject.addSettings(settings: Collection<SettingContainer>) {
-                settings.forEach { container ->
-                    when (container) {
-                        is SettingContainer.Single ->
+            fun JsonObject.addSettings(settings: Collection<SettingLayer>) {
+                settings.forEach { layer ->
+                    when (layer) {
+                        is SettingLayer.Single<*, *> ->
                             try {
-                                add(container.setting.name, container.setting.toJson())
+                                add(layer.setting.name, layer.setting.toJson())
                             } catch(e: Throwable) {
-                                logError("Failed to serialize '${container.setting}' in ${this::class.simpleName}", e)
+                                logError("Failed to serialize '${layer.setting}' in ${this::class.simpleName}", e)
                             }
-                        is SettingContainer.Multiple -> {
+                        is SettingLayer.Multiple -> {
                             val grouped = JsonObject()
-                            grouped.addSettings(container.settings)
+                            grouped.addSettings(layer.layers)
                             try {
-                                add(container.name, grouped)
+                                add(layer.name, grouped)
                             } catch(e: Throwable) {
-                                logError("Failed to serialize ${container.typeStr}: ${container.name} in ${this::class.simpleName}", e)
+                                logError("Failed to serialize ${layer.type.toString().lowercase()}: ${layer.name} in ${this::class.simpleName}", e)
                             }
                         }
                     }
                 }
             }
-            addSettings(settingContainers)
+            addSettings(settingLayers.layers)
         }
 
     final override fun loadFromJson(serialized: JsonElement) {
         val rootObj = serialized.asJsonObject
 
-        fun loadFromObject(obj: JsonObject, containers: Collection<SettingContainer>) {
-	        containers.forEach { container ->
-		        when (container) {
-			        is SettingContainer.Single -> {
-				        val jsonValue = obj[container.setting.name]
+        fun loadFromObject(obj: JsonObject, layers: Collection<SettingLayer>) {
+	        layers.forEach { layer ->
+		        when (layer) {
+			        is SettingLayer.Single<*, *> -> {
+				        val jsonValue = obj[layer.setting.name]
 				        if (jsonValue != null) {
 					        try {
-						        container.setting.loadFromJson(jsonValue)
+						        layer.setting.loadFromJson(jsonValue)
 					        } catch (e: Throwable) {
-						        logError("Failed to deserialize setting '${container.setting.name}'", e)
+						        logError("Failed to deserialize setting '${layer.setting.name}'", e)
 					        }
-				        } else logError("No saved value for setting '${container.setting.name}' in ${this::class.simpleName}")
+				        } else logError("No saved value for setting '${layer.setting.name}' in ${this::class.simpleName}")
 			        }
-			        is SettingContainer.Multiple -> {
-				        val nestedObj = obj[container.name]?.asJsonObject
+			        is SettingLayer.Multiple -> {
+				        val nestedObj = obj[layer.name]?.asJsonObject
 				        if (nestedObj != null) {
-					        loadFromObject(nestedObj, container.settings)
-				        } else logError("No data for group/tab '${container.name}' in ${this::class.simpleName}")
+					        loadFromObject(nestedObj, layer.layers)
+				        } else logError("No data for group/tab '${layer.name}' in ${this::class.simpleName}")
 			        }
 		        }
 	        }
         }
 
-        loadFromObject(rootObj, settingContainers)
+        loadFromObject(rootObj, settingLayers.layers)
     }
 
 	@SettingDsl
@@ -214,15 +185,15 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: Boolean,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BooleanSetting(defaultValue), this, visibility)
+    ) = setting(name, description, BooleanSetting(defaultValue), visibility)
 
 	@SettingDsl
-    inline fun <reified T : Enum<T>> setting(
+    fun <T : Enum<T>> setting(
         name: String,
         defaultValue: T,
         description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = Setting(name, description,EnumSetting(defaultValue), this, visibility)
+        visibility: () -> Boolean = { true },
+    ) = setting(name, description,EnumSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -230,7 +201,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: Char,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, CharSetting(defaultValue), this, visibility)
+    ) = setting(name, description, CharSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -240,7 +211,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         flags: Int = ImGuiInputTextFlags.None,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, StringSetting(defaultValue, multiline, flags), this, visibility)
+    ) = setting(name, description, StringSetting(defaultValue, multiline, flags), visibility)
 
 	@SettingDsl
 	@JvmName("collectionSetting1")
@@ -250,7 +221,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility)
+    ) = setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), visibility)
 
 	@SettingDsl
 	@JvmName("collectionSetting2")
@@ -260,7 +231,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         immutableCollection: Collection<Item> = Registries.ITEM.toList(),
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), this, visibility)
+    ) = setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), visibility)
 
 	@SettingDsl
 	@JvmName("collectionSetting3")
@@ -272,30 +243,28 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         displayClassName: Boolean = false,
         serialize: Boolean = false,
         noinline visibility: () -> Boolean = { true },
-    ) = Setting(
+    ) = setting(
 	    name,
 	    description,
         if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
         else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
-		this,
 	    visibility
 	)
 
 	@SettingDsl
     // ToDo: Actually implement maps
-    inline fun <reified K : Any, reified V : Any> setting(
+	inline fun <reified K : Any, reified V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = Setting(
+    ) = setting(
 	    name,
 	    description,
 	    MapSetting(
 		    defaultValue.toMutableMap(),
 		    TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type
 		),
-	    this,
 		visibility
 	)
 
@@ -308,7 +277,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, DoubleSetting(defaultValue, range, step, unit), this, visibility)
+    ) = setting(name, description, DoubleSetting(defaultValue, range, step, unit), visibility)
 
 	@SettingDsl
     fun setting(
@@ -319,7 +288,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, FloatSetting(defaultValue, range, step, unit), this, visibility)
+    ) = setting(name, description, FloatSetting(defaultValue, range, step, unit), visibility)
 
 	@SettingDsl
     fun setting(
@@ -330,7 +299,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, IntegerSetting(defaultValue, range, step, unit), this, visibility)
+    ) = setting(name, description, IntegerSetting(defaultValue, range, step, unit), visibility)
 
 	@SettingDsl
     fun setting(
@@ -341,7 +310,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, LongSetting(defaultValue, range, step, unit), this, visibility)
+    ) = setting(name, description, LongSetting(defaultValue, range, step, unit), visibility)
 
 	@SettingDsl
     fun setting(
@@ -351,7 +320,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         alwaysListening: Boolean = false,
         screenCheck: Boolean = true,
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility)
+    ) = setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), visibility)
 
 	@SettingDsl
     fun setting(
@@ -361,7 +330,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         alwaysListening: Boolean = false,
         screenCheck: Boolean = true,
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), this, visibility)
+    ) = setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), visibility)
 
 	@SettingDsl
     fun setting(
@@ -369,7 +338,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: Color,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, ColorSetting(defaultValue), this, visibility)
+    ) = setting(name, description, ColorSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -377,7 +346,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: Vec3d,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, Vec3dSetting(defaultValue), this, visibility)
+    ) = setting(name, description, Vec3dSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -385,7 +354,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: BlockPos.Mutable,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockPosSetting(defaultValue), this, visibility)
+    ) = setting(name, description, BlockPosSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -393,7 +362,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: BlockPos,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockPosSetting(defaultValue), this, visibility)
+    ) = setting(name, description, BlockPosSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -401,7 +370,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: Block,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = Setting(name, description, BlockSetting(defaultValue), this, visibility)
+    ) = setting(name, description, BlockSetting(defaultValue), visibility)
 
 	@SettingDsl
     fun setting(
@@ -409,89 +378,176 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
         defaultValue: () -> Unit,
         description: String = "",
         visibility: () -> Boolean = { true }
-    ) = Setting(name, description, FunctionSetting(defaultValue), this, visibility)
+    ) = setting(name, description, FunctionSetting(defaultValue), visibility)
 
 	@SettingDsl
-	fun <T : SettingBlock> settingBlock(settingBlock: T, visibility: (() -> Boolean)? = null, block: (T.() -> Unit)? = null) =
+	fun <T : SettingBlock> settingBlock(
+		settingBlock: T,
+		visibility: (() -> Boolean)? = null,
+		block: (T.() -> Unit)? = null
+	): SettingBlockWrapper<T> =
 		settingBlock
 			.apply { block?.invoke(this) }
 			.also { if (visibility != null) forEachSetting(settingBlock) { it.visibility = { it.visibility() && visibility() } } }
+			.let { settingBlock ->
+				val path = try {
+					settingBlockRegistration.removeFirst()
+				} catch(_: NoSuchElementException) {
+					throw IllegalStateException("Setting block registered from an unknown location; layer path was not queued before setting initialization")
+				}
 
-    /**
-     * Collects all [SettingBlock] instances declared as fields on this [Config].
-     */
-    fun collectSettingBlocks(): List<SettingBlock> {
-        val result = mutableListOf<SettingBlock>()
-        forEachSettingProperty(this::class,
-            onSettingBlock = { property, _ ->
-                val field = property.javaField ?: return@forEachSettingProperty
-                field.isAccessible = true
-                (field.get(this) as? SettingBlock)?.let { result.add(it) }
-            }
-        )
-        return result
-    }
+				var currentLayer: BlockLayer = settingBlockLayers
 
-    private enum class ContainerType { Tab, Group }
-    private data class ContainerSpec(val type: ContainerType, val name: String)
+				path.forEach { index ->
+					val existing = currentLayer.layers.getOrNull(index)
+					if (existing != null) currentLayer = existing
+					else {
+						val layer = BlockLayer.Block(settingBlock, currentLayer)
+						currentLayer.layers[index] = layer
+						currentLayer = layer
+					}
+				}
 
-    sealed interface SettingContainer {
-        class Single(val setting: Setting<*, *>) : SettingContainer
+				SettingBlockWrapper(settingBlock, currentLayer)
+			}
+
+	@PublishedApi
+	internal fun <T : SettingCore<R>, R : Any> setting(name: String, description: String, settingCore: T, visibility: () -> Boolean): Setting<T, R> {
+		val path = try {
+			registrationQueue.removeFirst()
+		} catch(_: NoSuchElementException) {
+			throw IllegalStateException("Setting registered from an unknown location; layer path was not queued before setting initialization")
+		}
+		var currentLayer: SettingLayer.Multiple = settingLayers
+
+		path.forEach { spec ->
+			val existing = currentLayer.layers
+				.asSequence()
+				.filterIsInstance<SettingLayer.Multiple>()
+				.filter { it.name == spec.name }
+				.also {
+					if (it.any { layer ->
+						spec.type == SettingLayerType.Tab && layer is SettingLayer.Group ||
+								spec.type == SettingLayerType.Group && layer is SettingLayer.Tab
+					}) throw IllegalStateException("Duplicate setting layer names with differing types: ${spec.type}")
+				}
+				.firstOrNull()
+
+			if (existing != null) currentLayer = existing
+			else {
+				val newContainer = when (spec.type) {
+					SettingLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentLayer)
+					SettingLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentLayer)
+					SettingLayerType.Root -> throw IllegalStateException("Multiple root setting layers; only the base class root layer should ever be created")
+				}
+				currentLayer.layers.add(newContainer)
+				currentLayer = newContainer
+			}
+		}
+
+		val layer = SettingLayer.Single(currentLayer, name, description, settingCore, this@Config, visibility)
+		currentLayer.layers.add(layer)
+		return layer.setting
+	}
+
+    enum class SettingLayerType { Root, Tab, Group }
+    private data class SettingLayerSpec(val type: SettingLayerType, val name: String)
+
+    sealed interface SettingLayer {
+		val parent: SettingLayer?
+
+        class Single<T : SettingCore<R>, R : Any>(
+	        override val parent: Multiple,
+	        name: String,
+	        description: String,
+	        settingCore: T,
+	        config: Config,
+	        visibility: () -> Boolean,
+		) : SettingLayer {
+			val setting = Setting(name, description, settingCore, config, this, visibility)
+		}
 
         sealed class Multiple(
-            override val name: String,
-            val settings: MutableList<SettingContainer>
-        ) : SettingContainer, Nameable {
-            abstract val typeStr: String
+	        override val name: String,
+	        val layers: MutableList<SettingLayer>,
+			override val parent: Multiple?
+        ) : SettingLayer, Nameable {
+            abstract val type: SettingLayerType
         }
 
+	    class Root : Multiple(
+		    "Root",
+		    mutableListOf(),
+		    null
+		) {
+			override val type = SettingLayerType.Root
+		}
+
         class Tab(
-            name: String,
-            settings: MutableList<SettingContainer>
-        ) : Multiple(name, settings) {
-            override val typeStr = "tab"
+	        name: String,
+	        layers: MutableList<SettingLayer>,
+	        parent: Multiple
+        ) : Multiple(name, layers, parent) {
+            override val type = SettingLayerType.Tab
         }
 
         class Group(
-            name: String,
-            settings: MutableList<SettingContainer>
-        ) : Multiple(name, settings) {
-            override val typeStr = "group"
+	        name: String,
+	        layers: MutableList<SettingLayer>,
+	        parent: Multiple
+        ) : Multiple(name, layers, parent) {
+            override val type = SettingLayerType.Group
         }
     }
 
+	sealed interface BlockLayer {
+		val parent: BlockLayer?
+		val layers: MutableList<BlockLayer.Block>
+
+		class Root : BlockLayer {
+			override val parent = null
+			override val layers = mutableListOf<BlockLayer.Block>()
+		}
+
+		class Block(
+			val settingBlock: SettingBlock,
+			override val parent: BlockLayer?
+		) : BlockLayer {
+			override val layers = mutableListOf<BlockLayer.Block>()
+		}
+	}
+
     companion object {
-		@Suppress("unchecked_cast")
-	    fun forEachSetting(instance: Any, block: (Setting<*, *>) -> Unit) {
+	    fun forEachSetting(
+		    instance: Any,
+		    block: (Setting<*, *>) -> Unit
+		) {
 		    instance::class.declaredMemberProperties.forEach { property ->
-			    property.isAccessible = true
-			    val fieldType = property.javaField?.type ?: return@forEach
+			    val field = property.javaField ?: return@forEach
+			    field.isAccessible = true
+			    val fieldValue = field.get(instance) ?: return@forEach
 			    when {
-				    Setting::class.java.isAssignableFrom(fieldType) ->
-					    block((property as KProperty1<Any, *>).get(instance) as Setting<*, *>)
-				    SettingBlock::class.java.isAssignableFrom(fieldType) ->
-						forEachSetting((property as KProperty1<Any, *>).get(instance) as SettingBlock, block)
+				    Setting::class.java.isAssignableFrom(field.type) ->
+					    block(fieldValue as Setting<*, *>)
+				    SettingBlockWrapper::class.java.isAssignableFrom(field.type) ->
+					    forEachSetting(fieldValue as SettingBlockWrapper<*>, block)
 			    }
 		    }
 	    }
 
-        /**
-         * Iterates over declared properties of [klass], invoking [onSetting] for fields
-         * assignable to [Setting] and [onSettingBlock] for fields assignable to [SettingBlock].
-         */
-        fun forEachSettingProperty(
-            klass: KClass<*>,
-            onSetting: (property: KProperty<*>) -> Unit = {},
-            onSettingBlock: (property: KProperty<*>, blockClass: KClass<*>) -> Unit = { _, _ -> }
-        ) {
-            klass.declaredMemberProperties.forEach { property ->
-                val fieldType = property.javaField?.type ?: return@forEach
-                when {
-                    Setting::class.java.isAssignableFrom(fieldType) -> onSetting(property)
-                    SettingBlock::class.java.isAssignableFrom(fieldType) -> onSettingBlock(property, fieldType.kotlin)
-                }
-            }
-        }
+	    fun forEachSettingBlockWrapper(
+		    instance: Any,
+		    block: (SettingBlockWrapper<SettingBlock>) -> Unit
+		) {
+			instance::class.java.declaredFields.forEach { field ->
+				field.isAccessible = true
+				val fieldValue = field.get(instance) ?: return@forEach
+				if (SettingBlockWrapper::class.java.isAssignableFrom(field.type)) {
+					block(fieldValue as SettingBlockWrapper<SettingBlock>)
+					forEachSettingBlockWrapper(fieldValue, block)
+				}
+			}
+		}
     }
 }
 
@@ -502,7 +558,3 @@ annotation class Tab(vararg val tabs: String)
 @Target(AnnotationTarget.PROPERTY)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Group(vararg val groups: String)
-
-interface SettingBlock {
-	val c: Config
-}

@@ -39,26 +39,21 @@ import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
-import com.lambda.util.NamedEnum
 import java.awt.Color
 import kotlin.math.PI
 
 object HudGuiLayout : Loadable, Config(HudCategory) {
     override val name = "HUD"
 
-    enum class Group(override val displayName: String) : NamedEnum {
-        HudOutline("HUD Outline")
-    }
-
     // HUD Outline
-    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f).group(Group.HudOutline)
-    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90)).group(Group.HudOutline)
-    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200)).group(Group.HudOutline)
-    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f).group(Group.HudOutline)
-    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f).group(Group.HudOutline)
-    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc").group(Group.HudOutline)
+    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
+    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90))
+    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200))
+    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f)
+    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
+    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
 
-    const val DEFAULT_HUD_FLAGS =
+    const val DefaultHudFlags =
         ImGuiWindowFlags.NoDecoration or
                 ImGuiWindowFlags.NoBackground or
                 ImGuiWindowFlags.AlwaysAutoResize or
@@ -75,10 +70,10 @@ object HudGuiLayout : Loadable, Config(HudCategory) {
     var isShownInGUI = true
     var isLocked = false
 
-    private const val PI_F = PI.toFloat()
-    private const val HALF_PI_F = (0.5f * PI).toFloat()
-    private const val THREE_HALVES_PI_F = (1.5f * PI).toFloat()
-    private const val TWO_PI_F = (2f * PI).toFloat()
+    private const val PiF = PI.toFloat()
+    private const val HalfPiF = (0.5f * PI).toFloat()
+    private const val ThreeHalvesPiF = (1.5f * PI).toFloat()
+    private const val TwoPiF = (2f * PI).toFloat()
 
     init {
         listen<GuiEvent.NewImguiFrame> {
@@ -148,8 +143,8 @@ object HudGuiLayout : Loadable, Config(HudCategory) {
         val bg = hud.backgroundColor.value
         val hasBg = bg.alpha > 0
         val baseFlags = if (hasBg) {
-            DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
-        } else DEFAULT_HUD_FLAGS
+            DefaultHudFlags and ImGuiWindowFlags.NoBackground.inv()
+        } else DefaultHudFlags
         var hudFlags = if (!ClickGuiLayout.open || isLocked) {
             baseFlags or ImGuiWindowFlags.NoMove
         } else baseFlags
@@ -286,12 +281,12 @@ object HudGuiLayout : Loadable, Config(HudCategory) {
         }
 
         // TL: pi -> 1.5pi
-        strokeArc(tlCx, tlCy, PI_F, THREE_HALVES_PI_F)
+        strokeArc(tlCx, tlCy, PiF, ThreeHalvesPiF)
         // TR: 1.5pi -> 2pi
-        strokeArc(trCx, trCy, THREE_HALVES_PI_F, TWO_PI_F)
+        strokeArc(trCx, trCy, ThreeHalvesPiF, TwoPiF)
         // BR: 0 -> 0.5pi
-        strokeArc(brCx, brCy, 0f, HALF_PI_F)
+        strokeArc(brCx, brCy, 0f, HalfPiF)
         // BL: 0.5pi -> pi
-        strokeArc(blCx, blCy, HALF_PI_F, PI_F)
+        strokeArc(blCx, blCy, HalfPiF, PiF)
     }
 }

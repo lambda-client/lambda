@@ -69,7 +69,7 @@ import kotlin.math.sign
 object Freecam : Module(
 	name = "Freecam",
 	description = "Move your camera freely",
-	tag = ModuleTag.RENDER,
+	tag = ModuleTag.Render,
 	autoDisable = true,
 ) {
 	private val mode by setting("Mode", Mode.Free, "Freecam movement mode")
@@ -83,7 +83,6 @@ object Freecam : Module(
 	// Follow Player settings
 	private val followMaxDistance by setting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == Mode.FollowPlayer }
 	private val followTrackPlayer by setting("Track Player", false, "Keeps looking at the followed player") { mode == Mode.FollowPlayer }
-
 
 	private var lastPerspective = Perspective.FIRST_PERSON
 	private var lastPlayerPosition: Vec3d = Vec3d.ZERO
@@ -119,7 +118,7 @@ object Freecam : Module(
 	/**
 	 * @see net.minecraft.entity.Entity.changeLookDirection
 	 */
-	private const val SENSITIVITY_FACTOR = 0.15
+	private const val SensitivityFactor = 0.15
 
 	init {
 		setDefaultAutomationConfig {
@@ -152,7 +151,7 @@ object Freecam : Module(
 		}
 
 		listen<PlayerEvent.ChangeLookDirection> {
-			rotation = rotation.withDelta(it.deltaYaw * SENSITIVITY_FACTOR, it.deltaPitch * SENSITIVITY_FACTOR)
+			rotation = rotation.withDelta(it.deltaYaw * SensitivityFactor, it.deltaPitch * SensitivityFactor)
 			it.cancel()
 		}
 

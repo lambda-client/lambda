@@ -37,7 +37,7 @@ class ClassCollectionSetting<T : Any>(
 	TypeToken.getParameterized(Collection::class.java, Any::class.java).type,
 	serialize = false,
 ) {
-	context(setting: Setting<*, MutableCollection<T>>)
+	context(_: Setting<*, MutableCollection<T>>)
 	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.className }
 
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.

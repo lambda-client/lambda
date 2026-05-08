@@ -58,7 +58,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 object BackTrack : Module(
     name = "BackTrack",
     description = "Gives reach advantage by delaying your packets",
-    tag = ModuleTag.MOVEMENT,
+    tag = ModuleTag.Movement,
 ) {
     private val outbound by setting("Outbound", true)
     private val mode by setting("Mode", Mode.Fixed)
@@ -71,7 +71,7 @@ object BackTrack : Module(
 
     private val box = DynamicAABB()
 
-    private const val POSITION_PACKET_SCALE = 1 / 4096.0
+    private const val PositionPacketScale = 1 / 4096.0
     private val currentTime get() = System.currentTimeMillis()
 
     private val sendPool = ConcurrentLinkedDeque<Pair<ServerPacket, Long>>()
@@ -129,9 +129,9 @@ object BackTrack : Module(
                     if (target.id == packet.id) {
                         targetPos = targetPos?.plus(
                             Vec3d(
-                                packet.deltaX * POSITION_PACKET_SCALE,
-                                packet.deltaY * POSITION_PACKET_SCALE,
-                                packet.deltaZ * POSITION_PACKET_SCALE
+                                packet.deltaX * PositionPacketScale,
+                                packet.deltaY * PositionPacketScale,
+                                packet.deltaZ * PositionPacketScale
                             )
                         )
                     }

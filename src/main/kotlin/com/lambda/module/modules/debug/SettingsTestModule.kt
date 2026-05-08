@@ -18,10 +18,10 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.config.Tab
-import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.config.groups.ScreenTextSettings
-import com.lambda.config.groups.WorldLineSettings
-import com.lambda.config.groups.WorldTextSettings
+import com.lambda.config.blocks.ScreenLineSettings
+import com.lambda.config.blocks.ScreenTextSettings
+import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.blocks.WorldTextSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
@@ -29,17 +29,17 @@ import com.lambda.module.tag.ModuleTag
 object SettingsTestModule : Module(
     name = "SettingsTestModule",
     description = "Test module for Line and Text Config Settings",
-    tag = ModuleTag.DEBUG
+    tag = ModuleTag.Debug
 ) {
-    private const val WORLD_LINE_TAB = "World Line"
-    private const val SCREEN_LINE_TAB = "Screen Line"
-    private const val WORLD_TEXT_TAB = "World Text"
-    private const val SCREEN_TEXT_TAB = "Screen Text"
+    private const val WorldLineTab = "World Line"
+    private const val ScreenLineTab = "Screen Line"
+    private const val WorldTextTab = "World Text"
+    private const val ScreenTextTab = "Screen Text"
 
-    @Tab(WORLD_LINE_TAB) private val worldLineConfig = settingBlock(WorldLineSettings(this))
-    @Tab(SCREEN_LINE_TAB) private val screenLineConfig = settingBlock(ScreenLineSettings(this))
-    @Tab(WORLD_TEXT_TAB) private val worldTextConfig = settingBlock(WorldTextSettings(this))
-    @Tab(SCREEN_TEXT_TAB) private val textConfig = settingBlock(ScreenTextSettings(this))
+    @Tab(WorldLineTab) private val worldLineConfig = settingBlock(WorldLineSettings(this))
+    @Tab(ScreenLineTab) private val screenLineConfig = settingBlock(ScreenLineSettings(this))
+    @Tab(WorldTextTab) private val worldTextConfig = settingBlock(WorldTextSettings(this))
+    @Tab(ScreenTextTab) private val textConfig = settingBlock(ScreenTextSettings(this))
 
 //    private val renderer = ImmediateRenderer("SettingsTestRenderer")
 

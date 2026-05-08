@@ -33,17 +33,17 @@ class VarIntIterator(
 
         do {
             val b = bytes[index++].toInt()
-            value = value or ((b and SEGMENT_BIT) shl (size++ * 7))
+            value = value or ((b and SegmentBit) shl (size++ * 7))
 
             if (size > 5) throw IllegalArgumentException("VarInt size cannot exceed 5 bytes")
-        } while ((b and CONTINUE_BIT) != 0)
+        } while ((b and ContinueBit) != 0)
 
         return value
     }
 
     companion object {
-        const val SEGMENT_BIT = 127
-        const val CONTINUE_BIT = 128
+        const val SegmentBit = 127
+        const val ContinueBit = 128
     }
 }
 

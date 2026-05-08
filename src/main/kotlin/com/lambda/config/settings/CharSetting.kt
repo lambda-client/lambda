@@ -37,7 +37,7 @@ class CharSetting(defaultValue: Char) : SettingCore<Char>(
 	defaultValue,
 	TypeToken.get(Char::class.java).type
 ) {
-    context(setting: Setting<*, Char>)
+    context(_: Setting<*, Char>)
 	override fun ImGuiBuilder.buildLayout() {}
 
 	context(setting: Setting<*, Char>)

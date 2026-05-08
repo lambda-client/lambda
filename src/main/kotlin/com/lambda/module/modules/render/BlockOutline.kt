@@ -19,8 +19,8 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.OutlineSettings
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.settings.blocks.OutlineSettings
+import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -36,7 +36,7 @@ import java.awt.Color
 object BlockOutline : Module(
 	name = "BlockOutline",
 	description = "Overrides the default block outline rendering",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
 	private enum class Mode {
 		Boxes,
@@ -47,22 +47,22 @@ object BlockOutline : Module(
 	private val interpolate by setting("Interpolate", true) { mode == Mode.Boxes }
 	private val depthTest by setting("Depth Test", true)
 
-	private const val BOX_FILL_GROUP = "Box Fill"
-	private const val BOX_OUTLINE_GROUP = "Box Outline"
-	private const val OUTLINE_GROUP = "Outline"
+	private const val BoxFillGroup = "Box Fill"
+	private const val BoxOutlineGroup = "Box Outline"
+	private const val OutlineGroup = "Outline"
 
-	@Group(BOX_FILL_GROUP) private val fill by setting("Fill", true) { mode == Mode.Boxes }
-	@Group(BOX_FILL_GROUP) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
-	@Group(BOX_OUTLINE_GROUP) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
-	@Group(BOX_OUTLINE_GROUP) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
-	@Group(BOX_OUTLINE_GROUP) private val lineConfig =
+	@Group(BoxFillGroup) private val fill by setting("Fill", true) { mode == Mode.Boxes }
+	@Group(BoxFillGroup) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
+	@Group(BoxOutlineGroup) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
+	@Group(BoxOutlineGroup) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
+	@Group(BoxOutlineGroup) private val lineConfig =
 		settingBlock(
 			WorldLineSettings(this),
 			{ boxOutline && mode == Mode.Boxes }
 		) { applyEdits { hide(::startColor, ::endColor) } }
 
-	@Group(OUTLINE_GROUP) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	@Group(OUTLINE_GROUP) private val outlineStyle = settingBlock(OutlineSettings(this), { mode == Mode.Outline })
+	@Group(OutlineGroup) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
+	@Group(OutlineGroup) private val outlineStyle = settingBlock(OutlineSettings(this), { mode == Mode.Outline })
 
 	var previous: List<Box>? = null
 

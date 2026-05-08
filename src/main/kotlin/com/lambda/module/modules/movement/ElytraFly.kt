@@ -70,7 +70,7 @@ import kotlin.time.Duration.Companion.seconds
 object ElytraFly : Module(
     name = "ElytraFly",
     description = "Allows you to fly with an elytra",
-    tag = ModuleTag.MOVEMENT,
+    tag = ModuleTag.Movement,
 ) {
     @JvmStatic val mode by setting("Mode", FlyMode.Bounce)
 

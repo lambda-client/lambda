@@ -144,7 +144,7 @@ enum class KeyCode(val code: Int) {
     Last(GLFW.GLFW_KEY_LAST);
 
     companion object {
-        private const val PRINTABLE_POOL = "`-=[]\\,;\'./"
+        private const val PrintablePool = "`-=[]\\,;\'./"
         private val glfwPool = intArrayOf(
             GLFW.GLFW_KEY_GRAVE_ACCENT, GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_EQUAL,
             GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET, GLFW.GLFW_KEY_BACKSLASH,
@@ -180,7 +180,7 @@ enum class KeyCode(val code: Int) {
                 in 'A'..'Z' -> GLFW.GLFW_KEY_A + (char - 'A')
                 in 'a'..'z' -> GLFW.GLFW_KEY_A + (char - 'a')
                 else -> {
-                    val i = PRINTABLE_POOL.indexOf(keyName)
+                    val i = PrintablePool.indexOf(keyName)
                     if (i >= 0) glfwPool[i] else keyCode
                 }
             })

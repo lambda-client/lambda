@@ -40,7 +40,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 object AutoUpdater : Module(
     name = "AutoUpdater",
     description = "Installs / uninstalls Lambda loader",
-    tag = ModuleTag.CLIENT,
+    tag = ModuleTag.Client,
 ) {
     private val debug by setting("Debug", false, "Enable debug logging")
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
@@ -53,18 +53,18 @@ object AutoUpdater : Module(
     @JvmStatic var showUninstallModal = false
     private var firstLaunchStateInitialized = false
 
-    private const val MAVEN_URL = "https://maven.lambda-client.org"
-    private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda-loader/maven-metadata.xml"
-    private const val LOADER_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda-loader/maven-metadata.xml"
-    private const val CLIENT_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda/maven-metadata.xml"
-    private const val CLIENT_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda/maven-metadata.xml"
+    private const val MavenUrl = "https://maven.lambda-client.org"
+    private const val LoaderReleasesMeta = "$MavenUrl/releases/com/lambda/lambda-loader/maven-metadata.xml"
+    private const val LoaderSnapshotsMeta = "$MavenUrl/snapshots/com/lambda/lambda-loader/maven-metadata.xml"
+    private const val ClientReleasesMeta = "$MavenUrl/releases/com/lambda/lambda/maven-metadata.xml"
+    private const val ClientSnapshotsMeta = "$MavenUrl/snapshots/com/lambda/lambda/maven-metadata.xml"
 
     private enum class Branch {
         Stable,
         Snapshot
     }
 
-    const val WINDOW_FLAGS =
+    const val WindowFlags =
         ImGuiWindowFlags.AlwaysAutoResize or
                 ImGuiWindowFlags.NoMove or
                 ImGuiWindowFlags.NoResize or
@@ -91,7 +91,7 @@ object AutoUpdater : Module(
                 if (mc.currentScreen !is LambdaScreen) return@listen
 
                 ImGui.openPopup("Loader Installation Wizard")
-                popupModal("Loader Installation Wizard", WINDOW_FLAGS) {
+                popupModal("Loader Installation Wizard", WindowFlags) {
                     renderLoaderInstallExplanation()
 
                     val buttonWidth = (ImGui.getContentRegionAvailX() - ImGui.getStyle().itemSpacing.x) / 2f
@@ -116,7 +116,7 @@ object AutoUpdater : Module(
 
             if (showInstallModal) {
                 ImGui.openPopup("Loader Installation Wizard")
-                popupModal("Loader Installation Wizard", WINDOW_FLAGS) {
+                popupModal("Loader Installation Wizard", WindowFlags) {
                     renderLoaderInstallExplanation()
 
                     val buttonWidth = (ImGui.getContentRegionAvailX() - ImGui.getStyle().itemSpacing.x) / 2f
@@ -139,7 +139,7 @@ object AutoUpdater : Module(
 
             if (showUninstallModal) {
                 ImGui.openPopup("Uninstall Loader")
-                popupModal("Uninstall Loader", WINDOW_FLAGS) {
+                popupModal("Uninstall Loader", WindowFlags) {
                     text("Do you want to uninstall Lambda Loader?")
                     separator()
                     text("This will close the client automatically once the uninstall is finished.")
@@ -229,22 +229,22 @@ object AutoUpdater : Module(
 
             when (branch) {
                 Branch.Stable -> {
-                    val xml = URI(LOADER_RELEASES_META).toURL().readText()
+                    val xml = URI(LoaderReleasesMeta).toURL().readText()
                     version = parseLatestVersion(xml, null)
-                    baseUrl = "$MAVEN_URL/releases"
+                    baseUrl = "$MavenUrl/releases"
                 }
                 Branch.Snapshot -> {
-                    val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
+                    val xml = URI(LoaderSnapshotsMeta).toURL().readText()
                     version = parseLatestVersion(xml, null)
-                    baseUrl = "$MAVEN_URL/snapshots"
+                    baseUrl = "$MavenUrl/snapshots"
                 }
             }
 
             if (version == null && branch == Branch.Stable) {
                 warn("No stable loader found, falling back to snapshot")
-                val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
+                val xml = URI(LoaderSnapshotsMeta).toURL().readText()
                 version = parseLatestVersion(xml, null)
-                baseUrl = "$MAVEN_URL/snapshots"
+                baseUrl = "$MavenUrl/snapshots"
             }
 
             if (version == null) {
@@ -281,22 +281,22 @@ object AutoUpdater : Module(
 
             when (branch) {
                 Branch.Stable -> {
-                    val xml = URI(CLIENT_RELEASES_META).toURL().readText()
+                    val xml = URI(ClientReleasesMeta).toURL().readText()
                     version = parseLatestVersion(xml, mcVersion)
-                    baseUrl = "$MAVEN_URL/releases"
+                    baseUrl = "$MavenUrl/releases"
                 }
                 Branch.Snapshot -> {
-                    val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
+                    val xml = URI(ClientSnapshotsMeta).toURL().readText()
                     version = parseLatestVersion(xml, mcVersion)
-                    baseUrl = "$MAVEN_URL/snapshots"
+                    baseUrl = "$MavenUrl/snapshots"
                 }
             }
 
             if (version == null && branch == Branch.Stable) {
                 warn("No stable client found for MC $mcVersion, falling back to snapshot")
-                val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
+                val xml = URI(ClientSnapshotsMeta).toURL().readText()
                 version = parseLatestVersion(xml, mcVersion)
-                baseUrl = "$MAVEN_URL/snapshots"
+                baseUrl = "$MavenUrl/snapshots"
             }
 
             if (version == null) {

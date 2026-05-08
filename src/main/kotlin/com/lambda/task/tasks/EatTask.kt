@@ -17,8 +17,8 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.config.groups.EatConfig
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.config.blocks.EatConfig
+import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent

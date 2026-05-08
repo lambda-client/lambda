@@ -68,7 +68,7 @@ open class CollectionSetting<R : Any>(
     val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
     val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
-	context(setting: Setting<*, MutableCollection<R>>)
+	context(_: Setting<*, MutableCollection<R>>)
     override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
 
 	context(setting: Setting<*, MutableCollection<R>>)

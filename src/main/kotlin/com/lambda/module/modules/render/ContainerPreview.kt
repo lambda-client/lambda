@@ -59,19 +59,19 @@ import kotlin.math.max
 object ContainerPreview : Module(
     name = "ContainerPreview",
     description = "Renders shulker box contents visually in tooltips",
-    tag = ModuleTag.RENDER,
+    tag = ModuleTag.Render,
 ) {
-    private const val CONTAINER_TOOLTIP_TAB = "Container Tooltip"
-    private const val CONTENT_PREVIEW_TAB = "Content Preview"
+    private const val ContainerTooltipTab = "Container Tooltip"
+    private const val ContentPreviewTab = "Content Preview"
 
-    @Tab(CONTAINER_TOOLTIP_TAB) private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
-    @Tab(CONTAINER_TOOLTIP_TAB) private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color")
+    @Tab(ContainerTooltipTab) private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
+    @Tab(ContainerTooltipTab) private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color")
 
-    @Tab(CONTENT_PREVIEW_TAB) private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories")
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }
-    @Tab(CONTENT_PREVIEW_TAB) private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }
+    @Tab(ContentPreviewTab) private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories")
+    @Tab(ContentPreviewTab) private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }
+    @Tab(ContentPreviewTab) private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }
+    @Tab(ContentPreviewTab) private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }
+    @Tab(ContentPreviewTab) private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }
         .onValueChange { _, _ -> containerCache.clear() }
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")
@@ -96,18 +96,18 @@ object ContainerPreview : Module(
         }
     }
 
-    private const val ROWS = 3
-    private const val COLS = 9
-    private const val SLOT_SIZE = 18
-    private const val PADDING = 7
-    private const val TITLE_HEIGHT = 14
+    private const val Rows = 3
+    private const val Cols = 9
+    private const val SlotSize = 18
+    private const val Padding = 7
+    private const val TitleHeight = 14
 
     @JvmStatic
     val isLocked: Boolean
         get() = lockedSlot != null
 
-    private fun getTooltipWidth() = PADDING + COLS * SLOT_SIZE + PADDING
-    private fun getTooltipHeight() = TITLE_HEIGHT + ROWS * SLOT_SIZE + PADDING
+    private fun getTooltipWidth() = Padding + Cols * SlotSize + Padding
+    private fun getTooltipHeight() = TitleHeight + Rows * SlotSize + Padding
 
     /**
      * Check if the mouse is over the locked tooltip area (for click blocking)
@@ -194,10 +194,10 @@ object ContainerPreview : Module(
         drawBackground(context, x, y, width, tintColor)
         val name = stack.name
         val textColor = getTextColor(tintColor)
-        context.drawText(textRenderer, name, x + PADDING, y + 4, textColor, false)
+        context.drawText(textRenderer, name, x + Padding, y + 4, textColor, false)
 
-        val slotsStartX = x + PADDING
-        val slotsStartY = y + TITLE_HEIGHT
+        val slotsStartX = x + Padding
+        val slotsStartY = y + TitleHeight
 
         val actualMouseX = (mc.mouse.x * mc.window.scaledWidth / mc.window.width).toInt()
         val actualMouseY = (mc.mouse.y * mc.window.scaledHeight / mc.window.height).toInt()
@@ -207,19 +207,19 @@ object ContainerPreview : Module(
         var hoveredSlotY = 0
 
         for ((index, item) in contents.withIndex()) {
-            if (index >= COLS * ROWS) break
+            if (index >= Cols * Rows) break
 
-            val slotCol = index % COLS
-            val slotRow = index / COLS
+            val slotCol = index % Cols
+            val slotRow = index / Cols
 
-            val slotX = slotsStartX + slotCol * SLOT_SIZE
-            val slotY = slotsStartY + slotRow * SLOT_SIZE
+            val slotX = slotsStartX + slotCol * SlotSize
+            val slotY = slotsStartY + slotRow * SlotSize
             val itemX = slotX + 1
             val itemY = slotY + 1
 
             if (allowHover) {
-                val isHovered = actualMouseX >= slotX && actualMouseX < slotX + SLOT_SIZE &&
-                        actualMouseY >= slotY && actualMouseY < slotY + SLOT_SIZE
+                val isHovered = actualMouseX >= slotX && actualMouseX < slotX + SlotSize &&
+                        actualMouseY >= slotY && actualMouseY < slotY + SlotSize
 
                 if (isHovered && !item.isEmpty) {
                     context.fill(itemX, itemY, itemX + 16, itemY + 16, 0x80FFFFFF.toInt())
@@ -311,21 +311,21 @@ object ContainerPreview : Module(
             background,
             x, y,
             0f, 0f,
-            width, TITLE_HEIGHT,
-            width, TITLE_HEIGHT,
+            width, TitleHeight,
+            width, TitleHeight,
             256, 256,
             tintColor
         )
 
         // Middle rows
-	    (0 until ROWS).forEach { row ->
+	    (0 until Rows).forEach { row ->
 		    context.drawTexture(
 			    RenderPipelines.GUI_TEXTURED,
 			    background,
-			    x, y + TITLE_HEIGHT + row * SLOT_SIZE,
+			    x, y + TitleHeight + row * SlotSize,
 			    0f, 17f,
-			    width, SLOT_SIZE,
-			    width, SLOT_SIZE,
+			    width, SlotSize,
+			    width, SlotSize,
 			    256, 256,
 			    tintColor
 		    )
@@ -335,10 +335,10 @@ object ContainerPreview : Module(
         context.drawTexture(
             RenderPipelines.GUI_TEXTURED,
             background,
-            x, y + TITLE_HEIGHT + ROWS * SLOT_SIZE,
+            x, y + TitleHeight + Rows * SlotSize,
             0f, 160f,
-            width, PADDING,
-            width, PADDING,
+            width, Padding,
+            width, Padding,
             256, 256,
             tintColor
         )

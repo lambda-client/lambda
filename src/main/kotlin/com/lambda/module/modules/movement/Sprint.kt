@@ -23,5 +23,5 @@ import com.lambda.module.tag.ModuleTag
 object Sprint : Module(
     name = "Sprint",
     description = "Sprints automatically",
-    tag = ModuleTag.MOVEMENT,
+    tag = ModuleTag.Movement,
 )

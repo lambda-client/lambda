@@ -36,7 +36,7 @@ class BlockSetting(defaultValue: Block) : SettingCore<Block>(
 	defaultValue,
 	TypeToken.get(Block::class.java).type
 ) {
-	context(setting: Setting<*, Block>)
+	context(_: Setting<*, Block>)
     override fun ImGuiBuilder.buildLayout() {}
 
 	context(setting: Setting<*, Block>)

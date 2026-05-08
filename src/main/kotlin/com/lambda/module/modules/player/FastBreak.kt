@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 object FastBreak : Module(
 	name = "FastBreak",
 	description = "Break blocks faster.",
-	tag = ModuleTag.PLAYER,
+	tag = ModuleTag.Player,
 ) {
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 

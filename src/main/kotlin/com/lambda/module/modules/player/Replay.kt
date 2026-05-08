@@ -26,9 +26,7 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.applyEdits
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.groups.RotationConfig
+import com.lambda.config.blocks.RotationConfig
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerHandler
@@ -87,7 +85,7 @@ import kotlin.time.toDuration
 object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
-    tag = ModuleTag.PLAYER,
+    tag = ModuleTag.Player,
     autoDisable = true
 ) {
     private val record by setting("Record", KeyCode.R)

@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.groups.InteractConfig
+import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 object Scaffold : Module(
 	name = "Scaffold",
 	description = "Places blocks under the player",
-	tag = ModuleTag.WORLD,
+	tag = ModuleTag.World,
 ) {
 	private val blacklistedBlocks by setting("Blacklisted Blocks", mutableSetOf<Block>())
 	private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")

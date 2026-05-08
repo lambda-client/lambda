@@ -36,18 +36,18 @@ data class ModuleTag(override val name: String) : Nameable {
     // Totally needs to be reworked
     // ToDo: Add registry for tags
     companion object {
-        val COMBAT = ModuleTag("Combat")
-        val MOVEMENT = ModuleTag("Movement")
-        val RENDER = ModuleTag("Render")
-        val PLAYER = ModuleTag("Player")
-        val WORLD = ModuleTag("World")
-        val CHAT = ModuleTag("Chat")
-        val CLIENT = ModuleTag("Client")
-        val NETWORK = ModuleTag("Network")
-        val DEBUG = ModuleTag("Debug")
-        val HUD = ModuleTag("Hud")
+        val Combat = ModuleTag("Combat")
+        val Movement = ModuleTag("Movement")
+        val Render = ModuleTag("Render")
+        val Player = ModuleTag("Player")
+        val World = ModuleTag("World")
+        val Chat = ModuleTag("Chat")
+        val Client = ModuleTag("Client")
+        val Network = ModuleTag("Network")
+        val Debug = ModuleTag("Debug")
+        val Hud = ModuleTag("Hud")
 
-        val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, NETWORK, CHAT, CLIENT, HUD)
+        val defaults = setOf(Combat, Movement, Render, Player, World, Network, Chat, Client, Hud)
 
         val shownTags = defaults.toMutableSet()
 

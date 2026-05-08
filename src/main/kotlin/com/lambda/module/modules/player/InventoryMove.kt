@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.RotationConfig
+import com.lambda.config.blocks.RotationConfig
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
@@ -46,7 +46,7 @@ import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
 object InventoryMove : Module(
 	name = "InventoryMove",
 	description = "Allows you to move with GUIs opened",
-	tag = ModuleTag.PLAYER,
+	tag = ModuleTag.Player,
 ) {
 	private val clickGui by setting("ClickGui", false)
 	private val disableSneak by setting("Disable Sneak", false)

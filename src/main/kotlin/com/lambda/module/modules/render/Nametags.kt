@@ -21,8 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.EntitySelectionSettings
-import com.lambda.config.groups.ScreenTextSettings
+import com.lambda.config.blocks.EntitySelectionSettings
+import com.lambda.config.blocks.ScreenTextSettings
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -50,52 +50,51 @@ import kotlin.math.max
 object Nametags : Module(
 	name = "Nametags",
 	description = "Displays information about entities above them",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
-	private const val GENERAL_TAB = "General"
-	private const val ENTITY_TAB = "Entities"
-	private const val BACKGROUND_TAB = "Background"
-	private const val TEXT_TAB = "Text"
+	private const val GeneralTab = "General"
+	private const val EntityTab = "Entities"
+	private const val BackgroundTab = "Background"
+	private const val TextTab = "Text"
 
-	@Tab(GENERAL_TAB) private val textSize by setting("Text Size", 18, 1..50, 1)
-	@Tab(GENERAL_TAB) private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f)
-	@Tab(GENERAL_TAB) private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01)
-	@Tab(GENERAL_TAB) private val spacing by setting("Spacing", 0, 0..10, 1)
-	@Tab(GENERAL_TAB) private val health by setting("Health", true)
-	@Tab(GENERAL_TAB) private val ping by setting("Ping", true)
-	@Tab(GENERAL_TAB) private val gear by setting("Gear", true)
-	@Tab(GENERAL_TAB) private val mainItem by setting("Main Item", true) { gear }
-	@Tab(GENERAL_TAB) private val offhandItem by setting("Offhand Item", true) { gear }
-	//ToDo: Implement
-//	private val enchantments by setting("Enchantments", false) { gear }
-	@Tab(GENERAL_TAB) private val itemName by setting("Item Name", true)
-	@Tab(GENERAL_TAB) private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }
-	@Tab(GENERAL_TAB) private val itemCount by setting("Item Count", true)
-	@Tab(GENERAL_TAB) private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }
+	@Tab(GeneralTab) private val textSize by setting("Text Size", 18, 1..50, 1)
+	@Tab(GeneralTab) private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f)
+	@Tab(GeneralTab) private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01)
+	@Tab(GeneralTab) private val spacing by setting("Spacing", 0, 0..10, 1)
+	@Tab(GeneralTab) private val health by setting("Health", true)
+	@Tab(GeneralTab) private val ping by setting("Ping", true)
+	@Tab(GeneralTab) private val gear by setting("Gear", true)
+	@Tab(GeneralTab) private val mainItem by setting("Main Item", true) { gear }
+	@Tab(GeneralTab) private val offhandItem by setting("Offhand Item", true) { gear }
+//ToDo: Implement 	private val enchantments by setting("Enchantments", false) { gear }
+	@Tab(GeneralTab) private val itemName by setting("Item Name", true)
+	@Tab(GeneralTab) private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }
+	@Tab(GeneralTab) private val itemCount by setting("Item Count", true)
+	@Tab(GeneralTab) private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }
 
-	@Tab(ENTITY_TAB) private val entitySelectionSettings =
+	@Tab(EntityTab) private val entitySelectionSettings =
 		settingBlock(EntitySelectionSettings(this)) {
 			applyEdits {
 				hide(::blockEntities)
 			}
 		}
 
-	@Tab(BACKGROUND_TAB) private val background by setting("Background", true)
-	@Tab(BACKGROUND_TAB) private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }
-	@Tab(BACKGROUND_TAB) private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }
+	private const val FriendGroup = "Friends"
+	private const val OtherGroup = "Others"
 
-	private const val FRIEND_GROUP = "Friends"
-	private const val OTHER_GROUP = "Others"
-
-	@Tab(TEXT_TAB) @Group(FRIEND_GROUP) private val friendTextConfig =
+	@Tab(TextTab) @Group(FriendGroup) private val friendTextConfig =
 		settingBlock(ScreenTextSettings(this)) {
 			applyEdits {
 				hide(::sizeSetting)
 				::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
 			}
 		}
-	@Tab(TEXT_TAB) @Group(OTHER_GROUP) private val otherTextConfig =
+	@Tab(TextTab) @Group(OtherGroup) private val otherTextConfig =
 		settingBlock(ScreenTextSettings(this)) { applyEdits { hide(::sizeSetting) } }
+
+	@Tab(BackgroundTab) private val background by setting("Background", true)
+	@Tab(BackgroundTab) private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }
+	@Tab(BackgroundTab) private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }
 
 	var heightWidthRatio = 0f
 	var trueItemScaleX = 0f

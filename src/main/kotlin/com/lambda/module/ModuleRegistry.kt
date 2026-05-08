@@ -29,5 +29,5 @@ object ModuleRegistry : Loadable {
     val moduleNameMap = modules.associateBy { it.name }
 
     override fun load() =
-        "Loaded ${modules.size} modules with ${modules.sumOf { it.settingContainers.size }} settings"
+        "Loaded ${modules.size} modules with ${modules.sumOf { it.settingLayers.size }} settings"
 }

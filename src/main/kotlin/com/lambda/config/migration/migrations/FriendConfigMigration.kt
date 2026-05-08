@@ -18,7 +18,7 @@
 package com.lambda.config.migration.migrations
 
 import com.google.gson.JsonArray
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.config.migration.StepConfigMigration
 import com.lambda.config.migration.arrayOrCreate
 import com.lambda.config.migration.objectOrCreate
@@ -47,7 +47,7 @@ object FriendConfigMigration : StepConfigMigration() {
             }
 
             config.add("friends", migrated)
-            LOG.info("Migrated Friend config schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
+            Log.info("Migrated Friend config schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
         }
     }
 }

@@ -24,7 +24,7 @@ import baritone.api.pathing.goals.Goal
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.Config
 import com.lambda.config.categories.LambdaCategory
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.blocks.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum

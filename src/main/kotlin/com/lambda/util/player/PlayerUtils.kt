@@ -17,7 +17,7 @@
 
 package com.lambda.util.player
 
-import com.lambda.config.groups.BuildConfig
+import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity

@@ -18,7 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.events.TickEvent
@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 object Discord : Module(
 	name = "Discord",
 	description = "Discord Rich Presence configuration",
-	tag = ModuleTag.CLIENT,
+	tag = ModuleTag.Client,
 	enabledByDefault = true,
 ) {
 	private val delay by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
@@ -56,7 +56,7 @@ object Discord : Module(
 	private val line2Right by setting("Line 2 Right", LineInfo.Fps)
 
 	val rpc by lazy {
-		KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
+		KDiscordIPC(Lambda.AppId, scope = EventFlow.lambdaScope)
 	}
 	var connecting = AtomicBoolean(false)
 
@@ -95,7 +95,7 @@ object Discord : Module(
 				discordAuth = auth
 			}
 			.onFailure {
-				LOG.error(it)
+				Log.error(it)
 				warn("Failed to link your discord account")
 			}
 		return true
@@ -118,7 +118,7 @@ object Discord : Module(
 			details = "${line1Left.value(this@update)} | ${line1Right.value(this@update)}".take(128)
 			state = "${line2Left.value(this@update)} | ${line2Right.value(this@update)}".take(128)
 
-			largeImage("lambda", Lambda.VERSION)
+			largeImage("lambda", Lambda.Version)
 			smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 			//button("Download", "https://github.com/lambda-client/lambda")
 
@@ -127,7 +127,7 @@ object Discord : Module(
 	}
 
 	private enum class LineInfo(val value: SafeContext.() -> String) : Nameable {
-		Version({ Lambda.VERSION }),
+		Version({ Lambda.Version }),
 		World({ worldName }),
 		Username({ mc.session.username }),
 		Health({ "${player.fullHealth} HP" }),

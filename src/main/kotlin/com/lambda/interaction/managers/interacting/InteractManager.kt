@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers.interacting
 
-import com.lambda.config.groups.InteractConfig
+import com.lambda.config.blocks.InteractConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -35,7 +35,7 @@ import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.config.groups.InteractConfig.AirPlaceMode
+import com.lambda.config.blocks.InteractConfig.AirPlaceMode
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
 import com.lambda.interaction.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom

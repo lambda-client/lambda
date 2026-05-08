@@ -54,7 +54,7 @@ public class CrashReportMixin {
     @WrapMethod(method = "asString(Lnet/minecraft/util/crash/ReportType;Ljava/util/List;)Ljava/lang/String;")
     String injectString(ReportType type, List<String> extraInfo, Operation<String> original) {
         var list = new ArrayList<>(extraInfo);
-        list.add("If this issue is related to Lambda, check if other users have experienced this too, or create a new issue at " + Lambda.REPO_URL + "/issues.\n\n");
+        list.add("If this issue is related to Lambda, check if other users have experienced this too, or create a new issue at " + Lambda.RepoUrl + "/issues.\n\n");
 
         if (MinecraftClient.getInstance() != null) {
             list.add("Enabled modules:");
@@ -65,7 +65,7 @@ public class CrashReportMixin {
                     .forEach(module -> {
                         list.add(String.format("\t%s", module.getName()));
 
-                        module.getSettingContainers()
+                        module.getSettingLayers()
                                 .stream()
                                 .filter(Setting::isModified)
                                 .forEach(setting -> list.add(String.format("\t\t%s -> %s", setting.getName(), setting.getValue())));

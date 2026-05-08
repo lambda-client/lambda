@@ -77,7 +77,7 @@ object FriendCommand : LambdaCommand(
                         styled(
                             color = Color.CYAN,
                             underlined = true,
-                            clickEvent = ClickEvents.openFile(FriendCategory.primary.path),
+                            clickEvent = ClickEvents.openFile(FriendCategory.primaryFile.path),
                         ) {
                             literal("Click to open your friends list as a file")
                         }

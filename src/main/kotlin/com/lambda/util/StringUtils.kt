@@ -33,7 +33,7 @@ object StringUtils {
 
     fun String.capitalize() = replaceFirstChar { it.titlecase() }
 
-    fun String.toIdentifier(namespace: String = Lambda.MOD_ID): Identifier =
+    fun String.toIdentifier(namespace: String = Lambda.ModId): Identifier =
         Identifier.of(namespace, this)
 
     val String.asIdentifier: Identifier get() = toIdentifier()

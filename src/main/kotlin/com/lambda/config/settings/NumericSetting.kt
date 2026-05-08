@@ -55,7 +55,7 @@ abstract class NumericSetting<T>(
     /**
      * Subclasses must implement this to provide their specific slider widget.
      */
-    context(setting: Setting<*, T>)
+    context(_: Setting<*, T>)
     protected abstract fun ImGuiBuilder.buildSlider()
 
 	context(setting: Setting<*, T>)

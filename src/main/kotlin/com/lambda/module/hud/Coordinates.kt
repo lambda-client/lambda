@@ -17,15 +17,14 @@
 
 package com.lambda.module.hud
 
+import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.FormatterSettings
+import com.lambda.config.blocks.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
-import com.lambda.module.hud.Coordinates.formatter
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.FormattingUtils.format
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.isNether
 import com.lambda.util.math.Vec2d
@@ -36,29 +35,18 @@ import com.lambda.util.math.overworldCoord
 object Coordinates : HudModule(
 	name = "Coordinates",
 	description = "Show your coordinates",
-	tag = ModuleTag.HUD,
+	tag = ModuleTag.Hud,
 ) {
-	enum class Group(override val displayName: String) : NamedEnum {
-		CurrentDimension("Current Dimension"),
-		OtherDimension("Other Dimension"),
-	}
-
 	private val showDimension by setting("Show Dimension Name", true)
 	private val showBiome by setting("Show Biome Name", true)
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
-	private const val CURRENT_DIMENSION_TAB = "Current Dimension"
-	@Tab(CURRENT_DIMENSION_TAB) private val formatter = settingBlock(FormatterSettings(this)) {
-		applyEdits {
-			::timeFormat.edit { hide() }
+	private const val CurrentDimensionTab = "Current Dimension"
+	@Tab(CurrentDimensionTab) private val formatter =
+		settingBlock(FormatterSettings(this)) {
+			applyEdits { ::timeFormat.edit { hide() } }
 		}
-	}
 
-	private val formatter = FormatterSettings(c = this, baseGroup = arrayOf(Group.CurrentDimension)).apply {
-		applyEdits {
-			::timeFormat.edit { hide() }
-		}
-	}
 //	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
 //		::timeFormat.edit { hide() }
 //		::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }

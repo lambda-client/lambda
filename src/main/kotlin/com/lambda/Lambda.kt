@@ -33,16 +33,16 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
 object Lambda : ClientModInitializer {
-    const val MOD_NAME = "Lambda"
-    const val MOD_ID = "lambda"
-    const val SYMBOL = "λ"
-    const val APP_ID = "1221289599427416127"
-    const val REPO_URL = "https://github.com/lambda-client/lambda"
-    val VERSION: String = FabricLoader.getInstance()
+    const val ModName = "Lambda"
+    const val ModId = "lambda"
+    const val Symbol = "λ"
+    const val AppId = "1221289599427416127"
+    const val RepoUrl = "https://github.com/lambda-client/lambda"
+    val Version: String = FabricLoader.getInstance()
         .getModContainer("lambda").orElseThrow()
         .metadata.version.friendlyString
 
-    val LOG: Logger = LogManager.getLogger(SYMBOL)
+    val Log: Logger = LogManager.getLogger(Symbol)
 
     @JvmStatic
     val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
@@ -64,7 +64,7 @@ object Lambda : ClientModInitializer {
     init {
         // We want the opengl context to be created
         listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
-            LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
+            Log.info("$ModName $Version initialized in ${Loader.initialize()} ms\n")
             if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
             true
         }

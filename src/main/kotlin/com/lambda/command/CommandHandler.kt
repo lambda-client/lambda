@@ -40,7 +40,7 @@ import kotlin.math.min
 
 
 object CommandHandler {
-    private const val ERROR_PADDING = 10
+    private const val ErrorPadding = 10
 
     val dispatcher by lazy { CommandDispatcher<CommandSource>() }
 
@@ -97,10 +97,10 @@ object CommandHandler {
         player.sendMessage(buildText {
             clickEvent(suggestCommand("$prefix${reader.string}")) {
                 color(Color.GRAY) {
-                    if (position > ERROR_PADDING) {
+                    if (position > ErrorPadding) {
                         literal("...")
                     }
-                    literal(syntax.input.substring(max(0, (position - ERROR_PADDING)), position))
+                    literal(syntax.input.substring(max(0, (position - ErrorPadding)), position))
                 }
                 if (position < syntax.input.length) {
                     styled(color = CommunicationUtils.LogLevel.Error.logoColor, underlined = true) {

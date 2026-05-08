@@ -27,7 +27,7 @@ import java.lang.Math.clamp
 object Zoom : Module(
 	name = "Zoom",
 	description = "Zooms the current view",
-	tag = ModuleTag.RENDER,
+	tag = ModuleTag.Render,
 ) {
 	private var zoom by setting("Zoom", 2f, 1f..10f, 0.1f)
 	private val style by setting("Style", ZoomStyle.EaseOut)

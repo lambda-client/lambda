@@ -30,7 +30,7 @@ import com.lambda.util.NamedEnum
 object CustomChat : Module(
 	name = "CustomChat",
 	description = "Adds a custom ending to your message",
-	tag = ModuleTag.CHAT,
+	tag = ModuleTag.Chat,
 ) {
 	private val decoration by setting("Decoration", Decoration.Separator)
 	private val text by setting("Text", Text.Lambda)

@@ -44,7 +44,7 @@ import kotlin.jvm.optionals.getOrNull
 object PlayerTrap : Module(
 	name = "PlayerTrap",
 	description = "Surrounds players with any given block",
-	tag = ModuleTag.COMBAT
+	tag = ModuleTag.Combat
 ) {
 	private val blocks by setting("Blocks", setOf(Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.CRYING_OBSIDIAN))
 	private val friends by setting("Friends", false)

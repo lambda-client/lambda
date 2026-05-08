@@ -18,8 +18,8 @@
 package com.lambda.module.modules.chat
 
 import com.lambda.config.Config
-import com.lambda.config.groups.ReplaceConfig
-import com.lambda.config.groups.ReplaceConfig.ActionStrategy
+import com.lambda.config.blocks.ReplaceConfig
+import com.lambda.config.blocks.ReplaceConfig.ActionStrategy
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendHandler
@@ -43,7 +43,7 @@ import com.lambda.config.Group
 object AntiSpam : Module(
 	name = "AntiSpam",
 	description = "Keeps your chat clean",
-	tag = ModuleTag.CHAT,
+	tag = ModuleTag.Chat,
 ) {
 	private val fancyChats by setting("Replace Fancy Chat", false)
 

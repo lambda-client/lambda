@@ -24,7 +24,7 @@ import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
-import com.lambda.config.groups.BreakConfig.WhitelistMode
+import com.lambda.config.blocks.BreakConfig.WhitelistMode
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock

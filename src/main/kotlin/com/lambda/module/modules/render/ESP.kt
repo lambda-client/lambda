@@ -20,10 +20,10 @@ package com.lambda.module.modules.render
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.EntityColorSettings
-import com.lambda.config.groups.EntitySelectionSettings
-import com.lambda.config.groups.OutlineSettings
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.blocks.EntityColorSettings
+import com.lambda.config.blocks.EntitySelectionSettings
+import com.lambda.config.blocks.OutlineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
@@ -40,7 +40,7 @@ import java.awt.Color
 object ESP : Module(
 	name = "ESP",
 	description = "Highlight entities with smooth interpolated rendering",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
 	private enum class EspMode {
 		Shader,
@@ -49,38 +49,38 @@ object ESP : Module(
 //		Frame
 	}
 
-	private const val GENERAL_TAB = "General"
-	private const val ENTITIES_TAB = "Entities"
-	private const val COLORS_TAB = "Colors"
+	private const val GeneralTab = "General"
+	private const val EntitiesTab = "Entities"
+	private const val ColorsTab = "Colors"
 
-	private const val BOX_OUTLINE_GROUP = "Outline"
+	private const val BoxOutlineGroup = "Outline"
 
 	private enum class BoxGroup(override val displayName: String) : NamedEnum {
 		Fill("Fill"),
 		Outline("Outline")
 	}
 
-	@Tab(GENERAL_TAB) private val mode by setting("Mode", EspMode.Shader)
-	@Tab(GENERAL_TAB) private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world")
+	@Tab(GeneralTab) private val mode by setting("Mode", EspMode.Shader)
+	@Tab(GeneralTab) private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world")
 
 	//Shader Outline
-	@Tab(GENERAL_TAB) private val outlineStyle = settingBlock(OutlineSettings(this), { mode == EspMode.Shader })
+	@Tab(GeneralTab) private val outlineStyle = settingBlock(OutlineSettings(this), { mode == EspMode.Shader })
 
 	//Box
-	@Tab(GENERAL_TAB) private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }
+	@Tab(GeneralTab) private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawOutline) drawOutline = true }
-	@Tab(GENERAL_TAB) private val fillAlpha by setting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { mode == EspMode.Box && drawFilled }
-	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
+	@Tab(GeneralTab) private val fillAlpha by setting("Filled Alpha", 0.2, 0.0..1.0, 0.05) { mode == EspMode.Box && drawFilled }
+	@Tab(GeneralTab) @Group(BoxOutlineGroup) private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
-	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
-	@Tab(GENERAL_TAB) @Group(BOX_OUTLINE_GROUP) private val boxOutlineSettings =
+	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
+	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings =
 		settingBlock(
 			WorldLineSettings(this),
 			{ mode == EspMode.Box && drawOutline }
 		) { applyEdits { hide(::startColor, ::endColor) } }
 
-	@Tab(ENTITIES_TAB) private val entitySettings = EntitySelectionSettings(this)
-	@Tab(COLORS_TAB) private val entityColors = EntityColorSettings(this)
+	@Tab(EntitiesTab) private val entitySettings = EntitySelectionSettings(this)
+	@Tab(ColorsTab) private val entityColors = EntityColorSettings(this)
 
 	init {
 		immediateRenderer("EntityESP Immediate Renderer", depthTest = { depthTest }) { safeContext ->

@@ -41,7 +41,6 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError
-import com.lambda.util.NamedEnum
 import com.lambda.util.player.RotationUtils.lookAtEntity
 import com.lambda.util.world.closestEntity
 import net.minecraft.block.Blocks
@@ -61,7 +60,7 @@ import net.minecraft.util.math.BlockPos
 object AutoVillagerCycle : Module(
 	name = "AutoVillagerCycle",
 	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
-	tag = ModuleTag.WORLD
+	tag = ModuleTag.World
 ) {
 	private val allEnchantments = ArrayList<String>()
 
@@ -83,9 +82,9 @@ object AutoVillagerCycle : Module(
 			}
 		}
 
-	private const val ENCHANTMENTS_GROUP = "Enchantments"
-	@Group(ENCHANTMENTS_GROUP) private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments)
-	@Group(ENCHANTMENTS_GROUP) private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
+	private const val EnchantmentsGroup = "Enchantments"
+	@Group(EnchantmentsGroup) private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments)
+	@Group(EnchantmentsGroup) private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
 
 	private var cycleState = CycleState.Idle
 	private var tickCounter = 0

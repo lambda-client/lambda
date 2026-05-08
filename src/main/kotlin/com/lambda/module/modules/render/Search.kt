@@ -18,10 +18,9 @@
 package com.lambda.module.modules.render
 
 import com.lambda.config.Group
-import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.blocks.ScreenLineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
@@ -39,7 +38,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.EntityUtils.decorationEntityMap
 import com.lambda.util.EntityUtils.entityGroup
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.entityColor
 import com.lambda.util.extension.getBlockState
@@ -58,11 +56,11 @@ import java.awt.Color
 object Search : Module(
     name = "Search",
     description = "Highlight blocks within the rendered world",
-    tag = ModuleTag.RENDER,
+    tag = ModuleTag.Render,
 ) {
-    private const val FILL_GROUP = "Fill"
-    private const val OUTLINE_GROUP = "Outline"
-    private const val TRACERS_GROUP = "Tracers"
+    private const val FillGroup = "Fill"
+    private const val OutlineGroup = "Outline"
+    private const val TracersGroup = "Tracers"
 
     private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks")
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
@@ -76,18 +74,18 @@ object Search : Module(
     private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
     private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(FILL_GROUP) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
+    @Group(FillGroup) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) outline = true }
-    @Group(FILL_GROUP) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
-    @Group(FILL_GROUP) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FillGroup) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FillGroup) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(OUTLINE_GROUP) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
+    @Group(OutlineGroup) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) fill = true }
-    @Group(OUTLINE_GROUP) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
-    @Group(OUTLINE_GROUP) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OutlineGroup) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OutlineGroup) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(OUTLINE_GROUP) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
-    @Group(OUTLINE_GROUP) private val outlineConfig =
+    @Group(OutlineGroup) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
+    @Group(OutlineGroup) private val outlineConfig =
         settingBlock(
             WorldLineSettings(this),
             { outline }
@@ -97,8 +95,8 @@ object Search : Module(
                 forEachSetting { it.onValueChange(::rebuildMesh) }
             }
         }
-    @Group(TRACERS_GROUP) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
-    @Group(TRACERS_GROUP) private val tracerConfig =
+    @Group(TracersGroup) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
+    @Group(TracersGroup) private val tracerConfig =
         settingBlock(
             ScreenLineSettings(this),
             { tracers }
@@ -125,7 +123,7 @@ object Search : Module(
                 buildSideMesh(position) {
                     world.getBlockState(it).block in blocks
                 }
-            } else DirectionMask.ALL
+            } else DirectionMask.All
 
             val lineColor = getBlockColor(state, position.toBlockPos())
             val fillColor = Color(lineColor.red, lineColor.green, lineColor.blue, (naturalColorAlpha * 255).toInt())
@@ -158,7 +156,7 @@ object Search : Module(
                     val entityColor = getEntityColor(entity)
                     box(
                         listOf(entity.interpolatedBox),
-                        DirectionMask.NONE,
+                        DirectionMask.None,
                         if (useNaturalColor) entityColor.setAlpha(naturalColorAlpha) else entityFillColor,
                         if (useNaturalColor) entityColor else entityOutlineColor
                     )

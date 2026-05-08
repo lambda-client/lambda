@@ -30,7 +30,7 @@ import net.minecraft.util.math.Vec3d
 object Speedometer : HudModule(
     name = "Speedometer",
     description = "Displays player speed",
-    tag = ModuleTag.HUD
+    tag = ModuleTag.Hud
 ) {
     var speedUnit by setting("Speed Unit", SpeedUnit.MetersPerSecond)
     var onlyHorizontal by setting("Horizontal Speed", false, description = "Only consider horizontal movement for speed calculation")

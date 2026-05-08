@@ -28,7 +28,7 @@ import net.minecraft.block.Blocks
 object PropertyPrinter : Module(
     name = "PropertyPrinter",
     description = "Prints all properties coupled with all the states that use them into a text file",
-    tag = ModuleTag.DEBUG,
+    tag = ModuleTag.Debug,
 ) {
     init {
         onEnable {

@@ -45,7 +45,7 @@ import net.minecraft.util.math.BlockPos
 object Printer : Module(
 	name = "Printer",
 	description = "Automatically prints schematics",
-	tag = ModuleTag.WORLD
+	tag = ModuleTag.World
 ) {
 	private val range by setting("Range", 5, 1..7, 1, description = "The range around the player to check for blocks to print")
 	private val air by setting("Air", false, description = "Consider breaking blocks in the world that are air in the schematic.\nNote: Breaking can also be disabled in the Automation Config.")

@@ -47,7 +47,7 @@ import net.minecraft.util.math.Vec3i
 object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
-    tag = ModuleTag.WORLD,
+    tag = ModuleTag.World,
 ) {
     private val height by setting("Height", 4, 2..10, 1)
     private val width by setting("Width", 6, 1..30, 1)

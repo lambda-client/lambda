@@ -17,7 +17,7 @@
 
 package com.lambda.network
 
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.SecretsCategory
@@ -62,11 +62,11 @@ object CapeHandler : Config(SecretsCategory), Loadable {
         capes.resolveFile("capes.txt")
             .isOlderThan(24.hours) {
                 it.downloadIfNotPresent("${LambdaAPI.capes}.txt")
-                    .onFailure { err -> LOG.error("Could not download the cape list: $err") }
+                    .onFailure { err -> Log.error("Could not download the cape list: $err") }
             }
             .ifNotExists {
                 it.downloadCompare("${LambdaAPI.capes}.txt", -1)
-                    .onFailure { err -> LOG.error("Could not download the cape list: $err") }
+                    .onFailure { err -> Log.error("Could not download the cape list: $err") }
             }
             .createIfNotExists()
             .readText()

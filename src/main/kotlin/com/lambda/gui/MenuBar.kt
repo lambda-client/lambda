@@ -18,17 +18,18 @@
 package com.lambda.gui
 
 import com.lambda.Lambda
-import com.lambda.Lambda.REPO_URL
+import com.lambda.Lambda.RepoUrl
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.config.ConfigLoader
+import com.lambda.config.ConfigLoader.configs
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
-import com.lambda.gui.DearImGui.EXTERNAL_LINK
+import com.lambda.gui.DearImGui.ExternalLink
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
@@ -443,19 +444,19 @@ object MenuBar {
         menuItem("Quick Search...", "Shift+Shift") {
             QuickSearch.open()
         }
-        menuItem("Documentation $EXTERNAL_LINK") {
-            Util.getOperatingSystem().open("$REPO_URL/wiki")
+        menuItem("Documentation $ExternalLink") {
+            Util.getOperatingSystem().open("$RepoUrl/wiki")
         }
-        menuItem("Report Issue $EXTERNAL_LINK") {
+        menuItem("Report Issue $ExternalLink") {
             mc.keyboard.clipboard = gatherDiagnostics()
             info("Copied diagnostics to clipboard. Please paste it in a new issue on GitHub and click “Submit new issue”. Thank you!")
-            Util.getOperatingSystem().open("$REPO_URL/issues")
+            Util.getOperatingSystem().open("$RepoUrl/issues")
         }
-        menuItem("Check for Updates $EXTERNAL_LINK") {
+        menuItem("Check for Updates $ExternalLink") {
             // ToDo:
             //  - Check for a newer version, show availability & changelog, and allow opening release page.
             //  - Needs UpdateManager
-            Util.getOperatingSystem().open("$REPO_URL/releases")
+            Util.getOperatingSystem().open("$RepoUrl/releases")
         }
     }
 
@@ -463,13 +464,13 @@ object MenuBar {
         popupModal("About Lambda", ImGuiWindowFlags.AlwaysAutoResize or ImGuiWindowFlags.NoTitleBar) {
             imageHorizontallyCentered(headerLogo.id.toLong(), 553f, 200f)
             group {
-                text("Version: ${Lambda.VERSION}")
+                text("Version: ${Lambda.Version}")
                 if (Lambda.isDebug) text("Development Environment")
                 text("Runtime: ${Loader.runtime}")
                 text("Modules: ${ModuleRegistry.modules.size}")
                 text("Commands: ${CommandRegistry.commands.size}")
                 val totalSettings = ConfigLoader.configCategories.sumOf { cfg ->
-                    cfg.configs.sumOf { it.settingContainers.size }
+                    cfg.configs.sumOf { it.settingLayers.size }
                 }
                 text("Settings: $totalSettings")
                 text("Synchronous listeners: ${EventFlow.syncListeners.size}")
@@ -495,8 +496,8 @@ object MenuBar {
                     ImGui.setClipboardText(gatherDiagnostics())
                 }
                 sameLine()
-                button("View License $EXTERNAL_LINK") {
-                    Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
+                button("View License $ExternalLink") {
+                    Util.getOperatingSystem().open("$RepoUrl/blob/master/LICENSE.md")
                 }
                 sameLine()
                 button("Close") {
@@ -520,9 +521,9 @@ object MenuBar {
                 withStyleColor(ImGuiCol.ButtonHovered, 0x22FFFFFF) {
                     withStyleColor(ImGuiCol.ButtonActive, 0x44FFFFFF) {
                         val clicked = ImGui.imageButton("##github", githubLogo.id.toLong(), iconSize, iconSize)
-                        lambdaTooltip("Open GitHub Repository $EXTERNAL_LINK")
+                        lambdaTooltip("Open GitHub Repository $ExternalLink")
                         if (clicked) {
-                            Util.getOperatingSystem().open(REPO_URL)
+                            Util.getOperatingSystem().open(RepoUrl)
                         }
                     }
                 }

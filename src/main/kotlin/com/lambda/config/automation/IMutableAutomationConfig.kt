@@ -17,15 +17,16 @@
 
 package com.lambda.config.automation
 
+import com.lambda.config.Config
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
-import com.lambda.config.groups.BreakConfig
-import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.EatConfig
-import com.lambda.config.groups.HotbarConfig
-import com.lambda.config.groups.InteractConfig
-import com.lambda.config.groups.InventoryConfig
-import com.lambda.config.groups.RotationConfig
+import com.lambda.config.settings.blocks.BreakConfig
+import com.lambda.config.settings.blocks.BuildConfig
+import com.lambda.config.settings.blocks.EatConfig
+import com.lambda.config.settings.blocks.HotbarConfig
+import com.lambda.config.settings.blocks.InteractConfig
+import com.lambda.config.settings.blocks.InventoryConfig
+import com.lambda.config.settings.blocks.RotationConfig
 import com.lambda.context.Automated
 
 interface IMutableAutomationConfig : Automated {
@@ -33,13 +34,13 @@ interface IMutableAutomationConfig : Automated {
     var backingAutomationConfig: AutomationConfig
 	var automationConfig: AutomationConfig
 
-	override val buildConfig: BuildConfig get() = automationConfig.buildConfig
-	override val breakConfig: BreakConfig get() = automationConfig.breakConfig
-	override val interactConfig: InteractConfig get() = automationConfig.interactConfig
-	override val rotationConfig: RotationConfig get() = automationConfig.rotationConfig
-	override val inventoryConfig: InventoryConfig get() = automationConfig.inventoryConfig
-	override val hotbarConfig: HotbarConfig get() = automationConfig.hotbarConfig
-	override val eatConfig: EatConfig get() = automationConfig.eatConfig
+	override val buildConfig get() = automationConfig.buildConfig
+	override val breakConfig get() = automationConfig.breakConfig
+	override val interactConfig get() = automationConfig.interactConfig
+	override val rotationConfig get() = automationConfig.rotationConfig
+	override val inventoryConfig get() = automationConfig.inventoryConfig
+	override val hotbarConfig get() = automationConfig.hotbarConfig
+	override val eatConfig get() = automationConfig.eatConfig
 }
 
 class MutableAutomationConfig : IMutableAutomationConfig {
@@ -53,17 +54,15 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 		set(value) {
 			if (value === defaultAutomationConfig) {
 				if (backingAutomationConfig !== defaultAutomationConfig) {
-					field.settingContainers.forEach(Setting<*, *>::restoreOriginalCore)
+					Config.forEachSetting(field) { it.restoreOriginalCore() }
 				}
 				field = value
-			} else field.settingContainers.forEach { setting ->
-				value.settingContainers.forEach { newSetting ->
-					if (setting.name == newSetting.name) {
-						if (setting.core.type != newSetting.core.type)
-							throw IllegalStateException("Settings with the same name do not have the same type.")
-						@Suppress("UNCHECKED_CAST")
-						(setting as Setting<SettingCore<Any>, Any>).core = newSetting.core as SettingCore<Any>
-					}
+			} else {
+				Config.forEachMatchingSetting(field.settingLayers, value.settingLayers) { setting, newSetting ->
+					if (setting.core.type != newSetting.core.type)
+						throw IllegalStateException("Settings with the same name do not have the same type.")
+					@Suppress("UNCHECKED_CAST")
+					(setting as Setting<SettingCore<Any>, Any>).core = newSetting.core as SettingCore<Any>
 				}
 			}
 			backingAutomationConfig = value

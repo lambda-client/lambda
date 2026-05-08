@@ -17,19 +17,18 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.groups.HotbarSettings
+import com.lambda.config.blocks.HotbarSettings
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.CommunicationUtils.info
-import com.lambda.util.NamedEnum
 
 object SilentSwap : Module(
     name = "SilentSwap",
     description = "SilentSwap",
-    tag = ModuleTag.DEBUG,
+    tag = ModuleTag.Debug,
 ) {
     override val hotbarConfig = HotbarSettings(this)
 

@@ -26,7 +26,7 @@ import com.lambda.module.tag.ModuleTag
 @Suppress("unused")
 object Watermark : HudModule(
     name = "Watermark",
-    tag = ModuleTag.HUD,
+    tag = ModuleTag.Hud,
     enabledByDefault = true,
 ) {
     private val texture = upload("textures/lambda.png")

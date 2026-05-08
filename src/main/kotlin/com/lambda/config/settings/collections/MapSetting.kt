@@ -32,6 +32,6 @@ class MapSetting<K, V>(
 	defaultValue,
 	type
 ) {
-    context(setting: Setting<*, MutableMap<K, V>>)
+    context(_: Setting<*, MutableMap<K, V>>)
 	override fun ImGuiBuilder.buildLayout() {}
 }

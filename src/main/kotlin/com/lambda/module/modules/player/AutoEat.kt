@@ -19,7 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -33,7 +33,7 @@ import com.lambda.threading.runSafeAutomated
 object AutoEat : Module(
     name = "AutoEat",
     description = "Eats food when you are hungry",
-    tag = ModuleTag.PLAYER,
+    tag = ModuleTag.Player,
 ) {
     private var eatTask: EatTask? = null
 

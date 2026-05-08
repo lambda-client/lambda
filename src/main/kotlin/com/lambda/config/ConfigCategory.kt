@@ -22,7 +22,7 @@ import com.google.gson.JsonIOException
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.Lambda.gson
 import com.lambda.config.ConfigLoader.configByName
 import com.lambda.config.ConfigLoader.configCategories
@@ -94,7 +94,7 @@ abstract class ConfigCategory(
             val latestSchemaVersion = ConfigMigrations.latestVersion(configName)
             if (latestSchemaVersion > 1) {
                 addProperty(
-                    ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY,
+                    ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DefaultSchemaVersionKey,
                     latestSchemaVersion
                 )
             }
@@ -104,12 +104,12 @@ abstract class ConfigCategory(
         }
 
     final override fun loadFromJson(serialized: JsonElement) {
-        val schemaKey = ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY
+        val schemaKey = ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DefaultSchemaVersionKey
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
             if (name == schemaKey) return@forEach
             configByName(name)
                 ?.loadFromJson(value)
-                ?: LOG.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
+                ?: Log.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
         }
     }
 
@@ -117,21 +117,21 @@ abstract class ConfigCategory(
         loadFromFile(primaryFile)
             .onSuccess {
                 val message = "${configName.capitalize()} config loaded."
-                LOG.info(message)
+                Log.info(message)
                 info(message)
             }
             .onFailure { primaryError ->
-                LOG.error(primaryError)
+                Log.error(primaryError)
 
                 runCatching { loadFromFile(backup) }
                     .onSuccess {
                         val message = "${configName.capitalize()} config loaded from backup"
-                        LOG.info(message)
+                        Log.info(message)
                         info(message)
                     }
                     .onFailure { error ->
                         val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
-                        LOG.error(message, error)
+                        Log.error(message, error)
                         logError(message)
                     }
             }
@@ -141,12 +141,12 @@ abstract class ConfigCategory(
         saveToFile()
             .onSuccess {
                 val message = "Saved ${configName.capitalize()} config."
-                LOG.info(message)
+                Log.info(message)
                 if (logToChat) info(message)
             }
             .onFailure {
                 val message = "Failed to save ${configName.capitalize()} config"
-                LOG.error(message, it)
+                Log.error(message, it)
                 logError(message)
             }
     }
@@ -156,7 +156,7 @@ abstract class ConfigCategory(
      * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
      */
     private fun loadFromFile(file: File) = runCatching {
-        file.ifNotExists { LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
+        file.ifNotExists { Log.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
             .ifExists {
                 val parsed = JsonParser.parseReader(it.reader()).asJsonObject
                 val migrationResult = ConfigMigrations.migrate(configName, parsed)

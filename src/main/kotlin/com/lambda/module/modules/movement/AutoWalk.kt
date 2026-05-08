@@ -30,7 +30,7 @@ import net.minecraft.util.math.Vec2f
 object AutoWalk : Module(
 	name = "AutoWalk",
 	description = "Automatically makes your character walk forward",
-	tag = ModuleTag.MOVEMENT,
+	tag = ModuleTag.Movement,
 ) {
 	val limitSpeed by setting("Limit Speed", false)
 	val speed by setting("Speed", 0.5, 0.1..1.0, 0.05) { limitSpeed }

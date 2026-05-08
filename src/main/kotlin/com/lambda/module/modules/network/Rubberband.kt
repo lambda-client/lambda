@@ -39,7 +39,7 @@ import java.awt.Color
 object Rubberband : Module(
     name = "Rubberband",
     description = "Info about rubberbands",
-    tag = ModuleTag.NETWORK,
+    tag = ModuleTag.Network,
 ) {
     private val showLastPacketInfo by setting("Show Last Packet", true)
     private val showConnectionState by setting("Show Connection State", true)

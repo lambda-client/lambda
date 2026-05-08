@@ -33,7 +33,7 @@ import java.awt.Color
 object RenderTest : Module(
     name = "Render:shrimp:Test:canned_food:",
     description = "RenderTest",
-    tag = ModuleTag.DEBUG,
+    tag = ModuleTag.Debug,
 ) {
     private val test1 by setting("Toggle visibility", true)
     private val test21 by setting("Hallo 1", true, visibility = ::test1)

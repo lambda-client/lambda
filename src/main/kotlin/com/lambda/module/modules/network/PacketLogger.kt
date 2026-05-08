@@ -48,7 +48,7 @@ import kotlin.io.path.pathString
 object PacketLogger : Module(
     name = "PacketLogger",
     description = "Serializes network traffic and persists it for later analysis",
-    tag = ModuleTag.NETWORK,
+    tag = ModuleTag.Network,
     autoDisable = true
 ) {
     private val logToChat by setting("Log To Chat", false, "Log packets to chat")
@@ -123,7 +123,7 @@ object PacketLogger : Module(
             }.apply {
                 StringBuilder().apply {
                     appendLine(CommunicationUtils.ascii)
-                    appendLine("${Lambda.SYMBOL} - Lambda ${Lambda.VERSION} - Packet Log")
+                    appendLine("${Lambda.Symbol} - Lambda ${Lambda.Version} - Packet Log")
 
                     val playerName = mc.player?.name?.string ?: "Unknown"
                     appendLine("Started at ${getTime()} by $playerName")

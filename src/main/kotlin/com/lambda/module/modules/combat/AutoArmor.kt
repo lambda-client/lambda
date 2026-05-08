@@ -44,7 +44,7 @@ import net.minecraft.screen.slot.Slot
 object AutoArmor : Module(
 	name = "AutoArmor",
 	description = "Automatically equips armor",
-	tag = ModuleTag.COMBAT
+	tag = ModuleTag.Combat
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
 	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)

@@ -18,8 +18,8 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.Lambda.LOG
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.Lambda.Log
+import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -304,7 +304,7 @@ class BuildTask private constructor(
             is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
-	            LOG.info("Resolving: ${result.name}")
+	            Log.info("Resolving: ${result.name}")
                 result.resolve()
             }
         }

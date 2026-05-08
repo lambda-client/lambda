@@ -49,7 +49,7 @@ import net.minecraft.util.hit.HitResult
 object BetterFirework : Module(
 	name = "BetterFirework",
 	description = "Automatic takeoff with fireworks",
-	tag = ModuleTag.MOVEMENT,
+	tag = ModuleTag.Movement,
 ) {
 	private var activateButton: Bind by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {

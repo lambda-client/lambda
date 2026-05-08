@@ -25,7 +25,7 @@ object Diagnostics {
         modules.filter { it.isEnabled }
             .forEach { module ->
                 append("\t${module.name}")
-                module.settingContainers
+                module.settingLayers
                     .filter { it.isModified }
                     .forEach { setting ->
                         append("\t\t${setting.name} -> ${setting.value}")

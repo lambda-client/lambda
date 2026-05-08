@@ -23,7 +23,7 @@ import com.lambda.module.tag.ModuleTag
 object Bobbing : Module(
 	name = "Bobbing",
 	description = "Modifies vanilla view bobbing when the player walks or runs",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
 	val magnitude by setting("Magnitude", 1.0, 0.0..2.0, 0.01)
 	val speed by setting("Speed", 1.0, 0.0..2.0, 0.01)

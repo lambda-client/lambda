@@ -49,7 +49,7 @@ object AutoSign : Module(
 		|<mm> - Minute (00-59)
         |<ss> - Second (00-59)
 	""".trimMargin(),
-	tag = ModuleTag.WORLD
+	tag = ModuleTag.World
 ) {
 	private var autoWrite by setting("Auto Write", true)
 	private var line1 by setting("Line 1", "Welcome to Lambda!") { autoWrite }

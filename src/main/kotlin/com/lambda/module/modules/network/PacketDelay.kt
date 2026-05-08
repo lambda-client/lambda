@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 object PacketDelay : Module(
     name = "PacketDelay",
     description = "Delays packets client-bound & server-bound",
-    tag = ModuleTag.NETWORK,
+    tag = ModuleTag.Network,
 ) {
     private val mode by setting("Mode", Mode.Static, description = "How the delay is applied: Static queues packets until a flush; Pulse delays each packet individually.")
     private val networkScope by setting("Network Scope", Direction.Both, description = "Which direction(s) to affect: inbound (server → you), outbound (you → server), or both.")

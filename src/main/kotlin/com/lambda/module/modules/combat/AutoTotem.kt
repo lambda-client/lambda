@@ -40,7 +40,7 @@ import net.minecraft.item.Items
 object AutoTotem : Module(
     name = "AutoTotem",
     description = "Swaps the your off-hand item to a totem",
-    tag = ModuleTag.COMBAT,
+    tag = ModuleTag.Combat,
 ) {
 	private val always by setting("Always", true, "Always attempt to keep a totem in offhand")
 	private val ignoreWhenHolding by setting("Ignore When Holding", false, "Ignore swapping to offhand when already holding a totem")

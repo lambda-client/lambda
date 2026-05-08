@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.config.groups.BreakConfig
+import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
@@ -37,8 +37,8 @@ import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.PacketLimitHandler
 import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.PositionBlocking
-import com.lambda.config.groups.BreakConfig.BreakConfirmationMode
-import com.lambda.config.groups.BreakConfig.BreakMode
+import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
+import com.lambda.config.blocks.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.RedundantSecondary

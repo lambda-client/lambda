@@ -18,7 +18,7 @@
 package com.lambda.util
 
 import com.lambda.Lambda
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.core.Loadable
 import com.lambda.network.LambdaAPI
 import com.lambda.util.FileUtils.downloadIfNotPresent
@@ -77,20 +77,20 @@ object DynamicReflectionSerializer : Loadable {
         Codec::class,
     )
 
-    private const val INDENT = 2
+    private const val Indent = 2
 
     private val qualifiedMappings = runBlocking {
         cache.resolveFile(LambdaAPI.gameVersion)
             .also {
                 if (it.exists() && !it.readText().contains("net.minecraft.client.MinecraftClient")) {
-                    LOG.debug("Re-downloading yarn mappings as the current cache is improperly generated")
+                    Log.debug("Re-downloading yarn mappings as the current cache is improperly generated")
                     it.delete()
                 }
             }
             .downloadIfNotPresent("${LambdaAPI.mappings}/${LambdaAPI.gameVersion}")
             .map(::buildMappingsMap)
             .getOrElse {
-                LOG.error("Unable to download simplified deobfuscated qualifiers", it)
+                Log.error("Unable to download simplified deobfuscated qualifiers", it)
                 emptyMap()
             }
     }
@@ -174,7 +174,7 @@ object DynamicReflectionSerializer : Loadable {
         }
 
         val fieldValue = field.javaField?.get(this)
-        val fieldIndent = "$indent${" ".repeat(INDENT)}"
+        val fieldIndent = "$indent${" ".repeat(Indent)}"
         builder.appendLine("$fieldIndent${field.dynamicName(remap)}: ${fieldValue.formatFieldValue(remap)}")
 
         if (currentDepth < maxRecursionDepth
@@ -187,7 +187,7 @@ object DynamicReflectionSerializer : Loadable {
             fieldValue.dynamicString(
                 maxRecursionDepth,
                 currentDepth + 1,
-                "$fieldIndent${" ".repeat(INDENT)}",
+                "$fieldIndent${" ".repeat(Indent)}",
                 visitedObjects,
                 builder,
                 remap

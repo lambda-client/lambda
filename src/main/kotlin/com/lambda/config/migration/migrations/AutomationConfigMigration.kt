@@ -17,7 +17,7 @@
 
 package com.lambda.config.migration.migrations
 
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.config.migration.StepConfigMigration
 
 @Suppress("unused")
@@ -39,7 +39,7 @@ object AutomationConfigMigration : StepConfigMigration() {
 				}
 			}
 
-			LOG.info("Migrated Automation config schema v1 -> v2: $updateCount settings updated")
+			Log.info("Migrated Automation config schema v1 -> v2: $updateCount settings updated")
 		}
 	}
 }

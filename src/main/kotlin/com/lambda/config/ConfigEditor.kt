@@ -19,8 +19,10 @@
 
 package com.lambda.config
 
-import com.lambda.config.Config.SettingContainer
+import com.lambda.config.Config.Companion.forEachSetting
+import com.lambda.config.Config.SettingLayer
 import kotlin.reflect.KProperty0
+import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaField
 
@@ -33,92 +35,79 @@ fun <T : Config> T.applyEdits(edits: ConfigEditor<T>.() -> Unit) {
 }
 
 class ConfigEditor<T : Config>(val c: T) {
-	private val KProperty0<*>.delegate
+	private typealias Property<T> = KProperty0<T>
+	private typealias SettingProperty<T> = KProperty0<T>
+	private typealias SettingBlockProperty<T> = KProperty0<T>
+
+	private val Property<*>.delegate
 		get() = try {
 			apply { isAccessible = true }.getDelegate()
 		} catch (e: Exception) {
 			throw IllegalStateException("Could not access delegate for property $name", e)
 		}
 
-	private fun <T : Any> KProperty0<T>.setting() =
-		this.delegate as? Setting<SettingCore<T>, T>
-			?: throw IllegalStateException("Setting delegate did not match current value's type")
+	private val <T : Any> SettingProperty<T>.setting
+		get() = this.delegate as? Setting<SettingCore<T>, T>
+			?: throw IllegalStateException("Setting delegate did not match the given type")
 
-	private fun <T : Any> KProperty0<T>.settingCore() = setting().core
+	private val <T : SettingBlock> SettingBlockProperty<T>.settingBlock
+		get() = this.delegate as? SettingBlockWrapper<T>
+			?: throw IllegalStateException("SettingBlock delegate did not match the given type")
+
+	private fun <T : Any> SettingProperty<T>.settingCore() = setting.core
 
 	@SettingEditorDsl
-	fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
-		val delegate = setting()
+	fun <T : Any> SettingProperty<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
+		val delegate = setting
 		TypedEditBuilder(this@ConfigEditor, listOf(delegate)).edits(delegate.core)
 	}
 
 	@SettingEditorDsl
-	fun <T : Any, R : Any> KProperty0<T>.editWith(
-		other: KProperty0<R>,
-		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
-	) = TypedEditBuilder(this@ConfigEditor, listOf(setting())).edits(other.settingCore())
-
-	@SettingEditorDsl
 	fun edit(
-		vararg settings: KProperty0<*>,
+		vararg settings: SettingProperty<*>,
 		edits: BasicEditBuilder.() -> Unit
-	) = BasicEditBuilder(this, settings.map { (it as KProperty0<Any>).setting() }).apply(edits)
-
-	@SettingEditorDsl
-	fun <T : Any> editWith(
-		vararg settings: KProperty0<*>,
-		other: KProperty0<T>,
-		edits: BasicEditBuilder.(SettingCore<T>) -> Unit
-	) = BasicEditBuilder(this, settings.map { (it as KProperty0<Any>).setting() }).edits(other.settingCore())
+	) = BasicEditBuilder(this, settings.map { (it as SettingProperty<Any>).setting }).apply(edits)
 
 	@SettingEditorDsl
 	fun <T : Any> editTyped(
-		vararg settings: KProperty0<T>,
+		vararg settings: SettingProperty<T>,
 		edits: TypedEditBuilder<T>.() -> Unit
-	) = TypedEditBuilder(this, settings.map { it.setting() }).apply(edits)
+	) = TypedEditBuilder(this, settings.map { it.setting }).apply(edits)
 
 	@SettingEditorDsl
-	fun <T : Any, R : Any> editTypedWith(
-		vararg settings: KProperty0<T>,
-		other: KProperty0<R>,
-		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
-	) = TypedEditBuilder(this, settings.map { it.setting() }).edits(other.settingCore())
+	fun hide(vararg settings: SettingProperty<Any>) =
+		hide(settings.map { it.setting })
 
-	/**
-	 * Recursively removes matching [Setting]s from the [Config.settingContainers] tree.
-	 * After removal, any [SettingContainer.Multiple] (group/tab) left empty is also pruned.
-	 */
 	@SettingEditorDsl
-	fun hide(settings: Collection<Setting<*, *>>) {
-		removeFromContainers(c.settingContainers, settings.toSet())
+	fun <T : SettingBlock> hideBlock(settingGroup: SettingBlockProperty<T>) {
+		forEachSetting(settingGroup.settingBlock) { setting ->
+			hide(setting)
+		}
 	}
 
 	@SettingEditorDsl
-	fun hide(vararg settings: KProperty0<Any>) =
-		hide(settings.map { it.setting() })
+	fun hideBlocks(vararg settingGroups: SettingBlockProperty<SettingBlock>) =
+		settingGroups.forEach { hideBlock(it) }
 
 	@SettingEditorDsl
-	fun hideBlock(settingGroup: SettingBlock) = hide(settingGroup.collectSettings())
-
-	@SettingEditorDsl
-	fun hideBlockExcept(settingGroup: SettingBlock, vararg except: KProperty0<Any>) {
-		val exceptSettings = except.map { it.setting() }
-		hide(settingGroup.collectSettings().filter { it !in exceptSettings })
+	fun <T : SettingBlock> hideBlockExcept(settingGroup: SettingBlockProperty<T>, vararg except: SettingProperty<Any>) {
+		val exceptSettings = except.map { it.setting }
+		forEachSetting(settingGroup.settingBlock) { setting ->
+			if (setting !in exceptSettings) hide(setting)
+		}
 	}
 
 	@SettingEditorDsl
-	fun hideBlocks(vararg settingGroups: SettingBlock) =
-		settingGroups.forEach { hide(it.collectSettings()) }
-
-	@SettingEditorDsl
-	fun hideAllBlocksExcept(vararg except: SettingBlock) {
-		val toHide = c.collectSettingBlocks().filter { it !in except }
+	fun hideAllBlocksExcept(vararg except: SettingBlockWrapper<SettingBlock>) {
+		Config.forEachSettingBlockWrapper(c) { block ->
+			if (block !in except) hideBlock(block)
+		}
 		toHide.forEach { hide(it.collectSettings()) }
 	}
 
 	@SettingEditorDsl
 	fun SettingBlock.forEachSetting(block: (Setting<*, *>) -> Unit) =
-		Config.forEachSetting(this, block)
+		forEachSetting(this, block)
 
 	open class BasicEditBuilder(val c: ConfigEditor<*>, open val settings: Collection<Setting<*, *>>) {
 		@SettingEditorDsl
@@ -144,50 +133,14 @@ class ConfigEditor<T : Config>(val c: T) {
 			}
 	}
 
-	/**
-	 * Recursively removes [SettingContainer.Single] entries whose [Setting] is in [toRemove],
-	 * and prunes any [SettingContainer.Multiple] (group/tab) left empty after removal.
-	 */
-	private fun removeFromContainers(
-		containers: MutableList<SettingContainer>,
-		toRemove: Set<Setting<*, *>>
-	) {
-		val iterator = containers.iterator()
-		while (iterator.hasNext()) {
-			when (val container = iterator.next()) {
-				is SettingContainer.Single -> {
-					if (container.setting in toRemove) iterator.remove()
-				}
-				is SettingContainer.Multiple -> {
-					removeFromContainers(container.settings, toRemove)
-					if (container.settings.isEmpty()) iterator.remove()
-				}
-			}
-		}
+	private fun hide(settings: Collection<Setting<*, *>>) {
+		settings.forEach(::hide)
 	}
 
-	/**
-	 * Collects all [Setting] instances from a [SettingBlock] via reflection,
-	 * recursing into nested [SettingBlock] fields.
-	 */
-	private fun SettingBlock.collectSettings(): List<Setting<*, *>> {
-		val result = mutableListOf<Setting<*, *>>()
-		collectSettingsRecursive(this, result)
-		return result
-	}
-
-	private fun collectSettingsRecursive(instance: Any, result: MutableList<Setting<*, *>>) {
-		Config.forEachSettingProperty(instance::class,
-			onSetting = { property ->
-				val field = property.javaField ?: return@forEachSettingProperty
-				field.isAccessible = true
-				(field.get(instance) as? Setting<*, *>)?.let { result.add(it) }
-			},
-			onSettingBlock = { property, _ ->
-				val field = property.javaField ?: return@forEachSettingProperty
-				field.isAccessible = true
-				field.get(instance)?.let { collectSettingsRecursive(it, result) }
-			}
-		)
+	private fun hide(setting: Setting<*, *>) {
+		val parentLayer = setting.layer.parent
+		parentLayer.layers.remove(setting.layer)
+		if (parentLayer.layers.isEmpty())
+			parentLayer.parent?.layers?.remove(parentLayer)
 	}
 }

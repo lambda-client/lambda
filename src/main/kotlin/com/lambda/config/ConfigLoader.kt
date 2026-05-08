@@ -36,20 +36,4 @@ object ConfigLoader: Loadable {
 
     fun configByCommandName(name: String) =
         configs.find { it.commandName == name }
-
-    fun settingByCommandName(name: String, config: Config, vararg layers: String): Setting<*, *>? {
-        var settingContainers = config.settingContainers.asSequence()
-        layers.forEach { layer ->
-            settingContainers = settingContainers
-                .filterIsInstance<Config.SettingContainer.Multiple>()
-                .find { container ->
-                    container.commandName == layer
-                }?.settings
-                ?.asSequence() ?: return null
-        }
-        return settingContainers
-            .filterIsInstance<Config.SettingContainer.Single>()
-            .find { it.setting.commandName == name }
-            ?.setting
-    }
 }

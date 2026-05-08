@@ -17,14 +17,14 @@
 
 package com.lambda.graphics.mc
 
-import com.lambda.config.groups.LineConfig
+import com.lambda.config.blocks.LineConfig
 import com.lambda.graphics.util.DirectionMask
 import net.minecraft.util.math.Direction
 import java.awt.Color
 
 class BoxBuilder(lineConfig: LineConfig?) {
-    var outlineSides: Int = DirectionMask.ALL
-    var fillSides: Int = DirectionMask.ALL
+    var outlineSides: Int = DirectionMask.All
+    var fillSides: Int = DirectionMask.All
 
     var outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
     var lineWidth = lineConfig?.width ?: -0.0005f
@@ -213,24 +213,24 @@ class BoxBuilder(lineConfig: LineConfig?) {
 
     @RenderDsl
     fun hideOutline() {
-        outlineSides = DirectionMask.NONE
+        outlineSides = DirectionMask.None
     }
 
     @RenderDsl
     fun hideFill() {
-        fillSides = DirectionMask.NONE
+        fillSides = DirectionMask.None
     }
 
     @RenderDsl
     fun outlineOnly() {
-        outlineSides = DirectionMask.ALL
-        fillSides = DirectionMask.NONE
+        outlineSides = DirectionMask.All
+        fillSides = DirectionMask.None
     }
 
     @RenderDsl
     fun fillOnly() {
-        outlineSides = DirectionMask.NONE
-        fillSides = DirectionMask.ALL
+        outlineSides = DirectionMask.None
+        fillSides = DirectionMask.All
     }
 
     @RenderDsl

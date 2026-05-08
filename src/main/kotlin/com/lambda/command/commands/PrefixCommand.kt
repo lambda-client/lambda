@@ -29,6 +29,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.ConfigLoader
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.settings.CharSetting
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText
@@ -52,11 +53,8 @@ object PrefixCommand : LambdaCommand(
 					return@executeWithResult failure("Prefix must be a single non-alphanumeric ASCII character, excluding spaces.")
 				}
 				val prefixChar = prefix.first()
-				val config = ConfigLoader.configByName("command") ?: return@executeWithResult failure("No command config found.")
-				@Suppress("UNCHECKED_CAST")
-				val setting = config.settingContainers.find { it.name == "prefix" } as? Setting<SettingCore<Char>, Char>
-					?: return@executeWithResult failure("Prefix setting is not a Char or can not be found.")
-				setting.trySetValue(prefixChar)
+				@Suppress("unchecked_cast")
+				(CommandRegistry::prefix.getDelegate() as? Setting<*, Char>)?.trySetValue(prefixChar)
 				return@executeWithResult success()
 			}
 		}

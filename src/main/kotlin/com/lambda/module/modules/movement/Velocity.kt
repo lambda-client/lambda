@@ -26,7 +26,7 @@ import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 object Velocity : Module(
     name = "Velocity",
     description = "Modifies your velocity",
-    tag = ModuleTag.MOVEMENT,
+    tag = ModuleTag.Movement,
 ) {
     @JvmStatic val pushed by setting("Pushed", true, "Prevents the player from getting pushed by other entities")
     private val knockback by setting("Knockback", true, "Prevents the player from taking knockback when being attacked")

@@ -40,7 +40,7 @@ import net.minecraft.util.math.Direction
 object Criticals : Module(
     name = "Criticals",
     description = "Forces your hits to be critical",
-    tag = ModuleTag.COMBAT,
+    tag = ModuleTag.Combat,
 ) {
     enum class Mode {
         Grim

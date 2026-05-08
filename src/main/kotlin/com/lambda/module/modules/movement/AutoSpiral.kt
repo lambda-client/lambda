@@ -35,7 +35,7 @@ import kotlin.math.sqrt
 object AutoSpiral : Module(
 	name = "AutoSpiral",
 	description = "Automatically flies in a spiral pattern. Uses Baritone elytra pathing in the Nether.",
-	tag = ModuleTag.MOVEMENT,
+	tag = ModuleTag.Movement,
 ) {
 	var iterator: BlockPosIterators.SpiralIterator2d? = null
 	var currentWaypoint: BlockPos? = null

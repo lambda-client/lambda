@@ -31,7 +31,7 @@ import kotlin.math.pow
 object TargetStrafe : Module(
     name = "TargetStrafe",
     description = "Automatically strafes around entities",
-    tag = ModuleTag.MOVEMENT,
+    tag = ModuleTag.Movement,
 ) {
     private val targetDistance by setting("Strafe Distance", 1.0, 0.0..5.0, 0.1)
     private val jitterCompensation by setting("Jitter Compensation", 0.0, 0.0..1.0, 0.1)

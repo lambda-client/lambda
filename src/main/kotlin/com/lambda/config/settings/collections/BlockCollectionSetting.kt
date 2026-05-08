@@ -32,6 +32,6 @@ class BlockCollectionSetting(
 	TypeToken.getParameterized(Collection::class.java, Block::class.java).type,
 	serialize = true,
 ) {
-	context(setting: Setting<*, MutableCollection<Block>>)
+	context(_: Setting<*, MutableCollection<Block>>)
 	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockCodec.stringify(it) }
 }

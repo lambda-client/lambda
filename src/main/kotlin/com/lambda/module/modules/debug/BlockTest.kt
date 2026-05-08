@@ -29,7 +29,7 @@ import java.awt.Color
 object BlockTest : Module(
     name = "BlockTest",
     description = "BlockTest",
-    tag = ModuleTag.DEBUG,
+    tag = ModuleTag.Debug,
 ) {
     private val rangeX by setting("Range X", 5, 1..7, 1, "Range X")
     private val rangeY by setting("Range Y", 5, 1..7, 1, "Range Y")

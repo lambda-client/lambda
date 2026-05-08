@@ -198,16 +198,16 @@ object CommunicationUtils {
             hoverEvent(HoverEvents.showText(buildText {
                 literal("Lambda ")
                 color(color) {
-                    literal(Lambda.SYMBOL)
+                    literal(Lambda.Symbol)
                 }
-                literal(" v${Lambda.VERSION}\n")
+                literal(" v${Lambda.Version}\n")
                 literal("Runtime: ${Loader.runtime}\n")
                 literal("Modules: ${ModuleRegistry.modules.size}\n")
                 literal("Commands: ${CommandRegistry.commands.size}\n")
                 literal(
                     "Settings: ${
                         ConfigLoader.configCategories.sumOf { config ->
-                            config.configs.sumOf { it.settingContainers.size }
+                            config.configs.sumOf { it.settingLayers.size }
                         }
                     }"
                 )
@@ -217,7 +217,7 @@ object CommunicationUtils {
 
             })) {
                 styled(color) {
-                    literal(Lambda.SYMBOL)
+                    literal(Lambda.Symbol)
                 }
                 literal(" ")
             }

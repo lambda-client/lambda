@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction
 
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.core.Loadable
 import com.lambda.util.FolderRegistry
 import com.lambda.util.FolderRegistry.structure
@@ -189,7 +189,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
             .distinctBy { it.nameWithoutExtension } // Pick the first structure in the priority list nbt > litematica > schematica
             .forEach { struct ->
                 runCatching { loadStructureByRelativePath(structure.relativize(struct)) }
-                    .onFailure { LOG.warn("Unable to load the structure $struct: ${it.message}") }
+                    .onFailure { Log.warn("Unable to load the structure $struct: ${it.message}") }
             }
 
         return "Loaded $size structure templates"

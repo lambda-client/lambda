@@ -27,7 +27,7 @@ import com.lambda.util.CommunicationUtils.info
 @Suppress("unused")
 object TimerTest : Module(
     name = "TimerTest",
-    tag = ModuleTag.DEBUG,
+    tag = ModuleTag.Debug,
 ) {
     private var last = 0L
 

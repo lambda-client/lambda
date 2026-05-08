@@ -27,7 +27,7 @@ import java.awt.Color
 @Suppress("unused")
 object ModuleList : HudModule(
     name = "ModuleList",
-    tag = ModuleTag.HUD,
+    tag = ModuleTag.Hud,
 ) {
 	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
 	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")

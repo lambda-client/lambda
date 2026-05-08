@@ -30,7 +30,7 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 object EntityControl : Module(
     name = "EntityControl",
     description = "Control mountable entities",
-    tag = ModuleTag.MOVEMENT,
+    tag = ModuleTag.Movement,
 ) {
     private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.")
 

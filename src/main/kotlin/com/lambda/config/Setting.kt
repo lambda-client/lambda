@@ -20,7 +20,7 @@ package com.lambda.config
 import com.google.common.base.Defaults.defaultValue
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.Lambda.gson
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -62,7 +62,7 @@ import kotlin.reflect.KProperty
  * Simple Usage:
  * ```kotlin
  * // this uses the delegate (by) association to access the setting value in the code directly.
- * val mode by setting("Mode", Modes.FREEZE, { page == Page.CUSTOM }, "The mode of the module.")
+ * val mode by setting("Mode", Modes.Freeze, { page == Page.Custom }, "The mode of the module.")
  *
  * init {
  *     listener<TickEvent.Pre> {
@@ -74,7 +74,7 @@ import kotlin.reflect.KProperty
  * Advanced usage with listeners:
  * ```kotlin
  * // notice how this does not use the delegate (by) association, to access the setting object to register listeners.
- * val mode = setting("Mode", Modes.FREEZE, { page == Page.CUSTOM }, "The mode of the module.")
+ * val mode = setting("Mode", Modes.Freeze, { page == Page.Custom }, "The mode of the module.")
  *
  * init {
  *     mode.listener { from, to ->
@@ -85,7 +85,7 @@ import kotlin.reflect.KProperty
  *     }
  *
  *     listener<TickEvent.Pre> {
- *         LOG.info("Mode: ${mode.value}") // indirect access of the value
+ *         Log.info("Mode: ${mode.value}") // indirect access of the value
  *     }
  * }
  * ```
@@ -99,7 +99,8 @@ class Setting<T : SettingCore<R>, R>(
 	override val description: String,
 	var core: T,
 	val config: Config,
-	var visibility: () -> Boolean,
+	val layer: Config.SettingLayer.Single<*, *>,
+	var visibility: () -> Boolean
 ) : Nameable, Describable, Jsonable {
 	val originalCore = core
 	var disabled = { false }
@@ -108,10 +109,6 @@ class Setting<T : SettingCore<R>, R>(
 	var value by this
 
 	val isModified get() = value != core.defaultValue
-
-	init {
-		config.register(this)
-	}
 
 	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
@@ -139,7 +136,7 @@ class Setting<T : SettingCore<R>, R>(
 		runCatching {
 			originalCore.loadFromJson(serialized)
 		}.onFailure {
-			LOG.warn("Failed to load setting $name with value $serialized. Resetting to default value ${core.defaultValue}")
+			Log.warn("Failed to load setting $name with value $serialized. Resetting to default value ${core.defaultValue}")
 		}
 	}
 

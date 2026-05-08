@@ -42,7 +42,7 @@ import kotlin.reflect.KClass
 class StackSelection {
     var selector: (ItemStack) -> Boolean = EVERYTHING
     var comparator: Comparator<ItemStack> = NO_COMPARE
-    var count: Int = DEFAULT_AMOUNT
+    var count: Int = DefaultAmount
     var inShulkerBox: Boolean = false
 
     var item: Item? = null
@@ -276,7 +276,7 @@ class StackSelection {
         @DslMarker
         annotation class StackSelectionDsl
 
-        const val DEFAULT_AMOUNT = 1
+        const val DefaultAmount = 1
 
         val FULL_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.none { it.isEmpty } }
         val EMPTY_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.all { it.isEmpty } }
@@ -305,7 +305,7 @@ class StackSelection {
 
         @StackSelectionDsl
         fun selectStack(
-            count: Int = DEFAULT_AMOUNT,
+            count: Int = DefaultAmount,
             inShulkerBox: Boolean = false,
             sorter: Comparator<ItemStack> = NO_COMPARE,
             block: StackSelection.() -> (ItemStack) -> Boolean = { EVERYTHING },

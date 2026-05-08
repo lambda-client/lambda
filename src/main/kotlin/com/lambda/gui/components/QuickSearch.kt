@@ -54,9 +54,9 @@ object QuickSearch {
     private var lastShiftPressTime = 0L
     private var lastShiftKeyCode = -1
 
-    private const val DOUBLE_SHIFT_WINDOW_MS = 500L
-    private const val MAX_RESULTS = 50
-    const val WINDOW_FLAGS =
+    private const val DoubleShiftWindowMs = 500L
+    private const val MaxResults = 50
+    const val WindowFlags =
         ImGuiWindowFlags.AlwaysAutoResize or
                 ImGuiWindowFlags.NoTitleBar or
                 ImGuiWindowFlags.NoMove or
@@ -146,7 +146,7 @@ object QuickSearch {
         ImGui.setNextWindowSize(maxW, 0f)
         ImGui.setNextWindowSizeConstraints(0f, 0f, maxW, maxH)
 
-        popupModal("QuickSearch", WINDOW_FLAGS) {
+        popupModal("QuickSearch", WindowFlags) {
             if (shouldFocus) {
                 ImGui.setKeyboardFocusHere()
                 shouldFocus = false
@@ -195,9 +195,9 @@ object QuickSearch {
     private object SearchService {
         private data class RankedSearchResult(val result: SearchResult, val score: Int)
 
-        private const val MODULE_PRIORITY_BONUS = 300
-        private const val HUD_MODULE_PRIORITY_BONUS = 270
-        private const val COMMAND_PRIORITY_BONUS = 200
+        private const val ModulePriorityBonus = 300
+        private const val HudModulePriorityBonus = 270
+        private const val CommandPriorityBonus = 200
 
         /**
          * Calculates a relevance score for a query against a target string.
@@ -245,8 +245,8 @@ object QuickSearch {
 
                 if (bestScore > 0) {
                     when(module) {
-                        is HudModule -> RankedSearchResult(ModuleResult(module), bestScore + HUD_MODULE_PRIORITY_BONUS)
-                        else -> RankedSearchResult(ModuleResult(module), bestScore + MODULE_PRIORITY_BONUS)
+                        is HudModule -> RankedSearchResult(ModuleResult(module), bestScore + HudModulePriorityBonus)
+                        else -> RankedSearchResult(ModuleResult(module), bestScore + ModulePriorityBonus)
                     }
                 } else null
             }
@@ -257,13 +257,13 @@ object QuickSearch {
                 val bestScore = max(nameScore, aliasScore)
 
                 if (bestScore > 0) {
-                    RankedSearchResult(CommandResult(command), bestScore + COMMAND_PRIORITY_BONUS)
+                    RankedSearchResult(CommandResult(command), bestScore + CommandPriorityBonus)
                 } else null
             }
 
             val settingResults = ConfigLoader.configCategories.flatMap {
                 it.configs.flatMap { config ->
-                    config.settingContainers
+                    config.settingLayers
                         .filter { setting -> setting.visibility() }
                         .mapNotNull { setting ->
                             val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
@@ -286,14 +286,14 @@ object QuickSearch {
                 return strictResults
                     .sortedByDescending { it.score }
                     .map { it.result }
-                    .take(MAX_RESULTS)
+                    .take(MaxResults)
             }
 
             // Second pass: if nothing was found, perform a more generous fuzzy search.
             return searchInternal(query, lenient = true)
                 .sortedByDescending { it.score }
                 .map { it.result }
-                .take(MAX_RESULTS)
+                .take(MaxResults)
         }
     }
 
@@ -312,7 +312,7 @@ object QuickSearch {
 
         val currentTime = System.currentTimeMillis()
         if (lastShiftKeyCode == event.keyCode &&
-            currentTime - lastShiftPressTime <= DOUBLE_SHIFT_WINDOW_MS
+            currentTime - lastShiftPressTime <= DoubleShiftWindowMs
         ) {
             open()
             lastShiftPressTime = 0L

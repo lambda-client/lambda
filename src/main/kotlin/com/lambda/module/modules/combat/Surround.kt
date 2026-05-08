@@ -36,7 +36,7 @@ import net.minecraft.item.BlockItem
 object Surround : Module(
 	name = "Surround",
 	description = "Surrounds your players feet with any given block",
-	tag = ModuleTag.COMBAT
+	tag = ModuleTag.Combat
 ) {
 	private val blocks by setting("Blocks", setOf(Blocks.OBSIDIAN, Blocks.ENDER_CHEST, Blocks.CRYING_OBSIDIAN))
 

@@ -17,7 +17,7 @@
 
 package com.lambda.task
 
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
@@ -120,10 +120,10 @@ abstract class Task<Result> : Nameable, Muteable {
         require(owner != this) { "Cannot execute a task as a child of itself" }
         owner.subTasks.add(this)
         parent = owner
-        if (verboseDebug) LOG.info("${owner.name} started $name")
+        if (verboseDebug) Log.info("${owner.name} started $name")
         if (pauseParent) {
             parentPausing = true
-            if (verboseDebug) LOG.info("$name pausing parent ${owner.name}")
+            if (verboseDebug) Log.info("$name pausing parent ${owner.name}")
             if (owner !is RootTask) owner.pause()
         }
         state = State.Running
@@ -230,7 +230,7 @@ abstract class Task<Result> : Nameable, Muteable {
                         }
                     }
                 }
-                LOG.error(message, e)
+                Log.error(message, e)
                 logError(message)
             }
         }

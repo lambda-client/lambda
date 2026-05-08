@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.config.groups.BreakConfig
+import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent

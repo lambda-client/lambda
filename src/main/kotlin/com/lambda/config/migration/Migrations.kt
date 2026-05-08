@@ -20,7 +20,7 @@ package com.lambda.config.migration
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.core.Loadable
 import com.lambda.util.ReflectionUtils.getInstances
 import java.util.*
@@ -29,7 +29,7 @@ import kotlin.math.max
 interface ConfigMigration {
     val configName: String
     val latestVersion: Int
-    val schemaVersionKey: String get() = ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY
+    val schemaVersionKey: String get() = ConfigMigrations.DefaultSchemaVersionKey
     fun applyStep(fromVersion: Int, root: JsonObject): StepResult?
 }
 
@@ -59,7 +59,7 @@ abstract class StepConfigMigration : ConfigMigration {
 }
 
 object ConfigMigrations : Loadable {
-    const val DEFAULT_SCHEMA_VERSION_KEY = "_schemaVersion"
+    const val DefaultSchemaVersionKey = "_schemaVersion"
     override val priority: Int = 2
 
     @Volatile
@@ -93,7 +93,7 @@ object ConfigMigrations : Loadable {
         var migrated = false
 
         if (currentVersion > migration.latestVersion) {
-            LOG.warn(
+            Log.warn(
                 "Config ${configName.replaceFirstChar { it.uppercase() }} has schema version $currentVersion " +
                     "which is newer than supported ${migration.latestVersion}"
             )
@@ -105,7 +105,7 @@ object ConfigMigrations : Loadable {
                 val fromVersion = currentVersion
                 val stepResult = migration.applyStep(fromVersion, json)
                 if (stepResult == null) {
-                    LOG.warn(
+                    Log.warn(
                         "Missing migration step for ${configName.replaceFirstChar { it.uppercase() }} " +
                             "schema version $fromVersion -> ?. Expected latest schema version is ${migration.latestVersion}"
                     )
@@ -119,7 +119,7 @@ object ConfigMigrations : Loadable {
                     migrated = true
                 }
             } catch (t: Throwable) {
-                LOG.error(
+                Log.error(
                     "Failed to migrate ${configName.replaceFirstChar { it.uppercase() }} config " +
                         "from v$currentVersion to next version",
                     t
@@ -149,7 +149,7 @@ object ConfigMigrations : Loadable {
         val duplicates = discovered.groupBy { it.configName }.filter { it.value.size > 1 }
         if (duplicates.isNotEmpty()) {
             duplicates.keys.forEach { key ->
-                LOG.warn("Multiple config migrations found for '$key'. Using the last discovered migration.")
+                Log.warn("Multiple config migrations found for '$key'. Using the last discovered migration.")
             }
         }
 

@@ -28,16 +28,16 @@ import kotlin.math.min
 import kotlin.random.Random.Default.nextDouble
 
 object MathUtils {
-    private const val PI_FLOAT = 3.141593f
+    private const val PiFloat = 3.141593f
 
     inline val Int.sq: Int get() = this * this
     inline val Float.sq: Float get() = this * this
     inline val Double.sq: Double get() = this * this
 
-    fun Float.toRadian() = this / 180.0f * PI_FLOAT
+    fun Float.toRadian() = this / 180.0f * PiFloat
     fun Double.toRadian() = this / 180.0 * PI
 
-    fun Float.toDegree() = this * 180.0f / PI_FLOAT
+    fun Float.toDegree() = this * 180.0f / PiFloat
     fun Double.toDegree() = this * 180.0 / PI
 
     fun Boolean.toInt() = if (this) 1 else 0

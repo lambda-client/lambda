@@ -197,7 +197,7 @@ public class MinecraftClientMixin {
     float getTargetMillisPerTick(float millis, Operation<Float> original) {
         var length = TimerHandler.INSTANCE.getLength();
 
-        if (length == TimerHandler.DEFAULT_LENGTH) return original.call(millis);
+        if (length == TimerHandler.DefaultLength) return original.call(millis);
         else return (float) TimerHandler.INSTANCE.getLength();
     }
 

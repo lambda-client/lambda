@@ -35,7 +35,7 @@ import net.minecraft.item.Items
 object StackReplenish : Module(
 	name = "StackReplenish",
 	description = "Automatically refills stacks from your inventory",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.Player
 ) {
 	private val minStackPercent by setting("Min Stack Percentage", 30, 0..100, 1, "Minimum percentage of a complete stack before refilling", "%")
 	private val offhand by setting("Offhand", false, "Replenishes the players offhand stack")

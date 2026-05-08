@@ -17,7 +17,7 @@
 
 package com.lambda.network
 
-import com.lambda.Lambda.LOG
+import com.lambda.Lambda.Log
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.LambdaCategory
@@ -78,7 +78,7 @@ object LambdaAPI : Config(LambdaCategory) {
             // and posted to the sessionserver api
             login(mc.session.username, hash ?: return@listenConcurrentlyUnsafe)
                 .onSuccess { updateToken(it) }
-                .onFailure { LOG.warn(it) }
+                .onFailure { Log.warn(it) }
         }
     }
 

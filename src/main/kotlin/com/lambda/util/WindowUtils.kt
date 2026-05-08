@@ -17,9 +17,9 @@
 
 package com.lambda.util
 
-import com.lambda.Lambda.MOD_NAME
-import com.lambda.Lambda.SYMBOL
-import com.lambda.Lambda.VERSION
+import com.lambda.Lambda.ModName
+import com.lambda.Lambda.Symbol
+import com.lambda.Lambda.Version
 import com.lambda.Lambda.mc
 import com.lambda.gui.components.ClickGuiLayout.lambdaTitleAppendixName
 import net.minecraft.client.util.MacWindowUtil
@@ -37,7 +37,7 @@ object WindowUtils {
     @JvmStatic
     fun setLambdaTitle() {
         val name = if (lambdaTitleAppendixName) " - ${mc.session.username}" else ""
-        mc.window.setTitle("$SYMBOL $MOD_NAME $VERSION - ${mc.windowTitle}$name")
+        mc.window.setTitle("$Symbol $ModName $Version - ${mc.windowTitle}$name")
     }
 
     fun setLambdaWindowIcon() {

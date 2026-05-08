@@ -28,7 +28,7 @@ import com.lambda.util.combat.DamageUtils.isFallDeadly
 @Suppress("unused")
 object FallTest : Module(
     name = "FallTest",
-    tag = ModuleTag.DEBUG,
+    tag = ModuleTag.Debug,
 ) {
     init {
         listen<TickEvent.Pre> {

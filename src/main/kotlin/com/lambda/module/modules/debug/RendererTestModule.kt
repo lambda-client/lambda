@@ -53,7 +53,7 @@ import java.awt.Color
 object ChunkedRendererTest : Module(
 	name = "ChunkedRendererTest",
 	description = "Test module for ChunkedRenderer",
-	tag = ModuleTag.DEBUG,
+	tag = ModuleTag.Debug,
 ) {
 	var updated = false
 
@@ -168,7 +168,7 @@ object ChunkedRendererTest : Module(
 object TickedRendererTest : Module(
 	name = "TickedRendererTest",
 	description = "Test module for TickedRenderer",
-	tag = ModuleTag.DEBUG,
+	tag = ModuleTag.Debug,
 ) {
 	private val throughWalls by setting("Through Walls", true)
 
@@ -275,7 +275,7 @@ object TickedRendererTest : Module(
 object ImmediateRendererTest : Module(
 	name = "ImmediateRendererTest",
 	description = "Test module for ImmediateRenderer",
-	tag = ModuleTag.DEBUG,
+	tag = ModuleTag.Debug,
 ) {
 	private val throughWalls by setting("Through Walls", true)
 

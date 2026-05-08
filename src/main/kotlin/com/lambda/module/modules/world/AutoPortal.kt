@@ -21,7 +21,7 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
@@ -71,11 +71,11 @@ import net.minecraft.util.math.Vec3d
 object AutoPortal : Module(
 	name = "AutoPortal",
 	description = "Automatically places and lights a nether portal",
-	tag = ModuleTag.WORLD
+	tag = ModuleTag.World
 ) {
-	private const val RENDER_GROUP = "Renders"
-	private const val FILL_GROUP = "Fill"
-	private const val OUTLINE_GROUP = "Outline"
+	private const val RenderGroup = "Renders"
+	private const val FillGroup = "Fill"
+	private const val OutlineGroup = "Outline"
 
 	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal")
 		.onPress { preview = true }
@@ -113,11 +113,11 @@ object AutoPortal : Module(
 	private val lockToGround by setting("Lock To Ground", true)
 	private val allowUpwardShift by setting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks") { lockToGround }
 
-	@Group(RENDER_GROUP) private val renders by setting("Renders", true)
-	@Group(RENDER_GROUP) private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
-	@Group(RENDER_GROUP) private val depthTest by setting("Depth Test", false) { renders }
-	@Group(RENDER_GROUP, FILL_GROUP) private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
-	@Group(RENDER_GROUP, OUTLINE_GROUP) private val outlineConfig =
+	@Group(RenderGroup) private val renders by setting("Renders", true)
+	@Group(RenderGroup) private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
+	@Group(RenderGroup) private val depthTest by setting("Depth Test", false) { renders }
+	@Group(RenderGroup, FillGroup) private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
+	@Group(RenderGroup, OutlineGroup) private val outlineConfig =
 		settingBlock(
 			WorldLineSettings(this),
 			{ renders }

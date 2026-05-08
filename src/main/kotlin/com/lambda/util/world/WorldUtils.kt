@@ -135,8 +135,8 @@ object WorldUtils {
      */
     inline fun SafeContext.internalSearchBlocks(
         pos: FastVector,
-        range: FastVector = F_ONE times 7,
-        step: FastVector = F_ONE,
+        range: FastVector = FOne times 7,
+        step: FastVector = FOne,
         crossinline filter: (FastVector, BlockState) -> Boolean = { _, _ -> true },
     ) = fastSequence(pos, range, step)
         .filter {
@@ -152,8 +152,8 @@ object WorldUtils {
      */
     inline fun <reified T : Fluid> SafeContext.internalSearchFluids(
         pos: FastVector,
-        range: FastVector = F_ONE times 7,
-        step: FastVector = F_ONE,
+        range: FastVector = FOne times 7,
+        step: FastVector = FOne,
         crossinline filter: (FastVector, FluidState) -> Boolean = { _, _ -> true },
     ) = fastSequence(pos, range, step)
         .filter {

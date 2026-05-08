@@ -31,7 +31,7 @@ import kotlin.math.roundToInt
 object RotationLock : Module(
 	name = "RotationLock",
 	description = "Locks the player rotation to the given configuration",
-	tag = ModuleTag.PLAYER,
+	tag = ModuleTag.Player,
 ) {
 	@JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap)
 	private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 0.1) { yawMode == Mode.Snap }

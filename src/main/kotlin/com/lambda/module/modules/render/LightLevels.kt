@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.LineDashStyle
 import com.lambda.graphics.mc.RenderBuilder
@@ -44,10 +44,10 @@ import java.awt.Color
 object LightLevels : Module(
 	name = "LightLevels",
 	description = "Shows light level. Helpful for mob-proofing areas",
-	tag = ModuleTag.RENDER
+	tag = ModuleTag.Render
 ) {
-	private const val FILL_GROUP = "Fill"
-	private const val LINE_GROUP = "Line"
+	private const val FillGroup = "Fill"
+	private const val LineGroup = "Line"
 
 	private val mode: Mode by setting("Mode", Mode.Chunked)
 		.onValueChange { _, _ -> chunkedRenderer.clear(); refreshChunkedRenderer(this) }
@@ -57,10 +57,10 @@ object LightLevels : Module(
 	private val skyLightColor by setting("Sky Light Color", Color.YELLOW).onValueChange(::refreshChunkedRenderer)
 	private val blockLightColor by setting("Block Light Color", Color.RED).onValueChange(::refreshChunkedRenderer)
 	private val size by setting("Size", 14, 1..16).onValueChange(::refreshChunkedRenderer)
-	@Group(FILL_GROUP) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	@Group(FILL_GROUP) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
-	@Group(LINE_GROUP) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	@Group(LINE_GROUP) private val worldLineConfig =
+	@Group(FillGroup) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
+	@Group(FillGroup) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
+	@Group(LineGroup) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
+	@Group(LineGroup) private val worldLineConfig =
 		settingBlock(WorldLineSettings(this), { renderMode != RenderMode.Square || outline }) {
 			applyEdits {
 				hide(::startColor, ::endColor)

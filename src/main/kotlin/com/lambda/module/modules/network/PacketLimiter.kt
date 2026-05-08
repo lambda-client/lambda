@@ -35,7 +35,7 @@ import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 object PacketLimiter : Module(
 	name = "PacketLimiter",
 	description = "Limits the amount of packets sent to the server",
-	tag = ModuleTag.NETWORK,
+	tag = ModuleTag.Network,
 ) {
 	private var packetQueueMap = mutableMapOf<String, LimitedDecayQueue<PacketEvent.Send.Pre>>()
 	private val globalQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(1, 1)
