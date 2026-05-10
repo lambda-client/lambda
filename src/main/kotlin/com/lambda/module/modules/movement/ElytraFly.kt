@@ -18,8 +18,8 @@
 package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalGetToBlock
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
@@ -109,7 +109,7 @@ object ElytraFly : Module(
     init {
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllBlocksExcept(inventoryConfig, rotationConfig)
+                hideAllBlocksExcept(::inventoryConfig, ::rotationConfig)
             }
         }
 

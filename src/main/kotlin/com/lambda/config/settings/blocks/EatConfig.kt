@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.blocks
 
-import com.lambda.config.SettingBlock
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.material.StackSelection.Companion.selectStack

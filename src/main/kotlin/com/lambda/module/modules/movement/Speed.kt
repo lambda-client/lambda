@@ -50,7 +50,7 @@ object Speed : Module(
 ) {
     @JvmStatic
     val mode by setting("Mode", Mode.GrimStrafe)
-        .onValueChange { _, _ -> reset() }
+        .onValueChange { _, _ -> resetNcp() }
 
     // Grim
     private val diagonal by setting("Diagonal", true) { mode == Mode.GrimStrafe }
@@ -83,13 +83,13 @@ object Speed : Module(
     init {
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllBlocksExcept(rotationConfig)
+                hideAllBlocksExcept(::rotationConfig)
             }
         }
 
         listen<MovementEvent.Player.Pre> {
             if (!shouldWork()) {
-                reset()
+                resetNcp()
                 return@listen
             }
 
@@ -128,7 +128,7 @@ object Speed : Module(
         }
 
         onEnable {
-            reset()
+            resetNcp()
         }
     }
 
@@ -200,7 +200,7 @@ object Speed : Module(
         }
     }
 
-    private fun reset() {
+    private fun resetNcp() {
         ncpPhase = NCPPhase.SlowDown
         ncpSpeed = NcpBaseSpeed
     }

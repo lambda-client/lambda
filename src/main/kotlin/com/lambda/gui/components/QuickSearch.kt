@@ -261,14 +261,17 @@ object QuickSearch {
                 } else null
             }
 
-            val settingResults = ConfigLoader.configCategories.flatMap {
-                it.configs.flatMap { config ->
-                    config.settingLayers
-                        .filter { setting -> setting.visibility() }
-                        .mapNotNull { setting ->
-                            val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
-                            if (score > 0) RankedSearchResult(SettingResult(setting, config), score) else null
+            val settingResults = buildList {
+                ConfigLoader.configCategories.forEach { category ->
+                    category.configs.forEach { config ->
+                        config.forEachSetting { _, single ->
+                            val setting = single.setting
+                            if (setting.visibility()) {
+                                val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
+                                if (score > 0) add(RankedSearchResult(SettingResult(setting, config), score))
+                            }
                         }
+                    }
                 }
             }
 
@@ -298,11 +301,15 @@ object QuickSearch {
     }
 
     private fun buildSettingBreadcrumb(configName: String, setting: Setting<*, *>): String {
-        val group = setting.groups
-            .minByOrNull { it.size }
-            ?.joinToString(" » ") { it.displayName }
-            ?: return configName
-        return "$configName » $group"
+        val path = buildList {
+            var current: Config.SettingLayer? = setting.layer.parent
+            while (current is Config.SettingLayer.Multiple && current !is Config.SettingLayer.Root) {
+                add(current.name)
+                current = current.parent
+            }
+        }.asReversed()
+        return if (path.isEmpty()) configName
+        else "$configName » ${path.joinToString(" » ")}"
     }
 
     private fun handleKeyPress(event: ButtonEvent.Keyboard.Press) {

@@ -45,7 +45,7 @@ object RotationLock : Module(
 
 	    setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(rotationConfig)
+				hideAllBlocksExcept(::rotationConfig)
 				rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
 			}
 	    }

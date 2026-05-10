@@ -207,7 +207,11 @@ object CommunicationUtils {
                 literal(
                     "Settings: ${
                         ConfigLoader.configCategories.sumOf { config ->
-                            config.configs.sumOf { it.settingLayers.size }
+                            config.configs.sumOf {
+                                var count = 0
+                                it.forEachSetting { _, _ -> count++ }
+                                count
+                            }
                         }
                     }"
                 )

@@ -28,6 +28,11 @@ object ModuleRegistry : Loadable {
 
     val moduleNameMap = modules.associateBy { it.name }
 
-    override fun load() =
-        "Loaded ${modules.size} modules with ${modules.sumOf { it.settingLayers.size }} settings"
+    override fun load(): String {
+        var settingCount = 0
+        modules.forEach { module ->
+            module.forEachSetting { _, _ -> settingCount++ }
+        }
+        return "Loaded ${modules.size} modules with $settingCount settings"
+    }
 }

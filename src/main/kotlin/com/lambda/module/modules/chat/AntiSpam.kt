@@ -18,8 +18,10 @@
 package com.lambda.module.modules.chat
 
 import com.lambda.config.Config
-import com.lambda.config.blocks.ReplaceConfig
-import com.lambda.config.blocks.ReplaceConfig.ActionStrategy
+import com.lambda.config.Group
+import com.lambda.config.SettingBlock
+import com.lambda.config.settings.blocks.ReplaceConfig
+import com.lambda.config.settings.blocks.ReplaceConfig.ActionStrategy
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendHandler
@@ -37,7 +39,6 @@ import com.lambda.util.text.DirectMessage
 import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
-import com.lambda.config.Group
 
 @Suppress("unused")
 object AntiSpam : Module(
@@ -55,13 +56,13 @@ object AntiSpam : Module(
 	private val ignoreSystem by setting("Ignore System", false)
 	private val ignoreDms by setting("Ignore DMs", false)
 
-	@Group("Slurs") private val detectSlurs = settingBlock(ReplaceSettings("Slurs", this))
-	@Group("Swears") private val detectSwears = settingBlock(ReplaceSettings("Swears", this))
-	@Group("Sexual") private val detectSexual = settingBlock(ReplaceSettings("Sexual", this))
-	@Group("Discord") private val detectDiscord = settingBlock(ReplaceSettings("Discord", this, ActionStrategy.Hide))
-	@Group("Addresses") private val detectAddresses = settingBlock(ReplaceSettings("Addresses", this, ActionStrategy.Hide))
-	@Group("Hex") private val detectHexBypass = settingBlock(ReplaceSettings("Hex", this, ActionStrategy.Hide))
-	@Group("Colors") private val detectColors = settingBlock(ReplaceSettings("Colors", this, ActionStrategy.None))
+	@Group("Slurs") private val detectSlurs by settingBlock(ReplaceSettings("Slurs", this))
+	@Group("Swears") private val detectSwears by settingBlock(ReplaceSettings("Swears", this))
+	@Group("Sexual") private val detectSexual by settingBlock(ReplaceSettings("Sexual", this))
+	@Group("Discord") private val detectDiscord by settingBlock(ReplaceSettings("Discord", this, ActionStrategy.Hide))
+	@Group("Addresses") private val detectAddresses by settingBlock(ReplaceSettings("Addresses", this, ActionStrategy.Hide))
+	@Group("Hex") private val detectHexBypass by settingBlock(ReplaceSettings("Hex", this, ActionStrategy.Hide))
+	@Group("Colors") private val detectColors by settingBlock(ReplaceSettings("Colors", this, ActionStrategy.None))
 
 	init {
 		setModulePriority(100)
@@ -122,9 +123,9 @@ object AntiSpam : Module(
 	class ReplaceSettings(
 		val name: String,
 		override val c: Config,
-		val actionStrategy: ActionStrategy = ActionStrategy.Replace
-	) : ReplaceConfig {
-		override val action by setting("$name Action Strategy", ActionStrategy.Replace)
-		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
+		actionStrategy: ActionStrategy = ActionStrategy.Replace
+	) : SettingBlock, ReplaceConfig {
+		override val action by c.setting("$name Action Strategy", actionStrategy)
+		override val replace by c.setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
 	}
 }

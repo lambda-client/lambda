@@ -26,7 +26,7 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.blocks.RotationConfig
+import com.lambda.config.settings.blocks.RotationConfig
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerHandler
@@ -103,7 +103,7 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    override val rotationConfig = object : RotationConfig.Instant(this, RotationMode.Sync) {
+    override val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
         override val rotationMode = if (lockCamera) RotationMode.Lock else RotationMode.Sync
     }
 

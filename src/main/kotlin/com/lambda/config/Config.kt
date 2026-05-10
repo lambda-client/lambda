@@ -52,8 +52,6 @@ import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
-import kotlin.collections.toMutableList
-import kotlin.jvm.java
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.declaredMemberProperties
@@ -70,6 +68,7 @@ private annotation class SettingDsl
  *
  * @property settingLayers A set of [SettingCore]s that this config manages.
  */
+@Suppress("unused")
 abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     internal val settingLayers = SettingLayer.Root()
 	internal val settingBlockLayers = BlockLayer.Root()
@@ -136,60 +135,68 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 		return path
 	}
 
-    final override fun toJson() =
-        JsonObject().apply {
-            fun JsonObject.addSettings(settings: Collection<SettingLayer>) {
-                settings.forEach { layer ->
-                    when (layer) {
-                        is SettingLayer.Single<*, *> ->
-                            try {
-                                add(layer.setting.name, layer.setting.toJson())
-                            } catch(e: Throwable) {
-                                logError("Failed to serialize '${layer.setting}' in ${this::class.simpleName}", e)
-                            }
-                        is SettingLayer.Multiple -> {
-                            val grouped = JsonObject()
-                            grouped.addSettings(layer.layers)
-                            try {
-                                add(layer.name, grouped)
-                            } catch(e: Throwable) {
-                                logError("Failed to serialize ${layer.type.toString().lowercase()}: ${layer.name} in ${this::class.simpleName}", e)
-                            }
-                        }
-                    }
-                }
-            }
-            addSettings(settingLayers.layers)
-        }
+	fun reset() {
+		forEachSettingBlock(settingBlockLayers) { _, single ->
+			single.setting.reset()
+		}
+	}
 
-    final override fun loadFromJson(serialized: JsonElement) {
-        val rootObj = serialized.asJsonObject
+	final override fun toJson() =
+		JsonObject().apply {
+			fun process(multiple: SettingLayer.Multiple, target: JsonObject) {
+				forEachSetting(
+					multiple,
+					false,
+					{ _, multiple ->
+						val nested = JsonObject()
+						target.add(multiple.name, nested)
+						process(multiple, nested)
+					}
+				) { _, single ->
+					try {
+						target.add(single.setting.name, single.setting.toJson())
+					} catch (e: Throwable) {
+						logError("Failed to serialize '${single.setting}'", e)
+					}
+				}
+			}
+			process(settingLayers, this)
+		}
 
-        fun loadFromObject(obj: JsonObject, layers: Collection<SettingLayer>) {
-	        layers.forEach { layer ->
-		        when (layer) {
-			        is SettingLayer.Single<*, *> -> {
-				        val jsonValue = obj[layer.setting.name]
-				        if (jsonValue != null) {
-					        try {
-						        layer.setting.loadFromJson(jsonValue)
-					        } catch (e: Throwable) {
-						        logError("Failed to deserialize setting '${layer.setting.name}'", e)
-					        }
-				        } else logError("No saved value for setting '${layer.setting.name}' in ${this::class.simpleName}")
-			        }
-			        is SettingLayer.Multiple -> {
-				        val nestedObj = obj[layer.name]?.asJsonObject
-				        if (nestedObj != null) {
-					        loadFromObject(nestedObj, layer.layers)
-				        } else logError("No data for group/tab '${layer.name}' in ${this::class.simpleName}")
-			        }
-		        }
-	        }
-        }
+	final override fun loadFromJson(serialized: JsonElement) {
+		val rootObj = serialized.asJsonObject
 
-        loadFromObject(rootObj, settingLayers.layers)
-    }
+		fun load(multiple: SettingLayer.Multiple, obj: JsonObject) {
+			forEachSetting(
+				multiple,
+				false,
+				{ _, multiple ->
+					val nestedObj = obj[multiple.name]
+					if (nestedObj == null || !nestedObj.isJsonObject) {
+						logError("No data for ${multiple.type.toString().lowercase()} '${multiple.name}' in '$name'}")
+					}
+					try {
+						load(multiple, nestedObj.asJsonObject)
+					} catch(e: Throwable) {
+						logError("Failed to deserialize ${multiple.type.toString().lowercase()} '${multiple.name}' in '$name'", e)
+					}
+				}
+			) { _, single ->
+				val jsonValue = obj[single.setting.name]
+				if (jsonValue != null) {
+					try {
+						single.setting.loadFromJson(jsonValue)
+					} catch (e: Throwable) {
+						logError("Failed to deserialize setting '$name'", e)
+					}
+				} else {
+					logError("No saved value for setting '${single.setting.name}' in '$name'")
+				}
+			}
+		}
+
+		load(settingLayers, rootObj)
+	}
 
 	@SettingDsl
     fun setting(
@@ -446,10 +453,11 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 				.filterIsInstance<SettingLayer.Multiple>()
 				.filter { it.name == spec.name }
 				.also {
-					if (it.any { layer ->
-						spec.type == SettingLayerType.Tab && layer is SettingLayer.Group ||
-								spec.type == SettingLayerType.Group && layer is SettingLayer.Tab
-					}) throw IllegalStateException("Duplicate setting layer names with differing types: ${spec.type}")
+					it.forEach { layer ->
+						if (spec.type == SettingLayerType.Tab && layer !is SettingLayer.Tab ||
+							spec.type == SettingLayerType.Group && layer !is SettingLayer.Group
+							) throw IllegalStateException("Duplicate setting layers with differing types: ${layer.name} with type ${layer.type.toString().lowercase()} and ${spec.name} with type ${spec.type.toString().lowercase()}")
+					}
 				}
 				.firstOrNull()
 
@@ -464,6 +472,10 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 				currentSettingLayer = newSettingLayer
 			}
 		}
+
+		if (currentSettingLayer.layers.any {
+			it is SettingLayer.Single<*, *> && it.setting.name == name
+		}) throw IllegalStateException("Duplicate setting name ('$name') within ${currentSettingLayer.name}")
 
 		var currentBlockLayer: BlockLayer = settingBlockLayers
 		layerSpecInfo.settingBlockSpecs.forEach { index ->
@@ -494,7 +506,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     private data class SettingLayerSpec(val type: SettingLayerType, val name: String)
 	private data class LayerSpecInfo(val settingLayerSpecs: List<SettingLayerSpec>, val settingBlockSpecs: List<Int>)
 
-    sealed interface SettingLayer {
+	sealed interface SettingLayer {
 		val parent: SettingLayer?
 
 	    sealed class Multiple(
@@ -556,6 +568,44 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 		) : BlockLayer() {
 			var settingBlock: SettingBlockWrapper<*>? = null
 		}
+	}
+
+	internal fun forEachSetting(
+		root: SettingLayer.Multiple = settingLayers,
+		recurse: Boolean = true,
+		onMultiple: ((path: List<String>, single: SettingLayer.Multiple) -> Unit)? = null,
+		onSingle: ((path: List<String>, single: SettingLayer.Single<*, *>) -> Unit)? = null
+	) {
+		fun internalForEach(layer: SettingLayer.Multiple, path: List<String>) {
+			layer.layers.forEach { layer ->
+				when (layer) {
+					is SettingLayer.Single<*, *> if onSingle != null -> onSingle(path, layer)
+					is SettingLayer.Multiple if onMultiple != null -> {
+						onMultiple(path, layer)
+						if (recurse) internalForEach(layer, path + layer.name)
+					}
+					else -> {}
+				}
+			}
+		}
+		internalForEach(root, emptyList())
+	}
+
+	internal fun forEachSettingBlock(
+		root: BlockLayer = settingBlockLayers,
+		recurse: Boolean = true,
+		onBlockLayer: ((path: List<Int>, block: BlockLayer.Block) -> Unit)? = null,
+		onSetting: ((path: List<Int>, single: SettingLayer.Single<*, *>) -> Unit)? = null
+	) {
+		fun internalForEach(layer: BlockLayer, path: List<Int>) {
+			if (onSetting != null) layer.settingLayers.forEach { onSetting(path, it) }
+			layer.layers.forEachIndexed { index, blockLayer ->
+				val fullPath = path + index
+				onBlockLayer?.invoke(fullPath, blockLayer)
+				if (recurse) internalForEach(blockLayer, fullPath)
+			}
+		}
+		internalForEach(root, emptyList())
 	}
 }
 

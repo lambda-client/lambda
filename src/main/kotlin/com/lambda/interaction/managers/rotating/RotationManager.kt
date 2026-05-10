@@ -30,6 +30,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
 import com.lambda.interaction.managers.rotating.RotationManager.activeRotation
@@ -69,9 +70,9 @@ object RotationManager : Manager<RotationRequest>(
 	@JvmStatic val requests = mutableListOf<IRotationRequest?>(null, null)
 
 	private var usingBaritoneRotation = false
-	@JvmStatic var activeRotation = Rotation.ZERO
-	@JvmStatic var serverRotation = Rotation.ZERO
-	@JvmStatic var prevServerRotation = Rotation.ZERO
+	@JvmStatic var activeRotation = Rotation.Zero
+	@JvmStatic var serverRotation = Rotation.Zero
+	@JvmStatic var prevServerRotation = Rotation.Zero
 
 	private var changedThisTick = false
 
@@ -120,7 +121,7 @@ object RotationManager : Manager<RotationRequest>(
 		}
 
         listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
-            reset(Rotation.ZERO)
+            reset(Rotation.Zero)
         }
 
         // Override user interactions with max priority

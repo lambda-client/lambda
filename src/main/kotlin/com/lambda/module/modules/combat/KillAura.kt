@@ -20,7 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.TargetingSettings
+import com.lambda.config.settings.blocks.TargetingSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
@@ -60,7 +60,7 @@ object KillAura : Module(
     @Tab(GeneralTab) private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
     @Tab(GeneralTab) private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
 
-    @Tab(TargetingTab) private val targetingSettings = settingBlock(TargetingSettings.CombatSettings(this))
+    @Tab(TargetingTab) private val targetingSettings by settingBlock(TargetingSettings.CombatSettings(this))
 
     val target: Entity?
         get() = targetingSettings.target<Entity>()
@@ -92,7 +92,7 @@ object KillAura : Module(
         setModulePriority(90)
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllBlocksExcept(buildConfig, hotbarConfig, rotationConfig)
+                hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
                 buildConfig.apply {
                     hide(
                         ::pathing, ::stayInRange, ::collectDrops,

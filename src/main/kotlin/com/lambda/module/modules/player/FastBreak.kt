@@ -40,7 +40,7 @@ object FastBreak : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(buildConfig, breakConfig, rotationConfig, hotbarConfig)
+				hideAllBlocksExcept(::buildConfig, ::breakConfig, ::rotationConfig, ::hotbarConfig)
 				buildConfig.apply {
 					hide(
 						::pathing,

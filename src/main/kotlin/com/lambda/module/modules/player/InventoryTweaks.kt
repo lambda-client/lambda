@@ -49,7 +49,7 @@ object InventoryTweaks : Module(
     init {
         setDefaultAutomationConfig {
             applyEdits {
-                hideAllBlocksExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
+                hideAllBlocksExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
             }
         }
 

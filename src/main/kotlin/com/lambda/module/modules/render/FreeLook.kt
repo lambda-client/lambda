@@ -38,7 +38,7 @@ object FreeLook : Module(
     @JvmStatic val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
     val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
-    var camera: Rotation = Rotation.ZERO
+    var camera: Rotation = Rotation.Zero
     var previousPerspective: Perspective = mc.options.perspective
 
     /**

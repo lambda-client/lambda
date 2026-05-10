@@ -19,7 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.EatConfig.Companion.reasonEating
+import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -40,7 +40,7 @@ object AutoEat : Module(
     init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(eatConfig)
+				hideAllBlocksExcept(::eatConfig)
 			}
 		}
 

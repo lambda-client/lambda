@@ -18,10 +18,10 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.config.Tab
-import com.lambda.config.blocks.ScreenLineSettings
-import com.lambda.config.blocks.ScreenTextSettings
-import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.blocks.WorldTextSettings
+import com.lambda.config.settings.blocks.ScreenLineSettings
+import com.lambda.config.settings.blocks.ScreenTextSettings
+import com.lambda.config.settings.blocks.WorldLineSettings
+import com.lambda.config.settings.blocks.WorldTextSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
@@ -36,10 +36,10 @@ object SettingsTestModule : Module(
     private const val WorldTextTab = "World Text"
     private const val ScreenTextTab = "Screen Text"
 
-    @Tab(WorldLineTab) private val worldLineConfig = settingBlock(WorldLineSettings(this))
-    @Tab(ScreenLineTab) private val screenLineConfig = settingBlock(ScreenLineSettings(this))
-    @Tab(WorldTextTab) private val worldTextConfig = settingBlock(WorldTextSettings(this))
-    @Tab(ScreenTextTab) private val textConfig = settingBlock(ScreenTextSettings(this))
+    @Tab(WorldLineTab) private val worldLineConfig by settingBlock(WorldLineSettings(this))
+    @Tab(ScreenLineTab) private val screenLineConfig by settingBlock(ScreenLineSettings(this))
+    @Tab(WorldTextTab) private val worldTextConfig by settingBlock(WorldTextSettings(this))
+    @Tab(ScreenTextTab) private val textConfig by settingBlock(ScreenTextSettings(this))
 
 //    private val renderer = ImmediateRenderer("SettingsTestRenderer")
 

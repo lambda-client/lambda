@@ -19,8 +19,8 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
-import com.lambda.config.blocks.ScreenLineSettings
-import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.settings.blocks.ScreenLineSettings
+import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
@@ -85,28 +85,20 @@ object Search : Module(
     @Group(OutlineGroup) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
     @Group(OutlineGroup) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
-    @Group(OutlineGroup) private val outlineConfig =
-        settingBlock(
-            WorldLineSettings(this),
-            { outline }
-        ) {
-            applyEdits {
-                hide(::startColor, ::endColor)
-                forEachSetting { it.onValueChange(::rebuildMesh) }
-            }
+    @Group(OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this), { outline }) {
+        applyEdits {
+            hide(::startColor, ::endColor)
+            forEachSetting { it.onValueChange(::rebuildMesh) }
         }
+    }
     @Group(TracersGroup) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
-    @Group(TracersGroup) private val tracerConfig =
-        settingBlock(
-            ScreenLineSettings(this),
-            { tracers }
-        ) {
-            applyEdits {
-                editTyped(::startColor, ::endColor) {
-                    visibility { { !useNaturalColor } }
-                }
+    @Group(TracersGroup) private val tracerConfig by settingBlock(ScreenLineSettings(this), { tracers }) {
+        applyEdits {
+            editTyped(::startColor, ::endColor) {
+                visibility { { !useNaturalColor } }
             }
         }
+    }
 
     private val tracerBlockPositions = ConcurrentMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
 

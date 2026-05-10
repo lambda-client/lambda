@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.managers.interacting
 
-import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.blocks.InteractConfig
+import com.lambda.config.automation.AutomationConfig.Companion.Default
+import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler
@@ -31,8 +31,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 	override val pendingActions = LimitedDecayQueue<InteractInfo>(
-		DEFAULT.buildConfig.maxPendingActions,
-		DEFAULT.buildConfig.actionTimeout * 50L
+		Default.buildConfig.maxPendingActions,
+		Default.buildConfig.actionTimeout * 50L
 	) {
 		if (verboseDebug) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
 		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {

@@ -43,7 +43,7 @@ object StackReplenish : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(inventoryConfig)
+				hideAllBlocksExcept(::inventoryConfig)
 				inventoryConfig.apply {
 					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
 				}

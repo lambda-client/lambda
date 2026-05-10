@@ -93,7 +93,7 @@ object AirPlace : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(interactConfig)
+				hideAllBlocksExcept(::interactConfig)
 			}
 		}
 

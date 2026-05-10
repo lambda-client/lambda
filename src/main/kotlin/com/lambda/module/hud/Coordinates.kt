@@ -19,7 +19,7 @@ package com.lambda.module.hud
 
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.blocks.FormatterSettings
+import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
@@ -42,7 +42,7 @@ object Coordinates : HudModule(
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
 	private const val CurrentDimensionTab = "Current Dimension"
-	@Tab(CurrentDimensionTab) private val formatter =
+	@Tab(CurrentDimensionTab) private val formatter by
 		settingBlock(FormatterSettings(this)) {
 			applyEdits { ::timeFormat.edit { hide() } }
 		}

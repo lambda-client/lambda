@@ -17,23 +17,21 @@
 
 package com.lambda.command.commands
 
-import com.google.gson.JsonParser
+import com.lambda.brigadier.CommandResult
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Config
 import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigLoader
-import com.lambda.config.Setting
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
-import com.mojang.brigadier.context.CommandContext
-import net.minecraft.command.CommandSource
+import com.mojang.brigadier.builder.ArgumentBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 
 object ConfigCommand : LambdaCommand(
@@ -43,8 +41,6 @@ object ConfigCommand : LambdaCommand(
     description = "Save or load configuration files, or set/reset any settings value",
     examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
 ) {
-    private const val MaxPathDepth = 6
-
     override fun CommandBuilder.create() {
         required(literal("save")) {
             executeWithResult {
@@ -65,19 +61,71 @@ object ConfigCommand : LambdaCommand(
             }
         }
         required(literal("reset")) {
-            required(string("config")) { configArg ->
-                suggests { _, builder ->
-                    suggestMatching(ConfigLoader.configs.map { it.commandName }, builder)
-                }
-                buildResetPath(0)
+            settingArgument { layer ->
+                layer.setting.reset()
+                success()
             }
         }
         required(literal("set")) {
-            required(string("config")) { configArg ->
-                suggests { _, builder ->
-                    suggestMatching(ConfigLoader.configs.map { it.commandName }, builder)
+            settingArgument { layer ->
+                with(layer.setting) { buildCommand(registry) }
+                success()
+            }
+        }
+    }
+
+    private fun <S, B : ArgumentBuilder<S, *>> B.settingArgument(block: B.(SettingLayer.Single<*, *>) -> CommandResult) {
+        required(string("config")) { configArg ->
+            suggests { _, builder ->
+                suggestMatching(ConfigLoader.configs.map { it.commandName }, builder)
+            }
+            executeWithResult {
+                val configString = configArg().value()
+                val config = ConfigLoader.configByCommandName(configString) ?: return@executeWithResult failure("Config not found")
+                config.reset()
+                success()
+            }
+            required(greedyString("setting")) { settingArg ->
+                suggests { context, builder ->
+                    val configString = configArg(context).value()
+                    val config = ConfigLoader.configByCommandName(configString) ?: return@suggests null
+                    val suggestions = mutableListOf<String>()
+                    fun forEach(layer: SettingLayer.Multiple, layerPath: List<String>) {
+                        layer.layers.forEach { layer ->
+                            when (layer) {
+                                is SettingLayer.Single<*, *> -> suggestions.add("${layerPath.joinToString(".")}.${layer.setting.name}")
+                                is SettingLayer.Multiple -> forEach(layer, layerPath + layer.name)
+                            }
+                        }
+                    }
+
+                    forEach(config.settingLayers, emptyList())
+                    suggestMatching(suggestions, builder)
                 }
-                buildSetPath(0)
+                executeWithResult {
+                    val configString = configArg().value()
+                    val config = ConfigLoader.configByCommandName(configString) ?: return@executeWithResult failure("Config not found")
+                    val settingString = settingArg().value()
+                    val fullPath = settingString.split(".")
+                    val settingName = fullPath.last()
+                    var currentLayer: SettingLayer.Multiple = config.settingLayers
+                    fullPath.forEachIndexed { index, layerName ->
+                        if (index == fullPath.size - 1) return@forEachIndexed
+                        val layer = currentLayer.layers
+                            .asSequence()
+                            .filterIsInstance<SettingLayer.Multiple>()
+                            .find { it.name == layerName }
+                        if (layer == null) return@executeWithResult failure("Config layer not found: $layerName")
+                        currentLayer = layer
+                    }
+
+                    val settingLayer = currentLayer.layers
+                        .asSequence()
+                        .filterIsInstance<SettingLayer.Single<*, *>>()
+                        .find { it.setting.name == settingName }
+                    if (settingLayer == null) return@executeWithResult failure("Setting not found: $settingName")
+                    return@executeWithResult block(settingLayer)
+                }
             }
         }
     }

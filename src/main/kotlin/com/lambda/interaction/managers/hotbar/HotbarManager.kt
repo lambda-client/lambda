@@ -17,12 +17,13 @@
 
 package com.lambda.interaction.managers.hotbar
 
+import com.lambda.config.settings.blocks.HotbarConfig
+import com.lambda.config.settings.blocks.HotbarConfig.SwapMode
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Manager
-import com.lambda.config.blocks.HotbarConfig.SwapMode
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeRequest
 import com.lambda.interaction.managers.hotbar.HotbarManager.activeSlot
 import com.lambda.interaction.managers.hotbar.HotbarManager.checkResetSwap

@@ -21,8 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.blocks.EntitySelectionSettings
-import com.lambda.config.blocks.ScreenTextSettings
+import com.lambda.config.settings.blocks.EntitySelectionSettings
+import com.lambda.config.settings.blocks.ScreenTextSettings
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -72,25 +72,22 @@ object Nametags : Module(
 	@Tab(GeneralTab) private val itemCount by setting("Item Count", true)
 	@Tab(GeneralTab) private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }
 
-	@Tab(EntityTab) private val entitySelectionSettings =
-		settingBlock(EntitySelectionSettings(this)) {
-			applyEdits {
-				hide(::blockEntities)
-			}
+	@Tab(EntityTab) private val entitySelectionSettings by settingBlock(EntitySelectionSettings(this)) {
+		applyEdits {
+			hide(::blockEntities)
 		}
+	}
 
 	private const val FriendGroup = "Friends"
 	private const val OtherGroup = "Others"
 
-	@Tab(TextTab) @Group(FriendGroup) private val friendTextConfig =
-		settingBlock(ScreenTextSettings(this)) {
-			applyEdits {
-				hide(::sizeSetting)
-				::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
-			}
+	@Tab(TextTab) @Group(FriendGroup) private val friendTextConfig by settingBlock(ScreenTextSettings(this)) {
+		applyEdits {
+			hide(::sizeSetting)
+			::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
 		}
-	@Tab(TextTab) @Group(OtherGroup) private val otherTextConfig =
-		settingBlock(ScreenTextSettings(this)) { applyEdits { hide(::sizeSetting) } }
+	}
+	@Tab(TextTab) @Group(OtherGroup) private val otherTextConfig by settingBlock(ScreenTextSettings(this)) { applyEdits { hide(::sizeSetting) } }
 
 	@Tab(BackgroundTab) private val background by setting("Background", true)
 	@Tab(BackgroundTab) private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }

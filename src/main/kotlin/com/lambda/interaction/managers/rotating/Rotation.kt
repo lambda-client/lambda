@@ -88,9 +88,9 @@ data class Rotation(val yaw: Double, val pitch: Double) {
                 else -> 0.0f
             }
 
-        val ZERO = Rotation(0.0, 0.0)
-        val DOWN = Rotation(0.0, 90.0)
-        val UP = Rotation(0.0, -90.0)
+        val Zero = Rotation(0.0, 0.0)
+        val Down = Rotation(0.0, 90.0)
+        val Up = Rotation(0.0, -90.0)
         val Direction.rotation get() = Rotation(yaw.toDouble(), 0.0)
         var Entity.rotation
             get() = Rotation(yaw, pitch)

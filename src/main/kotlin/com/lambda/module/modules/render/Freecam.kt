@@ -94,7 +94,7 @@ object Freecam : Module(
 			return prevPosition.interpolate(tickProgress, position)
 		}
 
-	private var rotation: Rotation = Rotation.ZERO
+	private var rotation: Rotation = Rotation.Zero
 	private var velocity: Vec3d = Vec3d.ZERO
 
 	@JvmStatic
@@ -126,7 +126,7 @@ object Freecam : Module(
 				rotationConfig::rotationMode.edit {
 					defaultValue(RotationMode.Lock)
 				}
-				hideAllBlocksExcept(rotationConfig)
+				hideAllBlocksExcept(::rotationConfig)
 			}
 		}
 

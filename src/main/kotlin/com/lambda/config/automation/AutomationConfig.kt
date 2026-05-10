@@ -64,6 +64,6 @@ open class AutomationConfig(
 	        edits: (AutomationConfig.() -> Unit)? = null
 		) { defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) } }
 
-		val DEFAULT = AutomationConfig("Default")
+		val Default = AutomationConfig("Default")
     }
 }

@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
-import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.LineDashStyle
 import com.lambda.graphics.mc.RenderBuilder
@@ -60,13 +60,12 @@ object LightLevels : Module(
 	@Group(FillGroup) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
 	@Group(FillGroup) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
 	@Group(LineGroup) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	@Group(LineGroup) private val worldLineConfig =
-		settingBlock(WorldLineSettings(this), { renderMode != RenderMode.Square || outline }) {
-			applyEdits {
-				hide(::startColor, ::endColor)
-				forEachSetting { it.onValueChange(::refreshChunkedRenderer) }
-			}
+	@Group(LineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this), { renderMode != RenderMode.Square || outline }) {
+		applyEdits {
+			hide(::startColor, ::endColor)
+			forEachSetting { it.onValueChange(::refreshChunkedRenderer) }
 		}
+	}
 	private val depthTest by setting("Depth Test", false, "Shows renders through terrain")
 	private val horizontalRange by setting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
 	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }

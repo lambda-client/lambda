@@ -45,7 +45,7 @@ object ToolSaver : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(inventoryConfig)
+				hideAllBlocksExcept(::inventoryConfig)
 			}
 		}
 

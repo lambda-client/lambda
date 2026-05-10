@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.blocks
 
-import com.lambda.config.SettingBlock
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.util.Describable

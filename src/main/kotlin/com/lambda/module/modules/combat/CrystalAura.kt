@@ -20,7 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.TargetingSettings
+import com.lambda.config.settings.blocks.TargetingSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
@@ -112,7 +112,7 @@ object CrystalAura : Module(
     @Tab(PredictionTab) private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
     @Tab(PredictionTab) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
-    @Tab(PredictionTab) private val targetingSettings = settingBlock(TargetingSettings.CombatSettings(this, 10.0))
+    @Tab(PredictionTab) private val targetingSettings by settingBlock(TargetingSettings.CombatSettings(this, 10.0))
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
@@ -146,7 +146,7 @@ object CrystalAura : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(buildConfig, rotationConfig, hotbarConfig, inventoryConfig)
+				hideAllBlocksExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
 				buildConfig.apply {
 					hide(
 						::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,

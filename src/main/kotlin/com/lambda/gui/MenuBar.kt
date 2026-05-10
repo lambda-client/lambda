@@ -307,7 +307,7 @@ object MenuBar {
             if (config !is UserAutomationConfig) throw java.lang.IllegalStateException("All configs within UserAutomationConfigs must be UserAutomationConfigs!")
             buildAutomationConfigSelectable(config)
         }
-        buildAutomationConfigSelectable(AutomationConfig.Companion.DEFAULT)
+        buildAutomationConfigSelectable(AutomationConfig.Companion.Default)
     }
 
     private fun ImGuiBuilder.buildAutomationConfigSelectable(config: AutomationConfig) {
@@ -470,7 +470,11 @@ object MenuBar {
                 text("Modules: ${ModuleRegistry.modules.size}")
                 text("Commands: ${CommandRegistry.commands.size}")
                 val totalSettings = ConfigLoader.configCategories.sumOf { cfg ->
-                    cfg.configs.sumOf { it.settingLayers.size }
+                    cfg.configs.sumOf {
+                        var count = 0
+                        it.forEachSetting { _, _ -> count++ }
+                        count
+                    }
                 }
                 text("Settings: $totalSettings")
                 text("Synchronous listeners: ${EventFlow.syncListeners.size}")

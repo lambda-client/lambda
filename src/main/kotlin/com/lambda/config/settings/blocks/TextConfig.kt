@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.blocks
 
-import com.lambda.config.SettingBlock
 import com.lambda.graphics.mc.RenderBuilder
 import java.awt.Color
 

@@ -136,7 +136,7 @@ class Setting<T : SettingCore<R>, R>(
 		runCatching {
 			originalCore.loadFromJson(serialized)
 		}.onFailure {
-			Log.warn("Failed to load setting $name with value $serialized. Resetting to default value ${core.defaultValue}")
+			Log.warn("Failed to load setting $name with value $serialized")
 		}
 	}
 

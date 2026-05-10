@@ -17,8 +17,6 @@
 
 package com.lambda.config.settings.blocks
 
-import com.lambda.config.SettingBlock
-
 interface EntitySelectionConfig {
 	val self: Boolean
 	val enablePlayerEntities: Boolean

@@ -26,10 +26,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
-import com.lambda.config.ConfigLoader
 import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.settings.CharSetting
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText

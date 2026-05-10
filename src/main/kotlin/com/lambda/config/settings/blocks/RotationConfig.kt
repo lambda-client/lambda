@@ -17,8 +17,6 @@
 
 package com.lambda.config.settings.blocks
 
-import com.lambda.config.Config
-import com.lambda.config.SettingBlock
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.managers.rotating.RotationMode

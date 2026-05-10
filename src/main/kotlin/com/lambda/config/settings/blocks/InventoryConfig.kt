@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.blocks
 
-import com.lambda.config.SettingBlock
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.material.ContainerSelection

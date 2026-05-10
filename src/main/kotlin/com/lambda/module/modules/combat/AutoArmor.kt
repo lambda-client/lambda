@@ -97,7 +97,7 @@ object AutoArmor : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(inventoryConfig)
+				hideAllBlocksExcept(::inventoryConfig)
 			}
 		}
 

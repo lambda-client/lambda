@@ -17,7 +17,7 @@
 
 package com.lambda.util
 
-import com.lambda.config.blocks.FormatterConfig
+import com.lambda.config.settings.blocks.FormatterConfig
 import com.lambda.util.math.Vec2d
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d

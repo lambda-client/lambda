@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
-import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
@@ -28,6 +28,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.ChatUtils.colors
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.Blocks
@@ -54,16 +55,12 @@ object RadiusESP : Module(
 	@Group(RenderGroup) private var outline: Boolean by setting("Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
 	@Group(RenderGroup) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
-	@Group(RenderGroup, OutlineGroup) private val worldLineConfig =
-		settingBlock(
-			WorldLineSettings(this),
-			{ outline }
-		) {
-			applyEdits {
-				hide(::startColor, ::endColor)
-				forEachSetting { it.onValueChange(::rebuildMesh) }
-			}
+	@Group(RenderGroup, OutlineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this), { outline }) {
+		applyEdits {
+			hide(::startColor, ::endColor)
+			forEachSetting { it.onValueChange(::rebuildMesh) }
 		}
+	}
 
 	private val chunkedRenderer = chunkedRenderer("RadiusESP Chunked Renderer") { _, pos ->
 		runSafe {

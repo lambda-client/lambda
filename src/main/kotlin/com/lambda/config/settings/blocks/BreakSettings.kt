@@ -39,7 +39,7 @@ class BreakSettings(override val c: Config) : BreakConfig, SettingBlock {
 
 	// General
 	@Group(GeneralGroup) override val breakMode by c.setting("Break Mode", BreakMode.Packet)
-	@Group(GeneralGroup) override val sorter by c.setting("Break Sorter", _root_ide_package_.com.lambda.config.settings.blocks.ActionConfig.SortMode.Tool, "The order in which breaks are performed")
+	@Group(GeneralGroup) override val sorter by c.setting("Break Sorter", ActionConfig.SortMode.Tool, "The order in which breaks are performed")
 	@Group(GeneralGroup) override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once")
 	// Double break
 	@Group(GeneralGroup) override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once")
@@ -52,9 +52,9 @@ class BreakSettings(override val c: Config) : BreakConfig, SettingBlock {
 	@Group(GeneralGroup) override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)")
 	// Timing
 	@Group(GeneralGroup) override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
-	@Group(GeneralGroup) override val swapMode by c.setting("Break Swap Mode", _root_ide_package_.com.lambda.config.settings.blocks.BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
+	@Group(GeneralGroup) override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
 	@Group(GeneralGroup) override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand")
-	@Group(GeneralGroup) override val swingType by c.setting("Break Swing Type", _root_ide_package_.com.lambda.config.settings.blocks.BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
+	@Group(GeneralGroup) override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
 	// Rotate
 	@Group(GeneralGroup) override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking")
 	// Pending / Post

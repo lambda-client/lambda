@@ -57,7 +57,7 @@ object AutoTotem : Module(
 		setModulePriority(100)
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(inventoryConfig)
+				hideAllBlocksExcept(::inventoryConfig)
 			}
 		}
 

@@ -18,6 +18,7 @@
 package com.lambda.gui.components
 
 import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.automation.IMutableAutomationConfig
@@ -51,12 +52,12 @@ object SettingsWidget {
 			            with(config.backgroundColor) { buildLayout() }
 		            }
 		            smallButton("Reset") {
-			            resetContainers(config.settingLayers)
+			            config.reset()
 		            }
 	            }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
-            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.DEFAULT) {
+            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.Default) {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }
@@ -88,94 +89,56 @@ object SettingsWidget {
 
 	    if (!hasVisibleSettings(config.settingLayers)) return
 	    separator()
-	    renderContainers(config.settingLayers, config.name)
+	    drawLayers(config.settingLayers, config.name)
     }
 
-    /**
-     * Recursively renders [Config.SettingLayer]s in order.
-     * - [Config.SettingLayer.Single]: renders the setting with visibility/disabled checks.
-     * - [Config.SettingLayer.Tab]: renders as ImGui tab bar with tab items.
-     * - [Config.SettingLayer.Group]: renders as a collapsible tree node with indent.
-     */
-    private fun ImGuiBuilder.renderContainers(containers: List<Config.SettingLayer>, idPrefix: String) {
-	    val runs = mutableListOf<Any>()
-	    containers.forEach { container ->
-		    if (container is Config.SettingLayer.Tab) {
-			    val last = runs.lastOrNull()
-			    if (last is MutableList<*>) {
-				    @Suppress("UNCHECKED_CAST")
-				    (last as MutableList<Config.SettingLayer.Tab>).add(container)
-			    } else {
-				    runs.add(mutableListOf(container))
-			    }
-		    } else {
-			    runs.add(container)
-		    }
-	    }
+    private fun ImGuiBuilder.drawLayers(root: SettingLayer.Multiple, idPrefix: String) {
+	    var tabsDrawn = false
 
-	    runs.forEach { run ->
-		    when (run) {
-			    is Config.SettingLayer.Single -> renderSetting(run.setting)
-			    is Config.SettingLayer.Group -> {
-				    if (hasVisibleSettings(run.layers)) {
-					    treeNode("${run.name}##$idPrefix-group-${run.name}") {
-						    renderContainers(run.layers, "$idPrefix-${run.name}")
+	    root.layers.forEach { layer ->
+		    when (layer) {
+			    is SettingLayer.Single<*, *> -> drawSetting(layer.setting)
+			    is SettingLayer.Group -> {
+				    if (hasVisibleSettings(layer)) {
+					    treeNode("${layer.name}##$idPrefix-group-${layer.name}") {
+						    drawLayers(layer, "$idPrefix-${layer.name}")
 					    }
 				    }
 			    }
-			    is List<*> -> {
-				    @Suppress("UNCHECKED_CAST")
-				    renderTabBar(run as List<Config.SettingLayer.Tab>, idPrefix)
+			    is SettingLayer.Tab -> {
+				    if (!tabsDrawn) {
+					    tabsDrawn = true
+					    val allTabs = root.layers
+						    .filterIsInstance<SettingLayer.Tab>()
+						    .filter { hasVisibleSettings(it) }
+					    if (allTabs.isNotEmpty()) {
+						    tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
+							    allTabs.forEach { tab ->
+								    tabItem(tab.name) {
+									    drawLayers(tab, "$idPrefix-${tab.name}")
+								    }
+							    }
+						    }
+					    }
+				    }
 			    }
+			    else -> {}
 		    }
 	    }
     }
 
-    /**
-     * Renders a group of [Config.SettingLayer.Tab]s as a single ImGui tab bar.
-     */
-    private fun ImGuiBuilder.renderTabBar(tabs: List<Config.SettingLayer.Tab>, idPrefix: String) {
-	    val visibleTabs = tabs.filter { hasVisibleSettings(it.layers) }
-	    if (visibleTabs.isEmpty()) return
-	    tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
-		    visibleTabs.forEach { tab ->
-			    tabItem(tab.name) {
-				    renderContainers(tab.layers, "$idPrefix-${tab.name}")
-			    }
-		    }
-	    }
-    }
-
-    /**
-     * Renders a single [Setting] with visibility and disabled state checks.
-     */
-    private fun ImGuiBuilder.renderSetting(setting: Setting<*, *>) {
+    private fun ImGuiBuilder.drawSetting(setting: Setting<*, *>) {
 	    if (!setting.visibility()) return
 	    if (setting.disabled()) ImGui.beginDisabled()
 	    with(setting) { buildLayout() }
 	    if (setting.disabled()) ImGui.endDisabled()
     }
 
-    /**
-     * Checks if any [Config.SettingLayer] in the tree has a visible setting.
-     */
-    private fun hasVisibleSettings(containers: List<Config.SettingLayer>): Boolean =
-	    containers.any { container ->
-		    when (container) {
-			    is Config.SettingLayer.Single -> container.setting.visibility()
-			    is Config.SettingLayer.Multiple -> hasVisibleSettings(container.layers)
+    private fun hasVisibleSettings(layer: SettingLayer.Multiple): Boolean =
+	    layer.layers.any { layer ->
+		    when (layer) {
+			    is SettingLayer.Single<*, *> -> layer.setting.visibility()
+			    is SettingLayer.Multiple -> hasVisibleSettings(layer)
 		    }
 	    }
-
-    /**
-     * Recursively resets all settings in the container tree.
-     */
-    private fun resetContainers(containers: List<Config.SettingLayer>) {
-	    containers.forEach { container ->
-		    when (container) {
-			    is Config.SettingLayer.Single -> container.setting.reset(silent = true)
-			    is Config.SettingLayer.Multiple -> resetContainers(container.layers)
-		    }
-	    }
-    }
 }

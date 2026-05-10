@@ -21,7 +21,6 @@ package com.lambda.config
 
 import com.lambda.config.Config.BlockLayer
 import com.lambda.config.Config.SettingLayer
-import net.minecraft.client.toast.SystemToast.hide
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
 

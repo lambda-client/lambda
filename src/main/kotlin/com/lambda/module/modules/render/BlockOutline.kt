@@ -27,6 +27,7 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -55,14 +56,13 @@ object BlockOutline : Module(
 	@Group(BoxFillGroup) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
-	@Group(BoxOutlineGroup) private val lineConfig =
-		settingBlock(
-			WorldLineSettings(this),
-			{ boxOutline && mode == Mode.Boxes }
-		) { applyEdits { hide(::startColor, ::endColor) } }
+	@Group(BoxOutlineGroup) private val lineConfig by settingBlock(
+		WorldLineSettings(this),
+		{ boxOutline && mode == Mode.Boxes }
+	) { applyEdits { hide(::startColor, ::endColor) } }
 
 	@Group(OutlineGroup) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	@Group(OutlineGroup) private val outlineStyle = settingBlock(OutlineSettings(this), { mode == Mode.Outline })
+	@Group(OutlineGroup) private val outlineStyle by settingBlock(OutlineSettings(this), { mode == Mode.Outline })
 
 	var previous: List<Box>? = null
 

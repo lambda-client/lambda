@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.InteractConfig
+import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -73,7 +73,7 @@ object Scaffold : Module(
 					::mean.edit { defaultValue(120.0) }
 					::spread.edit { defaultValue(0.0) }
 				}
-				hideAllBlocksExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig)
+				hideAllBlocksExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 			}
 		}
 

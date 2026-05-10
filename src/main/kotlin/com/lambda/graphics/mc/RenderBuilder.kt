@@ -18,7 +18,7 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
-import com.lambda.config.blocks.LineConfig
+import com.lambda.config.settings.blocks.LineConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.outline.OutlineHandler
 import com.lambda.graphics.outline.OutlineStyle

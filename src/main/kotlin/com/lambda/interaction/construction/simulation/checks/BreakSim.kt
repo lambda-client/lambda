@@ -31,7 +31,6 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarManager
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
@@ -43,6 +42,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemStackUtils.inventoryIndexOrSelected
+import com.lambda.util.player.RotationUtils.lookAtBlock
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock

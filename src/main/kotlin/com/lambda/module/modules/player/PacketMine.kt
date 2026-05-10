@@ -20,7 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.config.Group
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.BreakConfig
+import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -99,7 +99,7 @@ object PacketMine : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(buildConfig, breakConfig, breakConfig.outlineConfig, rotationConfig, hotbarConfig)
+				hideAllBlocksExcept(::buildConfig, ::breakConfig, breakConfig::outlineConfig, ::rotationConfig, ::hotbarConfig)
 				buildConfig.apply {
 					hide(
 						::pathing,

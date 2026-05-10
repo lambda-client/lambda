@@ -19,8 +19,8 @@ package com.lambda.module.modules.movement
 
 import com.lambda.config.Group
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -101,7 +101,7 @@ object ElytraAltitudeControl : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(rotationConfig)
+				hideAllBlocksExcept(::rotationConfig)
 			}
 		}
 

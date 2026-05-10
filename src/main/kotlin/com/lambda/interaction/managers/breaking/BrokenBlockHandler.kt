@@ -17,14 +17,14 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.automation.AutomationConfig.Companion.Default
+import com.lambda.config.settings.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
 import com.lambda.interaction.managers.PostActionHandler
-import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.managers.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
@@ -51,7 +51,7 @@ import net.minecraft.util.math.ChunkSectionPos
  */
 object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 	override val pendingActions = LimitedDecayQueue<BreakInfo>(
-		DEFAULT.buildConfig.maxPendingActions, DEFAULT.buildConfig.actionTimeout * 50L
+		Default.buildConfig.maxPendingActions, Default.buildConfig.actionTimeout * 50L
 	) { info ->
 		runSafe {
 			val pos = info.context.blockPos

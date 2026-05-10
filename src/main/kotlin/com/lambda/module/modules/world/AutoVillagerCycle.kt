@@ -94,7 +94,7 @@ object AutoVillagerCycle : Module(
 	init {
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(rotationConfig, inventoryConfig, breakConfig, interactConfig, buildConfig)
+				hideAllBlocksExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
 			}
 		}
 

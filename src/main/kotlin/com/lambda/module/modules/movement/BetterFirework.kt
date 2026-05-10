@@ -19,8 +19,8 @@ package com.lambda.module.modules.movement
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
@@ -101,7 +101,7 @@ object BetterFirework : Module(
 		setModulePriority(1)
 		setDefaultAutomationConfig {
 			applyEdits {
-				hideAllBlocksExcept(hotbarConfig, inventoryConfig)
+				hideAllBlocksExcept(::hotbarConfig, ::inventoryConfig)
 				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
 				inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
 			}

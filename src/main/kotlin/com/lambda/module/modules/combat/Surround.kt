@@ -53,7 +53,7 @@ object Surround : Module(
 						::collectDrops
 					) { defaultValue(false); hide() }
 				}
-				hideBlock(eatConfig)
+				hideBlock(::eatConfig)
 			}
 		}
 

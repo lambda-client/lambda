@@ -29,8 +29,8 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
+import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
-import com.lambda.util.getInstances
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity

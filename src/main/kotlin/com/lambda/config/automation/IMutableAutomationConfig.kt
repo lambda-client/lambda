@@ -17,7 +17,7 @@
 
 package com.lambda.config.automation
 
-import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.settings.blocks.BreakConfig
@@ -34,17 +34,17 @@ interface IMutableAutomationConfig : Automated {
     var backingAutomationConfig: AutomationConfig
 	var automationConfig: AutomationConfig
 
-	override val buildConfig get() = automationConfig.buildConfig
-	override val breakConfig get() = automationConfig.breakConfig
-	override val interactConfig get() = automationConfig.interactConfig
-	override val rotationConfig get() = automationConfig.rotationConfig
-	override val inventoryConfig get() = automationConfig.inventoryConfig
-	override val hotbarConfig get() = automationConfig.hotbarConfig
-	override val eatConfig get() = automationConfig.eatConfig
+	override val buildConfig: BuildConfig get() = automationConfig.buildConfig
+	override val breakConfig: BreakConfig get() = automationConfig.breakConfig
+	override val interactConfig: InteractConfig get() = automationConfig.interactConfig
+	override val rotationConfig: RotationConfig get() = automationConfig.rotationConfig
+	override val inventoryConfig: InventoryConfig get() = automationConfig.inventoryConfig
+	override val hotbarConfig: HotbarConfig get() = automationConfig.hotbarConfig
+	override val eatConfig: EatConfig get() = automationConfig.eatConfig
 }
 
 class MutableAutomationConfig : IMutableAutomationConfig {
-	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.DEFAULT
+	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Default
 		set(value) {
 			field = value
 			automationConfig = value
@@ -54,15 +54,28 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 		set(value) {
 			if (value === defaultAutomationConfig) {
 				if (backingAutomationConfig !== defaultAutomationConfig) {
-					Config.forEachSetting(field) { it.restoreOriginalCore() }
+					field.forEachSetting { _, single -> single.setting.restoreOriginalCore() }
 				}
 				field = value
 			} else {
-				Config.forEachMatchingSetting(field.settingLayers, value.settingLayers) { setting, newSetting ->
-					if (setting.core.type != newSetting.core.type)
+				field.forEachSetting { path, single ->
+					var otherLayer: SettingLayer.Multiple = value.settingLayers
+					path.forEach { layer ->
+						val subLayer = otherLayer.layers
+							.asSequence()
+							.filterIsInstance<SettingLayer.Multiple>()
+							.find { it.name == layer } ?: return@forEachSetting
+						otherLayer = subLayer
+					}
+					val otherSetting = otherLayer.layers
+						.asSequence()
+						.filterIsInstance<SettingLayer.Single<*, *>>()
+						.find { it.setting.name == single.setting.name }
+						?.setting ?: return@forEachSetting
+					if (single.setting.core.type != otherSetting.core.type)
 						throw IllegalStateException("Settings with the same name do not have the same type.")
 					@Suppress("UNCHECKED_CAST")
-					(setting as Setting<SettingCore<Any>, Any>).core = newSetting.core as SettingCore<Any>
+					(single.setting as Setting<SettingCore<Any>, Any>).core = otherSetting.core as SettingCore<Any>
 				}
 			}
 			backingAutomationConfig = value

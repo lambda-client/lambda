@@ -20,9 +20,9 @@ package com.lambda.module.modules.render
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.applyEdits
-import com.lambda.config.blocks.EntityColorSettings
-import com.lambda.config.blocks.EntitySelectionSettings
-import com.lambda.config.blocks.ScreenLineSettings
+import com.lambda.config.settings.blocks.EntityColorSettings
+import com.lambda.config.settings.blocks.EntitySelectionSettings
+import com.lambda.config.settings.blocks.ScreenLineSettings
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
@@ -58,20 +58,17 @@ object Tracers : Module(
 	private const val FriendsLineGroup = "Friends"
 	private const val OthersLineGroup = "Others"
 
-	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig =
-		settingBlock(ScreenLineSettings(this)) {
-			applyEdits { hide(::startColor, ::endColor) }
-		}
-	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig =
-		settingBlock(ScreenLineSettings(this)) {
-			applyEdits { hide(::startColor, ::endColor) }
-		}
+	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig by settingBlock(ScreenLineSettings(this)) {
+		applyEdits { hide(::startColor, ::endColor) }
+	}
+	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig by settingBlock(ScreenLineSettings(this)) {
+		applyEdits { hide(::startColor, ::endColor) }
+	}
 
-	@Tab(EntityTab) private val entitySettings =
-		settingBlock(EntitySelectionSettings(this)) {
-			applyEdits { hide(::self, ::blockEntities) }
-		}
-	@Tab(ColorsTab) private val entityColors = settingBlock(EntityColorSettings(this))
+	@Tab(EntityTab) private val entitySettings by settingBlock(EntitySelectionSettings(this)) {
+		applyEdits { hide(::self, ::blockEntities) }
+	}
+	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))
 
 	init {
 		immediateRenderer("Tracers Immediate Renderer") { safeContext ->

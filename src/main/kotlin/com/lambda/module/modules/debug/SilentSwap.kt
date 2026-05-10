@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.blocks.HotbarSettings
+import com.lambda.config.applyEdits
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -30,9 +31,13 @@ object SilentSwap : Module(
     description = "SilentSwap",
     tag = ModuleTag.Debug,
 ) {
-    override val hotbarConfig = HotbarSettings(this)
-
     init {
+        setDefaultAutomationConfig {
+            applyEdits {
+                hideAllBlocksExcept(::hotbarConfig)
+            }
+        }
+
         listen<PlayerEvent.Attack.Block> {
             if (!HotbarRequest(0, this@SilentSwap).submit().done) {
                 it.cancel()
