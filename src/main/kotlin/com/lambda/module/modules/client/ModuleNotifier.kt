@@ -25,6 +25,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.log
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
+import com.lambda.util.text.TextBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
@@ -46,28 +47,28 @@ object ModuleNotifier : Module(
 
 	init {
 		listen<ModuleEvent.Enabled> { event ->
-			logToTargets(event.module, buildText {
+			logToTargets(event.module) {
 				color(Color(Colors.GREEN)) {
 					literal("on")
 				}
-			})
+			}
 		}
 
 		listen<ModuleEvent.Disabled> { event ->
-			logToTargets(event.module, buildText {
+			logToTargets(event.module) {
 				color(Color(Colors.RED)) {
 					literal("off")
 				}
-			})
+			}
 		}
 	}
 
-	private fun logToTargets(module: Module, message: Text) {
+	private fun logToTargets(module: Module, action: TextBuilder.() -> Unit) {
 		if (NotifyTarget.Chat in notifyTarget) {
-			module.log(message)
+			module.log(TextBuilder().apply(action).build())
 		}
 		if (NotifyTarget.ActionBar in notifyTarget) {
-			module.log(message, inGameOverlay = true)
+			module.log(TextBuilder().apply(action).build(), inGameOverlay = true)
 		}
 	}
 }
