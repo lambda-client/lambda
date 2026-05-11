@@ -19,13 +19,22 @@ package com.lambda.config.groups
 
 interface EntitySelectionConfig {
 	val self: Boolean
+	val enablePlayerEntities: Boolean
 	val playerEntities: Collection<String>
-	val bossEntities: Collection<String>
-	val decorationEntities: Collection<String>
+	val enableMobEntities: Boolean
 	val mobEntities: Collection<String>
+	val enablePassiveEntities: Boolean
 	val passiveEntities: Collection<String>
-	val projectileEntities: Collection<String>
+	val enableVehicleEntities: Boolean
 	val vehicleEntities: Collection<String>
-	val miscEntities: Collection<String>
+	val enableProjectileEntities: Boolean
+	val projectileEntities: Collection<String>
+	val enableBossEntities: Boolean
+	val bossEntities: Collection<String>
+	val enableDecorationEntities: Boolean
+	val decorationEntities: Collection<String>
+	val enableBlockEntities: Boolean
 	val blockEntities: Collection<String>
+	val enableMiscEntities: Boolean
+	val miscEntities: Collection<String>
 }

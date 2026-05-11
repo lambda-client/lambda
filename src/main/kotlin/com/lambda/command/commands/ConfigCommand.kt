@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandSource.suggestMatching
 
 object ConfigCommand : LambdaCommand(
     name = "config",
@@ -58,20 +59,14 @@ object ConfigCommand : LambdaCommand(
         required(literal("reset")) {
             required(string("config")) { config ->
                 suggests { _, builder ->
-                    Configuration.configurables.forEach {
-                        builder.suggest(it.commandName)
-                    }
-                    builder.buildFuture()
+                    suggestMatching(Configuration.configurables.map { it.commandName }, builder)
                 }
                 required(string("setting")) { setting ->
                     suggests { ctx, builder ->
                         val conf = config(ctx).value()
                         Configuration.configurableByName(conf)?.let { configurable ->
-                            configurable.settings.forEach {
-                                builder.suggest(it.commandName)
-                            }
-                        }
-                        builder.buildFuture()
+                            suggestMatching(configurable.settings.map { it.commandName }, builder)
+                        } ?: builder.buildFuture()
                     }
                     executeWithResult {
                         val confName = config().value()

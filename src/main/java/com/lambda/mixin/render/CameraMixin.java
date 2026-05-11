@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.player.Freecam;
+import com.lambda.module.modules.render.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.FreeLook;
 import com.lambda.module.modules.render.NoRender;

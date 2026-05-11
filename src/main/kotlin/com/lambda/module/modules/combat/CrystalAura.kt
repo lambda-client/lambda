@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -110,7 +110,7 @@ object CrystalAura : Module(
     private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }.group(Group.Prediction)
 
     /* Targeting */
-    private val targeting = Targeting.Combat(c = this, baseGroup = arrayOf(Group.Targeting), defaultRange = 10.0)
+    private val targeting = Targeting.Combat(c = this, Group.Targeting, defaultRange = 10.0)
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
@@ -148,7 +148,7 @@ object CrystalAura : Module(
 				buildConfig.apply {
 					hide(
 						::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
-						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks
+						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
 					)
 				}
 			}
@@ -245,7 +245,7 @@ object CrystalAura : Module(
 
     private fun SafeContext.tick() {
         // Update the target
-        currentTarget = targeting.target()
+        currentTarget = targeting.target<LivingEntity>()
 
         // Update the blueprint
         currentTarget?.let {

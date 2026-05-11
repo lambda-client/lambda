@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,5 +123,5 @@ sealed class MovementEvent {
      *
      * @property height The height of the jump. Can be modified!
      */
-    data class Jump(var height: Double) : ICancellable by Cancellable()
+    data class Jump(var height: Float) : ICancellable by Cancellable()
 }

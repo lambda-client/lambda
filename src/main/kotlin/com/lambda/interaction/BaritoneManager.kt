@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
         Schematic("Schematic")
     }
 
-    override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(Group.Rotation))
+    override val rotationConfig = RotationSettings(this, Group.Rotation)
 
     init {
         // ToDo: Dont actually save the settings as its duplicate data
@@ -354,7 +354,8 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
         get() = isBaritoneLoaded &&
                 (primary?.customGoalProcess?.isActive == true ||
                         primary?.pathingBehavior?.isPathing == true ||
-                        primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true)
+                        primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true ||
+                        primary?.elytraProcess?.isActive == true)
 
     /**
      * Sets the current Baritone goal and starts pathing
@@ -365,10 +366,24 @@ object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConf
     }
 
     /**
+     * Sets the current Baritone goal without starting pathing
+     */
+    fun setGoal(goal: Goal) {
+        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded != true) return
+	    primary.customGoalProcess?.goal = goal
+    }
+
+    fun setGoalAndElytraPath(goal: Goal) {
+        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded != true) return
+        primary.elytraProcess?.pathTo(goal)
+    }
+
+    /**
      * Force cancel Baritone
      */
     fun cancel() {
         if (!isBaritoneLoaded) return
         primary?.pathingBehavior?.cancelEverything()
+        primary?.elytraProcess?.resetState()
     }
 }

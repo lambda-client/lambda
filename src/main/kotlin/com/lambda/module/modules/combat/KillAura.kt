@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.hotbarStacks
-import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
@@ -50,6 +50,7 @@ object KillAura : Module(
     // Interact
     private val rotate by setting("Rotate", true).group(Group.General)
     private val swap by setting("Swap", true, "Swap to the item with the highest damage").group(Group.General)
+    private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra").group(Group.General)
     private val damageMode by setting("Damage Mode", DamageMode.DPS).group(Group.General)
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown).group(Group.General)
     private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }.group(Group.General)
@@ -57,10 +58,10 @@ object KillAura : Module(
     private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }.group(Group.General)
 
     // Targeting
-    private val targeting = Targeting.Combat(c = this, baseGroup = arrayOf(Group.Targeting))
+    private val targeting = Targeting.Combat(c = this, Group.Targeting)
 
-    val target: LivingEntity?
-        get() = targeting.target()
+    val target: Entity?
+        get() = targeting.target<Entity>()
 
     private var prevEntity = target
     private var validServerRot = false
@@ -106,6 +107,8 @@ object KillAura : Module(
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
         listen<TickEvent.Pre> {
+            if (disableWhileGliding && player.isGliding) return@listen
+
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 var rotated = true

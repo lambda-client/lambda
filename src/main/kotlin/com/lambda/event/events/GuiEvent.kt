@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,17 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
+import net.minecraft.block.entity.SignBlockEntity
+import net.minecraft.client.gui.screen.Screen
 
 sealed class GuiEvent {
     /**
      * Triggered when a new ImGui frame is created and the client
-     * is allowed to submit any command from this point until [EndFrame].
+     * is allowed to submit any command from this point until [EndImguiFrame].
      */
-    data object NewFrame : Event
+    data object NewImguiFrame : Event
 
     /**
      * Triggered when the previous ImGui frame is ended and the client
@@ -32,5 +36,15 @@ sealed class GuiEvent {
      *
      * By default, the game's framebuffer is bound.
      */
-    data object EndFrame : Event
+    data object EndImguiFrame : Event
+
+    /**
+     * Triggered when the sign editor GUI is opened. Can be canceled.
+     */
+    data class SignEditorOpen(
+        var sign: SignBlockEntity,
+        var front: Boolean
+    ) : ICancellable by Cancellable()
+
+    data class ScreenOpen(val screen: Screen?) : ICancellable by Cancellable()
 }

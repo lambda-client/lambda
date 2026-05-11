@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,9 @@ import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
 
 class FormatterSettings(
-    prefix: String = "",
     c: Configurable,
-	vararg baseGroup: NamedEnum,
+    vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : FormatterConfig, SettingGroup(c) {
     val localeEnum by c.setting("${prefix}Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers", visibility = visibility).group(*baseGroup).index()

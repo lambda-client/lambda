@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +19,6 @@ package com.lambda.util
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
-import com.lambda.util.FolderRegister.config
-import com.lambda.util.FolderRegister.lambda
-import com.lambda.util.FolderRegister.minecraft
-import com.lambda.util.FolderRegister.packetLogs
-import com.lambda.util.FolderRegister.replay
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
@@ -42,11 +37,12 @@ object FolderRegister : Loadable {
     val capes: Path = cache.resolve("capes")
     val structure: Path = lambda.resolve("structure")
     val maps: Path = lambda.resolve("maps")
+    val fonts: Path = lambda.resolve("fonts")
 
     val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
 
     override fun load(): String {
-        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps)
+        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps, fonts)
         val createdFolders = folders.mapNotNull {
             if (it.notExists()) {
                 it.createDirectories()

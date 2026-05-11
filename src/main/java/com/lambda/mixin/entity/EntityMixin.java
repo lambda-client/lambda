@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 
 package com.lambda.mixin.entity;
 
-import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
@@ -40,6 +39,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import static com.lambda.Lambda.getMc;
 
@@ -50,6 +50,9 @@ public abstract class EntityMixin {
 
     @Shadow
     public abstract float getYaw();
+
+    @Shadow
+    private Vec3d velocity;
 
     /**
      * Modifies the player yaw when there is an active rotation to apply the player velocity correctly
@@ -185,5 +188,11 @@ public abstract class EntityMixin {
     @ModifyExpressionValue(method = "getHorizontalFacing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     private float modifyGetYaw(float original) {
         return (Object) this == getMc().player ? RotationManager.getServerRotation().getYawF() : original;
+    }
+
+    @Inject(method = "getVelocity", at = @At("HEAD"), cancellable = true)
+    private void injectGetVelocity(CallbackInfoReturnable<Vec3d> cir) {
+        if (ElytraFly.INSTANCE.isDisabled() || ElytraFly.getMode() != ElytraFly.FlyMode.Bounce) return;
+        cir.setReturnValue(ElytraFly.getModifiedBounceVelocity(velocity));
     }
 }

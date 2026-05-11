@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
+import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
 
 object ModuleCommand : LambdaCommand(
@@ -75,10 +76,7 @@ object ModuleCommand : LambdaCommand(
 
         required(string("module name")) { moduleName ->
             suggests { _, builder ->
-                ModuleRegistry.moduleNameMap.keys.forEach {
-                    builder.suggest(it)
-                }
-                builder.buildFuture()
+                suggestMatching(ModuleRegistry.moduleNameMap.keys, builder)
             }
             optional(boolean("enable")) { enable ->
                 executeWithResult {

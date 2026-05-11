@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -89,7 +89,8 @@ object InputUtils : Loadable {
 	fun Bind.isSatisfied(): Boolean =
 		(key == -1 ||  glfwGetKey(mc.window.handle, key).pressedOrRepeated) &&
 				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
-				truemods.all { glfwGetKey(mc.window.handle, it.code).pressedOrRepeated }
+				trueMods.all { glfwGetKey(mc.window.handle, it.code).pressedOrRepeated }
+
 	private val Int.pressedOrRepeated
 		get() = this == 1 || this == 2
 

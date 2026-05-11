@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ import com.lambda.gui.Layout
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.Module
-import imgui.ImGui
+import com.lambda.imgui.ImGui
 
 class ModuleEntry(val module: Module): Layout {
     override fun ImGuiBuilder.buildLayout() {

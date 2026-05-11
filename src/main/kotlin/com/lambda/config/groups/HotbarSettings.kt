@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,9 @@ import com.lambda.interaction.managers.hotbar.HotbarConfig
 import com.lambda.util.NamedEnum
 
 class HotbarSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), HotbarConfig {
     override val swapMode by c.setting("${prefix}Swap Mode", HotbarConfig.SwapMode.Temporary, visibility = visibility).group(*baseGroup).index()

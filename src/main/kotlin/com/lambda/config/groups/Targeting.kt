@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,16 +26,16 @@ import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
-import com.lambda.util.EntityUtils.EntityGroup
-import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
-import net.minecraft.client.toast.SystemToast.hide
+import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.PlayerLikeEntity
+import net.minecraft.entity.Tameable
 import java.util.*
 
 /**
@@ -46,17 +46,17 @@ import java.util.*
  * are targetable, the range of targeting, and various other conditions for targeting.
  *
  * @param c The [Configurable] instance used to get and set configuration options for targeting.
- * @param vis The predicate used to determine whether the targeting settings are visible and active.
+ * @param visibility The predicate used to determine whether the targeting settings are visible and active.
  * @param defaultRange The default range within which entities can be targeted.
  * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class Targeting(
-    prefix: String = "",
 	c: Configurable,
-    vararg baseGroup: NamedEnum,
-    defaultRange: Double,
-    maxRange: Double,
-    visibility: () -> Boolean = { true },
+	vararg baseGroup: NamedEnum,
+	defaultRange: Double,
+	maxRange: Double,
+	prefix: String = "",
+	visibility: () -> Boolean = { true },
 ) : SettingGroup(c), TargetingConfig {
 	/**
 	 * The range within which entities can be targeted. This value is configurable and constrained
@@ -76,7 +76,7 @@ abstract class Targeting(
 	 * @param entity The [LivingEntity] being evaluated.
 	 * @return `true` if the entity is valid for targeting, `false` otherwise.
 	 */
-    open fun validate(player: ClientPlayerEntity, entity: LivingEntity) =
+    open fun validate(player: ClientPlayerEntity, entity: Entity) =
 		targets.isSelected(entity) && (entity !is OtherClientPlayerEntity || !entity.isFriend)
 
     /**
@@ -86,13 +86,13 @@ abstract class Targeting(
      * @property priority The priority used to determine which entity is targeted when multiple candidates are available.
      */
     class Combat(
+	    c: Configurable,
+	    vararg baseGroup: NamedEnum,
+	    defaultRange: Double = 5.0,
+	    maxRange: Double = 16.0,
 	    prefix: String = "",
-        c: Configurable,
-        vararg baseGroup: NamedEnum,
-        defaultRange: Double = 5.0,
-        maxRange: Double = 16.0,
-        override val visibility: () -> Boolean = { true },
-    ) : Targeting(prefix, c, *baseGroup, defaultRange = defaultRange, maxRange = maxRange, visibility = visibility) {
+	    override val visibility: () -> Boolean = { true },
+    ) : Targeting(c, *baseGroup, defaultRange = defaultRange, maxRange = maxRange, prefix = prefix, visibility = visibility) {
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
          */
@@ -103,27 +103,42 @@ abstract class Targeting(
          */
         val priority by c.setting("${prefix}Priority", Priority.Distance, visibility = visibility).group(*baseGroup).index()
 
+	    /**
+	     * Whether to target named entities that are not players.
+	     */
+	    val targetNamed by c.setting("${prefix}Target Named Entities", false, visibility = visibility).group(*baseGroup).index()
+	    /**
+	     * Whether to target tamed entities.
+	     */
+		val targetTamed by c.setting("${prefix}Target Tamed Entities", false, visibility = visibility).group(*baseGroup).index()
+		val owned by c.setting("${prefix}Owned", false) { visibility() && targetTamed }.group(*baseGroup).index()
+
         /**
          * Validates whether a given entity is targetable for combat based on the field of view limit and other settings.
          *
          * @param player The [ClientPlayerEntity] performing the targeting.
-         * @param entity The [LivingEntity] being evaluated.
+         * @param entity The [Entity] being evaluated.
          * @return `true` if the entity is valid for targeting, `false` otherwise.
          */
-        override fun validate(player: ClientPlayerEntity, entity: LivingEntity): Boolean {
+        override fun validate(player: ClientPlayerEntity, entity: Entity): Boolean {
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
             if (entity.uuid in illegalTargets) return false
-            if (entity.isDead) return false
+            if (entity.hasCustomName() && entity !is PlayerLikeEntity && !targetNamed) return false
+            if ((entity as? LivingEntity)?.isDead == true) return false
+	        if (entity is Tameable) run tamed@{
+				val owner = entity.owner ?: return@tamed
+		        if (!targetTamed || (!owned && owner.uuid == player.uuid)) return false
+	        }
             return super.validate(player, entity)
         }
 
         /**
          * Gets the best target for combat based on the current settings and priority.
          *
-         * @return The best [LivingEntity] target, or `null` if no valid target is found.
+         * @return The best [Entity] target, or `null` if no valid target is found.
          */
-        fun target(): LivingEntity? = runSafe {
-            return@runSafe fastEntitySearch<LivingEntity>(targetingRange) {
+        inline fun <reified T : Entity> target(): T? = runSafe {
+            return@runSafe fastEntitySearch<T>(targetingRange) {
                 validate(player, it)
             }.minByOrNull {
                 priority.factor(this, it)
@@ -140,10 +155,10 @@ abstract class Targeting(
     /**
      * Enum representing the different priority factors used for determining the best target.
      *
-     * @property factor A lambda function that calculates the priority factor for a given [LivingEntity].
+     * @property factor A lambda function that calculates the priority factor for a given [Entity].
      */
     @Suppress("Unused")
-    enum class Priority(val factor: SafeContext.(LivingEntity) -> Double) {
+    enum class Priority(val factor: SafeContext.(Entity) -> Double) {
         /**
          * Prioritizes entities based on their distance from the player.
          */
@@ -151,8 +166,10 @@ abstract class Targeting(
 
         /**
          * Prioritizes entities based on their health.
+         * Entities that aren't an instanceof LivingEntity will be treated as if they have Double.MAX_VALUE health,
+         * therefore having least priority
          */
-        Health({ it.fullHealth }),
+        Health({ (it as? LivingEntity)?.fullHealth ?: Double.MAX_VALUE }),
 
         /**
          * Prioritizes entities based on their angle relative to the player's field of view.

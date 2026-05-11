@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.Lambda.mc
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -26,7 +27,9 @@ import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
@@ -38,15 +41,24 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 	TypeToken.get(BlockPos::class.java).type
 ) {
 	context(setting: Setting<*, BlockPos>)
-    override fun ImGuiBuilder.buildLayout() {
-        inputVec3i(setting.name, value) { value = it.blockPos }
-        lambdaTooltip(setting.description)
-    }
+	override fun ImGuiBuilder.buildLayout() {
+		button("Set##${setting.name}") {
+			mc.crosshairTarget?.blockResult?.blockPos?.let {
+				value = it
+			} ?: info("No block under crosshair")
+		}
+		lambdaTooltip("Set the coordinates to the block you are currently looking at")
+		sameLine()
+		treeNode(setting.name, id = setting.name) {
+			inputVec3i("##${setting.name}", value) { value = it.blockPos }
+		}
+		lambdaTooltip(setting.description)
+	}
 
 	context(setting: Setting<*, BlockPos>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("X", -30000000, 30000000)) { x ->
-            required(integer("Y", -64, 255)) { y ->
+            required(integer("Y", -64, 319)) { y ->
                 required(integer("Z", -30000000, 30000000)) { z ->
                     execute {
                         setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))

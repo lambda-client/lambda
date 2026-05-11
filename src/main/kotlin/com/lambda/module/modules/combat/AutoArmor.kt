@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.combat
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -43,10 +43,10 @@ import net.minecraft.screen.slot.Slot
 object AutoArmor : Module(
 	name = "AutoArmor",
 	description = "Automatically equips armor",
-	tag = ModuleTag.COMBAT
+	tag = ModuleTag.Companion.COMBAT
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
-	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
+	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.Companion.EMPTY)
 		.onPress { elytraPriority = !elytraPriority }
 	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)

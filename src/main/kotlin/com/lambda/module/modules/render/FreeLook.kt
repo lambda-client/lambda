@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ object FreeLook : Module(
     val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
     var camera: Rotation = Rotation.ZERO
-    var previousPerspective: Perspective = Perspective.FIRST_PERSON
+    var previousPerspective: Perspective = mc.options.perspective
 
     /**
      * @see net.minecraft.entity.Entity.changeLookDirection
@@ -54,8 +54,6 @@ object FreeLook : Module(
     }
 
     init {
-        previousPerspective = mc.options.perspective
-
         onEnable {
             camera = player.rotation
             previousPerspective = mc.options.perspective

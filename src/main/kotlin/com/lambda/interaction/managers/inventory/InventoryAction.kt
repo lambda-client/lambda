@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,5 +28,6 @@ sealed interface InventoryAction {
 	val action: SafeContext.() -> Unit
 
 	class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
+	class Player(override val action: SafeContext.() -> Unit) : InventoryAction
 	class Other(override val action: SafeContext.() -> Unit) : InventoryAction
 }

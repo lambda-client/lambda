@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,14 +22,17 @@ import com.lambda.module.modules.render.MapPreview;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.render.state.GuiRenderState;
 import net.minecraft.client.render.MapRenderState;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.FilledMapItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.tooltip.TooltipData;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.spongepowered.asm.mixin.Final;
@@ -43,17 +46,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import java.util.Optional;
 
-/*
-Map slot rendering code
-Original source: https://github.com/Crec0/map-in-slot
-Copyright (c) 2022 Crec0
-Licensed under MIT License
- */
 @Mixin(DrawContext.class)
 public abstract class DrawContextMixin {
     @Shadow
     @Final
     MinecraftClient client;
+    @Unique boolean adjustSize = false;
+    @Shadow
+    @Final
+    public GuiRenderState state;
 
     @Unique
     private final MapRenderState mapRenderState = new MapRenderState();
@@ -96,9 +97,15 @@ public abstract class DrawContextMixin {
             return;
         }
 
-        if (data.isPresent()) {
+        if (data.isPresent() && data.get() instanceof ContainerPreview.ContainerComponent) {
             ci.cancel();
             ContainerPreview.renderShulkerTooltip((DrawContext)(Object)this, textRenderer, x, y);
         }
+    }
+
+    @Inject(method = "drawItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;III)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/state/GuiRenderState;addItem(Lnet/minecraft/client/gui/render/state/ItemGuiElementRenderState;)V", shift = At.Shift.AFTER))
+    private void onDrawItem(LivingEntity entity, World world, ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
+        if (!ContainerPreview.INSTANCE.isEnabled()) return;
+        ContainerPreview.drawOnItem((DrawContext) (Object) this, state, entity, world, stack, x, y, seed);
     }
 }

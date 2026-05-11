@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
+import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
@@ -61,7 +62,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 			if (!info.broken) {
 				val message = "${info.type} ${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out with cached state ${info.context.cachedState}"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
-			} else if (!DEFAULT.ignoreItemDropWarnings) {
+			} else if (!Client.ignoreItemDropWarnings) {
 				val message = "${info.type} ${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out"
 				if (verboseDebug) this@BrokenBlockHandler.warn(message)
 			}
@@ -159,6 +160,6 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 		val setState = world.setBlockState(ctx.blockPos, fluidState.blockState, 11)
 		if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
 
-		if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
+		if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(-1)
 	}
 }

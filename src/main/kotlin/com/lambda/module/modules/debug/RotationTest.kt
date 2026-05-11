@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,
 ) {
-    override val rotationConfig = RotationSettings(c = this, baseGroup = arrayOf(AutomationConfig.Group.Rotation))
+    override val rotationConfig = RotationSettings(this, AutomationConfig.Group.Rotation)
     var hitPos: HitResult? = null
     
     init {

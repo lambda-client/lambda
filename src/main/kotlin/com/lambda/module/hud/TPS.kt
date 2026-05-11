@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Formatting.format
 import com.lambda.util.ServerTPS
 import com.lambda.util.ServerTPS.recentData
-import imgui.ImVec2
+import com.lambda.imgui.ImVec2
 
 object TPS : HudModule(
 	name = "TPS",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ class ClassCollectionSetting<T : Any>(
 	serialize = false,
 ) {
 	context(setting: Setting<*, MutableCollection<T>>)
-	override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.className }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.className }
 
 	// When serializing the list to json we do not want to serialize the elements' classes, but their stringified representation.
 	// If we do serialize the classes we'll run into missing type adapters errors by Gson.

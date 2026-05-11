@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.applyEdits
@@ -37,6 +37,7 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
+import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -46,7 +47,7 @@ import net.minecraft.util.math.Vec3i
 object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
-    tag = ModuleTag.PLAYER,
+    tag = ModuleTag.WORLD,
 ) {
     private val height by setting("Height", 4, 2..10, 1)
     private val width by setting("Width", 6, 1..30, 1)
@@ -113,21 +114,21 @@ object HighwayTools : Module(
 
     private fun buildHighway() {
         runningTask = propagatingBlueprint {
-            if (distance !in 0..distanceMoved) {
-                var structure = emptyStructure()
-                val slice = generateSlice()
-                repeat(sliceSize) {
-                    structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
-                    val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
-                    currentPos = currentPos.add(vec)
-                }
-                distanceMoved += sliceSize
-                structure
-            } else {
-                this@HighwayTools.info("Highway built")
-                disable()
-                emptyStructure()
-            }
+	        if (distance !in 0..distanceMoved) {
+		        var structure = emptyStructure()
+		        val slice = generateSlice()
+		        repeat(sliceSize) {
+			        structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
+			        val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+			        currentPos = currentPos.add(vec)
+		        }
+		        distanceMoved += sliceSize
+		        structure
+	        } else {
+		        this@HighwayTools.info("Highway built")
+		        disable()
+		        emptyStructure()
+	        }
         }.build(collectDrops = buildConfig.collectDrops, lifeMaintenance = true)
             .run()
     }
@@ -139,99 +140,99 @@ object HighwayTools : Module(
 
         // Hole
         structure += generateDirectionalTube(
-            orthogonal,
-            width,
-            height,
-            -center,
-            0,
+	        orthogonal,
+	        width,
+	        height,
+	        -center,
+	        0,
         ).associateWith { TargetState.Air }
 
         if (pavement != Material.None) {
             structure += generateDirectionalTube(
-                orthogonal,
-                width,
-                1,
-                -center,
-                0,
+	            orthogonal,
+	            width,
+	            1,
+	            -center,
+	            0,
             ).associateWith { target(pavement, pavementMaterial) }
 
             // Left rim
             structure += generateDirectionalTube(
-                orthogonal,
-                1,
-                rimHeight,
-                -center + width - 1,
-                1,
+	            orthogonal,
+	            1,
+	            rimHeight,
+	            -center + width - 1,
+	            1,
             ).associateWith { target(pavement, pavementMaterial) }
 
             // Right rim
             structure += generateDirectionalTube(
-                orthogonal,
-                1,
-                rimHeight,
-                -center,
-                1,
+	            orthogonal,
+	            1,
+	            rimHeight,
+	            -center,
+	            1,
             ).associateWith { target(pavement, pavementMaterial) }
 
             if (cornerBlock == Corner.None && rimHeight > 0) {
                 // Support for the left rim
                 structure += generateDirectionalTube(
-                    orthogonal,
-                    1,
-                    1,
-                    -center + width - 1,
-                    0,
+	                orthogonal,
+	                1,
+	                1,
+	                -center + width - 1,
+	                0,
                 ).associateWith { TargetState.Support(Direction.UP) }
 
                 // Support for the right rim
                 structure += generateDirectionalTube(
-                    orthogonal,
-                    1,
-                    1,
-                    -center,
-                    0,
+	                orthogonal,
+	                1,
+	                1,
+	                -center,
+	                0,
                 ).associateWith { TargetState.Support(Direction.UP) }
             }
         }
 
         if (ceiling != Material.None) {
             structure += generateDirectionalTube(
-                orthogonal,
-                width,
-                1,
-                -center,
-                height,
+	            orthogonal,
+	            width,
+	            1,
+	            -center,
+	            height,
             ).associateWith { target(ceiling, ceilingMaterial) }
         }
 
         val wallElevation = if (pavement != Material.None) rimHeight else 0 + if (pavement != Material.None) 1 else 0
         if (rightWall != Material.None) {
             structure += generateDirectionalTube(
-                orthogonal,
-                1,
-                height - wallElevation,
-                -center + width,
-                wallElevation,
+	            orthogonal,
+	            1,
+	            height - wallElevation,
+	            -center + width,
+	            wallElevation,
             ).associateWith { target(rightWall, wallMaterial) }
         }
 
         if (leftWall != Material.None) {
             structure += generateDirectionalTube(
-                orthogonal,
-                1,
-                height - wallElevation,
-                -center - 1,
-                wallElevation,
+	            orthogonal,
+	            1,
+	            height - wallElevation,
+	            -center - 1,
+	            wallElevation,
             ).associateWith { target(leftWall, wallMaterial) }
         }
 
         if (floor != Material.None) {
             structure += generateDirectionalTube(
-                orthogonal,
-                width,
-                1,
-                -center,
-                -1,
+	            orthogonal,
+	            width,
+	            1,
+	            -center,
+	            -1,
             ).associateWith { target(floor, floorMaterial) }
         }
 
@@ -243,7 +244,7 @@ object HighwayTools : Module(
         return transformed
     }
 
-    private fun target(target: Material, material: net.minecraft.block.Block) =
+    private fun target(target: Material, material: Block) =
         when (target) {
             Material.Solid -> TargetState.Solid(replaceableSolids)
             Material.Block -> TargetState.Block(material)

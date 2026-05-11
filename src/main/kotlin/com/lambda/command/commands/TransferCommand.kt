@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandSource.suggestMatching
 
 object TransferCommand : LambdaCommand(
     name = "transfer",
@@ -50,16 +51,24 @@ object TransferCommand : LambdaCommand(
             required(integer("amount", 1)) { amount ->
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
-                        val count = amount(ctx).value()
-                        val selection = selectStack(count) {
+                        val selection = selectStack(amount(ctx).value()) {
                             isItem(stack(ctx).value().item)
                         }
                         AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-	                        selection.findContainersWithMaterial().forEachIndexed { i, container ->
-		                        builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
-	                        }
-                        }
-                        builder.buildFuture()
+                            val containers = selection.findContainersWithMaterial()
+                            val indexedContainers = containers.withIndex()
+
+                            suggestMatching(
+                                indexedContainers,
+                                builder,
+                                { (index, container) ->
+                                    "\"${index + 1}. ${container.name}\""
+                                },
+                                { (_, container) ->
+                                    container.description(selection)
+                                }
+                            )
+                        } ?: builder.buildFuture()
                     }
                     required(string("to")) { to ->
                         suggests { ctx, builder ->
@@ -67,11 +76,20 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack(ctx).value().item)
                             }
                             AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-                                selection.findContainersWithSpace().forEachIndexed { i, container ->
-                                    builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
-                                }
-                            }
-                            builder.buildFuture()
+                                val containers = selection.findContainersWithSpace()
+                                val indexedContainers = containers.withIndex()
+
+                                suggestMatching(
+                                    indexedContainers,
+                                    builder,
+                                    { (index, container) ->
+                                        "\"${index + 1}. ${container.name}\""
+                                    },
+                                    { (_, container) ->
+                                        container.description(selection)
+                                    }
+                                )
+                            } ?: builder.buildFuture()
                         }
                         executeWithResult {
                             val selection = selectStack(amount().value()) {

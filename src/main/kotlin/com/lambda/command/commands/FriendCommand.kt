@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.configurations.FriendConfig
 import com.lambda.friend.FriendManager
 import com.lambda.network.mojang.getProfile
+import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
@@ -38,73 +39,72 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import kotlinx.coroutines.runBlocking
+import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
+import java.util.UUID
 
 object FriendCommand : LambdaCommand(
     name = "friends",
-    usage = "friends <add <name> | add-uuid <uuid> | remove <name>>",
+    usage = "friends <add <name> | add-uuid <uuid> | remove <name> | remove-uuid <uuid>>",
     description = "Add or remove a friend"
 ) {
     override fun CommandBuilder.create() {
         execute {
-            info(
-                buildText {
-                    if (FriendManager.friends.isEmpty()) {
-                        literal("You have no friends yet. Go make some! :3\n")
-                    } else {
-                        literal("Your friends (${FriendManager.friends.size}):\n")
+            runIO {
+                info(
+                    buildText {
+                        if (FriendManager.friends.isEmpty()) {
+                            literal("You have no friends yet. Go make some! :3\n")
+                        } else {
+                            literal("Your friends (${FriendManager.friends.size}):\n")
 
-                        FriendManager.friends.forEachIndexed { index, gameProfile ->
-                            literal("   ${index + 1}. ${gameProfile.name} ")
-                            styled(
-                                color = Color.RED,
-                                clickEvent = ClickEvents.suggestCommand(";friends remove ${gameProfile.name}")
-                            ) {
-                                literal("x\n")
+                            FriendManager.friends.forEachIndexed { index, uuid ->
+                                val profile = FriendManager.latestGameProfile(uuid)
+                                val displayName = profile?.name ?: uuid.toString()
+
+                                literal("   ${index + 1}. $displayName ")
+                                styled(
+                                    color = Color.RED,
+                                    clickEvent = ClickEvents.suggestCommand(";friends remove $displayName")
+                                ) {
+                                    literal("x\n")
+                                }
                             }
                         }
-                    }
 
-                    literal("\n")
-                    styled(
-                        color = Color.CYAN,
-                        underlined = true,
-                        clickEvent = ClickEvents.openFile(FriendConfig.primary.path),
-                    ) {
-                        literal("Click to open your friends list as a file")
+                        literal("\n")
+                        styled(
+                            color = Color.CYAN,
+                            underlined = true,
+                            clickEvent = ClickEvents.openFile(FriendConfig.primary.path),
+                        ) {
+                            literal("Click to open your friends list as a file")
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         required(literal("add")) {
             required(string("player name")) { player ->
                 suggests { _, builder ->
-                    mc.networkHandler
+                    val playerNames = mc.networkHandler
                         ?.playerList
-                        ?.filter { it.profile != mc.gameProfile }
                         ?.map { it.profile.name }
-                        ?.forEach { builder.suggest(it) }
+                        ?.toList() ?: emptyList()
 
-                    builder.buildFuture()
+                    suggestMatching(playerNames, builder)
                 }
 
                 executeWithResult {
                     val name = player().value()
 
-                    if (FriendManager.isFriend(name))
-                        return@executeWithResult failure("This player is already in your friend list")
-
-                    if (mc.gameProfile.name == name)
-                        return@executeWithResult failure("You can't befriend yourself")
-
                     runBlocking {
-                        val profile = mc.networkHandler
-                            ?.playerList
-                            ?.map { it.profile }
-                            ?.firstOrNull { it.name == name }
-                            ?: getProfile(name)
-                                .getOrElse { return@runBlocking failure("Could not find the player") }
+                        val profile = FriendManager.latestGameProfile(name)
+                            ?: return@runBlocking failure("Could not find the player")
+
+                        if (FriendManager.isFriend(profile.id))
+                            return@runBlocking failure("This player is already in your friend list")
 
                         FriendManager.befriend(profile)
 
@@ -118,13 +118,12 @@ object FriendCommand : LambdaCommand(
         required(literal("add-uuid")) {
             required(uuid("player uuid")) { player ->
                 suggests { _, builder ->
-                    mc.networkHandler
+                    val uuids = mc.networkHandler
                         ?.playerList
-                        ?.filter { it.profile != mc.gameProfile }
-                        ?.map { it.profile.id }
-                        ?.forEach { builder.suggest(it.toString()) }
+                        ?.map { it.profile.id.toString() }
+                        ?.toList() ?: emptyList()
 
-                    builder.buildFuture()
+                    suggestMatching(uuids, builder)
                 }
 
                 executeWithResult {
@@ -133,20 +132,17 @@ object FriendCommand : LambdaCommand(
                     if (FriendManager.isFriend(uuid))
                         return@executeWithResult failure("This player is already in your friend list")
 
-                    if (mc.gameProfile.id == uuid)
-                        return@executeWithResult failure("You can't befriend yourself")
-
                     runBlocking {
-                        val profile = mc.networkHandler
-                            ?.playerList
-                            ?.map { it.profile }
-                            ?.firstOrNull { it.id == uuid }
-                            ?: getProfile(uuid)
-                                .getOrElse { return@runBlocking failure("Could not find the player") }
+                        val profile = FriendManager.latestGameProfile(uuid)
 
-                        FriendManager.befriend(profile)
+                        if (profile != null) {
+                            FriendManager.befriend(profile)
+                            info(FriendManager.befriendedText(profile.name))
+                        } else {
+                            FriendManager.befriend(uuid)
+                            info(FriendManager.befriendedText(uuid.toString()))
+                        }
 
-                        info(FriendManager.befriendedText(profile.name))
                         success()
                     }
                 }
@@ -156,20 +152,52 @@ object FriendCommand : LambdaCommand(
         required(literal("remove")) {
             required(string("player name")) { player ->
                 suggests { _, builder ->
-                    FriendManager.friends.map { it.name }
-                        .forEach { builder.suggest(it) }
-
-                    builder.buildFuture()
+                    val playerNames = FriendManager.friends.map { FriendManager.friendDisplayName(it) }
+                    suggestMatching(playerNames, builder)
                 }
 
                 executeWithResult {
                     val name = player().value()
-                    val profile = FriendManager.gameProfile(name)
-                        ?: return@executeWithResult failure("This player is not in your friend list")
 
-                    FriendManager.unfriend(profile)
+                    runBlocking {
+                        val uuid = FriendManager.gameProfile(name)?.id
+                            ?: getProfile(name).getOrNull()?.id
+                            ?: runCatching { UUID.fromString(name) }.getOrNull()
+                            ?: return@runBlocking failure("Could not resolve the player name")
 
-                    info(FriendManager.unfriendedText(name))
+                        if (!FriendManager.isFriend(uuid))
+                            return@runBlocking failure("This player is not in your friend list")
+
+                        FriendManager.unfriend(uuid)
+
+                        info(FriendManager.unfriendedText(name))
+                        success()
+                    }
+                }
+            }
+        }
+
+        required(literal("remove-uuid")) {
+            required(uuid("player uuid")) { player ->
+                suggests { _, builder ->
+                    val uuids = mc.networkHandler
+                        ?.playerList
+                        ?.map { it.profile.id.toString() }
+                        ?.toList() ?: emptyList()
+
+                    suggestMatching(uuids, builder)
+                }
+
+                executeWithResult {
+                    val uuid = player().value()
+
+                    if (!FriendManager.isFriend(uuid))
+                        return@executeWithResult failure("This player is not in your friend list")
+
+                    val displayName = FriendManager.friendDisplayName(uuid)
+                    FriendManager.unfriend(uuid)
+
+                    info(FriendManager.unfriendedText(displayName))
                     success()
                 }
             }

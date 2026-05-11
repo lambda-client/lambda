@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
@@ -150,11 +151,8 @@ abstract class Module(
         get() = !isEnabled && !alwaysListening
 
     init {
-        onEnable { LambdaSound.ModuleOn.play() }
-        onDisable { LambdaSound.ModuleOff.play() }
-
-        onEnableUnsafe { LambdaSound.ModuleOn.play() }
-        onDisableUnsafe { LambdaSound.ModuleOff.play() }
+        onEnableUnsafe { if (Client.clientSounds) LambdaSound.ModuleOn.play() }
+        onDisableUnsafe { if (Client.clientSounds) LambdaSound.ModuleOff.play() }
 
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }

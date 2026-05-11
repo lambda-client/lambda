@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,6 @@ import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.sneaking
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope
@@ -62,7 +61,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
-import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
@@ -78,8 +77,8 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		InteractResult.Dependency(pos, buildResult)
 
 	companion object {
-		context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
 		@SimDsl
+		context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
 		suspend fun InteractSimInfo.simInteraction() =
 			InteractSim(this).run {
 				withDependent(dependent) {
@@ -142,7 +141,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 				val interactContext = InteractContext(
 					hitResult,
 					rotationRequest { rotation(checkedHit.rotation) },
-					getSwapStack(item, supervisorScope)?.inventoryIndex ?: return,
+					getSwapSlot(item, supervisorScope)?.index ?: return,
 					pos,
 					state,
 					expectedState,
@@ -195,7 +194,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 			val interactContext = InteractContext(
 				hitResult,
 				rotationRequest { rotation(rotationRequest) },
-				getSwapStack(item, supervisorScope)?.inventoryIndex ?: return,
+				getSwapSlot(item, supervisorScope)?.index ?: return,
 				pos,
 				state,
 				rotatePlaceTest.resultState,
@@ -211,7 +210,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		return
 	}
 
-	private fun AutomatedSafeContext.getSwapStack(item: Item?, supervisorScope: CoroutineScope): ItemStack? {
+	private fun AutomatedSafeContext.getSwapSlot(item: Item?, supervisorScope: CoroutineScope): Slot? {
 		if (item?.isEnabled(world.enabledFeatures) == false) {
 			result(InteractResult.BlockFeatureDisabled(pos, item))
 			supervisorScope.cancel()
@@ -224,9 +223,8 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null
 		}
-		val hotbarStacks = player.hotbarStacks
-		return stackSelection.filterStacks(container.stacks).run {
-			firstOrNull { hotbarStacks.indexOf(it) == player.inventory.selectedSlot }
+		return stackSelection.filterSlots(container.slots).run {
+			firstOrNull { it.index == player.inventory.selectedSlot }
 				?: firstOrNull()
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,7 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.MovementEvent;
-import com.lambda.event.events.PlayerEvent;
-import com.lambda.event.events.PlayerPacketEvent;
-import com.lambda.event.events.TickEvent;
+import com.lambda.event.events.*;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.movement.NoJumpCooldown;
@@ -35,6 +32,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.authlib.GameProfile;
+import net.minecraft.block.entity.SignBlockEntity;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -75,6 +73,13 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         if (RotationManager.getRequests().stream().anyMatch(Objects::nonNull)) {
             final var activeRotation = RotationManager.getActiveRotation();
             targetRotation.set(new Vec2f(activeRotation.getYawF(), activeRotation.getPitchF()));
+        }
+    }
+
+    @Inject(method = "openEditSignScreen", at = @At("HEAD"), cancellable = true)
+    private void onOpenEditSignScreen(SignBlockEntity sign, boolean front, CallbackInfo ci) {
+        if (EventFlow.post(new GuiEvent.SignEditorOpen(sign, front)).isCanceled()) {
+            ci.cancel();
         }
     }
 

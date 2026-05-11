@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
 
 data class TickingBlueprint(
-    val onTick: SafeContext.(Structure) -> Structure? = { it },
+    val onTick: SafeContext.(Structure) -> Structure? = { it }
 ) : Blueprint() {
     fun tick() =
         runSafe {
@@ -48,7 +48,7 @@ data class TickingBlueprint(
         }
 
         fun tickingBlueprint(
-            onTick: SafeContext.(Structure) -> Structure?,
+            onTick: SafeContext.(Structure) -> Structure?
         ) = TickingBlueprint(onTick)
     }
 }
