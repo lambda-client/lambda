@@ -21,16 +21,8 @@ import com.lambda.config.groups.ScreenLineSettings
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.groups.ScreenTextSettings
 import com.lambda.config.groups.WorldTextSettings
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.mc.renderer.ImmediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.prevPos
-import com.lambda.util.extension.tickDelta
-import com.lambda.util.math.lerp
-import net.minecraft.util.math.Direction
-import java.awt.Color
 
 object SettingsTestModule : Module(
     name = "SettingsTestModule",
@@ -45,27 +37,27 @@ object SettingsTestModule : Module(
     }
 
     private val worldLineConfig = WorldLineSettings(
-        "World Line ",
         this,
         Page.WorldLine,
+        prefix = "World Line "
     )
 
     private val screenLineConfig = ScreenLineSettings(
-        "Screen Line ",
-        this,
-        Page.ScreenLine,
+	    this,
+	    Page.ScreenLine,
+	    prefix = "Screen Line "
     )
 
     private val worldTextConfig = WorldTextSettings(
-        "World Text ",
         this,
-        Page.WorldText
+        Page.WorldText,
+        prefix = "World Text "
     )
 
     private val textConfig = ScreenTextSettings(
-        "Screen Text ",
         this,
-        Page.ScreenText
+        Page.ScreenText,
+        prefix = "Screen Text "
     )
 
 //    private val renderer = ImmediateRenderer("SettingsTestRenderer")

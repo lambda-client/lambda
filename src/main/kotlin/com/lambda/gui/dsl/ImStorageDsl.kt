@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
 
 package com.lambda.gui.dsl
 
-import imgui.ImGui.getID
-import imgui.ImGui.getStateStorage
-import imgui.ImGuiStorage
+import com.lambda.imgui.ImGui.getID
+import com.lambda.imgui.ImGui.getStateStorage
+import com.lambda.imgui.ImGuiStorage
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 

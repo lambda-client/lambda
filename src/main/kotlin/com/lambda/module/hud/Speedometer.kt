@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 package com.lambda.module.hud
 
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -39,15 +40,10 @@ object Speedometer : HudModule(
     var speed: Double = 0.0
 
     init {
-        listen<TickEvent.Post> {
+        listen<TickEvent.Post>(alwaysListen = true) {
             previousPos = currentPos
             currentPos = player.pos
-
-            var vecDelta = player.pos.subtract(previousPos)
-            if (onlyHorizontal) {
-                vecDelta = Vec3d(vecDelta.x, 0.0, vecDelta.z)
-            }
-            speed = speedUnit.convertFromMinecraft(vecDelta.length())
+            speed = calculateSpeed()
         }
 
         onEnable {
@@ -57,6 +53,18 @@ object Speedometer : HudModule(
         }
 
         onDisable { speed = 0.0 }
+    }
+
+    context(safeContext: SafeContext)
+    fun calculateSpeed(
+        onlyHorizontal: Boolean = this.onlyHorizontal,
+        speedUnit: SpeedUnit = this.speedUnit
+    ) = with(safeContext) {
+        var vecDelta = player.pos.subtract(previousPos)
+        if (onlyHorizontal) {
+            vecDelta = Vec3d(vecDelta.x, 0.0, vecDelta.z)
+        }
+        speedUnit.convertFromMinecraft(vecDelta.length())
     }
 
     override fun ImGuiBuilder.buildLayout() {

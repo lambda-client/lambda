@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,13 @@
 package com.lambda.task
 
 import com.lambda.Lambda.LOG
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.modules.client.Client
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
@@ -134,7 +134,7 @@ abstract class Task<Result> : Nameable, Muteable {
     fun success(result: Result) {
         unsubscribe()
         state = State.Completed
-        if (!DEFAULT.showAllEntries) parent?.subTasks?.remove(this)
+        if (!Client.showAllEntries) parent?.subTasks?.remove(this)
         runSafe { executeNextTask(result) }
     }
 

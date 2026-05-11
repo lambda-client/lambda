@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 package com.lambda.event.listener
 
+import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
@@ -31,6 +32,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
 /**
@@ -98,7 +100,7 @@ class UnsafeListener<T : Event>(
          *     // no safe access to player or world
          * }
          *
-         * listenUnsafe<MyEvent>(priority = 1) { event ->
+         * listenUnsafe<MyEvent>(priority = { 1 }) { event ->
          *     println("Unsafe event received before the previous listener: $event")
          * }
          * ```
@@ -114,11 +116,48 @@ class UnsafeListener<T : Event>(
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},
         ): UnsafeListener<T> {
-            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event ->
-                function(event)
-            }
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { function(it) }
 
             EventFlow.syncListeners.subscribe(listener)
+
+            return listener
+        }
+
+        /**
+         * This function registers a new [UnsafeListener] for a generic [Event] type [T] with the given [KClass] instance to circumvent type erasure.
+         * The [function] is executed on the same thread where the [Event] was dispatched.
+         * The execution of the [function] is independent of the safety conditions of the context.
+         * Use this function when you need to listen to an [Event] in a context that is not in-game.
+         * For only in-game related contexts, use the [SafeListener.listen] function instead.
+         *
+         * Usage:
+         * ```kotlin
+         * listenUnsafe(MyEvent::class) { event ->
+         *     println("Unsafe event received: $event")
+         *     // no safe access to player or world
+         * }
+         *
+         * listenUnsafe(MyEvent::class, priority = { 1 }) { event ->
+         *     println("Unsafe event received before the previous listener: $event")
+         * }
+         * ```
+         *
+         * @param kClass The KClass instance of covariant type [T] used to circumvent type erasure.
+         * @param T The type of the event to listen for. This should be a subclass of Event.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first.
+         * @param alwaysListen If true, the listener will be executed even if it is muted.
+         * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
+         * @return The newly created and registered [UnsafeListener].
+         */
+        fun <T : Event> Any.listenUnsafe(
+            kClass: KClass<out T>,
+            priority: () -> Int = ownerPriorityOr0Getter,
+            alwaysListen: Boolean = false,
+            function: (T) -> Unit = {},
+        ): UnsafeListener<T> {
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { function(it) }
+
+            EventFlow.syncListeners.subscribe(kClass, listener)
 
             return listener
         }
@@ -185,12 +224,12 @@ class UnsafeListener<T : Event>(
          *     // no safe access to player or world
          * }
          *
-         * listenUnsafeConcurrently<MyEvent>(priority = 1) { event ->
+         * listenUnsafeConcurrently<MyEvent>(priority = { 1 }) { event ->
          *     println("Concurrent event received before the previous listener: $event")
          * }
          * ```
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is { 0 }.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [UnsafeListener].

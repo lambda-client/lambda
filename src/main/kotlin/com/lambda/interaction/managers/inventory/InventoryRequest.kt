@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ class InventoryRequest private constructor(
 
 		@InvRequestDsl
 		fun swapHands() {
-			InventoryAction.Inventory {
+			InventoryAction.Player {
 				val offhandStack = player.getStackInHand(Hand.OFF_HAND)
 				player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
 				player.setStackInHand(Hand.MAIN_HAND, offhandStack)

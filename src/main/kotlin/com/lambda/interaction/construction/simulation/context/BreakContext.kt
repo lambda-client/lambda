@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.mc.renderer.TickedRenderer
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.threading.runSafe
@@ -65,4 +64,6 @@ data class BreakContext(
             colors(baseColor, sideColor)
         }
     }
+
+    override fun canUse() = buildConfig.breakBlocks
 }

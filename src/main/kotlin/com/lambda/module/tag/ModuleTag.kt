@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,13 +40,14 @@ data class ModuleTag(override val name: String) : Nameable {
         val MOVEMENT = ModuleTag("Movement")
         val RENDER = ModuleTag("Render")
         val PLAYER = ModuleTag("Player")
+        val WORLD = ModuleTag("World")
         val CHAT = ModuleTag("Chat")
         val CLIENT = ModuleTag("Client")
         val NETWORK = ModuleTag("Network")
         val DEBUG = ModuleTag("Debug")
         val HUD = ModuleTag("Hud")
 
-        val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, CHAT, CLIENT, HUD)
+        val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, NETWORK, CHAT, CLIENT, HUD)
 
         val shownTags = defaults.toMutableSet()
 

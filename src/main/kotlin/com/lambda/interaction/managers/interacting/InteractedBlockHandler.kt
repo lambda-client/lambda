@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.interacting
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler

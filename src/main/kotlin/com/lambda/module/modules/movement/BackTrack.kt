@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,7 +95,7 @@ object BackTrack : Module(
     init {
         listen<TickEvent.Pre> {
             val prevTarget = target
-            target = if (KillAura.isDisabled) null else KillAura.target
+            target = KillAura.target.takeIf { KillAura.isEnabled } as? LivingEntity
             val currentTarget = target
 
             if (prevTarget != currentTarget || currentTarget == null) {

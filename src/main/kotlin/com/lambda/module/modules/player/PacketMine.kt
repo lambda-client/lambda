@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.math.distSq
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
+import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -55,6 +56,7 @@ object PacketMine : Module(
 		Renders("Renders")
 	}
 
+	private val ignoreWhenHolding by setting("Ignore When Holding", emptySet<Item>(), description = "These items won't initiate a break if held when attacking a block").group(Group.General)
 	private val rebreakMode by setting("Rebreak Mode", RebreakMode.Manual, "The method used to re-break blocks after they've been broken once").disabled { !breakConfig.rebreak }.group(Group.General)
 	private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block").group(Group.General)
 	private val flatten by setting("Flatten", true, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }.group(Group.General)
@@ -109,7 +111,8 @@ object PacketMine : Module(
 						::collectDrops,
 						::entityReach,
 						::breakBlocks,
-						::interactBlocks
+						::interactBlocks,
+						::placeBlocks
 					)
 					::maxBuildDependencies.edit { defaultValue(0) }
 				}
@@ -133,6 +136,7 @@ object PacketMine : Module(
 		listen<PlayerEvent.Attack.Block> { it.cancel() }
 		listen<PlayerEvent.Breaking.Update> { event ->
 			event.cancel()
+			if (player.mainHandStack.item in ignoreWhenHolding) return@listen
 			val pos = event.pos
 			val positions = mutableListOf<BlockPos>().apply {
 				if (breakRadius <= 0) {

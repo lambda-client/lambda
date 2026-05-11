@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,11 @@
 
 package com.lambda.friend
 
+import com.lambda.Lambda.mc
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
 import com.lambda.core.Loadable
+import com.lambda.network.mojang.getProfile
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -27,39 +29,81 @@ import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import com.lambda.util.text.text
 import com.mojang.authlib.GameProfile
-import net.minecraft.client.network.OtherClientPlayerEntity
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
 import java.awt.Color
 import java.util.*
 
-// ToDo:
-//  - Allow adding of offline players by name or uuid.
-//  - Should store the data until the player was seen.
-//      Either no UUID but with name or no name but with uuid or both.
-//      -> Should update the record if the player was seen again.
-//  - Handle player changing names.
-//  - Improve save file structure.
 object FriendManager : Configurable(FriendConfig), Loadable {
     override val name = "friends"
-    val friends by setting("friends", emptySet<GameProfile>(), serialize = true)
+    val friends by setting("friends", emptySet<UUID>(), serialize = true)
 
-    fun befriend(profile: GameProfile) = if (!isFriend(profile)) friends.add(profile) else false
-    fun unfriend(profile: GameProfile): Boolean = friends.remove(profile)
+    private val cachedProfiles = mutableMapOf<UUID, GameProfile>()
 
-    fun gameProfile(name: String) = friends.firstOrNull { it.name == name }
-    fun gameProfile(uuid: UUID) = friends.firstOrNull { it.id == uuid }
+    fun befriend(profile: GameProfile): Boolean {
+        cachedProfiles[profile.id] = profile
+        return befriend(profile.id)
+    }
 
-    fun isFriend(profile: GameProfile) = friends.contains(profile)
-    fun isFriend(name: String) = friends.any { it.name == name }
-    fun isFriend(uuid: UUID) = friends.any { it.id == uuid }
+    fun befriend(uuid: UUID) = if (!isFriend(uuid)) friends.add(uuid) else false
 
-    fun clear() = friends.clear()
+    fun unfriend(profile: GameProfile): Boolean {
+        cachedProfiles.remove(profile.id)
+        return unfriend(profile.id)
+    }
 
-    val OtherClientPlayerEntity.isFriend: Boolean
+    fun unfriend(uuid: UUID): Boolean {
+        cachedProfiles.remove(uuid)
+        return friends.remove(uuid)
+    }
+
+    fun gameProfile(name: String): GameProfile? {
+        return onlineProfile(name)
+            ?.also { cachedProfiles[it.id] = it }
+            ?: cachedProfiles.values.firstOrNull { it.name.equals(name, ignoreCase = true) }
+    }
+
+    fun gameProfile(uuid: UUID): GameProfile? {
+        return onlineProfile(uuid)
+            ?.also { cachedProfiles[it.id] = it }
+            ?: cachedProfiles[uuid]
+    }
+
+    suspend fun latestGameProfile(name: String): GameProfile? {
+        return gameProfile(name)
+            ?: getProfile(name)
+                .getOrNull()
+                ?.also { cachedProfiles[it.id] = it }
+    }
+
+    suspend fun latestGameProfile(uuid: UUID): GameProfile? {
+        return gameProfile(uuid)
+            ?: getProfile(uuid)
+                .getOrNull()
+                ?.also { cachedProfiles[it.id] = it }
+    }
+
+    fun isFriend(profile: GameProfile) = isFriend(profile.id)
+
+    fun isFriend(name: String): Boolean {
+        val online = onlineProfile(name) ?: return false
+        return isFriend(online.id)
+    }
+
+    fun isFriend(uuid: UUID) = friends.contains(uuid)
+
+    fun clear() {
+        cachedProfiles.clear()
+        friends.clear()
+    }
+
+    fun friendDisplayName(uuid: UUID): String = gameProfile(uuid)?.name ?: uuid.toString()
+
+    val PlayerEntity.isFriend: Boolean
         get() = isFriend(gameProfile)
 
-    fun OtherClientPlayerEntity.befriend() = befriend(gameProfile)
-    fun OtherClientPlayerEntity.unfriend() = unfriend(gameProfile)
+    fun PlayerEntity.befriend() = befriend(gameProfile)
+    fun PlayerEntity.unfriend() = unfriend(gameProfile)
 
     override fun load() = "Loaded ${friends.size} friends"
 
@@ -85,5 +129,15 @@ object FriendManager : Configurable(FriendConfig), Loadable {
                 literal("[Undo]")
             }
         }
+    }
+
+    private fun onlineProfile(name: String): GameProfile? {
+        val playerList = mc.networkHandler?.playerList ?: return null
+        return playerList.firstOrNull { it.profile.name.equals(name, ignoreCase = true) }?.profile
+    }
+
+    private fun onlineProfile(uuid: UUID): GameProfile? {
+        val playerList = mc.networkHandler?.playerList ?: return null
+        return playerList.firstOrNull { it.profile.id == uuid }?.profile
     }
 }

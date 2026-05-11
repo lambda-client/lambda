@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ data class SwapInfo(
 
 			val swapAtEnd = run {
 				val swapTickProgress = if (type == Primary)
-					breakDelta * (breakTicks + breakConfig.serverSwapTicks - 1).coerceAtLeast(1)
+					breakDelta * (breakTicks + (breakConfig.serverSwapTicks - 1).coerceAtLeast(0)).coerceAtLeast(1)
 				else {
 					val serverSwapTicks = hotbarConfig.swapPause.coerceAtLeast(3)
 					breakDelta * (breakTicks + serverSwapTicks - 1).coerceAtLeast(1)

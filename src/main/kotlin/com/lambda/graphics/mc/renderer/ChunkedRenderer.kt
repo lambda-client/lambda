@@ -24,11 +24,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.text.FontHandler
-import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.world.FastVector
@@ -47,6 +46,7 @@ class ChunkedRenderer(
 	owner: Any,
 	name: String,
 	depthTest: SafeContext.() -> Boolean,
+	pauseUpdates: SafeContext.() -> Boolean,
 	private val update: RenderBuilder.(ClientWorld, FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
@@ -59,9 +59,6 @@ class ChunkedRenderer(
 
 	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
-
-	override val currentFontAtlas: SDFFontAtlas
-		get() = FontHandler.getDefaultFont()
 
 	init {
 		owner.listen<WorldEvent.BlockUpdate.Client> { event ->
@@ -77,14 +74,15 @@ class ChunkedRenderer(
 			if (zInChunk == 15) world.getWorldChunk(pos.south())?.chunkData?.markDirty()
 		}
 
-		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
-		owner.listen<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
 		owner.listen<WorldEvent.Player.Leave> { rebuild() }
 
 		owner.listenConcurrently<TickEvent.Pre> {
-			val depth = depthTest()
+			if (pauseUpdates()) return@listenConcurrently
 			val queueSize = rebuildQueue.size
 			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
+			val depth = depthTest()
 			repeat(polls) { rebuildQueue.poll()?.rebuild(depth) }
 		}
 
@@ -100,13 +98,18 @@ class ChunkedRenderer(
 	private fun getChunkKey(chunkX: Int, chunkZ: Int) =
 		(chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
 
+	context(safeContext: SafeContext)
+	fun rebuildChunk(x: Int, z: Int) {
+		safeContext.world.getChunk(x, z)?.chunkData?.markDirty()
+	}
+
 	fun rebuild() {
 		rebuildQueue.clear()
 		mc.world?.chunkManager?.chunks?.let { chunks ->
-			val chunkCount = chunks.loadedChunkCount
-			(0..chunkCount).forEach { index ->
+			val chunkCount = chunks.chunks.length()
+			(0 until chunkCount).forEach { index ->
 				val chunk = chunks.chunks.get(index) ?: return@forEach
-				chunkMap.putIfAbsent(chunk.chunkKey, chunk.chunkData)
+				chunkMap.putIfAbsent(chunk.chunkKey, ChunkData(chunk))
 			}
 		}
 		rebuildQueue.addAll(chunkMap.values)
@@ -182,11 +185,12 @@ class ChunkedRenderer(
 		fun Any.chunkedRenderer(
 			name: String,
 			depthTest: SafeContext.() -> Boolean = { false },
+			pauseUpdates: SafeContext.() -> Boolean = { false },
 			update: RenderBuilder.(ClientWorld, FastVector) -> Unit
-		) = ChunkedRenderer(this, name, depthTest, update).also { renderer ->
+		) = ChunkedRenderer(this, name, depthTest, pauseUpdates, update).also { renderer ->
 			(this as? Module)?.let { module ->
 				module.onEnable { renderer.rebuild() }
-				module.onDisable { renderer.rebuild() }
+				module.onDisable { renderer.clear() }
 			}
 		}
 	}

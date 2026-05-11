@@ -31,8 +31,8 @@ import com.lambda.gui.components.ClickGuiLayout.snapToEdges
 import com.lambda.gui.components.ClickGuiLayout.snapToGrid
 import com.lambda.gui.components.ClickGuiLayout.snapToScreenCenter
 import com.lambda.gui.dsl.ImGuiBuilder
-import imgui.ImColor
-import imgui.ImGui
+import com.lambda.imgui.ImColor
+import com.lambda.imgui.ImGui
 import kotlin.collections.set
 import kotlin.math.abs
 import kotlin.math.max
@@ -54,7 +54,7 @@ object SnapManager : Loadable {
 	)
 
 	init {
-		listen<GuiEvent.NewFrame> {
+		listen<GuiEvent.NewImguiFrame> {
 			val vp = ImGui.getMainViewport()
 			val io = ImGui.getIO()
 			beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)

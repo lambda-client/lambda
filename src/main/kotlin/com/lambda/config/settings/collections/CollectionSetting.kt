@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,14 @@ import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.ImGui.getContentRegionAvail
 import com.lambda.threading.runSafe
-import imgui.ImGuiListClipper
-import imgui.callback.ImListClipperCallback
-import imgui.flag.ImGuiChildFlags
-import imgui.flag.ImGuiSelectableFlags.DontClosePopups
+import com.lambda.imgui.ImGuiListClipper
+import com.lambda.imgui.callback.ImListClipperCallback
+import com.lambda.imgui.flag.ImGuiChildFlags
+import com.lambda.imgui.flag.ImGuiPopupFlags
+import com.lambda.imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import java.lang.reflect.Type
 
 /**
@@ -52,6 +55,12 @@ open class CollectionSetting<R : Any>(
 	defaultValue,
 	type
 ) {
+	override var value
+		get() = super.value
+		set(newVal) {
+			super.value = newVal.toMutableList()
+		}
+
     private var searchFilter = ""
     private val strListType =
         TypeToken.getParameterized(Collection::class.java, String::class.java).type
@@ -60,47 +69,100 @@ open class CollectionSetting<R : Any>(
     val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
 	context(setting: Setting<*, MutableCollection<R>>)
-    override fun ImGuiBuilder.buildLayout() = buildComboBox("item") { it.toString() }
+    override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
 
 	context(setting: Setting<*, MutableCollection<R>>)
-	fun ImGuiBuilder.buildComboBox(itemName: String, toString: (R) -> String) {
+	fun ImGuiBuilder.buildDualPane(itemName: String, toString: (R) -> String) {
 		val text = if (value.size == 1) itemName else "${itemName}s"
+		val popupId = "##${setting.name}-collection-popup"
 
-		combo("##${setting.name}", "${setting.name}: ${value.size} $text") {
+		button("${setting.name}: ${value.size} $text") {
+			ImGui.openPopup(popupId)
+		}
+
+		ImGui.setNextWindowSizeConstraints(500f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
+		popupContextItem(popupId, ImGuiPopupFlags.None) {
 			inputText("##${setting.name}-SearchBox", ::searchFilter)
 
-			child(
-				strId = "##${setting.name}-ComboOptionsChild",
-				childFlags = ImGuiChildFlags.AutoResizeY or ImGuiChildFlags.AlwaysAutoResize,
-			) {
-				val list = immutableCollection
-					.filter { item ->
-						val q = searchFilter.trim()
-						if (q.isEmpty()) true
-						else toString(item).contains(q, ignoreCase = true)
-					}
+			val q = searchFilter.trim()
+			val filteredDeselected = immutableCollection
+				.filter { item -> !value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
+			val filteredSelected = immutableCollection
+				.filter { item -> value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
 
-				val listClipperCallback = object : ImListClipperCallback() {
-					override fun accept(index: Int) {
-						val v = list.getOrNull(index) ?: return
-						val selected = value.contains(v)
+			val availableWidth = getContentRegionAvail().x
+			val swapButtonWidth = 30f
+			val paneWidth = (availableWidth - swapButtonWidth - style.itemSpacing.x * 2) / 2f
+			val paneHeight = 200f
 
-						selectable(
-							label = toString(v),
-							selected = selected,
-							flags = DontClosePopups
-						) {
-							if (selected) {
-								value.remove(v)
-								runSafe { deselectListeners.forEach { listener -> listener(v) } }
-							} else {
+			group {
+				textDisabled("Deselected (${filteredDeselected.size})")
+				child(
+					strId = "##${setting.name}-Deselected",
+					width = paneWidth,
+					height = paneHeight,
+					childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
+				) {
+					val deselectedCallback = object : ImListClipperCallback() {
+						override fun accept(index: Int) {
+							val v = filteredDeselected.getOrNull(index) ?: return
+							selectable(
+								label = toString(v),
+								flags = DontClosePopups
+							) {
 								value.add(v)
 								runSafe { selectListeners.forEach { listener -> listener(v) } }
 							}
 						}
 					}
+					ImGuiListClipper.forEach(filteredDeselected.size, deselectedCallback)
 				}
-				ImGuiListClipper.forEach(list.size, listClipperCallback)
+			}
+
+			sameLine()
+
+			group {
+				cursorPosY += paneHeight / 2f
+				button("<>", swapButtonWidth) {
+					val currentlySelected = value.toList()
+					val allItems = immutableCollection.toList()
+					value.clear()
+					allItems.forEach { item ->
+						if (!currentlySelected.contains(item)) {
+							value.add(item)
+						}
+					}
+					runSafe {
+						currentlySelected.forEach { v -> deselectListeners.forEach { listener -> listener(v) } }
+						value.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
+					}
+				}
+			}
+
+			sameLine()
+
+			group {
+				textDisabled("Selected (${filteredSelected.size})")
+				child(
+					strId = "##${setting.name}-Selected",
+					width = paneWidth,
+					height = paneHeight,
+					childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
+				) {
+					val selectedCallback = object : ImListClipperCallback() {
+						override fun accept(index: Int) {
+							val v = filteredSelected.getOrNull(index) ?: return
+							selectable(
+								label = toString(v),
+								flags = DontClosePopups
+							) {
+								value.remove(v)
+								runSafe { deselectListeners.forEach { listener -> listener(v) } }
+							}
+						}
+					}
+					ImGuiListClipper.forEach(filteredSelected.size, selectedCallback)
+				}
 			}
 		}
 	}

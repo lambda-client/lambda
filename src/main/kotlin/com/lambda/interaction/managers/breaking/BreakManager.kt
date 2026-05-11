@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,8 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
+import com.lambda.interaction.managers.PacketLimitHandler
+import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
@@ -167,10 +169,9 @@ object BreakManager : Manager<BreakRequest>(
 		}
 
 		listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+			if (primaryBreak?.breaking == false) primaryBreak = null
 			breakInfos.forEach { it?.tickChecks() }
-			if (breakCooldown > 0) {
-			breakCooldown--
-			}
+			if (breakCooldown > 0) breakCooldown--
 			activeRequest = null
 			breaks = mutableListOf()
 			breaksThisTick = 0
@@ -296,7 +297,7 @@ object BreakManager : Manager<BreakRequest>(
 	 * @see processRequest
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: BreakRequest) {
-		if (!request.buildConfig.breakBlocks || activeRequest != null || request.contexts.isEmpty()) return
+		if (activeRequest != null || request.contexts.isEmpty()) return
 		if (InteractManager.activeThisTick) return
 
 		activeRequest = request
@@ -394,7 +395,7 @@ object BreakManager : Manager<BreakRequest>(
 			}
 
 		breaks = newBreaks
-			.take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
+			.take((buildConfig.maxPendingActions - request.pendingInteractions.size).coerceAtLeast(0))
 			.toMutableList()
 
 		maxBreaksThisTick = breakConfig.breaksPerTick
@@ -460,17 +461,20 @@ object BreakManager : Manager<BreakRequest>(
 	 *
 	 * @see initNewBreak
 	 */
-	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean = request.runSafeAutomated {
-		breaks.forEach { ctx ->
-			if (breaksThisTick >= maxBreaksThisTick) return false
-			if (!currentStackSelection.filterStack(player.inventory.getStack(ctx.hotbarIndex))) return@forEach
+	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean =
+		request.runSafeAutomated {
+			if (tickStage !in request.breakConfig.tickStageMask) return false
 
-			initNewBreak(ctx, request) ?: return false
-			breaks.remove(ctx)
-			return true
+			breaks.forEach { ctx ->
+				if (breaksThisTick >= maxBreaksThisTick) return false
+				if (!currentStackSelection.filterStack(player.inventory.getStack(ctx.hotbarIndex))) return@forEach
+
+				initNewBreak(ctx, request) ?: return false
+				breaks.remove(ctx)
+				return true
+			}
+			return false
 		}
-		return false
-	}
 
 	/**
 	 * Attempts to accept the [requestCtx] into the [breakInfos].
@@ -496,6 +500,7 @@ object BreakManager : Manager<BreakRequest>(
 		val breakInfo = BreakInfo(requestCtx, Primary, request)
 		primaryBreak?.let { primaryInfo ->
 			if (tickStage !in primaryInfo.breakConfig.tickStageMask) return null
+			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return null
 
 			if (!primaryInfo.breakConfig.doubleBreak || secondaryBreak != null) {
 				if (!primaryInfo.updatedThisTick) {
@@ -508,6 +513,7 @@ object BreakManager : Manager<BreakRequest>(
 
 			secondaryBreak = primaryInfo.apply { type = Secondary }
 			secondaryBreak?.stopBreakPacket()
+			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			return@let
 		}
 
@@ -550,6 +556,15 @@ object BreakManager : Manager<BreakRequest>(
 					if (cachedState.isEmpty) {
 						info.nullify()
 						return@forEach
+					}
+					info.request.runSafeAutomated {
+						val breakDelta = cachedState.calcBreakDelta(info.context.blockPos, player.mainHandStack)
+						val ticksToBreak = 1.0 / breakDelta
+						val ticksPast = info.breakingTicks - ticksToBreak
+						if (ticksPast >= 200) {
+							info.nullify()
+							return@forEach
+						}
 					}
 					info.progressedThisTick = true
 					info.breakingTicks++
@@ -625,19 +640,23 @@ object BreakManager : Manager<BreakRequest>(
 	 * If not, the break continues.
 	 */
 	context(safeContext: SafeContext)
-	private fun BreakInfo.cancelBreak() = with(safeContext) {
-		if (type == RedundantSecondary || abandoned) return@with
+	private fun BreakInfo.cancelBreak() = with(safeContext) safeContext@{
+		if (type == RedundantSecondary || abandoned) return@safeContext
 		when (type) {
 			Primary -> {
+				with(request) {
+					if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@safeContext
+				}
 				nullify()
-				setBreakingTextureStage(player, world, -1)
+				setBreakingTextureStage(-1)
 				abortBreakPacket()
+				PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				request.onCancel?.invoke(this, context.blockPos)
 			}
 			Secondary -> {
 				if (breakConfig.unsafeCancels) {
 					type = RedundantSecondary
-					setBreakingTextureStage(player, world, -1)
+					setBreakingTextureStage(-1)
 					request.onCancel?.invoke(this, context.blockPos)
 				} else abandoned = true
 			}
@@ -658,83 +677,82 @@ object BreakManager : Manager<BreakRequest>(
 	 *
 	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
 	 */
-	private fun SafeContext.updateBreakProgress(info: BreakInfo): Unit = info.request.runSafeAutomated {
-		val ctx = info.context
+	private fun SafeContext.updateBreakProgress(info: BreakInfo): Unit =
+		info.request.runSafeAutomated {
+			val ctx = info.context
+			info.progressedThisTick = true
 
-		info.progressedThisTick = true
+			if (!info.breaking) {
+				if (info.swapInfo.swap && !swapped) return
+				if (!startBreaking(info)) {
+					info.nullify()
+					info.request.onCancel?.invoke(this, ctx.blockPos)
+				}
+				return
+			}
 
-		if (!info.breaking) {
-			if (info.swapInfo.swap && !swapped) return
-			if (!startBreaking(info)) {
+			val hitResult = ctx.hitResult
+
+			if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
+				if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
+				breakCooldown = breakConfig.breakDelay
+				lastPosStarted = ctx.blockPos
+				onBlockBreak(info)
+				info.startBreakPacket()
+				PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
+				if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
+				return
+			}
+
+			val blockState = blockState(ctx.blockPos)
+			if (blockState.isEmpty) {
 				info.nullify()
 				info.request.onCancel?.invoke(this, ctx.blockPos)
+				return
 			}
-			return
-		}
 
-		val hitResult = ctx.hitResult
+			if (breakConfig.swapMode == BreakConfig.SwapMode.Constant && !swapped) return
 
-		if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
-			breakCooldown = breakConfig.breakDelay
-			lastPosStarted = ctx.blockPos
-			onBlockBreak(info)
-			info.startBreakPacket()
-			if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
-			return
-		}
+			info.breakingTicks++
+			val breakDelta = blockState.calcBreakDelta(ctx.blockPos)
+			val progress = breakDelta * (info.breakingTicks - breakConfig.fudgeFactor)
 
-		val blockState = blockState(ctx.blockPos)
-		if (blockState.isEmpty) {
-			info.nullify()
-			info.request.onCancel?.invoke(this, ctx.blockPos)
-			return
-		}
-
-		if (breakConfig.swapMode == BreakConfig.SwapMode.Constant && !swapped) return
-
-		info.breakingTicks++
-		val breakDelta = blockState.calcBreakDelta(ctx.blockPos)
-		val progress = breakDelta * (info.breakingTicks - breakConfig.fudgeFactor)
-
-		if (breakConfig.sounds) {
-			if (info.soundsCooldown % 4.0f == 0.0f) {
-				val blockSoundGroup = blockState.soundGroup
-				mc.soundManager.play(
-					PositionedSoundInstance(
-						blockSoundGroup.hitSound,
-						SoundCategory.BLOCKS,
-						(blockSoundGroup.getVolume() + 1.0f) / 8.0f,
-						blockSoundGroup.getPitch() * 0.5f,
-						SoundInstance.createRandom(),
-						ctx.blockPos
+			if (breakConfig.sounds) {
+				if (info.soundsCooldown % 4.0f == 0.0f) {
+					val blockSoundGroup = blockState.soundGroup
+					mc.soundManager.play(
+						PositionedSoundInstance(
+							blockSoundGroup.hitSound,
+							SoundCategory.BLOCKS,
+							(blockSoundGroup.getVolume() + 1.0f) / 8.0f,
+							blockSoundGroup.getPitch() * 0.5f,
+							SoundInstance.createRandom(),
+							ctx.blockPos
+						)
 					)
-				)
+				}
+				info.soundsCooldown++
 			}
-			info.soundsCooldown++
-		}
 
-		if (breakConfig.particles) {
-			world.spawnBlockBreakingParticle(ctx.blockPos, hitResult.side)
-		}
+			if (breakConfig.particles) world.spawnBlockBreakingParticle(ctx.blockPos, hitResult.side)
+			if (breakConfig.breakingTexture) info.setBreakingTextureStage()
 
-		if (breakConfig.breakingTexture) {
-			info.setBreakingTextureStage(player, world)
-		}
+			val swing = breakConfig.swing
+			if (progress >= info.getBreakThreshold()) {
+				if (info.swapInfo.swap && !swapped) return
+				if (info.type == Primary && !PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
 
-		val swing = breakConfig.swing
-		if (progress >= info.getBreakThreshold()) {
-			if (info.swapInfo.swap && !swapped) return
-
-			onBlockBreak(info)
-			if (info.type == Primary) info.stopBreakPacket()
-			if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start)
-				swingHand(breakConfig.swingType, Hand.MAIN_HAND)
-			breakCooldown = breakConfig.breakDelay
-		} else {
-			if (swing == BreakConfig.SwingMode.Constant)
-				swingHand(breakConfig.swingType, Hand.MAIN_HAND)
+				onBlockBreak(info)
+				if (info.type == Primary) {
+					info.stopBreakPacket()
+					PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
+				}
+				if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
+				breakCooldown = breakConfig.breakDelay
+			} else {
+				if (swing == BreakConfig.SwingMode.Constant) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
+			}
 		}
-	}
 
 	/**
 	 * A modified version of the minecraft attackBlock method.
@@ -744,6 +762,7 @@ object BreakManager : Manager<BreakRequest>(
 	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.attackBlock
 	 */
 	private fun AutomatedSafeContext.startBreaking(info: BreakInfo): Boolean {
+		if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return false
 		val ctx = info.context
 
 		if (info.rebreakPotential.isPossible()) {
@@ -779,49 +798,51 @@ object BreakManager : Manager<BreakRequest>(
 			info.request.onStart?.invoke(this, ctx.blockPos)
 			onBlockBreak(info)
 			info.startBreakPacket()
+			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			breakCooldown = breakConfig.breakDelay
 			if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			return true
 		}
 		if (info.breaking) return false
+
+		val blockState = blockState(ctx.blockPos)
+		val progress = blockState.calcBreakDelta(ctx.blockPos)
+		val instantBreakable = progress >= info.getBreakThreshold()
+
+		var packetCount = 1
+		if (breakConfig.breakMode == BreakMode.Packet) packetCount++
+		val requiresSecondStop = info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)
+		if (requiresSecondStop) packetCount++
+
+		if (!PacketLimitHandler.canSendPackets(packetCount, PacketType.PlayerAction)) return false
+
 		info.request.onStart?.invoke(this, ctx.blockPos)
 
 		lastPosStarted = ctx.blockPos
 
-		val blockState = blockState(ctx.blockPos)
 		if (info.breakingTicks == 0) {
 			blockState.onBlockBreakStart(world, ctx.blockPos, player)
 		}
 
-		val progress = blockState.calcBreakDelta(ctx.blockPos)
-
-		val instantBreakable = progress >= info.getBreakThreshold()
 		if (instantBreakable) {
 			info.vanillaInstantBreakable = progress >= 1
 			onBlockBreak(info)
 			val breakDelay = breakConfig.breakDelay
-			if (!info.vanillaInstantBreakable)
-				breakCooldown = if (breakDelay == 0) 0 else breakDelay + 1
+			if (!info.vanillaInstantBreakable) breakCooldown = if (breakDelay == 0) 0 else breakDelay + 1
 		} else {
 			info.apply {
 				breaking = true
 				breakingTicks = 1
 				soundsCooldown = 0.0f
-				if (breakConfig.breakingTexture) {
-					setBreakingTextureStage(player, world)
-				}
+				if (breakConfig.breakingTexture) setBreakingTextureStage()
 			}
 		}
 
-		if (breakConfig.breakMode == BreakMode.Packet) {
-			info.stopBreakPacket()
-		}
-
+		if (breakConfig.breakMode == BreakMode.Packet) info.stopBreakPacket()
 		info.startBreakPacket()
+		if (requiresSecondStop) info.stopBreakPacket()
 
-		if (info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)) {
-			info.stopBreakPacket()
-		}
+		PacketLimitHandler.sentPackets(packetCount, PacketType.PlayerAction)
 
 		if (breakConfig.swing.isEnabled() && (breakConfig.swing != BreakConfig.SwingMode.End || instantBreakable)) {
 			swingHand(breakConfig.swingType, Hand.MAIN_HAND)

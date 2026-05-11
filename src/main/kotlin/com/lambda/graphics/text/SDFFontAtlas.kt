@@ -47,10 +47,13 @@ import kotlin.math.sqrt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Path
+import kotlin.io.path.readBytes
 
 class SDFFontAtlas(
 	fontPath: String,
-	val baseSize: Float = 256f,
+	userFont: Boolean,
+	val baseSize: Float = 128f,
 	val sdfSpread: Int = 16,
 	val atlasSize: Int = 4096
 ) : AutoCloseable {
@@ -100,7 +103,9 @@ class SDFFontAtlas(
 	val isUploaded: Boolean get() = glTexture != null
 
 	init {
-		val fontBytes = fontPath.stream.readAllBytes()
+		val fontBytes =
+			if (userFont) Path.of(fontPath).readBytes()
+			else fontPath.stream.readBytes()
 		fontBuffer = MemoryUtil.memAlloc(fontBytes.size).put(fontBytes).flip()
 
 		fontInfo = STBTTFontinfo.create()
@@ -511,13 +516,17 @@ class SDFFontAtlas(
 		return (targetWidthNormalized * screenWidth * ascent) / (rawAdvance * screenHeight * baseSize)
 	}
 
-	override fun close() {
+	fun freeGpu() {
 		glTextureView?.close()
 		glTextureView = null
 		glTexture?.close()
 		glTexture = null
 		gpuSampler = null
 		atlasData = null
+	}
+
+	override fun close() {
+		freeGpu()
 		MemoryUtil.memFree(fontBuffer)
 	}
 }

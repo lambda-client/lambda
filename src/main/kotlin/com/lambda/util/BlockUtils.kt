@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package com.lambda.util
 import com.lambda.context.SafeContext
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.player.gamemode
+import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock
 import net.minecraft.block.AbstractSignBlock
@@ -99,7 +100,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
 object BlockUtils {
-
     val signs = setOf(
         Blocks.OAK_SIGN,
         Blocks.BIRCH_SIGN,
@@ -359,4 +359,7 @@ object BlockUtils {
     fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
     fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
         add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)
+    context(safeContext: SafeContext)
+    val BlockPos.isLoaded get() = safeContext.isLoaded(this)
+
 }

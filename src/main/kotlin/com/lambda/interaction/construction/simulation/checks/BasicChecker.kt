@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2026 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
+import com.lambda.interaction.managers.breaking.BreakConfig.WhitelistMode
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.OperatorBlock
@@ -48,9 +49,14 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block should be ignored
-        if (state.block in breakConfig.ignoredBlocks && this@hasBasicRequirements is BreakSimInfo) {
-            result(GenericResult.Ignored(pos))
-            return false
+        if (this@hasBasicRequirements is BreakSimInfo) {
+            val mode = breakConfig.whitelistMode
+            if ((mode == WhitelistMode.Whitelist && state.block !in breakConfig.whitelist) ||
+                (mode == WhitelistMode.Blacklist && state.block in breakConfig.blacklist)
+                ) {
+                result(GenericResult.Ignored(pos))
+                return false
+            }
         }
 
         // the player is in the wrong game mode to alter the block state
@@ -66,8 +72,8 @@ object BasicChecker : Results<PreSimResult> {
         }
 
         // block is outside the world so it cant be altered
-        if (!world.worldBorder.contains(pos) || world.isOutOfHeightLimit(pos)) {
-            result(PreSimResult.OutOfWorld(pos))
+        if (world.isOutOfHeightLimit(pos)) {
+            result(PreSimResult.OutOfHeightLimit(pos))
             return false
         }
 
