@@ -180,7 +180,6 @@ object Freecam : Module(
 		}
 
 		listen<PlayerEvent.ChangeLookDirection> {
-			rotation = rotation.withDelta(it.deltaYaw * SENSITIVITY_FACTOR, it.deltaPitch * SENSITIVITY_FACTOR)
             rotation = rotation.withDelta(
                 it.deltaYaw * SENSITIVITY_FACTOR,
                 it.deltaPitch * SENSITIVITY_FACTOR
@@ -259,7 +258,6 @@ object Freecam : Module(
 		}
 
 		listen<RenderEvent.UpdateTarget>({ 1 }) { event -> // Higher priority then RotationManager to run before RotationManager modifies mc.crosshairTarget
-			mc.crosshairTarget = rotation.rayCast(reach, lerpPos).orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
             mc.crosshairTarget = rotation
                 .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
