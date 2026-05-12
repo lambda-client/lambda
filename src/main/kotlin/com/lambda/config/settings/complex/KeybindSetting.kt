@@ -215,14 +215,15 @@ data class Bind(
     val modifiers: Int,
     val mouse: Int = -1,
 ) {
-    val trueMods = buildList {
-        if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
-        if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
-        if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LeftAlt)
-        if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LeftSuper)
-        if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CapsLock)
-        if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NumLock)
-    }
+	val trueMods: List<KeyCode> // If we store mods as a list Lambda explodes. When gson initializes Bind and there is no config entry it would set trueMods null
+		get() = buildList {
+			if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
+			if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
+			if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LeftAlt)
+			if (modifiers and GLFW_MOD_SUPER != 0) add(KeyCode.LeftSuper)
+			if (modifiers and GLFW_MOD_CAPS_LOCK != 0) add(KeyCode.CapsLock)
+			if (modifiers and GLFW_MOD_NUM_LOCK != 0) add(KeyCode.NumLock)
+		}
 
     val isMouseBind: Boolean
         get() = mouse >= 0
