@@ -96,10 +96,10 @@ class ContainerTransferTask(
 	}
 
 
-	private fun checkFail(): Boolean =
-		failIfNoMaterial.also {
-			failure(NoMaterialAccessException(stackSelection))
-		}
+	private fun checkFail() {
+		if (failIfNoMaterial) failure(NoMaterialAccessException(stackSelection))
+		else success()
+	}
 
 	private class NoMaterialAccessException(stackSelection: StackSelection) : IllegalStateException("Unable to access $stackSelection.")
 }

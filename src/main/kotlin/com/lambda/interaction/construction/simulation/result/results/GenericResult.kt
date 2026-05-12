@@ -99,6 +99,7 @@ sealed class GenericResult : BuildResult() {
 
         context(task: Task<*>, _: AutomatedSafeContext)
         override fun resolve() {
+            if (neededSelection.count == 0) return
             neededSelection.transferByTask(HotbarContainer)?.softFail()?.execute(task)
         }
 
