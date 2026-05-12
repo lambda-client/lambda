@@ -23,7 +23,7 @@ import com.lambda.config.SettingBlock
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.util.item.ItemUtils
 
-class InventorySettings(override val c: Config) : SettingBlock, InventoryConfig {
+class InventorySettings(override val c: Config) : InventoryConfig, SettingBlock {
     companion object {
         private const val ContainerGroup = "Container"
         private const val AccessGroup = "Access"

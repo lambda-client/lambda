@@ -22,7 +22,7 @@ import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.ConfigEditor
+import com.lambda.config.BaseEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
@@ -64,12 +64,12 @@ class StringSetting(
     @Suppress("unused", "unchecked_cast")
     companion object {
         @SettingEditorDsl
-        fun ConfigEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
+        fun BaseEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
             (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
         }
 
         @SettingEditorDsl
-        fun ConfigEditor.TypedEditBuilder<String>.flags(flags: Int) {
+        fun BaseEditor.TypedEditBuilder<String>.flags(flags: Int) {
             (settings as Collection<StringSetting>).forEach { it.flags = flags }
         }
     }

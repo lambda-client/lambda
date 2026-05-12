@@ -18,5 +18,10 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
+import com.lambda.util.FolderRegistry
+import java.io.File
 
-object HudCategory : ConfigCategory("hud")
+object HudCategory : ConfigCategory() {
+	override val configName get() = "hud"
+	override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+}

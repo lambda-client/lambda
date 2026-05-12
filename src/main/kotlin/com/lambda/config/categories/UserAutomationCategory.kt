@@ -22,8 +22,13 @@ import com.lambda.config.ConfigCategory
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.util.FileUtils.ifExists
+import com.lambda.util.FolderRegistry
+import java.io.File
 
-object UserAutomationCategory : ConfigCategory("custom-automation") {
+object UserAutomationCategory : ConfigCategory() {
+    override val configName get() = "custom_automation"
+    override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+
     override fun internalTryLoad() {
         primaryFile.ifExists {
             JsonParser.parseReader(it.reader()).asJsonObject.entrySet().forEach { (name, _) ->

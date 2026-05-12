@@ -43,7 +43,7 @@ object BaritoneHandler : Config(LambdaCategory), Automated by AutomationConfig.D
     private val baritone = if (isBaritoneLoaded) BaritoneAPI.getProvider() else null
     val baritoneSettings: Settings? = if (isBaritoneLoaded) BaritoneAPI.getSettings() else null
 
-    val settings = if (isBaritoneLoaded) baritoneSettings?.let { settingBlock(BaritoneConfigSettings(this, it)) } else null
+//    val settings by baritoneSettings?.let { settingBlock(BaritoneConfigSettings(this, it)) }
     private const val RotationTab = "Rotation"
     @Tab(RotationTab) override val rotationConfig by settingBlock(RotationSettings(this))
 

@@ -18,7 +18,7 @@
 package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
-import com.lambda.config.ConfigEditor
+import com.lambda.config.BaseEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
@@ -98,19 +98,19 @@ abstract class NumericSetting<T>(
     companion object {
         @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T> ConfigEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+        fun <T> BaseEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
         }
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T> ConfigEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+        fun <T> BaseEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
         }
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T> ConfigEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+        fun <T> BaseEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
         }
     }

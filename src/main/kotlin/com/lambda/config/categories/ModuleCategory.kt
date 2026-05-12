@@ -18,6 +18,8 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
+import com.lambda.util.FolderRegistry
+import java.io.File
 
 /**
  * The [ModuleCategory] object represents the configuration file for the [Module]s.
@@ -27,4 +29,7 @@ import com.lambda.config.ConfigCategory
  * @property configName The name of the configuration.
  * @property primary The primary file where the configuration is saved.
  */
-object ModuleCategory : ConfigCategory("modules")
+object ModuleCategory : ConfigCategory() {
+	override val configName get() = "modules"
+	override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+}

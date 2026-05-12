@@ -18,5 +18,10 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
+import com.lambda.util.FolderRegistry
+import java.io.File
 
-object FriendCategory : ConfigCategory("friends")
+object FriendCategory : ConfigCategory() {
+	override val configName get() = "friends"
+	override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+}

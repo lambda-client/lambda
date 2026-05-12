@@ -19,6 +19,7 @@ package com.lambda.config.automation
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
+import com.lambda.config.EditContext.ConfigEditContext
 import com.lambda.config.Tab
 import com.lambda.config.categories.AutomationCategory
 import com.lambda.config.settings.blocks.BreakSettings
@@ -36,13 +37,13 @@ open class AutomationConfig(
 	override val name: String,
 	configCategory: ConfigCategory = AutomationCategory
 ) : Config(configCategory), Automated {
-	@Tab(BuildTab) override val buildConfig = BuildSettings(this)
-	@Tab(BreakTab) override val breakConfig = BreakSettings(this)
-	@Tab(InteractTab) override val interactConfig = InteractSettings(this)
-	@Tab(RotationTab) override val rotationConfig = RotationSettings(this)
-	@Tab(InventoryTab) override val inventoryConfig = InventorySettings(this)
-	@Tab(HotbarTab) override val hotbarConfig = HotbarSettings(this)
-	@Tab(EatTab) override val eatConfig = EatSettings(this)
+	@Tab(BuildTab) override val buildConfig by settingBlock(BuildSettings(this))
+	@Tab(BreakTab) override val breakConfig by settingBlock(BreakSettings(this))
+	@Tab(InteractTab) override val interactConfig by settingBlock(InteractSettings(this))
+	@Tab(RotationTab) override val rotationConfig by settingBlock(RotationSettings(this))
+	@Tab(InventoryTab) override val inventoryConfig by settingBlock(InventorySettings(this))
+	@Tab(HotbarTab) override val hotbarConfig by settingBlock(HotbarSettings(this))
+	@Tab(EatTab) override val eatConfig by settingBlock(EatSettings(this))
 
 	companion object {
 		private const val BuildTab = "Build"
@@ -56,13 +57,21 @@ open class AutomationConfig(
 		context(module: Module)
         fun IMutableAutomationConfig.setDefaultAutomationConfig(
 	        name: String = module.name,
-	        edits: (AutomationConfig.() -> Unit)? = null
-		) { this.defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) } }
+	        edits: (context (ConfigEditContext) AutomationConfig.() -> Unit)? = null
+		) {
+			this.defaultAutomationConfig = AutomationConfig("$name Automation Config").also {
+				if (edits != null) with(ConfigEditContext()) { it.edits() }
+			}
+		}
 
         fun IMutableAutomationConfig.setDefaultAutomationConfig(
 	        name: String,
-	        edits: (AutomationConfig.() -> Unit)? = null
-		) { defaultAutomationConfig = AutomationConfig("$name Automation Config").apply { edits?.invoke(this) } }
+	        edits: (context(ConfigEditContext) AutomationConfig.() -> Unit)? = null
+		) {
+			defaultAutomationConfig = AutomationConfig("$name Automation Config").also {
+				if (edits != null) with(ConfigEditContext()) { it.edits() }
+			}
+		}
 
 		val Default = AutomationConfig("Default")
     }

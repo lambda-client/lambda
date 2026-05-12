@@ -88,10 +88,9 @@ class BreakSettings(override val c: Config) : BreakConfig, SettingBlock {
 	@Group(CosmeticGroup) override val endFillColor by c.setting("End Fill Color", Color(0, 255, 0, 60), "The color of the fill at the end of breaking") { renders && dynamicFillColor && fill }
 	// Outline
 	@Group(CosmeticGroup) override val outline by c.setting("Outline", true, "Renders the lines of the box to display break progress") { renders }
-	@Group(CosmeticGroup) override val outlineConfig by
-		c.settingBlock(WorldLineSettings(c)) {
-			c.applyEdits { hide(::startColor, ::endColor) }
-		}
+	@Group(CosmeticGroup) override val outlineConfig by c.settingBlock(WorldLineSettings(c)) {
+		c.applyEdits { hide(::startColor, ::endColor) }
+	}
 	@Group(CosmeticGroup) override val dynamicOutlineColor by c.setting("Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { renders && outline }
 	@Group(CosmeticGroup) override val staticOutlineColor by c.setting("Outline Color", Color.RED, "The Color of the outline at the start of breaking") { renders && !dynamicOutlineColor && outline }
 	@Group(CosmeticGroup) override val startOutlineColor by c.setting("Start Outline Color", Color.RED, "The color of the outline at the start of breaking") { renders && dynamicOutlineColor && outline }

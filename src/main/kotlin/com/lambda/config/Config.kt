@@ -115,12 +115,36 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 		onSetting: (property: KProperty<*>) -> Unit = {},
 		onSettingBlock: (property: KProperty<*>, blockClass: KClass<*>) -> Unit = { _, _ -> }
 	) {
-		klass.declaredMemberProperties.forEach { property ->
-			val fieldType = property.javaField?.type ?: return@forEach
-			when {
-				Setting::class.java.isAssignableFrom(fieldType) -> onSetting(property)
-				SettingBlock::class.java.isAssignableFrom(fieldType) -> onSettingBlock(property, fieldType.kotlin)
+		val hierarchy = buildList {
+			var current: KClass<*>? = klass
+			while (current != null && current != Config::class && current != Any::class) {
+				add(current)
+				current = current.supertypes
+					.mapNotNull { it.classifier as? KClass<*> }
+					.firstOrNull { !it.java.isInterface }
 			}
+		}.reversed()
+
+		hierarchy.forEach { level ->
+			val fieldOrder = level.java.declaredFields
+				.withIndex()
+				.associate { (index, field) -> field.name to index }
+
+			level.declaredMemberProperties
+				.sortedBy {
+					val javaField = it.javaField ?: return@sortedBy Int.MAX_VALUE
+					fieldOrder[javaField.name] ?: Int.MAX_VALUE
+				}
+				.forEach { property ->
+					val fieldType = property.javaField?.type ?: return@forEach
+					when {
+						Setting::class.java.isAssignableFrom(fieldType) -> onSetting(property)
+						SettingBlockWrapper::class.java.isAssignableFrom(fieldType) -> {
+							val blockClass = property.returnType.classifier as? KClass<*>
+							if (blockClass != null) onSettingBlock(property, blockClass)
+						}
+					}
+				}
 		}
 	}
 
@@ -403,10 +427,9 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 	fun <T : SettingBlock> settingBlock(
 		settingBlock: T,
 		visibility: (() -> Boolean)? = null,
-		block: (T.() -> Unit)? = null
+		block: (context(EditContext.BlockEditContext) T.() -> Unit)? = null
 	): SettingBlockWrapper<T> =
 		settingBlock
-			.apply { block?.invoke(this) }
 			.let { settingBlock ->
 				val path = try {
 					registrationQueue.removeFirst().settingBlockSpecs
@@ -426,16 +449,17 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 					}
 				}
 
-				if (visibility != null) {
-					currentLayer.settingLayers.forEach { settingLayer ->
-						val setting = settingLayer.setting
-						setting.visibility = { setting.visibility() && visibility() }
+				SettingBlockWrapper(settingBlock, currentLayer)
+					.also { wrapper ->
+						(currentLayer as? BlockLayer.Block)?.settingBlock = wrapper
 					}
-				}
-
-				SettingBlockWrapper(settingBlock, currentLayer).also { wrapper ->
-					(currentLayer as? BlockLayer.Block)?.settingBlock = wrapper
-				}
+					.also { wrapper ->
+						if (block != null) {
+							with (EditContext.BlockEditContext(wrapper)) {
+								settingBlock.block()
+							}
+						}
+					}
 			}
 
 	@PublishedApi

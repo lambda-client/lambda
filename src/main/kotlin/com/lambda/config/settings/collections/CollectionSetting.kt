@@ -20,7 +20,7 @@ package com.lambda.config.settings.collections
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
-import com.lambda.config.ConfigEditor
+import com.lambda.config.BaseEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
@@ -192,7 +192,7 @@ open class CollectionSetting<R : Any>(
 
         @SettingEditorDsl
         @Suppress("unchecked_cast")
-        fun <T : Any> ConfigEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+        fun <T : Any> BaseEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
             (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
         }
     }

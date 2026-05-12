@@ -18,5 +18,10 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
+import com.lambda.util.FolderRegistry
+import java.io.File
 
-object FontCategory : ConfigCategory("font")
+object FontCategory : ConfigCategory() {
+	override val configName get() = "font"
+	override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+}

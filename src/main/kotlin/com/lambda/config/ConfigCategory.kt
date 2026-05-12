@@ -26,7 +26,6 @@ import com.lambda.Lambda.Log
 import com.lambda.Lambda.gson
 import com.lambda.config.ConfigLoader.configByName
 import com.lambda.config.ConfigLoader.configCategories
-import com.lambda.config.categories.AutomationCategory
 import com.lambda.config.categories.ModuleCategory
 import com.lambda.config.migration.ConfigMigrations
 import com.lambda.core.Loadable
@@ -39,7 +38,6 @@ import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.FileUtils.createIfNotExists
 import com.lambda.util.FileUtils.ifExists
 import com.lambda.util.FileUtils.ifNotExists
-import com.lambda.util.FolderRegistry
 import com.lambda.util.StringUtils.capitalize
 import java.io.File
 import kotlin.concurrent.fixedRateTimer
@@ -59,11 +57,10 @@ import kotlin.time.Duration.Companion.minutes
  * @property primary The primary file where the configuration is saved.
  * @property configs A set of [Config] objects that this configuration manages.
  */
-abstract class ConfigCategory(
-    val configName: String
-) : Jsonable, Loadable {
-    val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
-    private val backup = File("${primaryFile.parent}/${primaryFile.nameWithoutExtension}-backup.${primaryFile.extension}")
+abstract class ConfigCategory : Jsonable, Loadable {
+    abstract val configName: String
+    abstract val primaryFile: File
+    private val backup get() = File("${primaryFile.parent}/${primaryFile.nameWithoutExtension}-backup.${primaryFile.extension}")
     override val priority = 1
 
     val configs = mutableSetOf<Config>()

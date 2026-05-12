@@ -93,7 +93,7 @@ object ConfigCommand : LambdaCommand(
                     fun forEach(layer: SettingLayer.Multiple, layerPath: List<String>) {
                         layer.layers.forEach { layer ->
                             when (layer) {
-                                is SettingLayer.Single<*, *> -> suggestions.add("${layerPath.joinToString(".")}.${layer.setting.name}")
+                                is SettingLayer.Single<*, *> -> suggestions.add("${layerPath.joinToString("->")}->${layer.setting.commandName}")
                                 is SettingLayer.Multiple -> forEach(layer, layerPath + layer.name)
                             }
                         }
@@ -106,7 +106,7 @@ object ConfigCommand : LambdaCommand(
                     val configString = configArg().value()
                     val config = ConfigLoader.configByCommandName(configString) ?: return@executeWithResult failure("Config not found")
                     val settingString = settingArg().value()
-                    val fullPath = settingString.split(".")
+                    val fullPath = settingString.split("->")
                     val settingName = fullPath.last()
                     var currentLayer: SettingLayer.Multiple = config.settingLayers
                     fullPath.forEachIndexed { index, layerName ->
@@ -122,7 +122,7 @@ object ConfigCommand : LambdaCommand(
                     val settingLayer = currentLayer.layers
                         .asSequence()
                         .filterIsInstance<SettingLayer.Single<*, *>>()
-                        .find { it.setting.name == settingName }
+                        .find { it.setting.commandName == settingName }
                     if (settingLayer == null) return@executeWithResult failure("Setting not found: $settingName")
                     return@executeWithResult block(settingLayer)
                 }

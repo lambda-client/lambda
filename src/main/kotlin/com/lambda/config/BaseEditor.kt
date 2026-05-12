@@ -28,14 +28,63 @@ import kotlin.reflect.jvm.isAccessible
 annotation class SettingEditorDsl
 
 @SettingEditorDsl
+context(configEditContext: EditContext.ConfigEditContext)
 fun Config.applyEdits(edits: ConfigEditor.() -> Unit) {
 	ConfigEditor(this).apply(edits)
 }
 
-open class ConfigEditor(val c: Config) {
-	private typealias Property<T> = KProperty0<T>
-	private typealias SettingProperty<T> = KProperty0<T>
-	private typealias SettingBlockProperty<T> = KProperty0<T>
+@SettingEditorDsl
+context(blockEditContext: EditContext.BlockEditContext)
+fun Config.applyEdits(edits: BlockEditor.() -> Unit) {
+	BlockEditor(this, blockEditContext.block).apply(edits)
+}
+
+sealed class EditContext<T : BaseEditor> {
+	class ConfigEditContext internal constructor() : EditContext<ConfigEditor>()
+	class BlockEditContext internal constructor(internal val block: SettingBlockWrapper<*>) : EditContext<BlockEditor>()
+}
+
+class ConfigEditor internal constructor(private val c: Config) : BaseEditor() {
+	@SettingEditorDsl
+	fun forEachSetting(block: (Setting<*, *>) -> Unit) {
+		c.forEachSetting { _, single -> block(single.setting) }
+	}
+
+	@SettingEditorDsl
+	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>) {
+		val exceptBlocks = except.map { it.settingBlock.layer }
+		fun processBlock(blockLayer: BlockLayer) {
+			blockLayer.layers.forEach(::processBlock)
+			if (blockLayer !in exceptBlocks) blockLayer.settingLayers.forEach(::hide)
+		}
+		processBlock(c.settingBlockLayers)
+	}
+}
+
+class BlockEditor internal constructor(
+	private val c: Config,
+	val wrapper: SettingBlockWrapper<*>
+) : BaseEditor() {
+	@SettingEditorDsl
+	fun forEachSetting(block: (Setting<*, *>) -> Unit) {
+		c.forEachSettingBlock(wrapper.layer) { _, single -> block(single.setting) }
+	}
+
+	@SettingEditorDsl
+	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>) {
+		val exceptBlocks = except.map { it.settingBlock.layer }
+		fun processBlock(blockLayer: BlockLayer) {
+			blockLayer.layers.forEach(::processBlock)
+			if (blockLayer !in exceptBlocks) blockLayer.settingLayers.forEach(::hide)
+		}
+		processBlock(wrapper.layer)
+	}
+}
+
+open class BaseEditor internal constructor() {
+	protected typealias Property<T> = KProperty0<T>
+	protected typealias SettingProperty<T> = KProperty0<T>
+	protected typealias SettingBlockProperty<T> = KProperty0<T>
 
 	private val Property<*>.delegate
 		get() = try {
@@ -44,33 +93,31 @@ open class ConfigEditor(val c: Config) {
 			throw IllegalStateException("Could not access delegate for property $name", e)
 		}
 
-	private val <T : Any> SettingProperty<T>.setting
+	protected val <T : Any> SettingProperty<T>.setting
 		get() = this.delegate as? Setting<SettingCore<T>, T>
 			?: throw IllegalStateException("Setting delegate did not match the given type")
 
-	private val <T : SettingBlock> SettingBlockProperty<T>.settingBlock
+	protected val <T : SettingBlock> SettingBlockProperty<T>.settingBlock
 		get() = this.delegate as? SettingBlockWrapper<T>
 			?: throw IllegalStateException("SettingBlock delegate did not match the given type")
-
-	private fun <T : Any> SettingProperty<T>.settingCore() = setting.core
 
 	@SettingEditorDsl
 	fun <T : Any> SettingProperty<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
 		val delegate = setting
-		TypedEditBuilder(c, listOf(delegate)).edits(delegate.core)
+		TypedEditBuilder(listOf(delegate)).edits(delegate.core)
 	}
 
 	@SettingEditorDsl
 	fun edit(
 		vararg settings: SettingProperty<Any>,
 		edits: BasicEditBuilder.() -> Unit
-	) = BasicEditBuilder(c, settings.map { it.setting }).apply(edits)
+	) = BasicEditBuilder(settings.map { it.setting }).apply(edits)
 
 	@SettingEditorDsl
 	fun <T : Any> editTyped(
 		vararg settings: SettingProperty<T>,
 		edits: TypedEditBuilder<T>.() -> Unit
-	) = TypedEditBuilder(c, settings.map { it.setting }).apply(edits)
+	) = TypedEditBuilder(settings.map { it.setting }).apply(edits)
 
 	@SettingEditorDsl
 	fun hide(vararg settings: SettingProperty<Any>) =
@@ -93,21 +140,9 @@ open class ConfigEditor(val c: Config) {
 		}
 	}
 
-	@SettingEditorDsl
-	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>) {
-		val exceptBlocks = except.map { it.settingBlock.layer }
-		fun processBlock(blockLayer: BlockLayer.Block) {
-			blockLayer.layers.forEach(::processBlock)
-			if (blockLayer !in exceptBlocks) blockLayer.settingLayers.forEach(::hide)
-		}
-
-		c.settingBlockLayers.layers.forEach(::processBlock)
-	}
-
-	open class BasicEditBuilder(
-		c: Config,
+	open class BasicEditBuilder internal constructor(
 		open val settings: Collection<Setting<*, *>>
-	) : ConfigEditor(c) {
+	) : BaseEditor() {
 		@SettingEditorDsl
 		fun hide() {
 			settings.forEach {
@@ -123,10 +158,9 @@ open class ConfigEditor(val c: Config) {
 		}
 	}
 
-	class TypedEditBuilder<T : Any>(
-		c: Config,
+	class TypedEditBuilder<T : Any> internal constructor(
 		override val settings: Collection<Setting<SettingCore<T>, T>>
-	) : BasicEditBuilder(c, settings) {
+	) : BasicEditBuilder(settings) {
 		@SettingEditorDsl
 		fun defaultValue(value: T) =
 			settings.forEach {
