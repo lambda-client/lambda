@@ -19,6 +19,7 @@ package com.lambda
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.lambda.config.serializer.BindCodec
 import com.lambda.config.serializer.BlockCodec
 import com.lambda.config.serializer.BlockPosCodec
 import com.lambda.config.serializer.ColorSerializer
@@ -29,6 +30,7 @@ import com.lambda.config.serializer.KeyCodeCodec
 import com.lambda.config.serializer.OptionalCodec
 import com.lambda.config.serializer.TextCodec
 import com.lambda.config.serializer.UUIDCodec
+import com.lambda.config.settings.complex.Bind
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -87,6 +89,7 @@ object Lambda : ClientModInitializer {
         .registerTypeAdapter(ArrowItem::class.java, ItemCodec)
         .registerTypeAdapter(PotionItem::class.java, ItemCodec)
         .registerTypeAdapter(RangedWeaponItem::class.java, ItemCodec)
+        .registerTypeAdapter(Bind::class.java, BindCodec)
         .create()
 
     override fun onInitializeClient() {} // nop
