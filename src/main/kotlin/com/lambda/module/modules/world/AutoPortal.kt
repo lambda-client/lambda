@@ -118,10 +118,14 @@ object AutoPortal : Module(
 	@Group(RenderGroup) private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
 	@Group(RenderGroup) private val depthTest by setting("Depth Test", false) { renders }
 	@Group(RenderGroup, FillGroup) private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
-	@Group(RenderGroup, OutlineGroup) private val outlineConfig by settingBlock(
-		WorldLineSettings(this),
-		{ renders }
-	) { applyEdits { hide(::startColor, ::endColor) } }
+	@Group(RenderGroup, OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this)) {
+		applyEdits {
+			hide(::startColor, ::endColor)
+			forEachSetting {
+				visibility { old -> { old() && renders } }
+			}
+		}
+	}
 
 	private var preview = false
 	private var buildTask: Task<*>? = null

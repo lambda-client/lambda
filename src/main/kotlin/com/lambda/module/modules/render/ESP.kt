@@ -74,10 +74,12 @@ object ESP : Module(
 	@Tab(GeneralTab) @Group(BoxOutlineGroup) private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
 	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
-	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings by settingBlock(
-		WorldLineSettings(this),
-		{ mode == EspMode.Box && drawOutline }
-	) { applyEdits { hide(::startColor, ::endColor) } }
+	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings by settingBlock(WorldLineSettings(this)) {
+		applyEdits {
+			forEachSetting { visibility { old -> { old() && mode == EspMode.Box && drawOutline } } }
+			hide(::startColor, ::endColor)
+		}
+	}
 
 	@Tab(EntitiesTab) private val entitySettings by settingBlock(EntitySelectionSettings(this))
 	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))

@@ -426,7 +426,6 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 	@SettingDsl
 	fun <T : SettingBlock> settingBlock(
 		settingBlock: T,
-		visibility: (() -> Boolean)? = null,
 		block: (context(EditContext.BlockEditContext) T.() -> Unit)? = null
 	): SettingBlockWrapper<T> =
 		settingBlock

@@ -55,10 +55,13 @@ object RadiusESP : Module(
 	@Group(RenderGroup) private var outline: Boolean by setting("Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
 	@Group(RenderGroup) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
-	@Group(RenderGroup, OutlineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this), { outline }) {
+	@Group(RenderGroup, OutlineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this)) {
 		applyEdits {
 			hide(::startColor, ::endColor)
-			forEachSetting { it.onValueChange(::rebuildMesh) }
+			forEachSetting {
+				visibility { old -> { old() && outline } }
+				onValueChange(::rebuildMesh)
+			}
 		}
 	}
 

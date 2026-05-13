@@ -60,10 +60,13 @@ object LightLevels : Module(
 	@Group(FillGroup) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
 	@Group(FillGroup) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
 	@Group(LineGroup) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	@Group(LineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this), { renderMode != RenderMode.Square || outline }) {
+	@Group(LineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this)) {
 		applyEdits {
 			hide(::startColor, ::endColor)
-			forEachSetting { it.onValueChange(::refreshChunkedRenderer) }
+			forEachSetting {
+				visibility { old -> { old() && renderMode != RenderMode.Square || outline } }
+				onValueChange(::refreshChunkedRenderer)
+			}
 		}
 	}
 	private val depthTest by setting("Depth Test", false, "Shows renders through terrain")

@@ -31,6 +31,7 @@ import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import net.minecraft.client.toast.SystemToast.hide
 import net.minecraft.util.math.Box
 import java.awt.Color
 
@@ -55,14 +56,24 @@ object BlockOutline : Module(
 	@Group(BoxFillGroup) private val fill by setting("Fill", true) { mode == Mode.Boxes }
 	@Group(BoxFillGroup) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
-	@Group(BoxOutlineGroup) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
-	@Group(BoxOutlineGroup) private val lineConfig by settingBlock(
-		WorldLineSettings(this),
-		{ boxOutline && mode == Mode.Boxes }
-	) { applyEdits { hide(::startColor, ::endColor) } }
+	@Group(BoxOutlineGroup) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { mode == Mode.Boxes && boxOutline }
+	@Group(BoxOutlineGroup) private val lineConfig by settingBlock(WorldLineSettings(this)) {
+		applyEdits {
+			hide(::startColor, ::endColor)
+			forEachSetting {
+				visibility { old -> { old() && mode == Mode.Boxes } }
+			}
+		}
+	}
 
 	@Group(OutlineGroup) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	@Group(OutlineGroup) private val outlineStyle by settingBlock(OutlineSettings(this), { mode == Mode.Outline })
+	@Group(OutlineGroup) private val outlineStyle by settingBlock(OutlineSettings(this)) {
+		applyEdits {
+			forEachSetting {
+				visibility { old -> { old() && mode == Mode.Outline } }
+			}
+		}
+	}
 
 	var previous: List<Box>? = null
 

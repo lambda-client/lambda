@@ -21,6 +21,9 @@ package com.lambda.config
 
 import com.lambda.config.Config.BlockLayer
 import com.lambda.config.Config.SettingLayer
+import com.lambda.context.SafeContext
+import net.minecraft.client.toast.SystemToast.hide
+import kotlin.apply
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
 
@@ -46,8 +49,10 @@ sealed class EditContext<T : BaseEditor> {
 
 class ConfigEditor internal constructor(private val c: Config) : BaseEditor() {
 	@SettingEditorDsl
-	fun forEachSetting(block: (Setting<*, *>) -> Unit) {
-		c.forEachSetting { _, single -> block(single.setting) }
+	fun forEachSetting(block: BasicEditBuilder.() -> Unit) {
+		val settings = mutableListOf<Setting<*, *>>()
+		c.forEachSetting { _, single -> settings.add(single.setting) }
+		BasicEditBuilder(settings).apply(block)
 	}
 
 	@SettingEditorDsl
@@ -66,8 +71,10 @@ class BlockEditor internal constructor(
 	val wrapper: SettingBlockWrapper<*>
 ) : BaseEditor() {
 	@SettingEditorDsl
-	fun forEachSetting(block: (Setting<*, *>) -> Unit) {
-		c.forEachSettingBlock(wrapper.layer) { _, single -> block(single.setting) }
+	fun forEachSetting(block: BasicEditBuilder.() -> Unit) {
+		val settings = mutableListOf<Setting<*, *>>()
+		c.forEachSettingBlock(wrapper.layer) { _, single -> settings.add(single.setting) }
+		BasicEditBuilder(settings).apply(block)
 	}
 
 	@SettingEditorDsl
@@ -142,7 +149,7 @@ open class BaseEditor internal constructor() {
 
 	open class BasicEditBuilder internal constructor(
 		open val settings: Collection<Setting<*, *>>
-	) : BaseEditor() {
+	) {
 		@SettingEditorDsl
 		fun hide() {
 			settings.forEach {
@@ -156,6 +163,11 @@ open class BaseEditor internal constructor() {
 				it.visibility = visibility(it.visibility)
 			}
 		}
+
+		@SettingEditorDsl
+		fun onValueChange(block: SafeContext.(from: Any?, to: Any?) -> Unit) {
+			settings.forEach { it.onValueChange(block) }
+		}
 	}
 
 	class TypedEditBuilder<T : Any> internal constructor(
@@ -168,15 +180,15 @@ open class BaseEditor internal constructor() {
 				it.core.value = value
 			}
 	}
+}
 
-	protected fun hide(layers: Collection<SettingLayer.Single<*, *>>) {
-		layers.forEach(::hide)
-	}
+private fun hide(layers: Collection<SettingLayer.Single<*, *>>) {
+	layers.forEach(::hide)
+}
 
-	protected fun hide(layer: SettingLayer.Single<*, *>) {
-		val parentLayer = layer.parent
-		parentLayer.layers.remove(layer)
-		if (parentLayer.layers.isEmpty())
-			parentLayer.parent?.layers?.remove(parentLayer)
-	}
+private fun hide(layer: SettingLayer.Single<*, *>) {
+	val parentLayer = layer.parent
+	parentLayer.layers.remove(layer)
+	if (parentLayer.layers.isEmpty())
+		parentLayer.parent?.layers?.remove(parentLayer)
 }

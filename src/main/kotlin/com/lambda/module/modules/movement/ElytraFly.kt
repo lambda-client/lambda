@@ -18,6 +18,7 @@
 package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalGetToBlock
+import com.lambda.config.Group
 import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
@@ -76,20 +77,21 @@ object ElytraFly : Module(
 
     private val inventory by setting("Inventory", true, "Allow using fireworks from the players inventory") { mode == FlyMode.GrimControl }
 
-    //ToDo: Implement these commented out settings
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
     private val pitch by setting("Pitch", 80, 0..90, 1) { mode == FlyMode.Bounce && autoPitch }
+    private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
+    private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
     private val yMotion by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
     private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotion }
     private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotion }
-    private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
-    private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
-    private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
-    private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
-    private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
-    private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
-    private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
+
+    private const val ObstaclePasserGroup = "Obstacle Passer"
+    @Group(ObstaclePasserGroup) private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
+    @Group(ObstaclePasserGroup) private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
+    @Group(ObstaclePasserGroup) private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
+    @Group(ObstaclePasserGroup) private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
+    @Group(ObstaclePasserGroup) private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
 
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }

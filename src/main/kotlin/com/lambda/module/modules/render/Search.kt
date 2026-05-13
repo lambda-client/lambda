@@ -85,15 +85,19 @@ object Search : Module(
     @Group(OutlineGroup) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
     @Group(OutlineGroup) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
-    @Group(OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this), { outline }) {
+    @Group(OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this)) {
         applyEdits {
             hide(::startColor, ::endColor)
-            forEachSetting { it.onValueChange(::rebuildMesh) }
+            forEachSetting {
+                visibility { old -> { old() && outline } }
+                onValueChange(::rebuildMesh)
+            }
         }
     }
     @Group(TracersGroup) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
-    @Group(TracersGroup) private val tracerConfig by settingBlock(ScreenLineSettings(this), { tracers }) {
+    @Group(TracersGroup) private val tracerConfig by settingBlock(ScreenLineSettings(this)) {
         applyEdits {
+            forEachSetting { visibility { old -> { old() && tracers } } }
             editTyped(::startColor, ::endColor) {
                 visibility { { !useNaturalColor } }
             }
