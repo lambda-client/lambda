@@ -18,6 +18,7 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
+import com.lambda.config.categories.ModuleCategory.configName
 import com.lambda.util.FolderRegistry
 import java.io.File
 
@@ -31,5 +32,5 @@ import java.io.File
  */
 object ModuleCategory : ConfigCategory() {
 	override val configName get() = "modules"
-	override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+	override val primaryFile: File = FolderRegistry.config.resolve("$configName.json").toFile()
 }

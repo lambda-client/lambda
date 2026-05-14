@@ -17,19 +17,20 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
-import com.lambda.config.applyEdits
 import com.lambda.config.settings.blocks.EntityColorSettings
 import com.lambda.config.settings.blocks.EntitySelectionSettings
 import com.lambda.config.settings.blocks.OutlineSettings
 import com.lambda.config.settings.blocks.WorldLineSettings
+import com.lambda.config.withEdits
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.setAlpha
 import net.minecraft.block.entity.BlockEntity
@@ -65,7 +66,8 @@ object ESP : Module(
 	@Tab(GeneralTab) private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world")
 
 	//Shader Outline
-	@Tab(GeneralTab) private val outlineStyle by settingBlock(OutlineSettings(this), { mode == EspMode.Shader })
+	@Tab(GeneralTab) private val outlineStyle by settingBlock(OutlineSettings(this))
+		.withEdits { forEachSetting { visibility { old -> { old() && mode == EspMode.Shader } } } }
 
 	//Box
 	@Tab(GeneralTab) private var drawFilled: Boolean by setting("Box Fill", true, "Fill entity boxes") { mode == EspMode.Box }
@@ -74,12 +76,11 @@ object ESP : Module(
 	@Tab(GeneralTab) @Group(BoxOutlineGroup) private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
 	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
-	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings by settingBlock(WorldLineSettings(this)) {
-		applyEdits {
+	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings by settingBlock(WorldLineSettings(this))
+		.withEdits {
 			forEachSetting { visibility { old -> { old() && mode == EspMode.Box && drawOutline } } }
 			hide(::startColor, ::endColor)
 		}
-	}
 
 	@Tab(EntitiesTab) private val entitySettings by settingBlock(EntitySelectionSettings(this))
 	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))

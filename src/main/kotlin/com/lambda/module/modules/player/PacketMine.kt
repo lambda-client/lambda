@@ -17,8 +17,11 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.editTyped
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
-import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.context.SafeContext
@@ -98,33 +101,31 @@ object PacketMine : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllBlocksExcept(::buildConfig, ::breakConfig, breakConfig::outlineConfig, ::rotationConfig, ::hotbarConfig)
-				buildConfig.apply {
-					hide(
-						::pathing,
-						::stayInRange,
-						::spleefEntities,
-						::maxBuildDependencies,
-						::collectDrops,
-						::entityReach,
-						::breakBlocks,
-						::interactBlocks,
-						::placeBlocks
-					)
-					::maxBuildDependencies.edit { defaultValue(0) }
-				}
-				breakConfig.apply {
-					editTyped(
-						::avoidFluids,
-						::avoidSupporting,
-						::efficientOnly,
-						::suitableToolsOnly
-					) { defaultValue(false) }
-					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
-				}
-				hotbarConfig::keepTicks.edit { defaultValue(0) }
+			hideAllBlocksExcept(::buildConfig, ::breakConfig, breakConfig::outlineConfig, ::rotationConfig, ::hotbarConfig)
+			buildConfig.apply {
+				hide(
+					::pathing,
+					::stayInRange,
+					::spleefEntities,
+					::maxBuildDependencies,
+					::collectDrops,
+					::entityReach,
+					::breakBlocks,
+					::interactBlocks,
+					::placeBlocks
+				)
+				::maxBuildDependencies.edit { defaultValue(0) }
 			}
+			breakConfig.apply {
+				editTyped(
+					::avoidFluids,
+					::avoidSupporting,
+					::efficientOnly,
+					::suitableToolsOnly
+				) { defaultValue(false) }
+				::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
+			}
+			hotbarConfig::keepTicks.edit { defaultValue(0) }
 		}
 
 		listen<TickEvent.Post> {

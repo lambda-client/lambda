@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
@@ -92,11 +92,9 @@ object HighwayTools : Module(
 
     init {
 		setDefaultAutomationConfig {
-            applyEdits {
-                buildConfig.apply {
-                    editTyped(::pathing, ::stayInRange) { defaultValue(true) }
-                }
-            }
+			buildConfig.apply {
+				editTyped(::pathing, ::stayInRange) { defaultValue(true) }
+			}
         }
 
         onEnable {

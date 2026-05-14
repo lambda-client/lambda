@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -33,9 +33,7 @@ object SilentSwap : Module(
 ) {
     init {
         setDefaultAutomationConfig {
-            applyEdits {
-                hideAllBlocksExcept(::hotbarConfig)
-            }
+            hideAllBlocksExcept(::hotbarConfig)
         }
 
         listen<PlayerEvent.Attack.Block> {

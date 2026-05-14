@@ -20,8 +20,6 @@ package com.lambda.module.modules.chat
 import com.lambda.config.Config
 import com.lambda.config.Group
 import com.lambda.config.SettingBlock
-import com.lambda.config.settings.blocks.ReplaceConfig
-import com.lambda.config.settings.blocks.ReplaceConfig.ActionStrategy
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendHandler
@@ -35,6 +33,7 @@ import com.lambda.util.ChatUtils.sexual
 import com.lambda.util.ChatUtils.slurs
 import com.lambda.util.ChatUtils.swears
 import com.lambda.util.ChatUtils.toAscii
+import com.lambda.util.Describable
 import com.lambda.util.text.DirectMessage
 import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
@@ -70,10 +69,9 @@ object AntiSpam : Module(
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
 
-			if (
-				ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
-				ignoreDms && DirectMessage.Receive.matches(raw)
-			) return@listen
+			if ((ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw)) ||
+				(ignoreDms && DirectMessage.Receive.matches(raw))
+				) return@listen
 
 			val slurMatches = slurs.takeIf { detectSlurs.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
 			val swearMatches = swears.takeIf { detectSwears.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
@@ -86,14 +84,13 @@ object AntiSpam : Module(
 			var cancelled = false
 			var hasMatches = false
 
-			fun doMatch(replace: ReplaceConfig, matches: Sequence<MatchResult>) {
-				if (
-					cancelled ||
-					filterSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
-					filterDms && DirectMessage.Receive.matches(raw) ||
-					filterFriends && author?.let { FriendHandler.isFriend(it) } == true ||
-					filterSelf && MessageType.Self.matches(raw)
-				) return
+			fun doMatch(replace: ReplaceSettings, matches: Sequence<MatchResult>) {
+				if (cancelled ||
+					(filterSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw)) ||
+					(filterDms && DirectMessage.Receive.matches(raw)) ||
+					(filterFriends && author?.let { FriendHandler.isFriend(it) } == true) ||
+					(filterSelf && MessageType.Self.matches(raw))
+					) return
 
 				when (replace.action) {
 					ActionStrategy.Hide -> matches.firstOrNull()?.let { event.cancel(); cancelled = true } // If there's one detection, nuke the whole damn thang
@@ -115,8 +112,7 @@ object AntiSpam : Module(
 
 			if (cancelled) return@listen event.cancel()
 
-			if (hasMatches)
-				event.message = Text.of(if (fancyChats) raw.toAscii else raw)
+			if (hasMatches) event.message = Text.of(if (fancyChats) raw.toAscii else raw)
 		}
 	}
 
@@ -124,8 +120,24 @@ object AntiSpam : Module(
 		val name: String,
 		override val c: Config,
 		actionStrategy: ActionStrategy = ActionStrategy.Replace
-	) : SettingBlock, ReplaceConfig {
-		override val action by c.setting("$name Action Strategy", actionStrategy)
-		override val replace by c.setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
+	) : SettingBlock {
+		val action by c.setting("$name Action Strategy", actionStrategy)
+		val replace by c.setting("$name Replace Strategy", ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
+
+		val enabled: Boolean get() = action != ActionStrategy.None
+	}
+
+	enum class ActionStrategy(override val description: String) : Describable {
+		Hide("Hides the message. Will override other strategies."),
+		Delete("Deletes the matching part off the message."),
+		Replace("Replace the matching string in the message with one of the following replace strategy."),
+		None("Don't do anything."),
+	}
+
+	@Suppress("unused")
+	enum class ReplaceStrategy(val block: (String) -> String) {
+		CensorAll({ it.replaceRange(0..<it.length, "*".repeat(it.length))}),
+		CensorHalf({ it.foldIndexed("") { i, acc, char -> if (i % 2 == 0) acc + char else "$acc*" } }),
+		KeepFirst({ if (it.length <= 1) it else it.replaceRange(1, it.length, "*".repeat(it.length - 1)) }),
 	}
 }

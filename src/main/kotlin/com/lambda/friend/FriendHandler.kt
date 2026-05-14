@@ -34,8 +34,10 @@ import net.minecraft.text.Text
 import java.awt.Color
 import java.util.*
 
-object FriendHandler : Config(FriendCategory), Loadable {
-    override val name = "friends"
+object FriendHandler : Config(
+    "friends",
+    FriendCategory
+), Loadable {
     val friends by setting("friends", emptySet<UUID>(), serialize = true)
 
     private val cachedProfiles = mutableMapOf<UUID, GameProfile>()

@@ -30,7 +30,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
 import com.lambda.interaction.managers.rotating.RotationManager.activeRotation

@@ -19,8 +19,11 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.editTyped
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Tab
-import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
@@ -176,16 +179,14 @@ object StashMover : Module(
 	init {
 		setModulePriority(100)
 		setDefaultAutomationConfig {
-			applyEdits {
-				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
-					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
-					hideBlock(::eatConfig)
-				}
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
-				breakConfig.apply {
-					editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
-				}
+			buildConfig.apply {
+				editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
+				hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
+				hideBlock(::eatConfig)
+			}
+			interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+			breakConfig.apply {
+				editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
 			}
 		}
 

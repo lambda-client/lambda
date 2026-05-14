@@ -18,8 +18,9 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.SettingBlock
-import com.lambda.config.applyEdits
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
@@ -58,9 +59,8 @@ abstract class TargetingSettings(
 	 * between 1.0 and [maxRange].
 	 */
 	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
-    override val targets by c.settingBlock(EntitySelectionSettings(c)) {
-		c.applyEdits { hide(::self, ::blockEntities) }
-	}
+    override val targets by c.settingBlock(EntitySelectionSettings(c))
+	    .withEdits(c) { hide(::self, ::blockEntities) }
 
 	/**
 	 * Validates whether a given entity is targetable by the player based on current settings.

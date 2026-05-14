@@ -17,18 +17,18 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
-import com.lambda.config.applyEdits
 import com.lambda.config.settings.blocks.EntityColorSettings
 import com.lambda.config.settings.blocks.EntitySelectionSettings
 import com.lambda.config.settings.blocks.ScreenLineSettings
+import com.lambda.config.withEdits
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
@@ -43,11 +43,6 @@ object Tracers : Module(
 	description = "Draws lines to entities within the world",
 	tag = ModuleTag.Render
 ) {
-	private enum class LineGroup(override val displayName: String) : NamedEnum {
-		Other("Other"),
-		Friend("Friend")
-	}
-
 	private const val GeneralTab = "General"
 	private const val EntityTab = "Entities"
 	private const val ColorsTab = "Colors"
@@ -58,16 +53,13 @@ object Tracers : Module(
 	private const val FriendsLineGroup = "Friends"
 	private const val OthersLineGroup = "Others"
 
-	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig by settingBlock(ScreenLineSettings(this)) {
-		applyEdits { hide(::startColor, ::endColor) }
-	}
-	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig by settingBlock(ScreenLineSettings(this)) {
-		applyEdits { hide(::startColor, ::endColor) }
-	}
+	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig by settingBlock(ScreenLineSettings(this))
+		.withEdits { hide(::startColor, ::endColor) }
+	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig by settingBlock(ScreenLineSettings(this))
+		.withEdits { hide(::startColor, ::endColor) }
 
-	@Tab(EntityTab) private val entitySettings by settingBlock(EntitySelectionSettings(this)) {
-		applyEdits { hide(::self, ::blockEntities) }
-	}
+	@Tab(EntityTab) private val entitySettings by settingBlock(EntitySelectionSettings(this))
+		.withEdits { hide(::self, ::blockEntities) }
 	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))
 
 	init {

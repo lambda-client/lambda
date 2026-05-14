@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -44,10 +45,8 @@ object RotationLock : Module(
         setModulePriority(100)
 
 	    setDefaultAutomationConfig {
-			applyEdits {
-				hideAllBlocksExcept(::rotationConfig)
-				rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
-			}
+			hideAllBlocksExcept(::rotationConfig)
+		    rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
 	    }
 
         listen<TickEvent.Pre> {

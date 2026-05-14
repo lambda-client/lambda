@@ -42,9 +42,10 @@ import net.minecraft.text.Text
 import java.math.BigInteger
 import kotlin.jvm.optionals.getOrElse
 
-object LambdaAPI : Config(LambdaCategory) {
-    override val name = "api"
-
+object LambdaAPI : Config(
+    "api",
+    LambdaCategory
+) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")
     val apiUrl by setting("API Server", "https://api.lambda-client.org")
     val apiVersion by setting("API Version", ApiVersion.V1)

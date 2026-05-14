@@ -33,8 +33,11 @@ import kotlin.io.path.notExists
  * Manages SDF font atlases with automatic caching by path and size.
  * Fonts are discovered at startup but only loaded when actually used.
  */
-object FontHandler : Loadable, Config(FontCategory) {
-	override val name = "Font"
+@Suppress("unused")
+object FontHandler : Loadable, Config(
+	"Font",
+	FontCategory
+) {
 	override val priority = -1
 
 	private val loadedAtlases = ConcurrentHashMap<String, SDFFontAtlas>()

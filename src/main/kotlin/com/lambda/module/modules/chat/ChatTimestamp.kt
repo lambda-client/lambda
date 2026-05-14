@@ -17,9 +17,11 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTyped
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.settings.blocks.FormatterConfig
 import com.lambda.config.settings.blocks.FormatterSettings
+import com.lambda.config.withEdits
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -46,12 +48,11 @@ object ChatTimestamp : Module(
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
 	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val formatter by settingBlock(FormatterSettings(this)) {
-		applyEdits {
+	val formatter by settingBlock(FormatterSettings(this))
+		.withEdits {
 			hide(::localeEnum, ::sep, ::customSep, ::floatingPrecision)
 			editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) }
 		}
-	}
 
 	private val currentTime get() =
 		ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())

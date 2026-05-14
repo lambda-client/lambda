@@ -23,5 +23,5 @@ import java.io.File
 
 object AutomationCategory : ConfigCategory() {
 	override val configName = "automation"
-	override val primaryFile: File = FolderRegistry.config.resolve("${configName}.json").toFile()
+	override val primaryFile: File = FolderRegistry.config.resolve("$configName.json").toFile()
 }

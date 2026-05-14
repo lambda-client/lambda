@@ -304,10 +304,10 @@ object MenuBar {
         }
 
         UserAutomationCategory.configs.forEach { config ->
-            if (config !is UserAutomationConfig) throw java.lang.IllegalStateException("All configs within UserAutomationConfigs must be UserAutomationConfigs!")
+            if (config !is UserAutomationConfig) throw IllegalStateException("All configs within UserAutomationConfigs must be UserAutomationConfigs!")
             buildAutomationConfigSelectable(config)
         }
-        buildAutomationConfigSelectable(AutomationConfig.Companion.Default)
+        buildAutomationConfigSelectable(AutomationConfig.Default)
     }
 
     private fun ImGuiBuilder.buildAutomationConfigSelectable(config: AutomationConfig) {

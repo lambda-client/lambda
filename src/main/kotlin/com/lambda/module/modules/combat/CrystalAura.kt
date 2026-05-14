@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
-import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
 import com.lambda.context.SafeContext
@@ -145,15 +146,13 @@ object CrystalAura : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllBlocksExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
-				buildConfig.apply {
-					hide(
-						::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
-						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
-					)
-				}
-			}
+            hideAllBlocksExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
+            buildConfig.apply {
+                hide(
+                    ::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
+                    ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
+                )
+            }
 		}
 
         // Async ticking

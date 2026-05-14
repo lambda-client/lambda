@@ -34,9 +34,12 @@ import com.lambda.module.Module
 
 
 open class AutomationConfig(
-	override val name: String,
+	name: String,
 	configCategory: ConfigCategory = AutomationCategory
-) : Config(configCategory), Automated {
+) : Config(
+	name,
+	configCategory
+), Automated {
 	@Tab(BuildTab) override val buildConfig by settingBlock(BuildSettings(this))
 	@Tab(BreakTab) override val breakConfig by settingBlock(BreakSettings(this))
 	@Tab(InteractTab) override val interactConfig by settingBlock(InteractSettings(this))
@@ -57,10 +60,10 @@ open class AutomationConfig(
 		context(module: Module)
         fun IMutableAutomationConfig.setDefaultAutomationConfig(
 	        name: String = module.name,
-	        edits: (context (ConfigEditContext) AutomationConfig.() -> Unit)? = null
+	        edits: (context(ConfigEditContext) AutomationConfig.() -> Unit)? = null
 		) {
-			this.defaultAutomationConfig = AutomationConfig("$name Automation Config").also {
-				if (edits != null) with(ConfigEditContext()) { it.edits() }
+			this.defaultAutomationConfig = AutomationConfig("$name Automation Config").also { config ->
+				if (edits != null) with(ConfigEditContext(config)) { config.edits() }
 			}
 		}
 
@@ -68,8 +71,8 @@ open class AutomationConfig(
 	        name: String,
 	        edits: (context(ConfigEditContext) AutomationConfig.() -> Unit)? = null
 		) {
-			defaultAutomationConfig = AutomationConfig("$name Automation Config").also {
-				if (edits != null) with(ConfigEditContext()) { it.edits() }
+			defaultAutomationConfig = AutomationConfig("$name Automation Config").also { config ->
+				if (edits != null) with(ConfigEditContext(config)) { config.edits() }
 			}
 		}
 

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -96,9 +96,7 @@ object AutoArmor : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllBlocksExcept(::inventoryConfig)
-			}
+			hideAllBlocksExcept(::inventoryConfig)
 		}
 
 		listen<TickEvent.Pre> {

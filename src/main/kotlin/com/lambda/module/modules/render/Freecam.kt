@@ -18,7 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
@@ -122,12 +123,10 @@ object Freecam : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				rotationConfig::rotationMode.edit {
-					defaultValue(RotationMode.Lock)
-				}
-				hideAllBlocksExcept(::rotationConfig)
+			rotationConfig::rotationMode.edit {
+				defaultValue(RotationMode.Lock)
 			}
+			hideAllBlocksExcept(::rotationConfig)
 		}
 
 		onEnable {

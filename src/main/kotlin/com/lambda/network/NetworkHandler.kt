@@ -27,9 +27,10 @@ import com.lambda.util.StringUtils.base64UrlDecode
 import com.lambda.util.StringUtils.json
 import com.lambda.util.collections.updatableLazy
 
-object NetworkHandler : Config(SecretsCategory), Loadable {
-    override val name = "network"
-
+object NetworkHandler : Config(
+    "network",
+    SecretsCategory
+), Loadable {
     var accessToken by setting("access_token", "") { false }; private set
 
     val isValid: Boolean

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -41,6 +41,7 @@ object InventoryTweaks : Module(
 ) {
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
+
     private var placedPos: BlockPos? = null
     private var placeAndOpen: Task<*>? = null
     private var lastBreak: Task<*>? = null
@@ -48,9 +49,7 @@ object InventoryTweaks : Module(
 
     init {
         setDefaultAutomationConfig {
-            applyEdits {
-                hideAllBlocksExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
-            }
+            hideAllBlocksExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
         }
 
         listen<PlayerEvent.SlotClick> {

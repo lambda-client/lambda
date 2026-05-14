@@ -69,7 +69,10 @@ private annotation class SettingDsl
  * @property settingLayers A set of [SettingCore]s that this config manages.
  */
 @Suppress("unused")
-abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
+abstract class Config(
+	final override val name: String,
+	configCategory: ConfigCategory
+) : Jsonable, Nameable {
     internal val settingLayers = SettingLayer.Root()
 	internal val settingBlockLayers = BlockLayer.Root()
     private val registrationQueue = ArrayDeque<LayerSpecInfo>()
@@ -424,16 +427,13 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
     ) = setting(name, description, FunctionSetting(defaultValue), visibility)
 
 	@SettingDsl
-	fun <T : SettingBlock> settingBlock(
-		settingBlock: T,
-		block: (context(EditContext.BlockEditContext) T.() -> Unit)? = null
-	): SettingBlockWrapper<T> =
+	fun <T : SettingBlock> settingBlock(settingBlock: T): SettingBlockWrapper<T> =
 		settingBlock
 			.let { settingBlock ->
 				val path = try {
 					registrationQueue.removeFirst().settingBlockSpecs
 				} catch(_: NoSuchElementException) {
-					throw IllegalStateException("Setting block registered from an unknown location; layer path was not queued before setting initialization")
+					throw IllegalStateException("Setting block registered from an unknown location for config '$name'; layer path was not queued before setting block initialization")
 				}
 
 				var currentLayer: BlockLayer = settingBlockLayers
@@ -452,13 +452,6 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 					.also { wrapper ->
 						(currentLayer as? BlockLayer.Block)?.settingBlock = wrapper
 					}
-					.also { wrapper ->
-						if (block != null) {
-							with (EditContext.BlockEditContext(wrapper)) {
-								settingBlock.block()
-							}
-						}
-					}
 			}
 
 	@PublishedApi
@@ -466,7 +459,7 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 		val layerSpecInfo = try {
 			registrationQueue.removeFirst()
 		} catch(_: NoSuchElementException) {
-			throw IllegalStateException("Setting registered from an unknown location; layer path was not queued before setting initialization")
+			throw IllegalStateException("Setting registered from an unknown location for config '$name'; layer path was not queued before setting initialization")
 		}
 
 		var currentSettingLayer: SettingLayer.Multiple = settingLayers
@@ -629,6 +622,21 @@ abstract class Config(configCategory: ConfigCategory) : Jsonable, Nameable {
 			}
 		}
 		internalForEach(root, emptyList())
+	}
+
+	internal fun getSettingByPathedName(path: Collection<String>, setting: String): Setting<*, *>? {
+		var currentLayer: SettingLayer.Multiple = settingLayers
+		path.forEach { layer ->
+			currentLayer = currentLayer.layers
+				.asSequence()
+				.filterIsInstance<SettingLayer.Multiple>()
+				.find { it.name == layer } ?: return null
+		}
+		return currentLayer.layers
+			.asSequence()
+			.filterIsInstance<SettingLayer.Single<*, *>>()
+			.find { it.setting.name == setting }
+			?.setting
 	}
 }
 

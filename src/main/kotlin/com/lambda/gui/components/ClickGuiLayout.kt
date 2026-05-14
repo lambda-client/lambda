@@ -62,8 +62,10 @@ import net.minecraft.client.util.Icons
 import java.awt.Color
 
 @Suppress("unused")
-object ClickGuiLayout : Loadable, Config(GuiCategory) {
-	override val name = "GUI"
+object ClickGuiLayout : Loadable, Config(
+	"GUI",
+	GuiCategory
+) {
 	var open = false
 	var developerMode = false
 	val keybind by setting("Keybind", KeyCode.Y, screenCheck = false)

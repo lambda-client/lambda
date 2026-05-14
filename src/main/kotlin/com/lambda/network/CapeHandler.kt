@@ -49,9 +49,10 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 @Suppress("unused")
-object CapeHandler : Config(SecretsCategory), Loadable {
-    override val name: String = "capes"
-
+object CapeHandler : Config(
+    "capes",
+    SecretsCategory
+), Loadable {
     var currentCape by setting("cape", "")
         .onValueChangeUnsafe { _, to -> updateCape(to) }
 

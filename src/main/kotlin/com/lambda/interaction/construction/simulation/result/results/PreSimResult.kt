@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
@@ -53,7 +54,7 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.ChunkNotLoaded
         private val color = Color(252, 165, 3, 100)
 
-        override val goal = GoalBlock(pos)
+        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalBlock(pos) else null
 
         override fun RenderBuilder.render() {
             box(pos) {

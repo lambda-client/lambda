@@ -18,14 +18,15 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.SettingBlock
-import com.lambda.config.applyEdits
 import com.lambda.config.settings.blocks.BreakConfig.AnimationMode
 import com.lambda.config.settings.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.config.settings.blocks.BreakConfig.BreakMode
 import com.lambda.config.settings.blocks.BreakConfig.SwingMode
 import com.lambda.config.settings.blocks.BreakConfig.WhitelistMode
+import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import net.minecraft.registry.Registries
@@ -88,9 +89,10 @@ class BreakSettings(override val c: Config) : BreakConfig, SettingBlock {
 	@Group(CosmeticGroup) override val endFillColor by c.setting("End Fill Color", Color(0, 255, 0, 60), "The color of the fill at the end of breaking") { renders && dynamicFillColor && fill }
 	// Outline
 	@Group(CosmeticGroup) override val outline by c.setting("Outline", true, "Renders the lines of the box to display break progress") { renders }
-	@Group(CosmeticGroup) override val outlineConfig by c.settingBlock(WorldLineSettings(c)) {
-		c.applyEdits { hide(::startColor, ::endColor) }
-	}
+	@Group(CosmeticGroup) override val outlineConfig by c.settingBlock(WorldLineSettings(c))
+		.withEdits(c) {
+			hide(::startColor, ::endColor)
+		}
 	@Group(CosmeticGroup) override val dynamicOutlineColor by c.setting("Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { renders && outline }
 	@Group(CosmeticGroup) override val staticOutlineColor by c.setting("Outline Color", Color.RED, "The Color of the outline at the start of breaking") { renders && !dynamicOutlineColor && outline }
 	@Group(CosmeticGroup) override val startOutlineColor by c.setting("Start Outline Color", Color.RED, "The color of the outline at the start of breaking") { renders && dynamicOutlineColor && outline }

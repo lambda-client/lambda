@@ -17,7 +17,10 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.editTyped
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
@@ -58,23 +61,21 @@ object Scaffold : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
-						defaultValue(false)
-						hide()
-					}
-					::checkSideVisibility.edit { defaultValue(true) }
-					hide(::breakBlocks)
+			buildConfig.apply {
+				editTyped(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
+					defaultValue(false)
+					hide()
 				}
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
-				rotationConfig.apply {
-					::instant.edit { defaultValue(false) }
-					::mean.edit { defaultValue(120.0) }
-					::spread.edit { defaultValue(0.0) }
-				}
-				hideAllBlocksExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
+				::checkSideVisibility.edit { defaultValue(true) }
+				hide(::breakBlocks)
 			}
+			interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+			rotationConfig.apply {
+				::instant.edit { defaultValue(false) }
+				::mean.edit { defaultValue(120.0) }
+				::spread.edit { defaultValue(0.0) }
+			}
+			hideAllBlocksExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 		}
 
 		listen<TickEvent.Pre> {

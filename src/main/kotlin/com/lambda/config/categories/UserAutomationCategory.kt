@@ -27,7 +27,7 @@ import java.io.File
 
 object UserAutomationCategory : ConfigCategory() {
     override val configName get() = "custom_automation"
-    override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+    override val primaryFile: File = FolderRegistry.config.resolve("$configName.json").toFile()
 
     override fun internalTryLoad() {
         primaryFile.ifExists {

@@ -17,7 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTyped
+import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
@@ -54,17 +55,15 @@ object PlayerTrap : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				buildConfig.apply {
-					editTyped(
-						::pathing,
-						::stayInRange,
-						::spleefEntities,
-						::collectDrops
-					) { defaultValue(false); hide() }
-				}
-				hideBlock(::eatConfig)
+			buildConfig.apply {
+				editTyped(
+					::pathing,
+					::stayInRange,
+					::spleefEntities,
+					::collectDrops
+				) { defaultValue(false); hide() }
 			}
+			hideBlock(::eatConfig)
 		}
 
 		onEnable {

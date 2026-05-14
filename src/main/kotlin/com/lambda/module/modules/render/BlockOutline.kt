@@ -17,21 +17,21 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
-import com.lambda.config.applyEdits
 import com.lambda.config.settings.blocks.OutlineSettings
 import com.lambda.config.settings.blocks.WorldLineSettings
+import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import net.minecraft.client.toast.SystemToast.hide
 import net.minecraft.util.math.Box
 import java.awt.Color
 
@@ -57,23 +57,21 @@ object BlockOutline : Module(
 	@Group(BoxFillGroup) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { mode == Mode.Boxes && boxOutline }
-	@Group(BoxOutlineGroup) private val lineConfig by settingBlock(WorldLineSettings(this)) {
-		applyEdits {
+	@Group(BoxOutlineGroup) private val lineConfig by settingBlock(WorldLineSettings(this))
+		.withEdits {
 			hide(::startColor, ::endColor)
 			forEachSetting {
 				visibility { old -> { old() && mode == Mode.Boxes } }
 			}
 		}
-	}
 
 	@Group(OutlineGroup) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	@Group(OutlineGroup) private val outlineStyle by settingBlock(OutlineSettings(this)) {
-		applyEdits {
+	@Group(OutlineGroup) private val outlineStyle by settingBlock(OutlineSettings(this))
+		.withEdits {
 			forEachSetting {
 				visibility { old -> { old() && mode == Mode.Outline } }
 			}
 		}
-	}
 
 	var previous: List<Box>? = null
 

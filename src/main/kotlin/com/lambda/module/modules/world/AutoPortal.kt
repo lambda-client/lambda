@@ -18,13 +18,17 @@
 package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Group
-import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -47,7 +51,6 @@ import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.tickDelta
@@ -118,25 +121,22 @@ object AutoPortal : Module(
 	@Group(RenderGroup) private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
 	@Group(RenderGroup) private val depthTest by setting("Depth Test", false) { renders }
 	@Group(RenderGroup, FillGroup) private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
-	@Group(RenderGroup, OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this)) {
-		applyEdits {
+	@Group(RenderGroup, OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this))
+		.withEdits {
 			hide(::startColor, ::endColor)
 			forEachSetting {
 				visibility { old -> { old() && renders } }
 			}
 		}
-	}
 
 	private var preview = false
 	private var buildTask: Task<*>? = null
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				hideBlock(::eatConfig)
-				hotbarConfig::tickStageMask.edit {
-					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
-				}
+			hideBlock(::eatConfig)
+			hotbarConfig::tickStageMask.edit {
+				defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
 			}
 		}
 

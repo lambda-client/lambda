@@ -17,8 +17,10 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
-import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
 import com.lambda.context.SafeContext
@@ -72,11 +74,6 @@ object KillAura : Module(
     private var hitDelay = 100.0
     private var cooldownFromSwap = false
 
-    enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Targeting("Targeting"),
-    }
-
     enum class AttackMode {
         Cooldown,
         Delay
@@ -91,18 +88,16 @@ object KillAura : Module(
     init {
         setModulePriority(90)
         setDefaultAutomationConfig {
-            applyEdits {
-                hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
-                buildConfig.apply {
-                    hide(
-                        ::pathing, ::stayInRange, ::collectDrops,
-                        ::spleefEntities, ::maxPendingActions, ::actionTimeout,
-                        ::maxBuildDependencies, ::blockReach
-                    )
-                }
-                hotbarConfig.apply {
-                    ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-                }
+            hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
+            buildConfig.apply {
+                hide(
+                    ::pathing, ::stayInRange, ::collectDrops,
+                    ::spleefEntities, ::maxPendingActions, ::actionTimeout,
+                    ::maxBuildDependencies, ::blockReach
+                )
+            }
+            hotbarConfig.apply {
+                ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
             }
         }
 

@@ -116,14 +116,14 @@ import com.lambda.util.Nameable
  */
 @Suppress("unused")
 abstract class Module(
-    override val name: String,
+    name: String,
     val description: String = "",
     val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, OwnerPriority, Config(ModuleCategory),
+) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }

@@ -27,9 +27,11 @@ import com.mojang.brigadier.tree.CommandNode
 /**
  * The [CommandRegistry] object is responsible for managing all [LambdaCommand] instances in the system.
  */
-object CommandRegistry : Config(LambdaCategory), Loadable {
+object CommandRegistry : Config(
+    "command",
+    LambdaCategory
+), Loadable {
     override val priority get() = -2
-    override val name = "command"
     val prefix by setting("prefix", ';')
 
     val commands = getInstances<LambdaCommand>().toMutableList()

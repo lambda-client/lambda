@@ -23,5 +23,5 @@ import java.io.File
 
 object FontCategory : ConfigCategory() {
 	override val configName get() = "font"
-	override val primaryFile: File = FolderRegistry.config.resolve("${AutomationCategory.configName}.json").toFile()
+	override val primaryFile: File = FolderRegistry.config.resolve("$configName.json").toFile()
 }

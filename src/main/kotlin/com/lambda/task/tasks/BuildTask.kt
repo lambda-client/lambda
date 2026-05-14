@@ -279,7 +279,7 @@ class BuildTask private constructor(
             }
 
             is Navigable -> {
-                if (buildConfig.pathing) BaritoneHandler.setGoalAndPath(result.goal)
+                if (buildConfig.pathing) BaritoneHandler.setGoalAndPath(result.goal ?: return)
             }
 
             is Contextual -> {

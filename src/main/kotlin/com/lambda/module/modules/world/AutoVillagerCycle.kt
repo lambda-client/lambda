@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.world
 
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
-import com.lambda.config.applyEdits
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -93,9 +93,7 @@ object AutoVillagerCycle : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllBlocksExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
-			}
+			hideAllBlocksExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
 		}
 
 		onEnable {

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
@@ -57,10 +57,8 @@ object Nuker : Module(
 
 	init {
 		setDefaultAutomationConfig {
-			applyEdits {
-				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange) { defaultValue(false) }
-				}
+			buildConfig.apply {
+				editTyped(::pathing, ::stayInRange) { defaultValue(false) }
 			}
 		}
 

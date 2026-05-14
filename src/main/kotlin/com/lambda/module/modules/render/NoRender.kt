@@ -17,9 +17,10 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.Tab
-import com.lambda.config.applyEdits
 import com.lambda.config.settings.blocks.EntitySelectionSettings
+import com.lambda.config.withEdits
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.createNameMap
@@ -72,9 +73,10 @@ object NoRender : Module(
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-	@Tab(EntityTab) private val entitySettings by settingBlock(EntitySelectionSettings(this)) {
-		applyEdits { editTyped(::playerEntities, ::mobEntities, ::bossEntities) { defaultValue(mutableSetOf()) } }
-	}
+	@Tab(EntityTab) private val entitySettings by settingBlock(EntitySelectionSettings(this))
+		.withEdits {
+			editTyped(::playerEntities, ::mobEntities, ::bossEntities) { defaultValue(mutableSetOf()) }
+		}
 
 	@Tab(WorldTab) @JvmStatic val noTerrainFog by setting("No Terrain Fog", false)
 	@Tab(WorldTab) @JvmStatic val noSignText by setting("No Sign Text", false)

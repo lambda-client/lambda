@@ -42,9 +42,10 @@ import com.lambda.module.ModuleRegistry
 import java.awt.Color
 import kotlin.math.PI
 
-object HudGuiLayout : Loadable, Config(HudCategory) {
-    override val name = "HUD"
-
+object HudGuiLayout : Loadable, Config(
+    "HUD",
+    HudCategory
+) {
     // HUD Outline
     val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
     val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90))

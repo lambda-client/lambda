@@ -23,21 +23,22 @@ import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.Tab
-import com.lambda.config.categories.LambdaCategory
-import net.fabricmc.loader.api.FabricLoader
 import com.lambda.config.SettingBlock
+import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.categories.LambdaCategory
 import com.lambda.config.settings.blocks.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.util.BlockUtils.blockPos
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.util.BlockMirror
 import net.minecraft.util.BlockRotation
 
 @Suppress("unused")
-object BaritoneHandler : Config(LambdaCategory), Automated by AutomationConfig.Default {
-    override val name = "baritone"
-
+object BaritoneHandler : Config(
+    "baritone",
+    LambdaCategory
+), Automated by AutomationConfig.Default {
     val isBaritoneLoaded = FabricLoader.getInstance().isModLoaded("baritone")
 
     private val baritone = if (isBaritoneLoaded) BaritoneAPI.getProvider() else null
