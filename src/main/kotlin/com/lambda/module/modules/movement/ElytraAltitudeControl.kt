@@ -18,7 +18,6 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
-import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.event.events.TickEvent
@@ -49,38 +48,36 @@ object ElytraAltitudeControl : Module(
 		Altitude
 	}
 
-	private const val SpeedControlGroup = "Speed Control"
-	private const val AltitudeControlGroup = "Altitude Control"
-	private const val Pitch40ControlGroup = "Pitch 40 Control"
-
 	val controlValue by setting("Control Value", Mode.Altitude)
+	val targetAltitude by setting("Target Altitude", 120, 0..256, 10, unit = " blocks", description = "Adjusts pitch to control altitude") { controlValue == Mode.Altitude }
+	val targetSpeed by setting("Target Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Adjusts pitch to control speed") { controlValue == Mode.Speed }
+
+	val horizontalSpeed by setting("Horizontal Speed", false, description = "Uses horizontal speed instead of total speed for speed control") { controlValue == Mode.Speed }
 
 	val maxPitchAngle by setting("Max Pitch Angle", 45.0, 0.0..90.0, 1.0, unit = "°", description = "Maximum pitch angle")
 	val disableOnFirework by setting("Disable On Firework", false, description = "Disables the module when a firework is used")
 
-	val targetAltitude by setting("Target Altitude", 120, 0..256, 10, unit = " blocks", description = "Adjusts pitch to control altitude") { controlValue == Mode.Altitude }
-	@Group(AltitudeControlGroup) val altitudeControllerP by setting("Altitude Control P", 1.2, 0.0..2.0, 0.05)
-	@Group(AltitudeControlGroup) val altitudeControllerD by setting("Altitude Control D", 0.85, 0.0..1.0, 0.05)
-	@Group(AltitudeControlGroup) val altitudeControllerI by setting("Altitude Control I", 0.04, 0.0..1.0, 0.05)
-	@Group(AltitudeControlGroup) val altitudeControllerConst by setting("Altitude Control Const", 0.0, 0.0..10.0, 0.1)
-
-	val targetSpeed by setting("Target Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Adjusts pitch to control speed") { controlValue == Mode.Speed }
-	val horizontalSpeed by setting("Horizontal Speed", false, description = "Uses horizontal speed instead of total speed for speed control") { controlValue == Mode.Speed }
-	@Group(SpeedControlGroup) val speedControllerP by setting("Speed Control P", 6.75, 0.0..10.0, 0.05)
-	@Group(SpeedControlGroup) val speedControllerD by setting("Speed Control D", 4.5, 0.0..5.0, 0.05)
-	@Group(SpeedControlGroup) val speedControllerI by setting("Speed Control I", 0.3, 0.0..1.0, 0.05)
-
 	val useFireworkOnHeight by setting("Use Firework On Height", false, "Use fireworks when below a certain height")
-	val minHeight by setting("Min Height", 50, 0..256, 10, unit = " blocks", description = "Minimum height to use firework") { useFireworkOnHeight }
+	val minHeight by setting("Min Height", 150, 0..256, 10, unit = " blocks", description = "Minimum height to use firework") { useFireworkOnHeight }
 
 	val useFireworkOnSpeed by setting("Use Firework On Speed", false, "Use fireworks based on speed")
 	val minSpeed by setting("Min Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Minimum speed to use fireworks") { useFireworkOnSpeed }
 
-	var lastPos: Vec3d = Vec3d.ZERO
-	val speedController: PIController = PIController({ speedControllerP }, { speedControllerD }, { speedControllerI }, { 0.0 })
-	val altitudeController: PIController = PIController({ altitudeControllerP }, { altitudeControllerD }, { altitudeControllerI }, { altitudeControllerConst })
-
 	val usePitch40OnHeight by setting("Use Pitch 40 On Height", false, "Use Pitch 40 to gain height and speed")
+
+	private const val AltitudeControlGroup = "Altitude Control"
+	private const val SpeedControlGroup = "Speed Control"
+	private const val Pitch40ControlGroup = "Pitch 40 Control"
+
+	@Tab(AltitudeControlGroup) val altitudeControllerP by setting("PID P", 1.2, 0.0..2.0, 0.05)
+	@Tab(AltitudeControlGroup) val altitudeControllerD by setting("PID D", 0.85, 0.0..1.0, 0.05)
+	@Tab(AltitudeControlGroup) val altitudeControllerI by setting("PID I", 0.04, 0.0..1.0, 0.05)
+	@Tab(AltitudeControlGroup) val altitudeControllerConst by setting("PID const", 0.0, 0.0..10.0, 0.1)
+
+	@Tab(SpeedControlGroup) val speedControllerP by setting("PID P", 6.75, 0.0..10.0, 0.05)
+	@Tab(SpeedControlGroup) val speedControllerD by setting("PID D", 4.5, 0.0..5.0, 0.05)
+	@Tab(SpeedControlGroup) val speedControllerI by setting("PID I", 0.3, 0.0..1.0, 0.05)
+
 	@Tab(Pitch40ControlGroup) val logHeightGain by setting("Log Height Gain", false, "Logs the height gained each cycle to the chat") { usePitch40OnHeight }
 	@Tab(Pitch40ControlGroup) val minHeightForPitch40 by setting("Min Height For Pitch 40", 120, 0..256, 10, unit = " blocks", description = "Minimum height to use Pitch 40") { usePitch40OnHeight }
 	@Tab(Pitch40ControlGroup) val pitch40ExitHeight by setting("Exit height", 190, 0..256, 10, unit = " blocks", description = "Height to exit Pitch 40 mode") { usePitch40OnHeight }
@@ -89,6 +86,10 @@ object ElytraAltitudeControl : Module(
 	@Tab(Pitch40ControlGroup) val pitch40AngleChangeRate by setting("Angle Change Rate", 0.5f, 0.1f..5f, 0.01f, description = "Rate at which to increase pitch while in the fly up curve") { usePitch40OnHeight }
 	@Tab(Pitch40ControlGroup) val pitch40SpeedThreshold by setting("Speed Threshold", 41f, 10f..100f, .5f, description = "Speed at which to start pitching up") { usePitch40OnHeight }
 	@Tab(Pitch40ControlGroup) val pitch40UseFireworkOnUpTrajectory by setting("Use Firework On Up Trajectory", false, "Use fireworks when converting speed to altitude in the Pitch 40 maneuver") { usePitch40OnHeight }
+
+	var lastPos: Vec3d = Vec3d.ZERO
+	val speedController: PIController = PIController({ speedControllerP }, { speedControllerD }, { speedControllerI }, { 0.0 })
+	val altitudeController: PIController = PIController({ altitudeControllerP }, { altitudeControllerD }, { altitudeControllerI }, { altitudeControllerConst })
 
 	var controlState = ControlState.AttitudeControl
 	var state = Pitch40State.GainSpeed
