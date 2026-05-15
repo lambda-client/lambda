@@ -32,24 +32,16 @@ import com.lambda.module.Module
 sealed class ModuleEvent {
 	/**
 	 * Event that fires before a [Module] is toggled, allowing listeners to cancel the toggle.
-	 * @property module The module that is being toggled.
-	 * @property newValue The value that the module is being toggled to (true for enabling, false for disabling).
-	 * @see Enabled
-	 * @see Disabled
 	 */
 	data class Toggle(val module: Module, val newValue: Boolean) : Event, ICancellable by Cancellable()
 
 	/**
 	 * Event that fires before a [Module] is enabled, allowing listeners to cancel the enable.
-	 * @property module The module that is being enabled.
-	 * @see Toggle
 	 */
 	data class Enabled(val module: Module) : Event, ICancellable by Cancellable()
 
 	/**
 	 * Event that fires before a [Module] is disabled, allowing listeners to cancel the disable.
-	 * @property module The module that is being disabled.
-	 * @see Toggle
 	 */
 	data class Disabled(val module: Module) : Event, ICancellable by Cancellable()
 }
