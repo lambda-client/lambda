@@ -21,7 +21,6 @@ import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.Communication.log
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -29,14 +28,14 @@ import com.lambda.util.text.TextBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
-import net.minecraft.text.Text
 import net.minecraft.util.Colors
 import java.awt.Color
 
 object ModuleNotifier : Module(
 	name = "ModuleNotifier",
 	description = "Notifies you when a module is enabled or disabled",
-	tag = ModuleTag.CLIENT
+	tag = ModuleTag.CLIENT,
+	enabledByDefault = true
 ) {
 	var notifyTarget by setting("Notify Target", setOf<NotifyTarget>(NotifyTarget.ActionBar), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")
 
@@ -65,10 +64,10 @@ object ModuleNotifier : Module(
 
 	private fun logToTargets(module: Module, action: TextBuilder.() -> Unit) {
 		if (NotifyTarget.Chat in notifyTarget) {
-			module.log(TextBuilder().apply(action).build())
+			module.log(buildText(action))
 		}
 		if (NotifyTarget.ActionBar in notifyTarget) {
-			module.log(TextBuilder().apply(action).build(), inGameOverlay = true)
+			module.log(buildText(action), inGameOverlay = true)
 		}
 	}
 }
