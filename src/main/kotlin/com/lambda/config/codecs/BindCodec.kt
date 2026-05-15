@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.serializer
+package com.lambda.config.codecs
 
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonElement
@@ -25,7 +25,10 @@ import com.lambda.config.Codec
 import com.lambda.config.settings.complex.Bind
 import java.lang.reflect.Type
 
+@Suppress("unused")
 object BindCodec : Codec<Bind> {
+	override val type = Bind::class.java
+
 	override fun serialize(src: Bind, typeOfSrc: Type, context: JsonSerializationContext): JsonElement =
 		JsonObject().apply {
 			addProperty("key", src.key)
