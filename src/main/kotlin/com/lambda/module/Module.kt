@@ -164,57 +164,70 @@ abstract class Module(
         listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
     }
 
+    @DslMarker
+    private annotation class ModuleDsl
+
+    @ModuleDsl
     fun enable() {
         ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
+    @ModuleDsl
     fun disable() {
         ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
+    @ModuleDsl
     fun toggle() {
         ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }
 
+    @ModuleDsl
     fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
+    @ModuleDsl
     fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
+    @ModuleDsl
     fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
+    @ModuleDsl
     fun onEnableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
+    @ModuleDsl
     fun onDisableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
+    @ModuleDsl
     fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
     }
 
+    @ModuleDsl
     protected fun setModulePriority(priority: Int) {
         prioritySetting.value = priority
         prioritySetting.core.defaultValue = priority

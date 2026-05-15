@@ -54,7 +54,7 @@ object TransferCommand : LambdaCommand(
                         val selection = selectStack(amount(ctx).value()) {
                             isItem(stack(ctx).value().item)
                         }
-                        AutomationConfig.Companion.Default.runSafeAutomated {
+                        AutomationConfig.Default.runSafeAutomated {
                             val containers = selection.findContainersWithMaterial()
                             val indexedContainers = containers.withIndex()
 
@@ -75,7 +75,7 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount(ctx).value()) {
                                 isItem(stack(ctx).value().item)
                             }
-                            AutomationConfig.Companion.Default.runSafeAutomated {
+                            AutomationConfig.Default.runSafeAutomated {
                                 val containers = selection.findContainersWithSpace()
                                 val indexedContainers = containers.withIndex()
 
@@ -95,7 +95,7 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount().value()) {
                                 isItem(stack().value().item)
                             }
-                            AutomationConfig.Companion.Default.runSafeAutomated {
+                            AutomationConfig.Default.runSafeAutomated {
                                 val fromContainer = ContainerHandler.containers().find {
                                     it.name == from().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("From container not found")
