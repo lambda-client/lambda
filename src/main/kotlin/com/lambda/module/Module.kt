@@ -114,6 +114,8 @@ import com.lambda.util.Nameable
  * }
  * ```
  *
+ * When modules are toggled, enabled or disabled, the corresponding [ModuleEvent] is posted to the event bus before the module state is changed.
+ *
  * See [SafeListener] and [UnsafeListener] for more details.
  */
 abstract class Module(
@@ -162,23 +164,17 @@ abstract class Module(
     }
 
     fun enable() {
-        if (!isEnabled && ModuleEvent.Enabled(this@Module).post().isCanceled()) {
-            return
-        }
+        ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
     fun disable() {
-        if (isEnabled && ModuleEvent.Disabled(this@Module).post().isCanceled()) {
-            return
-        }
+        ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
     fun toggle() {
-        if (ModuleEvent.Toggle(this@Module, !isEnabled).post().isCanceled()) {
-            return
-        }
+        ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }
 

@@ -31,17 +31,17 @@ import com.lambda.module.Module
  */
 sealed class ModuleEvent {
 	/**
-	 * Event that fires before a [Module] is toggled, allowing listeners to cancel the toggle.
+	 * Event that fires before a [Module] is toggled.
 	 */
-	data class Toggle(val module: Module, val newValue: Boolean) : Event, ICancellable by Cancellable()
+	data class Toggle(val module: Module, val newValue: Boolean) : Event
 
 	/**
-	 * Event that fires before a [Module] is enabled, allowing listeners to cancel the enable.
+	 * Event that fires before a [Module] is enabled.
 	 */
-	data class Enabled(val module: Module) : Event, ICancellable by Cancellable()
+	data class Enabled(val module: Module) : Event
 
 	/**
-	 * Event that fires before a [Module] is disabled, allowing listeners to cancel the disable.
+	 * Event that fires before a [Module] is disabled.
 	 */
-	data class Disabled(val module: Module) : Event, ICancellable by Cancellable()
+	data class Disabled(val module: Module) : Event
 }
