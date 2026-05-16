@@ -134,7 +134,7 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     val prioritySetting = setting("Module Priority", modulePriority, -100..100, 1, "Priority over other modules") { false }
 		.onValueChangeUnsafe { _, to -> ownerPriority = to }
-    override var ownerPriority = 0
+    override var ownerPriority = modulePriority
         set(value) {
             val oldVal = field
             field = value
