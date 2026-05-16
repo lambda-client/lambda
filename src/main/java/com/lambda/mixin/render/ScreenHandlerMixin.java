@@ -34,4 +34,9 @@ public class ScreenHandlerMixin {
     private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.FullUpdate(revision, stacks, cursorStack));
     }
+
+    @Inject(method = "setStackInSlot", at = @At("TAIL"))
+    private void onSetStackInSlot(int syncId, int slot, ItemStack stack, CallbackInfo ci) {
+        EventFlow.post(new InventoryEvent.SlotUpdate2((ScreenHandler) (Object) this, syncId, slot, stack));
+    }
 }

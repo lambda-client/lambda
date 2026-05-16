@@ -82,6 +82,13 @@ sealed class InventoryEvent {
         val stack: ItemStack,
     ) : Event
 
+    data class SlotUpdate2(
+        val screen: ScreenHandler,
+        val syncId: Int,
+        val slot: Int,
+        val stack: ItemStack,
+    ) : Event
+
     abstract class HotbarSlot : Event {
         /**
          * Represents an event triggered when the client attempts to send slot update to the server.
