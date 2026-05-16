@@ -125,13 +125,14 @@ abstract class Module(
     val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
+    modulePriority: Int = 0,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    val prioritySetting = setting("Module Priority", 0, -100..100, 1, "Priority over other modules") { false }
+    val prioritySetting = setting("Module Priority", modulePriority, -100..100, 1, "Priority over other modules") { false }
 		.onValueChangeUnsafe { _, to -> ownerPriority = to }
     override var ownerPriority = 0
         set(value) {
@@ -165,71 +166,65 @@ abstract class Module(
     }
 
     @DslMarker
-    private annotation class ModuleDsl
+    private annotation class ModuleMarker
 
-    @ModuleDsl
+    @ModuleMarker
     fun enable() {
         ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun disable() {
         ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun toggle() {
         ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun onEnableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun onDisableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
-    @ModuleDsl
+    @ModuleMarker
     fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
-    }
-
-    @ModuleDsl
-    protected fun setModulePriority(priority: Int) {
-        prioritySetting.value = priority
-        prioritySetting.core.defaultValue = priority
     }
 }

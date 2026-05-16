@@ -51,6 +51,7 @@ object BetterFirework : Module(
 	name = "BetterFirework",
 	description = "Automatic takeoff with fireworks",
 	tag = ModuleTag.Movement,
+	modulePriority = 1
 ) {
 	private var activateButton: Bind by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
@@ -99,7 +100,6 @@ object BetterFirework : Module(
 		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
 	init {
-		setModulePriority(1)
 		setDefaultAutomationConfig {
 			hideAllBlocksExcept(::hotbarConfig, ::inventoryConfig)
 			hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }

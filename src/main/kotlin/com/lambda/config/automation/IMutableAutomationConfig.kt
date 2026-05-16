@@ -64,7 +64,7 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 						val subLayer = otherLayer.layers
 							.asSequence()
 							.filterIsInstance<SettingLayer.Multiple>()
-							.find { it.name == layer } ?: return@forEachSetting
+							.find { it.name == layer.name } ?: return@forEachSetting
 						otherLayer = subLayer
 					}
 					val otherSetting = otherLayer.layers

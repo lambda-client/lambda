@@ -33,6 +33,7 @@ object RotationLock : Module(
 	name = "RotationLock",
 	description = "Locks the player rotation to the given configuration",
 	tag = ModuleTag.Player,
+	modulePriority = 100
 ) {
 	@JvmStatic val yawMode by setting("Yaw Mode", Mode.Snap)
 	private val yawStep by setting("Yaw Step", 45.0, 1.0..180.0, 0.1) { yawMode == Mode.Snap }
@@ -42,8 +43,6 @@ object RotationLock : Module(
 	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 0.1) { pitchMode == Mode.Custom }
 
     init {
-        setModulePriority(100)
-
 	    setDefaultAutomationConfig {
 			hideAllBlocksExcept(::rotationConfig)
 		    rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }

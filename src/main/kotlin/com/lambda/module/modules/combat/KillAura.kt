@@ -49,6 +49,7 @@ object KillAura : Module(
     name = "KillAura",
     description = "Attacks entities",
     tag = ModuleTag.Combat,
+    modulePriority = 90
 ) {
     private const val GeneralTab = "General"
     private const val TargetingTab = "Targeting"
@@ -86,7 +87,6 @@ object KillAura : Module(
     }
 
     init {
-        setModulePriority(90)
         setDefaultAutomationConfig {
             hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
             buildConfig.apply {

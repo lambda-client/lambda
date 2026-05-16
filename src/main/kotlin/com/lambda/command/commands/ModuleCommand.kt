@@ -125,11 +125,8 @@ object ModuleCommand : LambdaCommand(
                                 return@runSafe success()
                             }
 
-                            if (enable().value()) {
-                                module.enable()
-                            } else {
-                                module.disable()
-                            }
+                            if (enable().value()) module.enable()
+                            else module.disable()
                         }
                         this@ModuleCommand.info(buildText {
                             styled(Color.GRAY) {

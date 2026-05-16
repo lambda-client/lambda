@@ -44,6 +44,7 @@ object AntiSpam : Module(
 	name = "AntiSpam",
 	description = "Keeps your chat clean",
 	tag = ModuleTag.Chat,
+	modulePriority = 100
 ) {
 	private val fancyChats by setting("Replace Fancy Chat", false)
 
@@ -64,7 +65,6 @@ object AntiSpam : Module(
 	@Group("Colors") private val detectColors by settingBlock(ReplaceSettings("Colors", this, ActionStrategy.None))
 
 	init {
-		setModulePriority(100)
 		listen<ChatEvent.Receive> { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)

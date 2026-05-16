@@ -41,6 +41,7 @@ object AutoTotem : Module(
     name = "AutoTotem",
     description = "Swaps the your off-hand item to a totem",
     tag = ModuleTag.Combat,
+	modulePriority = 100
 ) {
 	private val always by setting("Always", true, "Always attempt to keep a totem in offhand")
 	private val ignoreWhenHolding by setting("Ignore When Holding", false, "Ignore swapping to offhand when already holding a totem")
@@ -54,7 +55,6 @@ object AutoTotem : Module(
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }
 
     init {
-		setModulePriority(100)
 		setDefaultAutomationConfig {
 			hideAllBlocksExcept(::inventoryConfig)
 		}

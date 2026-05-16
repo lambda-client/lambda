@@ -55,6 +55,7 @@ object AutoDisconnect : Module(
     name = "AutoDisconnect",
     description = "Automatically disconnects when in danger or on low health",
     tag = ModuleTag.Combat,
+    modulePriority = -100
 ) {
     private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
     private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
@@ -87,7 +88,6 @@ object AutoDisconnect : Module(
     private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }
 
     init {
-        setModulePriority(-100)
         listen<TickEvent.Pre> {
             Reason.entries.filter {
                 it.check()

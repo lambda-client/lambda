@@ -100,7 +100,8 @@ import kotlin.math.min
 object StashMover : Module(
 	name = "StashMover",
 	description = "Moves items from one stash location to another",
-	tag = ModuleTag.World
+	tag = ModuleTag.World,
+	modulePriority = 100
 ) {
 	private const val GeneralTab = "General"
 	private const val CommandBindsTab = "Command Binds"
@@ -177,7 +178,6 @@ object StashMover : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setModulePriority(100)
 		setDefaultAutomationConfig {
 			buildConfig.apply {
 				editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }

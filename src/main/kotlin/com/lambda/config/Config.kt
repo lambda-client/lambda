@@ -589,16 +589,16 @@ abstract class Config(
 	internal fun forEachSetting(
 		root: SettingLayer.Multiple = settingLayers,
 		recurse: Boolean = true,
-		onMultiple: ((path: List<String>, single: SettingLayer.Multiple) -> Unit)? = null,
-		onSingle: ((path: List<String>, single: SettingLayer.Single<*, *>) -> Unit)? = null
+		onMultiple: ((path: List<SettingLayer.Multiple>, single: SettingLayer.Multiple) -> Unit)? = null,
+		onSingle: ((path: List<SettingLayer.Multiple>, single: SettingLayer.Single<*, *>) -> Unit)? = null
 	) {
-		fun internalForEach(layer: SettingLayer.Multiple, path: List<String>) {
+		fun internalForEach(layer: SettingLayer.Multiple, path: List<SettingLayer.Multiple>) {
 			layer.layers.forEach { layer ->
 				when (layer) {
 					is SettingLayer.Single<*, *> if onSingle != null -> onSingle(path, layer)
-					is SettingLayer.Multiple if onMultiple != null -> {
-						onMultiple(path, layer)
-						if (recurse) internalForEach(layer, path + layer.name)
+					is SettingLayer.Multiple -> {
+						if (onMultiple != null) onMultiple(path, layer)
+						if (recurse) internalForEach(layer, path + layer)
 					}
 					else -> {}
 				}

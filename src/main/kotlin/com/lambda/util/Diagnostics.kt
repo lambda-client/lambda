@@ -28,7 +28,7 @@ object Diagnostics {
                 module.forEachSetting { path, single ->
                     val setting = single.setting
                     if (setting.isModified) {
-                        append("\t\t${path.joinToString(".", postfix = ".")}${setting.name} -> ${setting.value}")
+                        append("\t\t${path.joinToString(".", postfix = ".") { it.name }}${setting.name} -> ${setting.value}")
                     }
                 }
             }

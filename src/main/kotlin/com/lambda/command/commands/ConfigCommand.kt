@@ -71,7 +71,7 @@ object ConfigCommand : LambdaCommand(
                         config.forEachSetting { path, single ->
                             val settingLit =
                                 if (path.isEmpty()) single.setting.name
-                                else "${path.joinToString("->")}->${single.setting.commandName}"
+                                else "${path.joinToString("->") { it.commandName }}->${single.setting.commandName}"
                             suggestions.add(settingLit)
                         }
                         suggestMatching(suggestions, builder)
@@ -102,7 +102,7 @@ object ConfigCommand : LambdaCommand(
                     config.forEachSetting { path, single ->
                         val settingLit =
                             if (path.isEmpty()) single.setting.commandName
-                            else "${path.joinToString("->")}->${single.setting.commandName}"
+                            else "${path.joinToString("->") { it.commandName }}->${single.setting.commandName}"
                         required(literal(settingLit)) {
                             with(single.setting) { buildCommand(registry) }
                         }
