@@ -20,6 +20,7 @@ package com.lambda.module.modules.movement
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -100,9 +101,10 @@ object ElytraAltitudeControl : Module(
 	val usageDelay = Timer()
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::rotationConfig)
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::rotationConfig)
+			}
 
 		listen<TickEvent.Pre> {
 			if (!player.isGliding) return@listen

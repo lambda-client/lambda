@@ -22,6 +22,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
@@ -145,15 +146,16 @@ object CrystalAura : Module(
     }
 
 	init {
-		setDefaultAutomationConfig {
-            hideAllBlocksExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
-            buildConfig.apply {
-                hide(
-                    ::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
-                    ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
-                )
+		setDefaultAutomationConfig()
+            .withEdits {
+                hideAllBlocksExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
+                buildConfig.apply {
+                    hide(
+                        ::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
+                        ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
+                    )
+                }
             }
-		}
 
         // Async ticking
         fixedRateTimer(

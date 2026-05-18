@@ -19,7 +19,6 @@ package com.lambda.config.automation
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
-import com.lambda.config.EditContext.ConfigEditContext
 import com.lambda.config.Tab
 import com.lambda.config.categories.AutomationCategory
 import com.lambda.config.settings.blocks.BreakSettings
@@ -57,24 +56,19 @@ open class AutomationConfig(
 		private const val HotbarTab = "Hotbar"
 		private const val EatTab = "Eat"
 
+		@DslMarker
+		private annotation class AutomationConfigMarker
+
+		@AutomationConfigMarker
 		context(module: Module)
         fun IMutableAutomationConfig.setDefaultAutomationConfig(
-	        name: String = module.name,
-	        edits: (context(ConfigEditContext) AutomationConfig.() -> Unit)? = null
-		) {
-			this.defaultAutomationConfig = AutomationConfig("$name Automation Config").also { config ->
-				if (edits != null) with(ConfigEditContext(config)) { config.edits() }
-			}
-		}
+	        name: String = module.name
+		) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
 
+		@AutomationConfigMarker
         fun IMutableAutomationConfig.setDefaultAutomationConfig(
-	        name: String,
-	        edits: (context(ConfigEditContext) AutomationConfig.() -> Unit)? = null
-		) {
-			defaultAutomationConfig = AutomationConfig("$name Automation Config").also { config ->
-				if (edits != null) with(ConfigEditContext(config)) { config.edits() }
-			}
-		}
+	        name: String
+		) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
 
 		val Default = AutomationConfig("Default")
     }

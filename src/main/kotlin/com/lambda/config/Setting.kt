@@ -30,6 +30,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting.ValueListener
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -37,7 +38,6 @@ import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
 import com.lambda.util.Nameable
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.HoverEvents
@@ -99,12 +99,11 @@ class Setting<T : SettingCore<R>, R>(
 	override val description: String,
 	var core: T,
 	val config: Config,
-	val layer: Config.SettingLayer.Single<*, *>,
+	val layer: SettingLayer.Single<*, *>,
 	var visibility: () -> Boolean
 ) : Nameable, Describable, Jsonable {
 	val originalCore = core
 	var disabled = { false }
-	var buttonMenu: NamedEnum? = null
 
 	var value by this
 
@@ -146,6 +145,7 @@ class Setting<T : SettingCore<R>, R>(
 	 * Will only register changes of the variable, not the content of the variable!
 	 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
 	 */
+	@SettingDsl
 	fun onValueChange(block: SafeContext.(from: R, to: R) -> Unit) = apply {
 		core.listeners.add(ValueListener(true) { from, to ->
 			runSafe {
@@ -154,20 +154,19 @@ class Setting<T : SettingCore<R>, R>(
 		})
 	}
 
+	@SettingDsl
 	fun onValueChangeUnsafe(block: (from: R, to: R) -> Unit) = apply {
 		core.listeners.add(ValueListener(true, block))
 	}
 
+	@SettingDsl
 	fun onValueSet(block: (from: R, to: R) -> Unit) = apply {
 		core.listeners.add(ValueListener(false, block))
 	}
 
+	@SettingDsl
 	fun disabled(predicate: () -> Boolean) = apply {
 		disabled = predicate
-	}
-
-	fun buttonMenu(menu: NamedEnum) = apply {
-		buttonMenu = menu
 	}
 
 	fun trySetValue(newValue: R) {
@@ -183,7 +182,8 @@ class Setting<T : SettingCore<R>, R>(
 	fun setMessage(previousValue: R, newValue: R) = buildText {
 		literal("Set ")
 		changedMessage(previousValue, newValue)
-		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${config.commandName} $commandName")) {
+		val commandPath = getConfigCommandPath().joinToString("->", postfix = "->").takeIf { it != "->" } ?: ""
+		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.commandName} reset ${config.commandName} $commandPath$commandName")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to reset to default value ")
 				highlighted(core.defaultValue.toString())
@@ -215,7 +215,8 @@ class Setting<T : SettingCore<R>, R>(
 		literal(" to ")
 		highlighted(newValue.toString())
 		literal(".")
-		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${config.commandName} $commandName $previousValue")) {
+		val commandPath = getConfigCommandPath().joinToString("->", postfix = "->").takeIf { it != "->" } ?: ""
+		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${config.commandName} $commandPath$commandName $previousValue")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to undo to previous value ")
 				highlighted(previousValue.toString())
@@ -223,6 +224,17 @@ class Setting<T : SettingCore<R>, R>(
 				highlighted(" [Undo]")
 			}
 		}
+	}
+
+	private fun getConfigCommandPath(): Collection<String> {
+		var current: SettingLayer.Multiple = layer.parent
+		val layers = mutableListOf(current.commandName)
+		while (true) {
+			current = current.parent ?: break
+			if (current is SettingLayer.Root) break
+			layers.add(current.commandName)
+		}
+		return layers.asReversed()
 	}
 
 	override fun toString() = "Setting $name: $value of type ${core.type.typeName}"
@@ -255,8 +267,7 @@ abstract class SettingCore<T>(
 					JsonParser.parseString("\"$valueString\"")
 				} catch (_: Exception) {
 					return@executeWithResult failure("$valueString is not a valid JSON string.")
-				}
-					?: return@executeWithResult failure("No config found for $name.")
+				} ?: return@executeWithResult failure("No config found for $name.")
 				val previous = this@SettingCore.value
 				try {
 					loadFromJson(parsed)
@@ -276,3 +287,6 @@ abstract class SettingCore<T>(
 		value = gson.fromJson(serialized, type)
 	}
 }
+
+@DslMarker
+internal annotation class SettingDsl

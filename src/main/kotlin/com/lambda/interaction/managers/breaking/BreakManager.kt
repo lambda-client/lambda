@@ -137,7 +137,7 @@ object BreakManager : Manager<BreakRequest>(
 			.lastOrNull {
 				it.breakConfig.doubleBreak || it.type == Secondary
 			}?.context?.itemSelection
-			?: StackSelection.EVERYTHING.select()
+			?: StackSelection.Everything.select()
 
 	override val blockedPositions
 		get() = activeInfos.map { it.context.blockPos } + pendingActions.map { it.context.blockPos }

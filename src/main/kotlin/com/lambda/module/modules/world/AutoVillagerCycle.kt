@@ -22,6 +22,7 @@ import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
@@ -92,9 +93,10 @@ object AutoVillagerCycle : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
+			}
 
 		onEnable {
 			allEnchantments.clear()

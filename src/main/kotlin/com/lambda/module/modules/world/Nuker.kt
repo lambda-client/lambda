@@ -19,6 +19,7 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -56,11 +57,12 @@ object Nuker : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			buildConfig.apply {
-				editTyped(::pathing, ::stayInRange) { defaultValue(false) }
+		setDefaultAutomationConfig()
+			.withEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange) { defaultValue(false) }
+				}
 			}
-		}
 
 		onEnable {
 			startBuildTask()

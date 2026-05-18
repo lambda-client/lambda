@@ -19,6 +19,7 @@ package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
@@ -64,7 +65,7 @@ object ConfigCommand : LambdaCommand(
                 suggests { _, builder ->
                     suggestMatching(ConfigLoader.configs.map { it.commandName }, builder)
                 }
-                required(string("setting")) { settingArg ->
+                required(greedyString("setting")) { settingArg ->
                     suggests { context, builder ->
 	                    val config = ConfigLoader.configByCommandName(configArg(context).value()) ?: return@suggests null
 	                    val suggestions = mutableListOf<String>()

@@ -57,9 +57,6 @@ import kotlin.reflect.KProperty
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
-@DslMarker
-private annotation class SettingDsl
-
 /**
  * Represents a set of [SettingCore]s that are associated with the [name] of the [Config].
  * The settings are managed by this [Config] and are saved and loaded as part of the [ConfigCategory].
@@ -622,21 +619,6 @@ abstract class Config(
 			}
 		}
 		internalForEach(root, emptyList())
-	}
-
-	internal fun getSettingByPathedName(path: Collection<String>, setting: String): Setting<*, *>? {
-		var currentLayer: SettingLayer.Multiple = settingLayers
-		path.forEach { layer ->
-			currentLayer = currentLayer.layers
-				.asSequence()
-				.filterIsInstance<SettingLayer.Multiple>()
-				.find { it.name == layer } ?: return null
-		}
-		return currentLayer.layers
-			.asSequence()
-			.filterIsInstance<SettingLayer.Single<*, *>>()
-			.find { it.setting.name == setting }
-			?.setting
 	}
 }
 

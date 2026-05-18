@@ -22,6 +22,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.PlayerEvent
@@ -91,9 +92,10 @@ object AirPlace : Module(
 	)
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::interactConfig)
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::interactConfig)
+			}
 
 		listen<TickEvent.Pre> {
 			if (request?.done == false) {

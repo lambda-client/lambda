@@ -336,7 +336,7 @@ class BuildTask private constructor(
                 }
 
                 BaritoneHandler.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-                return@let true
+                true
             } ?: false
 
     fun iteratePropagating() =

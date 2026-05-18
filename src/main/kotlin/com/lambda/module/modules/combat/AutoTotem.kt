@@ -19,6 +19,7 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -55,9 +56,10 @@ object AutoTotem : Module(
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based swaps") { !always && players }
 
     init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::inventoryConfig)
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::inventoryConfig)
+			}
 
         listen<TickEvent.Pre> {
             if (!always && Reason.entries.none { it.check(this) }) return@listen

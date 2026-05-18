@@ -22,6 +22,7 @@ import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -41,45 +42,46 @@ object FastBreak : Module(
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::buildConfig, ::breakConfig, ::rotationConfig, ::hotbarConfig)
-			buildConfig.apply {
-				hide(
-					::pathing,
-					::stayInRange,
-					::spleefEntities,
-					::maxBuildDependencies,
-					::collectDrops,
-					::blockReach,
-					::entityReach,
-					::breakBlocks,
-					::interactBlocks,
-					::placeBlocks
-				)
-				::maxBuildDependencies.edit { defaultValue(0) }
-				editTyped(
-					::strictRayCast
-				) { defaultValue(false); }
-				hide(::strictRayCast, ::checkSideVisibility)
-				::blockReach.edit { defaultValue(Double.MAX_VALUE) }
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::buildConfig, ::breakConfig, ::rotationConfig, ::hotbarConfig)
+				buildConfig.apply {
+					hide(
+						::pathing,
+						::stayInRange,
+						::spleefEntities,
+						::maxBuildDependencies,
+						::collectDrops,
+						::blockReach,
+						::entityReach,
+						::breakBlocks,
+						::interactBlocks,
+						::placeBlocks
+					)
+					::maxBuildDependencies.edit { defaultValue(0) }
+					editTyped(
+						::strictRayCast
+					) { defaultValue(false); }
+					hide(::strictRayCast, ::checkSideVisibility)
+					::blockReach.edit { defaultValue(Double.MAX_VALUE) }
+				}
+				breakConfig.apply {
+					editTyped(
+						::avoidFluids,
+						::avoidSupporting,
+						::efficientOnly,
+						::suitableToolsOnly
+					) { defaultValue(false) }
+					editTyped(
+						::rotate,
+						::doubleBreak
+					) { defaultValue(false); hide() }
+					::breaksPerTick.edit { defaultValue(1); hide() }
+					::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
+					hide(::sorter, ::unsafeCancels)
+				}
+				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
 			}
-			breakConfig.apply {
-				editTyped(
-					::avoidFluids,
-					::avoidSupporting,
-					::efficientOnly,
-					::suitableToolsOnly
-				) { defaultValue(false) }
-				editTyped(
-					::rotate,
-					::doubleBreak
-				) { defaultValue(false); hide() }
-				::breaksPerTick.edit { defaultValue(1); hide() }
-				::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
-				hide(::sorter, ::unsafeCancels)
-			}
-			hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
-		}
 
 		listen<PlayerEvent.Attack.Block> { it.cancel() }
 		listen<PlayerEvent.Breaking.Update> { event ->

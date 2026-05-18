@@ -24,6 +24,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -100,11 +101,12 @@ object BetterFirework : Module(
 		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::hotbarConfig, ::inventoryConfig)
-			hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-			inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::hotbarConfig, ::inventoryConfig)
+				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+				inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+			}
 
 		listen<TickEvent.Pre> {
 			when (takeoffState) {

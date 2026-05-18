@@ -133,12 +133,13 @@ object AutoPortal : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			hideBlock(::eatConfig)
-			hotbarConfig::tickStageMask.edit {
-				defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideBlock(::eatConfig)
+				hotbarConfig::tickStageMask.edit {
+					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
+				}
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			PosHandler.tick()

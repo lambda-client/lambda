@@ -21,6 +21,7 @@ import baritone.api.pathing.goals.GoalGetToBlock
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
@@ -109,9 +110,10 @@ object ElytraFly : Module(
     private val fireworkTimer = Timer()
 
     init {
-        setDefaultAutomationConfig {
-            hideAllBlocksExcept(::inventoryConfig, ::rotationConfig)
-        }
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllBlocksExcept(::inventoryConfig, ::rotationConfig)
+            }
 
         listen<TickEvent.Pre> {
             when (mode) {

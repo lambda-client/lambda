@@ -20,6 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -44,17 +45,18 @@ object Surround : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			buildConfig.apply {
-				editTyped(
-					::pathing,
-					::stayInRange,
-					::spleefEntities,
-					::collectDrops
-				) { defaultValue(false); hide() }
+		setDefaultAutomationConfig()
+			.withEdits {
+				buildConfig.apply {
+					editTyped(
+						::pathing,
+						::stayInRange,
+						::spleefEntities,
+						::collectDrops
+					) { defaultValue(false); hide() }
+				}
+				hideBlock(::eatConfig)
 			}
-			hideBlock(::eatConfig)
-		}
 
 		onEnable {
 			task = tickingBlueprint {

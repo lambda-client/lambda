@@ -19,6 +19,7 @@ package com.lambda.module.modules.world
 
 import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
@@ -91,11 +92,12 @@ object HighwayTools : Module(
     }
 
     init {
-		setDefaultAutomationConfig {
-			buildConfig.apply {
-				editTyped(::pathing, ::stayInRange) { defaultValue(true) }
-			}
-        }
+		setDefaultAutomationConfig()
+			.withEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange) { defaultValue(true) }
+				}
+            }
 
         onEnable {
             octant = player.octant

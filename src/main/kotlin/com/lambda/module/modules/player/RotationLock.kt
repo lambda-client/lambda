@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.config.ConfigEditor.edit
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -43,10 +44,11 @@ object RotationLock : Module(
 	private val customPitch by setting("Custom Pitch", 0.0, -90.0..90.0, 0.1) { pitchMode == Mode.Custom }
 
     init {
-	    setDefaultAutomationConfig {
-			hideAllBlocksExcept(::rotationConfig)
-		    rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
-	    }
+	    setDefaultAutomationConfig()
+		    .withEdits {
+				hideAllBlocksExcept(::rotationConfig)
+		        rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
+	        }
 
         listen<TickEvent.Pre> {
             val yaw = when (yawMode) {

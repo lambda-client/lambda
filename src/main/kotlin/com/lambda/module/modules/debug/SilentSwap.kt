@@ -19,6 +19,7 @@ package com.lambda.module.modules.debug
 
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -32,9 +33,10 @@ object SilentSwap : Module(
     tag = ModuleTag.Debug,
 ) {
     init {
-        setDefaultAutomationConfig {
-            hideAllBlocksExcept(::hotbarConfig)
-        }
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllBlocksExcept(::hotbarConfig)
+            }
 
         listen<PlayerEvent.Attack.Block> {
             if (!HotbarRequest(0, this@SilentSwap).submit().done) {

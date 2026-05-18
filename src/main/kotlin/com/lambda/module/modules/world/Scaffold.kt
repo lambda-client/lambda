@@ -24,6 +24,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -60,23 +61,24 @@ object Scaffold : Module(
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
 	init {
-		setDefaultAutomationConfig {
-			buildConfig.apply {
-				editTyped(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
-					defaultValue(false)
-					hide()
+		setDefaultAutomationConfig()
+			.withEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
+						defaultValue(false)
+						hide()
+					}
+					::checkSideVisibility.edit { defaultValue(true) }
+					hide(::breakBlocks)
 				}
-				::checkSideVisibility.edit { defaultValue(true) }
-				hide(::breakBlocks)
+				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+				rotationConfig.apply {
+					::instant.edit { defaultValue(false) }
+					::mean.edit { defaultValue(120.0) }
+					::spread.edit { defaultValue(0.0) }
+				}
+				hideAllBlocksExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 			}
-			interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
-			rotationConfig.apply {
-				::instant.edit { defaultValue(false) }
-				::mean.edit { defaultValue(120.0) }
-				::spread.edit { defaultValue(0.0) }
-			}
-			hideAllBlocksExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
-		}
 
 		listen<TickEvent.Pre> {
 			val selection = selectStack {

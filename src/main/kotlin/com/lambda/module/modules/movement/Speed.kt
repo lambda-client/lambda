@@ -19,6 +19,7 @@ package com.lambda.module.modules.movement
 
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
@@ -81,9 +82,10 @@ object Speed : Module(
     }
 
     init {
-        setDefaultAutomationConfig {
-            hideAllBlocksExcept(::rotationConfig)
-        }
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllBlocksExcept(::rotationConfig)
+            }
 
         listen<MovementEvent.Player.Pre> {
             if (!shouldWork()) {

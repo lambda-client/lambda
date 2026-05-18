@@ -21,6 +21,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -95,9 +96,10 @@ object AutoArmor : Module(
 	}
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::inventoryConfig)
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::inventoryConfig)
+			}
 
 		listen<TickEvent.Pre> {
 			val armorSlots = player.armorSlots

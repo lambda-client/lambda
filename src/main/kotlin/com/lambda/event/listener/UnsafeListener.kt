@@ -111,6 +111,7 @@ class UnsafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
          * @return The newly created and registered [UnsafeListener].
          */
+        @ListenMarker
         inline fun <reified T : Event> Any.listenUnsafe(
             noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
@@ -149,6 +150,7 @@ class UnsafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
          * @return The newly created and registered [UnsafeListener].
          */
+        @ListenMarker
         fun <T : Event> Any.listenUnsafe(
             kClass: KClass<out T>,
             priority: () -> Int = ownerPriorityOr0Getter,
@@ -185,6 +187,7 @@ class UnsafeListener<T : Event>(
          * @param alwaysListen If true, the listener will be executed even if it is muted.
          * @return The newly created and registered [UnsafeListener].
          */
+        @ListenMarker
         inline fun <reified T : Event> Any.listenOnceUnsafe(
             noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
@@ -234,6 +237,7 @@ class UnsafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [UnsafeListener].
          */
+        @ListenMarker
         inline fun <reified T : Event> Any.listenConcurrentlyUnsafe(
             noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,

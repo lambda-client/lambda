@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
+import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -38,9 +39,10 @@ object AutoEat : Module(
     private var eatTask: EatTask? = null
 
     init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::eatConfig)
-		}
+		setDefaultAutomationConfig()
+            .withEdits {
+			    hideAllBlocksExcept(::eatConfig)
+		    }
 
         listen<TickEvent.Pre> {
             val reason = runSafeAutomated { reasonEating() }

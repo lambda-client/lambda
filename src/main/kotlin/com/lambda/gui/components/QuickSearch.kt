@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigLoader
 import com.lambda.config.Setting
 import com.lambda.event.events.ButtonEvent
@@ -302,10 +303,10 @@ object QuickSearch {
 
     private fun buildSettingBreadcrumb(configName: String, setting: Setting<*, *>): String {
         val path = buildList {
-            var current: Config.SettingLayer? = setting.layer.parent
-            while (current is Config.SettingLayer.Multiple && current !is Config.SettingLayer.Root) {
+            var current: SettingLayer.Multiple? = setting.layer.parent
+            while (current !is SettingLayer.Root) {
+                current = current?.parent ?: return@buildList
                 add(current.name)
-                current = current.parent
             }
         }.asReversed()
         return if (path.isEmpty()) configName

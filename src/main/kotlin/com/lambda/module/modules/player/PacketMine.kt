@@ -24,6 +24,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.BreakConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -100,33 +101,34 @@ object PacketMine : Module(
 	private var attackedThisTick = false
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::buildConfig, ::breakConfig, breakConfig::outlineConfig, ::rotationConfig, ::hotbarConfig)
-			buildConfig.apply {
-				hide(
-					::pathing,
-					::stayInRange,
-					::spleefEntities,
-					::maxBuildDependencies,
-					::collectDrops,
-					::entityReach,
-					::breakBlocks,
-					::interactBlocks,
-					::placeBlocks
-				)
-				::maxBuildDependencies.edit { defaultValue(0) }
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::buildConfig, ::breakConfig, breakConfig::outlineConfig, ::rotationConfig, ::hotbarConfig)
+				buildConfig.apply {
+					hide(
+						::pathing,
+						::stayInRange,
+						::spleefEntities,
+						::maxBuildDependencies,
+						::collectDrops,
+						::entityReach,
+						::breakBlocks,
+						::interactBlocks,
+						::placeBlocks
+					)
+					::maxBuildDependencies.edit { defaultValue(0) }
+				}
+				breakConfig.apply {
+					editTyped(
+						::avoidFluids,
+						::avoidSupporting,
+						::efficientOnly,
+						::suitableToolsOnly
+					) { defaultValue(false) }
+					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
+				}
+				hotbarConfig::keepTicks.edit { defaultValue(0) }
 			}
-			breakConfig.apply {
-				editTyped(
-					::avoidFluids,
-					::avoidSupporting,
-					::efficientOnly,
-					::suitableToolsOnly
-				) { defaultValue(false) }
-				::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
-			}
-			hotbarConfig::keepTicks.edit { defaultValue(0) }
-		}
 
 		listen<TickEvent.Post> {
 			attackedThisTick = false

@@ -19,6 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -43,9 +44,10 @@ object ToolSaver : Module(
 	private val replace by setting("Replace", true, "Replaces the tool with the one of the same kind")
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::inventoryConfig)
-		}
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::inventoryConfig)
+			}
 
 		listen<TickEvent.Pre> {
 			val endangeredStacks = player.hotbarSlots.filter { it.stack.isEndangered }

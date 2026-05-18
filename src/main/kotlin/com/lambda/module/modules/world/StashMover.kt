@@ -28,6 +28,7 @@ import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomat
 import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.ChatEvent
@@ -106,7 +107,7 @@ object StashMover : Module(
 	private const val GeneralTab = "General"
 	private const val CommandBindsTab = "Command Binds"
 
-	enum class Role(val createTask: () -> Task<*>) {
+	private enum class Role(val createTask: () -> Task<*>) {
 		MoverBot({ MoverBot() }),
 		PearlBot({ PearlBot() })
 	}
@@ -116,7 +117,7 @@ object StashMover : Module(
 		Drop("Drop")
 	}
 
-	@Tab(GeneralTab) val role: Role by setting("Role", Role.MoverBot)
+	@Tab(GeneralTab) private val role: Role by setting("Role", Role.MoverBot)
 		.onValueChange { _, _ -> clearModule() }
 	@Tab(GeneralTab) private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }
 	@Tab(GeneralTab) private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }
@@ -178,17 +179,18 @@ object StashMover : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			buildConfig.apply {
-				editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
-				hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
-				hideBlock(::eatConfig)
+		setDefaultAutomationConfig()
+			.withEdits {
+				buildConfig.apply {
+					editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
+					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
+					hideBlock(::eatConfig)
+				}
+				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+				breakConfig.apply {
+					editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
+				}
 			}
-			interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
-			breakConfig.apply {
-				editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
-			}
-		}
 
 		listen<ButtonEvent.Mouse.Click> { event ->
 			if (!chestPullSelMode && !chestPutSelMode) return@listen

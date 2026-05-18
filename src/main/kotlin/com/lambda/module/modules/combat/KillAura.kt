@@ -23,6 +23,7 @@ import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
@@ -87,19 +88,20 @@ object KillAura : Module(
     }
 
     init {
-        setDefaultAutomationConfig {
-            hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
-            buildConfig.apply {
-                hide(
-                    ::pathing, ::stayInRange, ::collectDrops,
-                    ::spleefEntities, ::maxPendingActions, ::actionTimeout,
-                    ::maxBuildDependencies, ::blockReach
-                )
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
+                buildConfig.apply {
+                    hide(
+                        ::pathing, ::stayInRange, ::collectDrops,
+                        ::spleefEntities, ::maxPendingActions, ::actionTimeout,
+                        ::maxBuildDependencies, ::blockReach
+                    )
+                }
+                hotbarConfig.apply {
+                    ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+                }
             }
-            hotbarConfig.apply {
-                ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-            }
-        }
 
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 

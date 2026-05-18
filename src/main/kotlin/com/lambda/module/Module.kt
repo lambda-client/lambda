@@ -166,62 +166,62 @@ abstract class Module(
     }
 
     @DslMarker
-    private annotation class ModuleMarker
+    private annotation class ModuleDsl
 
-    @ModuleMarker
+    @ModuleDsl
     fun enable() {
         ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun disable() {
         ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun toggle() {
         ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun onEnableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun onDisableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
-    @ModuleMarker
+    @ModuleDsl
     fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)

@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.ConfigEditor.edit
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
@@ -122,12 +123,11 @@ object Freecam : Module(
 	private const val SensitivityFactor = 0.15
 
 	init {
-		setDefaultAutomationConfig {
-			rotationConfig::rotationMode.edit {
-				defaultValue(RotationMode.Lock)
+		setDefaultAutomationConfig()
+			.withEdits {
+				rotationConfig::rotationMode.edit { defaultValue(RotationMode.Lock) }
+				hideAllBlocksExcept(::rotationConfig)
 			}
-			hideAllBlocksExcept(::rotationConfig)
-		}
 
 		onEnable {
 			lastPerspective = mc.options.perspective

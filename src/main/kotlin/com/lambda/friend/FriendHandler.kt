@@ -18,6 +18,8 @@
 package com.lambda.friend
 
 import com.lambda.Lambda.mc
+import com.lambda.command.CommandRegistry.prefix
+import com.lambda.command.commands.FriendCommand
 import com.lambda.config.Config
 import com.lambda.config.categories.FriendCategory
 import com.lambda.core.Loadable
@@ -114,7 +116,7 @@ object FriendHandler : Config(
         literal(Color.GREEN, "Added ")
         text(name)
         literal(" to your friend list ")
-        clickEvent(ClickEvents.suggestCommand(";friends remove ${name.string}")) {
+        clickEvent(ClickEvents.suggestCommand("${prefix}${FriendCommand.name} remove ${name.string}")) {
             styled(underlined = true, color = Color.LIGHT_GRAY) {
                 literal("[Undo]")
             }
@@ -126,7 +128,7 @@ object FriendHandler : Config(
         literal(Color.RED, "Removed ")
         text(name)
         literal(" from your friend list ")
-        clickEvent(ClickEvents.suggestCommand(";friends add ${name.string}")) {
+        clickEvent(ClickEvents.suggestCommand("${prefix}${FriendCommand.name} add ${name.string}")) {
             styled(underlined = true, color = Color.LIGHT_GRAY) {
                 literal("[Undo]")
             }

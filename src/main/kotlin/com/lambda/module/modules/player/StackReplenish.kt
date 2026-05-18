@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -42,12 +43,13 @@ object StackReplenish : Module(
 	private val offhand by setting("Offhand", false, "Replenishes the players offhand stack")
 
 	init {
-		setDefaultAutomationConfig {
-			hideAllBlocksExcept(::inventoryConfig)
-			inventoryConfig.apply {
-				hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::inventoryConfig)
+				inventoryConfig.apply {
+					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
+				}
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			if (player.currentScreenHandler.cursorStack.item !== Items.AIR) return@listen
