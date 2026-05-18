@@ -226,16 +226,15 @@ class Setting<T : SettingCore<R>, R>(
 		}
 	}
 
-	private fun getConfigCommandPath(): Collection<String> {
-		var current: SettingLayer.Multiple = layer.parent
-		val layers = mutableListOf(current.commandName)
-		while (true) {
-			current = current.parent ?: break
-			if (current is SettingLayer.Root) break
-			layers.add(current.commandName)
-		}
-		return layers.asReversed()
-	}
+	internal fun getConfigCommandPath(): Collection<String> =
+		buildList {
+			var current: SettingLayer.Multiple = layer.parent
+			while (true) {
+				current = current.parent ?: break
+				if (current is SettingLayer.Root) break
+				add(current.commandName)
+			}
+		}.asReversed()
 
 	override fun toString() = "Setting $name: $value of type ${core.type.typeName}"
 }

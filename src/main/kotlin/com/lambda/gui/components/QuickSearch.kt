@@ -302,13 +302,7 @@ object QuickSearch {
     }
 
     private fun buildSettingBreadcrumb(configName: String, setting: Setting<*, *>): String {
-        val path = buildList {
-            var current: SettingLayer.Multiple? = setting.layer.parent
-            while (current !is SettingLayer.Root) {
-                current = current?.parent ?: return@buildList
-                add(current.name)
-            }
-        }.asReversed()
+        val path = setting.getConfigCommandPath()
         return if (path.isEmpty()) configName
         else "$configName » ${path.joinToString(" » ")}"
     }
