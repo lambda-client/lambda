@@ -245,7 +245,7 @@ object Nametags : Module(
 
 	@JvmStatic
 	fun shouldRenderNametag(entity: Entity) =
-		(entity !== mc.player || !mc.options.perspective.isFirstPerson) &&
+		(entity !== mc.player || !mc.options.perspective.isFirstPerson || Freecam.isEnabled) &&
 				entitySelectionSettings.isSelected(entity) && (entity !is LivingEntity || entity.isAlive)
 
 	@Suppress("unused")

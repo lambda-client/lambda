@@ -38,7 +38,6 @@ import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.FileUtils.createIfNotExists
 import com.lambda.util.FileUtils.ifExists
 import com.lambda.util.FileUtils.ifNotExists
-import com.lambda.util.StringUtils.capitalize
 import java.io.File
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.minutes
@@ -106,14 +105,14 @@ abstract class ConfigCategory : Jsonable, Loadable {
             if (name == schemaKey) return@forEach
             configByName(name)
                 ?.loadFromJson(value)
-                ?: Log.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
+                ?: Log.warn("No matching config found for $name in $configName config category")
         }
     }
 
     protected open fun internalTryLoad() {
         loadFromFile(primaryFile)
             .onSuccess {
-                val message = "${configName.capitalize()} config loaded."
+                val message = "$configName config loaded."
                 Log.info(message)
                 info(message)
             }
@@ -122,12 +121,12 @@ abstract class ConfigCategory : Jsonable, Loadable {
 
                 runCatching { loadFromFile(backup) }
                     .onSuccess {
-                        val message = "${configName.capitalize()} config loaded from backup"
+                        val message = "$configName config loaded from backup"
                         Log.info(message)
                         info(message)
                     }
                     .onFailure { error ->
-                        val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                        val message = "Failed to load $configName config from backup, unrecoverable error"
                         Log.error(message, error)
                         logError(message)
                     }
@@ -137,12 +136,12 @@ abstract class ConfigCategory : Jsonable, Loadable {
     protected open fun internalTrySave(logToChat: Boolean) {
         saveToFile()
             .onSuccess {
-                val message = "Saved ${configName.capitalize()} config."
+                val message = "Saved $configName config."
                 Log.info(message)
                 if (logToChat) info(message)
             }
             .onFailure {
-                val message = "Failed to save ${configName.capitalize()} config"
+                val message = "Failed to save $configName config"
                 Log.error(message, it)
                 logError(message)
             }
@@ -153,7 +152,7 @@ abstract class ConfigCategory : Jsonable, Loadable {
      * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
      */
     private fun loadFromFile(file: File) = runCatching {
-        file.ifNotExists { Log.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
+        file.ifNotExists { Log.warn("No configuration file found for $configName. Creating new file when saving.") }
             .ifExists {
                 val parsed = JsonParser.parseReader(it.reader()).asJsonObject
                 val migrationResult = ConfigMigrations.migrate(configName, parsed)

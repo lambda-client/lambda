@@ -30,6 +30,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
+import com.lambda.config.Config.MultipleLayerType
 import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting.ValueListener
 import com.lambda.context.SafeContext
@@ -231,7 +232,7 @@ class Setting<T : SettingCore<R>, R>(
 			var current: SettingLayer.Multiple = layer.parent
 			while (true) {
 				current = current.parent ?: break
-				if (current is SettingLayer.Root) break
+				if (current.type == MultipleLayerType.Root) break
 				add(current.commandName)
 			}
 		}.asReversed()

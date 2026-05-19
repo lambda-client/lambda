@@ -23,7 +23,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.SpeedUnit
 import net.minecraft.util.math.Vec3d
 
@@ -68,8 +67,6 @@ object Speedometer : HudModule(
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        runSafe {
-            text("Speed: %.2f %s".format(speed, speedUnit.unitName))
-        }
+        text("Speed: %.2f %s".format(speed, speedUnit.unitName))
     }
 }

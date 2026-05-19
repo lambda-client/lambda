@@ -21,7 +21,6 @@ import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigLoader
 import com.lambda.config.Setting
 import com.lambda.event.events.ButtonEvent

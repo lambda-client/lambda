@@ -21,7 +21,7 @@ import com.lambda.config.Config
 import com.lambda.config.SettingBlock
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
-import com.lambda.util.EntityUtils
+import com.lambda.util.EntityUtils.EntityGroup
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.entityColor
@@ -30,6 +30,7 @@ import com.lambda.util.math.lerp
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.Entity
+import net.minecraft.entity.player.PlayerEntity
 import java.awt.Color
 
 class EntityColorSettings(override val c: Config) : SettingBlock, EntityColorsConfig {
@@ -54,9 +55,9 @@ class EntityColorSettings(override val c: Config) : SettingBlock, EntityColorsCo
 		val group = entity.entityGroup
 		return if (useNaturalColors && !hasSpecialCase(entity, group)) entityColor(entity)
 		else when (group) {
-			EntityUtils.EntityGroup.Player ->
+			EntityGroup.Player ->
 				when {
-					entity is OtherClientPlayerEntity && entity.isFriend && separateFriendColor -> friendColor
+					entity is PlayerEntity && entity.isFriend && separateFriendColor -> friendColor
 					else ->
 						if (playerDistanceGradient)
 							lerp(
@@ -66,12 +67,12 @@ class EntityColorSettings(override val c: Config) : SettingBlock, EntityColorsCo
 							)
 						else playerColor
 				}
-			EntityUtils.EntityGroup.Mob -> mobColor
-			EntityUtils.EntityGroup.Passive -> passiveColor
-			EntityUtils.EntityGroup.Vehicle -> vehicleColor
-			EntityUtils.EntityGroup.Projectile -> projectileColor
-			EntityUtils.EntityGroup.Boss -> bossColor
-			EntityUtils.EntityGroup.Decoration -> decorationColor
+			EntityGroup.Mob -> mobColor
+			EntityGroup.Passive -> passiveColor
+			EntityGroup.Vehicle -> vehicleColor
+			EntityGroup.Projectile -> projectileColor
+			EntityGroup.Boss -> bossColor
+			EntityGroup.Decoration -> decorationColor
 			else -> miscColor
 		}
 	}
@@ -81,7 +82,7 @@ class EntityColorSettings(override val c: Config) : SettingBlock, EntityColorsCo
 		if (useNaturalColors) safeContext.blockColor(blockEntity.cachedState, blockEntity.pos)
 		else blockColor
 
-	private fun hasSpecialCase(entity: Entity, group: EntityUtils.EntityGroup) =
-		group == EntityUtils.EntityGroup.Player &&
+	private fun hasSpecialCase(entity: Entity, group: EntityGroup) =
+		group == EntityGroup.Player &&
 				((entity is OtherClientPlayerEntity && entity.isFriend && separateFriendColor) || playerDistanceGradient)
 }

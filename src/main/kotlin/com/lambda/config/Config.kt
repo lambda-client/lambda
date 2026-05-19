@@ -152,8 +152,8 @@ abstract class Config(
 		val path = mutableListOf<SettingLayerSpec>()
 		property.annotations.forEach { annotation ->
 			when (annotation) {
-				is Tab -> annotation.tabs.forEach { path.add(SettingLayerSpec(SettingLayerType.Tab, it)) }
-				is Group -> annotation.groups.forEach { path.add(SettingLayerSpec(SettingLayerType.Group, it)) }
+				is Tab -> annotation.tabs.forEach { path.add(SettingLayerSpec(MultipleLayerType.Tab, it)) }
+				is Group -> annotation.groups.forEach { path.add(SettingLayerSpec(MultipleLayerType.Group, it)) }
 			}
 		}
 		return path
@@ -194,32 +194,89 @@ abstract class Config(
 			forEachSetting(
 				multiple,
 				false,
-				{ _, multiple ->
-					val nestedObj = obj[multiple.name]
+				{ _, childMultiple ->
+					var nestedObj = obj[childMultiple.name]
 					if (nestedObj == null || !nestedObj.isJsonObject) {
-						logError("No data for ${multiple.type.toString().lowercase()} '${multiple.name}' in '$name'}")
+						nestedObj = JsonObject()
 					}
 					try {
-						load(multiple, nestedObj.asJsonObject)
+						load(childMultiple, nestedObj.asJsonObject)
 					} catch(e: Throwable) {
-						logError("Failed to deserialize ${multiple.type.toString().lowercase()} '${multiple.name}' in '$name'", e)
+						logError("Failed to deserialize ${childMultiple.type.toString().lowercase()} '${childMultiple.name}' in '$name'", e)
 					}
 				}
-			) { _, single ->
+			) { path, single ->
 				val jsonValue = obj[single.setting.name]
 				if (jsonValue != null) {
 					try {
 						single.setting.loadFromJson(jsonValue)
 					} catch (e: Throwable) {
-						logError("Failed to deserialize setting '$name'", e)
+						logError("Failed to deserialize setting '${single.setting.name}' in '$name'", e)
 					}
 				} else {
-					logError("No saved value for setting '${single.setting.name}' in '$name'")
+					val fallbackValue = findFallbackValue(single.setting.name, path, rootObj)
+					if (fallbackValue != null) {
+						try {
+							single.setting.loadFromJson(fallbackValue)
+						} catch (e: Throwable) {
+							logError("Failed to deserialize setting '${single.setting.name}' from fallback in '$name'", e)
+						}
+					} else {
+						logError("No saved value for setting '${single.setting.name}' in '$name'")
+					}
 				}
 			}
 		}
 
 		load(settingLayers, rootObj)
+	}
+
+	private fun findFallbackValue(
+		settingName: String,
+		parentLayers: List<SettingLayer.Multiple>,
+		rootObj: JsonObject
+	): JsonElement? {
+		var bestMatch: JsonElement? = null
+		var bestMatchKey: String? = null
+		var bestMatchParent: JsonObject? = null
+		var bestMatchScore = 0
+
+		fun search(currentObj: JsonObject, jsonPath: List<String>) {
+			currentObj.entrySet().forEach { (key, element) ->
+				if (key.endsWith(settingName, ignoreCase = true)) {
+					var score = 0
+					if (key.equals(settingName, ignoreCase = true)) {
+						score += 10
+					}
+
+					val fullPathString = (jsonPath + key).joinToString("")
+					parentLayers.forEach { layer ->
+						if (fullPathString.contains(layer.name, ignoreCase = true)) {
+							score += 5
+						}
+					}
+
+					if (score > bestMatchScore) {
+						bestMatchScore = score
+						bestMatch = element
+						bestMatchKey = key
+						bestMatchParent = currentObj
+					}
+				}
+
+				if (element.isJsonObject) {
+					search(element.asJsonObject, jsonPath + key)
+				}
+			}
+		}
+
+		search(rootObj, emptyList())
+
+		if (bestMatch != null && bestMatchParent != null && bestMatchKey != null) {
+			bestMatchParent.remove(bestMatchKey)
+		}
+
+		return bestMatch
 	}
 
 	@SettingDsl
@@ -467,8 +524,8 @@ abstract class Config(
 				.filter { it.name == spec.name }
 				.also {
 					it.forEach { layer ->
-						if (spec.type == SettingLayerType.Tab && layer !is SettingLayer.Tab ||
-							spec.type == SettingLayerType.Group && layer !is SettingLayer.Group
+						if (spec.type == MultipleLayerType.Tab && layer !is SettingLayer.Tab ||
+							spec.type == MultipleLayerType.Group && layer !is SettingLayer.Group
 							) throw IllegalStateException("Duplicate setting layers with differing types: ${layer.name} with type ${layer.type.toString().lowercase()} and ${spec.name} with type ${spec.type.toString().lowercase()}")
 					}
 				}
@@ -477,9 +534,9 @@ abstract class Config(
 			if (existing != null) currentSettingLayer = existing
 			else {
 				val newSettingLayer = when (spec.type) {
-					SettingLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentSettingLayer)
-					SettingLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentSettingLayer)
-					SettingLayerType.Root -> throw IllegalStateException("Multiple root setting layers; only the base class root layer should ever be created")
+					MultipleLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentSettingLayer)
+					MultipleLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentSettingLayer)
+					MultipleLayerType.Root -> throw IllegalStateException("Multiple root setting layers; only the base class root layer should ever be created")
 				}
 				currentSettingLayer.layers.add(newSettingLayer)
 				currentSettingLayer = newSettingLayer
@@ -515,8 +572,8 @@ abstract class Config(
 		return layer.setting
 	}
 
-    enum class SettingLayerType { Root, Tab, Group }
-    private data class SettingLayerSpec(val type: SettingLayerType, val name: String)
+    enum class MultipleLayerType { Root, Tab, Group }
+    private data class SettingLayerSpec(val type: MultipleLayerType, val name: String)
 	private data class LayerSpecInfo(val settingLayerSpecs: List<SettingLayerSpec>, val settingBlockSpecs: List<Int>)
 
 	sealed interface SettingLayer {
@@ -527,7 +584,7 @@ abstract class Config(
 		    val layers: MutableList<SettingLayer>,
 		    override val parent: Multiple?
 	    ) : SettingLayer, Nameable {
-		    abstract val type: SettingLayerType
+		    abstract val type: MultipleLayerType
 	    }
 
 	    class Root : Multiple(
@@ -535,7 +592,7 @@ abstract class Config(
 		    mutableListOf(),
 		    null
 	    ) {
-		    override val type = SettingLayerType.Root
+		    override val type = MultipleLayerType.Root
 	    }
 
 	    class Tab(
@@ -543,7 +600,7 @@ abstract class Config(
 		    layers: MutableList<SettingLayer>,
 		    parent: Multiple
 	    ) : Multiple(name, layers, parent) {
-		    override val type = SettingLayerType.Tab
+		    override val type = MultipleLayerType.Tab
 	    }
 
 	    class Group(
@@ -551,7 +608,7 @@ abstract class Config(
 		    layers: MutableList<SettingLayer>,
 		    parent: Multiple
 	    ) : Multiple(name, layers, parent) {
-		    override val type = SettingLayerType.Group
+		    override val type = MultipleLayerType.Group
 	    }
 
         class Single<T : SettingCore<R>, R : Any>(
