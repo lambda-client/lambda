@@ -24,6 +24,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.type.ImInt
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.math.MathUtils.roundToStep
 import net.minecraft.command.CommandRegistryAccess
@@ -33,36 +34,34 @@ import kotlin.math.roundToInt
  * @see [com.lambda.config.Config]
  */
 class FloatSetting(
-    defaultValue: Float,
-    override var range: ClosedRange<Float>,
-    override var step: Float = 1f,
-    unit: String,
+	defaultValue: Float,
+	override var range: ClosedRange<Float>,
+	override var step: Float = 1f,
+	unit: String,
 ) : NumericSetting<Float>(
-    defaultValue,
-    range,
-    step,
-    unit
+	defaultValue,
+	range,
+	step,
+	unit
 ) {
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
-        set(index) {
-            value = (range.start + index * step)
-	            .roundToStep(step)
-	            .coerceIn(range)
-        }
+	context(setting: Setting<*, Float>)
+	override fun ImGuiBuilder.buildSlider() {
+		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+		val currentIndex = ((value - range.start) / step).roundToInt()
+		val imInt = ImInt(currentIndex)
+		slider("##${setting.name}", imInt, 0, maxIndex, "") {
+			internalValue = (range.start + imInt.get() * step)
+				.roundToStep(step)
+				.coerceIn(range)
+		}
+	}
 
 	context(setting: Setting<*, Float>)
-    override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
-    }
-
-	context(setting: Setting<*, Float>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(float(setting.name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(float(setting.name, range.start, range.endInclusive)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 }

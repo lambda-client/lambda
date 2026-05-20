@@ -25,6 +25,7 @@ import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.type.ImInt
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.math.MathUtils.roundToStep
 import net.minecraft.command.CommandRegistryAccess
@@ -44,26 +45,24 @@ class DoubleSetting(
     step,
 	unit
 ) {
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).roundToInt()
-        set(index) {
-            value = (range.start + index * step)
-	            .roundToStep(step)
-	            .coerceIn(range)
-        }
+	context(setting: Setting<*, Double>)
+	override fun ImGuiBuilder.buildSlider() {
+		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
+		val currentIndex = ((value - range.start) / step).roundToInt()
+		val imInt = ImInt(currentIndex)
+		slider("##${setting.name}", imInt, 0, maxIndex, "") {
+			internalValue = (range.start + imInt.get() * step)
+				.roundToStep(step)
+				.coerceIn(range)
+		}
+	}
 
 	context(setting: Setting<*, Double>)
-    override fun ImGuiBuilder.buildSlider() {
-        val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
-    }
-
-	context(setting: Setting<*, Double>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(double(setting.name, range.start, range.endInclusive)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(double(setting.name, range.start, range.endInclusive)) { parameter ->
+			execute {
+				setting.trySetValue(parameter().value())
+			}
+		}
+	}
 }

@@ -173,10 +173,12 @@ abstract class Config(
 					false,
 					{ _, multiple ->
 						val nested = JsonObject()
-						target.add(multiple.name, nested)
 						process(multiple, nested)
+						if (nested.isEmpty) return@forEachSetting
+						target.add(multiple.name, nested)
 					}
 				) { _, single ->
+					if (!single.setting.isModified) return@forEachSetting
 					try {
 						target.add(single.setting.name, single.setting.toJson())
 					} catch (e: Throwable) {
@@ -202,7 +204,7 @@ abstract class Config(
 					try {
 						load(childMultiple, nestedObj.asJsonObject)
 					} catch(e: Throwable) {
-						logError("Failed to deserialize ${childMultiple.type.toString().lowercase()} '${childMultiple.name}' in '$name'", e)
+						logError("Failed to deserialize ${childMultiple.multipleType.toString().lowercase()} '${childMultiple.name}' in '$name'", e)
 					}
 				}
 			) { path, single ->
@@ -520,15 +522,15 @@ abstract class Config(
 		layerSpecInfo.settingLayerSpecs.forEach { spec ->
 			val existing = currentSettingLayer.layers
 				.asSequence()
-				.filterIsInstance<SettingLayer.Multiple>()
 				.filter { it.name == spec.name }
 				.also {
 					it.forEach { layer ->
 						if (spec.type == MultipleLayerType.Tab && layer !is SettingLayer.Tab ||
 							spec.type == MultipleLayerType.Group && layer !is SettingLayer.Group
-							) throw IllegalStateException("Duplicate setting layers with differing types: ${layer.name} with type ${layer.type.toString().lowercase()} and ${spec.name} with type ${spec.type.toString().lowercase()}")
+							) throw IllegalStateException("Duplicate setting layers with differing types: ('${layer.name}') in '${this@Config.name}'")
 					}
 				}
+				.filterIsInstance<SettingLayer.Multiple>()
 				.firstOrNull()
 
 			if (existing != null) currentSettingLayer = existing
@@ -544,8 +546,8 @@ abstract class Config(
 		}
 
 		if (currentSettingLayer.layers.any {
-			it is SettingLayer.Single<*, *> && it.setting.name == name
-		}) throw IllegalStateException("Duplicate setting name ('$name') within ${currentSettingLayer.name}")
+			it.name == name
+		}) throw IllegalStateException("Duplicate layer name ('$name') within ${currentSettingLayer.name}")
 
 		var currentBlockLayer: BlockLayer = settingBlockLayers
 		layerSpecInfo.settingBlockSpecs.forEach { index ->
@@ -572,56 +574,52 @@ abstract class Config(
 		return layer.setting
 	}
 
-    enum class MultipleLayerType { Root, Tab, Group }
-    private data class SettingLayerSpec(val type: MultipleLayerType, val name: String)
+	enum class SettingLayerType { Root, Tab, Group, Single }
+	enum class MultipleLayerType { Root, Tab, Group }
+	private data class SettingLayerSpec(val type: MultipleLayerType, val name: String)
 	private data class LayerSpecInfo(val settingLayerSpecs: List<SettingLayerSpec>, val settingBlockSpecs: List<Int>)
 
 	sealed interface SettingLayer {
+		val name: String
 		val parent: SettingLayer?
 
 	    sealed class Multiple(
 		    override val name: String,
+		    val multipleType: MultipleLayerType,
 		    val layers: MutableList<SettingLayer>,
 		    override val parent: Multiple?
-	    ) : SettingLayer, Nameable {
-		    abstract val type: MultipleLayerType
-	    }
+	    ) : SettingLayer, Nameable
 
 	    class Root : Multiple(
 		    "Root",
+		    MultipleLayerType.Root,
 		    mutableListOf(),
 		    null
-	    ) {
-		    override val type = MultipleLayerType.Root
-	    }
+	    )
 
 	    class Tab(
 		    name: String,
 		    layers: MutableList<SettingLayer>,
 		    parent: Multiple
-	    ) : Multiple(name, layers, parent) {
-		    override val type = MultipleLayerType.Tab
-	    }
+	    ) : Multiple(name, MultipleLayerType.Tab, layers, parent)
 
 	    class Group(
 		    name: String,
 		    layers: MutableList<SettingLayer>,
 		    parent: Multiple
-	    ) : Multiple(name, layers, parent) {
-		    override val type = MultipleLayerType.Group
-	    }
+	    ) : Multiple(name, MultipleLayerType.Group, layers, parent)
 
         class Single<T : SettingCore<R>, R : Any>(
 	        override val parent: Multiple,
 	        val blockLayer: BlockLayer,
-	        name: String,
+	        override val name: String,
 	        description: String,
 	        settingCore: T,
 	        config: Config,
 	        visibility: () -> Boolean,
 		) : SettingLayer {
 			val setting = Setting(name, description, settingCore, config, this, visibility)
-		}
+        }
     }
 
 	sealed class BlockLayer {

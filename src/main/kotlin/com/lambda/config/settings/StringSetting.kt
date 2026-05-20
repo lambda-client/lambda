@@ -47,7 +47,7 @@ class StringSetting(
         if (multiline) {
             inputTextMultiline(setting.name, ::value, flags = flags)
         } else {
-            inputText(setting.name, ::value, flags)
+            inputText(setting.name, setting::value, flags)
         }
         lambdaTooltip(setting.description)
     }

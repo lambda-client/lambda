@@ -51,9 +51,9 @@ object RadiusESP : Module(
 
 	@Group(RenderGroup) private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
 	@Group(RenderGroup) private val spawnerColor by setting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.onValueChange(::rebuildMesh)
-	@Group(RenderGroup) private var fill: Boolean by setting("Fill", true).onValueChange(::rebuildMesh)
+	@Group(RenderGroup) private var fill: Boolean by setting("Box Fill", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) outline = true }
-	@Group(RenderGroup) private var outline: Boolean by setting("Outline", true).onValueChange(::rebuildMesh)
+	@Group(RenderGroup) private var outline: Boolean by setting("Box Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
 	@Group(RenderGroup) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
 	@Group(RenderGroup, OutlineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this))

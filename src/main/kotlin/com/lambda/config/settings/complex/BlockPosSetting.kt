@@ -44,13 +44,13 @@ class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
 	override fun ImGuiBuilder.buildLayout() {
 		button("Set##${setting.name}") {
 			mc.crosshairTarget?.blockResult?.blockPos?.let {
-				value = it
+				internalValue = it
 			} ?: info("No block under crosshair")
 		}
 		lambdaTooltip("Set the coordinates to the block you are currently looking at")
 		sameLine()
 		treeNode(setting.name, id = setting.name) {
-			inputVec3i("##${setting.name}", value) { value = it.blockPos }
+			inputVec3i("##${setting.name}", internalValue) { internalValue = it.blockPos }
 		}
 		lambdaTooltip(setting.description)
 	}

@@ -34,7 +34,6 @@ import com.lambda.util.text.literal
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContainer {
 	context(safeContext: SafeContext)
@@ -47,8 +46,6 @@ object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContain
 
 	override val description = buildText { literal("Ender Chest") }
 
-	private var placePos = BlockPos.ORIGIN
-
 	context(automatedSafeContext: AutomatedSafeContext)
 	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
 		Items.ENDER_CHEST
@@ -56,10 +53,9 @@ object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContain
 			.findSlotsWithMaterial()
 			.firstOrNull()?.let { slot ->
 				PlaceContainerTask(slot, automatedSafeContext).then { pos ->
-					placePos = pos
 					OpenContainerTask(pos, automatedSafeContext).then {
 						taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-							if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos, lifeMaintenance = false)
+							if (exitAfter) automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
 							else null
 						}
 					}

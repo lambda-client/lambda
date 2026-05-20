@@ -30,9 +30,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
-import com.lambda.config.Config.MultipleLayerType
 import com.lambda.config.Config.SettingLayer
-import com.lambda.config.Setting.ValueListener
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -108,11 +106,18 @@ class Setting<T : SettingCore<R>, R>(
 
 	var value by this
 
+	val listeners = mutableListOf<ValueListener<R>>()
+
 	val isModified get() = value != core.defaultValue
 
 	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
+		val oldValue = core.value
 		core.value = value
+		listeners.forEach {
+			if (it.requiresValueChange && oldValue == value) return@forEach
+			it.execute(oldValue, value)
+		}
 	}
 
 	fun reset(silent: Boolean = false) {
@@ -148,7 +153,7 @@ class Setting<T : SettingCore<R>, R>(
 	 */
 	@SettingDsl
 	fun onValueChange(block: SafeContext.(from: R, to: R) -> Unit) = apply {
-		core.listeners.add(ValueListener(true) { from, to ->
+		listeners.add(ValueListener(true) { from, to ->
 			runSafe {
 				block(from, to)
 			}
@@ -157,12 +162,12 @@ class Setting<T : SettingCore<R>, R>(
 
 	@SettingDsl
 	fun onValueChangeUnsafe(block: (from: R, to: R) -> Unit) = apply {
-		core.listeners.add(ValueListener(true, block))
+		listeners.add(ValueListener(true, block))
 	}
 
 	@SettingDsl
 	fun onValueSet(block: (from: R, to: R) -> Unit) = apply {
-		core.listeners.add(ValueListener(false, block))
+		listeners.add(ValueListener(false, block))
 	}
 
 	@SettingDsl
@@ -232,7 +237,7 @@ class Setting<T : SettingCore<R>, R>(
 			var current: SettingLayer.Multiple = layer.parent
 			while (true) {
 				current = current.parent ?: break
-				if (current.type == MultipleLayerType.Root) break
+				if (current.multipleType == Config.MultipleLayerType.Root) break
 				add(current.commandName)
 			}
 		}.asReversed()
@@ -245,15 +250,12 @@ abstract class SettingCore<T>(
 	val type: Type
 ) : Jsonable {
 	open var value = defaultValue
+	context(setting: Setting<*, T>)
+	protected var internalValue
+		get() = value
 		set(value) {
-			val oldValue = field
-			field = value
-			listeners.forEach {
-				if (it.requiresValueChange && oldValue == value) return@forEach
-				it.execute(oldValue, value)
-			}
+			setting.value = value
 		}
-	val listeners = mutableListOf<ValueListener<T>>()
 
 	context(setting: Setting<*, T>)
 	abstract fun ImGuiBuilder.buildLayout()

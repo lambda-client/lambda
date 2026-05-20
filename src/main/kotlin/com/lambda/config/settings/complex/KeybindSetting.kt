@@ -125,7 +125,7 @@ class KeybindSetting(
         sameLine()
         withId("##Unbind-${this@KeybindSetting.hashCode()}") {
             smallButton("Unbind") {
-                value = Bind.EMPTY
+                internalValue = Bind.EMPTY
                 listening = false
             }
         }
@@ -136,7 +136,7 @@ class KeybindSetting(
         if (listening) {
             InputUtils.newMouseEvent()
                 ?.let {
-                    value = Bind(0, it.modifiers, it.button)
+                    internalValue = Bind(0, it.modifiers, it.button)
                     listening = false
                     return
                 }

@@ -35,7 +35,7 @@ class Vec3dSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
 ) {
     context(setting: Setting<*, Vec3d>)
 	override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
+        inputVec3d(setting.name, setting::value as Vec3d) // FixMe: what the fuck
         lambdaTooltip(setting.description)
     }
 

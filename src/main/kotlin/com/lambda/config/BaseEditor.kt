@@ -167,7 +167,7 @@ object ConfigEditor {
 		fun defaultValue(value: T) =
 			settings.forEach {
 				it.core.defaultValue = value
-				it.core.value = value
+				it.value = value
 			}
 	}
 

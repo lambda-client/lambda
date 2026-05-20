@@ -37,7 +37,7 @@ class BooleanSetting(defaultValue: Boolean) : SettingCore<Boolean>(
 ) {
     context(setting: Setting<*, Boolean>)
 	override fun ImGuiBuilder.buildLayout() {
-        checkbox(setting.name, ::value)
+        checkbox(setting.name, setting::value)
         lambdaTooltip(setting.description)
     }
 

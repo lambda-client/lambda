@@ -43,7 +43,7 @@ class IntegerSetting(
 ) {
 	context(setting: Setting<*, Int>)
     override fun ImGuiBuilder.buildSlider() {
-        slider("##${setting.name}", ::value, range.start, range.endInclusive, "")
+        slider("##${setting.name}", setting::value, range.start, range.endInclusive, "")
     }
 
 	context(setting: Setting<*, Int>)

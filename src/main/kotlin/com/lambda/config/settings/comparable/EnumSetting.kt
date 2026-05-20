@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.comparable
 
-import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -33,7 +32,6 @@ import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.extension.displayValue
 import net.minecraft.command.CommandRegistryAccess
-import kotlin.properties.Delegates
 
 /**
  * @see [com.lambda.config.Config]
@@ -42,26 +40,18 @@ class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
 	defaultValue,
 	TypeToken.get(defaultValue.declaringJavaClass).type
 ) {
-    var index by Delegates.observable(value.ordinal) { _, _, to ->
-        value = value.enumValues[to % value.enumValues.size]
-    }
-
-    override fun loadFromJson(serialized: JsonElement) {
-        super.loadFromJson(serialized)
-        index = value.ordinal // super bug fix for imgui
-    }
-
-	context(setting: Setting<*, T>)
+    context(setting: Setting<*, T>)
     override fun ImGuiBuilder.buildLayout() {
         val values = value.enumValues
         val currentDisplay = value.displayValue
+        val currentIndex = value.ordinal
 
         combo("##${setting.name}", preview = "${setting.name}: $currentDisplay") {
             values.forEachIndexed { idx, v ->
-                val isSelected = idx == index
+                val isSelected = idx == currentIndex
 
                 selectable(v.displayValue, isSelected) {
-                    if (!isSelected) index = idx
+                    if (!isSelected) internalValue = values[idx % values.size]
                 }
 
                 (v as? Describable)?.let { lambdaTooltip(it.description) }
@@ -71,7 +61,7 @@ class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
         lambdaTooltip(setting.description)
     }
 
-	context(setting: Setting<*, T>)
+    context(setting: Setting<*, T>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(setting.name)) { parameter ->
             suggests { _, builder ->

@@ -39,7 +39,7 @@ class ColorSetting(defaultValue: Color) : SettingCore<Color>(
 ) {
     context(setting: Setting<*, Color>)
 	override fun ImGuiBuilder.buildLayout() {
-        colorEdit(setting.name, ::value)
+        colorEdit(setting.name, setting::value)
         lambdaTooltip(setting.description)
     }
 
