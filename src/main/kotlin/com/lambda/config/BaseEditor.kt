@@ -63,14 +63,8 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(editContext: EditContext.ConfigEditContext)
-	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>) {
-		val exceptBlocks = except.map { it.settingBlock.layer }
-		fun processBlock(blockLayer: BlockLayer) {
-			blockLayer.layers.forEach(::processBlock)
-			if (blockLayer !in exceptBlocks) blockLayer.settingLayers.forEach(::hide)
-		}
-		processBlock(editContext.c.settingBlockLayers)
-	}
+	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>, recursive: Boolean = true) =
+		hideAllBlocksExcept(editContext.c.settingBlockLayers, *except, recursive = recursive)
 
 	@SettingEditorDsl
 	context(editContext: EditContext.BlockEditContext)
@@ -82,14 +76,8 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(editContext: EditContext.BlockEditContext)
-	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>) {
-		val exceptBlocks = except.map { it.settingBlock.layer }
-		fun processBlock(blockLayer: BlockLayer) {
-			blockLayer.layers.forEach(::processBlock)
-			if (blockLayer !in exceptBlocks) blockLayer.settingLayers.forEach(::hide)
-		}
-		processBlock(editContext.block.layer)
-	}
+	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>, recursive: Boolean = true) =
+		hideAllBlocksExcept(editContext.block.layer, *except, recursive = recursive)
 
 	@SettingEditorDsl
 	context(_: EditContext)
@@ -130,10 +118,13 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(_: EditContext)
-	fun <T : SettingBlock> hideBlockExcept(settingBlock: SettingBlockProperty<T>, vararg except: SettingProperty<Any>) {
+	fun <T : SettingBlock> hideBlockExcept(settingBlock: SettingBlockProperty<T>, vararg except: SettingProperty<Any>, recursive: Boolean = true) {
 		val exceptSettings = except.map { it.setting }
-		settingBlock.settingBlock.layer.settingLayers.forEach { layer ->
-			if (layer.setting !in exceptSettings) hide(layer)
+		fun processBlock(blockLayer: BlockLayer) {
+			blockLayer.settingLayers.forEach { single ->
+				if (single.setting !in exceptSettings) hide(single)
+			}
+			if (recursive) blockLayer.layers.forEach(::processBlock)
 		}
 	}
 
@@ -180,6 +171,16 @@ object ConfigEditor {
 		parentLayer.layers.remove(layer)
 		if (parentLayer.layers.isEmpty())
 			parentLayer.parent?.layers?.remove(parentLayer)
+	}
+
+	private fun hideAllBlocksExcept(root: BlockLayer, vararg except: SettingBlockProperty<SettingBlock>, recursive: Boolean) {
+		val exceptBlocks = except.map { it.settingBlock.layer }
+		fun processBlock(blockLayer: BlockLayer) {
+			val unProtected = blockLayer !in exceptBlocks
+			if (unProtected) blockLayer.settingLayers.forEach(::hide)
+			if (unProtected || !recursive) blockLayer.layers.forEach(::processBlock)
+		}
+		processBlock(root)
 	}
 
 	private typealias Property<T> = KProperty0<T>

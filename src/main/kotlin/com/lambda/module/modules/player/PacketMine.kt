@@ -103,7 +103,7 @@ object PacketMine : Module(
 	init {
 		setDefaultAutomationConfig()
 			.withEdits {
-				hideAllBlocksExcept(::buildConfig, ::breakConfig, breakConfig::outlineConfig, ::rotationConfig, ::hotbarConfig)
+				hideAllBlocksExcept(::buildConfig, ::breakConfig, ::rotationConfig, ::hotbarConfig)
 				buildConfig.apply {
 					hide(
 						::pathing,
