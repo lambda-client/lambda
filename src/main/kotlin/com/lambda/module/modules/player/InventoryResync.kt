@@ -28,14 +28,14 @@ import com.lambda.util.TickTimer
 object InventoryResync : Module(
 	name = "InventoryResync",
 	description = "Resyncs your inventory, with a delay between resyncs",
-	tag = ModuleTag.PLAYER
+	tag = ModuleTag.Player,
+	modulePriority = 10
 ) {
 	private val delay by setting("Delay", 100, 0..1000, 5, unit = " ticks")
 
 	private val timer = TickTimer()
 
 	init {
-		setModulePriority(10)
 		listen<TickEvent.Pre> {
 			timer.tick()
 			if (!timer.hasSurpassed(delay)) return@listen
