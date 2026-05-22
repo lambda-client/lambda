@@ -2,13 +2,13 @@
     <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%" alt="logo">
 </p>
 
-![Minecraft](https://img.shields.io/badge/minecraft-1.21.11-green?link=https%3A%2F%2Fwww.minecraft.net%2F)
-![GitHub Downloads](https://img.shields.io/github/downloads/lambda-client/lambda/total)
-![Discord](https://img.shields.io/discord/834570721070022687?logo=Discord&logoColor=white&link=https%3A%2F%2Fdiscord.gg%2FMBAEzyFn)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?logo=gradle)
-![GitHub Contributors](https://img.shields.io/github/contributors/lambda-client/lambda)
-![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)
-![GitHub License](https://img.shields.io/github/license/lambda-client/lambda?logo=gplv3&link=https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fgpl-3.0.en.html)
+[![Minecraft](https://img.shields.io/badge/minecraft-1.21.11-green?link=https%3A%2F%2Fwww.minecraft.net%2F)](https://www.minecraft.net/)
+[![GitHub Downloads](https://img.shields.io/github/downloads/lambda-client/lambda/total)](https://github.com/lambda-client/lambda/releases)
+[![Discord](https://img.shields.io/discord/834570721070022687?logo=Discord&logoColor=white&link=https%3A%2F%2Fdiscord.gg%2FFMBAEzyFn)](https://discord.com/invite/minecraft)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/lambda-client/lambda/nightly_build.yml?logo=gradle)](https://github.com/lambda-client/lambda/actions/workflows/nightly_build.yml)
+[![GitHub Contributors](https://img.shields.io/github/contributors/lambda-client/lambda)](https://github.com/lambda-client/lambda/graphs/contributors)
+[![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)](https://github.com/lambda-client/lambda/stargazers)
+[![GitHub License](https://img.shields.io/github/license/lambda-client/lambda?logo=gplv3&link=https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fgpl-3.0.en.html)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda-legacy).
 
