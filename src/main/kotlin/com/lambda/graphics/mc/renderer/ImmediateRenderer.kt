@@ -17,9 +17,11 @@
 
 package com.lambda.graphics.mc.renderer
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
@@ -31,23 +33,22 @@ import org.joml.Vector4f
 class ImmediateRenderer(
 	owner: Any,
 	name: String,
-	depthTest: SafeContext.() -> Boolean,
-	update: RenderBuilder.(SafeContext) -> Unit
+	depthTest: () -> Boolean,
+	update: RenderBuilder.() -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
 
 	init {
-		owner.listen<RenderEvent.PreRenderWorld> {
-			val context = SafeContext.create() ?: return@listen
-			val depth = depthTest(context)
+		owner.listenUnsafe<RenderEvent.PreRenderWorld> {
+			val depth = depthTest()
 			val renderBuilder = RenderBuilder(mc.gameRenderer.camera.pos, depthTest = depth).also {
-				it.update(context)
+				it.update()
 			}
 			upload(renderBuilder)
 		}
 
-		owner.listen<RenderEvent.RenderWorld> { render() }
-		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
+		owner.listenUnsafe<RenderEvent.RenderWorld> { render() }
+		owner.listenUnsafe<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	fun upload(renderBuilder: RenderBuilder) {
@@ -73,8 +74,8 @@ class ImmediateRenderer(
 	companion object {
 		fun Any.immediateRenderer(
 			name: String,
-			depthTest: SafeContext.() -> Boolean = { false },
-			update: RenderBuilder.(SafeContext) -> Unit
+			depthTest: () -> Boolean = { false },
+			update: RenderBuilder.() -> Unit
 		) = ImmediateRenderer(this, name, depthTest, update)
 	}
 }

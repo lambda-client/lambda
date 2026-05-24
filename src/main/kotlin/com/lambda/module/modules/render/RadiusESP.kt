@@ -67,7 +67,7 @@ object RadiusESP : Module(
 		}
 	}
 
-	private val chunkedRenderer = chunkedRenderer("RadiusESP Chunked Renderer") { _, pos ->
+	private val chunkedRenderer = chunkedRenderer("RadiusESP Chunked Renderer") { pos ->
 		runSafe {
 			val blockPos = pos.toBlockPos()
 			val blockState = blockState(blockPos)
@@ -80,9 +80,9 @@ object RadiusESP : Module(
 	}
 
 	init {
-		immediateRenderer("RadiusESP Immediate Renderer") { safeContext ->
+		immediateRenderer("RadiusESP Immediate Renderer") {
 			if (!beacons) return@immediateRenderer
-			with(safeContext) {
+			runSafe {
 				val chunks = world.chunkManager.chunks.chunks
 				(0 until chunks.length()).forEach { chunk ->
 					chunks.get(chunk)?.blockEntities?.values?.forEach { blockEntity ->
@@ -91,7 +91,7 @@ object RadiusESP : Module(
 						val radius = (level * 10) + 10.0
 						val box =
 							Box(blockEntity.pos).expand(radius)
-								.stretch(0.0, safeContext.world.height.toDouble(), 0.0)
+								.stretch(0.0, world.height.toDouble(), 0.0)
 						renderBox(box, beaconColor)
 					}
 				}

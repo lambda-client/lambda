@@ -33,6 +33,7 @@ import com.lambda.interaction.managers.breaking.BreakConfig
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Describable
@@ -177,7 +178,7 @@ object PacketMine : Module(
 			}
 		}
 
-		tickedRenderer("PacketMine Ticked Renderer") { safeContext ->
+		tickedRenderer("PacketMine Ticked Renderer") {
 			if (renderRebreak) {
 				rebreakPos?.let { pos ->
 					box(pos) {
@@ -187,7 +188,7 @@ object PacketMine : Module(
 				}
 			}
 			if (!renderQueue) return@tickedRenderer
-			with(safeContext) {
+			runSafe {
 				queueSorted.forEachIndexed { index, positions ->
 					positions.forEach { pos ->
 						val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)

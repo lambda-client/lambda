@@ -29,6 +29,7 @@ import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.maxFullHealth
@@ -102,8 +103,8 @@ object Nametags : Module(
 	var trueBGSizeY = 0f
 
 	init {
-		immediateRenderer("Nametags Immediate Renderer") { safeContext ->
-			with(safeContext) {
+		immediateRenderer("Nametags Immediate Renderer") {
+			runSafe {
 				heightWidthRatio = mc.window.height / mc.window.width.toFloat()
 				trueItemScaleY = itemScale * 0.01f
 				trueItemScaleX = trueItemScaleY * heightWidthRatio

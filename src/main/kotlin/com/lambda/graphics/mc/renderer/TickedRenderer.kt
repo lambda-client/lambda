@@ -22,6 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
@@ -36,26 +37,26 @@ import org.joml.Vector4f
 class TickedRenderer(
 	owner: Any,
 	name: String,
-	depthTest: SafeContext.() -> Boolean,
-	update: RenderBuilder.(SafeContext) -> Unit
+	depthTest: () -> Boolean,
+	update: RenderBuilder.() -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val renderer = RegionRenderer()
 
 	private var tickCameraPos: Vec3d? = null
 
 	init {
-		owner.listen<TickEvent.Pre> {
+		owner.listenUnsafe<TickEvent.Pre> {
 			val depth = depthTest()
 			clear()
 			tickCameraPos = mc.gameRenderer.camera.pos
-			val renderBuilder = RenderBuilder(tickCameraPos ?: return@listen, depthTest = depth).also {
-				it.update(this)
+			val renderBuilder = RenderBuilder(tickCameraPos ?: return@listenUnsafe, depthTest = depth).also {
+				it.update()
 			}
 			upload(renderBuilder)
 		}
 
-		owner.listen<RenderEvent.RenderWorld> { render() }
-		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
+		owner.listenUnsafe<RenderEvent.RenderWorld> { render() }
+		owner.listenUnsafe<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	fun clear() {
@@ -88,8 +89,8 @@ class TickedRenderer(
 	companion object {
 		fun Any.tickedRenderer(
 			name: String,
-			depthTest: SafeContext.() -> Boolean = { false },
-			update: RenderBuilder.(SafeContext) -> Unit
+			depthTest: () -> Boolean = { false },
+			update: RenderBuilder.() -> Unit
 		) = TickedRenderer(this, name, depthTest, update)
 	}
 }

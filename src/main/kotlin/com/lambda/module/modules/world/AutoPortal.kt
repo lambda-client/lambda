@@ -43,6 +43,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
@@ -149,9 +150,9 @@ object AutoPortal : Module(
 			buildTask = null
 		}
 
-		immediateRenderer("AutoPortal Immediate Renderer", { depthTest }) { safeContext ->
+		immediateRenderer("AutoPortal Immediate Renderer", { depthTest }) {
 			if (!renders || !preview) return@immediateRenderer
-			with (safeContext) {
+			runSafe {
 				val obiColor = blockColor(Blocks.OBSIDIAN.defaultState, BlockPos.ORIGIN)
 				obiPositions
 					.map {

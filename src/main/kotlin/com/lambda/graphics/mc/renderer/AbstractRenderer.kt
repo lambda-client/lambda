@@ -17,7 +17,6 @@
 
 package com.lambda.graphics.mc.renderer
 
-import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.outline.OutlineRenderer
 import com.lambda.graphics.outline.OutlineStyle
@@ -28,12 +27,12 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
 import kotlin.collections.isNotEmpty
 
-abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() -> Boolean) {
+abstract class AbstractRenderer(val name: String, var depthTest: () -> Boolean) {
 	protected abstract fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>>
 
 	protected abstract fun getScreenRenderers(): List<RegionRenderer>
 
-	fun SafeContext.render() {
+	fun render() {
 		val depth = depthTest()
 		val chunks = getRendererTransforms()
 		if (chunks.isEmpty()) return
