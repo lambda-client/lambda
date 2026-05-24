@@ -81,7 +81,7 @@ object ElytraFly : Module(
     //ToDo: Implement these commented out settings
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
-    private val pitch by setting("Pitch", 80, 0..90, 1) { mode == FlyMode.Bounce && autoPitch }
+    private val pitch by setting("Pitch", 80.0, 0.0..90.0, 0.000001) { mode == FlyMode.Bounce && autoPitch }
     private val yMotionSetting by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
     private val yMotion
         get() = yMotionSetting && (!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle)
@@ -233,7 +233,7 @@ object ElytraFly : Module(
             return
         }
 
-        if (autoPitch) rotationRequest { pitch(pitch.toFloat()) }.submit()
+        if (autoPitch) rotationRequest { pitch(pitch) }.submit()
 
         if (!player.isGliding) {
             if (takeoff && player.canTakeoff) {
