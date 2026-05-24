@@ -27,6 +27,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.mc.RenderDsl
 import com.lambda.module.Module
 import com.lambda.module.modules.client.Client
 import com.lambda.util.world.FastVector

@@ -27,8 +27,6 @@ import com.lambda.config.settings.collections.CollectionSetting.Companion.onDese
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
-import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
