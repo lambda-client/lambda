@@ -28,6 +28,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.BaritoneManager
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
@@ -60,6 +61,7 @@ import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
 import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -80,9 +82,13 @@ object ElytraFly : Module(
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
     private val pitch by setting("Pitch", 80, 0..90, 1) { mode == FlyMode.Bounce && autoPitch }
-    private val yMotion by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
-    private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotion }
-    private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+    private val yMotionSetting by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
+    private val yMotion
+        get() = yMotionSetting && (!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle)
+    private val onlyOnDiagonal: Boolean by setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { mode == FlyMode.Bounce && yMotionSetting }
+    private val minDiagonalAngle by setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { mode == FlyMode.Bounce && yMotionSetting && onlyOnDiagonal }
+    private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotionSetting }
+    private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotionSetting }
     private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
     private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
