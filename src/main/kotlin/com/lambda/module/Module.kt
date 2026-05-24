@@ -147,6 +147,7 @@ abstract class Module(
     val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
 
     var isEnabled by isEnabledSetting
+        private set
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting

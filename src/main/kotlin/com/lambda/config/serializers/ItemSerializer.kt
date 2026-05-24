@@ -15,34 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.codecs
+package com.lambda.config.serializers
 
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonElement
-import com.google.gson.JsonPrimitive
-import com.google.gson.JsonSerializationContext
-import com.lambda.config.Codec
+import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
 import net.minecraft.item.Item
 import net.minecraft.registry.Registries
 import net.minecraft.util.Identifier
-import java.lang.reflect.Type
+import tools.jackson.core.JsonGenerator
+import tools.jackson.core.JsonParser
+import tools.jackson.databind.DeserializationContext
+import tools.jackson.databind.SerializationContext
+import tools.jackson.databind.deser.std.StdDeserializer
+import tools.jackson.databind.ser.std.StdSerializer
 
-object ItemCodec : Codec<Item>, Stringifiable<Item> {
+object ItemSerializer : Serializer<Item>(), Stringifiable<Item> {
 	override val type = Item::class.java
 
-	override fun serialize(
-		item: Item,
-		typeOfSrc: Type,
-		context: JsonSerializationContext
-	): JsonElement = JsonPrimitive(item.toString())
+	override val serializer = object : StdSerializer<Item>(type) {
+		override fun serialize(value: Item, gen: JsonGenerator, ctxt: SerializationContext) {
+			gen.writeString(value.toString())
+		}
+	}
 
-	override fun deserialize(
-		json: JsonElement,
-		typeOfT: Type,
-		context: JsonDeserializationContext
-	): Item =
-		Registries.ITEM.get(Identifier.of(json.asString)) // Watch out!! Errors are silently catched by gson!!
+	override val deSerializer = object : StdDeserializer<Item>(type) {
+		override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Item {
+			return Registries.ITEM.get(Identifier.of(p.valueAsString))
+		}
+	}
 
 	override fun stringify(value: Item) = value.name.string.replaceFirstChar { it.uppercase() }
 }

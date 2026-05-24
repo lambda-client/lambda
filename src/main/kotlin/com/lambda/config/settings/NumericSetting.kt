@@ -95,21 +95,19 @@ abstract class NumericSetting<T>(
         }
     }
 
+    @Suppress("unchecked_cast", "unused")
     companion object {
         @SettingEditorDsl
-        @Suppress("unchecked_cast")
         fun <T> ConfigEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
         }
 
         @SettingEditorDsl
-        @Suppress("unchecked_cast")
         fun <T> ConfigEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
         }
 
         @SettingEditorDsl
-        @Suppress("unchecked_cast")
         fun <T> ConfigEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
             (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
         }

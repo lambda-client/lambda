@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.Setting
-import com.lambda.config.codecs.BlockCodec
+import com.lambda.config.serializers.BlockSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
 
@@ -33,5 +33,5 @@ class BlockCollectionSetting(
 	serialize = true,
 ) {
 	context(_: Setting<*, MutableCollection<Block>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockCodec.stringify(it) }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockSerializer.stringify(it) }
 }

@@ -157,8 +157,8 @@ object ConfigEditor {
 		@SettingEditorDsl
 		fun defaultValue(value: T) =
 			settings.forEach {
-				it.core.defaultValue = value
 				it.value = value
+				it.core.defaultValue = it.value
 			}
 	}
 

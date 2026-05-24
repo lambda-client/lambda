@@ -106,7 +106,7 @@ class Setting<T : SettingCore<R>, R>(
 
 	var value by this
 
-	val listeners = mutableListOf<ValueListener<R>>()
+	private val listeners = mutableListOf<ValueListener<R>>()
 
 	val isModified get() = value != core.defaultValue
 
@@ -291,4 +291,4 @@ abstract class SettingCore<T>(
 }
 
 @DslMarker
-internal annotation class SettingDsl
+annotation class SettingDsl

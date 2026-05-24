@@ -23,7 +23,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.Log
-import com.lambda.Lambda.gson
 import com.lambda.config.ConfigLoader.configByName
 import com.lambda.config.ConfigLoader.configCategories
 import com.lambda.config.categories.ModuleCategory
@@ -95,7 +94,9 @@ abstract class ConfigCategory : Jsonable, Loadable {
                 )
             }
             configs.forEach {
-                add(it.name, it.toJson())
+                val json = it.toJson()
+                if (json.isEmpty) return@forEach
+                add(it.name, json)
             }
         }
 

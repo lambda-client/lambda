@@ -17,12 +17,22 @@
 
 package com.lambda.config
 
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonSerializer
-import java.lang.reflect.Type
+import com.lambda.Lambda
+import tools.jackson.databind.deser.std.StdDeserializer
+import tools.jackson.databind.module.SimpleModule
+import tools.jackson.databind.ser.std.StdSerializer
 
 interface Stringifiable<T> { fun stringify(value: T): String }
 
-interface Codec<T> : JsonSerializer<T>, JsonDeserializer<T> {
-	val type: Type
+abstract class Serializer<T> {
+	val mapper = Lambda.mapper
+	abstract val type: Class<T>
+	abstract val serializer: StdSerializer<T>
+	abstract val deSerializer: StdDeserializer<T>
+
+	context(simpleModule: SimpleModule)
+	fun register() {
+		simpleModule.addSerializer(type, serializer)
+		simpleModule.addDeserializer(type, deSerializer)
+	}
 }

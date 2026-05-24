@@ -23,6 +23,7 @@ import com.lambda.Lambda.gson
 import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.SettingDsl
 import com.lambda.config.SettingEditorDsl
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -182,16 +183,18 @@ open class CollectionSetting<R : Any>(
 
 	@Suppress("unused")
 	companion object {
+		@SettingDsl
 		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onSelect(block: SafeContext.(R) -> Unit) = apply {
 			core.selectListeners.add(block)
 		}
 
+		@SettingDsl
 		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onDeselect(block: SafeContext.(R) -> Unit) = apply {
 			core.deselectListeners.add(block)
 		}
 
+		@Suppress("unchecked_cast")
         @SettingEditorDsl
-        @Suppress("unchecked_cast")
         fun <T : Any> ConfigEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
             (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
         }

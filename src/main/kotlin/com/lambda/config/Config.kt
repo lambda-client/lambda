@@ -223,8 +223,6 @@ abstract class Config(
 						} catch (e: Throwable) {
 							logError("Failed to deserialize setting '${single.setting.name}' from fallback in '$name'", e)
 						}
-					} else {
-						logError("No saved value for setting '${single.setting.name}' in '$name'")
 					}
 				}
 			}

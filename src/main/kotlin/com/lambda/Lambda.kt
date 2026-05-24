@@ -17,9 +17,7 @@
 
 package com.lambda
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.lambda.config.Codec
+import com.lambda.config.Serializer
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -31,6 +29,9 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.MinecraftClient
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import tools.jackson.databind.module.SimpleModule
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
 
 object Lambda : ClientModInitializer {
     const val ModName = "Lambda"
@@ -49,15 +50,23 @@ object Lambda : ClientModInitializer {
 
     val isDebug = System.getProperty("lambda.dev") != null
 
-    val gson: Gson = GsonBuilder()
-        .setPrettyPrinting()
-        .apply {
-            getInstances<Codec<*>>()
-                .forEach { codec ->
-                    registerTypeAdapter(codec.type, codec)
+    /**
+     * A Jackson [tools.jackson.databind.json.JsonMapper].
+     *
+     * We use Jackson over Gson (unlike Minecraft) as it allows for updating existing objects
+     * rather than creating new instances when deserializing.
+     */
+    val mapper = jsonMapper {
+        defaultPrettyPrinter()
+        addModules(
+            kotlinModule(),
+            SimpleModule().apply {
+                getInstances<Serializer<*>>().forEach { serializer ->
+                    serializer.register()
                 }
-        }
-        .create()
+            }
+        )
+    }
 
     override fun onInitializeClient() {} // nop
 

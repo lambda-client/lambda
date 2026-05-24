@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.complex
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -28,6 +29,7 @@ import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.SettingDsl
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
@@ -197,14 +199,17 @@ class KeybindSetting(
 
     @Suppress("unused")
     companion object {
+        @SettingDsl
         fun Setting<KeybindSetting, Bind>.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply {
             core.pressListeners.add(block)
         }
 
+        @SettingDsl
         fun Setting<KeybindSetting, Bind>.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply {
             core.repeatListeners.add(block)
         }
 
+        @SettingDsl
         fun Setting<KeybindSetting, Bind>.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply {
             core.releaseListeners.add(block)
         }
