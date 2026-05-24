@@ -17,16 +17,12 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.config.applyEdits
 import com.lambda.config.groups.ScreenLineSettings
 import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
-import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -35,9 +31,9 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.buildSideMesh
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
-import com.lambda.module.modules.render.Search.chunkedRenderer
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.decorationEntityMap
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.NamedEnum
@@ -46,7 +42,6 @@ import com.lambda.util.extension.entityColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
-import io.ktor.util.collections.ConcurrentMap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
@@ -54,6 +49,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
 
 object Search : Module(
 	name = "Search",
@@ -104,17 +100,17 @@ object Search : Module(
 		}
 	}
 
-	private val tracerBlockPositions = ConcurrentMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
+	private val tracerBlockPositions = ConcurrentHashMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
 
-	val chunkedRenderer = chunkedRenderer("Search Chunked Renderer") { position ->
-		val pos = position.toBlockPos()
-		val state = mc.world?.getBlockState(pos)
-		if (state == null || state.block !in blocks) {
-			tracerBlockPositions.remove(pos)
-			return@chunkedRenderer
-		}
-
+	val chunkedRenderer = chunkedRenderer(
+		"Search Chunked Renderer",
+		{ chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } },
+		{ chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } }
+	) { position ->
 		runSafe {
+			val pos = position.toBlockPos()
+			val state = blockState(pos)
+			if (state.block !in blocks) return@chunkedRenderer
 			val sides = if (mesh) {
 				buildSideMesh(position) {
 					world.getBlockState(it).block in blocks
@@ -128,12 +124,11 @@ object Search : Module(
 				if (shape.isEmpty) listOf(Box(pos))
 				else shape.boundingBoxes.map { it.offset(pos) }
 			if (tracers) {
-				val center =
-					shape
-						.boundingBoxes
-						.reduce(Box::union)
-						.offset(pos)
-						.center
+				val center = shape
+					.boundingBoxes
+					.reduce(Box::union)
+					.offset(pos)
+					.center
 				tracerBlockPositions[pos] = Pair(center, getTracerColors(lineColor))
 			}
 			box(
@@ -163,9 +158,6 @@ object Search : Module(
 				if (tracers) tracerBlockPositions.values.forEach { tracer(it) }
 			}
 		}
-
-		listenUnsafe<WorldEvent.ChunkEvent.Unload> { event -> if (tracers) tracerBlockPositions.keys.removeIf { it in event.chunk.pos } }
-		listenUnsafe<WorldEvent.Leave> { if (tracers) tracerBlockPositions.clear() }
 	}
 
 	private fun RenderBuilder.tracer(pair: Pair<Vec3d, Pair<Color, Color>>) {

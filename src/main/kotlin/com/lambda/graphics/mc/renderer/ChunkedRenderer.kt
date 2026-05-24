@@ -22,8 +22,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
@@ -35,7 +33,7 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.world.ClientWorld
+import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.chunk.WorldChunk
 import org.joml.Vector3f
@@ -46,6 +44,8 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class ChunkedRenderer(
 	owner: Any,
 	name: String,
+	private val preChunkBuild: (ChunkPos) -> Unit = {},
+	private val preChunkClear: (ChunkPos) -> Unit = {},
 	depthTest: () -> Boolean,
 	pauseUpdates: () -> Boolean,
 	private val update: RenderBuilder.(FastVector) -> Unit
@@ -168,10 +168,12 @@ class ChunkedRenderer(
 		fun rebuild(depthTest: Boolean) {
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
 			val scope = RenderBuilder(chunkOriginVec, depthTest = depthTest)
-			
-			for (x in chunk.pos.startX..chunk.pos.endX) {
-				for (z in chunk.pos.startZ..chunk.pos.endZ) {
-					for (y in chunk.bottomY..chunk.height) {
+
+			preChunkBuild(chunk.pos)
+
+			(chunk.pos.startX..chunk.pos.endX).forEach { x ->
+				(chunk.pos.startZ..chunk.pos.endZ).forEach { z ->
+					(chunk.bottomY..chunk.height).forEach { y ->
 						update(scope, fastVectorOf(x, y, z))
 					}
 				}
@@ -180,16 +182,21 @@ class ChunkedRenderer(
 			uploadQueue.add { renderer.upload(scope.collector) }
 		}
 
-		fun clearData() = renderer.clearData()
+		fun clearData() {
+			preChunkClear(chunk.pos)
+			renderer.clearData()
+		}
 	}
 
 	companion object {
 		fun Any.chunkedRenderer(
 			name: String,
+			preChunkBuild: (ChunkPos) -> Unit = {},
+			preChunkClear: (ChunkPos) -> Unit = {},
 			depthTest: () -> Boolean = { false },
 			pauseUpdates: () -> Boolean = { false },
 			update: RenderBuilder.(FastVector) -> Unit
-		) = ChunkedRenderer(this, name, depthTest, pauseUpdates, update).also { renderer ->
+		) = ChunkedRenderer(this, name, preChunkBuild, preChunkClear, depthTest, pauseUpdates, update).also { renderer ->
 			(this as? Module)?.let { module ->
 				module.onEnable { renderer.rebuild() }
 				module.onDisable { renderer.clear() }
