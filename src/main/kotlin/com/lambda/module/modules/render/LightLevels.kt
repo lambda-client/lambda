@@ -76,8 +76,8 @@ object LightLevels : Module(
 
 	private val chunkedRenderer = chunkedRenderer(
 		"LightLevels Chunked Renderer",
-		{ depthTest },
-		{ mode != Mode.Chunked }
+		depthTest = { depthTest },
+		pauseUpdates = { mode != Mode.Chunked }
 	) { pos ->
 		runSafe { buildRender(pos.toBlockPos(), worldLineConfig.getDashStyle()) }
 	}

@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
 import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.ConfigEditor.hide
@@ -40,6 +39,7 @@ import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.decorationEntityMap
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.extension.blockColor
@@ -47,7 +47,6 @@ import com.lambda.util.extension.entityColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
-import io.ktor.util.collections.*
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
@@ -55,6 +54,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
 
 @Suppress("unused")
 object Search : Module(
@@ -106,46 +106,45 @@ object Search : Module(
             }
         }
 
-    private val tracerBlockPositions = ConcurrentMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
+    private val tracerBlockPositions = ConcurrentHashMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
 
-    val chunkedRenderer = chunkedRenderer("Search Chunked Renderer") { position ->
-	    val pos = position.toBlockPos()
-	    val state = mc.world?.getBlockState(pos)
-	    if (state == null || state.block !in blocks) {
-		    tracerBlockPositions.remove(pos)
-		    return@chunkedRenderer
+    val chunkedRenderer = chunkedRenderer(
+	    "Search Chunked Renderer",
+	    { chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } },
+	    { chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } }
+	) { position ->
+	    runSafe {
+		    val pos = position.toBlockPos()
+		    val state = blockState(pos)
+		    if (state.block !in blocks) return@chunkedRenderer
+		    val sides = if (mesh) {
+			    buildSideMesh(position) {
+				    world.getBlockState(it).block in blocks
+			    }
+		    } else DirectionMask.All
+
+		    val lineColor = getBlockColor(state, position.toBlockPos())
+		    val fillColor = Color(lineColor.red, lineColor.green, lineColor.blue, (naturalColorAlpha * 255).toInt())
+		    val shape = state.getOutlineShape(world, pos)
+		    val boxes =
+			    if (shape.isEmpty) listOf(Box(pos))
+			    else shape.boundingBoxes.map { it.offset(pos) }
+		    if (tracers) {
+			    val center = shape
+				    .boundingBoxes
+				    .reduce(Box::union)
+				    .offset(pos)
+				    .center
+			    tracerBlockPositions[pos] = Pair(center, getTracerColors(lineColor))
+		    }
+		    box(
+			    boxes,
+			    sides.inv(),
+			    if (useNaturalColor) fillColor else blockFillColor,
+			    if (useNaturalColor) lineColor else blockLineColor
+		    )
 	    }
-
-		runSafe {
-            val sides = if (mesh) {
-                buildSideMesh(position) {
-                    world.getBlockState(it).block in blocks
-                }
-            } else DirectionMask.All
-
-            val lineColor = getBlockColor(state, position.toBlockPos())
-            val fillColor = Color(lineColor.red, lineColor.green, lineColor.blue, (naturalColorAlpha * 255).toInt())
-            val shape = state.getOutlineShape(world, pos)
-            val boxes =
-                if (shape.isEmpty) listOf(Box(pos))
-                else shape.boundingBoxes.map { it.offset(pos) }
-            if (tracers) {
-                val center =
-                    shape
-                        .boundingBoxes
-                        .reduce(Box::union)
-                        .offset(pos)
-                        .center
-                tracerBlockPositions[pos] = Pair(center, getTracerColors(lineColor))
-            }
-	        box(
-                boxes,
-                sides.inv(),
-                if (useNaturalColor) fillColor else blockFillColor,
-                if (useNaturalColor) lineColor else blockLineColor
-            )
-        }
-    }
+	}
 
     init {
         immediateRenderer("Search Immediate Renderer") {
@@ -165,9 +164,6 @@ object Search : Module(
 			}
             if (tracers) tracerBlockPositions.values.forEach { tracer(it) }
         }
-
-	    listenUnsafe<WorldEvent.ChunkEvent.Unload> { event -> if (tracers) tracerBlockPositions.keys.removeIf { it in event.chunk.pos } }
-	    listenUnsafe<WorldEvent.Leave> { if (tracers) tracerBlockPositions.clear() }
     }
 
 	private fun RenderBuilder.tracer(pair: Pair<Vec3d, Pair<Color, Color>>) {
