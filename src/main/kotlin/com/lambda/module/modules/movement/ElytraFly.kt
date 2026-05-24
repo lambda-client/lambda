@@ -82,7 +82,7 @@ object ElytraFly : Module(
 
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
-    private val pitch by setting("Pitch", 80, 0..90, 1) { mode == FlyMode.Bounce && autoPitch }
+    private val pitch by setting("Pitch", 80.0, 0.0..90.0, 0.000001) { mode == FlyMode.Bounce && autoPitch }
 	private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
 

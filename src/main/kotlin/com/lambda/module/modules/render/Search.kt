@@ -18,9 +18,6 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.ConfigEditor.hide
@@ -32,7 +29,6 @@ import com.lambda.config.settings.collections.CollectionSetting.Companion.onSele
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
@@ -42,7 +38,6 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.buildSideMesh
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
-import com.lambda.module.modules.render.Search.chunkedRenderer
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.EntityUtils.decorationEntityMap
@@ -153,19 +148,21 @@ object Search : Module(
     }
 
     init {
-        immediateRenderer("Search Immediate Renderer") { safeContext ->
-            safeContext.world.entities.forEach { entity ->
-                if (entity.entityGroup.nameToDisplayNameMap[entity::class.simpleName] in entities) {
-                    val entityColor = getEntityColor(entity)
-                    box(
-                        listOf(entity.interpolatedBox),
-                        DirectionMask.None,
-                        if (useNaturalColor) entityColor.setAlpha(naturalColorAlpha) else entityFillColor,
-                        if (useNaturalColor) entityColor else entityOutlineColor
-                    )
-                    if (tracers) tracer(Pair(entity.interpolatedBox.center, getTracerColors(entityColor)))
-                }
-            }
+        immediateRenderer("Search Immediate Renderer") {
+			runSafe {
+				world.entities.forEach { entity ->
+					if (entity.entityGroup.nameToDisplayNameMap[entity::class.simpleName] in entities) {
+						val entityColor = getEntityColor(entity)
+						box(
+							listOf(entity.interpolatedBox),
+							DirectionMask.None,
+							if (useNaturalColor) entityColor.setAlpha(naturalColorAlpha) else entityFillColor,
+							if (useNaturalColor) entityColor else entityOutlineColor
+						)
+						if (tracers) tracer(Pair(entity.interpolatedBox.center, getTracerColors(entityColor)))
+					}
+				}
+			}
             if (tracers) tracerBlockPositions.values.forEach { tracer(it) }
         }
 

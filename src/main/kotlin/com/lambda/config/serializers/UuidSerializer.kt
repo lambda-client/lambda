@@ -17,10 +17,6 @@
 
 package com.lambda.config.serializers
 
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonElement
-import com.google.gson.JsonParseException
-import com.google.gson.JsonSerializationContext
 import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
 import tools.jackson.core.JsonGenerator
@@ -30,7 +26,6 @@ import tools.jackson.databind.JsonNode
 import tools.jackson.databind.SerializationContext
 import tools.jackson.databind.deser.std.StdDeserializer
 import tools.jackson.databind.ser.std.StdSerializer
-import java.lang.reflect.Type
 import java.util.*
 
 @Suppress("unused")
@@ -49,7 +44,7 @@ object UuidSerializer : Serializer<UUID>(), Stringifiable<UUID> {
 
             val rawId = when {
                 jsonNode.isString -> jsonNode.stringValue()
-                jsonNode.isObject && jsonNode.has("id") -> jsonNode.get("id").textValue()
+                jsonNode.isObject && jsonNode.has("id") -> jsonNode.get("id").stringValue()
                 else -> throw IllegalStateException("Cannot deserialize UUID from: $jsonNode")
             }
 

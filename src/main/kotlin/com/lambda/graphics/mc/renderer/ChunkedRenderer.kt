@@ -22,8 +22,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
@@ -36,7 +34,6 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.world.ClientWorld
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.chunk.WorldChunk
 import org.joml.Vector3f

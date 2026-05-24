@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.complex
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success

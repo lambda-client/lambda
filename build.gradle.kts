@@ -177,7 +177,7 @@ dependencies {
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("tools.jackson.core:jackson-core:$jacksonVersion")
     includeLib("tools.jackson.core:jackson-databind:$jacksonVersion")
-    includeLib("tools.jackson.module:jackson-datatype-jdk8:$jacksonVersion")
+    includeLib("tools.jackson.module:jackson-module-kotlin:$jacksonVersion")
 
     // Add mods
     modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion-SNAPSHOT")

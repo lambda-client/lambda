@@ -20,10 +20,8 @@ package com.lambda.config.serializers
 import com.lambda.config.JsonOps
 import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
-import kotlinx.serialization.json.internal.writeJson
 import net.minecraft.block.Block
 import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
