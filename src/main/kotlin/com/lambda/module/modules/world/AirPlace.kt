@@ -127,10 +127,11 @@ object AirPlace : Module(
 		listen<PlayerEvent.Interact.Block> { if (airPlace()) it.cancel() }
 		listen<PlayerEvent.Interact.Item> { if (airPlace()) it.cancel() }
 
-		tickedRenderer("Air Place Ticked Renderer") { safeContext ->
+		tickedRenderer("Air Place Ticked Renderer") {
+			val world = mc.world ?: return@tickedRenderer
 			placementPos?.let { pos ->
 				placementState?.let { state ->
-					val boxes = state.getOutlineShape(safeContext.world, pos).boundingBoxes.map { it.offset(pos) }
+					val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
 					boxes.forEach { box ->
 						box(box) {
 							hideFill()

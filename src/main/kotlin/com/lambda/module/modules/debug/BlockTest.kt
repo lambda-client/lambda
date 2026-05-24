@@ -20,6 +20,7 @@ package com.lambda.module.modules.debug
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.world.blockSearch
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.Vec3i
@@ -48,8 +49,8 @@ object BlockTest : Module(
     private val outlineColor = Color(100, 150, 255, 51)
 
     init {
-        tickedRenderer("BlockTest Ticked Renderer") { safeContext ->
-            with(safeContext) {
+        tickedRenderer("BlockTest Ticked Renderer") {
+            runSafe {
                 blockSearch(range, step = step) { _, state ->
                     state.isOf(Blocks.DIAMOND_BLOCK)
                 }.forEach { (pos, state) ->

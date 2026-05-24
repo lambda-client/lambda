@@ -29,6 +29,8 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
@@ -63,8 +65,8 @@ object Tracers : Module(
 	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))
 
 	init {
-		immediateRenderer("Tracers Immediate Renderer") { safeContext ->
-			with(safeContext) {
+		immediateRenderer("Tracers Immediate Renderer") {
+			runSafe {
 				world.entities.forEach { entity ->
 					if (entity === player) return@forEach
 					if (!entitySettings.isSelected(entity)) return@forEach

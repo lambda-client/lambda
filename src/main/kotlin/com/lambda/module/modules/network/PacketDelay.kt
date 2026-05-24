@@ -25,6 +25,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runGameScheduled
+import com.lambda.threading.runSafe
 import com.lambda.util.ClientPacket
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -54,10 +55,10 @@ object PacketDelay : Module(
     private var inboundLastUpdate = 0L
 
     init {
-        tickedRenderer("PacketDelay Ticked Renderer") { safeContext ->
+        tickedRenderer("PacketDelay Ticked Renderer") {
             if (mode != Mode.Static) return@tickedRenderer
 
-            with(safeContext) { flushPools(System.currentTimeMillis()) }
+            runSafe { flushPools(System.currentTimeMillis()) }
         }
 
         listen<PacketEvent.Send.Pre>({ Int.MIN_VALUE }) { event ->

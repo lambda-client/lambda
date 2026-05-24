@@ -17,6 +17,10 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.Lambda.mc
+import com.lambda.config.applyEdits
+import com.lambda.config.groups.ScreenLineSettings
+import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.ConfigEditor.editTyped
 import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.ConfigEditor.hide
@@ -29,6 +33,7 @@ import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -37,6 +42,7 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.graphics.util.DirectionMask.buildSideMesh
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
+import com.lambda.module.modules.render.Search.chunkedRenderer
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.EntityUtils.decorationEntityMap
@@ -107,15 +113,15 @@ object Search : Module(
 
     private val tracerBlockPositions = ConcurrentMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
 
-    val chunkedRenderer = chunkedRenderer("Search Chunked Renderer") { world, position ->
-        runSafe {
-            val pos = position.toBlockPos()
-            val state = world.getBlockState(pos)
-            if (state.block !in blocks) {
-                tracerBlockPositions.remove(pos)
-                return@chunkedRenderer
-            }
+    val chunkedRenderer = chunkedRenderer("Search Chunked Renderer") { position ->
+	    val pos = position.toBlockPos()
+	    val state = mc.world?.getBlockState(pos)
+	    if (state == null || state.block !in blocks) {
+		    tracerBlockPositions.remove(pos)
+		    return@chunkedRenderer
+	    }
 
+		runSafe {
             val sides = if (mesh) {
                 buildSideMesh(position) {
                     world.getBlockState(it).block in blocks
@@ -163,71 +169,70 @@ object Search : Module(
             if (tracers) tracerBlockPositions.values.forEach { tracer(it) }
         }
 
-        listen<WorldEvent.ChunkEvent.Unload> { event ->
-            if (tracers) tracerBlockPositions.keys.removeIf { it in event.chunk.pos }
-        }
+	    listenUnsafe<WorldEvent.ChunkEvent.Unload> { event -> if (tracers) tracerBlockPositions.keys.removeIf { it in event.chunk.pos } }
+	    listenUnsafe<WorldEvent.Leave> { if (tracers) tracerBlockPositions.clear() }
     }
 
-    private fun RenderBuilder.tracer(pair: Pair<Vec3d, Pair<Color, Color>>) {
-        val endPoint = worldToScreenNormalized(pair.first) ?: return
-        val startColor = if (useNaturalColor) pair.second.first else tracerConfig.startColor
-        val endColor = if (useNaturalColor) pair.second.second else tracerConfig.endColor
-        screenLineGradient(
-            0.5f, 0.5f,
-            startColor,
-            endPoint.x, endPoint.y,
-            endColor,
-            tracerConfig.width,
-            tracerConfig.getDashStyle()
-        )
-    }
+	private fun RenderBuilder.tracer(pair: Pair<Vec3d, Pair<Color, Color>>) {
+		val endPoint = worldToScreenNormalized(pair.first) ?: return
+		val startColor = if (useNaturalColor) pair.second.first else tracerConfig.startColor
+		val endColor = if (useNaturalColor) pair.second.second else tracerConfig.endColor
+		screenLineGradient(
+			0.5f, 0.5f,
+			startColor,
+			endPoint.x, endPoint.y,
+			endColor,
+			tracerConfig.width,
+			tracerConfig.getDashStyle()
+		)
+	}
 
-    private fun RenderBuilder.box(boxes: List<Box>, ignoreSides: Int, fillColor: Color, lineColor: Color) {
-        boxes.forEach { box ->
-            box(box, outlineConfig) {
-                hideSides(ignoreSides)
-                if (fill) fillColor(fillColor) else hideFill()
-                if (!outline) hideOutline()
-                else {
-                    outlineColor(lineColor)
-                    outlineConfig.getDashStyle()?.let { lineDashStyle(it) }
-                    outlineMode(blockOutlineMode)
-                }
-            }
-        }
-    }
+	private fun RenderBuilder.box(boxes: List<Box>, ignoreSides: Int, fillColor: Color, lineColor: Color) {
+		boxes.forEach { box ->
+			box(box, outlineConfig) {
+				hideSides(ignoreSides)
+				if (fill) fillColor(fillColor) else hideFill()
+				if (!outline) hideOutline()
+				else {
+					outlineColor(lineColor)
+					outlineConfig.getDashStyle()?.let { lineDashStyle(it) }
+					outlineMode(blockOutlineMode)
+				}
+			}
+		}
+	}
 
-    private fun getTracerColors(naturalColor: Color): Pair<Color, Color> =
-        if (useNaturalColor) {
-            val adjustedNaturalColor = naturalColor.setAlpha(naturalTracerAlpha)
-            Pair(adjustedNaturalColor, adjustedNaturalColor)
-        } else Pair(tracerConfig.startColor, tracerConfig.endColor)
+	private fun getTracerColors(naturalColor: Color): Pair<Color, Color> =
+		if (useNaturalColor) {
+			val adjustedNaturalColor = naturalColor.setAlpha(naturalTracerAlpha)
+			Pair(adjustedNaturalColor, adjustedNaturalColor)
+		} else Pair(tracerConfig.startColor, tracerConfig.endColor)
 
-    private fun getEntityColor(entity: Entity) =
-        entityColor(entity).ensureMinBrightness(minimumNaturalBrightness)
+	private fun getEntityColor(entity: Entity) =
+		entityColor(entity).ensureMinBrightness(minimumNaturalBrightness)
 
-    private fun SafeContext.getBlockColor(state: BlockState, pos: BlockPos) =
-        blockColor(state, pos).ensureMinBrightness(minimumNaturalBrightness)
-    
-    /**
-     * Ensures a color meets the minimum brightness threshold.
-     * If the color is too dark, scales up the RGB values proportionally.
-     */
-    private fun Color.ensureMinBrightness(minBrightness: Int): Color {
-        if (minBrightness <= 0) return this
-        
-        val brightness = maxOf(red, green, blue)
-        if (brightness >= minBrightness) return this
-        if (brightness == 0) return Color(minBrightness, minBrightness, minBrightness, alpha)
-        
-        val scale = minBrightness.toFloat() / brightness
-        return Color(
-            (red * scale).toInt().coerceIn(0, 255),
-            (green * scale).toInt().coerceIn(0, 255),
-            (blue * scale).toInt().coerceIn(0, 255),
-            alpha
-        )
-    }
+	private fun SafeContext.getBlockColor(state: BlockState, pos: BlockPos) =
+		blockColor(state, pos).ensureMinBrightness(minimumNaturalBrightness)
 
-    private fun rebuildMesh(ctx: SafeContext, from: Any? = null, to: Any? = null): Unit = chunkedRenderer.rebuild()
+	/**
+	 * Ensures a color meets the minimum brightness threshold.
+	 * If the color is too dark, scales up the RGB values proportionally.
+	 */
+	private fun Color.ensureMinBrightness(minBrightness: Int): Color {
+		if (minBrightness <= 0) return this
+
+		val brightness = maxOf(red, green, blue)
+		if (brightness >= minBrightness) return this
+		if (brightness == 0) return Color(minBrightness, minBrightness, minBrightness, alpha)
+
+		val scale = minBrightness.toFloat() / brightness
+		return Color(
+			(red * scale).toInt().coerceIn(0, 255),
+			(green * scale).toInt().coerceIn(0, 255),
+			(blue * scale).toInt().coerceIn(0, 255),
+			alpha
+		)
+	}
+
+	private fun rebuildMesh(ctx: SafeContext, from: Any? = null, to: Any? = null): Unit = chunkedRenderer.rebuild()
 }

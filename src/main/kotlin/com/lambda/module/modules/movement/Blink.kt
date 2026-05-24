@@ -28,6 +28,7 @@ import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
@@ -60,13 +61,13 @@ object Blink : Module(
     private var lastBox = Box(BlockPos.ORIGIN)
 
     init {
-        tickedRenderer("Blink Ticked Renderer") { safeContext ->
+        tickedRenderer("Blink Ticked Renderer") {
             val time = System.currentTimeMillis()
 
             if (isActive && time - lastUpdate < delay) return@tickedRenderer
             lastUpdate = time
 
-            with(safeContext) { poolPackets() }
+            runSafe { poolPackets() }
         }
 
         immediateRenderer("Blink Immediate Renderer") {

@@ -24,6 +24,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
@@ -46,9 +47,9 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class ChunkedRenderer(
 	owner: Any,
 	name: String,
-	depthTest: SafeContext.() -> Boolean,
-	pauseUpdates: SafeContext.() -> Boolean,
-	private val update: RenderBuilder.(ClientWorld, FastVector) -> Unit
+	depthTest: () -> Boolean,
+	pauseUpdates: () -> Boolean,
+	private val update: RenderBuilder.(FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
@@ -62,8 +63,9 @@ class ChunkedRenderer(
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 
 	init {
-		owner.listen<WorldEvent.BlockUpdate.Client> { event ->
+		owner.listenUnsafe<WorldEvent.BlockUpdate.Client> { event ->
 			val pos = event.pos
+			val world = mc.world ?: return@listenUnsafe
 			world.getWorldChunk(pos)?.chunkData?.markDirty()
 
 			val xInChunk = pos.x and 15
@@ -77,23 +79,23 @@ class ChunkedRenderer(
 
 		owner.listenUnsafe<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
 		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
-		owner.listen<WorldEvent.Player.Leave> { rebuild() }
+		owner.listenUnsafe<WorldEvent.Leave> { clear() }
 
-		owner.listenConcurrently<TickEvent.Pre> {
-			if (pauseUpdates()) return@listenConcurrently
+		owner.listenConcurrentlyUnsafe<TickEvent.Pre> {
+			if (pauseUpdates()) return@listenConcurrentlyUnsafe
 			val queueSize = rebuildQueue.size
 			val polls = minOf(Client.chunkRebuildsPerTick, queueSize)
 			val depth = depthTest()
 			repeat(polls) { rebuildQueue.poll()?.rebuild(depth) }
 		}
 
-		owner.listen<TickEvent.Pre> {
+		owner.listenUnsafe<TickEvent.Pre> {
 			val polls = minOf(Client.chunkUploadsPerTick, uploadQueue.size)
 			repeat(polls) { uploadQueue.poll()?.invoke() }
 		}
 
-		owner.listen<RenderEvent.RenderWorld> { render() }
-		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
+		owner.listenUnsafe<RenderEvent.RenderWorld> { render() }
+		owner.listenUnsafe<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	private fun getChunkKey(chunkX: Int, chunkZ: Int) =
@@ -171,7 +173,7 @@ class ChunkedRenderer(
 			for (x in chunk.pos.startX..chunk.pos.endX) {
 				for (z in chunk.pos.startZ..chunk.pos.endZ) {
 					for (y in chunk.bottomY..chunk.height) {
-						update(scope, chunk.world as? ClientWorld ?: continue, fastVectorOf(x, y, z))
+						update(scope, fastVectorOf(x, y, z))
 					}
 				}
 			}
@@ -186,9 +188,9 @@ class ChunkedRenderer(
 		@RenderDsl
 		fun Any.chunkedRenderer(
 			name: String,
-			depthTest: SafeContext.() -> Boolean = { false },
-			pauseUpdates: SafeContext.() -> Boolean = { false },
-			update: RenderBuilder.(ClientWorld, FastVector) -> Unit
+			depthTest: () -> Boolean = { false },
+			pauseUpdates: () -> Boolean = { false },
+			update: RenderBuilder.(FastVector) -> Unit
 		) = ChunkedRenderer(this, name, depthTest, pauseUpdates, update).also { renderer ->
 			(this as? Module)?.let { module ->
 				module.onEnable { renderer.rebuild() }

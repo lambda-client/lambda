@@ -73,6 +73,7 @@ import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -225,8 +226,8 @@ object BreakManager : Manager<BreakRequest>(
 			breakCooldown = 0
 		}
 
-		immediateRenderer("BreakManager Immediate Renderer") { safeContext ->
-			with(safeContext) {
+		immediateRenderer("BreakManager Immediate Renderer") {
+			runSafe {
 				val activeStack = breakInfos
 					.filterNotNull()
 					.firstOrNull()?.swapStack ?: return@immediateRenderer

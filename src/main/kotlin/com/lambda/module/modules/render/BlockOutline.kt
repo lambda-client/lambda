@@ -28,6 +28,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
@@ -76,13 +77,13 @@ object BlockOutline : Module(
 	var previous: List<Box>? = null
 
 	init {
-		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { depthTest }) { safeContext ->
-			with(safeContext) {
-				val hitResult = mc.crosshairTarget?.blockResult ?: return@with
+		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { depthTest }) {
+			runSafe {
+				val hitResult = mc.crosshairTarget?.blockResult ?: return@runSafe
 				val pos = hitResult.blockPos
 				if (mode == Mode.Outline) {
 					worldOutline(pos, outlineStyle.toStyle(outlineColor))
-					return@with
+					return@runSafe
 				}
 				val blockState = blockState(pos)
 				val boxes = blockState

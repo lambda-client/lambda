@@ -31,6 +31,7 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.setAlpha
 import net.minecraft.block.entity.BlockEntity
@@ -86,8 +87,8 @@ object ESP : Module(
 	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))
 
 	init {
-		immediateRenderer("EntityESP Immediate Renderer", depthTest = { depthTest }) { safeContext ->
-			with(safeContext) {
+		immediateRenderer("EntityESP Immediate Renderer", depthTest = { depthTest }) {
+			runSafe {
 				world.entities.forEach { entity ->
 					if (!entitySettings.isSelected(entity)) return@forEach
 					val color = entityColors.getColor(entity)

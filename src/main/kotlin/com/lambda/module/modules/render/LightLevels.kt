@@ -74,18 +74,22 @@ object LightLevels : Module(
 	private val horizontalRange by setting("Horizontal Range", 16, 1..32) { mode == Mode.Radius }
 	private val verticalRange by setting("Vertical Range", 8, 1..32) { mode == Mode.Radius }
 
-	private val chunkedRenderer = chunkedRenderer("LightLevels Chunked Renderer", { depthTest }, { mode != Mode.Chunked }) { _, pos ->
+	private val chunkedRenderer = chunkedRenderer(
+		"LightLevels Chunked Renderer",
+		{ depthTest },
+		{ mode != Mode.Chunked }
+	) { pos ->
 		runSafe { buildRender(pos.toBlockPos(), worldLineConfig.getDashStyle()) }
 	}
 
 	init {
-		tickedRenderer("LightLevels Ticked Renderer", { depthTest }) { safeContext ->
+		tickedRenderer("LightLevels Ticked Renderer", { depthTest }) {
 			if (mode != Mode.Radius) return@tickedRenderer
 
 			val positions = hashSetOf<BlockPos>()
 			val dashStyle = worldLineConfig.getDashStyle()
 
-			with(safeContext) {
+			runSafe {
 				if (areaMode.player) buildPositions(positions, player.blockPos)
 				if (areaMode.camera) buildPositions(positions, mc.gameRenderer.camera.pos.flooredBlockPos)
 				positions.forEach { pos ->
