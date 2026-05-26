@@ -126,7 +126,7 @@ abstract class Module(
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     modulePriority: Int = 0,
-    defaultKeybind: Bind = Bind.EMPTY,
+    defaultKeybind: Bind = Bind.Empty,
     autoDisable: Boolean = false
 ) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()

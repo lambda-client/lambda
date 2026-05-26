@@ -33,8 +33,8 @@ object BlockSerializer : Serializer<Block>(), Stringifiable<Block> {
     override val type = Block::class.java
 
     override val serializer = object : StdSerializer<Block>(type) {
-        override fun serialize(value: Block, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.Uncompressed, value).orThrow))
+        override fun serialize(block: Block, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.Uncompressed, block).orThrow))
         }
     }
 

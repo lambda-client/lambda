@@ -82,7 +82,7 @@ object AutoPortal : Module(
 	private const val FillGroup = "Fill"
 	private const val OutlineGroup = "Outline"
 
-	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal")
+	private val previewPlace by setting("Preview Place", Bind.Empty, "The keybind to preview the portal placement and subsequentially place the portal")
 		.onPress { preview = true }
 		.onRelease {
 			preview = false

@@ -140,21 +140,21 @@ object StashMover : Module(
 	@Tab(GeneralTab) private val breakEmptyPullContainers by setting("Break Empty Pull Containers", false, "Breaks empty pull containers after taking their items") { role == Role.MoverBot }
 	@Tab(GeneralTab) private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }
 	@Tab(GeneralTab) private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }
-	@Tab(GeneralTab) private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role")
+	@Tab(GeneralTab) private val startStop by setting("Start/Stop", Bind.Empty, "Starts and stops the selected role")
 		.onPress { event -> event.cancel(); startStop() }
-	@Tab(GeneralTab) private val pauseUnpause by setting("Pause/Unpause", Bind.EMPTY, "Pauses and unpauses the selected role")
+	@Tab(GeneralTab) private val pauseUnpause by setting("Pause/Unpause", Bind.Empty, "Pauses and unpauses the selected role")
 		.onPress { event -> event.cancel(); pauseUnpause() }
-	@Tab(CommandBindsTab) private val indexSelectedContainers by setting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }
+	@Tab(CommandBindsTab) private val indexSelectedContainers by setting("Index Selected Containers", Bind.Empty, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); indexSelectedContainers() }
-	@Tab(CommandBindsTab) private val removeSelectedContainers by setting("Remove Selected Containers", Bind.EMPTY, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }
+	@Tab(CommandBindsTab) private val removeSelectedContainers by setting("Remove Selected Containers", Bind.Empty, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); removeSelectedContainers() }
-	@Tab(CommandBindsTab) private val setItemThrowPosAndRotation by setting("Set Item Throw", Bind.EMPTY, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }
+	@Tab(CommandBindsTab) private val setItemThrowPosAndRotation by setting("Set Item Throw", Bind.Empty, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); setItemThrow() }
-	@Tab(CommandBindsTab) private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }
+	@Tab(CommandBindsTab) private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.Empty, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); setPearlButtonPos() }
-	@Tab(CommandBindsTab) private val setPearlThrowPosAndRotation by setting("Set Pearl Throw", Bind.EMPTY, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }
+	@Tab(CommandBindsTab) private val setPearlThrowPosAndRotation by setting("Set Pearl Throw", Bind.Empty, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }
 		.onPress { event -> event.cancel(); setPearlThrow() }
-	@Tab(CommandBindsTab) private val setPearlBotButton by setting("Set PearlBot Button", Bind.EMPTY, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }
+	@Tab(CommandBindsTab) private val setPearlBotButton by setting("Set PearlBot Button", Bind.Empty, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }
 		.onPress { event -> event.cancel(); setPearlBotButton() }
 
 	private var sel1: BlockPos? = null

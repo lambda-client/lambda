@@ -203,7 +203,7 @@ abstract class Config(
 					}
 					try {
 						load(childMultiple, nestedObj.asJsonObject)
-					} catch(e: Throwable) {
+					} catch (e: Throwable) {
 						logError("Failed to deserialize ${childMultiple.multipleType.toString().lowercase()} '${childMultiple.name}' in '$name'", e)
 					}
 				}
@@ -486,20 +486,15 @@ abstract class Config(
 			.let { settingBlock ->
 				val path = try {
 					registrationQueue.removeFirst().settingBlockSpecs
-				} catch(_: NoSuchElementException) {
-					throw IllegalStateException("Setting block registered from an unknown location for config '$name'; layer path was not queued before setting block initialization")
+				} catch (_: NoSuchElementException) {
+					throw IllegalStateException("Setting block registered from an unknown location for config '$name'. Layer path was not queued before setting block initialization")
 				}
 
 				var currentLayer: BlockLayer = settingBlockLayers
 
 				path.forEach { index ->
-					val existing = currentLayer.layers.getOrNull(index)
-					if (existing != null) currentLayer = existing
-					else {
-						val layer = BlockLayer.Block(currentLayer)
-						currentLayer.layers.add(layer)
-						currentLayer = layer
-					}
+					currentLayer = currentLayer.layers.getOrNull(index)
+						?: throw IllegalStateException("Empty setting block registered in config '$name'. Setting blocks must have at least one setting in them")
 				}
 
 				SettingBlockWrapper(settingBlock, currentLayer)
@@ -512,8 +507,8 @@ abstract class Config(
 	internal fun <T : SettingCore<R>, R : Any> setting(name: String, description: String, settingCore: T, visibility: () -> Boolean): Setting<T, R> {
 		val layerSpecInfo = try {
 			registrationQueue.removeFirst()
-		} catch(_: NoSuchElementException) {
-			throw IllegalStateException("Setting registered from an unknown location for config '$name'; layer path was not queued before setting initialization")
+		} catch (_: NoSuchElementException) {
+			throw IllegalStateException("Setting registered from an unknown location for config '$name'. Layer path was not queued before setting initialization")
 		}
 
 		var currentSettingLayer: SettingLayer.Multiple = settingLayers
@@ -536,7 +531,7 @@ abstract class Config(
 				val newSettingLayer = when (spec.type) {
 					MultipleLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentSettingLayer)
 					MultipleLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentSettingLayer)
-					MultipleLayerType.Root -> throw IllegalStateException("Multiple root setting layers; only the base class root layer should ever be created")
+					MultipleLayerType.Root -> throw IllegalStateException("Multiple root setting layers. Only the base class root layer should ever be created")
 				}
 				currentSettingLayer.layers.add(newSettingLayer)
 				currentSettingLayer = newSettingLayer
@@ -559,9 +554,9 @@ abstract class Config(
 		}
 
 		val layer = SettingLayer.Single(
+			name,
 			currentSettingLayer,
 			currentBlockLayer,
-			name,
 			description,
 			settingCore,
 			this@Config,
@@ -608,9 +603,9 @@ abstract class Config(
 	    ) : Multiple(name, MultipleLayerType.Group, layers, parent)
 
         class Single<T : SettingCore<R>, R : Any>(
+	        override val name: String,
 	        override val parent: Multiple,
 	        val blockLayer: BlockLayer,
-	        override val name: String,
 	        description: String,
 	        settingCore: T,
 	        config: Config,

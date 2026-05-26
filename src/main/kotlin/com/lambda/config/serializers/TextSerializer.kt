@@ -33,8 +33,8 @@ object TextSerializer : Serializer<Text>() {
     override val type = Text::class.java
 
     override val serializer = object : StdSerializer<Text>(type) {
-        override fun serialize(value: Text, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeTree(TextCodecs.CODEC.encodeStart(JsonOps.Uncompressed, value).orThrow)
+        override fun serialize(text: Text, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeTree(TextCodecs.CODEC.encodeStart(JsonOps.Uncompressed, text).orThrow)
         }
     }
 

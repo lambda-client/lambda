@@ -33,8 +33,8 @@ object ItemSerializer : Serializer<Item>(), Stringifiable<Item> {
 	override val type = Item::class.java
 
 	override val serializer = object : StdSerializer<Item>(type) {
-		override fun serialize(value: Item, gen: JsonGenerator, ctxt: SerializationContext) {
-			gen.writeString(value.toString())
+		override fun serialize(item: Item, gen: JsonGenerator, ctxt: SerializationContext) {
+			gen.writeString(item.toString())
 		}
 	}
 

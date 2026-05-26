@@ -31,8 +31,8 @@ object KeyCodeSerializer : Serializer<KeyCode>() {
     override val type = KeyCode::class.java
 
     override val serializer = object : StdSerializer<KeyCode>(type) {
-        override fun serialize(value: KeyCode, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeString(value.name)
+        override fun serialize(keyCode: KeyCode, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeString(keyCode.name)
         }
     }
 

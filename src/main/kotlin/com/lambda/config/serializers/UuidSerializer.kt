@@ -33,8 +33,8 @@ object UuidSerializer : Serializer<UUID>(), Stringifiable<UUID> {
     override val type = UUID::class.java
 
     override val serializer = object : StdSerializer<UUID>(type) {
-        override fun serialize(value: UUID, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeString(value.toString())
+        override fun serialize(uuid: UUID, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeString(uuid.toString())
         }
     }
 

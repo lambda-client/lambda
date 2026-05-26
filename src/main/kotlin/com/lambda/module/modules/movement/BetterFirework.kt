@@ -75,7 +75,7 @@ object BetterFirework : Module(
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
 	@Suppress("unused")
-	private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
+	private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.Empty, "Firework use key for mid flight activation")
 		.onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
 	private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
 	private var fireworkInteract by setting("Right Click Fly", true, "Automatically start flying when right clicking fireworks")

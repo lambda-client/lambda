@@ -17,6 +17,7 @@
 
 package com.lambda.config.settings.complex
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -126,7 +127,7 @@ class KeybindSetting(
         sameLine()
         withId("##Unbind-${this@KeybindSetting.hashCode()}") {
             smallButton("Unbind") {
-                internalValue = Bind.EMPTY
+                internalValue = Bind.Empty
                 listening = false
             }
         }
@@ -150,7 +151,7 @@ class KeybindSetting(
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
                             KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.Empty
                             else -> value = Bind(it.translated.code, it.modifiers, -1)
                         }
 
@@ -173,18 +174,18 @@ class KeybindSetting(
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
                     val isMouse = if (isMouseButton != null) isMouseButton().value() else false
-                    var bind = Bind.EMPTY
+                    var bind = Bind.Empty
                     if (isMouse) {
                         val num = try {
                             name().value().toInt()
-                        } catch(_: NumberFormatException) {
+                        } catch (_: NumberFormatException) {
                             return@executeWithResult failure("${name().value()} doesn't match with a mouse button")
                         }
                         bind = Bind(0, 0, mouse = num)
                     } else {
                         bind = try {
                             Bind(KeyCode.valueOf(name().value()).code, 0)
-                        } catch(_: IllegalArgumentException) {
+                        } catch (_: IllegalArgumentException) {
                             return@executeWithResult failure("${name().value()} doesn't match with a bind")
                         }
                     }
@@ -221,6 +222,7 @@ data class Bind(
     val modifiers: Int,
     val mouse: Int = -1,
 ) {
+    @JsonIgnore
     val trueMods = buildList {
         if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
         if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
@@ -253,6 +255,6 @@ data class Bind(
         "Key Code: $key, Modifiers: ${trueMods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
-        val EMPTY = Bind(0, 0, -1)
+        val Empty = Bind(0, 0, -1)
     }
 }

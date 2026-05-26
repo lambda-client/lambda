@@ -70,7 +70,7 @@ object AutoVillagerCycle : Module(
 	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks")
 	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks")
 	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks")
-	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling")
+	private val startCyclingBind by setting("Start Cycling", Bind.Empty, "Press to start/stop cycling")
 		.onPress {
 			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")

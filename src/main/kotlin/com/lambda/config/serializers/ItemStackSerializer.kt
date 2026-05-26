@@ -33,8 +33,8 @@ object ItemStackSerializer : Serializer<ItemStack>(), Stringifiable<ItemStack> {
     override val type = ItemStack::class.java
 
     override val serializer = object : StdSerializer<ItemStack>(type) {
-        override fun serialize(value: ItemStack, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.Uncompressed, value).orThrow)
+        override fun serialize(itemStack: ItemStack, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.Uncompressed, itemStack).orThrow)
         }
     }
 

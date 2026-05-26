@@ -48,7 +48,7 @@ object AutoArmor : Module(
 	tag = ModuleTag.Combat
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
-	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
+	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.Empty)
 		.onPress { elytraPriority = !elytraPriority }
 	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)

@@ -35,4 +35,6 @@ abstract class Serializer<T> {
 		simpleModule.addSerializer(type, serializer)
 		simpleModule.addDeserializer(type, deSerializer)
 	}
+
+	fun initFromJsonException(objName: String) = IllegalStateException("Attempted to initialize a $objName directly from JSON! All $objName's should be updated after standard initialization.")
 }

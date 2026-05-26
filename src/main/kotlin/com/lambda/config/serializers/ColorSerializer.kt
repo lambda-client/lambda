@@ -33,8 +33,8 @@ object ColorSerializer : Serializer<Color>(), Stringifiable<Color> {
     override val type = Color::class.java
 
     override val serializer = object : StdSerializer<Color>(type) {
-        override fun serialize(value: Color, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeString("${value.red},${value.green},${value.blue},${value.alpha}")
+        override fun serialize(color: Color, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeString("${color.red},${color.green},${color.blue},${color.alpha}")
         }
     }
 
