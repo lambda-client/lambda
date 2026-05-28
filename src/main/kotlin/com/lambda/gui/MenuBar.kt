@@ -122,9 +122,9 @@ object MenuBar {
                 info("Saved ${ConfigLoader.configCategories.size} configuration files.")
             }
             ConfigLoader.configCategories.forEach { config ->
-                menuItem("Save ${config.configName}") {
+                menuItem("Save ${config.name}") {
                     config.trySaveToFile(true)
-                    info("Saved ${config.configName}")
+                    info("Saved ${config.name}")
                 }
             }
         }
@@ -134,9 +134,9 @@ object MenuBar {
                 info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
             }
             ConfigLoader.configCategories.forEach { config ->
-                menuItem("Load ${config.configName}") {
+                menuItem("Load ${config.name}") {
                     config.tryLoadFromFile()
-                    info("Loaded ${config.configName}")
+                    info("Loaded ${config.name}")
                 }
             }
         }

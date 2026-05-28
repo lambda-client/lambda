@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.complex
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -30,8 +29,7 @@ import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
 
 class Vec3dSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
-	defaultValue,
-	TypeToken.get(Vec3d::class.java).type
+	defaultValue
 ) {
     context(setting: Setting<*, Vec3d>)
 	override fun ImGuiBuilder.buildLayout() {

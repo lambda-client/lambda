@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.complex
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.mc
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
@@ -37,20 +36,19 @@ import net.minecraft.util.math.BlockPos
  * @see [com.lambda.config.Config]
  */
 class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
-	defaultValue,
-	TypeToken.get(BlockPos::class.java).type
+	defaultValue
 ) {
 	context(setting: Setting<*, BlockPos>)
 	override fun ImGuiBuilder.buildLayout() {
 		button("Set##${setting.name}") {
 			mc.crosshairTarget?.blockResult?.blockPos?.let {
-				internalValue = it
+				settingValue = it
 			} ?: info("No block under crosshair")
 		}
 		lambdaTooltip("Set the coordinates to the block you are currently looking at")
 		sameLine()
 		treeNode(setting.name, id = setting.name) {
-			inputVec3i("##${setting.name}", internalValue) { internalValue = it.blockPos }
+			inputVec3i("##${setting.name}", settingValue) { settingValue = it.blockPos }
 		}
 		lambdaTooltip(setting.description)
 	}

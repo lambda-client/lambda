@@ -17,35 +17,34 @@
 
 package com.lambda.config.serializers
 
-import com.lambda.config.Serializer
+import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.Stringifiable
+import com.lambda.config.TypeAdapter
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.SerializationContext
-import tools.jackson.databind.deser.std.StdDeserializer
-import tools.jackson.databind.ser.std.StdSerializer
 import java.util.*
 
 @Suppress("unused")
-object UuidSerializer : Serializer<UUID>(), Stringifiable<UUID> {
+object UuidTypeAdapter : TypeAdapter<UUID>(), Stringifiable<UUID> {
     override val type = UUID::class.java
 
-    override val serializer = object : StdSerializer<UUID>(type) {
+    override val serializer = object : Serializer<UUID>(type) {
         override fun serialize(uuid: UUID, gen: JsonGenerator, ctxt: SerializationContext) {
             gen.writeString(uuid.toString())
         }
     }
 
-    override val deSerializer = object : StdDeserializer<UUID>(type) {
+    override val deserializer = object : Deserializer<UUID>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): UUID {
             val jsonNode = p.readValueAsTree<JsonNode>()
 
             val rawId = when {
                 jsonNode.isString -> jsonNode.stringValue()
                 jsonNode.isObject && jsonNode.has("id") -> jsonNode.get("id").stringValue()
-                else -> throw IllegalStateException("Cannot deserialize UUID from: $jsonNode")
+                else -> throw JsonParseException("Cannot deserialize UUID from: $jsonNode")
             }
 
             val parsedId = if (rawId.length == 32)

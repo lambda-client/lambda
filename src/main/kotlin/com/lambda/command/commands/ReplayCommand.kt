@@ -33,6 +33,7 @@ import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 import kotlin.io.path.exists
 
+@Suppress("unused")
 object ReplayCommand : LambdaCommand(
     name = "replay",
     usage = "replay <play | load | save | prune>",

@@ -70,9 +70,9 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 					val otherSetting = otherLayer.layers
 						.asSequence()
 						.filterIsInstance<SettingLayer.Single<*, *>>()
-						.find { it.setting.name == single.setting.name }
+						.find { it.name == single.name }
 						?.setting ?: return@forEachSetting
-					if (single.setting.core.type != otherSetting.core.type)
+					if (single.setting.core::class != otherSetting.core::class)
 						throw IllegalStateException("Settings with the same name do not have the same type.")
 					@Suppress("UNCHECKED_CAST")
 					(single.setting as Setting<SettingCore<Any>, Any>).core = otherSetting.core as SettingCore<Any>

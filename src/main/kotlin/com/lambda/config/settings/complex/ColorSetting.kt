@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.complex
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -34,8 +33,7 @@ import java.awt.Color
  * @see [com.lambda.config.Config]
  */
 class ColorSetting(defaultValue: Color) : SettingCore<Color>(
-	defaultValue,
-	TypeToken.get(Color::class.java).type
+	defaultValue
 ) {
     context(setting: Setting<*, Color>)
 	override fun ImGuiBuilder.buildLayout() {

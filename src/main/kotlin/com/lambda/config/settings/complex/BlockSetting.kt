@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.complex
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.blockState
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -33,8 +32,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Config]
  */
 class BlockSetting(defaultValue: Block) : SettingCore<Block>(
-	defaultValue,
-	TypeToken.get(Block::class.java).type
+	defaultValue
 ) {
 	context(_: Setting<*, Block>)
     override fun ImGuiBuilder.buildLayout() {}

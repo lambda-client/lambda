@@ -17,16 +17,11 @@
 
 package com.lambda.config
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonIOException
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.Log
-import com.lambda.config.ConfigLoader.configByName
+import com.lambda.Lambda.mapper
 import com.lambda.config.ConfigLoader.configCategories
 import com.lambda.config.categories.ModuleCategory
-import com.lambda.config.migration.ConfigMigrations
+import com.lambda.config.migration.ConfigMigrationHandler
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
@@ -51,12 +46,12 @@ import kotlin.time.Duration.Companion.minutes
  *
  * See also [ModuleCategory].
  *
- * @property configName The name of the configuration.
+ * @property name The name of the configuration.
  * @property primary The primary file where the configuration is saved.
  * @property configs A set of [Config] objects that this configuration manages.
  */
-abstract class ConfigCategory : Jsonable, Loadable {
-    abstract val configName: String
+abstract class ConfigCategory : Loadable {
+    abstract val name: String
     abstract val primaryFile: File
     private val backup get() = File("${primaryFile.parent}/${primaryFile.nameWithoutExtension}-backup.${primaryFile.extension}")
     override val priority = 1
@@ -64,12 +59,12 @@ abstract class ConfigCategory : Jsonable, Loadable {
     val configs = mutableSetOf<Config>()
 
     final override fun load(): String {
-        if (configCategories.any { it.configName == configName })
-            throw IllegalStateException("Configuration with name $configName already exists")
+        if (configCategories.any { it.name == name })
+            throw IllegalStateException("Config category with name $name already exists")
 
         fixedRateTimer(
             daemon = true,
-            name = "Scheduler-config-${configName}",
+            name = "Scheduler-config-category-${name}",
             initialDelay = 5.minutes.inWholeMilliseconds,
             period = 5.minutes.inWholeMilliseconds,
         ) { trySaveToFile() }
@@ -84,36 +79,10 @@ abstract class ConfigCategory : Jsonable, Loadable {
     fun tryLoadFromFile() = runIO { internalTryLoad() }
     fun trySaveToFile(logToChat: Boolean = false) = runIO { internalTrySave(logToChat) }
 
-    final override fun toJson() =
-        JsonObject().apply {
-            val latestSchemaVersion = ConfigMigrations.latestVersion(configName)
-            if (latestSchemaVersion > 1) {
-                addProperty(
-                    ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DefaultSchemaVersionKey,
-                    latestSchemaVersion
-                )
-            }
-            configs.forEach {
-                val json = it.toJson()
-                if (json.isEmpty) return@forEach
-                add(it.name, json)
-            }
-        }
-
-    final override fun loadFromJson(serialized: JsonElement) {
-        val schemaKey = ConfigMigrations.schemaVersionKey(configName) ?: ConfigMigrations.DefaultSchemaVersionKey
-        serialized.asJsonObject.entrySet().forEach { (name, value) ->
-            if (name == schemaKey) return@forEach
-            configByName(name)
-                ?.loadFromJson(value)
-                ?: Log.warn("No matching config found for $name in $configName config category")
-        }
-    }
-
     protected open fun internalTryLoad() {
         loadFromFile(primaryFile)
             .onSuccess {
-                val message = "$configName config loaded."
+                val message = "$name config category loaded."
                 Log.info(message)
                 info(message)
             }
@@ -122,12 +91,12 @@ abstract class ConfigCategory : Jsonable, Loadable {
 
                 runCatching { loadFromFile(backup) }
                     .onSuccess {
-                        val message = "$configName config loaded from backup"
+                        val message = "$name config category loaded from backup"
                         Log.info(message)
                         info(message)
                     }
                     .onFailure { error ->
-                        val message = "Failed to load $configName config from backup, unrecoverable error"
+                        val message = "Failed to load $name config category from backup, unrecoverable error"
                         Log.error(message, error)
                         logError(message)
                     }
@@ -137,40 +106,37 @@ abstract class ConfigCategory : Jsonable, Loadable {
     protected open fun internalTrySave(logToChat: Boolean) {
         saveToFile()
             .onSuccess {
-                val message = "Saved $configName config."
+                val message = "Saved $name category."
                 Log.info(message)
                 if (logToChat) info(message)
             }
             .onFailure {
-                val message = "Failed to save $configName config"
+                val message = "Failed to save $name category"
                 Log.error(message, it)
                 logError(message)
             }
     }
 
-    /**
-     * Loads the config from the [file]
-     * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
-     */
     private fun loadFromFile(file: File) = runCatching {
-        file.ifNotExists { Log.warn("No configuration file found for $configName. Creating new file when saving.") }
+        file.ifNotExists { Log.warn("No config file found for $name. Creating new file when saving.") }
             .ifExists {
-                val parsed = JsonParser.parseReader(it.reader()).asJsonObject
-                val migrationResult = ConfigMigrations.migrate(configName, parsed)
+                val parsed = mapper.readTree(it)
+                if (!parsed.isObject) return@ifExists
+                val migrationResult = ConfigMigrationHandler.migrate(this@ConfigCategory, parsed.asObject())
 
-                if (migrationResult.migrated && file == primary) {
-                    file.writeText(gson.toJson(migrationResult.json))
+                if (migrationResult.migrated && file == primaryFile) {
+                    mapper.writeValue(file, migrationResult.json)
                     file.copyTo(backup, true)
                 }
 
-                loadFromJson(migrationResult.json)
+                mapper.updateValue(this@ConfigCategory, migrationResult.json)
             }
     }
 
     private fun saveToFile() = runCatching {
         primaryFile.createIfNotExists()
             .let {
-                it.writeText(gson.toJson(toJson()))
+                mapper.writeValue(it, this)
                 it.copyTo(backup, true)
             }
     }

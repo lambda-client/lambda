@@ -17,15 +17,15 @@
 
 package com.lambda.network.api.v1.models
 
-import com.google.gson.annotations.SerializedName
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lambda.network.LambdaAPI
 import java.util.*
 
 class Cape(
-    @SerializedName("uuid")
+    @JsonProperty("uuid")
     val uuid: UUID,
 
-    @SerializedName("type")
+    @JsonProperty("type")
     val id: String,
 ) {
     val url: String

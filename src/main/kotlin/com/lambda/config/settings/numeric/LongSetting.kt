@@ -46,10 +46,10 @@ class LongSetting(
     override fun ImGuiBuilder.buildSlider() {
         // ToDo: No worky for super large numbers
         val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        val currentIndex = ((value - range.start) / step).toInt()
+        val currentIndex = ((coreValue - range.start) / step).toInt()
         val imInt = ImInt(currentIndex)
         slider("##${setting.name}", imInt, 0, maxIndex, "") {
-            internalValue = (range.start + imInt.get() * step).coerceIn(range)
+            settingValue = (range.start + imInt.get() * step).coerceIn(range)
         }
     }
 

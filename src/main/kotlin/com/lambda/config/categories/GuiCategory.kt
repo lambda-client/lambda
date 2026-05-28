@@ -22,6 +22,6 @@ import com.lambda.util.FolderRegistry
 import java.io.File
 
 object GuiCategory : ConfigCategory() {
-	override val configName get() = "gui"
-	override val primaryFile: File = FolderRegistry.config.resolve("$configName.json").toFile()
+	override val name get() = "gui"
+	override val primaryFile: File = FolderRegistry.config.resolve("$name.json").toFile()
 }

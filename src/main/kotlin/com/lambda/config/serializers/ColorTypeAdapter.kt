@@ -17,28 +17,26 @@
 
 package com.lambda.config.serializers
 
-import com.google.gson.JsonParseException
-import com.lambda.config.Serializer
+import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.Stringifiable
+import com.lambda.config.TypeAdapter
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
-import tools.jackson.databind.deser.std.StdDeserializer
-import tools.jackson.databind.ser.std.StdSerializer
 import java.awt.Color
 
 @Suppress("unused")
-object ColorSerializer : Serializer<Color>(), Stringifiable<Color> {
+object ColorTypeAdapter : TypeAdapter<Color>(), Stringifiable<Color> {
     override val type = Color::class.java
 
-    override val serializer = object : StdSerializer<Color>(type) {
+    override val serializer = object : Serializer<Color>(type) {
         override fun serialize(color: Color, gen: JsonGenerator, ctxt: SerializationContext) {
             gen.writeString("${color.red},${color.green},${color.blue},${color.alpha}")
         }
     }
 
-    override val deSerializer = object : StdDeserializer<Color>(type) {
+    override val deserializer = object : Deserializer<Color>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Color {
             val color = p.valueAsString.split(",")
             return when (color.size) {

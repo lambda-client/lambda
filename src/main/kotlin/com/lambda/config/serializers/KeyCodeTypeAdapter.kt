@@ -1,0 +1,41 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.config.serializers
+
+import com.lambda.config.TypeAdapter
+import com.lambda.util.KeyCode
+import tools.jackson.core.JsonGenerator
+import tools.jackson.core.JsonParser
+import tools.jackson.databind.DeserializationContext
+import tools.jackson.databind.SerializationContext
+
+@Suppress("unused")
+object KeyCodeTypeAdapter : TypeAdapter<KeyCode>() {
+    override val type = KeyCode::class.java
+
+    override val serializer = object : Serializer<KeyCode>(type) {
+        override fun serialize(keyCode: KeyCode, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeString(keyCode.name)
+        }
+    }
+
+    override val deserializer = object : Deserializer<KeyCode>(type) {
+        override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
+            KeyCode.fromKeyName(p.readValueAs(String::class.java))
+    }
+}

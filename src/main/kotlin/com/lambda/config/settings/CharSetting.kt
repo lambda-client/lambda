@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -34,8 +33,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Config]
  */
 class CharSetting(defaultValue: Char) : SettingCore<Char>(
-	defaultValue,
-	TypeToken.get(Char::class.java).type
+	defaultValue
 ) {
     context(_: Setting<*, Char>)
 	override fun ImGuiBuilder.buildLayout() {}

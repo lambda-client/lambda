@@ -20,17 +20,16 @@ package com.lambda.config.settings.collections
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
-import java.lang.reflect.Type
+import tools.jackson.databind.JavaType
 
 /**
  * @see [com.lambda.config.Config]
  */
 class MapSetting<K, V>(
 	defaultValue: MutableMap<K, V>,
-	type: Type
+	val type: JavaType
 ) : SettingCore<MutableMap<K, V>>(
-	defaultValue,
-	type
+	defaultValue
 ) {
     context(_: Setting<*, MutableMap<K, V>>)
 	override fun ImGuiBuilder.buildLayout() {}

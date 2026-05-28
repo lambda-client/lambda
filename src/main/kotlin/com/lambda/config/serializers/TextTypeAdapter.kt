@@ -18,27 +18,25 @@
 package com.lambda.config.serializers
 
 import com.lambda.config.JsonOps
-import com.lambda.config.Serializer
+import com.lambda.config.TypeAdapter
 import net.minecraft.text.Text
 import net.minecraft.text.TextCodecs
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
-import tools.jackson.databind.deser.std.StdDeserializer
-import tools.jackson.databind.ser.std.StdSerializer
 
 @Suppress("unused")
-object TextSerializer : Serializer<Text>() {
+object TextTypeAdapter : TypeAdapter<Text>() {
     override val type = Text::class.java
 
-    override val serializer = object : StdSerializer<Text>(type) {
+    override val serializer = object : Serializer<Text>(type) {
         override fun serialize(text: Text, gen: JsonGenerator, ctxt: SerializationContext) {
             gen.writeTree(TextCodecs.CODEC.encodeStart(JsonOps.Uncompressed, text).orThrow)
         }
     }
 
-    override val deSerializer = object : StdDeserializer<Text>(type) {
+    override val deserializer = object : Deserializer<Text>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
             TextCodecs.CODEC.parse(JsonOps.Uncompressed, p.readValueAsTree()).orThrow
     }

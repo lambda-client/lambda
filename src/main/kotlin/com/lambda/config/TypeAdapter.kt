@@ -24,17 +24,22 @@ import tools.jackson.databind.ser.std.StdSerializer
 
 interface Stringifiable<T> { fun stringify(value: T): String }
 
-abstract class Serializer<T> {
-	val mapper = Lambda.mapper
+abstract class TypeAdapter<T> {
+	val mapper by lazy { Lambda.mapper }
 	abstract val type: Class<T>
 	abstract val serializer: StdSerializer<T>
-	abstract val deSerializer: StdDeserializer<T>
+	abstract val deserializer: StdDeserializer<T>
 
 	context(simpleModule: SimpleModule)
 	fun register() {
-		simpleModule.addSerializer(type, serializer)
-		simpleModule.addDeserializer(type, deSerializer)
+		with(simpleModule) {
+			addSerializer<T>(type, serializer)
+			addDeserializer<T>(type, deserializer)
+		}
 	}
 
 	fun initFromJsonException(objName: String) = IllegalStateException("Attempted to initialize a $objName directly from JSON! All $objName's should be updated after standard initialization.")
+
+	protected typealias Serializer<T> = StdSerializer<T>
+	protected typealias Deserializer<T> = StdDeserializer<T>
 }

@@ -17,6 +17,7 @@
 
 package com.lambda.network
 
+import com.lambda.Lambda.mapper
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.SecretsCategory
@@ -24,7 +25,6 @@ import com.lambda.core.Loadable
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.network.api.v1.models.Authentication.Data
 import com.lambda.util.StringUtils.base64UrlDecode
-import com.lambda.util.StringUtils.json
 import com.lambda.util.collections.updatableLazy
 
 object NetworkHandler : Config(
@@ -43,7 +43,7 @@ object NetworkHandler : Config(
         if (parts.size != 3) return@updatableLazy null
 
         val payload = parts[1]
-        val data = payload.base64UrlDecode().json<Data>()
+        val data = mapper.readValue(payload.base64UrlDecode(), Data::class.java)
 
         return@updatableLazy if (System.currentTimeMillis() < data.expirationDate) null
         else data

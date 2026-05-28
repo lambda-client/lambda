@@ -17,32 +17,29 @@
 
 package com.lambda.config.serializers
 
-import com.lambda.config.Serializer
+import com.lambda.config.JsonOps
 import com.lambda.config.Stringifiable
-import net.minecraft.item.Item
+import com.lambda.config.TypeAdapter
+import net.minecraft.block.Block
 import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
-import tools.jackson.databind.deser.std.StdDeserializer
-import tools.jackson.databind.ser.std.StdSerializer
 
-object ItemSerializer : Serializer<Item>(), Stringifiable<Item> {
-	override val type = Item::class.java
+object BlockTypeAdapter : TypeAdapter<Block>(), Stringifiable<Block> {
+    override val type = Block::class.java
 
-	override val serializer = object : StdSerializer<Item>(type) {
-		override fun serialize(item: Item, gen: JsonGenerator, ctxt: SerializationContext) {
-			gen.writeString(item.toString())
-		}
-	}
+    override val serializer = object : Serializer<Block>(type) {
+        override fun serialize(block: Block, gen: JsonGenerator, ctxt: SerializationContext) {
+            gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.Uncompressed, block).orThrow))
+        }
+    }
 
-	override val deSerializer = object : StdDeserializer<Item>(type) {
-		override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Item {
-			return Registries.ITEM.get(Identifier.of(p.valueAsString))
-		}
-	}
+    override val deserializer = object : Deserializer<Block>(type) {
+        override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
+            Registries.BLOCK.codec.parse(JsonOps.Uncompressed, p.readValueAsTree()).orThrow
+    }
 
-	override fun stringify(value: Item) = value.name.string.replaceFirstChar { it.uppercase() }
+    override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
 }

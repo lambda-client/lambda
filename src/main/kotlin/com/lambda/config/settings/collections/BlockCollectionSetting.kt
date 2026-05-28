@@ -17,9 +17,9 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.reflect.TypeToken
+import com.lambda.Lambda.typeFactory
 import com.lambda.config.Setting
-import com.lambda.config.serializers.BlockSerializer
+import com.lambda.config.serializers.BlockTypeAdapter
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
 
@@ -29,9 +29,9 @@ class BlockCollectionSetting(
 ) : CollectionSetting<Block>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Block::class.java).type,
+	typeFactory.constructCollectionType(MutableCollection::class.java, Block::class.java),
 	serialize = true,
 ) {
 	context(_: Setting<*, MutableCollection<Block>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockSerializer.stringify(it) }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockTypeAdapter.stringify(it) }
 }

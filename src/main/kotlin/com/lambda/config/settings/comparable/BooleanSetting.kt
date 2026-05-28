@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.comparable
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -32,8 +31,7 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Config]
  */
 class BooleanSetting(defaultValue: Boolean) : SettingCore<Boolean>(
-	defaultValue,
-	TypeToken.get(Boolean::class.java).type
+	defaultValue
 ) {
     context(setting: Setting<*, Boolean>)
 	override fun ImGuiBuilder.buildLayout() {

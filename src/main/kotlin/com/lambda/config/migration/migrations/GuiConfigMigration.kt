@@ -15,18 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings
+package com.lambda.config.migration.migrations
 
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.Lambda.Log
+import com.lambda.config.categories.GuiCategory
+import com.lambda.config.migration.MigrationUtils
+import com.lambda.config.migration.StepConfigMigration
 
-open class FunctionSetting<T>(defaultValue: () -> T) : SettingCore<() -> T>(
-	defaultValue
-) {
-    context(setting: Setting<*, () -> T>)
-	override fun ImGuiBuilder.buildLayout() {
-        button(setting.name) { coreValue() }
-        lambdaTooltip(setting.description)
-    }
+@Suppress("unused")
+object GuiConfigMigration : StepConfigMigration() {
+	override val category = GuiCategory
+	override val latestVersion = 2
+
+	init {
+		step(1, 2) { root ->
+			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
+			Log.info("Migrated Gui config category schema v1 -> v2: $count settings moved")
+		}
+	}
 }

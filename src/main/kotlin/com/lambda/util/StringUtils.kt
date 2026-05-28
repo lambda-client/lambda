@@ -18,7 +18,6 @@
 package com.lambda.util
 
 import com.lambda.Lambda
-import com.lambda.Lambda.gson
 import net.minecraft.util.Identifier
 import java.security.MessageDigest
 import java.util.*
@@ -89,8 +88,6 @@ object StringUtils {
 
         return cost[len0 - 1]
     }
-
-    inline fun <reified T : Any> String.json() = gson.fromJson(this, T::class.java)
 
     fun String.base64UrlDecode() = Base64.getUrlDecoder().decode(toByteArray()).decodeToString()
 

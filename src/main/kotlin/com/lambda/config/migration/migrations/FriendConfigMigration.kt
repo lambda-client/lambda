@@ -17,24 +17,22 @@
 
 package com.lambda.config.migration.migrations
 
-import com.google.gson.JsonArray
 import com.lambda.Lambda.Log
+import com.lambda.config.categories.FriendCategory
 import com.lambda.config.migration.StepConfigMigration
-import com.lambda.config.migration.arrayOrCreate
-import com.lambda.config.migration.objectOrCreate
-import com.lambda.config.migration.parseUuidOrNull
+import tools.jackson.databind.JsonNode
 import java.util.*
 
 @Suppress("unused")
 object FriendConfigMigration : StepConfigMigration() {
-    override val configName = "friends"
+    override val category = FriendCategory
     override val latestVersion = 2
 
     init {
-        step(1, 2) {
-            val config = objectOrCreate("friends")
+        step(1, 2) { root ->
+            val config = root.objectOrCreate("friends")
             val rawFriends = config.arrayOrCreate("friends")
-            val migrated = JsonArray()
+            val migrated = config.putArray("friends")
             val seen = mutableSetOf<UUID>()
             var dropped = 0
 
@@ -46,8 +44,24 @@ object FriendConfigMigration : StepConfigMigration() {
                     ?: run { dropped++ }
             }
 
-            config.add("friends", migrated)
-            Log.info("Migrated Friend config schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
+            Log.info("Migrated Friend config category schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
         }
+    }
+
+    fun JsonNode.parseUuidOrNull(): UUID? {
+        val raw = when {
+            isString -> asString()
+            isObject && asObject().has("id") -> asObject().get("id").asString()
+            else -> return null
+        }
+
+        val normalized =
+            if (raw.length == 32) raw.replaceFirst(
+                "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(),
+                "$1-$2-$3-$4-$5"
+            )
+            else raw
+
+        return runCatching { UUID.fromString(normalized) }.getOrNull()
     }
 }

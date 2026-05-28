@@ -175,6 +175,7 @@ dependencies {
         exclude(group = "org.slf4j")
     }
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    includeLib("io.ktor:ktor-serialization-jackson:$ktorVersion")
     includeLib("tools.jackson.core:jackson-core:$jacksonVersion")
     includeLib("tools.jackson.core:jackson-databind:$jacksonVersion")
     includeLib("tools.jackson.module:jackson-module-kotlin:$jacksonVersion")
@@ -225,7 +226,7 @@ tasks {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility")
+        freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility", "-Xannotation-default-target=param-property")
     }
 
     jvmToolchain(21)

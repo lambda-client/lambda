@@ -18,7 +18,6 @@
 package com.lambda.config.settings.complex
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.boolean
@@ -60,8 +59,7 @@ class KeybindSetting(
     private val alwaysListening: Boolean,
     private val screenCheck: Boolean
 ) : SettingCore<Bind>(
-	defaultValue,
-	TypeToken.get(Bind::class.java).type
+	defaultValue
 ), Muteable {
     constructor(defaultValue: KeyCode, muteable: Muteable?, alwaysListen: Boolean, screenCheck: Boolean)
             : this(Bind(defaultValue.code, 0, -1), muteable, alwaysListen, screenCheck)
@@ -83,7 +81,7 @@ class KeybindSetting(
     private fun SafeContext.onButtonEvent(event: ButtonEvent) {
         if (mc.options.commandKey.isPressed ||
             (screenCheck && mc.currentScreen != null) ||
-            !event.satisfies(value)) return
+            !event.satisfies(coreValue)) return
 
         if (event.isPressed) {
             if (event.isRepeated) repeatListeners.forEach { it(event) }
@@ -96,7 +94,7 @@ class KeybindSetting(
         text(setting.name)
         sameLine()
 
-        val bind = value
+        val bind = coreValue
         val preview =
             if (listening) "Press any key…"
             else bind.name
@@ -127,7 +125,7 @@ class KeybindSetting(
         sameLine()
         withId("##Unbind-${this@KeybindSetting.hashCode()}") {
             smallButton("Unbind") {
-                internalValue = Bind.Empty
+                settingValue = Bind.Empty
                 listening = false
             }
         }
@@ -138,7 +136,7 @@ class KeybindSetting(
         if (listening) {
             InputUtils.newMouseEvent()
                 ?.let {
-                    internalValue = Bind(0, it.modifiers, it.button)
+                    settingValue = Bind(0, it.modifiers, it.button)
                     listening = false
                     return
                 }
@@ -151,8 +149,8 @@ class KeybindSetting(
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
                             KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.Empty
-                            else -> value = Bind(it.translated.code, it.modifiers, -1)
+                            KeyCode.Backspace, KeyCode.Delete -> coreValue = Bind.Empty
+                            else -> coreValue = Bind(it.translated.code, it.modifiers, -1)
                         }
 
                         listening = false

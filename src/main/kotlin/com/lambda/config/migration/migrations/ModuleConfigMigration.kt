@@ -15,19 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config
+package com.lambda.config.migration.migrations
 
-import com.google.gson.Gson
-import com.google.gson.JsonElement
+import com.lambda.Lambda.Log
+import com.lambda.config.categories.ModuleCategory
+import com.lambda.config.migration.MigrationUtils
+import com.lambda.config.migration.StepConfigMigration
 
+@Suppress("unused")
+object ModuleConfigMigration : StepConfigMigration() {
+	override val category = ModuleCategory
+	override val latestVersion = 2
 
-/**
- * Interface for objects that can be serialized to and deserialized from JSON ([Gson]).
- */
-interface Jsonable {
-    /** Serializes the object to a [JsonElement] */
-    fun toJson(): JsonElement
-
-    /** Loads the object's state from a [JsonElement] */
-    fun loadFromJson(serialized: JsonElement)
+	init {
+		step(1, 2) { root ->
+			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
+			Log.info("Migrated Module config category schema v1 -> v2: $count settings moved")
+		}
+	}
 }

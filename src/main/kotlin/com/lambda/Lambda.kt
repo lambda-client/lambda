@@ -17,7 +17,8 @@
 
 package com.lambda
 
-import com.lambda.config.Serializer
+import com.lambda.Lambda.mapper
+import com.lambda.config.TypeAdapter
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -29,7 +30,9 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.MinecraftClient
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.module.SimpleModule
+import tools.jackson.databind.type.TypeFactory
 import tools.jackson.module.kotlin.jsonMapper
 import tools.jackson.module.kotlin.kotlinModule
 
@@ -39,9 +42,10 @@ object Lambda : ClientModInitializer {
     const val Symbol = "λ"
     const val AppId = "1221289599427416127"
     const val RepoUrl = "https://github.com/lambda-client/lambda"
-    val Version: String = FabricLoader.getInstance()
-        .getModContainer("lambda").orElseThrow()
-        .metadata.version.friendlyString
+    val Version: String =
+        FabricLoader.getInstance()
+            .getModContainer("lambda").orElseThrow()
+            .metadata.version.friendlyString
 
     val Log: Logger = LogManager.getLogger(Symbol)
 
@@ -57,16 +61,21 @@ object Lambda : ClientModInitializer {
      * rather than creating new instances when deserializing.
      */
     val mapper = jsonMapper {
-        defaultPrettyPrinter()
+        enable(SerializationFeature.INDENT_OUTPUT)
         addModules(
-            kotlinModule(),
+	        kotlinModule(),
             SimpleModule().apply {
-                getInstances<Serializer<*>>().forEach { serializer ->
-                    serializer.register()
+                getInstances<TypeAdapter<*>>().forEach { registerable ->
+                    registerable.register()
                 }
             }
         )
     }
+
+    /**
+     * The configured [TypeFactory] produced by [mapper].
+     */
+    val typeFactory: TypeFactory = mapper.typeFactory
 
     override fun onInitializeClient() {} // nop
 

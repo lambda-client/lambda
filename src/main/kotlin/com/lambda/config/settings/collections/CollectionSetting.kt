@@ -17,9 +17,6 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.JsonElement
-import com.google.gson.reflect.TypeToken
-import com.lambda.Lambda.gson
 import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
@@ -35,7 +32,7 @@ import com.lambda.imgui.flag.ImGuiChildFlags
 import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.imgui.flag.ImGuiSelectableFlags.DontClosePopups
 import com.lambda.threading.runSafe
-import java.lang.reflect.Type
+import tools.jackson.databind.JavaType
 
 /**
  * This generic collection settings handles all [Comparable] values (i.e., not classes) and serialize
@@ -49,22 +46,19 @@ import java.lang.reflect.Type
  */
 open class CollectionSetting<R : Any>(
 	defaultValue: MutableCollection<R>,
-	private var immutableCollection: Collection<R>,
-	type: Type,
-	private val serialize: Boolean,
+	var immutableCollection: Collection<R>,
+	val type: JavaType,
+	val serialize: Boolean,
 ) : SettingCore<MutableCollection<R>>(
-	defaultValue,
-	type
+	defaultValue
 ) {
-	override var value
-		get() = super.value
+	override var coreValue
+		get() = super.coreValue
 		set(newVal) {
-			super.value = newVal.toMutableList()
+			super.coreValue = newVal.toMutableList()
 		}
 
     private var searchFilter = ""
-    private val strListType =
-        TypeToken.getParameterized(Collection::class.java, String::class.java).type
 
     val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
     val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
@@ -74,10 +68,10 @@ open class CollectionSetting<R : Any>(
 
 	context(setting: Setting<*, MutableCollection<R>>)
 	fun ImGuiBuilder.buildDualPane(itemName: String, toString: (R) -> String) {
-		val text = if (value.size == 1) itemName else "${itemName}s"
+		val text = if (settingValue.size == 1) itemName else "${itemName}s"
 		val popupId = "##${setting.name}-collection-popup"
 
-		button("${setting.name}: ${value.size} $text") {
+		button("${setting.name}: ${settingValue.size} $text") {
 			ImGui.openPopup(popupId)
 		}
 
@@ -87,9 +81,9 @@ open class CollectionSetting<R : Any>(
 
 			val q = searchFilter.trim()
 			val filteredDeselected = immutableCollection
-				.filter { item -> !value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
+				.filter { item -> !settingValue.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
 			val filteredSelected = immutableCollection
-				.filter { item -> value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
+				.filter { item -> settingValue.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
 
 			val availableWidth = getContentRegionAvail().x
 			val swapButtonWidth = 30f
@@ -111,7 +105,7 @@ open class CollectionSetting<R : Any>(
 								label = toString(v),
 								flags = DontClosePopups
 							) {
-								value.add(v)
+								settingValue.add(v)
 								runSafe { selectListeners.forEach { listener -> listener(v) } }
 							}
 						}
@@ -125,17 +119,17 @@ open class CollectionSetting<R : Any>(
 			group {
 				cursorPosY += paneHeight / 2f
 				button("<>", swapButtonWidth) {
-					val currentlySelected = value.toList()
+					val currentlySelected = settingValue.toList()
 					val allItems = immutableCollection.toList()
-					value.clear()
+					settingValue.clear()
 					allItems.forEach { item ->
 						if (!currentlySelected.contains(item)) {
-							value.add(item)
+							settingValue.add(item)
 						}
 					}
 					runSafe {
 						currentlySelected.forEach { v -> deselectListeners.forEach { listener -> listener(v) } }
-						value.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
+						settingValue.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
 					}
 				}
 			}
@@ -157,7 +151,7 @@ open class CollectionSetting<R : Any>(
 								label = toString(v),
 								flags = DontClosePopups
 							) {
-								value.remove(v)
+								settingValue.remove(v)
 								runSafe { deselectListeners.forEach { listener -> listener(v) } }
 							}
 						}
@@ -166,19 +160,6 @@ open class CollectionSetting<R : Any>(
 				}
 			}
 		}
-	}
-
-    override fun toJson(): JsonElement =
-		gson.toJsonTree(value, type)
-
-    override fun loadFromJson(serialized: JsonElement) {
-		val strList =
-			if (serialize) gson.fromJson(serialized, type)
-			else gson.fromJson<Collection<String>>(serialized, strListType)
-				.mapNotNull { str -> immutableCollection.find { it.toString() == str } }
-				.toMutableList()
-
-		value = strList
 	}
 
 	@Suppress("unused")

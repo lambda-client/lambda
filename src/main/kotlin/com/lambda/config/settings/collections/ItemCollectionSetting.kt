@@ -17,9 +17,9 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.reflect.TypeToken
+import com.lambda.Lambda.typeFactory
 import com.lambda.config.Setting
-import com.lambda.config.serializers.ItemSerializer
+import com.lambda.config.serializers.ItemTypeAdapter
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
 
@@ -29,9 +29,9 @@ class ItemCollectionSetting(
 ) : CollectionSetting<Item>(
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Item::class.java).type,
+	typeFactory.constructCollectionType(Collection::class.java, Item::class.java),
 	serialize = true,
 ) {
 	context(_: Setting<*, MutableCollection<Item>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemSerializer.stringify(it) }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemTypeAdapter.stringify(it) }
 }

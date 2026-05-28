@@ -17,9 +17,7 @@
 
 package com.lambda.config
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
-import com.google.gson.reflect.TypeToken
+import com.lambda.Lambda.typeFactory
 import com.lambda.config.ConfigLoader.configs
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
@@ -43,7 +41,6 @@ import com.lambda.config.settings.numeric.IntegerSetting
 import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.event.Muteable
 import com.lambda.imgui.flag.ImGuiInputTextFlags
-import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
@@ -69,13 +66,13 @@ import kotlin.reflect.jvm.javaField
 abstract class Config(
 	final override val name: String,
 	configCategory: ConfigCategory
-) : Jsonable, Nameable {
+) : Nameable {
     internal val settingLayers = SettingLayer.Root()
 	internal val settingBlockLayers = BlockLayer.Root()
     private val registrationQueue = ArrayDeque<LayerSpecInfo>()
 
     init {
-        if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists")
+        if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists.")
         enqueueProperties(this::class, emptyList(), emptyList())
         configCategory.configs.add(this)
     }
@@ -165,120 +162,6 @@ abstract class Config(
 		}
 	}
 
-	final override fun toJson() =
-		JsonObject().apply {
-			fun process(multiple: SettingLayer.Multiple, target: JsonObject) {
-				forEachSetting(
-					multiple,
-					false,
-					{ _, multiple ->
-						val nested = JsonObject()
-						process(multiple, nested)
-						if (nested.isEmpty) return@forEachSetting
-						target.add(multiple.name, nested)
-					}
-				) { _, single ->
-					if (!single.setting.isModified) return@forEachSetting
-					try {
-						target.add(single.setting.name, single.setting.toJson())
-					} catch (e: Throwable) {
-						logError("Failed to serialize '${single.setting}'", e)
-					}
-				}
-			}
-			process(settingLayers, this)
-		}
-
-	final override fun loadFromJson(serialized: JsonElement) {
-		val rootObj = serialized.asJsonObject
-
-		fun load(multiple: SettingLayer.Multiple, obj: JsonObject) {
-			forEachSetting(
-				multiple,
-				false,
-				{ _, childMultiple ->
-					var nestedObj = obj[childMultiple.name]
-					if (nestedObj == null || !nestedObj.isJsonObject) {
-						nestedObj = JsonObject()
-					}
-					try {
-						load(childMultiple, nestedObj.asJsonObject)
-					} catch (e: Throwable) {
-						logError("Failed to deserialize ${childMultiple.multipleType.toString().lowercase()} '${childMultiple.name}' in '$name'", e)
-					}
-				}
-			) { path, single ->
-				val jsonValue = obj[single.setting.name]
-				if (jsonValue != null) {
-					try {
-						single.setting.loadFromJson(jsonValue)
-					} catch (e: Throwable) {
-						logError("Failed to deserialize setting '${single.setting.name}' in '$name'", e)
-					}
-				} else {
-					val fallbackValue = findFallbackValue(single.setting.name, path, rootObj)
-					if (fallbackValue != null) {
-						try {
-							single.setting.loadFromJson(fallbackValue)
-						} catch (e: Throwable) {
-							logError("Failed to deserialize setting '${single.setting.name}' from fallback in '$name'", e)
-						}
-					}
-				}
-			}
-		}
-
-		load(settingLayers, rootObj)
-	}
-
-	private fun findFallbackValue(
-		settingName: String,
-		parentLayers: List<SettingLayer.Multiple>,
-		rootObj: JsonObject
-	): JsonElement? {
-		var bestMatch: JsonElement? = null
-		var bestMatchKey: String? = null
-		var bestMatchParent: JsonObject? = null
-		var bestMatchScore = 0
-
-		fun search(currentObj: JsonObject, jsonPath: List<String>) {
-			currentObj.entrySet().forEach { (key, element) ->
-				if (key.endsWith(settingName, ignoreCase = true)) {
-					var score = 0
-					if (key.equals(settingName, ignoreCase = true)) {
-						score += 10
-					}
-
-					val fullPathString = (jsonPath + key).joinToString("")
-					parentLayers.forEach { layer ->
-						if (fullPathString.contains(layer.name, ignoreCase = true)) {
-							score += 5
-						}
-					}
-
-					if (score > bestMatchScore) {
-						bestMatchScore = score
-						bestMatch = element
-						bestMatchKey = key
-						bestMatchParent = currentObj
-					}
-				}
-
-				if (element.isJsonObject) {
-					search(element.asJsonObject, jsonPath + key)
-				}
-			}
-		}
-
-		search(rootObj, emptyList())
-
-		if (bestMatch != null && bestMatchParent != null && bestMatchKey != null) {
-			bestMatchParent.remove(bestMatchKey)
-		}
-
-		return bestMatch
-	}
-
 	@SettingDsl
     fun setting(
         name: String,
@@ -347,7 +230,7 @@ abstract class Config(
 	    name,
 	    description,
         if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-        else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
+        else CollectionSetting(defaultValue.toMutableList(), immutableList, typeFactory.constructCollectionType(Collection::class.java, T::class.java), serialize),
 	    visibility
 	)
 
@@ -363,7 +246,7 @@ abstract class Config(
 	    description,
 	    MapSetting(
 		    defaultValue.toMutableMap(),
-		    TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type
+		    typeFactory.constructMapType(MutableMap::class.java, K::class.java, V::class.java)
 		),
 		visibility
 	)

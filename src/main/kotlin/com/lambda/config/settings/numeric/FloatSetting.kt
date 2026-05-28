@@ -47,10 +47,10 @@ class FloatSetting(
 	context(setting: Setting<*, Float>)
 	override fun ImGuiBuilder.buildSlider() {
 		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-		val currentIndex = ((value - range.start) / step).roundToInt()
+		val currentIndex = ((coreValue - range.start) / step).roundToInt()
 		val imInt = ImInt(currentIndex)
 		slider("##${setting.name}", imInt, 0, maxIndex, "") {
-			internalValue = (range.start + imInt.get() * step)
+			settingValue = (range.start + imInt.get() * step)
 				.roundToStep(step)
 				.coerceIn(range)
 		}

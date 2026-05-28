@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -39,13 +38,12 @@ class StringSetting(
     var multiline: Boolean = false,
     var flags: Int = ImGuiInputTextFlags.None,
 ) : SettingCore<String>(
-	defaultValue,
-	TypeToken.get(String::class.java).type
+	defaultValue
 ) {
 	context(setting: Setting<*, String>)
     override fun ImGuiBuilder.buildLayout() {
         if (multiline) {
-            inputTextMultiline(setting.name, ::value, flags = flags)
+            inputTextMultiline(setting.name, ::coreValue, flags = flags)
         } else {
             inputText(setting.name, setting::value, flags)
         }

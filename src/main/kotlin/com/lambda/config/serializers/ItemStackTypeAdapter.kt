@@ -18,27 +18,25 @@
 package com.lambda.config.serializers
 
 import com.lambda.config.JsonOps
-import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
+import com.lambda.config.TypeAdapter
 import net.minecraft.item.ItemStack
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
-import tools.jackson.databind.deser.std.StdDeserializer
-import tools.jackson.databind.ser.std.StdSerializer
 
 @Suppress("unused")
-object ItemStackSerializer : Serializer<ItemStack>(), Stringifiable<ItemStack> {
+object ItemStackTypeAdapter : TypeAdapter<ItemStack>(), Stringifiable<ItemStack> {
     override val type = ItemStack::class.java
 
-    override val serializer = object : StdSerializer<ItemStack>(type) {
+    override val serializer = object : Serializer<ItemStack>(type) {
         override fun serialize(itemStack: ItemStack, gen: JsonGenerator, ctxt: SerializationContext) {
             gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.Uncompressed, itemStack).orThrow)
         }
     }
 
-    override val deSerializer = object : StdDeserializer<ItemStack>(type) {
+    override val deserializer = object : Deserializer<ItemStack>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
             ItemStack.CODEC.parse(JsonOps.Uncompressed, p.readValueAsTree()).orThrow
     }

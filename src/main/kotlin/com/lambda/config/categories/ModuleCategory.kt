@@ -18,7 +18,7 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
-import com.lambda.config.categories.ModuleCategory.configName
+import com.lambda.config.categories.ModuleCategory.name
 import com.lambda.util.FolderRegistry
 import java.io.File
 
@@ -27,10 +27,10 @@ import java.io.File
  *
  * This object is used to save and load the settings of all [Module]s in the system.
  *
- * @property configName The name of the configuration.
+ * @property name The name of the configuration.
  * @property primary The primary file where the configuration is saved.
  */
 object ModuleCategory : ConfigCategory() {
-	override val configName get() = "modules"
-	override val primaryFile: File = FolderRegistry.config.resolve("$configName.json").toFile()
+	override val name get() = "modules"
+	override val primaryFile: File = FolderRegistry.config.resolve("$name.json").toFile()
 }

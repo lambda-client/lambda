@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings.comparable
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.value
@@ -37,21 +36,20 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Config]
  */
 class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
-	defaultValue,
-	TypeToken.get(defaultValue.declaringJavaClass).type
+	defaultValue
 ) {
     context(setting: Setting<*, T>)
     override fun ImGuiBuilder.buildLayout() {
-        val values = value.enumValues
-        val currentDisplay = value.displayValue
-        val currentIndex = value.ordinal
+        val values = settingValue.enumValues
+        val currentDisplay = settingValue.displayValue
+        val currentIndex = settingValue.ordinal
 
         combo("##${setting.name}", preview = "${setting.name}: $currentDisplay") {
             values.forEachIndexed { idx, v ->
                 val isSelected = idx == currentIndex
 
                 selectable(v.displayValue, isSelected) {
-                    if (!isSelected) internalValue = values[idx % values.size]
+                    if (!isSelected) settingValue = values[idx % values.size]
                 }
 
                 (v as? Describable)?.let { lambdaTooltip(it.description) }
@@ -65,11 +63,11 @@ class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(setting.name)) { parameter ->
             suggests { _, builder ->
-                value.enumValues.forEach { builder.suggest(it.name.capitalize()) }
+                settingValue.enumValues.forEach { builder.suggest(it.name.capitalize()) }
                 builder.buildFuture()
             }
             executeWithResult {
-                val newValue = value.enumValues.find { it.name.equals(parameter().value(), true) }
+                val newValue = settingValue.enumValues.find { it.name.equals(parameter().value(), true) }
                     ?: return@executeWithResult failure("Invalid value")
                 setting.trySetValue(newValue)
                 return@executeWithResult success()

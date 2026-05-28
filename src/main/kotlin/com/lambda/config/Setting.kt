@@ -18,10 +18,7 @@
 package com.lambda.config
 
 import com.google.common.base.Defaults.defaultValue
-import com.google.gson.JsonElement
-import com.google.gson.JsonParser
-import com.lambda.Lambda.Log
-import com.lambda.Lambda.gson
+import com.lambda.Lambda.mapper
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.string
@@ -47,7 +44,6 @@ import com.lambda.util.text.highlighted
 import com.lambda.util.text.hoverEvent
 import com.lambda.util.text.literal
 import net.minecraft.command.CommandRegistryAccess
-import java.lang.reflect.Type
 import kotlin.reflect.KProperty
 
 /**
@@ -100,7 +96,7 @@ class Setting<T : SettingCore<R>, R>(
 	val config: Config,
 	val layer: SettingLayer.Single<*, *>,
 	var visibility: () -> Boolean
-) : Nameable, Describable, Jsonable {
+) : Nameable, Describable {
 	val originalCore = core
 	var disabled = { false }
 
@@ -110,10 +106,10 @@ class Setting<T : SettingCore<R>, R>(
 
 	val isModified get() = value != core.defaultValue
 
-	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.coreValue
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
-		val oldValue = core.value
-		core.value = value
+		val oldValue = core.coreValue
+		core.coreValue = value
 		listeners.forEach {
 			if (it.requiresValueChange && oldValue == value) return@forEach
 			it.execute(oldValue, value)
@@ -135,15 +131,6 @@ class Setting<T : SettingCore<R>, R>(
 
 	fun ImGuiBuilder.buildLayout() = with(core) { buildLayout() }
 	fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) = with(core) { buildCommand(registry) }
-
-	override fun toJson() = originalCore.toJson()
-	override fun loadFromJson(serialized: JsonElement) {
-		runCatching {
-			originalCore.loadFromJson(serialized)
-		}.onFailure {
-			Log.warn("Failed to load setting $name with value $serialized")
-		}
-	}
 
 	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 
@@ -242,51 +229,54 @@ class Setting<T : SettingCore<R>, R>(
 			}
 		}.asReversed()
 
-	override fun toString() = "Setting $name: $value of type ${core.type.typeName}"
+	override fun toString() = "Setting $name: $value"
 }
 
 abstract class SettingCore<T>(
-	var defaultValue: T,
-	val type: Type
-) : Jsonable {
-	open var value = defaultValue
+	var defaultValue: T
+) {
+	/**
+	 * The core value. Setting this variable bypasses all setting callbacks for value changes and is only used
+	 * by the serialization logic when loading from the config files. This isn't considered changing the setting, rather
+	 * applying its default value. For example, When setting the cores value inside the [buildLayout] or [buildCommand] methods,
+	 * the [settingValue] should be used so the appropriate callbacks are invoked.
+	 */
+	open var coreValue = defaultValue
+
+	/**
+	 * A wrapper for the [coreValue] used to invoke the [setting]'s value-change callbacks
+	 */
 	context(setting: Setting<*, T>)
-	protected var internalValue
-		get() = value
+	protected var settingValue
+		get() = coreValue
 		set(value) {
 			setting.value = value
 		}
 
+	/**
+	 * A function invoked to build the core's gui interface.
+	 */
 	context(setting: Setting<*, T>)
 	abstract fun ImGuiBuilder.buildLayout()
 
+	/**
+	 * Builds the core's command using the [com.lambda.brigadier.BrigadierDsl]
+	 */
 	context(setting: Setting<*, T>)
 	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
 		required(string("value as JSON")) { value ->
 			executeWithResult {
 				val valueString = value().value()
-				val parsed = try {
-					JsonParser.parseString("\"$valueString\"")
-				} catch (_: Exception) {
-					return@executeWithResult failure("$valueString is not a valid JSON string.")
-				} ?: return@executeWithResult failure("No config found for $name.")
-				val previous = this@SettingCore.value
+				val previous = settingValue
 				try {
-					loadFromJson(parsed)
-				} catch (_: Exception) {
-					return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${setting.config.name}.")
+					settingValue = mapper.readValue(valueString, settingValue?.javaClass)
+				} catch (_: Throwable) {
+					return@executeWithResult failure("Failed to deserialize $valueString as a ${type::class.simpleName} for $name in ${setting.config.name}.")
 				}
-				ConfigCommand.info(setting.setMessage(previous, this@SettingCore.value))
+				ConfigCommand.info(setting.setMessage(previous, this@SettingCore.coreValue))
 				return@executeWithResult success()
 			}
 		}
-	}
-
-	override fun toJson(): JsonElement =
-		gson.toJsonTree(value, type)
-
-	override fun loadFromJson(serialized: JsonElement) {
-		value = gson.fromJson(serialized, type)
 	}
 }
 

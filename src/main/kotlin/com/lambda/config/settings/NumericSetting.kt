@@ -17,7 +17,6 @@
 
 package com.lambda.config.settings
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
@@ -39,18 +38,17 @@ abstract class NumericSetting<T>(
 	open var step: T,
 	var unit: String
 ) : SettingCore<T>(
-	defaultValue,
-	TypeToken.get(defaultValue::class.java).type
+	defaultValue
 ) where T : Number, T : Comparable<T> {
-	override var value: T
-		get() = super.value
+	override var coreValue: T
+		get() = super.coreValue
 		set(newVal) {
-			super.value = newVal.coerceIn(range)
+			super.coreValue = newVal.coerceIn(range)
 		}
 
     private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
-    override fun toString() = "${formatter.format(value)}$unit"
+    override fun toString() = "${formatter.format(coreValue)}$unit"
 
     /**
      * Subclasses must implement this to provide their specific slider widget.
