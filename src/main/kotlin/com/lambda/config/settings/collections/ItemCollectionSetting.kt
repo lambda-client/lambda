@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Setting
-import com.lambda.config.serializers.ItemTypeAdapter
+import com.lambda.config.serializers.ItemSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
 
@@ -33,5 +33,5 @@ class ItemCollectionSetting(
 	serialize = true,
 ) {
 	context(_: Setting<*, MutableCollection<Item>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemTypeAdapter.stringify(it) }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemSerializer.stringify(it) }
 }

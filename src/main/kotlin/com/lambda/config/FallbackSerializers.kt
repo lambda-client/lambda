@@ -18,12 +18,18 @@
 package com.lambda.config
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import tools.jackson.databind.*
+import tools.jackson.databind.BeanDescription
+import tools.jackson.databind.DeserializationConfig
+import tools.jackson.databind.JavaType
+import tools.jackson.databind.SerializationConfig
+import tools.jackson.databind.ValueDeserializer
+import tools.jackson.databind.ValueSerializer
 import tools.jackson.databind.deser.Deserializers
 import tools.jackson.databind.ser.Serializers
 
-class FallbackTypeAdapters(
-	private val fallbacks: Map<Class<*>, FallbackTypeAdapter<*>>
+class FallbackSerializers(
+	val fallbackSerializers: Map<Class<*>, FallbackSerializer<*>>,
+	val fallbackDeserializers: Map<Class<*>, FallbackDeserializer<*>>
 ) : Serializers, Deserializers {
 	override fun findSerializer(
 		config: SerializationConfig,
@@ -31,11 +37,8 @@ class FallbackTypeAdapters(
 		beanDescRef: BeanDescription.Supplier,
 		formatOverrides: JsonFormat.Value?
 	): ValueSerializer<*>? {
-		fallbacks.forEach { (baseType, typeAdapter) ->
-			val serializer = typeAdapter.serializer
-			if (baseType.isAssignableFrom(type.rawClass)) {
-				return serializer
-			}
+		fallbackSerializers.forEach { (baseType, serializer) ->
+			if (baseType.isAssignableFrom(type.rawClass)) return serializer
 		}
 		return null
 	}
@@ -45,19 +48,12 @@ class FallbackTypeAdapters(
 		config: DeserializationConfig,
 		beanDescRef: BeanDescription.Supplier
 	): ValueDeserializer<*>? {
-		fallbacks.forEach { (baseType, typeAdapter) ->
-			val deserializer = typeAdapter.deserializer
-			if (baseType.isAssignableFrom(type.rawClass)) {
-				return deserializer
-			}
+		fallbackDeserializers.forEach { (baseType, deserializer) ->
+			if (baseType.isAssignableFrom(type.rawClass)) return deserializer
 		}
 		return null
 	}
 
-	override fun hasDeserializerFor(config: DeserializationConfig, valueType: Class<*>?): Boolean {
-		if (valueType == null) return false
-		return fallbacks.any { (baseType, _) ->
-			baseType.isAssignableFrom(valueType)
-		}
-	}
+	override fun hasDeserializerFor(config: DeserializationConfig, valueType: Class<*>?) =
+		valueType != null && fallbackDeserializers.any { (baseType, _) -> baseType.isAssignableFrom(valueType) }
 }

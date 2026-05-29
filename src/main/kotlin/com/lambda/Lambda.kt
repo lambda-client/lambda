@@ -18,9 +18,11 @@
 package com.lambda
 
 import com.lambda.Lambda.mapper
-import com.lambda.config.FallbackTypeAdapter
-import com.lambda.config.FallbackTypeAdapters
-import com.lambda.config.TypeAdapter
+import com.lambda.config.Deserializer
+import com.lambda.config.FallbackDeserializer
+import com.lambda.config.FallbackSerializer
+import com.lambda.config.FallbackSerializers
+import com.lambda.config.Serializer
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
@@ -35,8 +37,8 @@ import org.apache.logging.log4j.Logger
 import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.module.SimpleModule
 import tools.jackson.databind.type.TypeFactory
-import tools.jackson.module.kotlin.jsonMapper
 import tools.jackson.module.kotlin.KotlinFeature
+import tools.jackson.module.kotlin.jsonMapper
 import tools.jackson.module.kotlin.kotlinModule
 
 object Lambda : ClientModInitializer {
@@ -68,13 +70,15 @@ object Lambda : ClientModInitializer {
         addModules(
 	        kotlinModule { disable(KotlinFeature.SingletonSupport) },
             SimpleModule().apply {
-                getInstances<TypeAdapter<*>>().forEach { registerable ->
-                    registerable.register()
-                }
+                getInstances<Serializer<*>>().forEach { it.register() }
+                getInstances<Deserializer<*>>().forEach { it.register() }
             },
             object : SimpleModule() {
                 override fun setupModule(context: SetupContext) {
-                    val fallbackSerializers = FallbackTypeAdapters(getInstances<FallbackTypeAdapter<*>>().associateBy { it.type })
+                    val fallbackSerializers = FallbackSerializers(
+                        getInstances<FallbackSerializer<*>>().associateBy { it.type },
+                        getInstances<FallbackDeserializer<*>>().associateBy { it.type }
+                    )
                     context.addSerializers(fallbackSerializers)
                     context.addDeserializers(fallbackSerializers)
                     super.setupModule(context)

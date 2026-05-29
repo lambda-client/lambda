@@ -15,31 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.serializers
 
+import com.lambda.config.Deserializer
 import com.lambda.config.JsonOps
+import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
-import com.lambda.config.TypeAdapter
-import net.minecraft.block.Block
-import net.minecraft.registry.Registries
+import net.minecraft.item.ItemStack
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 
-object BlockTypeAdapter : TypeAdapter<Block>(), Stringifiable<Block> {
-    override val type = Block::class.java
-
-    override val serializer = object : Serializer<Block>(type) {
-        override fun serialize(block: Block, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.Uncompressed, block).orThrow))
-        }
+object ItemStackSerializer : Serializer<ItemStack>(ItemStack::class.java), Stringifiable<ItemStack> {
+    override fun serialize(itemStack: ItemStack, gen: JsonGenerator, ctxt: SerializationContext) {
+        gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.Uncompressed, itemStack).orThrow)
     }
 
-    override val deserializer = object : Deserializer<Block>(type) {
-        override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            Registries.BLOCK.codec.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
-    }
+    override fun stringify(value: ItemStack) = value.itemName.string.uppercase()
+}
 
-    override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
+object ItemStackDeserializer : Deserializer<ItemStack>(ItemStack::class.java) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): ItemStack =
+        ItemStack.CODEC.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
 }

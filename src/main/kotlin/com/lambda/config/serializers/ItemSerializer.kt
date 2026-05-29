@@ -15,31 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.serializers
 
-import com.lambda.config.JsonOps
+import com.lambda.config.Deserializer
+import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
-import com.lambda.config.TypeAdapter
-import net.minecraft.item.ItemStack
+import net.minecraft.item.Item
+import net.minecraft.registry.Registries
+import net.minecraft.util.Identifier
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 
-@Suppress("unused")
-object ItemStackTypeAdapter : TypeAdapter<ItemStack>(), Stringifiable<ItemStack> {
-    override val type = ItemStack::class.java
+object ItemSerializer : Serializer<Item>(Item::class.java), Stringifiable<Item> {
+	override fun serialize(item: Item, gen: JsonGenerator, ctxt: SerializationContext) {
+		gen.writeString(item.toString())
+	}
 
-    override val serializer = object : Serializer<ItemStack>(type) {
-        override fun serialize(itemStack: ItemStack, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.Uncompressed, itemStack).orThrow)
-        }
-    }
+	override fun stringify(value: Item) = value.name.string.replaceFirstChar { it.uppercase() }
+}
 
-    override val deserializer = object : Deserializer<ItemStack>(type) {
-        override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            ItemStack.CODEC.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
-    }
-
-    override fun stringify(value: ItemStack) = value.itemName.string.uppercase()
+object ItemDeserializer : Deserializer<Item>(Item::class.java) {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Item {
+		return Registries.ITEM.get(Identifier.of(p.valueAsString))
+	}
 }

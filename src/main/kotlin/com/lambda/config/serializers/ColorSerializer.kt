@@ -15,37 +15,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.serializers
 
 import com.fasterxml.jackson.core.JsonParseException
+import com.lambda.config.Deserializer
+import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
-import com.lambda.config.TypeAdapter
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 import java.awt.Color
 
-@Suppress("unused")
-object ColorTypeAdapter : TypeAdapter<Color>(), Stringifiable<Color> {
-    override val type = Color::class.java
-
-    override val serializer = object : Serializer<Color>(type) {
-        override fun serialize(color: Color, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeString("${color.red},${color.green},${color.blue},${color.alpha}")
-        }
-    }
-
-    override val deserializer = object : Deserializer<Color>(type) {
-        override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Color {
-            val color = p.valueAsString.split(",")
-            return when (color.size) {
-                3 -> Color(color[0].toInt(), color[1].toInt(), color[2].toInt())
-                4 -> Color(color[0].toInt(), color[1].toInt(), color[2].toInt(), color[3].toInt())
-                else -> throw JsonParseException("Invalid color format")
-            }
-        }
+object ColorSerializer : Serializer<Color>(Color::class.java), Stringifiable<Color> {
+    override fun serialize(color: Color, gen: JsonGenerator, ctxt: SerializationContext) {
+        gen.writeString("${color.red},${color.green},${color.blue},${color.alpha}")
     }
 
     override fun stringify(value: Color) = "${value.red},${value.green},${value.blue},${value.alpha}"
+}
+
+object ColorDeserializer : Deserializer<Color>(Color::class.java) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Color {
+        val color = p.valueAsString.split(",")
+        return when (color.size) {
+            3 -> Color(color[0].toInt(), color[1].toInt(), color[2].toInt())
+            4 -> Color(color[0].toInt(), color[1].toInt(), color[2].toInt(), color[3].toInt())
+            else -> throw JsonParseException("Invalid color format")
+        }
+    }
 }

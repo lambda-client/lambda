@@ -15,27 +15,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.serializers
 
-import com.lambda.config.TypeAdapter
-import com.lambda.util.KeyCode
+import com.lambda.config.Deserializer
+import com.lambda.config.JsonOps
+import com.lambda.config.Serializer
+import com.lambda.config.Stringifiable
+import net.minecraft.block.Block
+import net.minecraft.registry.Registries
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 
-@Suppress("unused")
-object KeyCodeTypeAdapter : TypeAdapter<KeyCode>() {
-    override val type = KeyCode::class.java
-
-    override val serializer = object : Serializer<KeyCode>(type) {
-        override fun serialize(keyCode: KeyCode, gen: JsonGenerator, ctxt: SerializationContext) {
-            gen.writeString(keyCode.name)
-        }
+object BlockSerializer : Serializer<Block>(Block::class.java), Stringifiable<Block> {
+    override fun serialize(block: Block, gen: JsonGenerator, ctxt: SerializationContext) {
+        gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.Uncompressed, block).orThrow))
     }
 
-    override val deserializer = object : Deserializer<KeyCode>(type) {
-        override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            KeyCode.fromKeyName(p.string)
-    }
+    override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
+}
+
+object BlockDeserializer : Deserializer<Block>(Block::class.java) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Block =
+        Registries.BLOCK.codec.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
 }

@@ -15,32 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.serializers
 
-import com.lambda.config.Stringifiable
-import com.lambda.config.TypeAdapter
-import net.minecraft.item.Item
-import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
+import com.lambda.config.Deserializer
+import com.lambda.config.Serializer
+import com.lambda.util.KeyCode
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 
-object ItemTypeAdapter : TypeAdapter<Item>(), Stringifiable<Item> {
-	override val type = Item::class.java
+object KeyCodeSerializer : Serializer<KeyCode>(KeyCode::class.java) {
+    override fun serialize(keyCode: KeyCode, gen: JsonGenerator, ctxt: SerializationContext) {
+        gen.writeString(keyCode.name)
+    }
+}
 
-	override val serializer = object : Serializer<Item>(type) {
-		override fun serialize(item: Item, gen: JsonGenerator, ctxt: SerializationContext) {
-			gen.writeString(item.toString())
-		}
-	}
-
-	override val deserializer = object : Deserializer<Item>(type) {
-		override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Item {
-			return Registries.ITEM.get(Identifier.of(p.valueAsString))
-		}
-	}
-
-	override fun stringify(value: Item) = value.name.string.replaceFirstChar { it.uppercase() }
+object KeyCodeDeserializer : Deserializer<KeyCode>(KeyCode::class.java) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): KeyCode =
+        KeyCode.fromKeyName(p.string)
 }
