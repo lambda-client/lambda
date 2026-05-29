@@ -23,7 +23,6 @@ import com.lambda.config.TypeAdapter
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
-import tools.jackson.databind.JsonNode
 import tools.jackson.databind.SerializationContext
 import java.util.*
 
@@ -39,7 +38,7 @@ object UuidTypeAdapter : TypeAdapter<UUID>(), Stringifiable<UUID> {
 
     override val deserializer = object : Deserializer<UUID>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext): UUID {
-            val jsonNode = p.readValueAsTree<JsonNode>()
+            val jsonNode = mapper.readTree(p)
 
             val rawId = when {
                 jsonNode.isString -> jsonNode.stringValue()

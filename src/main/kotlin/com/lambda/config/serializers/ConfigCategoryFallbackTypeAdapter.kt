@@ -19,11 +19,12 @@
 
 package com.lambda.config.serializers
 
+import com.lambda.Lambda.Log
 import com.lambda.config.Config
 import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigCategory
 import com.lambda.config.Setting
-import com.lambda.config.TypeAdapter
+import com.lambda.config.FallbackTypeAdapter
 import com.lambda.config.migration.ConfigMigrationHandler
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
@@ -31,7 +32,7 @@ import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.SerializationContext
 
-object ConfigCategoryTypeAdapter : TypeAdapter<ConfigCategory>() {
+object ConfigCategoryFallbackTypeAdapter : FallbackTypeAdapter<ConfigCategory>() {
 	override val type = ConfigCategory::class.java
 
 	override val serializer = object : Serializer<ConfigCategory>(type) {
@@ -69,7 +70,7 @@ object ConfigCategoryTypeAdapter : TypeAdapter<ConfigCategory>() {
 	}
 }
 
-object ConfigTypeAdapter : TypeAdapter<Config>() {
+object ConfigFallbackTypeAdapter : FallbackTypeAdapter<Config>() {
 	override val type = Config::class.java
 
 	override val serializer = object : Serializer<Config>(type) {
@@ -90,7 +91,7 @@ object ConfigTypeAdapter : TypeAdapter<Config>() {
 	}
 }
 
-object MultipleTypeAdapter : TypeAdapter<SettingLayer.Multiple>() {
+object MultipleFallbackTypeAdapter : FallbackTypeAdapter<SettingLayer.Multiple>() {
 	override val type = SettingLayer.Multiple::class.java
 
 	override val serializer = object : Serializer<SettingLayer.Multiple>(type) {
@@ -123,7 +124,7 @@ object MultipleTypeAdapter : TypeAdapter<SettingLayer.Multiple>() {
 	}
 }
 
-object SingleTypeAdapter : TypeAdapter<SettingLayer.Single<*, *>>() {
+object SingleFallbackTypeAdapter : FallbackTypeAdapter<SettingLayer.Single<*, *>>() {
 	override val type = SettingLayer.Single::class.java
 
 	override val serializer = object : Serializer<SettingLayer.Single<*, *>>(type) {
@@ -138,15 +139,17 @@ object SingleTypeAdapter : TypeAdapter<SettingLayer.Single<*, *>>() {
 		}
 
 		override fun deserialize(p: JsonParser, ctxt: DeserializationContext, single: SettingLayer.Single<*, *>) =
-			try {
-				single.apply { mapper.updateValue(setting, mapper.readTree(p)) }
-			} catch (e: Throwable) {
-				throw IllegalStateException("Failed to deserialize setting '${single.name}'", e)
+			single.apply {
+				try {
+					mapper.updateValue(setting, mapper.readTree(p))
+				} catch (e: Throwable) {
+					Log.error("Failed to deserialize setting '${name}'", e)
+				}
 			}
 	}
 }
 
-object SettingTypeAdapter : TypeAdapter<Setting<*, *>>() {
+object SettingFallbackTypeAdapter : FallbackTypeAdapter<Setting<*, *>>() {
 	override val type = Setting::class.java
 
 	override val serializer = object : Serializer<Setting<*, *>>(type) {
@@ -163,7 +166,7 @@ object SettingTypeAdapter : TypeAdapter<Setting<*, *>>() {
 		override fun deserialize(p: JsonParser, ctxt: DeserializationContext, setting: Setting<*, *>) =
 			setting.apply {
 				@Suppress("unchecked_cast")
-				(this as Setting<*, Any>).core.coreValue = p.readValueAs(value.javaClass)
+				(this as Setting<*, Any>).core.coreValue = mapper.treeToValue(mapper.readTree(p), value.javaClass)
 			}
 	}
 }

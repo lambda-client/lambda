@@ -38,7 +38,7 @@ object ItemStackTypeAdapter : TypeAdapter<ItemStack>(), Stringifiable<ItemStack>
 
     override val deserializer = object : Deserializer<ItemStack>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            ItemStack.CODEC.parse(JsonOps.Uncompressed, p.readValueAsTree()).orThrow
+            ItemStack.CODEC.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
     }
 
     override fun stringify(value: ItemStack) = value.itemName.string.uppercase()

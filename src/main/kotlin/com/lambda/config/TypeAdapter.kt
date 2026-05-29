@@ -24,7 +24,7 @@ import tools.jackson.databind.ser.std.StdSerializer
 
 interface Stringifiable<T> { fun stringify(value: T): String }
 
-abstract class TypeAdapter<T> {
+abstract class BaseTypeAdapter<T> {
 	val mapper by lazy { Lambda.mapper }
 	abstract val type: Class<T>
 	abstract val serializer: StdSerializer<T>
@@ -43,3 +43,7 @@ abstract class TypeAdapter<T> {
 	protected typealias Serializer<T> = StdSerializer<T>
 	protected typealias Deserializer<T> = StdDeserializer<T>
 }
+
+abstract class FallbackTypeAdapter<T> : BaseTypeAdapter<T>()
+
+abstract class TypeAdapter<T> : BaseTypeAdapter<T>()

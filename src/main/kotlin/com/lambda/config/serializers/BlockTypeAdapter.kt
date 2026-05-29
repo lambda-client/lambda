@@ -38,7 +38,7 @@ object BlockTypeAdapter : TypeAdapter<Block>(), Stringifiable<Block> {
 
     override val deserializer = object : Deserializer<Block>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            Registries.BLOCK.codec.parse(JsonOps.Uncompressed, p.readValueAsTree()).orThrow
+            Registries.BLOCK.codec.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
     }
 
     override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }

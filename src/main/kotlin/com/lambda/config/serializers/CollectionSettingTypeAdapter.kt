@@ -23,7 +23,6 @@ import com.lambda.config.settings.collections.CollectionSetting
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
-import tools.jackson.databind.JsonNode
 import tools.jackson.databind.SerializationContext
 
 @Suppress("unused")
@@ -53,10 +52,11 @@ object CollectionSettingTypeAdapter : TypeAdapter<CollectionSetting<*>>() {
 				val newValue = mutableListOf<Any>()
 
 				if (serialize) {
-					val deserialized = mapper.readValue<Collection<Any>>(p, type)
+					val tree = mapper.readTree(p)
+					val deserialized = mapper.treeToValue<Collection<Any>>(tree, type)
 					newValue.addAll(deserialized)
 				} else {
-					val node = p.readValueAsTree<JsonNode>()
+					val node = mapper.readTree(p)
 					if (!node.isArray) throw JsonParseException("CollectionSetting's serialized value is not an array.")
 					node.values().forEach { element ->
 						if (!element.isString) throw JsonParseException("CollectionSetting's serialized array contains a non-string value. A CollectionSetting's JSON array must only contain strings if CollectionSetting.serialize is false.")

@@ -38,6 +38,6 @@ object TextTypeAdapter : TypeAdapter<Text>() {
 
     override val deserializer = object : Deserializer<Text>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            TextCodecs.CODEC.parse(JsonOps.Uncompressed, p.readValueAsTree()).orThrow
+            TextCodecs.CODEC.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
     }
 }

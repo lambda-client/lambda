@@ -18,6 +18,8 @@
 package com.lambda
 
 import com.lambda.Lambda.mapper
+import com.lambda.config.FallbackTypeAdapter
+import com.lambda.config.FallbackTypeAdapters
 import com.lambda.config.TypeAdapter
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
@@ -34,6 +36,7 @@ import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.module.SimpleModule
 import tools.jackson.databind.type.TypeFactory
 import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.KotlinFeature
 import tools.jackson.module.kotlin.kotlinModule
 
 object Lambda : ClientModInitializer {
@@ -63,10 +66,18 @@ object Lambda : ClientModInitializer {
     val mapper = jsonMapper {
         enable(SerializationFeature.INDENT_OUTPUT)
         addModules(
-	        kotlinModule(),
+	        kotlinModule { disable(KotlinFeature.SingletonSupport) },
             SimpleModule().apply {
                 getInstances<TypeAdapter<*>>().forEach { registerable ->
                     registerable.register()
+                }
+            },
+            object : SimpleModule() {
+                override fun setupModule(context: SetupContext) {
+                    val fallbackSerializers = FallbackTypeAdapters(getInstances<FallbackTypeAdapter<*>>().associateBy { it.type })
+                    context.addSerializers(fallbackSerializers)
+                    context.addDeserializers(fallbackSerializers)
+                    super.setupModule(context)
                 }
             }
         )

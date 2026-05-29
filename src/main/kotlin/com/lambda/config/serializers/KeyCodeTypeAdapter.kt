@@ -36,6 +36,6 @@ object KeyCodeTypeAdapter : TypeAdapter<KeyCode>() {
 
     override val deserializer = object : Deserializer<KeyCode>(type) {
         override fun deserialize(p: JsonParser, ctxt: DeserializationContext) =
-            KeyCode.fromKeyName(p.readValueAs(String::class.java))
+            KeyCode.fromKeyName(p.string)
     }
 }

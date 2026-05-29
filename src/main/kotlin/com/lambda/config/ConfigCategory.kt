@@ -89,7 +89,7 @@ abstract class ConfigCategory : Loadable {
             .onFailure { primaryError ->
                 Log.error(primaryError)
 
-                runCatching { loadFromFile(backup) }
+                runCatching { loadFromFile(backup).getOrThrow() }
                     .onSuccess {
                         val message = "$name config category loaded from backup"
                         Log.info(message)

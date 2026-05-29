@@ -25,7 +25,6 @@ import com.lambda.util.ReflectionUtils.className
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
-import tools.jackson.databind.JsonNode
 import tools.jackson.databind.SerializationContext
 
 @Suppress("unused")
@@ -57,7 +56,7 @@ object ClassCollectionSettingTypeAdapter : TypeAdapter<ClassCollectionSetting<*>
 			settingCore: ClassCollectionSetting<*>
 		): ClassCollectionSetting<*> =
 			settingCore.apply {
-				val arrayNode = p.readValueAsTree<JsonNode>()
+				val arrayNode = mapper.readTree(p)
 				if (!arrayNode.isArray) throw JsonParseException("ClassCollectionSetting's serialized value is not an array.")
 				val classNames = mutableListOf<String>()
 				arrayNode.forEach { node ->
