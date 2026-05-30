@@ -27,33 +27,61 @@ import tools.jackson.databind.ValueSerializer
 import tools.jackson.databind.deser.Deserializers
 import tools.jackson.databind.ser.Serializers
 
+/**
+ * A combined [Serializers] and [Deserializers] implementation that resolves
+ * serializers/deserializers by walking the class hierarchy to find the closest
+ * registered supertype. This allows registering a single serializer for a base
+ * class (e.g., [com.lambda.config.SettingCore]) that handles all its subclasses.
+ *
+ * Exact-match serializers registered via [tools.jackson.databind.module.SimpleModule.addSerializer]
+ * take priority over these fallbacks in Jackson's resolution order.
+ */
 class FallbackSerializers(
-	val fallbackSerializers: Map<Class<*>, FallbackSerializer<*>>,
-	val fallbackDeserializers: Map<Class<*>, FallbackDeserializer<*>>
+	private val serializers: Map<Class<*>, FallbackSerializer<*>>,
+	private val deserializers: Map<Class<*>, FallbackDeserializer<*>>
 ) : Serializers, Deserializers {
 	override fun findSerializer(
 		config: SerializationConfig,
 		type: JavaType,
 		beanDescRef: BeanDescription.Supplier,
 		formatOverrides: JsonFormat.Value?
-	): ValueSerializer<*>? {
-		fallbackSerializers.forEach { (baseType, serializer) ->
-			if (baseType.isAssignableFrom(type.rawClass)) return serializer
-		}
-		return null
-	}
+	): ValueSerializer<*>? = findClosestSupertype(type.rawClass, serializers)
 
 	override fun findBeanDeserializer(
 		type: JavaType,
 		config: DeserializationConfig,
 		beanDescRef: BeanDescription.Supplier
-	): ValueDeserializer<*>? {
-		fallbackDeserializers.forEach { (baseType, deserializer) ->
-			if (baseType.isAssignableFrom(type.rawClass)) return deserializer
+	): ValueDeserializer<*>? = findClosestSupertype(type.rawClass, deserializers)
+
+	override fun hasDeserializerFor(config: DeserializationConfig, valueType: Class<*>?): Boolean =
+		valueType != null && findClosestSupertype(valueType, deserializers) != null
+
+	/**
+	 * Finds the value mapped to the closest supertype of [target] among the [candidates] map keys.
+	 * "Closest" is determined by the shortest inheritance distance up the class hierarchy.
+	 */
+	private fun <V> findClosestSupertype(target: Class<*>, candidates: Map<Class<*>, V>): V? {
+		var bestValue: V? = null
+		var bestDistance = Int.MAX_VALUE
+
+		candidates.forEach { (candidateClass, value) ->
+			if (!candidateClass.isAssignableFrom(target)) return@forEach
+			val distance = inheritanceDistance(target, candidateClass)
+			if (distance < bestDistance) {
+				bestDistance = distance
+				bestValue = value
+			}
 		}
-		return null
+		return bestValue
 	}
 
-	override fun hasDeserializerFor(config: DeserializationConfig, valueType: Class<*>?) =
-		valueType != null && fallbackDeserializers.any { (baseType, _) -> baseType.isAssignableFrom(valueType) }
+	private fun inheritanceDistance(sub: Class<*>, superClass: Class<*>): Int {
+		var distance = 0
+		var current: Class<*>? = sub
+		while (current != null && current != superClass) {
+			distance++
+			current = current.superclass
+		}
+		return if (current == superClass) distance else Int.MAX_VALUE
+	}
 }

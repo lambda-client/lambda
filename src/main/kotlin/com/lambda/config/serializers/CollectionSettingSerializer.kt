@@ -20,15 +20,15 @@
 package com.lambda.config.serializers
 
 import com.fasterxml.jackson.core.JsonParseException
-import com.lambda.config.Deserializer
-import com.lambda.config.Serializer
+import com.lambda.config.FallbackDeserializer
+import com.lambda.config.FallbackSerializer
 import com.lambda.config.settings.collections.CollectionSetting
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 
-object CollectionSettingSerializer : Serializer<CollectionSetting<*>>(CollectionSetting::class.java) {
+object CollectionSettingSerializer : FallbackSerializer<CollectionSetting<*>>(CollectionSetting::class.java) {
 	override fun serialize(setting: CollectionSetting<*>, gen: JsonGenerator, ctxt: SerializationContext) {
 		if (setting.serialize) mapper.writeValue(gen, setting.coreValue)
 		else {
@@ -41,13 +41,13 @@ object CollectionSettingSerializer : Serializer<CollectionSetting<*>>(Collection
 	}
 }
 
-object CollectionSettingDeserializer : Deserializer<CollectionSetting<*>>(CollectionSetting::class.java) {
+object CollectionSettingDeserializer : FallbackDeserializer<CollectionSetting<*>>(CollectionSetting::class.java) {
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CollectionSetting<*> {
 		throw initFromJsonException("CollectionSetting")
 	}
 
-	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, setting: CollectionSetting<*>): CollectionSetting<*> =
-		setting.apply {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, settingCore: CollectionSetting<*>): CollectionSetting<*> =
+		settingCore.apply {
 			val newValue = mutableListOf<Any>()
 
 			if (serialize) {

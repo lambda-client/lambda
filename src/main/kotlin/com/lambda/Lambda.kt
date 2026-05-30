@@ -62,7 +62,7 @@ object Lambda : ClientModInitializer {
     /**
      * A Jackson [tools.jackson.databind.json.JsonMapper].
      *
-     * We use Jackson over Gson (unlike Minecraft) as it allows for updating existing objects
+     * Jackson is used over Gson (unlike Minecraft) as it allows for updating existing objects
      * rather than creating new instances when deserializing.
      */
     val mapper = jsonMapper {

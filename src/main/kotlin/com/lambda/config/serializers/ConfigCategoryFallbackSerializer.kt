@@ -25,7 +25,7 @@ import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigCategory
 import com.lambda.config.FallbackDeserializer
 import com.lambda.config.FallbackSerializer
-import com.lambda.config.Setting
+import com.lambda.config.SettingCore
 import com.lambda.config.migration.ConfigMigrationHandler
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
@@ -115,7 +115,7 @@ object MultipleFallbackDeserializer : FallbackDeserializer<SettingLayer.Multiple
 
 object SingleFallbackSerializer : FallbackSerializer<SettingLayer.Single<*, *>>(SettingLayer.Single::class.java) {
 	override fun serialize(single: SettingLayer.Single<*, *>, gen: JsonGenerator, ctxt: SerializationContext) {
-		gen.writePOJOProperty(single.name, single.setting)
+		gen.writePOJOProperty(single.name, single.setting.originalCore)
 	}
 }
 
@@ -127,27 +127,27 @@ object SingleFallbackDeserializer : FallbackDeserializer<SettingLayer.Single<*, 
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, single: SettingLayer.Single<*, *>): SettingLayer.Single<*, *> =
 		single.apply {
 			try {
-				mapper.updateValue(setting, mapper.readTree(p))
+				mapper.updateValue(setting.originalCore, mapper.readTree(p))
 			} catch (e: Throwable) {
 				Log.error("Failed to deserialize setting '${name}'", e)
 			}
 		}
 }
 
-object SettingFallbackSerializer : FallbackSerializer<Setting<*, *>>(Setting::class.java) {
-	override fun serialize(setting: Setting<*, *>, gen: JsonGenerator, ctxt: SerializationContext) {
-		gen.writePOJOProperty(setting.name, setting.value)
+object SettingCoreFallbackSerializer : FallbackSerializer<SettingCore<*>>(SettingCore::class.java) {
+	override fun serialize(core: SettingCore<*>, gen: JsonGenerator, ctxt: SerializationContext) {
+		gen.writePOJO(core.coreValue)
 	}
 }
 
-object SettingFallbackDeserializer : FallbackDeserializer<Setting<*, *>>(Setting::class.java) {
-	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Setting<*, *>? {
-		throw initFromJsonException("Setting")
+object SettingCoreFallbackDeserializer : FallbackDeserializer<SettingCore<*>>(SettingCore::class.java) {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): SettingCore<*> {
+		throw initFromJsonException("SettingCore")
 	}
 
-	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, setting: Setting<*, *>) =
-		setting.apply {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, core: SettingCore<*>) =
+		core.apply {
 			@Suppress("unchecked_cast")
-			(this as Setting<*, Any>).core.coreValue = mapper.treeToValue(mapper.readTree(p), value.javaClass)
+			(this as SettingCore<Any>).coreValue = mapper.treeToValue(mapper.readTree(p), coreValue.javaClass)
 		}
 }

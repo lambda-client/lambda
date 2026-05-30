@@ -104,7 +104,7 @@ class Setting<T : SettingCore<R>, R>(
 
 	private val listeners = mutableListOf<ValueListener<R>>()
 
-	val isModified get() = value != core.defaultValue
+	val isModified get() = originalCore.isModified
 
 	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.coreValue
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
@@ -252,6 +252,8 @@ abstract class SettingCore<T>(
 		set(value) {
 			setting.value = value
 		}
+
+	open val isModified get() = coreValue != defaultValue
 
 	/**
 	 * A function invoked to build the core's gui interface.
