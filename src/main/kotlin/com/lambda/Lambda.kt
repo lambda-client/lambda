@@ -45,73 +45,78 @@ import tools.jackson.module.kotlin.jsonMapper
 import tools.jackson.module.kotlin.kotlinModule
 
 object Lambda : ClientModInitializer {
-    const val ModName = "Lambda"
-    const val ModId = "lambda"
-    const val Symbol = "λ"
-    const val AppId = "1221289599427416127"
-    const val RepoUrl = "https://github.com/lambda-client/lambda"
-    val Version: String =
-        FabricLoader.getInstance()
-            .getModContainer("lambda").orElseThrow()
-            .metadata.version.friendlyString
+	const val ModName = "Lambda"
+	const val ModId = "lambda"
+	const val Symbol = "λ"
+	const val AppId = "1221289599427416127"
+	const val RepoUrl = "https://github.com/lambda-client/lambda"
+	val Version: String =
+		FabricLoader.getInstance()
+			.getModContainer("lambda").orElseThrow()
+			.metadata.version.friendlyString
 
-    val Log: Logger = LogManager.getLogger(Symbol)
+	val Log: Logger = LogManager.getLogger(Symbol)
 
-    @JvmStatic
-    val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
+	@JvmStatic
+	val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
-    val isDebug = System.getProperty("lambda.dev") != null
+	val isDebug = System.getProperty("lambda.dev") != null
 
-    /**
-     * A Jackson [tools.jackson.databind.json.JsonMapper].
-     *
-     * Jackson is used over Gson (unlike Minecraft) as it allows for updating existing objects
-     * rather than creating new instances when deserializing.
-     */
-    val mapper = jsonMapper {
-        defaultPrettyPrinter(
-            DefaultPrettyPrinter(
-                Separators.createDefaultInstance().withObjectNameValueSpacing(Separators.Spacing.AFTER)
-            ).apply {
-                val tabIndenter = DefaultIndenter("\t", DefaultIndenter.SYS_LF)
-                indentObjectsWith(tabIndenter)
-                indentArraysWith(tabIndenter)
-            }
-        )
-        enable(SerializationFeature.INDENT_OUTPUT)
-        addModules(
-            object : SimpleModule() {
-                override fun setupModule(context: SetupContext) {
-                    val fallbackSerializers = FallbackSerializers(
-                        getInstances<FallbackSerializer<*>>().associateBy { it.type },
-                        getInstances<FallbackDeserializer<*>>().associateBy { it.type }
-                    )
-                    context.addSerializers(fallbackSerializers)
-                    context.addDeserializers(fallbackSerializers)
-                    super.setupModule(context)
-                }
-            },
-            SimpleModule().apply {
-                getInstances<Serializer<*>>().forEach { it.register() }
-                getInstances<Deserializer<*>>().forEach { it.register() }
-            },
-            kotlinModule { disable(KotlinFeature.SingletonSupport) }
-        )
-    }
+	/**
+	 * A Jackson [tools.jackson.databind.json.JsonMapper].
+	 *
+	 * Jackson is used over Gson (unlike Minecraft) as it allows for updating existing objects
+	 * rather than creating new instances when deserializing.
+	 *
+	 * We use the base Kotlin module with `SingletonSupport` disabled, as it overrides our serialization.
+	 * We also use a simple module for our standard serializers and deserializers.
+	 * Finally, we use a custom module that searches through the supertypes of the given object to find
+	 * the closest related type with a registered serializer or deserializer, depending on the action.
+	 */
+	val mapper = jsonMapper {
+		defaultPrettyPrinter(
+			DefaultPrettyPrinter(
+				Separators.createDefaultInstance().withObjectNameValueSpacing(Separators.Spacing.AFTER)
+			).apply {
+				val tabIndenter = DefaultIndenter("\t", DefaultIndenter.SYS_LF)
+				indentObjectsWith(tabIndenter)
+				indentArraysWith(tabIndenter)
+			}
+		)
+		enable(SerializationFeature.INDENT_OUTPUT)
+		addModules(
+			object : SimpleModule() {
+				override fun setupModule(context: SetupContext) {
+					val fallbackSerializers = FallbackSerializers(
+						getInstances<FallbackSerializer<*>>().associateBy { it.type },
+						getInstances<FallbackDeserializer<*>>().associateBy { it.type }
+					)
+					context.addSerializers(fallbackSerializers)
+					context.addDeserializers(fallbackSerializers)
+					super.setupModule(context)
+				}
+			},
+			SimpleModule().apply {
+				getInstances<Serializer<*>>().forEach { it.register() }
+				getInstances<Deserializer<*>>().forEach { it.register() }
+			},
+			kotlinModule { disable(KotlinFeature.SingletonSupport) }
+		)
+	}
 
-    /**
-     * The configured [TypeFactory] produced by [mapper].
-     */
-    val typeFactory: TypeFactory = mapper.typeFactory
+	/**
+	 * The configured [TypeFactory] produced by [mapper].
+	 */
+	val typeFactory: TypeFactory = mapper.typeFactory
 
-    override fun onInitializeClient() {} // nop
+	override fun onInitializeClient() {} // nop
 
-    init {
-        // We want the opengl context to be created
-        listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
-            Log.info("$ModName $Version initialized in ${Loader.initialize()} ms\n")
-            if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
-            true
-        }
-    }
+	init {
+		// We want the opengl context to be created
+		listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
+			Log.info("$ModName $Version initialized in ${Loader.initialize()} ms\n")
+			if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
+			true
+		}
+	}
 }
