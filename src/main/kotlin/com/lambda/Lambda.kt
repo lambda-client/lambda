@@ -68,11 +68,6 @@ object Lambda : ClientModInitializer {
     val mapper = jsonMapper {
         enable(SerializationFeature.INDENT_OUTPUT)
         addModules(
-	        kotlinModule { disable(KotlinFeature.SingletonSupport) },
-            SimpleModule().apply {
-                getInstances<Serializer<*>>().forEach { it.register() }
-                getInstances<Deserializer<*>>().forEach { it.register() }
-            },
             object : SimpleModule() {
                 override fun setupModule(context: SetupContext) {
                     val fallbackSerializers = FallbackSerializers(
@@ -83,7 +78,12 @@ object Lambda : ClientModInitializer {
                     context.addDeserializers(fallbackSerializers)
                     super.setupModule(context)
                 }
-            }
+            },
+            SimpleModule().apply {
+                getInstances<Serializer<*>>().forEach { it.register() }
+                getInstances<Deserializer<*>>().forEach { it.register() }
+            },
+            kotlinModule { disable(KotlinFeature.SingletonSupport) }
         )
     }
 
