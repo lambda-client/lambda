@@ -34,6 +34,9 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.MinecraftClient
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import tools.jackson.core.util.DefaultIndenter
+import tools.jackson.core.util.DefaultPrettyPrinter
+import tools.jackson.core.util.Separators
 import tools.jackson.databind.SerializationFeature
 import tools.jackson.databind.module.SimpleModule
 import tools.jackson.databind.type.TypeFactory
@@ -66,6 +69,15 @@ object Lambda : ClientModInitializer {
      * rather than creating new instances when deserializing.
      */
     val mapper = jsonMapper {
+        defaultPrettyPrinter(
+            DefaultPrettyPrinter(
+                Separators.createDefaultInstance().withObjectNameValueSpacing(Separators.Spacing.AFTER)
+            ).apply {
+                val tabIndenter = DefaultIndenter("\t", DefaultIndenter.SYS_LF)
+                indentObjectsWith(tabIndenter)
+                indentArraysWith(tabIndenter)
+            }
+        )
         enable(SerializationFeature.INDENT_OUTPUT)
         addModules(
             object : SimpleModule() {

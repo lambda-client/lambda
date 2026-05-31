@@ -52,10 +52,9 @@ open class CollectionSetting<R : Any>(
 ) : SettingCore<MutableCollection<R>>(
 	defaultValue
 ) {
-	override var coreValue
-		get() = super.coreValue
+	override var coreValue: MutableCollection<R> = defaultValue.toMutableList()
 		set(newVal) {
-			super.coreValue = newVal.toMutableList()
+			field = newVal.toMutableList()
 		}
 
     private var searchFilter = ""

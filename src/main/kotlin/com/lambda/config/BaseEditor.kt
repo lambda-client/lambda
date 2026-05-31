@@ -83,7 +83,7 @@ object ConfigEditor {
 	context(_: EditContext)
 	fun <T : Any> SettingProperty<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
 		val delegate = setting
-		TypedEditBuilder(listOf(delegate)).edits(delegate.core)
+		TypedEditBuilder(listOf(delegate)).edits(delegate.originalCore)
 	}
 
 	@SettingEditorDsl
@@ -158,7 +158,7 @@ object ConfigEditor {
 		fun defaultValue(value: T) =
 			settings.forEach {
 				it.value = value
-				it.core.defaultValue = it.value
+				it.originalCore.defaultValue = value
 			}
 	}
 

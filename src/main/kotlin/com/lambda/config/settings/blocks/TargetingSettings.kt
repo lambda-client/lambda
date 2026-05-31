@@ -60,7 +60,7 @@ abstract class TargetingSettings(
 	 */
 	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
     override val targets by c.settingBlock(EntitySelectionSettings(c))
-	    .withEdits(c) { hide(::self, ::blockEntities) }
+	    .withEdits(c) { hide(::self, ::enableBlockEntities, ::blockEntities) }
 
 	/**
 	 * Validates whether a given entity is targetable by the player based on current settings.
