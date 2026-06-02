@@ -22,7 +22,7 @@ package com.lambda.config.serializers
 import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.Deserializer
 import com.lambda.config.Serializer
-import com.lambda.config.SettingCore
+import com.lambda.config.Setting
 import com.lambda.config.settings.collections.ClassCollectionSetting
 import com.lambda.util.ReflectionUtils.className
 import tools.jackson.core.JsonGenerator
@@ -33,7 +33,7 @@ import tools.jackson.databind.SerializationContext
 object ClassCollectionSettingSerializer : Serializer<ClassCollectionSetting<*>>(ClassCollectionSetting::class.java) {
 	override fun serialize(setting: ClassCollectionSetting<*>, gen: JsonGenerator, ctxt: SerializationContext) {
 		gen.writeStartArray()
-		setting.coreValue.forEach { element ->
+		setting.originalCore.value.forEach { element ->
 			gen.writeString(element.className)
 		}
 		gen.writeEndArray()
@@ -45,8 +45,8 @@ object ClassCollectionSettingDeserializer : Deserializer<ClassCollectionSetting<
 		throw initFromJsonException("ClassCollectionSetting")
 	}
 
-	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, settingCore: ClassCollectionSetting<*>): ClassCollectionSetting<*> =
-		settingCore.apply {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, setting: ClassCollectionSetting<*>): ClassCollectionSetting<*> =
+		setting.apply {
 			val arrayNode = mapper.readTree(p)
 			if (!arrayNode.isArray) throw JsonParseException("ClassCollectionSetting's serialized value is not an array.")
 			val classNames = mutableListOf<String>()
@@ -56,8 +56,8 @@ object ClassCollectionSettingDeserializer : Deserializer<ClassCollectionSetting<
 			}
 
 			@Suppress("unchecked_cast")
-			(settingCore as SettingCore<Any>).coreValue = classNames.mapNotNull { className ->
-				settingCore.immutableCollection.find { it.className == className }
+			(setting as Setting<Any>).originalCore.value = classNames.mapNotNull { className ->
+				setting.immutableCollection.find { it.className == className }
 			}
 		}
 }

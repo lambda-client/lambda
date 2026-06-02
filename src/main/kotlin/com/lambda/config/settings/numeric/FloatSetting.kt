@@ -21,7 +21,8 @@ import com.lambda.brigadier.argument.float
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.Setting
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.type.ImInt
@@ -34,33 +35,31 @@ import kotlin.math.roundToInt
  * @see [com.lambda.config.Config]
  */
 class FloatSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, Float>,
+	visibility: () -> Boolean,
 	defaultValue: Float,
 	override var range: ClosedRange<Float>,
 	override var step: Float = 1f,
 	unit: String,
-) : NumericSetting<Float>(
-	defaultValue,
-	range,
-	step,
-	unit
-) {
-	context(setting: Setting<*, Float>)
+) : NumericSetting<Float>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
 	override fun ImGuiBuilder.buildSlider() {
 		val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-		val currentIndex = ((coreValue - range.start) / step).roundToInt()
+		val currentIndex = ((value - range.start) / step).roundToInt()
 		val imInt = ImInt(currentIndex)
-		slider("##${setting.name}", imInt, 0, maxIndex, "") {
-			settingValue = (range.start + imInt.get() * step)
+		slider("##$name", imInt, 0, maxIndex, "") {
+			value = (range.start + imInt.get() * step)
 				.roundToStep(step)
 				.coerceIn(range)
 		}
 	}
 
-	context(setting: Setting<*, Float>)
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-		required(float(setting.name, range.start, range.endInclusive)) { parameter ->
+		required(float(name, range.start, range.endInclusive)) { parameter ->
 			execute {
-				setting.trySetValue(parameter().value())
+				trySetValue(parameter().value())
 			}
 		}
 	}

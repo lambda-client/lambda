@@ -23,6 +23,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -32,20 +34,23 @@ import net.minecraft.command.CommandRegistryAccess
 /**
  * @see [com.lambda.config.Config]
  */
-class CharSetting(defaultValue: Char) : SettingCore<Char>(
-	defaultValue
-) {
-    context(_: Setting<*, Char>)
+class CharSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, Char>,
+	defaultValue: Char,
+	visibility: () -> Boolean
+) : Setting<Char>(name, description, SettingCore(defaultValue), config, layer, visibility) {
 	override fun ImGuiBuilder.buildLayout() {}
 
-	context(setting: Setting<*, Char>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(setting.name)) { parameter ->
-            executeWithResult {
-                val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
-                setting.trySetValue(char)
-                return@executeWithResult success()
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(word(name)) { parameter ->
+			executeWithResult {
+				val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Can't parse char type")
+				trySetValue(char)
+				return@executeWithResult success()
+			}
+		}
+	}
 }

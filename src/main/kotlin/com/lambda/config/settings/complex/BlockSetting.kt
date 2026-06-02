@@ -21,6 +21,8 @@ import com.lambda.brigadier.argument.blockState
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -28,21 +30,21 @@ import com.lambda.util.extension.CommandBuilder
 import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
 
-/**
- * @see [com.lambda.config.Config]
- */
-class BlockSetting(defaultValue: Block) : SettingCore<Block>(
-	defaultValue
-) {
-	context(_: Setting<*, Block>)
-    override fun ImGuiBuilder.buildLayout() {}
+class BlockSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, Block>,
+	visibility: () -> Boolean,
+	defaultValue: Block
+) : Setting<Block>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+	override fun ImGuiBuilder.buildLayout() {}
 
-	context(setting: Setting<*, Block>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(blockState(setting.name, registry)) { argument ->
-            execute {
-                setting.trySetValue(argument().value().blockState.block)
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(blockState(name, registry)) { argument ->
+			execute {
+				trySetValue(argument().value().blockState.block)
+			}
+		}
+	}
 }

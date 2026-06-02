@@ -17,6 +17,8 @@
 
 package com.lambda.config.settings
 
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
@@ -33,81 +35,82 @@ import java.util.*
  * @see [com.lambda.config.Config]
  */
 abstract class NumericSetting<T>(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, T>,
 	defaultValue: T,
+	visibility: () -> Boolean,
 	open var range: ClosedRange<T>,
 	open var step: T,
 	var unit: String
-) : SettingCore<T>(
-	defaultValue
-) where T : Number, T : Comparable<T> {
-	override var coreValue: T
-		get() = super.coreValue
+) : Setting<T>(name, description, SettingCore(defaultValue), config, layer, visibility) where T : Number, T : Comparable<T> {
+	override var value: T
+		get() = super.value
 		set(newVal) {
-			super.coreValue = newVal.coerceIn(range)
+			super.value = newVal.coerceIn(range)
 		}
 
-    private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+	private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
-    override fun toString() = "${formatter.format(coreValue)}$unit"
+	override fun toString() = "${formatter.format(value)}$unit"
 
-    /**
-     * Subclasses must implement this to provide their specific slider widget.
-     */
-    context(_: Setting<*, T>)
-    protected abstract fun ImGuiBuilder.buildSlider()
+	/**
+	 * Subclasses must implement this to provide their specific slider widget.
+	 */
+	protected abstract fun ImGuiBuilder.buildSlider()
 
-	context(setting: Setting<*, T>)
-    override fun ImGuiBuilder.buildLayout() {
-        val showReset = setting.isModified
-        val resetButtonText = "R"
-        val valueString = this@NumericSetting.toString()
+	override fun ImGuiBuilder.buildLayout() {
+		val showReset = isModified
+		val resetButtonText = "R"
+		val valueString = this@NumericSetting.toString()
 
-        buildSlider()
-        lambdaTooltip(setting.description)
+		buildSlider()
+		lambdaTooltip(description)
 
-        val itemRectMin = ImGui.getItemRectMin()
-        val itemRectMax = ImGui.getItemRectMax()
-        val textHeight = ImGui.getTextLineHeight()
-        val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
-        val labelWidth = calcTextSize(setting.name).x
-        val valueWidth = calcTextSize(valueString).x
+		val itemRectMin = ImGui.getItemRectMin()
+		val itemRectMax = ImGui.getItemRectMax()
+		val textHeight = ImGui.getTextLineHeight()
+		val textY = itemRectMin.y + (itemRectMax.y - itemRectMin.y - textHeight) / 2.0f
+		val labelWidth = calcTextSize(name).x
+		val valueWidth = calcTextSize(valueString).x
 
-        val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
-        val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
+		val labelEndPosX = itemRectMin.x + style.framePadding.x * 2 + labelWidth
+		val valueStartPosX = itemRectMax.x - style.framePadding.x * 2 - valueWidth
 
-        windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), setting.name)
-        if (labelEndPosX < valueStartPosX) {
-            windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
-        }
+		windowDrawList.addText(itemRectMin.x + style.framePadding.x * 2, textY, ImGui.getColorU32(ImGuiCol.Text), name)
+		if (labelEndPosX < valueStartPosX) {
+			windowDrawList.addText(valueStartPosX, textY, ImGui.getColorU32(ImGuiCol.Text), valueString)
+		}
 
-        sameLine(0.0f, style.itemSpacing.x)
-        if (showReset) {
-            button("$resetButtonText##${setting.name}") {
-                setting.reset()
-            }
-            onItemHover {
-                tooltip { text("Reset to default") }
-            }
-        } else {
-            dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
-        }
-    }
+		sameLine(0.0f, style.itemSpacing.x)
+		if (showReset) {
+			button("$resetButtonText##$name") {
+				reset()
+			}
+			onItemHover {
+				tooltip { text("Reset to default") }
+			}
+		} else {
+			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
+		}
+	}
 
-    @Suppress("unchecked_cast", "unused")
-    companion object {
-        @SettingEditorDsl
-        fun <T> ConfigEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.range = range }
-        }
+	@Suppress("unchecked_cast", "unused")
+	companion object {
+		@SettingEditorDsl
+		fun <T> ConfigEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+			(settings as Collection<NumericSetting<T>>).forEach { it.range = range }
+		}
 
-        @SettingEditorDsl
-        fun <T> ConfigEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.step = step }
-        }
+		@SettingEditorDsl
+		fun <T> ConfigEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+			(settings as Collection<NumericSetting<T>>).forEach { it.step = step }
+		}
 
-        @SettingEditorDsl
-        fun <T> ConfigEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
-            (settings as Collection<NumericSetting<T>>).forEach { it.unit = unit}
-        }
-    }
+		@SettingEditorDsl
+		fun <T> ConfigEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+			(settings as Collection<NumericSetting<T>>).forEach { it.unit = unit }
+		}
+	}
 }

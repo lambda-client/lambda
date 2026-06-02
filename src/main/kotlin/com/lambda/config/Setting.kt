@@ -89,10 +89,10 @@ import kotlin.reflect.KProperty
  * @property type The type reflection of the setting.
  */
 @Suppress("unused")
-class Setting<T : SettingCore<R>, R>(
+abstract class Setting<T>(
 	override val name: String,
 	override val description: String,
-	var core: T,
+	var core: SettingCore<T>,
 	val config: Config,
 	val layer: SettingLayer.Single<*, *>,
 	var visibility: () -> Boolean
@@ -100,46 +100,59 @@ class Setting<T : SettingCore<R>, R>(
 	val originalCore = core
 	var disabled = { false }
 
-	var value by this
+	open var value by this
 
-	private val listeners = mutableListOf<ValueListener<R>>()
+	val listeners = mutableListOf<ValueListener<T>>()
 
-	val isModified get() = originalCore.isModified
+	open val isModified get() = originalCore.value != originalCore.defaultValue
 
-	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.coreValue
-	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: R) {
-		val oldValue = core.coreValue
-		core.coreValue = value
+	open operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
+	open operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+		val oldValue = originalCore.value
+		originalCore.value = newValue
 		listeners.forEach {
-			if (it.requiresValueChange && oldValue == value) return@forEach
-			it.execute(oldValue, value)
+			if (it.requiresValueChange && oldValue == newValue) return@forEach
+			it.execute(oldValue, newValue)
 		}
 	}
 
 	fun reset(silent: Boolean = false) {
-		if (!silent && value == core.defaultValue) {
+		if (!silent && originalCore.value == originalCore.defaultValue) {
 			ConfigCommand.info(notChangedMessage())
 			return
 		}
-		if (!silent) ConfigCommand.info(resetMessage(value, core.defaultValue))
-		value = core.defaultValue
+		if (!silent) ConfigCommand.info(resetMessage(value, originalCore.defaultValue))
+		value = originalCore.defaultValue
 	}
 
 	fun restoreOriginalCore() {
 		core = originalCore
 	}
 
-	fun ImGuiBuilder.buildLayout() = with(core) { buildLayout() }
-	fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) = with(core) { buildCommand(registry) }
+	abstract fun ImGuiBuilder.buildLayout()
 
-	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
+	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(string("value as JSON")) { value ->
+			executeWithResult {
+				val valueString = value().value()
+				val previous = originalCore.value
+				try {
+					this@Setting.value = mapper.readValue(valueString, this@Setting.value?.javaClass)
+				} catch (_: Throwable) {
+					return@executeWithResult failure("Failed to deserialize $valueString as a ${type::class.simpleName} for $name in ${config.name}.")
+				}
+				ConfigCommand.info(setMessage(previous, originalCore.value))
+				return@executeWithResult success()
+			}
+		}
+	}
 
 	/**
 	 * Will only register changes of the variable, not the content of the variable!
 	 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
 	 */
 	@SettingDsl
-	fun onValueChange(block: SafeContext.(from: R, to: R) -> Unit) = apply {
+	fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(true) { from, to ->
 			runSafe {
 				block(from, to)
@@ -148,12 +161,12 @@ class Setting<T : SettingCore<R>, R>(
 	}
 
 	@SettingDsl
-	fun onValueChangeUnsafe(block: (from: R, to: R) -> Unit) = apply {
+	fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(true, block))
 	}
 
 	@SettingDsl
-	fun onValueSet(block: (from: R, to: R) -> Unit) = apply {
+	fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(false, block))
 	}
 
@@ -162,31 +175,31 @@ class Setting<T : SettingCore<R>, R>(
 		disabled = predicate
 	}
 
-	fun trySetValue(newValue: R) {
-		if (newValue == value) {
+	fun trySetValue(newValue: T) {
+		if (newValue == originalCore.value) {
 			ConfigCommand.info(notChangedMessage())
 		} else {
-			val previous = value
+			val previous = originalCore.value
 			value = newValue
 			ConfigCommand.info(setMessage(previous, newValue))
 		}
 	}
 
-	fun setMessage(previousValue: R, newValue: R) = buildText {
+	fun setMessage(previousValue: T, newValue: T) = buildText {
 		literal("Set ")
 		changedMessage(previousValue, newValue)
 		val commandPath = getConfigCommandPath().joinToString("->", postfix = "->").takeIf { it != "->" } ?: ""
 		clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.commandName} reset ${config.commandName} $commandPath$commandName")) {
 			hoverEvent(HoverEvents.showText(buildText {
 				literal("Click to reset to default value ")
-				highlighted(core.defaultValue.toString())
+				highlighted(originalCore.defaultValue.toString())
 			})) {
 				highlighted(" [Reset]")
 			}
 		}
 	}
 
-	private fun resetMessage(previousValue: R, newValue: R) = buildText {
+	private fun resetMessage(previousValue: T, newValue: T) = buildText {
 		literal("Reset ")
 		changedMessage(previousValue, newValue)
 	}
@@ -195,11 +208,11 @@ class Setting<T : SettingCore<R>, R>(
 		literal("No changes made to ")
 		highlighted(name)
 		literal(" as it is already set to ")
-		highlighted(value.toString())
+		highlighted(originalCore.value.toString())
 		literal(".")
 	}
 
-	private fun TextBuilder.changedMessage(previousValue: R, newValue: R) {
+	private fun TextBuilder.changedMessage(previousValue: T, newValue: T) {
 		highlighted(config.name)
 		literal(" > ")
 		highlighted(name)
@@ -230,57 +243,14 @@ class Setting<T : SettingCore<R>, R>(
 		}.asReversed()
 
 	override fun toString() = "Setting $name: $value"
+
+	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 }
 
-abstract class SettingCore<T>(
-	var defaultValue: T
-) {
-	/**
-	 * The core value. Setting this variable bypasses all setting callbacks for value changes and is only used
-	 * by the serialization logic when loading from the config files. This isn't considered changing the setting, rather
-	 * applying its default value. For example, When setting the cores value inside the [buildLayout] or [buildCommand] methods,
-	 * the [settingValue] should be used so the appropriate callbacks are invoked.
-	 */
-	open var coreValue = defaultValue
-
-	/**
-	 * A wrapper for the [coreValue] used to invoke the [setting]'s value-change callbacks
-	 */
-	context(setting: Setting<*, T>)
-	protected var settingValue
-		get() = coreValue
-		set(value) {
-			setting.value = value
-		}
-
-	open val isModified get() = coreValue != defaultValue
-
-	/**
-	 * A function invoked to build the core's gui interface.
-	 */
-	context(setting: Setting<*, T>)
-	abstract fun ImGuiBuilder.buildLayout()
-
-	/**
-	 * Builds the core's command using the [com.lambda.brigadier.BrigadierDsl]
-	 */
-	context(setting: Setting<*, T>)
-	open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-		required(string("value as JSON")) { value ->
-			executeWithResult {
-				val valueString = value().value()
-				val previous = settingValue
-				try {
-					settingValue = mapper.readValue(valueString, settingValue?.javaClass)
-				} catch (_: Throwable) {
-					return@executeWithResult failure("Failed to deserialize $valueString as a ${type::class.simpleName} for $name in ${setting.config.name}.")
-				}
-				ConfigCommand.info(setting.setMessage(previous, this@SettingCore.coreValue))
-				return@executeWithResult success()
-			}
-		}
-	}
-}
+class SettingCore<T>(
+	var defaultValue: T,
+	var value: T = defaultValue,
+)
 
 @DslMarker
 annotation class SettingDsl

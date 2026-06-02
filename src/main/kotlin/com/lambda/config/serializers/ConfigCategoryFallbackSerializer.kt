@@ -25,7 +25,7 @@ import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigCategory
 import com.lambda.config.FallbackDeserializer
 import com.lambda.config.FallbackSerializer
-import com.lambda.config.SettingCore
+import com.lambda.config.Setting
 import com.lambda.config.migration.ConfigMigrationHandler
 import tools.jackson.core.JsonGenerator
 import tools.jackson.core.JsonParser
@@ -134,20 +134,20 @@ object SingleFallbackDeserializer : FallbackDeserializer<SettingLayer.Single<*, 
 		}
 }
 
-object SettingCoreFallbackSerializer : FallbackSerializer<SettingCore<*>>(SettingCore::class.java) {
-	override fun serialize(core: SettingCore<*>, gen: JsonGenerator, ctxt: SerializationContext) {
-		gen.writePOJO(core.coreValue)
+object SettingCoreFallbackSerializer : FallbackSerializer<Setting<*>>(Setting::class.java) {
+	override fun serialize(setting: Setting<*>, gen: JsonGenerator, ctxt: SerializationContext) {
+		gen.writePOJO(setting.originalCore.value)
 	}
 }
 
-object SettingCoreFallbackDeserializer : FallbackDeserializer<SettingCore<*>>(SettingCore::class.java) {
-	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): SettingCore<*> {
+object SettingCoreFallbackDeserializer : FallbackDeserializer<Setting<*>>(Setting::class.java) {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Setting<*> {
 		throw initFromJsonException("SettingCore")
 	}
 
-	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, core: SettingCore<*>) =
-		core.apply {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, setting: Setting<*>) =
+		setting.apply {
 			@Suppress("unchecked_cast")
-			(this as SettingCore<Any>).coreValue = mapper.treeToValue(mapper.readTree(p), coreValue.javaClass)
+			(this as Setting<Any>).originalCore.value = mapper.treeToValue(mapper.readTree(p), originalCore.value.javaClass)
 		}
 }

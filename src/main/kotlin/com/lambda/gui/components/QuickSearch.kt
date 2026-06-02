@@ -102,7 +102,7 @@ object QuickSearch {
         }
     }
 
-    private class SettingResult(val setting: Setting<*, *>, val config: Config) : SearchResult {
+    private class SettingResult(val setting: Setting<*>, val config: Config) : SearchResult {
         override val breadcrumb: String by lazy { buildSettingBreadcrumb(config.name, setting) }
 
         override fun ImGuiBuilder.buildLayout() {
@@ -300,7 +300,7 @@ object QuickSearch {
         }
     }
 
-    private fun buildSettingBreadcrumb(configName: String, setting: Setting<*, *>): String {
+    private fun buildSettingBreadcrumb(configName: String, setting: Setting<*>): String {
         val path = setting.getConfigCommandPath()
         return if (path.isEmpty()) configName
         else "$configName » ${path.joinToString(" » ")}"

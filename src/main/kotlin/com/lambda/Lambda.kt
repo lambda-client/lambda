@@ -68,7 +68,7 @@ object Lambda : ClientModInitializer {
 	 * Jackson is used over Gson (unlike Minecraft) as it allows for updating existing objects
 	 * rather than creating new instances when deserializing.
 	 *
-	 * We use the base Kotlin module with `SingletonSupport` disabled, as it overrides our serialization.
+	 * We use the base [tools.jackson.module.kotlin.KotlinModule] with `SingletonSupport` disabled, as it overrides our serialization.
 	 * We also use a simple module for our standard serializers and deserializers.
 	 * Finally, we use a custom module that searches through the supertypes of the given object to find
 	 * the closest related type with a registered serializer or deserializer, depending on the action.

@@ -22,6 +22,8 @@ import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -32,37 +34,37 @@ import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
-/**
- * @see [com.lambda.config.Config]
- */
-class BlockPosSetting(defaultValue: BlockPos) : SettingCore<BlockPos>(
-	defaultValue
-) {
-	context(setting: Setting<*, BlockPos>)
+class BlockPosSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, BlockPos>,
+	visibility: () -> Boolean,
+	defaultValue: BlockPos
+) : Setting<BlockPos>(name, description, SettingCore(defaultValue), config, layer, visibility) {
 	override fun ImGuiBuilder.buildLayout() {
-		button("Set##${setting.name}") {
+		button("Set##$name") {
 			mc.crosshairTarget?.blockResult?.blockPos?.let {
-				settingValue = it
+				value = it
 			} ?: info("No block under crosshair")
 		}
 		lambdaTooltip("Set the coordinates to the block you are currently looking at")
 		sameLine()
-		treeNode(setting.name, id = setting.name) {
-			inputVec3i("##${setting.name}", settingValue) { settingValue = it.blockPos }
+		treeNode(name, id = name) {
+			inputVec3i("##$name", value) { value = it.blockPos }
 		}
-		lambdaTooltip(setting.description)
+		lambdaTooltip(description)
 	}
 
-	context(setting: Setting<*, BlockPos>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(integer("X", -30000000, 30000000)) { x ->
-            required(integer("Y", -64, 319)) { y ->
-                required(integer("Z", -30000000, 30000000)) { z ->
-                    execute {
-                        setting.trySetValue(BlockPos(x().value(), y().value(), z().value()))
-                    }
-                }
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(integer("X", -30000000, 30000000)) { x ->
+			required(integer("Y", -64, 319)) { y ->
+				required(integer("Z", -30000000, 30000000)) { z ->
+					execute {
+						trySetValue(BlockPos(x().value(), y().value(), z().value()))
+					}
+				}
+			}
+		}
+	}
 }

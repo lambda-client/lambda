@@ -67,15 +67,15 @@ abstract class Config(
 	final override val name: String,
 	configCategory: ConfigCategory
 ) : Nameable {
-    internal val settingLayers = SettingLayer.Root()
+	internal val settingLayers = SettingLayer.Root()
 	internal val settingBlockLayers = BlockLayer.Root()
-    private val registrationQueue = ArrayDeque<LayerSpecInfo>()
+	private val registrationQueue = ArrayDeque<LayerSpecInfo>()
 
-    init {
-        if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists.")
-        enqueueProperties(this::class, emptyList(), emptyList())
-        configCategory.configs.add(this)
-    }
+	init {
+		if (configs.any { it.name == name }) throw IllegalStateException("Configs with name $name already exists.")
+		enqueueProperties(this::class, emptyList(), emptyList())
+		configCategory.configs.add(this)
+	}
 
 	private fun enqueueProperties(klass: KClass<*>, outerPath: List<SettingLayerSpec>, outerBlockPath: List<Int>) {
 		var childBlockIndex = 0
@@ -163,205 +163,201 @@ abstract class Config(
 	}
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Boolean,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, BooleanSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Boolean,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> BooleanSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun <T : Enum<T>> setting(
-        name: String,
-        defaultValue: T,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description,EnumSetting(defaultValue), visibility)
+	fun <T : Enum<T>> setting(
+		name: String,
+		defaultValue: T,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> EnumSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Char,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, CharSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Char,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> CharSetting(name, description, this, layer, defaultValue, visibility) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: String,
-        multiline: Boolean = false,
-        flags: Int = ImGuiInputTextFlags.None,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, StringSetting(defaultValue, multiline, flags), visibility)
+	fun setting(
+		name: String,
+		defaultValue: String,
+		multiline: Boolean = false,
+		flags: Int = ImGuiInputTextFlags.None,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
 
 	@SettingDsl
 	@JvmName("collectionSetting1")
-    fun setting(
-        name: String,
-        defaultValue: Collection<Block>,
-        immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, BlockCollectionSetting(immutableCollection, defaultValue.toMutableList()), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Collection<Block>,
+		immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
 	@SettingDsl
 	@JvmName("collectionSetting2")
-    fun setting(
-        name: String,
-        defaultValue: Collection<Item>,
-        immutableCollection: Collection<Item> = Registries.ITEM.toList(),
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, ItemCollectionSetting(immutableCollection, defaultValue.toMutableList()), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Collection<Item>,
+		immutableCollection: Collection<Item> = Registries.ITEM.toList(),
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> ItemCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
 	@SettingDsl
 	@JvmName("collectionSetting3")
-    inline fun <reified T : Any> setting(
-        name: String,
-        defaultValue: Collection<T>,
-        immutableList: Collection<T> = defaultValue,
-        description: String = "",
-        displayClassName: Boolean = false,
-        serialize: Boolean = false,
-        noinline visibility: () -> Boolean = { true },
-    ) = setting(
-	    name,
-	    description,
-        if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-        else CollectionSetting(defaultValue.toMutableList(), immutableList, typeFactory.constructCollectionType(Collection::class.java, T::class.java), serialize),
-	    visibility
-	)
+	inline fun <reified T : Any> setting(
+		name: String,
+		defaultValue: Collection<T>,
+		immutableList: Collection<T> = defaultValue,
+		description: String = "",
+		displayClassName: Boolean = false,
+		serialize: Boolean = false,
+		noinline visibility: () -> Boolean = { true },
+	) = setting { layer ->
+		if (displayClassName)
+			ClassCollectionSetting(name, description, this, layer, visibility, immutableList, defaultValue.toMutableList())
+		else
+			CollectionSetting(name, description, this, layer, visibility, defaultValue.toMutableList(), immutableList, typeFactory.constructCollectionType(Collection::class.java, T::class.java), serialize)
+	}
 
 	@SettingDsl
-    // ToDo: Actually implement maps
 	inline fun <reified K : Any, reified V : Any> setting(
-        name: String,
-        defaultValue: Map<K, V>,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
-    ) = setting(
-	    name,
-	    description,
-	    MapSetting(
-		    defaultValue.toMutableMap(),
-		    typeFactory.constructMapType(MutableMap::class.java, K::class.java, V::class.java)
-		),
-		visibility
-	)
+		name: String,
+		defaultValue: Map<K, V>,
+		description: String = "",
+		noinline visibility: () -> Boolean = { true },
+	) = setting { layer ->
+		MapSetting(
+			name, description, this, layer, visibility,
+			defaultValue.toMutableMap(),
+			typeFactory.constructMapType(MutableMap::class.java, K::class.java, V::class.java)
+		)
+	}
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Double,
-        range: ClosedRange<Double>,
-        step: Double = 1.0,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, DoubleSetting(defaultValue, range, step, unit), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Double,
+		range: ClosedRange<Double>,
+		step: Double = 1.0,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> DoubleSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Float,
-        range: ClosedRange<Float>,
-        step: Float = 1f,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, FloatSetting(defaultValue, range, step, unit), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Float,
+		range: ClosedRange<Float>,
+		step: Float = 1f,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> FloatSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Int,
-        range: ClosedRange<Int>,
-        step: Int = 1,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, IntegerSetting(defaultValue, range, step, unit), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Int,
+		range: ClosedRange<Int>,
+		step: Int = 1,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> IntegerSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Long,
-        range: ClosedRange<Long>,
-        step: Long = 1,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, LongSetting(defaultValue, range, step, unit), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Long,
+		range: ClosedRange<Long>,
+		step: Long = 1,
+		description: String = "",
+		unit: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> LongSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Bind,
-        description: String = "",
-        alwaysListening: Boolean = false,
-        screenCheck: Boolean = true,
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Bind,
+		description: String = "",
+		alwaysListening: Boolean = false,
+		screenCheck: Boolean = true,
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: KeyCode,
-        description: String = "",
-        alwaysListening: Boolean = false,
-        screenCheck: Boolean = true,
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, KeybindSetting(defaultValue, this as? Muteable, alwaysListening, screenCheck), visibility)
+	fun setting(
+		name: String,
+		defaultValue: KeyCode,
+		description: String = "",
+		alwaysListening: Boolean = false,
+		screenCheck: Boolean = true,
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Color,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, ColorSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Color,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Vec3d,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, Vec3dSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Vec3d,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> Vec3dSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: BlockPos.Mutable,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, BlockPosSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: BlockPos.Mutable,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: BlockPos,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, BlockPosSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: BlockPos,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: Block,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = setting(name, description, BlockSetting(defaultValue), visibility)
+	fun setting(
+		name: String,
+		defaultValue: Block,
+		description: String = "",
+		visibility: () -> Boolean = { true },
+	) = setting { layer -> BlockSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
-    fun setting(
-        name: String,
-        defaultValue: () -> Unit,
-        description: String = "",
-        visibility: () -> Boolean = { true }
-    ) = setting(name, description, FunctionSetting(defaultValue), visibility)
+	fun <T : () -> R, R> setting(
+		name: String,
+		defaultValue: T,
+		description: String = "",
+		visibility: () -> Boolean = { true }
+	) = setting { layer -> FunctionSetting(name, description, defaultValue, this, layer, visibility) }
 
 	@SettingDsl
 	fun <T : SettingBlock> settingBlock(settingBlock: T): SettingBlockWrapper<T> =
@@ -387,7 +383,7 @@ abstract class Config(
 			}
 
 	@PublishedApi
-	internal fun <T : SettingCore<R>, R : Any> setting(name: String, description: String, settingCore: T, visibility: () -> Boolean): Setting<T, R> {
+	internal fun <T : Setting<R>, R> setting(settingSupplier: (single: SettingLayer.Single<T, R>) -> T): T {
 		val layerSpecInfo = try {
 			registrationQueue.removeFirst()
 		} catch (_: NoSuchElementException) {
@@ -421,9 +417,8 @@ abstract class Config(
 			}
 		}
 
-		if (currentSettingLayer.layers.any {
-			it.name == name
-		}) throw IllegalStateException("Duplicate layer name ('$name') within ${currentSettingLayer.name}")
+		if (currentSettingLayer.layers.any { it.name == name })
+			throw IllegalStateException("Duplicate layer name ('$name') within ${currentSettingLayer.name}")
 
 		var currentBlockLayer: BlockLayer = settingBlockLayers
 		layerSpecInfo.settingBlockSpecs.forEach { index ->
@@ -436,15 +431,7 @@ abstract class Config(
 			}
 		}
 
-		val layer = SettingLayer.Single(
-			name,
-			currentSettingLayer,
-			currentBlockLayer,
-			description,
-			settingCore,
-			this@Config,
-			visibility
-		)
+		val layer = SettingLayer.Single(currentSettingLayer, currentBlockLayer, settingSupplier)
 		currentSettingLayer.layers.add(layer)
 		currentBlockLayer.settingLayers.add(layer)
 		return layer.setting
@@ -459,44 +446,41 @@ abstract class Config(
 		val name: String
 		val parent: SettingLayer?
 
-	    sealed class Multiple(
-		    override val name: String,
-		    val multipleType: MultipleLayerType,
-		    val layers: MutableList<SettingLayer>,
-		    override val parent: Multiple?
-	    ) : SettingLayer, Nameable
+		sealed class Multiple(
+			override val name: String,
+			val multipleType: MultipleLayerType,
+			val layers: MutableList<SettingLayer>,
+			override val parent: Multiple?
+		) : SettingLayer, Nameable
 
-	    class Root : Multiple(
-		    "Root",
-		    MultipleLayerType.Root,
-		    mutableListOf(),
-		    null
-	    )
+		class Root : Multiple(
+			"Root",
+			MultipleLayerType.Root,
+			mutableListOf(),
+			null
+		)
 
-	    class Tab(
-		    name: String,
-		    layers: MutableList<SettingLayer>,
-		    parent: Multiple
-	    ) : Multiple(name, MultipleLayerType.Tab, layers, parent)
+		class Tab(
+			name: String,
+			layers: MutableList<SettingLayer>,
+			parent: Multiple
+		) : Multiple(name, MultipleLayerType.Tab, layers, parent)
 
-	    class Group(
-		    name: String,
-		    layers: MutableList<SettingLayer>,
-		    parent: Multiple
-	    ) : Multiple(name, MultipleLayerType.Group, layers, parent)
+		class Group(
+			name: String,
+			layers: MutableList<SettingLayer>,
+			parent: Multiple
+		) : Multiple(name, MultipleLayerType.Group, layers, parent)
 
-        class Single<T : SettingCore<R>, R : Any>(
-	        override val name: String,
-	        override val parent: Multiple,
-	        val blockLayer: BlockLayer,
-	        description: String,
-	        settingCore: T,
-	        config: Config,
-	        visibility: () -> Boolean,
+		class Single<T : Setting<R>, R>(
+			override val parent: Multiple,
+			val blockLayer: BlockLayer,
+			settingSupplier: (Single<T, R>) -> T
 		) : SettingLayer {
-			val setting = Setting(name, description, settingCore, config, this, visibility)
-        }
-    }
+			val setting = settingSupplier(this)
+			override val name = setting.name
+		}
+	}
 
 	sealed class BlockLayer {
 		open val parent: BlockLayer? = null
@@ -510,7 +494,7 @@ abstract class Config(
 		class Block(
 			override val parent: BlockLayer?
 		) : BlockLayer() {
-			var settingBlock: SettingBlockWrapper<*>? = null
+			lateinit var settingBlock: SettingBlockWrapper<*>
 		}
 	}
 

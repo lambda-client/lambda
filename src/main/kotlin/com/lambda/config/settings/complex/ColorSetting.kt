@@ -22,6 +22,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -29,19 +31,19 @@ import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
 
-/**
- * @see [com.lambda.config.Config]
- */
-class ColorSetting(defaultValue: Color) : SettingCore<Color>(
-	defaultValue
-) {
-    context(setting: Setting<*, Color>)
-	override fun ImGuiBuilder.buildLayout() {
-        colorEdit(setting.name, setting::value)
-        lambdaTooltip(setting.description)
+class ColorSetting(
+    name: String,
+    description: String,
+    config: Config,
+    layer: SettingLayer.Single<*, Color>,
+    visibility: () -> Boolean,
+    defaultValue: Color
+) : Setting<Color>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+    override fun ImGuiBuilder.buildLayout() {
+        colorEdit(name, ::value)
+        lambdaTooltip(description)
     }
 
-	context(setting: Setting<*, Color>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("Red", 0, 255)) { red ->
             required(integer("Green", 0, 255)) { green ->
@@ -49,7 +51,7 @@ class ColorSetting(defaultValue: Color) : SettingCore<Color>(
                     optional(integer("Alpha", 0, 255)) { alpha ->
                         execute {
                             val alphaValue = alpha?.let { it().value() } ?: 255
-                            setting.trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
+                            trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
                         }
                     }
                 }

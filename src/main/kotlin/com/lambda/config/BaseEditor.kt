@@ -56,7 +56,7 @@ object ConfigEditor {
 	@SettingEditorDsl
 	context(editContext: EditContext.ConfigEditContext)
 	fun forEachSetting(block: BasicEditBuilder.() -> Unit) {
-		val settings = mutableListOf<Setting<*, *>>()
+		val settings = mutableListOf<Setting<*>>()
 		editContext.c.forEachSetting { _, single -> settings.add(single.setting) }
 		BasicEditBuilder(settings).apply(block)
 	}
@@ -69,7 +69,7 @@ object ConfigEditor {
 	@SettingEditorDsl
 	context(editContext: EditContext.BlockEditContext)
 	fun forEachSetting(block: BasicEditBuilder.() -> Unit) {
-		val settings = mutableListOf<Setting<*, *>>()
+		val settings = mutableListOf<Setting<*>>()
 		editContext.c.forEachSettingBlock(editContext.block.layer) { _, single -> settings.add(single.setting) }
 		BasicEditBuilder(settings).apply(block)
 	}
@@ -81,9 +81,8 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(_: EditContext)
-	fun <T : Any> SettingProperty<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
-		val delegate = setting
-		TypedEditBuilder(listOf(delegate)).edits(delegate.originalCore)
+	fun <T : Any> SettingProperty<T>.edit(edits: TypedEditBuilder<T>.() -> Unit) {
+		TypedEditBuilder(listOf(setting)).edits()
 	}
 
 	@SettingEditorDsl
@@ -129,7 +128,7 @@ object ConfigEditor {
 	}
 
 	open class BasicEditBuilder internal constructor(
-		open val settings: Collection<Setting<*, *>>
+		open val settings: Collection<Setting<*>>
 	) {
 		@SettingEditorDsl
 		fun hide() {
@@ -152,12 +151,12 @@ object ConfigEditor {
 	}
 
 	class TypedEditBuilder<T : Any> internal constructor(
-		override val settings: Collection<Setting<SettingCore<T>, T>>
+		override val settings: Collection<Setting<T>>
 	) : BasicEditBuilder(settings) {
 		@SettingEditorDsl
 		fun defaultValue(value: T) =
 			settings.forEach {
-				it.value = value
+				it.originalCore.value = value
 				it.originalCore.defaultValue = value
 			}
 	}
@@ -195,7 +194,7 @@ object ConfigEditor {
 		}
 
 	private val <T : Any> SettingProperty<T>.setting
-		get() = this.delegate as? Setting<SettingCore<T>, T>
+		get() = this.delegate as? Setting<T>
 			?: throw IllegalStateException("Setting delegate did not match the given type")
 
 	private val <T : SettingBlock> SettingBlockProperty<T>.settingBlock

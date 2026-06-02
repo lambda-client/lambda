@@ -17,6 +17,8 @@
 
 package com.lambda.config.settings.collections
 
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
@@ -45,46 +47,49 @@ import tools.jackson.databind.JavaType
  * @see [com.lambda.config.Config]
  */
 open class CollectionSetting<R : Any>(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, MutableCollection<R>>,
+	visibility: () -> Boolean,
 	defaultValue: MutableCollection<R>,
 	var immutableCollection: Collection<R>,
 	val type: JavaType,
 	val serialize: Boolean,
-) : SettingCore<MutableCollection<R>>(
-	defaultValue
-) {
-	override var coreValue: MutableCollection<R> = defaultValue.toMutableList()
+) : Setting<MutableCollection<R>>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+	override var value: MutableCollection<R>
+		get() = super.value
 		set(newVal) {
-			field = newVal.toMutableList()
+			super.value = newVal.toMutableList()
 		}
 
-    private var searchFilter = ""
+	private var searchFilter = ""
 
-    val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
-    val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
-	override val isModified get() = coreValue.size != defaultValue.size || defaultValue.any { !coreValue.contains(it) }
+	override val isModified: Boolean
+		get() = value.size != immutableCollection.size || immutableCollection.any { !value.contains(it) }
 
-	context(_: Setting<*, MutableCollection<R>>)
-    override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
 
-	context(setting: Setting<*, MutableCollection<R>>)
 	fun ImGuiBuilder.buildDualPane(itemName: String, toString: (R) -> String) {
-		val text = if (settingValue.size == 1) itemName else "${itemName}s"
-		val popupId = "##${setting.name}-collection-popup"
+		val text = if (value.size == 1) itemName else "${itemName}s"
+		val popupId = "##$name-collection-popup"
 
-		button("${setting.name}: ${settingValue.size} $text") {
+		button("$name: ${value.size} $text") {
 			ImGui.openPopup(popupId)
 		}
 
 		ImGui.setNextWindowSizeConstraints(500f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
 		popupContextItem(popupId, ImGuiPopupFlags.None) {
-			inputText("##${setting.name}-SearchBox", ::searchFilter)
+			inputText("##$name-SearchBox", ::searchFilter)
 
 			val q = searchFilter.trim()
 			val filteredDeselected = immutableCollection
-				.filter { item -> !settingValue.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
+				.filter { item -> !value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
 			val filteredSelected = immutableCollection
-				.filter { item -> settingValue.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
+				.filter { item -> value.contains(item) && (q.isEmpty() || toString(item).contains(q, ignoreCase = true)) }
 
 			val availableWidth = getContentRegionAvail().x
 			val swapButtonWidth = 30f
@@ -94,7 +99,7 @@ open class CollectionSetting<R : Any>(
 			group {
 				textDisabled("Deselected (${filteredDeselected.size})")
 				child(
-					strId = "##${setting.name}-Deselected",
+					strId = "##$name-Deselected",
 					width = paneWidth,
 					height = paneHeight,
 					childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
@@ -106,7 +111,7 @@ open class CollectionSetting<R : Any>(
 								label = toString(v),
 								flags = DontClosePopups
 							) {
-								settingValue.add(v)
+								value.add(v)
 								runSafe { selectListeners.forEach { listener -> listener(v) } }
 							}
 						}
@@ -120,17 +125,17 @@ open class CollectionSetting<R : Any>(
 			group {
 				cursorPosY += paneHeight / 2f
 				button("<>", swapButtonWidth) {
-					val currentlySelected = settingValue.toList()
+					val currentlySelected = value.toList()
 					val allItems = immutableCollection.toList()
-					settingValue.clear()
+					value.clear()
 					allItems.forEach { item ->
 						if (!currentlySelected.contains(item)) {
-							settingValue.add(item)
+							value.add(item)
 						}
 					}
 					runSafe {
 						currentlySelected.forEach { v -> deselectListeners.forEach { listener -> listener(v) } }
-						settingValue.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
+						value.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
 					}
 				}
 			}
@@ -140,7 +145,7 @@ open class CollectionSetting<R : Any>(
 			group {
 				textDisabled("Selected (${filteredSelected.size})")
 				child(
-					strId = "##${setting.name}-Selected",
+					strId = "##$name-Selected",
 					width = paneWidth,
 					height = paneHeight,
 					childFlags = ImGuiChildFlags.Border or ImGuiChildFlags.ResizeX or ImGuiChildFlags.ResizeY,
@@ -152,7 +157,7 @@ open class CollectionSetting<R : Any>(
 								label = toString(v),
 								flags = DontClosePopups
 							) {
-								settingValue.remove(v)
+								value.remove(v)
 								runSafe { deselectListeners.forEach { listener -> listener(v) } }
 							}
 						}
@@ -166,19 +171,17 @@ open class CollectionSetting<R : Any>(
 	@Suppress("unused")
 	companion object {
 		@SettingDsl
-		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onSelect(block: SafeContext.(R) -> Unit) = apply {
-			core.selectListeners.add(block)
-		}
+		fun <T : CollectionSetting<R>, R : Any> T.onSelect(block: SafeContext.(R) -> Unit) =
+			apply { selectListeners.add(block) }
 
 		@SettingDsl
-		fun <T : CollectionSetting<R>, R : Any> Setting<T, MutableCollection<R>>.onDeselect(block: SafeContext.(R) -> Unit) = apply {
-			core.deselectListeners.add(block)
-		}
+		fun <T : CollectionSetting<R>, R : Any> T.onDeselect(block: SafeContext.(R) -> Unit) =
+			apply { deselectListeners.add(block) }
 
 		@Suppress("unchecked_cast")
-        @SettingEditorDsl
-        fun <T : Any> ConfigEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-            (settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
-        }
-    }
+		@SettingEditorDsl
+		fun <T : Any> ConfigEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+			(settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
+		}
+	}
 }

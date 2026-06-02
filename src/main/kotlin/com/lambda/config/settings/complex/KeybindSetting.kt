@@ -26,6 +26,8 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingDsl
@@ -54,15 +56,27 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 class KeybindSetting(
+    name: String,
+    description: String,
+    config: Config,
+    layer: SettingLayer.Single<*, Bind>,
+    visibility: () -> Boolean,
     defaultValue: Bind,
     private val muteable: Muteable?,
     private val alwaysListening: Boolean,
     private val screenCheck: Boolean
-) : SettingCore<Bind>(
-	defaultValue
-), Muteable {
-    constructor(defaultValue: KeyCode, muteable: Muteable?, alwaysListen: Boolean, screenCheck: Boolean)
-            : this(Bind(defaultValue.code, 0, -1), muteable, alwaysListen, screenCheck)
+) : Setting<Bind>(name, description, SettingCore(defaultValue), config, layer, visibility), Muteable {
+    constructor(
+        name: String,
+        description: String,
+        config: Config,
+        layer: SettingLayer.Single<*, Bind>,
+        visibility: () -> Boolean,
+        defaultValue: KeyCode,
+        muteable: Muteable?,
+        alwaysListen: Boolean,
+        screenCheck: Boolean
+    ) : this(name, description, config, layer, visibility, Bind(defaultValue.code, 0, -1), muteable, alwaysListen, screenCheck)
 
     private val pressListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
     private val repeatListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
@@ -81,7 +95,7 @@ class KeybindSetting(
     private fun SafeContext.onButtonEvent(event: ButtonEvent) {
         if (mc.options.commandKey.isPressed ||
             (screenCheck && mc.currentScreen != null) ||
-            !event.satisfies(coreValue)) return
+            !event.satisfies(value)) return
 
         if (event.isPressed) {
             if (event.isRepeated) repeatListeners.forEach { it(event) }
@@ -89,12 +103,11 @@ class KeybindSetting(
         } else if (event.isReleased) releaseListeners.forEach { it(event) }
     }
 
-	context(setting: Setting<*, Bind>)
     override fun ImGuiBuilder.buildLayout() {
-        text(setting.name)
+        text(name)
         sameLine()
 
-        val bind = coreValue
+        val bind = value
         val preview =
             if (listening) "Press any key…"
             else bind.name
@@ -114,7 +127,7 @@ class KeybindSetting(
         }
 
         lambdaTooltip {
-            if (!listening) setting.description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
+            if (!listening) description.ifBlank { "Click to set. Esc cancels. Backspace/Delete unbinds." }
             else "Listening… Press a key to bind. Esc to cancel. Backspace/Delete to unbind."
         }
 
@@ -125,7 +138,7 @@ class KeybindSetting(
         sameLine()
         withId("##Unbind-${this@KeybindSetting.hashCode()}") {
             smallButton("Unbind") {
-                settingValue = Bind.Empty
+                value = Bind.Empty
                 listening = false
             }
         }
@@ -136,7 +149,7 @@ class KeybindSetting(
         if (listening) {
             InputUtils.newMouseEvent()
                 ?.let {
-                    settingValue = Bind(0, it.modifiers, it.button)
+                    value = Bind(0, it.modifiers, it.button)
                     listening = false
                     return
                 }
@@ -149,8 +162,8 @@ class KeybindSetting(
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
                             KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> coreValue = Bind.Empty
-                            else -> coreValue = Bind(it.translated.code, it.modifiers, -1)
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.Empty
+                            else -> value = Bind(it.translated.code, it.modifiers, -1)
                         }
 
                         listening = false
@@ -161,12 +174,11 @@ class KeybindSetting(
         }
     }
 
-	context(setting: Setting<*, Bind>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(setting.name)) { name ->
+        required(word(name)) { nameArg ->
             suggests { _, builder ->
                 KeyCode.entries.forEach { builder.suggest(it.name.capitalize()) }
-                (1..10).forEach { builder.suggest(it) }
+                (1..10).forEach { builder.suggest(it.toString()) }
                 builder.buildFuture()
             }
             optional(boolean("mouse button")) { isMouseButton ->
@@ -175,20 +187,20 @@ class KeybindSetting(
                     var bind = Bind.Empty
                     if (isMouse) {
                         val num = try {
-                            name().value().toInt()
+                            nameArg().value().toInt()
                         } catch (_: NumberFormatException) {
-                            return@executeWithResult failure("${name().value()} doesn't match with a mouse button")
+                            return@executeWithResult failure("${nameArg().value()} doesn't match with a mouse button")
                         }
                         bind = Bind(0, 0, mouse = num)
                     } else {
                         bind = try {
-                            Bind(KeyCode.valueOf(name().value()).code, 0)
+                            Bind(KeyCode.valueOf(nameArg().value()).code, 0)
                         } catch (_: IllegalArgumentException) {
-                            return@executeWithResult failure("${name().value()} doesn't match with a bind")
+                            return@executeWithResult failure("${nameArg().value()} doesn't match with a bind")
                         }
                     }
 
-                    setting.trySetValue(bind)
+                    trySetValue(bind)
                     return@executeWithResult success()
                 }
             }
@@ -198,19 +210,13 @@ class KeybindSetting(
     @Suppress("unused")
     companion object {
         @SettingDsl
-        fun Setting<KeybindSetting, Bind>.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply {
-            core.pressListeners.add(block)
-        }
+        fun KeybindSetting.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply { pressListeners.add(block) }
 
         @SettingDsl
-        fun Setting<KeybindSetting, Bind>.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply {
-            core.repeatListeners.add(block)
-        }
+        fun KeybindSetting.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply { repeatListeners.add(block) }
 
         @SettingDsl
-        fun Setting<KeybindSetting, Bind>.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply {
-            core.releaseListeners.add(block)
-        }
+        fun KeybindSetting.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply { releaseListeners.add(block) }
     }
 }
 

@@ -30,10 +30,10 @@ import tools.jackson.databind.SerializationContext
 
 object CollectionSettingSerializer : FallbackSerializer<CollectionSetting<*>>(CollectionSetting::class.java) {
 	override fun serialize(setting: CollectionSetting<*>, gen: JsonGenerator, ctxt: SerializationContext) {
-		if (setting.serialize) mapper.writeValue(gen, setting.coreValue)
+		if (setting.serialize) mapper.writeValue(gen, setting.originalCore.value)
 		else {
 			gen.writeStartArray()
-			setting.coreValue.forEach { element ->
+			setting.originalCore.value.forEach { element ->
 				gen.writeString(element.toString())
 			}
 			gen.writeEndArray()
@@ -66,6 +66,6 @@ object CollectionSettingDeserializer : FallbackDeserializer<CollectionSetting<*>
 			}
 
 			@Suppress("unchecked_cast")
-			(this as CollectionSetting<Any>).coreValue = newValue
+			(this as CollectionSetting<Any>).originalCore.value = newValue
 		}
 }

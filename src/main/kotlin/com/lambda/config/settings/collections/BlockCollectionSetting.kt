@@ -18,20 +18,30 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
-import com.lambda.config.Setting
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.serializers.BlockSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
 
 class BlockCollectionSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, MutableCollection<Block>>,
+	visibility: () -> Boolean,
 	immutableCollection: Collection<Block>,
 	defaultValue: MutableCollection<Block>,
 ) : CollectionSetting<Block>(
+	name,
+	description,
+	config,
+	layer,
+	visibility,
 	defaultValue,
 	immutableCollection,
 	typeFactory.constructCollectionType(MutableCollection::class.java, Block::class.java),
 	serialize = true,
 ) {
-	context(_: Setting<*, MutableCollection<Block>>)
 	override fun ImGuiBuilder.buildLayout() = buildDualPane("block") { BlockSerializer.stringify(it) }
 }

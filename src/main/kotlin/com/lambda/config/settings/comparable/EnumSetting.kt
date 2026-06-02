@@ -23,6 +23,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -32,44 +34,44 @@ import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.extension.displayValue
 import net.minecraft.command.CommandRegistryAccess
 
-/**
- * @see [com.lambda.config.Config]
- */
-class EnumSetting<T : Enum<T>>(defaultValue: T) : SettingCore<T>(
-	defaultValue
-) {
-    context(setting: Setting<*, T>)
+class EnumSetting<T : Enum<T>>(
+    name: String,
+    description: String,
+    config: Config,
+    layer: SettingLayer.Single<*, T>,
+    visibility: () -> Boolean,
+    defaultValue: T
+) : Setting<T>(name, description, SettingCore(defaultValue), config, layer, visibility) {
     override fun ImGuiBuilder.buildLayout() {
-        val values = settingValue.enumValues
-        val currentDisplay = settingValue.displayValue
-        val currentIndex = settingValue.ordinal
+        val values = value.enumValues
+        val currentDisplay = value.displayValue
+        val currentIndex = value.ordinal
 
-        combo("##${setting.name}", preview = "${setting.name}: $currentDisplay") {
+        combo("##$name", preview = "$name: $currentDisplay") {
             values.forEachIndexed { idx, v ->
                 val isSelected = idx == currentIndex
 
                 selectable(v.displayValue, isSelected) {
-                    if (!isSelected) settingValue = values[idx % values.size]
+                    if (!isSelected) value = values[idx % values.size]
                 }
 
                 (v as? Describable)?.let { lambdaTooltip(it.description) }
             }
         }
 
-        lambdaTooltip(setting.description)
+        lambdaTooltip(description)
     }
 
-    context(setting: Setting<*, T>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(word(setting.name)) { parameter ->
+        required(word(name)) { parameter ->
             suggests { _, builder ->
-                settingValue.enumValues.forEach { builder.suggest(it.name.capitalize()) }
+                value.enumValues.forEach { builder.suggest(it.name.capitalize()) }
                 builder.buildFuture()
             }
             executeWithResult {
-                val newValue = settingValue.enumValues.find { it.name.equals(parameter().value(), true) }
+                val newValue = value.enumValues.find { it.name.equals(parameter().value(), true) }
                     ?: return@executeWithResult failure("Invalid value")
-                setting.trySetValue(newValue)
+                trySetValue(newValue)
                 return@executeWithResult success()
             }
         }

@@ -127,7 +127,7 @@ object SettingsWidget {
 	    }
     }
 
-    private fun ImGuiBuilder.drawSetting(setting: Setting<*, *>) {
+    private fun ImGuiBuilder.drawSetting(setting: Setting<*>) {
 	    if (!setting.visibility()) return
 	    if (setting.disabled()) ImGui.beginDisabled()
 	    with(setting) { buildLayout() }

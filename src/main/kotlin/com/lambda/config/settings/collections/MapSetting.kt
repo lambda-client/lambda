@@ -17,20 +17,21 @@
 
 package com.lambda.config.settings.collections
 
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import tools.jackson.databind.JavaType
 
-/**
- * @see [com.lambda.config.Config]
- */
 class MapSetting<K, V>(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, MutableMap<K, V>>,
+	visibility: () -> Boolean,
 	defaultValue: MutableMap<K, V>,
 	val type: JavaType
-) : SettingCore<MutableMap<K, V>>(
-	defaultValue
-) {
-    context(_: Setting<*, MutableMap<K, V>>)
+) : Setting<MutableMap<K, V>>(name, description, SettingCore(defaultValue), config, layer, visibility) {
 	override fun ImGuiBuilder.buildLayout() {}
 }

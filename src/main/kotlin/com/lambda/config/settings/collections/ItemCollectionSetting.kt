@@ -18,20 +18,26 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
-import com.lambda.config.Setting
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.serializers.ItemSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
 
 class ItemCollectionSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, MutableCollection<Item>>,
+	visibility: () -> Boolean,
 	immutableCollection: Collection<Item>,
 	defaultValue: MutableCollection<Item>
 ) : CollectionSetting<Item>(
+	name, description, config, layer, visibility,
 	defaultValue,
 	immutableCollection,
 	typeFactory.constructCollectionType(Collection::class.java, Item::class.java),
 	serialize = true,
 ) {
-	context(_: Setting<*, MutableCollection<Item>>)
 	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemSerializer.stringify(it) }
 }

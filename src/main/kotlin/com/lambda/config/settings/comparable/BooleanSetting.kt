@@ -21,30 +21,32 @@ import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
-/**
- * @see [com.lambda.config.Config]
- */
-class BooleanSetting(defaultValue: Boolean) : SettingCore<Boolean>(
-	defaultValue
-) {
-    context(setting: Setting<*, Boolean>)
+class BooleanSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingLayer.Single<*, Boolean>,
+	visibility: () -> Boolean,
+	defaultValue: Boolean
+) : Setting<Boolean>(name, description, SettingCore(defaultValue), config, layer, visibility) {
 	override fun ImGuiBuilder.buildLayout() {
-        checkbox(setting.name, setting::value)
-        lambdaTooltip(setting.description)
-    }
+		checkbox(name, ::value)
+		lambdaTooltip(description)
+	}
 
-	context(setting: Setting<*, Boolean>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(boolean(setting.name)) { parameter ->
-            execute {
-                setting.trySetValue(parameter().value())
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(boolean(name)) { parameter ->
+			execute {
+				trySetValue(parameter().value())
+			}
+		}
+	}
 }

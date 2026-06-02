@@ -17,16 +17,22 @@
 
 package com.lambda.config.settings
 
+import com.lambda.config.Config
+import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.gui.dsl.ImGuiBuilder
 
-open class FunctionSetting<T>(defaultValue: () -> T) : SettingCore<() -> T>(
-	defaultValue
-) {
-    context(setting: Setting<*, () -> T>)
+class FunctionSetting<T : () -> R, R>(
+	name: String,
+	description: String,
+	defaultValue: T,
+	config: Config,
+	layer: SettingLayer.Single<FunctionSetting<T, R>, T>,
+	visibility: () -> Boolean
+) : Setting<T>(name, description, SettingCore(defaultValue), config, layer, visibility) {
 	override fun ImGuiBuilder.buildLayout() {
-        button(setting.name) { coreValue() }
-        lambdaTooltip(setting.description)
+        button(name) { value() }
+        lambdaTooltip(description)
     }
 }
