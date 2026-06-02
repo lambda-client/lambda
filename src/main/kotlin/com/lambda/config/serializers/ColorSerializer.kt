@@ -19,7 +19,6 @@
 
 package com.lambda.config.serializers
 
-import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.Deserializer
 import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
@@ -43,7 +42,7 @@ object ColorDeserializer : Deserializer<Color>(Color::class.java) {
         return when (color.size) {
             3 -> Color(color[0].toInt(), color[1].toInt(), color[2].toInt())
             4 -> Color(color[0].toInt(), color[1].toInt(), color[2].toInt(), color[3].toInt())
-            else -> throw JsonParseException("Invalid color format")
+            else -> throw IllegalStateException("Invalid color format")
         }
     }
 }

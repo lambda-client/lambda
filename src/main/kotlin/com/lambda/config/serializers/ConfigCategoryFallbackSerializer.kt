@@ -115,7 +115,7 @@ object MultipleFallbackDeserializer : FallbackDeserializer<SettingLayer.Multiple
 
 object SingleFallbackSerializer : FallbackSerializer<SettingLayer.Single<*, *>>(SettingLayer.Single::class.java) {
 	override fun serialize(single: SettingLayer.Single<*, *>, gen: JsonGenerator, ctxt: SerializationContext) {
-		gen.writePOJOProperty(single.name, single.setting.originalCore)
+		gen.writePOJOProperty(single.name, single.setting)
 	}
 }
 
@@ -127,20 +127,20 @@ object SingleFallbackDeserializer : FallbackDeserializer<SettingLayer.Single<*, 
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, single: SettingLayer.Single<*, *>): SettingLayer.Single<*, *> =
 		single.apply {
 			try {
-				mapper.updateValue(setting.originalCore, mapper.readTree(p))
+				mapper.updateValue(setting, mapper.readTree(p))
 			} catch (e: Throwable) {
 				Log.error("Failed to deserialize setting '${name}'", e)
 			}
 		}
 }
 
-object SettingCoreFallbackSerializer : FallbackSerializer<Setting<*>>(Setting::class.java) {
+object SettingFallbackSerializer : FallbackSerializer<Setting<*>>(Setting::class.java) {
 	override fun serialize(setting: Setting<*>, gen: JsonGenerator, ctxt: SerializationContext) {
 		gen.writePOJO(setting.originalCore.value)
 	}
 }
 
-object SettingCoreFallbackDeserializer : FallbackDeserializer<Setting<*>>(Setting::class.java) {
+object SettingFallbackDeserializer : FallbackDeserializer<Setting<*>>(Setting::class.java) {
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Setting<*> {
 		throw initFromJsonException("SettingCore")
 	}

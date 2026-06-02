@@ -168,7 +168,7 @@ abstract class Config(
 		defaultValue: Boolean,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> BooleanSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> BooleanSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun <T : Enum<T>> setting(
@@ -176,7 +176,7 @@ abstract class Config(
 		defaultValue: T,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> EnumSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> EnumSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun setting(
@@ -184,7 +184,7 @@ abstract class Config(
 		defaultValue: Char,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> CharSetting(name, description, this, layer, defaultValue, visibility) }
+	) = setting(name) { layer -> CharSetting(name, description, this, layer, defaultValue, visibility) }
 
 	@SettingDsl
 	fun setting(
@@ -194,7 +194,7 @@ abstract class Config(
 		flags: Int = ImGuiInputTextFlags.None,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
+	) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
 
 	@SettingDsl
 	@JvmName("collectionSetting1")
@@ -204,7 +204,7 @@ abstract class Config(
 		immutableCollection: Collection<Block> = Registries.BLOCK.toList(),
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
+	) = setting(name) { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
 	@SettingDsl
 	@JvmName("collectionSetting2")
@@ -214,7 +214,7 @@ abstract class Config(
 		immutableCollection: Collection<Item> = Registries.ITEM.toList(),
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> ItemCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
+	) = setting(name) { layer -> ItemCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
 	@SettingDsl
 	@JvmName("collectionSetting3")
@@ -226,7 +226,7 @@ abstract class Config(
 		displayClassName: Boolean = false,
 		serialize: Boolean = false,
 		noinline visibility: () -> Boolean = { true },
-	) = setting { layer ->
+	) = setting(name) { layer ->
 		if (displayClassName)
 			ClassCollectionSetting(name, description, this, layer, visibility, immutableList, defaultValue.toMutableList())
 		else
@@ -239,7 +239,7 @@ abstract class Config(
 		defaultValue: Map<K, V>,
 		description: String = "",
 		noinline visibility: () -> Boolean = { true },
-	) = setting { layer ->
+	) = setting(name) { layer ->
 		MapSetting(
 			name, description, this, layer, visibility,
 			defaultValue.toMutableMap(),
@@ -256,7 +256,7 @@ abstract class Config(
 		description: String = "",
 		unit: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> DoubleSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
+	) = setting(name) { layer -> DoubleSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
 	fun setting(
@@ -267,7 +267,7 @@ abstract class Config(
 		description: String = "",
 		unit: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> FloatSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
+	) = setting(name) { layer -> FloatSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
 	fun setting(
@@ -278,7 +278,7 @@ abstract class Config(
 		description: String = "",
 		unit: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> IntegerSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
+	) = setting(name) { layer -> IntegerSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
 	fun setting(
@@ -289,7 +289,7 @@ abstract class Config(
 		description: String = "",
 		unit: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> LongSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
+	) = setting(name) { layer -> LongSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
 	@SettingDsl
 	fun setting(
@@ -299,7 +299,7 @@ abstract class Config(
 		alwaysListening: Boolean = false,
 		screenCheck: Boolean = true,
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
+	) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
 
 	@SettingDsl
 	fun setting(
@@ -309,7 +309,7 @@ abstract class Config(
 		alwaysListening: Boolean = false,
 		screenCheck: Boolean = true,
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
+	) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
 
 	@SettingDsl
 	fun setting(
@@ -317,7 +317,7 @@ abstract class Config(
 		defaultValue: Color,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun setting(
@@ -325,7 +325,7 @@ abstract class Config(
 		defaultValue: Vec3d,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> Vec3dSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> Vec3dSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun setting(
@@ -333,7 +333,7 @@ abstract class Config(
 		defaultValue: BlockPos.Mutable,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun setting(
@@ -341,7 +341,7 @@ abstract class Config(
 		defaultValue: BlockPos,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun setting(
@@ -349,7 +349,7 @@ abstract class Config(
 		defaultValue: Block,
 		description: String = "",
 		visibility: () -> Boolean = { true },
-	) = setting { layer -> BlockSetting(name, description, this, layer, visibility, defaultValue) }
+	) = setting(name) { layer -> BlockSetting(name, description, this, layer, visibility, defaultValue) }
 
 	@SettingDsl
 	fun <T : () -> R, R> setting(
@@ -357,7 +357,7 @@ abstract class Config(
 		defaultValue: T,
 		description: String = "",
 		visibility: () -> Boolean = { true }
-	) = setting { layer -> FunctionSetting(name, description, defaultValue, this, layer, visibility) }
+	) = setting(name) { layer -> FunctionSetting(name, description, defaultValue, this, layer, visibility) }
 
 	@SettingDsl
 	fun <T : SettingBlock> settingBlock(settingBlock: T): SettingBlockWrapper<T> =
@@ -383,11 +383,11 @@ abstract class Config(
 			}
 
 	@PublishedApi
-	internal fun <T : Setting<R>, R> setting(settingSupplier: (single: SettingLayer.Single<T, R>) -> T): T {
+	internal fun <T : Setting<R>, R> setting(name: String, settingSupplier: (single: SettingLayer.Single<T, R>) -> T): T {
 		val layerSpecInfo = try {
 			registrationQueue.removeFirst()
 		} catch (_: NoSuchElementException) {
-			throw IllegalStateException("Setting registered from an unknown location for config '$name'. Layer path was not queued before setting initialization")
+			throw IllegalStateException("Setting registered from an unknown location for config '${this@Config.name}'. Layer path was not queued before setting initialization")
 		}
 
 		var currentSettingLayer: SettingLayer.Multiple = settingLayers

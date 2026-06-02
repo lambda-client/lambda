@@ -17,7 +17,7 @@
 
 package com.lambda.config.settings.complex
 
-import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIncludeProperties
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.boolean
@@ -221,12 +221,12 @@ class KeybindSetting(
 }
 
 @Suppress("unused")
+@JsonIncludeProperties("key", "modifiers", "mouse")
 data class Bind(
     val key: Int,
     val modifiers: Int,
     val mouse: Int = -1,
 ) {
-    @JsonIgnore
     val trueMods = buildList {
         if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
         if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)

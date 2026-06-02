@@ -56,7 +56,7 @@ open class CollectionSetting<R : Any>(
 	var immutableCollection: Collection<R>,
 	val type: JavaType,
 	val serialize: Boolean,
-) : Setting<MutableCollection<R>>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<MutableCollection<R>>(name, description, SettingCore(defaultValue, defaultValue.toMutableList()), config, layer, visibility) {
 	override var value: MutableCollection<R>
 		get() = super.value
 		set(newVal) {
@@ -69,7 +69,9 @@ open class CollectionSetting<R : Any>(
 	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
 
 	override val isModified: Boolean
-		get() = value.size != immutableCollection.size || immutableCollection.any { !value.contains(it) }
+		get() = with(originalCore) {
+			value.size != defaultValue.size || defaultValue.any { !value.contains(it) }
+		}
 
 	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { it.toString() }
 

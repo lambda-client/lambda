@@ -19,7 +19,6 @@
 
 package com.lambda.config.serializers
 
-import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.Deserializer
 import com.lambda.config.Serializer
 import com.lambda.config.Setting
@@ -48,10 +47,10 @@ object ClassCollectionSettingDeserializer : Deserializer<ClassCollectionSetting<
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext, setting: ClassCollectionSetting<*>): ClassCollectionSetting<*> =
 		setting.apply {
 			val arrayNode = mapper.readTree(p)
-			if (!arrayNode.isArray) throw JsonParseException("ClassCollectionSetting's serialized value is not an array.")
+			if (!arrayNode.isArray) throw IllegalStateException("ClassCollectionSetting's serialized value is not an array.")
 			val classNames = mutableListOf<String>()
 			arrayNode.forEach { node ->
-				if (!node.isString) throw JsonParseException("ClassCollectionSetting's serialized array contains a non-string value.")
+				if (!node.isString) throw IllegalStateException("ClassCollectionSetting's serialized array contains a non-string value.")
 				if (node.isString) classNames.add(node.stringValue())
 			}
 

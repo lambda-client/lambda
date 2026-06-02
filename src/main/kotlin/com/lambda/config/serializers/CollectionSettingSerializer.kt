@@ -19,7 +19,6 @@
 
 package com.lambda.config.serializers
 
-import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.FallbackDeserializer
 import com.lambda.config.FallbackSerializer
 import com.lambda.config.settings.collections.CollectionSetting
@@ -56,9 +55,9 @@ object CollectionSettingDeserializer : FallbackDeserializer<CollectionSetting<*>
 				newValue.addAll(deserialized)
 			} else {
 				val node = mapper.readTree(p)
-				if (!node.isArray) throw JsonParseException("CollectionSetting's serialized value is not an array.")
+				if (!node.isArray) throw IllegalStateException("CollectionSetting's serialized value is not an array.")
 				node.forEach { element ->
-					if (!element.isString) throw JsonParseException("CollectionSetting's serialized array contains a non-string value. A CollectionSetting's JSON array must only contain strings if CollectionSetting.serialize is false.")
+					if (!element.isString) throw IllegalStateException("CollectionSetting's serialized array contains a non-string value. A CollectionSetting's JSON array must only contain strings if CollectionSetting.serialize is false.")
 					val str = element.stringValue()
 					val matched = immutableCollection.find { it.toString() == str }
 					if (matched != null) newValue.add(matched)

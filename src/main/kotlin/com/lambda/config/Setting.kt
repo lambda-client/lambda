@@ -106,8 +106,8 @@ abstract class Setting<T>(
 
 	open val isModified get() = originalCore.value != originalCore.defaultValue
 
-	open operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
-	open operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
+	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
 		val oldValue = originalCore.value
 		originalCore.value = newValue
 		listeners.forEach {

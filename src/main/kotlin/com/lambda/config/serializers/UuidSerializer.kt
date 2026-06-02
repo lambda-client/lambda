@@ -19,7 +19,6 @@
 
 package com.lambda.config.serializers
 
-import com.fasterxml.jackson.core.JsonParseException
 import com.lambda.config.Deserializer
 import com.lambda.config.Serializer
 import com.lambda.config.Stringifiable
@@ -44,7 +43,7 @@ object UuidDeserializer : Deserializer<UUID>(UUID::class.java) {
         val rawId = when {
             jsonNode.isString -> jsonNode.stringValue()
             jsonNode.isObject && jsonNode.has("id") -> jsonNode.get("id").stringValue()
-            else -> throw JsonParseException("Cannot deserialize UUID from: $jsonNode")
+            else -> throw IllegalStateException("Cannot deserialize UUID from: $jsonNode")
         }
 
         val parsedId = if (rawId.length == 32)
