@@ -23,8 +23,6 @@ import com.lambda.config.groups.WorldLineSettings
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
 import com.lambda.context.SafeContext
-import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -44,8 +42,6 @@ import com.lambda.util.extension.entityColor
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.toBlockPos
-import io.ktor.util.collections.ConcurrentMap
-import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
