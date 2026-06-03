@@ -73,11 +73,12 @@ object PlayerTrap : Module(
 				val block = player.hotbarAndInventoryStacks.firstOrNull {
 					it.item is BlockItem && blocks.contains(it.item.block)
 				}?.item?.block ?: return@tickingBlueprint emptyMap()
+
 				val targetPlayer = if (self) player
-				else entitySearch<OtherClientPlayerEntity>(
-					buildConfig.blockReach,
-					player.eyePos.flooredBlockPos
-				).firstOrNull { friends || !isFriend(it.gameProfile) } ?: return@tickingBlueprint emptyMap()
+				else entitySearch<OtherClientPlayerEntity>(buildConfig.blockReach, player.eyePos)
+					.firstOrNull { friends || !isFriend(it.gameProfile) }
+					?: return@tickingBlueprint emptyMap()
+
 				getTrapPositions(targetPlayer).associateWith { TargetState.Block(block) }
 			}.build(finishOnDone = false).run()
 		}

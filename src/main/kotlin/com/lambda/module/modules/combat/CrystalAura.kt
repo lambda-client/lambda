@@ -56,6 +56,7 @@ import com.lambda.util.math.plus
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import com.lambda.util.math.toFastVec
+import com.lambda.util.math.vec3d
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
@@ -357,7 +358,7 @@ object CrystalAura : Module(
                 // Exclude blocks blocked by entities
                 val crystalBox = pos.crystalBox
 
-                val entitiesNearby = fastEntitySearch<Entity>(3.5, pos.toFastVec())
+                val entitiesNearby = fastEntitySearch<Entity>(3.5, pos.vec3d)
                 val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
                 val otherEntities = entitiesNearby - crystals + player
 
