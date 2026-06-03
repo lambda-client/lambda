@@ -101,13 +101,14 @@ object Communication {
         logLevel: LogLevel = LogLevel.Info,
         source: String = "",
         textSource: Text = Text.empty(),
+        inGameOverlay: Boolean = false
     ) {
         buildText {
             text(this@log.source(logLevel, source, textSource))
             text(message)
         }.let { log ->
             runSafeGameScheduled {
-                player.sendMessage(log, false)
+                player.sendMessage(log, inGameOverlay)
             }
         }
     }

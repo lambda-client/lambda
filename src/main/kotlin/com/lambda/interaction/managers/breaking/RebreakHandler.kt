@@ -23,6 +23,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.managers.PacketLimitHandler
+import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.managers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
@@ -105,19 +107,21 @@ object RebreakHandler {
 	 * @return A [RebreakResult] to indicate how the update has been processed.
 	 */
 	context(_: SafeContext)
-	fun handleUpdate(ctx: BreakContext, breakRequest: BreakRequest) = breakRequest.runSafeAutomated {
+	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.runSafeAutomated {
 		val reBreak = this@RebreakHandler.rebreak ?: return@runSafeAutomated RebreakResult.Ignored
 
-		reBreak.updateInfo(ctx, breakRequest)
+		reBreak.updateInfo(ctx, request)
 
 		val context = reBreak.context
 		val breakDelta = context.cachedState.calcBreakDelta(context.blockPos)
 		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
 		return@runSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
+			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runSafeAutomated RebreakResult.Ignored
 			if (breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
 				destroyBlock(reBreak)
 			}
 			reBreak.stopBreakPacket()
+			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			if (breakConfig.swing.isEnabled()) {
 				swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			}

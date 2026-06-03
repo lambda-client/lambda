@@ -22,9 +22,9 @@ import com.lambda.config.SettingGroup
 import com.lambda.util.NamedEnum
 
 class FormatterSettings(
-    prefix: String = "",
     c: Configurable,
-	vararg baseGroup: NamedEnum,
+    vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : FormatterConfig, SettingGroup(c) {
     val localeEnum by c.setting("${prefix}Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers", visibility = visibility).group(*baseGroup).index()

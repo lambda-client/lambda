@@ -22,6 +22,7 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.graphics.util.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.setAlpha
@@ -46,8 +47,8 @@ object RenderTest : Module(
     private val filledColor = outlineColor.setAlpha(0.2)
 
     init {
-        immediateRenderer("RenderTest Immediate Renderer") { safeContext ->
-            with(safeContext) {
+        immediateRenderer("RenderTest Immediate Renderer") {
+            runSafe {
                 entitySearch<LivingEntity>(8.0)
                     .forEach { entity ->
                         box(entity.dynamicBox.box(mc.tickDelta) ?: return@forEach) {
@@ -57,9 +58,11 @@ object RenderTest : Module(
             }
         }
 
-        tickedRenderer("RenderTest Ticked Renderer") { safeContext ->
-            box(Box.of(safeContext.player.pos, 0.3, 0.3, 0.3)) {
-                colors(filledColor, outlineColor)
+        tickedRenderer("RenderTest Ticked Renderer") {
+            runSafe {
+                box(Box.of(player.pos, 0.3, 0.3, 0.3)) {
+                    colors(filledColor, outlineColor)
+                }
             }
         }
     }

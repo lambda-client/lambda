@@ -25,14 +25,14 @@ import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.util.stream
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
-import imgui.ImFontConfig
-import imgui.ImFontGlyphRangesBuilder
-import imgui.ImGui
-import imgui.ImGuiIO
-import imgui.extension.implot.ImPlot
-import imgui.flag.ImGuiConfigFlags
-import imgui.gl3.ImGuiImplGl3
-import imgui.glfw.ImGuiImplGlfw
+import com.lambda.imgui.ImFontConfig
+import com.lambda.imgui.ImFontGlyphRangesBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.ImGuiIO
+import com.lambda.imgui.extension.implot.ImPlot
+import com.lambda.imgui.flag.ImGuiConfigFlags
+import com.lambda.imgui.gl3.ImGuiImplGl3
+import com.lambda.imgui.glfw.ImGuiImplGlfw
 import net.minecraft.client.gl.GlBackend
 import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL30.GL_FRAMEBUFFER
@@ -68,6 +68,7 @@ object DearImGui : Loadable {
         with(io.fonts) {
             clear()
             addFontFromMemoryTTF("fonts/FiraSans-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
+            addFontFromMemoryTTF("fonts/FiraSans-Bold.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
             addFontFromMemoryTTF("fonts/MinecraftDefault-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
             build()
         }
@@ -115,9 +116,9 @@ object DearImGui : Loadable {
         ClickGuiLayout.applyStyle(lastScale)
         ImGui.newFrame()
 
-        GuiEvent.NewFrame.post()
+        GuiEvent.NewImguiFrame.post()
         ImGui.render()
-        GuiEvent.EndFrame.post()
+        GuiEvent.EndImguiFrame.post()
 
         implGl3.renderDrawData(ImGui.getDrawData())
 

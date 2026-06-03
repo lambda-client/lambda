@@ -25,20 +25,16 @@ import com.lambda.friend.FriendManager.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module
-import com.lambda.module.modules.render.ExtraTab.friendColor
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.EntityUtils.EntityGroup
-import com.lambda.util.EntityUtils.entityGroup
+import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.prevPos
 import com.lambda.util.extension.tickDelta
-import com.lambda.util.math.dist
 import com.lambda.util.math.lerp
 import net.minecraft.client.network.OtherClientPlayerEntity
 import org.joml.Vector2f
 import org.joml.component1
 import org.joml.component2
-import java.awt.Color
 
 object Tracers : Module(
 	name = "Tracers",
@@ -59,23 +55,23 @@ object Tracers : Module(
 
 	private val target by setting("Target", TracerMode.Feet).group(Group.General)
 	private val stem by setting("Stem", true).group(Group.General)
-	private val entitySettings = EntitySelectionSettings(c = this, baseGroup = arrayOf(Group.Entities)).apply {
+	private val entitySettings = EntitySelectionSettings(this, Group.Entities).apply {
 		applyEdits {
 			hide(::self, ::blockEntities)
 		}
 	}
-	private val entityColors = EntityColorSettings(c = this, baseGroup = arrayOf(Group.Colors))
+	private val entityColors = EntityColorSettings(this, Group.Colors)
 
-	private val friendLineConfig = ScreenLineSettings("Friend ", this, Group.LineStyle, LineGroup.Friend).apply {
+	private val friendLineConfig = ScreenLineSettings(this, Group.LineStyle, LineGroup.Friend, prefix = "Friend ").apply {
 		applyEdits { hide(::startColor, ::endColor) }
 	}
-	private val otherLineConfig = ScreenLineSettings("Other ", this, Group.LineStyle, LineGroup.Other).apply {
+	private val otherLineConfig = ScreenLineSettings(this, Group.LineStyle, LineGroup.Other, prefix = "Other ").apply {
 		applyEdits { hide(::startColor, ::endColor) }
 	}
 
 	init {
-		immediateRenderer("Tracers Immediate Renderer") { safeContext ->
-			with(safeContext) {
+		immediateRenderer("Tracers Immediate Renderer") {
+			runSafe {
 				world.entities.forEach { entity ->
 					if (entity === player) return@forEach
 					if (!entitySettings.isSelected(entity)) return@forEach

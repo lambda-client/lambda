@@ -27,9 +27,9 @@ import com.lambda.interaction.managers.interacting.InteractConfig.InteractConfir
 import com.lambda.util.NamedEnum
 
 class InteractSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), InteractConfig {
     override val rotate by c.setting("${prefix}Rotate For Interact", true, "Rotate towards block while placing", visibility = visibility).group(*baseGroup).index()
@@ -39,7 +39,7 @@ class InteractSettings(
     override val tickStageMask by c.setting("${prefix}Interaction Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which place actions are performed", displayClassName = true, visibility = visibility).group(*baseGroup).index()
     override val interactConfirmationMode by c.setting("${prefix}Interact Confirmation", InteractConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation", visibility = visibility).group(*baseGroup).index()
     override val interactDelay by c.setting("${prefix}Interact Delay", 0, 0..3, 1, "Tick delay between interacting with another block", visibility = visibility).group(*baseGroup).index()
-    override val interactionsPerTick by c.setting("${prefix}Interactions Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", visibility = visibility).group(*baseGroup).index()
+    override val interactionsPerTick by c.setting("${prefix}Interactions Per Tick", 9, 1..30, 1, "Maximum instant block places per tick", visibility = visibility).group(*baseGroup).index()
     override val swing by c.setting("${prefix}Swing On Interact", true, "Swings the players hand when placing", visibility = visibility).group(*baseGroup).index()
     override val swingType by c.setting("${prefix}Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { visibility() && swing }.group(*baseGroup).index()
     override val sounds by c.setting("${prefix}Place Sounds", true, "Plays the placing sounds", visibility = visibility).group(*baseGroup).index()

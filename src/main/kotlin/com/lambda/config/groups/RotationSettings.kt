@@ -32,9 +32,9 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 class RotationSettings(
-    prefix: String = "",
     c: Configurable,
     vararg baseGroup: NamedEnum,
+    prefix: String = "",
     override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), RotationConfig {
     override var rotationMode by c.setting("${prefix}Mode", RotationMode.Sync, "How the player is being rotated on interaction", visibility = visibility).group(*baseGroup).index()

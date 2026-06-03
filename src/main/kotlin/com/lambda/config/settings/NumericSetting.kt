@@ -23,10 +23,10 @@ import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
 import com.lambda.config.SettingGroupEditor
 import com.lambda.gui.dsl.ImGuiBuilder
-import imgui.ImGui
-import imgui.ImGui.calcTextSize
-import imgui.ImGui.dummy
-import imgui.flag.ImGuiCol
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.ImGui.calcTextSize
+import com.lambda.imgui.ImGui.dummy
+import com.lambda.imgui.flag.ImGuiCol
 import java.text.NumberFormat
 import java.util.*
 

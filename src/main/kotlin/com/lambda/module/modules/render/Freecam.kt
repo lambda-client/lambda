@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
@@ -160,7 +160,8 @@ object Freecam : Module(
 			mc.options.perspective = Perspective.FIRST_PERSON
 
 			// Don't block baritone from working
-			if (!event.input.handledByBaritone) {                // Reset actual input
+			if (!event.input.handledByBaritone) {
+				// Reset actual input
 				event.input.cancel()
 			}
 
@@ -229,6 +230,14 @@ object Freecam : Module(
 		}
 	}
 
+	private fun SafeContext.findFollowTarget(): PlayerEntity? {
+		if (player.gameMode != GameMode.SPECTATOR) {
+			return player
+		}
+		val players = world.players.filter { it !is ClientPlayerEntity }
+		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
+	}
+
 	private enum class FreecamRotationMode(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		None("None", "No rotation changes"),
 		LookAtTarget("Look At Target", "Look at the block or entity under your crosshair"),
@@ -238,13 +247,5 @@ object Freecam : Module(
 	private enum class Mode(override val displayName: String, override val description: String) : NamedEnum, Describable {
 		Free("Free", "Move the camera freely with keyboard input"),
 		FollowPlayer("Follow Player", "Camera follows a player as if attached by an invisible string");
-	}
-
-	private fun SafeContext.findFollowTarget(): PlayerEntity? {
-		if (player.gameMode != GameMode.SPECTATOR) {
-			return player
-		}
-		val players = world.players.filter { it !is ClientPlayerEntity }
-		return players.minByOrNull { it.eyePos.squaredDistanceTo(position) }
 	}
 }

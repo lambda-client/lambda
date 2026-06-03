@@ -37,7 +37,9 @@ import java.util.*
 sealed class WorldEvent {
     // ToDo: Add doc and determine if there's a better place for this event
     // Represents the player joining the world
-    class Join() : Event
+    class Join : Event
+
+    class Leave : Event
 
     // ToDo: Maybe create a network event seal with some s2c events
     sealed class Player {

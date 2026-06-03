@@ -39,6 +39,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import kotlinx.coroutines.runBlocking
+import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
 import java.util.UUID
 
@@ -87,13 +88,12 @@ object FriendCommand : LambdaCommand(
         required(literal("add")) {
             required(string("player name")) { player ->
                 suggests { _, builder ->
-                    mc.networkHandler
+                    val playerNames = mc.networkHandler
                         ?.playerList
-                        ?.filter { it.profile != mc.gameProfile }
                         ?.map { it.profile.name }
-                        ?.forEach { builder.suggest(it) }
+                        ?.toList() ?: emptyList()
 
-                    builder.buildFuture()
+                    suggestMatching(playerNames, builder)
                 }
 
                 executeWithResult {
@@ -102,9 +102,6 @@ object FriendCommand : LambdaCommand(
                     runBlocking {
                         val profile = FriendManager.latestGameProfile(name)
                             ?: return@runBlocking failure("Could not find the player")
-
-                        if (mc.gameProfile.id == profile.id)
-                            return@runBlocking failure("You can't befriend yourself")
 
                         if (FriendManager.isFriend(profile.id))
                             return@runBlocking failure("This player is already in your friend list")
@@ -121,20 +118,16 @@ object FriendCommand : LambdaCommand(
         required(literal("add-uuid")) {
             required(uuid("player uuid")) { player ->
                 suggests { _, builder ->
-                    mc.networkHandler
+                    val uuids = mc.networkHandler
                         ?.playerList
-                        ?.filter { it.profile != mc.gameProfile }
-                        ?.map { it.profile.id }
-                        ?.forEach { builder.suggest(it.toString()) }
+                        ?.map { it.profile.id.toString() }
+                        ?.toList() ?: emptyList()
 
-                    builder.buildFuture()
+                    suggestMatching(uuids, builder)
                 }
 
                 executeWithResult {
                     val uuid = player().value()
-
-                    if (mc.gameProfile.id == uuid)
-                        return@executeWithResult failure("You can't befriend yourself")
 
                     if (FriendManager.isFriend(uuid))
                         return@executeWithResult failure("This player is already in your friend list")
@@ -159,11 +152,8 @@ object FriendCommand : LambdaCommand(
         required(literal("remove")) {
             required(string("player name")) { player ->
                 suggests { _, builder ->
-                    FriendManager.friends
-                        .map { FriendManager.friendDisplayName(it) }
-                        .forEach { builder.suggest(it) }
-
-                    builder.buildFuture()
+                    val playerNames = FriendManager.friends.map { FriendManager.friendDisplayName(it) }
+                    suggestMatching(playerNames, builder)
                 }
 
                 executeWithResult {
@@ -189,6 +179,15 @@ object FriendCommand : LambdaCommand(
 
         required(literal("remove-uuid")) {
             required(uuid("player uuid")) { player ->
+                suggests { _, builder ->
+                    val uuids = mc.networkHandler
+                        ?.playerList
+                        ?.map { it.profile.id.toString() }
+                        ?.toList() ?: emptyList()
+
+                    suggestMatching(uuids, builder)
+                }
+
                 executeWithResult {
                     val uuid = player().value()
 

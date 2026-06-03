@@ -36,6 +36,7 @@ import com.lambda.gui.snap.SnapManager.drawDragGrid
 import com.lambda.gui.snap.SnapManager.drawSnapLines
 import com.lambda.gui.snap.SnapManager.updateDragAndSnapping
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import com.lambda.sound.LambdaSound
@@ -44,12 +45,12 @@ import com.lambda.util.Describable
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
-import imgui.ImGui
-import imgui.extension.implot.ImPlot
-import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiCond
-import imgui.flag.ImGuiHoveredFlags
-import imgui.flag.ImGuiWindowFlags
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.extension.implot.ImPlot
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiCond
+import com.lambda.imgui.flag.ImGuiHoveredFlags
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import net.minecraft.SharedConstants
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
@@ -243,7 +244,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	val modalWindowDimBg by setting("Modal Window Dim Background", Color(35, 0, 14, 90)).group(Group.Colors)
 
 	init {
-		listen<GuiEvent.NewFrame> {
+		listen<GuiEvent.NewImguiFrame> {
 			if (!open) return@listen
 
 			buildLayout {
@@ -362,7 +363,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 			LambdaScreen.close()
 		} else {
 			if (!mc.currentScreen.hasInput) {
-				LambdaSound.ModuleOn.play()
+				if (Client.clientSounds) LambdaSound.ModuleOn.play()
 				mc.setScreen(LambdaScreen)
 				open = true
 				frameCount = 0
@@ -372,7 +373,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	}
 
 	fun close() {
-		LambdaSound.ModuleOff.play()
+		if (Client.clientSounds) LambdaSound.ModuleOff.play()
 		open = false
 	}
 

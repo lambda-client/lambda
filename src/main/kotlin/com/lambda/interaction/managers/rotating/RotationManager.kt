@@ -76,6 +76,8 @@ object RotationManager : Manager<RotationRequest>(
 
 	private val IRotationRequest.overridable get() = age >= 1
 
+	private var pauseVanillaOverrides = false
+
 	override fun load(): String {
 		super.load()
 
@@ -121,11 +123,11 @@ object RotationManager : Manager<RotationRequest>(
         }
 
         // Override user interactions with max priority
-        listen<PlayerEvent.Attack.Block>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
-        listen<PlayerEvent.Attack.Entity>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
-        listen<PlayerEvent.Interact.Item>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
-        listen<PlayerEvent.Interact.Block>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
-        listen<PlayerEvent.Interact.Entity>({ Int.MAX_VALUE }) { activeRotation = player.rotation }
+        listen<PlayerEvent.Attack.Block>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
+        listen<PlayerEvent.Attack.Entity>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Item>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Block>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Entity>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
 
 		return "Loaded Rotation Manager"
 	}
@@ -177,6 +179,12 @@ object RotationManager : Manager<RotationRequest>(
 	fun setPlayerRotation(rotation: Rotation) {
 		setPlayerYaw(rotation.yaw)
 		setPlayerPitch(rotation.pitch)
+	}
+
+	fun withoutVanillaOverrides(block: () -> Unit) {
+		pauseVanillaOverrides = true
+		block()
+		pauseVanillaOverrides = false
 	}
 
 	/**

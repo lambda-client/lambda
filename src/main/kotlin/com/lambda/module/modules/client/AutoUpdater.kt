@@ -29,8 +29,8 @@ import com.lambda.threading.runIO
 import com.lambda.util.Communication.debug
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
-import imgui.ImGui
-import imgui.flag.ImGuiWindowFlags
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
 import java.net.URI
@@ -83,7 +83,7 @@ object AutoUpdater : Module(
             showInstallModal = false
         }
 
-        listen<GuiEvent.NewFrame>(alwaysListen = true) {
+        listen<GuiEvent.NewImguiFrame>(alwaysListen = true) {
             initializeFirstLaunchStateIfNeeded()
 
             if (showFirstLaunchModal) {

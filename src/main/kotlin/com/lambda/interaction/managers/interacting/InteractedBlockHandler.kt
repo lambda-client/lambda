@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.interacting
 
 import com.lambda.config.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.AutomationConfig.Companion.DEFAULT.verboseDebug
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.PostActionHandler

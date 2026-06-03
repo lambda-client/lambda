@@ -57,7 +57,7 @@ object ChunkedRendererTest : Module(
 	var updated = false
 
 	init {
-		chunkedRenderer("ChunkedRendererTest", depthTest = { false }) { world, pos ->
+		chunkedRenderer("ChunkedRendererTest", depthTest = { false }) { pos ->
 			runSafe {
 				if (updated) return@chunkedRenderer
 				if (player.chunkPos != ChunkPos(pos.toBlockPos())) return@chunkedRenderer
@@ -171,8 +171,8 @@ object TickedRendererTest : Module(
 	private val throughWalls by setting("Through Walls", true)
 
 	init {
-		tickedRenderer("TickedRendererTest", depthTest = { !throughWalls }) { safeContext ->
-			with(safeContext) {
+		tickedRenderer("TickedRendererTest", depthTest = { !throughWalls }) {
+			runSafe {
 				val startPos = lerp(mc.tickDelta, player.prevPos, player.pos)
 				lineGradient(
 					startPos,
@@ -277,8 +277,8 @@ object ImmediateRendererTest : Module(
 	private val throughWalls by setting("Through Walls", true)
 
 	init {
-		immediateRenderer("ImmediateRendererTest", depthTest = { !throughWalls }) { safeContext ->
-			with(safeContext) {
+		immediateRenderer("ImmediateRendererTest", depthTest = { !throughWalls }) {
+			runSafe {
 				val startPos = lerp(mc.tickDelta, player.prevPos, player.pos)
 				lineGradient(
 					startPos,

@@ -28,15 +28,18 @@ import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.updateListenerSorting
 import com.lambda.event.Muteable
 import com.lambda.event.OwnerPriority
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.play
@@ -111,6 +114,8 @@ import com.lambda.util.Nameable
  * }
  * ```
  *
+ * When modules are toggled, enabled or disabled, the corresponding [ModuleEvent] is posted to the event bus before the module state is changed.
+ *
  * See [SafeListener] and [UnsafeListener] for more details.
  */
 abstract class Module(
@@ -150,11 +155,8 @@ abstract class Module(
         get() = !isEnabled && !alwaysListening
 
     init {
-        onEnable { LambdaSound.ModuleOn.play() }
-        onDisable { LambdaSound.ModuleOff.play() }
-
-        onEnableUnsafe { LambdaSound.ModuleOn.play() }
-        onDisableUnsafe { LambdaSound.ModuleOff.play() }
+        onEnableUnsafe { if (Client.clientSounds) LambdaSound.ModuleOn.play() }
+        onDisableUnsafe { if (Client.clientSounds) LambdaSound.ModuleOff.play() }
 
         listen<ClientEvent.Shutdown> { if (autoDisable) disable() }
         listen<ClientEvent.Startup> { if (autoDisable) disable() }
@@ -162,15 +164,18 @@ abstract class Module(
     }
 
     fun enable() {
+        ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
     fun disable() {
+        ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
     fun toggle() {
-        isEnabled = !isEnabled
+        ModuleEvent.Toggle(this@Module, !isEnabled).post()
+        if (isEnabled) disable() else enable()
     }
 
     fun onEnable(block: SafeContext.() -> Unit) {

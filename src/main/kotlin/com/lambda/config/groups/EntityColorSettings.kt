@@ -34,9 +34,9 @@ import net.minecraft.entity.Entity
 import java.awt.Color
 
 class EntityColorSettings(
-	prefix: String = "",
 	c: Configurable,
 	vararg baseGroup: NamedEnum,
+	prefix: String = "",
 	override val visibility: () -> Boolean = { true },
 ) : EntityColorsConfig, SettingGroup(c) {
 	override val useNaturalColors by c.setting("${prefix}Use Natural Colors", false, "Uses an average color from the entities texture").group(*baseGroup).index()

@@ -46,7 +46,7 @@ object ChatTimestamp : Module(
 
 	val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val formatter = FormatterSettings(c = this).apply { applyEdits { hide(::localeEnum, ::sep, ::customSep, ::group, ::floatingPrecision); editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) } } }
+	val formatter = FormatterSettings(c = this,).apply { applyEdits { hide(::localeEnum, ::sep, ::customSep, ::group, ::floatingPrecision); editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) } } }
 
 	private val currentTime get() =
 		ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())

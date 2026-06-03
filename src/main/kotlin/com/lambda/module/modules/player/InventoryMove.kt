@@ -49,7 +49,7 @@ object InventoryMove : Module(
 	tag = ModuleTag.PLAYER,
 ) {
 	private val clickGui by setting("ClickGui", false)
-	private val disableSneak by setting("Disable Crouch", false)
+	private val disableSneak by setting("Disable Sneak", false)
 	private val arrowKeys by setting("Arrow Keys", false, "Allows rotating the players camera using the arrow keys")
 	private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick") { arrowKeys }
 	override val rotationConfig = RotationConfig.Instant(RotationMode.Lock)

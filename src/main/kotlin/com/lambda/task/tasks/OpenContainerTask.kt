@@ -27,6 +27,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.TickTimer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.Hand
@@ -39,18 +40,19 @@ class OpenContainerTask @Ta5kBuilder constructor(
     private val waitForSlotLoad: Boolean = true,
     private val sides: Set<Direction> = Direction.entries.toSet()
 ) : Task<ScreenHandler>(), Automated by automated {
-    override val name get() = "${containerState.description(inScope)} at ${blockPos.toShortString()}"
+    override val name get() = "${containerState.description()} at ${blockPos.toShortString()}"
 
     private var screenHandler: ScreenHandler? = null
     private var containerState = State.Scoping
-    private var inScope = 0
+
+    private val retryTimer = TickTimer()
 
     enum class State {
         Pathing, Scoping, Opening, SlotLoading;
 
-        fun description(inScope: Int) = when (this) {
+        fun description() = when (this) {
             Pathing -> "Pathing closer"
-            Scoping -> "Waiting for scope ($inScope)"
+            Scoping -> "Waiting for scope"
             Opening -> "Opening container"
             SlotLoading -> "Waiting for slots to load"
         }
@@ -82,6 +84,15 @@ class OpenContainerTask @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Pre> {
+            if (containerState == State.Opening) {
+                retryTimer.tick()
+                if (retryTimer.hasSurpassed(10)) {
+                    retryTimer.reset()
+                    containerState = State.Scoping
+                }
+                return@listen
+            }
+
             if (containerState != State.Scoping && containerState != State.Pathing) return@listen
 
             val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) }
@@ -93,6 +104,7 @@ class OpenContainerTask @Ta5kBuilder constructor(
             if (interactConfig.rotate && !rotationRequest { rotation(checkedHit.rotation) }.submit().done) return@listen
 
             interaction.interactBlock(player, Hand.MAIN_HAND, checkedHit.hit.blockResult ?: return@listen)
+            player.swingHand(Hand.MAIN_HAND)
 
             containerState = State.Opening
         }

@@ -170,18 +170,6 @@ class BreakSim private constructor(simInfo: SimInfo)
 					hasEnchantment(Enchantments.SILK_TOUCH)
 				}.andIf(breakConfig.forceFortunePickaxe) {
 					hasEnchantment(Enchantments.FORTUNE)
-				}.andIf(!breakConfig.useWoodenTools) {
-					hasTag(WOODEN_TOOL_MATERIALS).not()
-				}.andIf(!breakConfig.useStoneTools) {
-					hasTag(STONE_TOOL_MATERIALS).not()
-				}.andIf(!breakConfig.useIronTools) {
-					hasTag(IRON_TOOL_MATERIALS).not()
-				}.andIf(!breakConfig.useDiamondTools) {
-					hasTag(DIAMOND_TOOL_MATERIALS).not()
-				}.andIf(!breakConfig.useGoldTools) {
-					hasTag(GOLD_TOOL_MATERIALS).not()
-				}.andIf(!breakConfig.useNetheriteTools) {
-					hasTag(NETHERITE_TOOL_MATERIALS).not()
 				}
 		}
 

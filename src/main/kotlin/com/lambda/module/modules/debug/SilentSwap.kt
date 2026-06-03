@@ -35,7 +35,7 @@ object SilentSwap : Module(
         Hotbar("Hotbar")
     }
 
-    override val hotbarConfig = HotbarSettings(c = this, baseGroup = arrayOf(Group.Hotbar))
+    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
 
     init {
         listen<PlayerEvent.Attack.Block> {

@@ -28,5 +28,6 @@ sealed interface InventoryAction {
 	val action: SafeContext.() -> Unit
 
 	class Inventory(override val action: SafeContext.() -> Unit) : InventoryAction
+	class Player(override val action: SafeContext.() -> Unit) : InventoryAction
 	class Other(override val action: SafeContext.() -> Unit) : InventoryAction
 }

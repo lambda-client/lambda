@@ -97,6 +97,26 @@ object ItemUtils {
         Items.BLACK_SHULKER_BOX,
     )
 
+    val bundles = setOf(
+        Items.BUNDLE,
+        Items.WHITE_BUNDLE,
+        Items.ORANGE_BUNDLE,
+        Items.MAGENTA_BUNDLE,
+        Items.LIGHT_BLUE_BUNDLE,
+        Items.YELLOW_BUNDLE,
+        Items.LIME_BUNDLE,
+        Items.PINK_BUNDLE,
+        Items.GRAY_BUNDLE,
+        Items.LIGHT_GRAY_BUNDLE,
+        Items.CYAN_BUNDLE,
+        Items.PURPLE_BUNDLE,
+        Items.BLUE_BUNDLE,
+        Items.BROWN_BUNDLE,
+        Items.GREEN_BUNDLE,
+        Items.RED_BUNDLE,
+        Items.BLACK_BUNDLE
+    )
+
     val chests = setOf(
         Items.CHEST,
         Items.TRAPPED_CHEST,

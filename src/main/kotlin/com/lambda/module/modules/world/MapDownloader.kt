@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.player
+package com.lambda.module.modules.world
 
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -36,7 +36,7 @@ import javax.imageio.ImageIO
 object MapDownloader : Module(
     name = "MapDownloader",
     description = "Save map data to your computer",
-    tag = ModuleTag.PLAYER,
+    tag = ModuleTag.WORLD,
 ) {
     init {
         listen<TickEvent.Pre> {
@@ -67,9 +67,9 @@ object MapDownloader : Module(
                 val index = colors[x + y * 128].toInt()
                 val color = MapColor.getRenderColor(index)
 
-                val b = (color shr 16) and 0xFF
+                val b = (color shr 0) and 0xFF
                 val g = (color shr 8) and 0xFF
-                val r = (color shr 0) and 0xFF
+                val r = (color shr 16) and 0xFF
 
                 val argb = -0x1000000 or (r shl 16) or (g shl 8) or (b shl 0)
                 image.setRGB(x, y, argb)

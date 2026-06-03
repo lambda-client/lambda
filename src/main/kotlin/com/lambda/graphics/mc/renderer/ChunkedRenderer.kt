@@ -22,20 +22,18 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.graphics.text.FontHandler
-import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.math.FastVector
 import com.lambda.util.math.fastVectorOf
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.world.ClientWorld
+import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.chunk.WorldChunk
 import org.joml.Vector3f
@@ -46,8 +44,11 @@ import java.util.concurrent.ConcurrentLinkedDeque
 class ChunkedRenderer(
 	owner: Any,
 	name: String,
-	depthTest: SafeContext.() -> Boolean,
-	private val update: RenderBuilder.(ClientWorld, FastVector) -> Unit
+	private val preChunkBuild: (ChunkPos) -> Unit = {},
+	private val preChunkClear: (ChunkPos) -> Unit = {},
+	depthTest: () -> Boolean,
+	pauseUpdates: () -> Boolean,
+	private val update: RenderBuilder.(FastVector) -> Unit
 ) : AbstractRenderer(name, depthTest) {
 	private val chunkMap = ConcurrentHashMap<Long, ChunkData>()
 
@@ -60,12 +61,10 @@ class ChunkedRenderer(
 	private val rebuildQueue = ConcurrentLinkedDeque<ChunkData>()
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 
-	override val currentFontAtlas: SDFFontAtlas
-		get() = FontHandler.getDefaultFont()
-
 	init {
-		owner.listen<WorldEvent.BlockUpdate.Client> { event ->
+		owner.listenUnsafe<WorldEvent.BlockUpdate.Client> { event ->
 			val pos = event.pos
+			val world = mc.world ?: return@listenUnsafe
 			world.getWorldChunk(pos)?.chunkData?.markDirty()
 
 			val xInChunk = pos.x and 15
@@ -77,36 +76,42 @@ class ChunkedRenderer(
 			if (zInChunk == 15) world.getWorldChunk(pos.south())?.chunkData?.markDirty()
 		}
 
-		owner.listen<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
-		owner.listen<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
-		owner.listen<WorldEvent.Player.Leave> { rebuild() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Load> { event -> event.chunk.chunkData.markDirty() }
+		owner.listenUnsafe<WorldEvent.ChunkEvent.Unload> { chunkMap.remove(it.chunk.chunkKey)?.clearData() }
+		owner.listenUnsafe<WorldEvent.Leave> { clear() }
 
-		owner.listenConcurrently<TickEvent.Pre> {
-			val depth = depthTest()
+		owner.listenConcurrentlyUnsafe<TickEvent.Pre> {
+			if (pauseUpdates()) return@listenConcurrentlyUnsafe
 			val queueSize = rebuildQueue.size
 			val polls = minOf(StyleEditor.rebuildsPerTick, queueSize)
+			val depth = depthTest()
 			repeat(polls) { rebuildQueue.poll()?.rebuild(depth) }
 		}
 
-		owner.listen<TickEvent.Pre> {
+		owner.listenUnsafe<TickEvent.Pre> {
 			val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
 			repeat(polls) { uploadQueue.poll()?.invoke() }
 		}
 
-		owner.listen<RenderEvent.RenderWorld> { render() }
-		owner.listen<RenderEvent.RenderScreen> { renderScreen() }
+		owner.listenUnsafe<RenderEvent.RenderWorld> { render() }
+		owner.listenUnsafe<RenderEvent.RenderScreen> { renderScreen() }
 	}
 
 	private fun getChunkKey(chunkX: Int, chunkZ: Int) =
 		(chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
 
+	context(safeContext: SafeContext)
+	fun rebuildChunk(x: Int, z: Int) {
+		safeContext.world.getChunk(x, z)?.chunkData?.markDirty()
+	}
+
 	fun rebuild() {
 		rebuildQueue.clear()
 		mc.world?.chunkManager?.chunks?.let { chunks ->
-			val chunkCount = chunks.loadedChunkCount
-			(0..chunkCount).forEach { index ->
+			val chunkCount = chunks.chunks.length()
+			(0 until chunkCount).forEach { index ->
 				val chunk = chunks.chunks.get(index) ?: return@forEach
-				chunkMap.putIfAbsent(chunk.chunkKey, chunk.chunkData)
+				chunkMap.putIfAbsent(chunk.chunkKey, ChunkData(chunk))
 			}
 		}
 		rebuildQueue.addAll(chunkMap.values)
@@ -163,11 +168,13 @@ class ChunkedRenderer(
 		fun rebuild(depthTest: Boolean) {
 			val chunkOriginVec = Vec3d(originX, originY, originZ)
 			val scope = RenderBuilder(chunkOriginVec, depthTest = depthTest)
-			
-			for (x in chunk.pos.startX..chunk.pos.endX) {
-				for (z in chunk.pos.startZ..chunk.pos.endZ) {
-					for (y in chunk.bottomY..chunk.height) {
-						update(scope, chunk.world as? ClientWorld ?: continue, fastVectorOf(x, y, z))
+
+			preChunkBuild(chunk.pos)
+
+			(chunk.pos.startX..chunk.pos.endX).forEach { x ->
+				(chunk.pos.startZ..chunk.pos.endZ).forEach { z ->
+					(chunk.bottomY..chunk.height).forEach { y ->
+						update(scope, fastVectorOf(x, y, z))
 					}
 				}
 			}
@@ -175,18 +182,24 @@ class ChunkedRenderer(
 			uploadQueue.add { renderer.upload(scope.collector) }
 		}
 
-		fun clearData() = renderer.clearData()
+		fun clearData() {
+			preChunkClear(chunk.pos)
+			renderer.clearData()
+		}
 	}
 
 	companion object {
 		fun Any.chunkedRenderer(
 			name: String,
-			depthTest: SafeContext.() -> Boolean = { false },
-			update: RenderBuilder.(ClientWorld, FastVector) -> Unit
-		) = ChunkedRenderer(this, name, depthTest, update).also { renderer ->
+			preChunkBuild: (ChunkPos) -> Unit = {},
+			preChunkClear: (ChunkPos) -> Unit = {},
+			depthTest: () -> Boolean = { false },
+			pauseUpdates: () -> Boolean = { false },
+			update: RenderBuilder.(FastVector) -> Unit
+		) = ChunkedRenderer(this, name, preChunkBuild, preChunkClear, depthTest, pauseUpdates, update).also { renderer ->
 			(this as? Module)?.let { module ->
 				module.onEnable { renderer.rebuild() }
-				module.onDisable { renderer.rebuild() }
+				module.onDisable { renderer.clear() }
 			}
 		}
 	}

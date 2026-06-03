@@ -46,7 +46,7 @@ import com.lambda.event.Muteable
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import imgui.flag.ImGuiInputTextFlags
+import com.lambda.imgui.flag.ImGuiInputTextFlags
 import net.minecraft.block.Block
 import net.minecraft.item.Item
 import net.minecraft.registry.Registries
@@ -164,7 +164,7 @@ abstract class Configurable(
 	    name,
 	    description,
         if (displayClassName) ClassCollectionSetting(immutableList, defaultValue.toMutableList())
-                else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
+        else CollectionSetting(defaultValue.toMutableList(), immutableList, TypeToken.getParameterized(Collection::class.java, T::class.java).type, serialize),
 		this,
 	    visibility
 	).register()

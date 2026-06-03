@@ -20,10 +20,14 @@ package com.lambda.interaction.managers.inventory
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.Request
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.player.SlotUtils.clickSlot
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.screen.slot.SlotActionType
+import net.minecraft.screen.sync.ItemStackHash
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -64,6 +68,22 @@ class InventoryRequest private constructor(
 		}
 
 		@InvRequestDsl
+		fun resyncInventory() {
+			InventoryAction.Inventory {
+				connection.sendPacket {
+					val sh = player.currentScreenHandler
+					ClickSlotC2SPacket(
+						sh.syncId,
+						-1, -1, 0,
+						SlotActionType.CLONE,
+						Int2ObjectOpenHashMap<ItemStackHash>(),
+						ItemStackHash.fromItemStack(sh.cursorStack, connection.componentHasher)
+					)
+				}
+			}.addToActions()
+		}
+
+		@InvRequestDsl
 		fun pickFromInventory(slotId: Int) {
 			InventoryAction.Inventory {
 				clickSlot(slotId, player.inventory.selectedSlot, SlotActionType.SWAP)
@@ -77,7 +97,7 @@ class InventoryRequest private constructor(
 
 		@InvRequestDsl
 		fun swapHands() {
-			InventoryAction.Inventory {
+			InventoryAction.Player {
 				val offhandStack = player.getStackInHand(Hand.OFF_HAND)
 				player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
 				player.setStackInHand(Hand.MAIN_HAND, offhandStack)

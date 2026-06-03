@@ -15,6 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task
+package com.lambda.config.configurations
 
-class TaskDecisionTree
+import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
+import java.io.File
+
+
+object FontConfig : Configuration() {
+	override val configName = "font"
+	override val primary: File = FolderRegister.config.resolve("${configName}.json").toFile()
+}

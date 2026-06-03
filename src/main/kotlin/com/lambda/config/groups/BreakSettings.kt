@@ -27,17 +27,18 @@ import com.lambda.interaction.managers.breaking.BreakConfig.AnimationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.managers.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.managers.breaking.BreakConfig.SwingMode
+import com.lambda.interaction.managers.breaking.BreakConfig.WhitelistMode
 import com.lambda.util.NamedEnum
-import net.minecraft.block.Block
+import net.minecraft.registry.Registries
 import java.awt.Color
 
 open class BreakSettings(
-	prefix: String = "",
 	c: Configurable,
 	vararg baseGroup: NamedEnum,
+	prefix: String = "",
 	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c), BreakConfig {
-	private enum class Group(override val displayName: String) : NamedEnum {
+	enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
 		Cosmetic("Cosmetic")
 	}
@@ -74,10 +75,12 @@ open class BreakSettings(
 
 	// Pending / Post
 	override val breakConfirmation by c.setting("${prefix}Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking", visibility = visibility).group(*baseGroup, Group.General).index()
-	override val breaksPerTick by c.setting("${prefix}Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val breaksPerTick by c.setting("${prefix}Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick", visibility = visibility).group(*baseGroup, Group.General).index()
 
 	// Block
-	override val ignoredBlocks by c.setting("${prefix}Ignored Blocks", emptySet<Block>(), description = "Blocks that wont be broken", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val whitelistMode by c.setting("${prefix}Whitelist Mode", WhitelistMode.None, "The type of block selection used", visibility = visibility).group(*baseGroup, Group.General).index()
+	override val whitelist by c.setting("${prefix}Whitelist", mutableSetOf(), Registries.BLOCK.toMutableSet(), "Only these selected blocks are allowed to be broken") { visibility() && whitelistMode == WhitelistMode.Whitelist }.group(*baseGroup, Group.General).index()
+	override val blacklist by c.setting("${prefix}Blacklist", mutableSetOf(), Registries.BLOCK.toMutableSet(), "These selected blocks are not allowed to be broken") { visibility() && whitelistMode == WhitelistMode.Blacklist }.group(*baseGroup, Group.General).index()
 	override val avoidFluids by c.setting("${prefix}Avoid Fluids", true, "Avoids breaking blocks that would cause fluids to spill", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val avoidSupporting by c.setting("${prefix}Avoid Supporting", true, "Avoids breaking the block supporting the player", visibility = visibility).group(*baseGroup, Group.General).index()
 	override val fillFluids by c.setting("Fill Fluids", true, "Fills fluids in order to break blocks that would initially spill them") { visibility() && avoidFluids }.group(*baseGroup, Group.General).index()
@@ -87,12 +90,6 @@ open class BreakSettings(
 	override val forceSilkTouch by c.setting("${prefix}Force Silk Touch", false, "Force silk touch when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 	override val forceFortunePickaxe by c.setting("${prefix}Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 	override val minFortuneLevel by c.setting("${prefix}Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { visibility() && swapMode.isEnabled() && forceFortunePickaxe }.group(*baseGroup, Group.General).index()
-	override val useWoodenTools by c.setting("${prefix}Use Wooden Tools", true, "Use wooden tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useStoneTools by c.setting("${prefix}Use Stone Tools", true, "Use stone tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useIronTools by c.setting("${prefix}Use Iron Tools", true, "Use iron tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useDiamondTools by c.setting("${prefix}Use Diamond Tools", true, "Use diamond tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useGoldTools by c.setting("${prefix}Use Gold Tools", true, "Use gold tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
-	override val useNetheriteTools by c.setting("${prefix}Use Netherite Tools", true, "Use netherite tools when breaking blocks") { visibility() && swapMode.isEnabled() }.group(*baseGroup, Group.General).index()
 
 	// Cosmetics
 	override val sounds by c.setting("${prefix}Break Sounds", true, "Plays the breaking sounds", visibility = visibility).group(*baseGroup, Group.Cosmetic).index()
@@ -112,7 +109,7 @@ open class BreakSettings(
 
 	// Outline
 	override val outline by c.setting("${prefix}Outline", true, "Renders the lines of the box to display break progress") { visibility() && renders }.group(*baseGroup, Group.Cosmetic).index()
-	override val outlineConfig = WorldLineSettings("${prefix}Outline ", c, baseGroup = arrayOf(*baseGroup, Group.Cosmetic)) { visibility() && outline }.apply {
+	override val outlineConfig = WorldLineSettings(c, *baseGroup, Group.Cosmetic, prefix = "${prefix}Outline ") { visibility() && outline }.apply {
 		c.applyEdits {
 			hide(::startColor, ::endColor)
 		}

@@ -17,25 +17,22 @@
 
 package com.lambda.graphics.mc.renderer
 
-import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.outline.OutlineRenderer
 import com.lambda.graphics.outline.OutlineStyle
-import com.lambda.graphics.text.SDFFontAtlas
+import com.lambda.graphics.text.FontHandler
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
 import kotlin.collections.isNotEmpty
 
-abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() -> Boolean) {
+abstract class AbstractRenderer(val name: String, var depthTest: () -> Boolean) {
 	protected abstract fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>>
 
 	protected abstract fun getScreenRenderers(): List<RegionRenderer>
 
-	protected abstract val currentFontAtlas: SDFFontAtlas?
-
-	fun SafeContext.render() {
+	fun render() {
 		val depth = depthTest()
 		val chunks = getRendererTransforms()
 		if (chunks.isEmpty()) return
@@ -58,12 +55,11 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			}
 		}
 
+		val font = FontHandler.activeFont
+		val textureView = font.textureView
+		val sampler = font.sampler
 		val textChunks = chunks.filter { (renderer, _) -> renderer.hasTextData() }
-		val atlas = currentFontAtlas
-		if (atlas != null && textChunks.isNotEmpty()) {
-			if (!atlas.isUploaded) atlas.upload()
-			val textureView = atlas.textureView
-			val sampler = atlas.sampler
+		if (textChunks.isNotEmpty()) {
 			if (textureView != null && sampler != null) {
 				RegionRenderer.createRenderPass("$name Text", depth)?.use { pass ->
 					pass.setPipeline(RendererUtils.worldTextPipeline)
@@ -146,11 +142,10 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 						}
 					}
 
-					val atlasD = currentFontAtlas
-					if (atlasD != null && atlasD.textureView != null) {
+					if (textureView != null) {
 						pass.setPipeline(RendererUtils.worldTextPipeline)
 						RenderSystem.bindDefaultUniforms(pass)
-						pass.bindTexture("Sampler0", atlasD.textureView!!, atlasD.sampler ?: nearestSampler)
+						pass.bindTexture("Sampler0", textureView, font.sampler ?: nearestSampler)
 						chunks.forEach { (renderer, transform) ->
 							if (renderer.hasOutlinedData(id)) {
 								pass.setUniform("DynamicTransforms", transform)
@@ -214,11 +209,10 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 							}
 						}
 
-						val atlasT = currentFontAtlas
-						if (atlasT != null && atlasT.textureView != null) {
+						if (textureView != null) {
 							pass.setPipeline(RendererUtils.outlineTextPipeline)
 							RenderSystem.bindDefaultUniforms(pass)
-							pass.bindTexture("Sampler0", atlasT.textureView!!, atlasT.sampler ?: nearestSampler)
+							pass.bindTexture("Sampler0", textureView, sampler ?: nearestSampler)
 							chunks.forEach { (renderer, transform) ->
 								if (renderer.hasOutlinedData(id)) {
 									pass.setUniform("DynamicTransforms", transform)
@@ -306,11 +300,10 @@ abstract class AbstractRenderer(val name: String, var depthTest: SafeContext.() 
 			}
 
 			val textRenderers = renderers.filter { it.hasScreenTextData() }
-			val atlas = currentFontAtlas
-			if (atlas != null && textRenderers.isNotEmpty()) {
-				if (!atlas.isUploaded) atlas.upload()
-				val textureView = atlas.textureView
-				val sampler = atlas.sampler
+			val font = FontHandler.activeFont
+			if (textRenderers.isNotEmpty()) {
+				val textureView = font.textureView
+				val sampler = font.sampler
 				if (textureView != null && sampler != null) {
 					getScreenPass("$name Screen Text")?.use { pass ->
 						pass.setPipeline(RendererUtils.screenTextPipeline)

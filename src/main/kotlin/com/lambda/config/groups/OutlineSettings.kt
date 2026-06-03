@@ -24,9 +24,9 @@ import com.lambda.util.NamedEnum
 import java.awt.Color
 
 class OutlineSettings(
-	prefix: String = "",
 	c: Configurable,
 	vararg baseGroup: NamedEnum,
+	prefix: String = "",
 	override val visibility: () -> Boolean = { true },
 ) : SettingGroup(c) {
 	val thicknessSetting by c.setting("${prefix}Line Width", 25, 1..100, 1, "The width of the outline", visibility = visibility).group(*baseGroup).index()

@@ -38,10 +38,10 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
-import imgui.ImGui.isMouseClicked
-import imgui.flag.ImGuiCol
-import imgui.flag.ImGuiHoveredFlags
-import imgui.flag.ImGuiMouseButton
+import com.lambda.imgui.ImGui.isMouseClicked
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiHoveredFlags
+import com.lambda.imgui.flag.ImGuiMouseButton
 import net.minecraft.command.CommandRegistryAccess
 import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SUPER
@@ -215,7 +215,7 @@ data class Bind(
     val modifiers: Int,
     val mouse: Int = -1,
 ) {
-    val truemods = buildList {
+    val trueMods = buildList {
         if (modifiers and GLFW_MOD_SHIFT != 0) add(KeyCode.LeftShift)
         if (modifiers and GLFW_MOD_CONTROL != 0) add(KeyCode.LeftControl)
         if (modifiers and GLFW_MOD_ALT != 0) add(KeyCode.LeftAlt)
@@ -237,14 +237,14 @@ data class Bind(
             val list = mutableListOf<Any>()
 
             if (mouse >= 0) list.add(Mouse.entries[mouse])
-            if (modifiers > 0) list.add(truemods.joinToString(separator = "+") { it.name })
+            if (modifiers > 0) list.add(trueMods.joinToString(separator = "+") { it.name })
             if (key > 0) list.add(KeyCode.fromKeyCode(key))
 
             return list.joinToString(separator = "+") { it.toString() }
         }
 
     override fun toString() =
-        "Key Code: $key, Modifiers: ${truemods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
+        "Key Code: $key, Modifiers: ${trueMods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
         val EMPTY = Bind(0, 0, -1)

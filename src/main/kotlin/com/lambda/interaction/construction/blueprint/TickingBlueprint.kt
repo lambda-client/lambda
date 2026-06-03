@@ -23,7 +23,7 @@ import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
 
 data class TickingBlueprint(
-    val onTick: SafeContext.(Structure) -> Structure? = { it },
+    val onTick: SafeContext.(Structure) -> Structure? = { it }
 ) : Blueprint() {
     fun tick() =
         runSafe {
@@ -48,7 +48,7 @@ data class TickingBlueprint(
         }
 
         fun tickingBlueprint(
-            onTick: SafeContext.(Structure) -> Structure?,
+            onTick: SafeContext.(Structure) -> Structure?
         ) = TickingBlueprint(onTick)
     }
 }

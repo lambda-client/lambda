@@ -6,7 +6,6 @@ transitive-accessible field net/minecraft/client/MinecraftClient paused Z
 transitive-accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 transitive-accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 transitive-accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
-# REMOVED in 1.21.11: renderTaskQueue - use mc.execute {} instead (inherited from ReentrantThreadExecutor)
 transitive-accessible field net/minecraft/client/option/KeyBinding boundKey Lnet/minecraft/client/util/InputUtil$Key;
 transitive-accessible method net/minecraft/client/MinecraftClient getWindowTitle ()Ljava/lang/String;
 transitive-accessible field net/minecraft/client/option/KeyBinding KEYS_BY_ID Ljava/util/Map;
@@ -26,15 +25,14 @@ transitive-accessible method net/minecraft/item/BlockItem placeFromNbt (Lnet/min
 transitive-accessible method net/minecraft/item/BlockItem postPlacement (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Z
 transitive-accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/minecraft/block/BlockState;)Lnet/minecraft/sound/SoundEvent;
 transitive-accessible field net/minecraft/state/State owner Ljava/lang/Object;
-# MOVED in 1.21.11: BackgroundRenderer$StatusEffectFogModifier -> net/minecraft/client/render/fog/StatusEffectFogModifier
 transitive-accessible class net/minecraft/client/render/fog/StatusEffectFogModifier
 transitive-accessible field net/minecraft/client/particle/NoRenderParticleRenderer EMPTY Lnet/minecraft/client/render/Submittable;
 transitive-accessible field net/minecraft/entity/Entity GLIDING_FLAG_INDEX I
 transitive-accessible method net/minecraft/entity/Entity getFlag (I)Z
 transitive-accessible method net/minecraft/block/ChestBlock getChestType (Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)Lnet/minecraft/block/enums/ChestType;
 transitive-accessible method net/minecraft/block/ChestBlock getNeighborChestDirection (Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/util/math/Direction;)Lnet/minecraft/util/math/Direction;
-accessible field net/minecraft/client/world/ClientChunkManager$ClientChunkMap loadedChunkCount I
-accessible field net/minecraft/block/TrapdoorBlock blockSetType Lnet/minecraft/block/BlockSetType;
+transitive-accessible field net/minecraft/block/TrapdoorBlock blockSetType Lnet/minecraft/block/BlockSetType;
+transitive-accessible field net/minecraft/block/AbstractBlock collidable Z
 
 # Entity
 transitive-accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
@@ -62,6 +60,7 @@ transitive-accessible field net/minecraft/entity/Entity world Lnet/minecraft/wor
 transitive-accessible class net/minecraft/screen/slot/ArmorSlot
 transitive-accessible field net/minecraft/screen/slot/ArmorSlot equipmentSlot Lnet/minecraft/entity/EquipmentSlot;
 transitive-accessible field net/minecraft/entity/Entity FLAGS Lnet/minecraft/entity/data/TrackedData;
+transitive-accessible field net/minecraft/block/entity/BeaconBlockEntity level I
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V
@@ -74,7 +73,7 @@ transitive-accessible field net/minecraft/client/texture/SpriteContents image Ln
 transitive-accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
 transitive-accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer indexBuffer Lcom/mojang/blaze3d/buffers/GpuBuffer;
 transitive-accessible field net/minecraft/client/gl/GlGpuBuffer id I
-accessible field net/minecraft/client/MinecraftClient entityRenderManager Lnet/minecraft/client/render/entity/EntityRenderManager;
+transitive-accessible field net/minecraft/client/MinecraftClient entityRenderManager Lnet/minecraft/client/render/entity/EntityRenderManager;
 transitive-accessible field net/minecraft/client/render/RenderLayer renderSetup Lnet/minecraft/client/render/RenderSetup;
 transitive-accessible field net/minecraft/client/render/RenderSetup layeringTransform Lnet/minecraft/client/render/LayeringTransform;
 transitive-accessible field net/minecraft/client/render/LayeringTransform transform Ljava/util/function/Consumer;
@@ -108,9 +107,7 @@ transitive-accessible field net/minecraft/text/Style obfuscated Ljava/lang/Boole
 transitive-accessible field net/minecraft/text/Style clickEvent Lnet/minecraft/text/ClickEvent;
 transitive-accessible field net/minecraft/text/Style hoverEvent Lnet/minecraft/text/HoverEvent;
 transitive-accessible field net/minecraft/text/Style insertion Ljava/lang/String;
-# CHANGED in 1.21.11: font type changed from Identifier to StyleSpriteSource
 transitive-accessible field net/minecraft/text/Style font Lnet/minecraft/text/StyleSpriteSource;
-# CHANGED in 1.21.11: constructor added shadowColor parameter, font type changed to StyleSpriteSource
 transitive-accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Integer;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/text/StyleSpriteSource;)V
 
 # Network
@@ -142,11 +139,10 @@ transitive-accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraf
 transitive-accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
 
 # Debug
-# REMOVED in 1.21.11: showDebugHud - use DebugHud.shouldShowDebugHud() method instead
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud renderingChartVisible Z
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud renderingAndTickChartsVisible Z
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud packetSizeAndPingChartsVisible Z
-# REMOVED in 1.21.11: showChunkBorder/showOctree - now controlled via debugHudEntryList.isEntryVisible(DebugHudEntries.CHUNK_BORDERS/CHUNK_SECTION_OCTREE)
+transitive-accessible method net/minecraft/item/DebugStickItem cycle (Lnet/minecraft/block/BlockState;Lnet/minecraft/state/property/Property;Z)Lnet/minecraft/block/BlockState;
 
 # Other
 transitive-accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;

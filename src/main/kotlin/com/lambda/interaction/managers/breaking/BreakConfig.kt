@@ -53,20 +53,15 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 	val avoidFluids: Boolean
 	val fillFluids: Boolean
 	val avoidSupporting: Boolean
-	val ignoredBlocks: Collection<Block>
+	val whitelistMode: WhitelistMode
+	val whitelist: Collection<Block>
+	val blacklist: Collection<Block>
 
 	val efficientOnly: Boolean
 	val suitableToolsOnly: Boolean
 	val forceSilkTouch: Boolean
 	val forceFortunePickaxe: Boolean
 	val minFortuneLevel: Int
-
-	val useWoodenTools: Boolean
-	val useStoneTools: Boolean
-	val useIronTools: Boolean
-	val useDiamondTools: Boolean
-	val useGoldTools: Boolean
-	val useNetheriteTools: Boolean
 
 	val sounds: Boolean
 	val particles: Boolean
@@ -140,5 +135,14 @@ interface BreakConfig : ActionConfig, ISettingGroup {
 		In("In", "Renders a shrinking animation"),
 		OutIn("Out In", "Renders a growing and shrinking animation"),
 		InOut("In Out", "Renders a shrinking and growing animation")
+	}
+
+	enum class WhitelistMode(
+		override val displayName: String,
+		override val description: String
+	) : NamedEnum, Describable {
+		Whitelist("Whitelist", "Only break blocks in the whitelist"),
+		Blacklist("Blacklist", "Only break blocks not in the blacklist"),
+		None("None", "Breaks all blocks")
 	}
 }

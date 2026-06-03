@@ -25,7 +25,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -37,31 +39,42 @@ object BlockOutline : Module(
 	description = "Overrides the default block outline rendering",
 	tag = ModuleTag.RENDER
 ) {
+	private enum class Mode {
+		Boxes,
+		Outline
+	}
+
+	private enum class BoxGroup(override val displayName: String) : NamedEnum {
+		Fill("Fill"),
+		Outline("Outline")
+	}
+
 	private val mode by setting("Mode", Mode.Boxes)
-	private val fill by setting("Fill", true) { mode == Mode.Boxes }
-	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
-	private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
-	private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }
-	private val lineConfig = WorldLineSettings("Outline ", this) { boxOutline && mode == Mode.Boxes }.apply {
+	private val interpolate by setting("Interpolate", true) { mode == Mode.Boxes }
+	private val depthTest by setting("Depth Test", true)
+
+	private val fill by setting("Fill", true) { mode == Mode.Boxes }.group(BoxGroup.Fill)
+	private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }.group(BoxGroup.Fill)
+	private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }.group(BoxGroup.Outline, WorldLineSettings.Group.General)
+	private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { boxOutline && mode == Mode.Boxes }.group(BoxGroup.Outline, WorldLineSettings.Group.General)
+	private val lineConfig = WorldLineSettings(this, BoxGroup.Outline, prefix = "Outline ") { boxOutline && mode == Mode.Boxes }.apply {
 		applyEdits {
 			hide(::startColor, ::endColor)
 		}
 	}
-	private val interpolate by setting("Interpolate", true) { mode == Mode.Boxes }
 	private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	private val outlineStyle = OutlineSettings("Outline", this) { mode == Mode.Outline }
-	private val depthTest by setting("Depth Test", true)
+	private val outlineStyle = OutlineSettings(this, prefix = "Outline") { mode == Mode.Outline }
 
 	var previous: List<Box>? = null
 
 	init {
-		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { !depthTest }) { safeContext ->
-			with(safeContext) {
-				val hitResult = mc.crosshairTarget?.blockResult ?: return@with
+		immediateRenderer("BlockOutline Immediate Renderer", depthTest = { depthTest }) {
+			runSafe {
+				val hitResult = mc.crosshairTarget?.blockResult ?: return@runSafe
 				val pos = hitResult.blockPos
 				if (mode == Mode.Outline) {
 					worldOutline(pos, outlineStyle.toStyle(outlineColor))
-					return@with
+					return@runSafe
 				}
 				val blockState = blockState(pos)
 				val boxes = blockState
@@ -95,10 +108,5 @@ object BlockOutline : Module(
 				.getOutlineShape(world, hitResult.blockPos).boundingBoxes
 				.map { it.offset(hitResult.blockPos) }
 		}
-	}
-
-	private enum class Mode {
-		Boxes,
-		Outline
 	}
 }

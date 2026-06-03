@@ -134,7 +134,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		builder: (BoxBuilder.() -> Unit)? = null
 	) = boxes(pos, safeContext.blockState(pos), lineConfig, builder)
 
-	fun filledQuadGradient(
+	fun filledQuad(
 		corner1: Vec3d,
 		corner2: Vec3d,
 		corner3: Vec3d,
@@ -250,10 +250,10 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	fun circleLine(
 		center: Vec3d,
 		radius: Double,
-		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
 		color: Color,
-		segments: Int = 32,
 		width: Float = -0.0005f,
+		normal: Vec3d = Vec3d(0.0, 1.0, 0.0),
+		segments: Int = 32,
 		dashStyle: LineDashStyle? = null
 	) {
 		val up =
@@ -315,19 +315,16 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		text: String,
 		pos: Vec3d,
 		size: Float = 0.5f,
-		font: SDFFontAtlas? = null,
+		font: SDFFontAtlas = FontHandler.activeFont,
 		style: SDFStyle = SDFStyle(),
 		centered: Boolean = true,
 		rotation: Vec3d? = null
 	) {
-		val atlas = font ?: FontHandler.getDefaultFont()
-		fontAtlas = atlas
-
 		val anchorX = (pos.x - cameraPos.x).toFloat()
 		val anchorY = (pos.y - cameraPos.y).toFloat()
 		val anchorZ = (pos.z - cameraPos.z).toFloat()
 
-		val textWidth = if (centered) atlas.getStringWidthNormalized(text, 1f) else 0f
+		val textWidth = if (centered) FontHandler.getStringWidthNormalized(text, 1f) else 0f
 		val startX = -textWidth / 2f
 
 		val rotationMatrix: Matrix4f? = if (rotation != null) {
@@ -341,29 +338,29 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val shadowColor = style.shadow.color
 			val offsetX = style.shadow.offsetX
 			val offsetY = style.shadow.offsetY
-			buildTextQuads(atlas, text, startX + offsetX, offsetY,
+			buildTextQuads(text, startX + offsetX, offsetY,
 				shadowColor.red, shadowColor.green, shadowColor.blue, shadowColor.alpha,
-				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 0)
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style, font, activeOutlineId, 0)
 		}
 
 		if (style.glow != null) {
 			val glowColor = style.glow.color
-			buildTextQuads(atlas, text, startX, 0f,
+			buildTextQuads(text, startX, 0f,
 				glowColor.red, glowColor.green, glowColor.blue, glowColor.alpha,
-				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 1)
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style, font, activeOutlineId, 1)
 		}
 
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
-			buildTextQuads(atlas, text, startX, 0f,
+			buildTextQuads(text, startX, 0f,
 				outlineColor.red, outlineColor.green, outlineColor.blue, outlineColor.alpha,
-				anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId, 2)
+				anchorX, anchorY, anchorZ, size, rotationMatrix, style, font, activeOutlineId, 2)
 		}
 
 		val mainColor = style.color
-		buildTextQuads(atlas, text, startX, 0f,
+		buildTextQuads(text, startX, 0f,
 			mainColor.red, mainColor.green, mainColor.blue, 255,
-			anchorX, anchorY, anchorZ, size, rotationMatrix, style, activeOutlineId)
+			anchorX, anchorY, anchorZ, size, rotationMatrix, style, font, activeOutlineId)
 	}
 
 	private val screenWidth get() = mc.window?.scaledWidth?.toFloat() ?: 1920f
@@ -1166,21 +1163,18 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		x: Float,
 		y: Float,
 		size: Float = 0.02f,
-		font: SDFFontAtlas? = null,
+		font: SDFFontAtlas = FontHandler.activeFont,
 		style: SDFStyle = SDFStyle(),
 		centered: Boolean = false
 	) {
-		val atlas = font ?: FontHandler.getDefaultFont()
-		fontAtlas = atlas
-
 		val pixelX = toPixelX(x)
 		val pixelY = toPixelY(y)
 
 		val targetPixelHeight = toPixelSize(size)
 
-		val pixelSize = targetPixelHeight * atlas.baseSize / atlas.ascent
+		val pixelSize = targetPixelHeight * font.baseSize / font.ascent
 
-		val normalizedTextWidth = if (centered) atlas.getStringWidthNormalized(text, size) else 0f
+		val normalizedTextWidth = if (centered) font.getStringWidthNormalized(text, size) else 0f
 		val textWidth = normalizedTextWidth * screenWidth
 		val startX = -textWidth / 2f
 
@@ -1189,7 +1183,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val offsetX = style.shadow.offsetX * pixelSize
 			val offsetY = -style.shadow.offsetY * pixelSize
 			val layer = nextLayer()
-			buildScreenTextQuads(atlas, text, startX + offsetX, offsetY,
+			buildScreenTextQuads(font, text, startX + offsetX, offsetY,
 				shadowColor.red, shadowColor.green, shadowColor.blue, shadowColor.alpha,
 				pixelX, pixelY, pixelSize, style, layer, 0)
 		}
@@ -1197,7 +1191,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		if (style.glow != null) {
 			val glowColor = style.glow.color
 			val layer = nextLayer()
-			buildScreenTextQuads(atlas, text, startX, 0f,
+			buildScreenTextQuads(font, text, startX, 0f,
 				glowColor.red, glowColor.green, glowColor.blue, glowColor.alpha,
 				pixelX, pixelY, pixelSize, style, layer, 1)
 		}
@@ -1205,14 +1199,14 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		if (style.outline != null) {
 			val outlineColor = style.outline.color
 			val layer = nextLayer()
-			buildScreenTextQuads(atlas, text, startX, 0f,
+			buildScreenTextQuads(font, text, startX, 0f,
 				outlineColor.red, outlineColor.green, outlineColor.blue, outlineColor.alpha,
 				pixelX, pixelY, pixelSize, style, layer, 2)
 		}
 
 		val mainColor = style.color
 		val mainLayer = nextLayer()
-		buildScreenTextQuads(atlas, text, startX, 0f,
+		buildScreenTextQuads(font, text, startX, 0f,
 			mainColor.red, mainColor.green, mainColor.blue, mainColor.alpha,
 			pixelX, pixelY, pixelSize, style, mainLayer, 3)
 	}
@@ -1264,7 +1258,6 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	}
 
 	private fun buildTextQuads(
-		atlas: SDFFontAtlas,
 		text: String,
 		startX: Float,
 		startY: Float,
@@ -1273,6 +1266,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		scale: Float,
 		rotationMatrix: Matrix4f?,
 		style: SDFStyle,
+		atlas: SDFFontAtlas = FontHandler.activeFont,
 		outlineId: Int? = null,
 		layerType: Int = 3
 	) {

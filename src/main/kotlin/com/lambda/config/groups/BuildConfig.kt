@@ -24,6 +24,7 @@ import com.lambda.util.NamedEnum
 
 interface BuildConfig : ISettingGroup {
     val breakBlocks: Boolean
+    val placeBlocks: Boolean
     val interactBlocks: Boolean
 
     val pathing: Boolean
@@ -33,6 +34,11 @@ interface BuildConfig : ISettingGroup {
     val maxPendingActions: Int
     val actionTimeout: Int
     val maxBuildDependencies: Int
+
+    val limitTimeframe: Int
+    val actionLimit: Int
+    val interactionLimit: Int
+    val inventoryLimit: Int
 
     val blockReach: Double
     val entityReach: Double

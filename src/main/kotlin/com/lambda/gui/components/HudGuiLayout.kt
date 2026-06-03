@@ -33,12 +33,13 @@ import com.lambda.gui.snap.SnapManager.updateDragAndSnapping
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.NamedEnum
-import imgui.ImColor
-import imgui.ImDrawList
-import imgui.ImGui
-import imgui.flag.ImDrawListFlags
-import imgui.flag.ImGuiStyleVar
-import imgui.flag.ImGuiWindowFlags
+import com.lambda.imgui.ImColor
+import com.lambda.imgui.ImDrawList
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImDrawListFlags
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiStyleVar
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import java.awt.Color
 import kotlin.math.PI
 
@@ -80,7 +81,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
     private const val TWO_PI_F = (2f * PI).toFloat()
 
     init {
-        listen<GuiEvent.NewFrame> {
+        listen<GuiEvent.NewImguiFrame> {
             if (mc.options.hudHidden) return@listen
 
             buildLayout {
@@ -156,7 +157,7 @@ object HudGuiLayout : Loadable, Configurable(HudConfig) {
 
         val pushedColor = if (hasBg) {
             val packed = ImColor.rgba(bg.red, bg.green, bg.blue, bg.alpha)
-            ImGui.pushStyleColor(imgui.flag.ImGuiCol.WindowBg, packed)
+            ImGui.pushStyleColor(ImGuiCol.WindowBg, packed)
             true
         } else false
 
