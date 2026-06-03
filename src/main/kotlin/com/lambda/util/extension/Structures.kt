@@ -20,11 +20,11 @@ package com.lambda.util.extension
 import com.lambda.Lambda.mc
 import com.lambda.util.math.MathUtils.logCap
 import com.lambda.util.varIterator
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.fastVectorOf
-import com.lambda.util.world.x
-import com.lambda.util.world.y
-import com.lambda.util.world.z
+import com.lambda.util.math.FastVector
+import com.lambda.util.math.fastVectorOf
+import com.lambda.util.math.x
+import com.lambda.util.math.y
+import com.lambda.util.math.z
 import net.minecraft.block.Block
 import net.minecraft.datafixer.DataFixTypes
 import net.minecraft.nbt.NbtCompound

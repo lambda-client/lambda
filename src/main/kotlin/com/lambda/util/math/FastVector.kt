@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.world
+package com.lambda.util.math
 
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -31,6 +31,8 @@ import net.minecraft.util.math.Vec3i
  * and the Y coordinate is stored in the 12 least significant bits.
  * This encoding allows for a maximum world size of ±33,554,432 blocks
  * in the X and Z directions and ±2,048 blocks in the Y direction, which is more than needed.
+ *
+ * Note for those who haven't figured it out yet: This does NOT have any floating point capability.
  */
 typealias FastVector = Long
 

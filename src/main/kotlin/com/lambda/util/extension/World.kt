@@ -19,12 +19,11 @@ package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.util.extension.paintingColorCache
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.toBlockPos
-import com.lambda.util.world.x
-import com.lambda.util.world.y
-import com.lambda.util.world.z
+import com.lambda.util.math.FastVector
+import com.lambda.util.math.toBlockPos
+import com.lambda.util.math.x
+import com.lambda.util.math.y
+import com.lambda.util.math.z
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks

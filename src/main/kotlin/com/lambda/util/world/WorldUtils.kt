@@ -20,7 +20,16 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
+import com.lambda.util.math.F_ONE
+import com.lambda.util.math.FastVector
+import com.lambda.util.math.distSq
 import com.lambda.util.math.distanceToSideSq
+import com.lambda.util.math.fastVectorOf
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
+import com.lambda.util.math.x
+import com.lambda.util.math.y
+import com.lambda.util.math.z
 import com.lambda.util.world.WorldUtils.internalGetEntities
 import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.block.BlockState
@@ -30,6 +39,7 @@ import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil
 
 object WorldUtils {
@@ -47,14 +57,14 @@ object WorldUtils {
      * @see [fastEntitySearch]
      */
     inline fun <reified T : Entity> SafeContext.internalGetFastEntities(
-        pos: FastVector,
-        distance: Double,
-        crossinline filter: (T) -> Boolean = { true },
+	    pos: Vec3d,
+	    distance: Double,
+	    crossinline filter: (T) -> Boolean = { true },
     ): Sequence<T> {
         val chunks = ceil(distance / 16).toInt()
-        val sectionX = pos.x shr 4
-        val sectionY = pos.y shr 4
-        val sectionZ = pos.z shr 4
+        val sectionX = (pos.x / 4).toInt()
+        val sectionY = (pos.y / 4).toInt()
+        val sectionZ = (pos.z / 4).toInt()
 
         return sequence {
             for (x in sectionX - chunks..sectionX + chunks) {
@@ -67,9 +77,9 @@ object WorldUtils {
                                 ?.asSequence()
                                 ?.filterIsInstance<T>()
                                 ?.filter {
-                                    it != player &&
-                                            pos.toVec3d().distanceToSideSq(it.boundingBox) <= distance * distance &&
-                                            filter(it)
+                                    it != player
+                                            && pos.distanceToSideSq(it.boundingBox) <= distance * distance
+                                            && filter(it)
                                 } ?: emptySequence()
                         )
                     }
@@ -85,15 +95,15 @@ object WorldUtils {
      * @see [entitySearch]
      */
     inline fun <reified T : Entity> SafeContext.internalGetEntities(
-        pos: FastVector,
-        distance: Double,
-        crossinline filter: (T) -> Boolean = { true },
+	    pos: Vec3d,
+	    distance: Double,
+	    crossinline filter: (T) -> Boolean = { true },
     ) = world.entities
         .asSequence()
         .filterIsInstance<T>()
         .filter {
             it != player &&
-                    pos distSq it.pos <= distance * distance &&
+                    pos.distanceToSideSq(it.boundingBox) <= distance * distance &&
                     filter(it)
         }
 
@@ -102,9 +112,9 @@ object WorldUtils {
      * @see [blockEntitySearch]
      */
     inline fun <reified T : BlockEntity> SafeContext.internalGetBlockEntities(
-        pos: FastVector,
-        distance: Double,
-        crossinline predicate: (T) -> Boolean = { true },
+	    pos: FastVector,
+	    distance: Double,
+	    crossinline predicate: (T) -> Boolean = { true },
     ): Sequence<T> {
         val chunks = ceil(distance / 16).toInt()
         val chunkX = pos.x shr 4
@@ -135,14 +145,14 @@ object WorldUtils {
      * @see [blockSearch]
      */
     inline fun SafeContext.internalSearchBlocks(
-        pos: FastVector,
-        range: FastVector = F_ONE times 7,
-        step: FastVector = F_ONE,
-        crossinline filter: (FastVector, BlockState) -> Boolean = { _, _ -> true },
+	    pos: FastVector,
+	    range: FastVector = F_ONE times 7,
+	    step: FastVector = F_ONE,
+	    crossinline filter: (FastVector, BlockState) -> Boolean = { _, _ -> true },
     ) = fastSequence(pos, range, step)
         .filter {
-            val state = world.getBlockState(it)
-            filter(it, state)
+            filter(it,
+                world.getBlockState(it))
         }
         .associateWith { world.getBlockState(it) }
 
@@ -152,10 +162,10 @@ object WorldUtils {
      * @see [fluidSearch]
      */
     inline fun <reified T : Fluid> SafeContext.internalSearchFluids(
-        pos: FastVector,
-        range: FastVector = F_ONE times 7,
-        step: FastVector = F_ONE,
-        crossinline filter: (FastVector, FluidState) -> Boolean = { _, _ -> true },
+	    pos: FastVector,
+	    range: FastVector = F_ONE times 7,
+	    step: FastVector = F_ONE,
+	    crossinline filter: (FastVector, FluidState) -> Boolean = { _, _ -> true },
     ) = fastSequence(pos, range, step)
         .filter {
             val state = world.getFluidState(it.x, it.y, it.z)
@@ -168,9 +178,9 @@ object WorldUtils {
      * Returns a sequence of [FastVector]s
      */
     fun fastSequence(
-        pos: FastVector,
-        range: FastVector,
-        step: FastVector,
+	    pos: FastVector,
+	    range: FastVector,
+	    step: FastVector,
     ) = sequence {
         for (x in -range.x..range.x step step.x) {
             for (y in -range.y..range.y step step.y) {

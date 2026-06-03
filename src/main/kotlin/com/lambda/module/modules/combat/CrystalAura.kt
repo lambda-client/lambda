@@ -55,7 +55,7 @@ import com.lambda.util.math.minus
 import com.lambda.util.math.plus
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
-import com.lambda.util.world.toFastVec
+import com.lambda.util.math.toFastVec
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity

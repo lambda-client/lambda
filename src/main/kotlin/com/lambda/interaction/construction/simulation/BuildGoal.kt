@@ -18,8 +18,8 @@
 package com.lambda.interaction.construction.simulation
 
 import baritone.api.pathing.goals.Goal
-import com.lambda.util.world.fastVectorOf
-import com.lambda.util.world.toFastVec
+import com.lambda.util.math.fastVectorOf
+import com.lambda.util.math.toFastVec
 import net.minecraft.util.math.BlockPos
 
 class BuildGoal(

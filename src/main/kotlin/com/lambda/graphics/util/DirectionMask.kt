@@ -17,10 +17,10 @@
 
 package com.lambda.graphics.util
 
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.offset
-import com.lambda.util.world.toBlockPos
-import com.lambda.util.world.toFastVec
+import com.lambda.util.math.FastVector
+import com.lambda.util.math.offset
+import com.lambda.util.math.toBlockPos
+import com.lambda.util.math.toFastVec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 

@@ -15,23 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.util.world.X_BITS
-import com.lambda.util.world.Z_BITS
-import com.lambda.util.world.addX
-import com.lambda.util.world.addY
-import com.lambda.util.world.addZ
-import com.lambda.util.world.distSq
-import com.lambda.util.world.fastVectorOf
-import com.lambda.util.world.offset
-import com.lambda.util.world.remainder
-import com.lambda.util.world.setX
-import com.lambda.util.world.setY
-import com.lambda.util.world.setZ
-import com.lambda.util.world.toBlockPos
-import com.lambda.util.world.toVec3d
-import com.lambda.util.world.x
-import com.lambda.util.world.y
-import com.lambda.util.world.z
+import com.lambda.util.math.X_BITS
+import com.lambda.util.math.Z_BITS
+import com.lambda.util.math.addX
+import com.lambda.util.math.addY
+import com.lambda.util.math.addZ
+import com.lambda.util.math.distSq
+import com.lambda.util.math.fastVectorOf
+import com.lambda.util.math.offset
+import com.lambda.util.math.remainder
+import com.lambda.util.math.setX
+import com.lambda.util.math.setY
+import com.lambda.util.math.setZ
+import com.lambda.util.math.toBlockPos
+import com.lambda.util.math.toVec3d
+import com.lambda.util.math.x
+import com.lambda.util.math.y
+import com.lambda.util.math.z
 import net.minecraft.util.math.Direction
 import kotlin.test.Test
 import kotlin.test.assertEquals

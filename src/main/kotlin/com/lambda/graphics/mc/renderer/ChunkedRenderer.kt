@@ -31,8 +31,8 @@ import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
 import com.lambda.module.Module
 import com.lambda.module.modules.client.StyleEditor
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.fastVectorOf
+import com.lambda.util.math.FastVector
+import com.lambda.util.math.fastVectorOf
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.world.ClientWorld

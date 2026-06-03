@@ -110,6 +110,19 @@ val Vec3d.flooredBlockPos: BlockPos
 val Entity.netherCoord: Vec3d get() = pos.multiply(0.125, 1.0, 0.125)
 val Entity.overworldCoord: Vec3d get() = pos.multiply(8.0, 1.0, 8.0)
 
+/**
+ * Returns the distance squared to the closest side of a [Box]
+ */
+fun Vec3d.distanceToSideSq(box: Box, epsilon: Double = 1e-7): Double {
+    val closestX = x.coerceIn(box.minX - epsilon, box.maxX + epsilon)
+    val closestY = y.coerceIn(box.minY - epsilon, box.maxY + epsilon)
+    val closestZ = z.coerceIn(box.minZ - epsilon, box.maxZ + epsilon)
+    val dx = x - closestX
+    val dy = y - closestY
+    val dz = z - closestZ
+    return dx * dx + dy * dy + dz * dz
+}
+
 fun Vec3d.interpolate(value: Double, max: Vec3d) = lerp(value, this, max)
 fun Vec3d.interpolate(value: Float, max: Vec3d) = lerp(value.toDouble(), this, max)
 
@@ -202,19 +215,6 @@ infix fun Entity.dist(other: Entity): Double = distanceTo(other).toDouble()
 infix fun Entity.distSq(other: Vec3d): Double = pos distSq other
 infix fun Entity.distSq(other: Vec3i): Int = blockPos distSq other
 infix fun Entity.distSq(other: Entity): Double = squaredDistanceTo(other)
-
-/**
- * Returns the distance squared to the closest side of a [Box]
- */
-fun Vec3d.distanceToSideSq(box: Box, epsilon: Double = 1e-7): Double {
-    val closestX = x.coerceIn(box.minX - epsilon, box.maxX + epsilon)
-    val closestY = y.coerceIn(box.minY - epsilon, box.maxY + epsilon)
-    val closestZ = z.coerceIn(box.minZ - epsilon, box.maxZ + epsilon)
-    val dx = x - closestX
-    val dy = y - closestY
-    val dz = z - closestZ
-    return dx * dx + dy * dy + dz * dz
-}
 
 val UP = Vec3d(0.0, 1.0, 0.0)
 val DOWN = Vec3d(0.0, -1.0, 0.0)

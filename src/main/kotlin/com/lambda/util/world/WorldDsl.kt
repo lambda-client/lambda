@@ -19,6 +19,8 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.util.math.distSq
+import com.lambda.util.math.toBlockPos
+import com.lambda.util.math.toFastVec
 import com.lambda.util.world.WorldUtils.internalGetBlockEntities
 import com.lambda.util.world.WorldUtils.internalGetEntities
 import com.lambda.util.world.WorldUtils.internalGetFastEntities
@@ -30,6 +32,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
 @DslMarker
@@ -114,7 +117,7 @@ annotation class EntityMarker
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.closestEntity(
     range: Double = 64.0,
-    pos: BlockPos = player.blockPos,
+    pos: Vec3d = player.pos,
     noinline filter: (T) -> Boolean = { true },
 ): T? =
     entitySearch<T>(range, pos, filter)
@@ -131,9 +134,9 @@ inline fun <reified T : Entity> SafeContext.closestEntity(
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.entitySearch(
     range: Double,
-    pos: BlockPos = player.blockPos,
+    pos: Vec3d = player.pos,
     noinline filter: (T) -> Boolean = { true },
-) = internalGetEntities<T>(pos.toFastVec(), range, filter = filter)
+) = internalGetEntities<T>(pos, range, filter = filter)
 
 /**
  * Example:
@@ -146,9 +149,9 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
  */
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
-    range: Double,
-    pos: FastVector = player.pos.toFastVec(),
-    noinline filter: (T) -> Boolean = { true },
+	range: Double,
+	pos: Vec3d = player.pos,
+	noinline filter: (T) -> Boolean = { true },
 ) = internalGetFastEntities<T>(pos, range, filter = filter)
 
 @DslMarker
