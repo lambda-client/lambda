@@ -38,11 +38,11 @@ public interface TooltipComponentMixin {
             return;
         }
 
-        if (MapPreview.INSTANCE.isEnabled()) cir.setReturnValue((switch (tooltipData) {
-            case MapPreview.MapComponent mapComponent -> mapComponent;
-            case BundleTooltipData bundleTooltipData -> new BundleTooltipComponent(bundleTooltipData.contents());
-            case ProfilesTooltipComponent.ProfilesData profilesData -> new ProfilesTooltipComponent(profilesData);
-            default -> throw new IllegalArgumentException("Unknown TooltipComponent");
-        }));
+        if (MapPreview.INSTANCE.isEnabled()) switch (tooltipData) {
+            case MapPreview.MapComponent mapComponent -> cir.setReturnValue(mapComponent);
+            case BundleTooltipData bundleTooltipData -> cir.setReturnValue(new BundleTooltipComponent(bundleTooltipData.contents()));
+            case ProfilesTooltipComponent.ProfilesData profilesData -> cir.setReturnValue(new ProfilesTooltipComponent(profilesData));
+            default -> {} // ignore
+        }
     }
 }
