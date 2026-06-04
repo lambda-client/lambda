@@ -18,11 +18,11 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
-class InteractSettings(override val c: Config) : InteractConfig, SettingBlock {
+class InteractSettings(override val c: Config) : InteractConfig, ConfigBlock {
     override val rotate by c.setting("Rotate For Interact", true, "Rotate towards block while placing")
     override val airPlace by c.setting("Air Place", InteractConfig.AirPlaceMode.Grim, "Allows for placing blocks without adjacent faces")
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { airPlace.isEnabled }

@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.forEachSetting
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.config.withEdits
@@ -56,7 +56,7 @@ object RadiusESP : Module(
 	@Group(RenderGroup) private var outline: Boolean by setting("Box Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
 	@Group(RenderGroup) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
-	@Group(RenderGroup, OutlineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this))
+	@Group(RenderGroup, OutlineGroup) private val worldLineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)
 			forEachSetting {

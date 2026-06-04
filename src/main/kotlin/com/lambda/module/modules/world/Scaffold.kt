@@ -17,10 +17,10 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.ConfigEditor.edit
-import com.lambda.config.ConfigEditor.editTyped
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.SettingEditor.edit
+import com.lambda.config.SettingEditor.editTyped
+import com.lambda.config.SettingEditor.hide
+import com.lambda.config.SettingEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind

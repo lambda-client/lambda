@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.forEachSetting
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.config.withEdits
@@ -62,7 +62,7 @@ object LightLevels : Module(
 	@Group(FillGroup) private val fill by setting("Fill", false) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
 	@Group(FillGroup) private val fillAlpha by setting("Fill Alpha", 0.2, 0.0..1.0, 0.01) { renderMode == RenderMode.Square && fill }.onValueChange(::refreshChunkedRenderer)
 	@Group(LineGroup) private val outline by setting("Outline", true) { renderMode == RenderMode.Square }.onValueChange(::refreshChunkedRenderer)
-	@Group(LineGroup) private val worldLineConfig by settingBlock(WorldLineSettings(this))
+	@Group(LineGroup) private val worldLineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)
 			forEachSetting {

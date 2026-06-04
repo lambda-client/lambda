@@ -17,6 +17,9 @@
 
 package com.lambda.module.modules.debug
 
+import com.lambda.config.Config
+import com.lambda.config.ConfigBlock
+import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.ScreenLineSettings
 import com.lambda.config.settings.blocks.ScreenTextSettings
@@ -36,39 +39,18 @@ object SettingsTestModule : Module(
     private const val WorldTextTab = "World Text"
     private const val ScreenTextTab = "Screen Text"
 
-    @Tab(WorldLineTab) private val worldLineConfig by settingBlock(WorldLineSettings(this))
-    @Tab(ScreenLineTab) private val screenLineConfig by settingBlock(ScreenLineSettings(this))
-    @Tab(WorldTextTab) private val worldTextConfig by settingBlock(WorldTextSettings(this))
-    @Tab(ScreenTextTab) private val textConfig by settingBlock(ScreenTextSettings(this))
+    private const val TestConfigBlockTab = "Test Config Block Tab"
+    private const val TestConfigBlockGroup = "Test Config Block Group"
+    @Tab(TestConfigBlockTab) @Group(TestConfigBlockGroup) private val testConfigBlock by configBlock(TestConfigBlock(this))
+    @Tab(TestConfigBlockTab) private val testValue1 by property(1)
 
-//    private val renderer = ImmediateRenderer("SettingsTestRenderer")
+    @Tab(WorldLineTab) private val worldLineConfig by configBlock(WorldLineSettings(this))
+    @Tab(ScreenLineTab) private val screenLineConfig by configBlock(ScreenLineSettings(this))
+    @Tab(WorldTextTab) private val worldTextConfig by configBlock(WorldTextSettings(this))
+    @Tab(ScreenTextTab) private val textConfig by configBlock(ScreenTextSettings(this))
+}
 
-//    init {
-//        listen<RenderEvent.Render> {
-//            renderer.tick()
-//            renderer.shapes {
-//                val startPos = lerp(mc.tickDelta, player.prevPos, player.pos).offset(Direction.NORTH, 3.0)
-//
-//                // Render line using config
-//                lineGradient(
-//                    startPos,
-//                    lineConfig.startColor,
-//                    startPos.offset(Direction.EAST, 3.0),
-//                    lineConfig.endColor,
-//                    lineConfig.lineWidth,
-//                    lineConfig.getDashStyle()
-//                )
-//
-//                // Render text using config
-//                worldText(
-//                    "Configured Text",
-//                    startPos.add(0.0, 1.0, 0.0),
-//                    style = textConfig.getSDFStyle()
-//                )
-//            }
-//            renderer.render()
-//        }
-//
-//        onDisable { renderer.close() }
-//    }
+class TestConfigBlock(override val c: Config) : ConfigBlock {
+    var testValue2 by c.property(2)
+    val testValue3 by c.property { 3 }
 }

@@ -18,8 +18,8 @@
 package com.lambda.gui.components
 
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
+import com.lambda.config.SettingLayer
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.automation.UserAutomationConfig

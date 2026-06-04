@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
+import com.lambda.config.SettingLayer
 import com.lambda.config.serializers.BlockSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block

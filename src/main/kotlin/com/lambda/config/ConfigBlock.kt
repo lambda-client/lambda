@@ -15,24 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings
+package com.lambda.config
 
-import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
-import com.lambda.gui.dsl.ImGuiBuilder
-
-class FunctionSetting<T : () -> R, R>(
-	name: String,
-	description: String,
-	defaultValue: T,
-	config: Config,
-	layer: SettingLayer.Single<FunctionSetting<T, R>, T>,
-	visibility: () -> Boolean
-) : Setting<T>(name, description, SettingCore(defaultValue), config, layer, visibility) {
-	override fun ImGuiBuilder.buildLayout() {
-        button(name) { value() }
-        lambdaTooltip(description)
-    }
+interface ConfigBlock {
+	val c: Config
 }

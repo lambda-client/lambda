@@ -18,9 +18,9 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.config.settings.blocks.BreakConfig.AnimationMode
 import com.lambda.config.settings.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.config.settings.blocks.BreakConfig.BreakMode
@@ -32,47 +32,46 @@ import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import net.minecraft.registry.Registries
 import java.awt.Color
 
-class BreakSettings(override val c: Config) : BreakConfig, SettingBlock {
+class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 	companion object {
-		const val GeneralGroup = "General"
 		const val CosmeticGroup = "Cosmetic"
 	}
 
 	// General
-	@Group(GeneralGroup) override val breakMode by c.setting("Break Mode", BreakMode.Packet)
-	@Group(GeneralGroup) override val sorter by c.setting("Break Sorter", ActionConfig.SortMode.Tool, "The order in which breaks are performed")
-	@Group(GeneralGroup) override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once")
+	override val breakMode by c.setting("Break Mode", BreakMode.Packet)
+	override val sorter by c.setting("Break Sorter", ActionConfig.SortMode.Tool, "The order in which breaks are performed")
+	override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once")
 	// Double break
-	@Group(GeneralGroup) override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once")
-	@Group(GeneralGroup) override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { doubleBreak }
+	override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once")
+	override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { doubleBreak }
 	// Fixes / Delays
-	@Group(GeneralGroup) override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken")
-	@Group(GeneralGroup) override val fudgeFactor by c.setting("Fudge Factor", 1, 0..5, 1, "The number of ticks to add to the break time, usually to account for server lag")
-	@Group(GeneralGroup) override val serverSwapTicks by c.setting("Server Swap", 0, 0..5, 1, "The number of ticks to give the server time to recognize the player attributes on the swapped item", " tick(s)")
+	override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken")
+	override val fudgeFactor by c.setting("Fudge Factor", 1, 0..5, 1, "The number of ticks to add to the break time, usually to account for server lag")
+	override val serverSwapTicks by c.setting("Server Swap", 0, 0..5, 1, "The number of ticks to give the server time to recognize the player attributes on the swapped item", " tick(s)")
 //	@Group(GeneralGroup) override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { page == Page.General }
-	@Group(GeneralGroup) override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)")
+	override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)")
 	// Timing
-	@Group(GeneralGroup) override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
-	@Group(GeneralGroup) override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
-	@Group(GeneralGroup) override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand")
-	@Group(GeneralGroup) override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
+	override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
+	override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
+	override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand")
+	override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
 	// Rotate
-	@Group(GeneralGroup) override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking")
+	override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking")
 	// Pending / Post
-	@Group(GeneralGroup) override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking")
-	@Group(GeneralGroup) override val breaksPerTick by c.setting("Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick")
-	@Group(GeneralGroup) override val whitelistMode by c.setting("Whitelist Mode", WhitelistMode.None, "The type of block selection used")
-	@Group(GeneralGroup) override val whitelist by c.setting("Whitelist", mutableSetOf(), Registries.BLOCK.toSet(), "Only these selected blocks are allowed to be broken") { whitelistMode == WhitelistMode.Whitelist }
-	@Group(GeneralGroup) override val blacklist by c.setting("Blacklist", mutableSetOf(), Registries.BLOCK.toSet(), "These selected blocks are not allowed to be broken") { whitelistMode == WhitelistMode.Blacklist }
-	@Group(GeneralGroup) override val avoidFluids by c.setting("Avoid Fluids", true, "Avoids breaking blocks that would cause fluids to spill")
-	@Group(GeneralGroup) override val avoidSupporting by c.setting("Avoid Supporting", true, "Avoids breaking the block supporting the player")
-	@Group(GeneralGroup) override val fillFluids by c.setting("Fill Fluids", true, "Fills fluids in order to break blocks that would initially spill them") { avoidFluids }
+	override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking")
+	override val breaksPerTick by c.setting("Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick")
+	override val whitelistMode by c.setting("Whitelist Mode", WhitelistMode.None, "The type of block selection used")
+	override val whitelist by c.setting("Whitelist", mutableSetOf(), Registries.BLOCK.toSet(), "Only these selected blocks are allowed to be broken") { whitelistMode == WhitelistMode.Whitelist }
+	override val blacklist by c.setting("Blacklist", mutableSetOf(), Registries.BLOCK.toSet(), "These selected blocks are not allowed to be broken") { whitelistMode == WhitelistMode.Blacklist }
+	override val avoidFluids by c.setting("Avoid Fluids", true, "Avoids breaking blocks that would cause fluids to spill")
+	override val avoidSupporting by c.setting("Avoid Supporting", true, "Avoids breaking the block supporting the player")
+	override val fillFluids by c.setting("Fill Fluids", true, "Fills fluids in order to break blocks that would initially spill them") { avoidFluids }
 	// Tool
-	@Group(GeneralGroup) override val efficientOnly by c.setting("Efficient Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }
-	@Group(GeneralGroup) override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }
-	@Group(GeneralGroup) override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { swapMode.isEnabled() }
-	@Group(GeneralGroup) override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { swapMode.isEnabled() }
-	@Group(GeneralGroup) override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { swapMode.isEnabled() && forceFortunePickaxe }
+	override val efficientOnly by c.setting("Efficient Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }
+	override val suitableToolsOnly by c.setting("Suitable Tools Only", true, "Only use tools suitable for the given block (will get the item drop)") { swapMode.isEnabled() }
+	override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { swapMode.isEnabled() }
+	override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { swapMode.isEnabled() }
+	override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { swapMode.isEnabled() && forceFortunePickaxe }
 
 	// Cosmetics
 	@Group(CosmeticGroup) override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds")
@@ -89,7 +88,7 @@ class BreakSettings(override val c: Config) : BreakConfig, SettingBlock {
 	@Group(CosmeticGroup) override val endFillColor by c.setting("End Fill Color", Color(0, 255, 0, 60), "The color of the fill at the end of breaking") { renders && dynamicFillColor && fill }
 	// Outline
 	@Group(CosmeticGroup) override val outline by c.setting("Outline", true, "Renders the lines of the box to display break progress") { renders }
-	@Group(CosmeticGroup) override val outlineConfig by c.settingBlock(WorldLineSettings(c))
+	@Group(CosmeticGroup) override val outlineConfig by c.configBlock(WorldLineSettings(c))
 		.withEdits(c) {
 			hide(::startColor, ::endColor)
 		}

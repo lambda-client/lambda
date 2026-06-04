@@ -18,7 +18,7 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.util.EntityUtils.EntityGroup
@@ -33,7 +33,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import java.awt.Color
 
-class EntityColorSettings(override val c: Config) : SettingBlock, EntityColorsConfig {
+class EntityColorSettings(override val c: Config) : ConfigBlock, EntityColorsConfig {
 	override val useNaturalColors by c.setting("Use Natural Colors", false, "Uses an average color from the entities texture")
 	override val playerColor by c.setting("Player Color", Color(255, 50, 50)) { !useNaturalColors }
 	override val playerDistanceGradient by c.setting("Player Distance Gradient", true)

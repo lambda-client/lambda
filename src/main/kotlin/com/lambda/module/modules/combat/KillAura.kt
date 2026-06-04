@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.ConfigEditor.edit
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.SettingEditor.edit
+import com.lambda.config.SettingEditor.hide
+import com.lambda.config.SettingEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
@@ -64,7 +64,7 @@ object KillAura : Module(
     @Tab(GeneralTab) private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
     @Tab(GeneralTab) private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
 
-    @Tab(TargetingTab) private val targetingSettings by settingBlock(TargetingSettings.CombatSettings(this))
+    @Tab(TargetingTab) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this))
 
     val target: Entity?
         get() = targetingSettings.target<Entity>()

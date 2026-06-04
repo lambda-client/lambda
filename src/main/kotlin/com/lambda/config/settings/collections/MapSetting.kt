@@ -18,9 +18,9 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.SettingLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import tools.jackson.databind.JavaType
 

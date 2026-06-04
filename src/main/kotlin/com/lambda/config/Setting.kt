@@ -27,7 +27,6 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
-import com.lambda.config.Config.SettingLayer
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -151,7 +150,7 @@ abstract class Setting<T>(
 	 * Will only register changes of the variable, not the content of the variable!
 	 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
 	 */
-	@SettingDsl
+	@ConfigEntryD5l
 	fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(true) { from, to ->
 			runSafe {
@@ -160,17 +159,17 @@ abstract class Setting<T>(
 		})
 	}
 
-	@SettingDsl
+	@ConfigEntryD5l
 	fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(true, block))
 	}
 
-	@SettingDsl
+	@ConfigEntryD5l
 	fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(false, block))
 	}
 
-	@SettingDsl
+	@ConfigEntryD5l
 	fun disabled(predicate: () -> Boolean) = apply {
 		disabled = predicate
 	}
@@ -237,7 +236,7 @@ abstract class Setting<T>(
 			var current: SettingLayer.Multiple = layer.parent
 			while (true) {
 				current = current.parent ?: break
-				if (current.multipleType == Config.MultipleLayerType.Root) break
+				if (current.multipleType == MultipleLayerType.Root) break
 				add(current.commandName)
 			}
 		}.asReversed()
@@ -253,4 +252,4 @@ class SettingCore<T>(
 )
 
 @DslMarker
-annotation class SettingDsl
+annotation class ConfigEntryD5l

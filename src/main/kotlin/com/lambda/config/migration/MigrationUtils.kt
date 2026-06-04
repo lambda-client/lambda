@@ -18,8 +18,8 @@
 package com.lambda.config.migration
 
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.ConfigCategory
+import com.lambda.config.SettingLayer
 import com.lambda.util.CommunicationUtils.logError
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.node.ObjectNode

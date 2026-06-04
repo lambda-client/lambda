@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.EntityColorSettings
@@ -54,14 +54,14 @@ object Tracers : Module(
 	private const val FriendsLineGroup = "Friends"
 	private const val OthersLineGroup = "Others"
 
-	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig by settingBlock(ScreenLineSettings(this))
+	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig by configBlock(ScreenLineSettings(this))
 		.withEdits { hide(::startColor, ::endColor) }
-	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig by settingBlock(ScreenLineSettings(this))
+	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig by configBlock(ScreenLineSettings(this))
 		.withEdits { hide(::startColor, ::endColor) }
 
-	@Tab(EntityTab) private val entitySettings by settingBlock(EntitySelectionSettings(this))
+	@Tab(EntityTab) private val entitySettings by configBlock(EntitySelectionSettings(this))
 		.withEdits { hide(::self, ::blockEntities) }
-	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))
+	@Tab(ColorsTab) private val entityColors by configBlock(EntityColorSettings(this))
 
 	init {
 		immediateRenderer("Tracers Immediate Renderer") {

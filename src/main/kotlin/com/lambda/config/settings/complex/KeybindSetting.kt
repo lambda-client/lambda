@@ -27,10 +27,10 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
-import com.lambda.config.SettingDsl
+import com.lambda.config.ConfigEntryD5l
+import com.lambda.config.SettingLayer
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
@@ -209,13 +209,13 @@ class KeybindSetting(
 
     @Suppress("unused")
     companion object {
-        @SettingDsl
+        @ConfigEntryD5l
         fun KeybindSetting.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply { pressListeners.add(block) }
 
-        @SettingDsl
+        @ConfigEntryD5l
         fun KeybindSetting.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply { repeatListeners.add(block) }
 
-        @SettingDsl
+        @ConfigEntryD5l
         fun KeybindSetting.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply { releaseListeners.add(block) }
     }
 }

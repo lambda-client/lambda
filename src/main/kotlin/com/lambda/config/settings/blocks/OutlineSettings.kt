@@ -18,11 +18,11 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.graphics.outline.OutlineStyle
 import java.awt.Color
 
-class OutlineSettings(override val c: Config) : OutlineConfig, SettingBlock {
+class OutlineSettings(override val c: Config) : OutlineConfig, ConfigBlock {
 	val thicknessSetting by c.setting("Line Width", 25, 1..100, 1, "The width of the outline")
 	override val thickness get() = thicknessSetting * 0.00005f
 

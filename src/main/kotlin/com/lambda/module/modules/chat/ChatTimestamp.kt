@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.ConfigEditor.editTyped
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.editTyped
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.settings.blocks.FormatterConfig
 import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.config.withEdits
@@ -48,7 +48,7 @@ object ChatTimestamp : Module(
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
 	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val formatter by settingBlock(FormatterSettings(this))
+	val formatter by configBlock(FormatterSettings(this))
 		.withEdits {
 			hide(::localeEnum, ::sep, ::customSep, ::floatingPrecision)
 			editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) }

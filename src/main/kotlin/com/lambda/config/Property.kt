@@ -17,13 +17,9 @@
 
 package com.lambda.config
 
-import com.lambda.config.Config.BlockLayer
 import kotlin.reflect.KProperty
 
-class SettingBlockWrapper<T : SettingBlock>(
-	val settingBlock: T,
-	val layer: BlockLayer
-) {
-	operator fun getValue(thisRef: Any?, property: KProperty<*>) = settingBlock
-	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {}
+class Property<T>(var value: T) {
+	operator fun getValue(thisRef: Any?, property: Any?) = value
+	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) { value = newValue }
 }

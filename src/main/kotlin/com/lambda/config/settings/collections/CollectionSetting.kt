@@ -18,12 +18,12 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
-import com.lambda.config.ConfigEditor
+import com.lambda.config.SettingEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
-import com.lambda.config.SettingDsl
+import com.lambda.config.ConfigEntryD5l
 import com.lambda.config.SettingEditorDsl
+import com.lambda.config.SettingLayer
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
@@ -172,17 +172,17 @@ open class CollectionSetting<R : Any>(
 
 	@Suppress("unused")
 	companion object {
-		@SettingDsl
+		@ConfigEntryD5l
 		fun <T : CollectionSetting<R>, R : Any> T.onSelect(block: SafeContext.(R) -> Unit) =
 			apply { selectListeners.add(block) }
 
-		@SettingDsl
+		@ConfigEntryD5l
 		fun <T : CollectionSetting<R>, R : Any> T.onDeselect(block: SafeContext.(R) -> Unit) =
 			apply { deselectListeners.add(block) }
 
 		@Suppress("unchecked_cast")
 		@SettingEditorDsl
-		fun <T : Any> ConfigEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+		fun <T : Any> SettingEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
 			(settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
 		}
 	}

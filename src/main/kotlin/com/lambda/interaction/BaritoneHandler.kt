@@ -23,7 +23,7 @@ import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.categories.LambdaCategory
@@ -46,7 +46,7 @@ object BaritoneHandler : Config(
 
 //    val settings by baritoneSettings?.let { settingBlock(BaritoneConfigSettings(this, it)) }
     private const val RotationTab = "Rotation"
-    @Tab(RotationTab) override val rotationConfig by settingBlock(RotationSettings(this))
+    @Tab(RotationTab) override val rotationConfig by configBlock(RotationSettings(this))
 
     @JvmStatic
     val primary: IBaritone? = baritone?.primaryBaritone
@@ -100,7 +100,7 @@ object BaritoneHandler : Config(
     class BaritoneConfigSettings(
         override val c: Config,
         private val bSettings: Settings
-    ) : SettingBlock {
+    ) : ConfigBlock {
         companion object {
             private const val GeneralTab = "General"
             private const val PathingTab = "Pathing"

@@ -18,11 +18,11 @@
 package com.lambda.config.settings
 
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
-import com.lambda.config.ConfigEditor
+import com.lambda.config.SettingEditor
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
 import com.lambda.config.SettingEditorDsl
+import com.lambda.config.SettingLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.calcTextSize
@@ -99,17 +99,17 @@ abstract class NumericSetting<T>(
 	@Suppress("unchecked_cast", "unused")
 	companion object {
 		@SettingEditorDsl
-		fun <T> ConfigEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+		fun <T> SettingEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
 			(settings as Collection<NumericSetting<T>>).forEach { it.range = range }
 		}
 
 		@SettingEditorDsl
-		fun <T> ConfigEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+		fun <T> SettingEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
 			(settings as Collection<NumericSetting<T>>).forEach { it.step = step }
 		}
 
 		@SettingEditorDsl
-		fun <T> ConfigEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+		fun <T> SettingEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
 			(settings as Collection<NumericSetting<T>>).forEach { it.unit = unit }
 		}
 	}

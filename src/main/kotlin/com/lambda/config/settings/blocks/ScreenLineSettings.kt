@@ -19,10 +19,10 @@ package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import java.awt.Color
 
-class ScreenLineSettings(override val c: Config) : LineConfig, SettingBlock {
+class ScreenLineSettings(override val c: Config) : LineConfig, ConfigBlock {
 	companion object {
 		private const val ColorGroup = "Color"
 		private const val DashGroup = "Dash"

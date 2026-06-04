@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.forEachSetting
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.settings.blocks.OutlineSettings
 import com.lambda.config.settings.blocks.WorldLineSettings
@@ -58,7 +58,7 @@ object BlockOutline : Module(
 	@Group(BoxFillGroup) private val fillColor by setting("Fill Color", Color(255, 255, 255, 20)) { fill && mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutline by setting("Box Outline", true) { mode == Mode.Boxes }
 	@Group(BoxOutlineGroup) private val boxOutlineColor by setting("Box Outline Color", Color(255, 255, 255, 120)) { mode == Mode.Boxes && boxOutline }
-	@Group(BoxOutlineGroup) private val lineConfig by settingBlock(WorldLineSettings(this))
+	@Group(BoxOutlineGroup) private val lineConfig by configBlock(WorldLineSettings(this))
 		.withEdits {
 			hide(::startColor, ::endColor)
 			forEachSetting {
@@ -67,7 +67,7 @@ object BlockOutline : Module(
 		}
 
 	@Group(OutlineGroup) private val outlineColor by setting("Outline Color", boxOutlineColor) { mode == Mode.Outline }
-	@Group(OutlineGroup) private val outlineStyle by settingBlock(OutlineSettings(this))
+	@Group(OutlineGroup) private val outlineStyle by configBlock(OutlineSettings(this))
 		.withEdits {
 			forEachSetting {
 				visibility { old -> { old() && mode == Mode.Outline } }

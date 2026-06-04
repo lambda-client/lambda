@@ -17,7 +17,7 @@
 
 package com.lambda.module.hud
 
-import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.SettingEditor.edit
 import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -32,7 +32,7 @@ object Rotation : HudModule(
 	description = "Show your rotation",
 	tag = ModuleTag.Hud,
 ) {
-	private val formatter by settingBlock(FormatterSettings(this))
+	private val formatter by configBlock(FormatterSettings(this))
 		.withEdits {
 			::timeFormat.edit { hide() }
 		}

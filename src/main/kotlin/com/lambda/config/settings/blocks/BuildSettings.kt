@@ -19,10 +19,10 @@ package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import kotlin.math.max
 
-class BuildSettings(override val c: Config) : BuildConfig, SettingBlock {
+class BuildSettings(override val c: Config) : BuildConfig, ConfigBlock {
     companion object {
         private const val GeneralGroup = "General"
         private const val PacketLimitsGroup = "Packet Limits"

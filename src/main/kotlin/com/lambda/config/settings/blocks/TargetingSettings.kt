@@ -18,8 +18,8 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.SettingBlock
+import com.lambda.config.SettingEditor.hide
+import com.lambda.config.ConfigBlock
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
@@ -53,13 +53,13 @@ abstract class TargetingSettings(
 	override val c: Config,
 	defaultRange: Double,
 	maxRange: Double,
-) : TargetingConfig, SettingBlock {
+) : TargetingConfig, ConfigBlock {
 	/**
 	 * The range within which entities can be targeted. This value is config and constrained
 	 * between 1.0 and [maxRange].
 	 */
 	override val targetingRange by c.setting("Targeting Range", defaultRange, 1.0..maxRange, 0.05)
-    override val targets by c.settingBlock(EntitySelectionSettings(c))
+    override val targets by c.configBlock(EntitySelectionSettings(c))
 	    .withEdits(c) { hide(::self, ::enableBlockEntities, ::blockEntities) }
 
 	/**

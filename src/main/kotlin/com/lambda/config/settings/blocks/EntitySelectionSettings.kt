@@ -19,7 +19,7 @@ package com.lambda.config.settings.blocks
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.util.EntityUtils.blockEntityMap
 import com.lambda.util.EntityUtils.bossEntityMap
 import com.lambda.util.EntityUtils.decorationEntityMap
@@ -33,7 +33,7 @@ import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.SpawnGroup
 
-class EntitySelectionSettings(override val c: Config) : SettingBlock, EntitySelectionConfig {
+class EntitySelectionSettings(override val c: Config) : ConfigBlock, EntitySelectionConfig {
 	override val self by c.setting("Self", false, "Render own player in third person")
 	override val enablePlayerEntities by c.setting("Enable Player Entities", true)
 	override val playerEntities by c.setting("Player Entities", playerEntityMap.values.toSet(), playerEntityMap.values.toSet(), "Player entities to omit from rendering") { enablePlayerEntities }

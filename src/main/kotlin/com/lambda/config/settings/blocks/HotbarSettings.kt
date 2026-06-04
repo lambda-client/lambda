@@ -18,11 +18,11 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
-class HotbarSettings(override val c: Config) : HotbarConfig, SettingBlock {
+class HotbarSettings(override val c: Config) : HotbarConfig, ConfigBlock {
     override val swapMode by c.setting("Swap Mode", HotbarConfig.SwapMode.Temporary)
     override val keepTicks by c.setting("Keep Ticks", 1, 0..20, 1, "The number of ticks to keep the current hotbar selection active", " ticks") { swapMode == HotbarConfig.SwapMode.Temporary }
     override val swapDelay by c.setting("Swap Delay", 0, 0..3, 1, "The number of ticks delay before allowing another hotbar selection swap", " ticks")

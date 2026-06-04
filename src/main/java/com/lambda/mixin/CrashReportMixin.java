@@ -18,7 +18,7 @@
 package com.lambda.mixin;
 
 import com.lambda.Lambda;
-import com.lambda.config.Config.SettingLayer;
+import com.lambda.config.SettingLayer;
 import com.lambda.module.Module;
 import com.lambda.module.ModuleRegistry;
 import com.lambda.util.DynamicExceptionKt;

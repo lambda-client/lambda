@@ -18,7 +18,7 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -29,7 +29,7 @@ import kotlin.math.ln
 import kotlin.math.sqrt
 import kotlin.random.Random
 
-class RotationSettings(override val c: Config) : RotationConfig, SettingBlock {
+class RotationSettings(override val c: Config) : RotationConfig, ConfigBlock {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "How the player is being rotated on interaction")
 
     /** How many ticks to keep the rotation before resetting */

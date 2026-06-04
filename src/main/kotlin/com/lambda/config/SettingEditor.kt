@@ -19,8 +19,6 @@
 
 package com.lambda.config
 
-import com.lambda.config.Config.BlockLayer
-import com.lambda.config.Config.SettingLayer
 import com.lambda.context.SafeContext
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
@@ -29,30 +27,28 @@ import kotlin.reflect.jvm.isAccessible
 annotation class SettingEditorDsl
 
 @SettingEditorDsl
-fun <T : Config> T.withEdits(edits: context(EditContext.ConfigEditContext) T.() -> Unit): T {
-	with(EditContext.ConfigEditContext(this)) { edits() }
-	return this
-}
+fun <T : Config> T.withEdits(
+	edits: context(EditContext.ConfigEditContext) T.() -> Unit
+) = apply { with(EditContext.ConfigEditContext(this)) { edits() } }
 
 @SettingEditorDsl
 context(c: Config)
-fun <T : SettingBlock> SettingBlockWrapper<T>.withEdits(edits: context(EditContext.BlockEditContext) T.() -> Unit): SettingBlockWrapper<T> {
-	with(EditContext.BlockEditContext(c, this)) { this@withEdits.settingBlock.edits() }
-	return this
-}
+fun <T : ConfigBlock> ConfigBlockWrapper<T>.withEdits(
+	edits: context(EditContext.BlockEditContext) T.() -> Unit
+) = apply { with(EditContext.BlockEditContext(c, this)) { this@withEdits.settingBlock.edits() } }
 
 @SettingEditorDsl
-fun <T : SettingBlock> SettingBlockWrapper<T>.withEdits(c: Config, edits: context(EditContext.BlockEditContext) T.() -> Unit): SettingBlockWrapper<T> {
-	with(EditContext.BlockEditContext(c, this)) { this@withEdits.settingBlock.edits() }
-	return this
-}
+fun <T : ConfigBlock> ConfigBlockWrapper<T>.withEdits(
+	c: Config,
+	edits: context(EditContext.BlockEditContext) T.() -> Unit
+) = with(c) { withEdits(edits) }
 
 sealed class EditContext(internal val c: Config) {
 	class ConfigEditContext internal constructor(c: Config) : EditContext(c)
-	class BlockEditContext internal constructor(c: Config, internal val block: SettingBlockWrapper<*>) : EditContext(c)
+	class BlockEditContext internal constructor(c: Config, internal val block: ConfigBlockWrapper<*>) : EditContext(c)
 }
 
-object ConfigEditor {
+object SettingEditor {
 	@SettingEditorDsl
 	context(editContext: EditContext.ConfigEditContext)
 	fun forEachSetting(block: BasicEditBuilder.() -> Unit) {
@@ -63,7 +59,7 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(editContext: EditContext.ConfigEditContext)
-	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>, recursive: Boolean = true) =
+	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<ConfigBlock>, recursive: Boolean = true) =
 		hideAllBlocksExcept(editContext.c.settingBlockLayers, *except, recursive = recursive)
 
 	@SettingEditorDsl
@@ -76,7 +72,10 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(editContext: EditContext.BlockEditContext)
-	fun hideAllBlocksExcept(vararg except: SettingBlockProperty<SettingBlock>, recursive: Boolean = true) =
+	fun hideAllBlocksExcept(
+		vararg except: SettingBlockProperty<ConfigBlock>,
+		recursive: Boolean = true
+	) =
 		hideAllBlocksExcept(editContext.block.layer, *except, recursive = recursive)
 
 	@SettingEditorDsl
@@ -106,25 +105,30 @@ object ConfigEditor {
 
 	@SettingEditorDsl
 	context(_: EditContext)
-	fun <T : SettingBlock> hideBlock(settingBlock: SettingBlockProperty<T>) {
-		settingBlock.settingBlock.layer.settingLayers.forEach(::hide)
+	fun <T : ConfigBlock> hideBlock(settingBlock: SettingBlockProperty<T>) {
+		settingBlock.configBlock.layer.settingLayers.forEach(::hide)
 	}
 
 	@SettingEditorDsl
 	context(_: EditContext)
-	fun hideBlocks(vararg settingBlocks: SettingBlockProperty<SettingBlock>) =
-		settingBlocks.forEach { hideBlock(it) }
+	fun hideBlocks(vararg configBlocks: SettingBlockProperty<ConfigBlock>) =
+		configBlocks.forEach { hideBlock(it) }
 
 	@SettingEditorDsl
 	context(_: EditContext)
-	fun <T : SettingBlock> hideBlockExcept(settingBlock: SettingBlockProperty<T>, vararg except: SettingProperty<Any>, recursive: Boolean = true) {
+	fun <T : ConfigBlock> hideBlockExcept(
+		settingBlock: SettingBlockProperty<T>,
+		vararg except: SettingProperty<Any>,
+		recursive: Boolean = true
+	) {
 		val exceptSettings = except.map { it.setting }
-		fun processBlock(blockLayer: BlockLayer) {
+		fun processBlock(blockLayer: ConfigBlockLayer) {
 			blockLayer.settingLayers.forEach { single ->
 				if (single.setting !in exceptSettings) hide(single)
 			}
 			if (recursive) blockLayer.layers.forEach(::processBlock)
 		}
+		processBlock(settingBlock.configBlock.layer)
 	}
 
 	open class BasicEditBuilder internal constructor(
@@ -172,12 +176,16 @@ object ConfigEditor {
 			parentLayer.parent?.layers?.remove(parentLayer)
 	}
 
-	private fun hideAllBlocksExcept(root: BlockLayer, vararg except: SettingBlockProperty<SettingBlock>, recursive: Boolean) {
-		val exceptBlocks = except.map { it.settingBlock.layer }
-		fun processBlock(blockLayer: BlockLayer) {
-			val unProtected = blockLayer !in exceptBlocks
-			if (unProtected) blockLayer.settingLayers.forEach(::hide)
-			if (unProtected || !recursive) blockLayer.layers.forEach(::processBlock)
+	private fun hideAllBlocksExcept(
+		root: ConfigBlockLayer,
+		vararg except: SettingBlockProperty<ConfigBlock>,
+		recursive: Boolean
+	) {
+		val exceptBlocks = except.map { it.configBlock.layer }
+		fun processBlock(settingBlockLayer: ConfigBlockLayer) {
+			val unProtected = settingBlockLayer !in exceptBlocks
+			if (unProtected) settingBlockLayer.settingLayers.forEach(::hide)
+			if (unProtected || !recursive) settingBlockLayer.layers.forEach(::processBlock)
 		}
 		processBlock(root)
 	}
@@ -197,7 +205,7 @@ object ConfigEditor {
 		get() = this.delegate as? Setting<T>
 			?: throw IllegalStateException("Setting delegate did not match the given type")
 
-	private val <T : SettingBlock> SettingBlockProperty<T>.settingBlock
-		get() = this.delegate as? SettingBlockWrapper<T>
+	private val <T : ConfigBlock> SettingBlockProperty<T>.configBlock
+		get() = this.delegate as? ConfigBlockWrapper<T>
 			?: throw IllegalStateException("SettingBlock delegate did not match the given type")
 }

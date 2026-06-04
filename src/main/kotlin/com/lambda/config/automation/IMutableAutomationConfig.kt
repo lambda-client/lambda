@@ -17,9 +17,9 @@
 
 package com.lambda.config.automation
 
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.SettingLayer
 import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.config.settings.blocks.BuildConfig
 import com.lambda.config.settings.blocks.EatConfig

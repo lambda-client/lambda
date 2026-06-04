@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.ConfigEditor.editTyped
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.editTyped
+import com.lambda.config.SettingEditor.forEachSetting
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.settings.blocks.ScreenLineSettings
 import com.lambda.config.settings.blocks.WorldLineSettings
@@ -87,7 +87,7 @@ object Search : Module(
     @Group(OutlineGroup) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
     @Group(OutlineGroup) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
-    @Group(OutlineGroup) private val outlineConfig by settingBlock(WorldLineSettings(this))
+    @Group(OutlineGroup) private val outlineConfig by configBlock(WorldLineSettings(this))
         .withEdits {
             hide(::startColor, ::endColor)
             forEachSetting {
@@ -96,7 +96,7 @@ object Search : Module(
             }
         }
     @Group(TracersGroup) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
-    @Group(TracersGroup) private val tracerConfig by settingBlock(ScreenLineSettings(this))
+    @Group(TracersGroup) private val tracerConfig by configBlock(ScreenLineSettings(this))
         .withEdits {
             forEachSetting { visibility { old -> { old() && tracers } } }
             editTyped(::startColor, ::endColor) {

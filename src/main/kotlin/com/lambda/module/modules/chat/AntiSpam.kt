@@ -19,7 +19,7 @@ package com.lambda.module.modules.chat
 
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendHandler
@@ -56,13 +56,13 @@ object AntiSpam : Module(
 	private val ignoreSystem by setting("Ignore System", false)
 	private val ignoreDms by setting("Ignore DMs", false)
 
-	@Group("Slurs") private val detectSlurs by settingBlock(ReplaceSettings("Slurs", this))
-	@Group("Swears") private val detectSwears by settingBlock(ReplaceSettings("Swears", this))
-	@Group("Sexual") private val detectSexual by settingBlock(ReplaceSettings("Sexual", this))
-	@Group("Discord") private val detectDiscord by settingBlock(ReplaceSettings("Discord", this, ActionStrategy.Hide))
-	@Group("Addresses") private val detectAddresses by settingBlock(ReplaceSettings("Addresses", this, ActionStrategy.Hide))
-	@Group("Hex") private val detectHexBypass by settingBlock(ReplaceSettings("Hex", this, ActionStrategy.Hide))
-	@Group("Colors") private val detectColors by settingBlock(ReplaceSettings("Colors", this, ActionStrategy.None))
+	@Group("Slurs") private val detectSlurs by configBlock(ReplaceSettings("Slurs", this))
+	@Group("Swears") private val detectSwears by configBlock(ReplaceSettings("Swears", this))
+	@Group("Sexual") private val detectSexual by configBlock(ReplaceSettings("Sexual", this))
+	@Group("Discord") private val detectDiscord by configBlock(ReplaceSettings("Discord", this, ActionStrategy.Hide))
+	@Group("Addresses") private val detectAddresses by configBlock(ReplaceSettings("Addresses", this, ActionStrategy.Hide))
+	@Group("Hex") private val detectHexBypass by configBlock(ReplaceSettings("Hex", this, ActionStrategy.Hide))
+	@Group("Colors") private val detectColors by configBlock(ReplaceSettings("Colors", this, ActionStrategy.None))
 
 	init {
 		listen<ChatEvent.Receive> { event ->
@@ -120,7 +120,7 @@ object AntiSpam : Module(
 		val name: String,
 		override val c: Config,
 		actionStrategy: ActionStrategy = ActionStrategy.Replace
-	) : SettingBlock {
+	) : ConfigBlock {
 		val action by c.setting("$name Action Strategy", actionStrategy)
 		val replace by c.setting("$name Replace Strategy", ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
 

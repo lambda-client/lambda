@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.SettingEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
 import com.lambda.config.withEdits

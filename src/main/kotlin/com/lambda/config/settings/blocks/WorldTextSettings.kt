@@ -19,10 +19,10 @@ package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 import java.awt.Color
 
-class WorldTextSettings(override val c: Config) : TextConfig, SettingBlock {
+class WorldTextSettings(override val c: Config) : TextConfig, ConfigBlock {
 	companion object {
 		private const val OutlineGroup = "Outline"
 		private const val GlowGroup = "Glow"

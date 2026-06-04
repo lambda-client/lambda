@@ -23,9 +23,9 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Config.SettingLayer
 import com.lambda.config.Setting
 import com.lambda.config.SettingCore
+import com.lambda.config.SettingLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.CommunicationUtils.info

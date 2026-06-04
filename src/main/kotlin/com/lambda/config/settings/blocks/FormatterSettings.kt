@@ -18,9 +18,9 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingBlock
+import com.lambda.config.ConfigBlock
 
-class FormatterSettings(override val c: Config) : FormatterConfig, SettingBlock {
+class FormatterSettings(override val c: Config) : FormatterConfig, ConfigBlock {
     val localeEnum by c.setting("Locale", FormatterConfig.Locales.US, "The regional formatting used for numbers")
     override val locale get() = localeEnum.locale
 

@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.SettingEditor.forEachSetting
+import com.lambda.config.SettingEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.EntityColorSettings
@@ -67,7 +67,7 @@ object ESP : Module(
 	@Tab(GeneralTab) private val depthTest by setting("Depth Test", false, "Blend ESP renders into the world")
 
 	//Shader Outline
-	@Tab(GeneralTab) private val outlineStyle by settingBlock(OutlineSettings(this))
+	@Tab(GeneralTab) private val outlineStyle by configBlock(OutlineSettings(this))
 		.withEdits { forEachSetting { visibility { old -> { old() && mode == EspMode.Shader } } } }
 
 	//Box
@@ -77,14 +77,14 @@ object ESP : Module(
 	@Tab(GeneralTab) @Group(BoxOutlineGroup) private var drawOutline: Boolean by setting("Box Outline", true, "Draw box outlines") { mode == EspMode.Box }
 		.onValueChange { _, to -> if (!to && !drawFilled) drawFilled = true }
 	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val outlineAlpha by setting("Outline Alpha", 0.8, 0.0..1.0, 0.05) { mode == EspMode.Box && drawOutline }
-	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings by settingBlock(WorldLineSettings(this))
+	@Tab(GeneralTab) @Group(BoxOutlineGroup) private val boxOutlineSettings by configBlock(WorldLineSettings(this))
 		.withEdits {
 			forEachSetting { visibility { old -> { old() && mode == EspMode.Box && drawOutline } } }
 			hide(::startColor, ::endColor)
 		}
 
-	@Tab(EntitiesTab) private val entitySettings by settingBlock(EntitySelectionSettings(this))
-	@Tab(ColorsTab) private val entityColors by settingBlock(EntityColorSettings(this))
+	@Tab(EntitiesTab) private val entitySettings by configBlock(EntitySelectionSettings(this))
+	@Tab(ColorsTab) private val entityColors by configBlock(EntityColorSettings(this))
 
 	init {
 		immediateRenderer("EntityESP Immediate Renderer", depthTest = { depthTest }) {

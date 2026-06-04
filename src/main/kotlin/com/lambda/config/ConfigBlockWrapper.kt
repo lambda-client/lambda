@@ -17,6 +17,12 @@
 
 package com.lambda.config
 
-interface SettingBlock {
-	val c: Config
+import kotlin.reflect.KProperty
+
+class ConfigBlockWrapper<T : ConfigBlock>(
+	val settingBlock: T,
+	val layer: ConfigBlockLayer
+) {
+	operator fun getValue(thisRef: Any?, property: KProperty<*>) = settingBlock
+	operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {}
 }

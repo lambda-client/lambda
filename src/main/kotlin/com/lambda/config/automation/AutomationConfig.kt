@@ -39,13 +39,13 @@ open class AutomationConfig(
 	name,
 	configCategory
 ), Automated {
-	@Tab(BuildTab) override val buildConfig by settingBlock(BuildSettings(this))
-	@Tab(BreakTab) override val breakConfig by settingBlock(BreakSettings(this))
-	@Tab(InteractTab) override val interactConfig by settingBlock(InteractSettings(this))
-	@Tab(RotationTab) override val rotationConfig by settingBlock(RotationSettings(this))
-	@Tab(InventoryTab) override val inventoryConfig by settingBlock(InventorySettings(this))
-	@Tab(HotbarTab) override val hotbarConfig by settingBlock(HotbarSettings(this))
-	@Tab(EatTab) override val eatConfig by settingBlock(EatSettings(this))
+	@Tab(BuildTab) override val buildConfig by configBlock(BuildSettings(this))
+	@Tab(BreakTab) override val breakConfig by configBlock(BreakSettings(this))
+	@Tab(InteractTab) override val interactConfig by configBlock(InteractSettings(this))
+	@Tab(RotationTab) override val rotationConfig by configBlock(RotationSettings(this))
+	@Tab(InventoryTab) override val inventoryConfig by configBlock(InventorySettings(this))
+	@Tab(HotbarTab) override val hotbarConfig by configBlock(HotbarSettings(this))
+	@Tab(EatTab) override val eatConfig by configBlock(EatSettings(this))
 
 	companion object {
 		private const val BuildTab = "Build"

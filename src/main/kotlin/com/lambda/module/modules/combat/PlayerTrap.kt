@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.ConfigEditor.editTyped
-import com.lambda.config.ConfigEditor.hideBlock
+import com.lambda.config.SettingEditor.editTyped
+import com.lambda.config.SettingEditor.hideBlock
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext

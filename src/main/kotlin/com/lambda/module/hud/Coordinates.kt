@@ -17,7 +17,7 @@
 
 package com.lambda.module.hud
 
-import com.lambda.config.ConfigEditor.edit
+import com.lambda.config.SettingEditor.edit
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.config.withEdits
@@ -43,7 +43,7 @@ object Coordinates : HudModule(
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
 	private const val CurrentDimensionTab = "Current Dimension"
-	@Tab(CurrentDimensionTab) private val formatter by settingBlock(FormatterSettings(this))
+	@Tab(CurrentDimensionTab) private val formatter by configBlock(FormatterSettings(this))
 		.withEdits { ::timeFormat.edit { hide() } }
 
 //	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
