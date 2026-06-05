@@ -73,14 +73,16 @@ object ConfigCategoryFallbackDeserializer : FallbackDeserializer<ConfigCategory>
 
 object ConfigFallbackSerializer : FallbackSerializer<Config>(Config::class.java) {
 	override fun serialize(config: Config, gen: JsonGenerator, ctxt: SerializationContext) {
-		gen.writeObjectPropertyStart(config.name)
-		val serializedSettings = mapper.valueToTree<JsonNode>(config.settingLayers)
+		gen.writeStartObject()
+		val settingLayers = config.settingLayers
+		val serializedSettings = mapper.valueToTree<JsonNode>(settingLayers)
 		if (!serializedSettings.isEmpty) {
-			gen.writeName(config.settingLayers.name)
-			gen.writeTree(serializedSettings)
+			gen.writePOJOProperty(settingLayers.name, serializedSettings)
 		}
-		if (config.propertyLayers.layers.isNotEmpty()) {
-			gen.writePOJO(config.propertyLayers)
+		val propertyLayers = config.propertyLayers
+		val serializedProperties = mapper.valueToTree<JsonNode>(propertyLayers)
+		if (!serializedProperties.isEmpty) {
+			gen.writePOJOProperty(propertyLayers.name, serializedProperties)
 		}
 		gen.writeEndObject()
 	}
@@ -132,10 +134,12 @@ object MultipleSerializers {
 
 	object PropertyLayerMultipleFallbackSerializer : FallbackSerializer<PropertyLayer.Multiple>(PropertyLayer.Multiple::class.java) {
 		override fun serialize(multiple: PropertyLayer.Multiple, gen: JsonGenerator, ctxt: SerializationContext) {
-			if (multiple.layers.isEmpty()) return
-			gen.writeObjectPropertyStart(multiple.name)
+			gen.writeStartObject()
 			multiple.layers.forEach { layer ->
-				gen.writePOJOProperty(layer.name, layer)
+				if (layer is PropertyLayer.Single<*> && !layer.property.isModified) return@forEach
+				val serialized = mapper.valueToTree<JsonNode>(layer)
+				if (serialized.isObject && serialized.isEmpty) return@forEach
+				gen.writePOJOProperty(layer.name, serialized)
 			}
 			gen.writeEndObject()
 		}
@@ -179,21 +183,25 @@ object SingleSerializers {
 			}
 	}
 
-	object PropertyLayerSingleSerializer : Serializer<PropertyLayer.Single>(PropertyLayer.Single::class.java) {
-		override fun serialize(single: PropertyLayer.Single, gen: JsonGenerator, ctxt: SerializationContext?) {
+	object PropertyLayerSingleSerializer : Serializer<PropertyLayer.Single<*>>(PropertyLayer.Single::class.java) {
+		override fun serialize(single: PropertyLayer.Single<*>, gen: JsonGenerator, ctxt: SerializationContext?) {
 			gen.writePOJOProperty(single.name, single.property.value)
 		}
 	}
 
-	object PropertyLayerSingleDeserializer : Deserializer<PropertyLayer.Single>(PropertyLayer.Single::class.java) {
-		override fun deserialize(p: JsonParser, ctxt: DeserializationContext): PropertyLayer.Single {
+	object PropertyLayerSingleDeserializer : Deserializer<PropertyLayer.Single<*>>(PropertyLayer.Single::class.java) {
+		override fun deserialize(p: JsonParser, ctxt: DeserializationContext): PropertyLayer.Single<*> {
 			throw initFromJsonException("PropertyLayer.Single")
 		}
 
-		override fun deserialize(p: JsonParser, ctxt: DeserializationContext, single: PropertyLayer.Single) =
+		override fun deserialize(p: JsonParser, ctxt: DeserializationContext, single: PropertyLayer.Single<*>) =
 			single.apply {
 				@Suppress("unchecked_cast")
-				(property as Property<Any>).value = ctxt.readValue(p, property.value.javaClass)
+				try {
+					(property as Property<Any>).value = ctxt.readValue(p, property.value.javaClass)
+				} catch (e: Throwable) {
+					Log.error("Failed to deserialize property '${name}'", e)
+				}
 			}
 	}
 }

@@ -19,7 +19,13 @@ package com.lambda.config
 
 import kotlin.reflect.KProperty
 
-class Property<T>(var value: T) {
+class Property<T>(
+	val defaultValue: T,
+	var value: T,
+	val equals: T.(T) -> Boolean
+) {
+	val isModified get() = !equals.invoke(value, defaultValue)
+
 	operator fun getValue(thisRef: Any?, property: Any?) = value
 	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) { value = newValue }
 }

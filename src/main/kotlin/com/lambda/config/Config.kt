@@ -49,7 +49,6 @@ import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
-import kotlin.collections.plus
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.declaredMemberProperties
@@ -390,7 +389,11 @@ abstract class Config(
 	}
 
 	@ConfigEntryD5l
-	fun <T> property(value: T): Property<T> {
+	fun <T> property(
+		defaultValue: T,
+		value: T = defaultValue,
+		equals: T.(T) -> Boolean = { other -> this == other }
+	): Property<T> {
 		val spec = try {
 			registrationQueue.removeFirst()
 		} catch (_: NoSuchElementException) {
@@ -419,13 +422,24 @@ abstract class Config(
 		if (currentLayer.layers.any { it.name == spec.propertyName })
 			throw IllegalStateException("Duplicate layer name ('${spec.propertyName}') within ${currentLayer.name}")
 
-		return Property(value).also {
+		return Property(defaultValue, value, equals).also {
 			currentLayer.layers.add(PropertyLayer.Single(it, spec.propertyName))
 		}
 	}
 
 	@ConfigEntryD5l
-	fun <T> property(valueSupplier: () -> T) = property(valueSupplier())
+	fun <T> property(
+		equals: T.(T) -> Boolean = { other -> this == other },
+		valueSupplier: (() -> T)? = null,
+		defaultValueSupplier: () -> T
+	) = property(defaultValueSupplier(), valueSupplier?.invoke() ?: defaultValueSupplier(), equals)
+
+	@ConfigEntryD5l
+	fun <T> property(
+		equals: T.(T) -> Boolean = { other -> this == other },
+		defaultValue: T,
+		valueSupplier: () -> T = { defaultValue }
+	) = property(defaultValue, valueSupplier(), equals)
 
 	@PublishedApi
 	internal fun <T : Setting<R>, R> setting(name: String, settingSupplier: (single: SettingLayer.Single<T, R>) -> T): T {
@@ -585,8 +599,8 @@ sealed class PropertyLayer {
 
 	class Root : Multiple("Properties")
 
-	class Single(
-		val property: Property<*>,
+	class Single<T>(
+		val property: Property<T>,
 		override val name: String
 	) : PropertyLayer()
 }
