@@ -19,13 +19,20 @@ package com.lambda.config
 
 import kotlin.reflect.KProperty
 
-class Property<T>(
-	val defaultValue: T,
-	var value: T,
-	val equals: T.(T) -> Boolean
-) {
-	val isModified get() = !equals.invoke(value, defaultValue)
+interface ConfigEntry<T> {
+	val name: String
+	val originalCore: EntryCore<T>
+	var core: EntryCore<T>
+	val layer: EntryLayer.Single<*>
+	val config: Config
 
-	operator fun getValue(thisRef: Any?, property: Any?) = value
-	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) { value = newValue }
+	val isModified: Boolean
+
+	operator fun getValue(thisRef: Any?, property: Any?) = core.value
+	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) { core.value = newValue }
 }
+
+class EntryCore<T>(
+	var defaultValue: T,
+	var value: T = defaultValue,
+)

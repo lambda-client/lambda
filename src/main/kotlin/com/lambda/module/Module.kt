@@ -20,7 +20,6 @@ package com.lambda.module
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
-import com.lambda.config.SettingCore
 import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.automation.MutableAutomationConfig
 import com.lambda.config.categories.ModuleCategory
@@ -63,7 +62,7 @@ import com.lambda.util.Nameable
  * If a module does not need to be activated by a key (like [ClickGui]),
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
- * [Module]s are [Config]s with [settingLayers] (see [SettingCore] for all setting types).
+ * [Module]s are [Config]s with [settingLayers] (see [EntryCore] for all setting types).
  * Example:
  * ```
  * private val foo by setting("Foo", true)

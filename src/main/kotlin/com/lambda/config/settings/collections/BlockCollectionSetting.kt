@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.BlockSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.block.Block
@@ -28,7 +28,7 @@ class BlockCollectionSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, MutableCollection<Block>>,
+	layer: SettingEntryLayer<CollectionSetting<Block>, MutableCollection<Block>>,
 	visibility: () -> Boolean,
 	immutableCollection: Collection<Block>,
 	defaultValue: MutableCollection<Block>,

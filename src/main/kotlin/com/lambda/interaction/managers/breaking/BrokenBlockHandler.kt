@@ -30,6 +30,7 @@ import com.lambda.interaction.managers.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.fluidState
@@ -119,19 +120,21 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 		}
 
         listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
-            if (it.entity !is ItemEntity) return@listen
-            val pending =
-                pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
-                    ?: rebreak?.let { info ->
-                        if (matchesBlockItem(info, it.entity)) info
-                        else return@listen
-                    } ?: return@listen
+			runGameScheduled {
+				if (it.entity !is ItemEntity) return@runGameScheduled
+				val pending =
+					pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+						?: rebreak?.let { info ->
+							if (matchesBlockItem(info, it.entity)) info
+							else return@runGameScheduled
+						} ?: return@runGameScheduled
 
-			pending.internalOnItemDrop(it.entity)
-			if (pending.callbacksCompleted) {
-				pending.stopPending()
-				if (lastPosStarted == pending.context.blockPos) {
-					RebreakHandler.offerRebreak(pending)
+				pending.internalOnItemDrop(it.entity)
+				if (pending.callbacksCompleted) {
+					pending.stopPending()
+					if (lastPosStarted == pending.context.blockPos) {
+						RebreakHandler.offerRebreak(pending)
+					}
 				}
 			}
 		}

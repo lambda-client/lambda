@@ -17,10 +17,10 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.SettingEditor.edit
-import com.lambda.config.SettingEditor.editTyped
-import com.lambda.config.SettingEditor.hide
-import com.lambda.config.SettingEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
@@ -58,29 +58,29 @@ object FastBreak : Module(
 						::interactBlocks,
 						::placeBlocks
 					)
-					::maxBuildDependencies.edit { defaultValue(0) }
-					editTyped(
+					::maxBuildDependencies.editSetting { defaultValue(0) }
+					editTypedSettings(
 						::strictRayCast
 					) { defaultValue(false); }
 					hide(::strictRayCast, ::checkSideVisibility)
-					::blockReach.edit { defaultValue(Double.MAX_VALUE) }
+					::blockReach.editSetting { defaultValue(Double.MAX_VALUE) }
 				}
 				breakConfig.apply {
-					editTyped(
+					editTypedSettings(
 						::avoidFluids,
 						::avoidSupporting,
 						::efficientOnly,
 						::suitableToolsOnly
 					) { defaultValue(false) }
-					editTyped(
+					editTypedSettings(
 						::rotate,
 						::doubleBreak
 					) { defaultValue(false); hide() }
-					::breaksPerTick.edit { defaultValue(1); hide() }
-					::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
+					::breaksPerTick.editSetting { defaultValue(1); hide() }
+					::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
 					hide(::sorter, ::unsafeCancels)
 				}
-				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
+				hotbarConfig::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Input.Post)); hide() }
 			}
 
 		listen<PlayerEvent.Attack.Block> { it.cancel() }

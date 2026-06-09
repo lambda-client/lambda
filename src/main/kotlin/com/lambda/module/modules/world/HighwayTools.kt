@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.SettingEditor.editTyped
+import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.interaction.BaritoneHandler
@@ -95,7 +95,7 @@ object HighwayTools : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange) { defaultValue(true) }
+					editTypedSettings(::pathing, ::stayInRange) { defaultValue(true) }
 				}
             }
 

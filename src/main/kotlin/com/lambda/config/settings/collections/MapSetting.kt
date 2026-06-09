@@ -18,9 +18,8 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import tools.jackson.databind.JavaType
 
@@ -28,10 +27,10 @@ class MapSetting<K, V>(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, MutableMap<K, V>>,
+	layer: SettingEntryLayer<MapSetting<K, V>, MutableMap<K, V>>,
 	visibility: () -> Boolean,
 	defaultValue: MutableMap<K, V>,
 	val type: JavaType
-) : Setting<MutableMap<K, V>>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<MutableMap<K, V>>(name, description, defaultValue, layer, config, visibility) {
 	override fun ImGuiBuilder.buildLayout() {}
 }

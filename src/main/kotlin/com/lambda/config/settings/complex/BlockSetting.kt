@@ -22,9 +22,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.block.Block
@@ -34,10 +33,10 @@ class BlockSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, Block>,
+	layer: SettingEntryLayer<BlockSetting, Block>,
 	visibility: () -> Boolean,
 	defaultValue: Block
-) : Setting<Block>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<Block>(name, description, defaultValue, layer, config, visibility) {
 	override fun ImGuiBuilder.buildLayout() {}
 
 	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {

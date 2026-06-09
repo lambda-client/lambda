@@ -18,12 +18,13 @@
 package com.lambda.gui.components
 
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingLayer
+import com.lambda.config.EntryLayer
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.automation.UserAutomationConfig
 import com.lambda.config.categories.UserAutomationCategory
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.flag.ImGuiPopupFlags
@@ -52,7 +53,7 @@ object SettingsWidget {
 			            with(config.backgroundColor) { buildLayout() }
 		            }
 		            smallButton("Reset") {
-			            config.reset()
+			            config.resetSettings()
 		            }
 	            }
             }
@@ -92,24 +93,24 @@ object SettingsWidget {
 	    drawLayers(config.settingLayers, config.name)
     }
 
-    private fun ImGuiBuilder.drawLayers(root: SettingLayer.Multiple, idPrefix: String) {
+    private fun ImGuiBuilder.drawLayers(root: EntryLayer.Multiple<Setting<*>>, idPrefix: String) {
 	    var tabsDrawn = false
 
 	    root.layers.forEach { layer ->
 		    when (layer) {
-			    is SettingLayer.Single<*, *> -> drawSetting(layer.setting)
-			    is SettingLayer.Group -> {
+			    is EntryLayer.Single<Setting<*>> -> drawSetting(layer.entry)
+			    is EntryLayer.Group -> {
 				    if (hasVisibleSettings(layer)) {
 					    treeNode("${layer.name}##$idPrefix-group-${layer.name}") {
 						    drawLayers(layer, "$idPrefix-${layer.name}")
 					    }
 				    }
 			    }
-			    is SettingLayer.Tab -> {
+			    is EntryLayer.Tab -> {
 				    if (!tabsDrawn) {
 					    tabsDrawn = true
 					    val allTabs = root.layers
-						    .filterIsInstance<SettingLayer.Tab>()
+						    .filterIsInstance<EntryLayer.Tab<Setting<*>>>()
 						    .filter { hasVisibleSettings(it) }
 					    if (allTabs.isNotEmpty()) {
 						    tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
@@ -134,11 +135,12 @@ object SettingsWidget {
 	    if (setting.disabled()) ImGui.endDisabled()
     }
 
-    private fun hasVisibleSettings(layer: SettingLayer.Multiple): Boolean =
+    private fun hasVisibleSettings(layer: EntryLayer.Multiple<Setting<*>>): Boolean =
 	    layer.layers.any { layer ->
 		    when (layer) {
-			    is SettingLayer.Single<*, *> -> layer.setting.visibility()
-			    is SettingLayer.Multiple -> hasVisibleSettings(layer)
+			    is SettingEntryLayer<*, *> -> layer.entry.visibility()
+			    is EntryLayer.Multiple<Setting<*>> -> hasVisibleSettings(layer)
+			    else -> false
 		    }
 	    }
 }

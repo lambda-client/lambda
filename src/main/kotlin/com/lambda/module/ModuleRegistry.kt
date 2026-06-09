@@ -31,7 +31,7 @@ object ModuleRegistry : Loadable {
     override fun load(): String {
         var settingCount = 0
         modules.forEach { module ->
-            module.forEachSetting { _, _ -> settingCount++ }
+            module.settingLayers.forEachEntry { _, _ -> settingCount++ }
         }
         return "Loaded ${modules.size} modules with $settingCount settings"
     }

@@ -18,10 +18,10 @@
 package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.SettingEditor.edit
-import com.lambda.config.SettingEditor.forEachSetting
-import com.lambda.config.SettingEditor.hide
-import com.lambda.config.SettingEditor.hideBlock
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.WorldLineSettings
@@ -137,7 +137,7 @@ object AutoPortal : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				hideBlock(::eatConfig)
-				hotbarConfig::tickStageMask.edit {
+				hotbarConfig::tickStageMask.editSetting {
 					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
 				}
 			}

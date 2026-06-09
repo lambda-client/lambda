@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.SettingEditor.editTyped
-import com.lambda.config.SettingEditor.hide
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.settings.blocks.FormatterConfig
 import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.config.withEdits
@@ -51,7 +51,7 @@ object ChatTimestamp : Module(
 	val formatter by configBlock(FormatterSettings(this))
 		.withEdits {
 			hide(::localeEnum, ::sep, ::customSep, ::floatingPrecision)
-			editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) }
+			editTypedSettings(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) }
 		}
 
 	private val currentTime get() =

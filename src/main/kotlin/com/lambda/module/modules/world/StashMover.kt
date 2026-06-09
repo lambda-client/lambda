@@ -19,10 +19,10 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
-import com.lambda.config.SettingEditor.edit
-import com.lambda.config.SettingEditor.editTyped
-import com.lambda.config.SettingEditor.hide
-import com.lambda.config.SettingEditor.hideBlock
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.InteractConfig
@@ -182,13 +182,13 @@ object StashMover : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
+					editTypedSettings(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
 					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
 					hideBlock(::eatConfig)
 				}
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
 				breakConfig.apply {
-					editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
+					editTypedSettings(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
 				}
 			}
 

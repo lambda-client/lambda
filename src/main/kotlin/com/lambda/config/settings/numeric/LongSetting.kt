@@ -22,7 +22,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.type.ImInt
@@ -33,15 +33,15 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Config]
  */
 class LongSetting(
-    name: String,
-    description: String,
-    config: Config,
-    layer: SettingLayer.Single<*, Long>,
-    visibility: () -> Boolean,
-    defaultValue: Long,
-    override var range: ClosedRange<Long>,
-    override var step: Long = 1,
-    unit: String
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingEntryLayer<NumericSetting<Long>, Long>,
+	visibility: () -> Boolean,
+	defaultValue: Long,
+	override var range: ClosedRange<Long>,
+	override var step: Long = 1,
+	unit: String
 ) : NumericSetting<Long>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
     override fun ImGuiBuilder.buildSlider() {
         // FixMe: No worky for super large numbers

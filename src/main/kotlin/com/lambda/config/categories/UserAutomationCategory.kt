@@ -37,6 +37,7 @@ object UserAutomationCategory : ConfigCategory() {
                 ?.propertyStream()
                 ?.forEach { (key, _) ->
                     if (configs.any { config -> config.name == key }) return@forEach
+                    if (key == "_schemaVersion") return@forEach
                     UserAutomationConfig(key)
                 }
         }

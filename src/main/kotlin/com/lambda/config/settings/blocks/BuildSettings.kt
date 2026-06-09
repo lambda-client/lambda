@@ -18,8 +18,8 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.Group
 import com.lambda.config.ConfigBlock
+import com.lambda.config.Group
 import kotlin.math.max
 
 class BuildSettings(override val c: Config) : BuildConfig, ConfigBlock {

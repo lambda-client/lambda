@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.SettingEditor.editTyped
-import com.lambda.config.SettingEditor.forEachSetting
-import com.lambda.config.SettingEditor.hide
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.settings.blocks.ScreenLineSettings
 import com.lambda.config.settings.blocks.WorldLineSettings
@@ -99,7 +99,7 @@ object Search : Module(
     @Group(TracersGroup) private val tracerConfig by configBlock(ScreenLineSettings(this))
         .withEdits {
             forEachSetting { visibility { old -> { old() && tracers } } }
-            editTyped(::startColor, ::endColor) {
+            editTypedSettings(::startColor, ::endColor) {
                 visibility { { !useNaturalColor } }
             }
         }

@@ -19,6 +19,11 @@ package com.lambda.config
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.ConfigLoader.configs
+import com.lambda.config.entries.ConfigEntryDsl
+import com.lambda.config.entries.Property
+import com.lambda.config.entries.PropertyEntryLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
@@ -55,20 +60,21 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaField
 
 /**
- * Represents a set of [SettingCore]s that are associated with the [name] of the [Config].
+ * Represents a set of [EntryCore]s that are associated with the [name] of the [Config].
  * The settings are managed by this [Config] and are saved and loaded as part of the [ConfigCategory].
  *
  * This class also provides a series of helper methods ([setting]) for creating different types of settings.
  *
- * @property settingLayers A set of [SettingCore]s that this config manages.
+ * @property settingLayers A set of [EntryCore]s that this config manages.
  */
+@Suppress("unused")
 abstract class Config(
 	final override val name: String,
 	configCategory: ConfigCategory
 ) : Nameable {
-	internal val settingLayers = SettingLayer.Root()
+	internal val settingLayers = EntryLayer.Root<Setting<*>>("Settings")
+	internal val propertyLayers = EntryLayer.Root<Property<*>>("Properties")
 	internal val settingBlockLayers = ConfigBlockLayer.Root()
-	internal val propertyLayers = PropertyLayer.Root()
 	private val registrationQueue = ArrayDeque<LayerSpecInfo>()
 
 	init {
@@ -168,13 +174,19 @@ abstract class Config(
 		return path
 	}
 
-	fun reset() {
-		forEachSettingBlock(settingBlockLayers) { _, single ->
-			single.setting.reset()
+	fun resetSettings() {
+		settingLayers.forEachEntry { _, single ->
+			single.entry.reset()
 		}
 	}
 
-	@ConfigEntryD5l
+	fun resetProperties() {
+		propertyLayers.forEachEntry { _, single ->
+			single.entry.reset()
+		}
+	}
+
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Boolean,
@@ -182,7 +194,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> BooleanSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun <T : Enum<T>> setting(
 		name: String,
 		defaultValue: T,
@@ -190,7 +202,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> EnumSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Char,
@@ -198,7 +210,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> CharSetting(name, description, this, layer, defaultValue, visibility) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: String,
@@ -208,7 +220,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	@JvmName("collectionSetting1")
 	fun setting(
 		name: String,
@@ -218,7 +230,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> BlockCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	@JvmName("collectionSetting2")
 	fun setting(
 		name: String,
@@ -228,7 +240,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> ItemCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	@JvmName("collectionSetting3")
 	inline fun <reified T : Any> setting(
 		name: String,
@@ -243,7 +255,7 @@ abstract class Config(
 		else CollectionSetting(name, description, this, layer, visibility, defaultValue.toMutableList(), immutableList, typeFactory.constructCollectionType(Collection::class.java, T::class.java), serialize)
 	}
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	inline fun <reified K : Any, reified V : Any> setting(
 		name: String,
 		defaultValue: Map<K, V>,
@@ -256,7 +268,7 @@ abstract class Config(
 		)
 	}
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Double,
@@ -267,7 +279,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> DoubleSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Float,
@@ -278,7 +290,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> FloatSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Int,
@@ -289,7 +301,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> IntegerSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Long,
@@ -300,7 +312,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> LongSetting(name, description, this, layer, visibility, defaultValue, range, step, unit) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Bind,
@@ -310,7 +322,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: KeyCode,
@@ -320,7 +332,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> KeybindSetting(name, description, this, layer, visibility, defaultValue, this as? Muteable, alwaysListening, screenCheck) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Color,
@@ -328,7 +340,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> ColorSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Vec3d,
@@ -336,7 +348,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> Vec3dSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: BlockPos.Mutable,
@@ -344,7 +356,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: BlockPos,
@@ -352,7 +364,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> BlockPosSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun setting(
 		name: String,
 		defaultValue: Block,
@@ -360,7 +372,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> BlockSetting(name, description, this, layer, visibility, defaultValue) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun <T : () -> R, R> setting(
 		name: String,
 		defaultValue: T,
@@ -368,7 +380,7 @@ abstract class Config(
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> FunctionSetting(name, description, defaultValue, this, layer, visibility) }
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun <T : ConfigBlock> configBlock(
 		configBlock: T
 	): ConfigBlockWrapper<T> {
@@ -388,10 +400,11 @@ abstract class Config(
 		return ConfigBlockWrapper(configBlock, currentLayer)
 	}
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun <T> property(
 		defaultValue: T,
 		value: T = defaultValue,
+		setter: (T) -> T = { it },
 		equals: T.(T) -> Boolean = { other -> this == other }
 	): Property<T> {
 		val spec = try {
@@ -400,83 +413,30 @@ abstract class Config(
 			throw IllegalStateException("Property registered from an unknown location for config '$name'. Layer path was not queued before property initialization")
 		}
 
-		var currentLayer: PropertyLayer.Multiple = propertyLayers
+		var currentPropertyLayer: EntryLayer.Multiple<Property<*>> = propertyLayers
 		spec.layerSpecs.forEach { spec ->
-			currentLayer =
-				currentLayer.layers
+			currentPropertyLayer =
+				currentPropertyLayer.layers
 					.asSequence()
 					.filter { it.name == spec.name }
 					.also {
 						it.forEach { layer ->
-							if (layer !is PropertyLayer.Multiple)
+							if (layer !is EntryLayer.Multiple<*>)
 								throw IllegalStateException("Multiple registered with a name '${layer.name}' matching a Single on the same layer")
 						}
 					}
-					.filterIsInstance<PropertyLayer.Multiple>()
+					.filterIsInstance<EntryLayer.Multiple<Property<*>>>()
 					.firstOrNull()
-					?: PropertyLayer.Multiple(spec.name).also {
-						currentLayer.layers.add(it)
+					?: EntryLayer.Group(spec.name, currentPropertyLayer).also {
+						currentPropertyLayer.layers.add(it)
 					}
 		}
 
-		if (currentLayer.layers.any { it.name == spec.propertyName })
-			throw IllegalStateException("Duplicate layer name ('${spec.propertyName}') within ${currentLayer.name}")
-
-		return Property(defaultValue, value, equals).also {
-			currentLayer.layers.add(PropertyLayer.Single(it, spec.propertyName))
-		}
-	}
-
-	@ConfigEntryD5l
-	fun <T> property(
-		equals: T.(T) -> Boolean = { other -> this == other },
-		valueSupplier: (() -> T)? = null,
-		defaultValueSupplier: () -> T
-	) = property(defaultValueSupplier(), valueSupplier?.invoke() ?: defaultValueSupplier(), equals)
-
-	@ConfigEntryD5l
-	fun <T> property(
-		equals: T.(T) -> Boolean = { other -> this == other },
-		defaultValue: T,
-		valueSupplier: () -> T = { defaultValue }
-	) = property(defaultValue, valueSupplier(), equals)
-
-	@PublishedApi
-	internal fun <T : Setting<R>, R> setting(name: String, settingSupplier: (single: SettingLayer.Single<T, R>) -> T): T {
-		val layerSpecInfo = try {
-			registrationQueue.removeFirst()
-		} catch (_: NoSuchElementException) {
-			throw IllegalStateException("Setting registered from an unknown location for config '${this@Config.name}'. Layer path was not queued before setting initialization")
-		}
-
-		var currentSettingLayer: SettingLayer.Multiple = settingLayers
-		layerSpecInfo.layerSpecs.forEach { spec ->
-			currentSettingLayer = currentSettingLayer.layers
-				.asSequence()
-				.filter { it.name == spec.name }
-				.also {
-					it.forEach { layer ->
-						if (spec.type == MultipleLayerType.Tab && layer !is SettingLayer.Tab ||
-							spec.type == MultipleLayerType.Group && layer !is SettingLayer.Group
-							) throw IllegalStateException("Duplicate setting layers with differing types: ('${layer.name}') in '${this@Config.name}'")
-					}
-				}
-				.filterIsInstance<SettingLayer.Multiple>()
-				.firstOrNull()
-				?: run {
-					when (spec.type) {
-						MultipleLayerType.Tab -> SettingLayer.Tab(spec.name, mutableListOf(), currentSettingLayer)
-						MultipleLayerType.Group -> SettingLayer.Group(spec.name, mutableListOf(), currentSettingLayer)
-						MultipleLayerType.Root -> throw IllegalStateException("Multiple root setting layers. Only the base class root layer should ever be created")
-					}.also { currentSettingLayer.layers.add(it) }
-				}
-		}
-
-		if (currentSettingLayer.layers.any { it.name == name })
-			throw IllegalStateException("Duplicate layer name ('$name') within ${currentSettingLayer.name}")
+		if (currentPropertyLayer.layers.any { it.name == spec.propertyName })
+			throw IllegalStateException("Duplicate layer name ('${spec.propertyName}') within ${currentPropertyLayer.name}")
 
 		var currentBlockLayer: ConfigBlockLayer = settingBlockLayers
-		layerSpecInfo.blockSpecs.forEach { index ->
+		spec.blockSpecs.forEach { index ->
 			currentBlockLayer =
 				currentBlockLayer.layers.getOrElse(index) {
 					ConfigBlockLayer.Block(currentBlockLayer).also {
@@ -485,124 +445,83 @@ abstract class Config(
 				}
 		}
 
-		val layer = SettingLayer.Single(currentSettingLayer, settingSupplier)
-		currentSettingLayer.layers.add(layer)
-		currentBlockLayer.settingLayers.add(layer)
-		return layer.setting
+		val single =
+			PropertyEntryLayer(currentPropertyLayer) { layer ->
+				Property(spec.propertyName, defaultValue, value, layer, this, setter, equals)
+			}
+		currentPropertyLayer.layers.add(single)
+		currentBlockLayer.propertyLayers.add(single)
+		return single.entry
 	}
 
-	internal fun forEachSetting(
-		root: SettingLayer.Multiple = settingLayers,
-		recurse: Boolean = true,
-		onMultiple: ((path: List<SettingLayer.Multiple>, single: SettingLayer.Multiple) -> Unit)? = null,
-		onSingle: ((path: List<SettingLayer.Multiple>, single: SettingLayer.Single<*, *>) -> Unit)? = null
-	) {
-		fun internalForEach(layer: SettingLayer.Multiple, path: List<SettingLayer.Multiple>) {
-			layer.layers.forEach { layer ->
-				when (layer) {
-					is SettingLayer.Single<*, *> if onSingle != null -> onSingle(path, layer)
-					is SettingLayer.Multiple -> {
-						if (onMultiple != null) onMultiple(path, layer)
-						if (recurse) internalForEach(layer, path + layer)
+	@ConfigEntryDsl
+	fun <T> property(
+		equals: T.(T) -> Boolean = { other -> this == other },
+		setter: (T) -> T = { it },
+		valueSupplier: (() -> T)? = null,
+		defaultValueSupplier: () -> T
+	) = property(defaultValueSupplier(), valueSupplier?.invoke() ?: defaultValueSupplier(), setter, equals)
+
+	@ConfigEntryDsl
+	fun <T> property(
+		equals: T.(T) -> Boolean = { other -> this == other },
+		setter: (T) -> T = { it },
+		defaultValue: T,
+		valueSupplier: () -> T = { defaultValue }
+	) = property(defaultValue, valueSupplier(), setter, equals)
+
+	@PublishedApi
+	internal fun <T : Setting<R>, R> setting(name: String, settingSupplier: (single: SettingEntryLayer<T, R>) -> T): T {
+		val spec = try {
+			registrationQueue.removeFirst()
+		} catch (_: NoSuchElementException) {
+			throw IllegalStateException("Setting registered from an unknown location for config '${this@Config.name}'. Layer path was not queued before setting initialization")
+		}
+
+		var currentEntryLayer: EntryLayer.Multiple<Setting<*>> = settingLayers
+		spec.layerSpecs.forEach { spec ->
+			currentEntryLayer = currentEntryLayer.layers
+				.asSequence()
+				.filter { it.name == spec.name }
+				.also {
+					it.forEach { layer ->
+						if (spec.type == MultipleLayerType.Tab && layer !is EntryLayer.Tab ||
+							spec.type == MultipleLayerType.Group && layer !is EntryLayer.Group
+							) throw IllegalStateException("Duplicate setting layers with differing types: ('${layer.name}') in '${this@Config.name}'")
 					}
-					else -> {}
 				}
-			}
+				.filterIsInstance<EntryLayer.Multiple<Setting<*>>>()
+				.firstOrNull()
+				?: run {
+					when (spec.type) {
+						MultipleLayerType.Tab -> EntryLayer.Tab(spec.name, currentEntryLayer)
+						MultipleLayerType.Group -> EntryLayer.Group(spec.name, currentEntryLayer)
+						MultipleLayerType.Root -> throw IllegalStateException("Multiple root setting layers. Only the base class root layer should ever be created")
+					}.also { currentEntryLayer.layers.add(it) }
+				}
 		}
-		internalForEach(root, emptyList())
-	}
 
-	internal fun forEachSettingBlock(
-		root: ConfigBlockLayer = settingBlockLayers,
-		recurse: Boolean = true,
-		onBlockLayer: ((path: List<Int>, block: ConfigBlockLayer.Block) -> Unit)? = null,
-		onSetting: ((path: List<Int>, single: SettingLayer.Single<*, *>) -> Unit)? = null
-	) {
-		fun internalForEach(layer: ConfigBlockLayer, path: List<Int>) {
-			if (onSetting != null) layer.settingLayers.forEach { onSetting(path, it) }
-			layer.layers.forEachIndexed { index, blockLayer ->
-				val fullPath = path + index
-				onBlockLayer?.invoke(fullPath, blockLayer)
-				if (recurse) internalForEach(blockLayer, fullPath)
-			}
+		if (currentEntryLayer.layers.any { it.name == name })
+			throw IllegalStateException("Duplicate layer name ('$name') within ${currentEntryLayer.name}")
+
+		var currentBlockLayer: ConfigBlockLayer = settingBlockLayers
+		spec.blockSpecs.forEach { index ->
+			currentBlockLayer =
+				currentBlockLayer.layers.getOrElse(index) {
+					ConfigBlockLayer.Block(currentBlockLayer).also {
+						currentBlockLayer.layers.add(it)
+					}
+				}
 		}
-		internalForEach(root, emptyList())
+
+		val layer = SettingEntryLayer(currentEntryLayer, settingSupplier)
+		currentEntryLayer.layers.add(layer)
+		currentBlockLayer.settingLayers.add(layer)
+		return layer.entry
 	}
 
 	private data class SettingLayerSpec(val type: MultipleLayerType, val name: String)
 	private data class LayerSpecInfo(val layerSpecs: List<SettingLayerSpec>, val blockSpecs: List<Int>, val propertyName: String)
-}
-
-enum class MultipleLayerType { Root, Tab, Group }
-
-sealed interface SettingLayer {
-	val name: String
-	val parent: SettingLayer?
-
-	sealed class Multiple(
-		override val name: String,
-		val multipleType: MultipleLayerType,
-		val layers: MutableList<SettingLayer>,
-		override val parent: Multiple?
-	) : SettingLayer, Nameable
-
-	class Root : Multiple(
-		"Settings",
-		MultipleLayerType.Root,
-		mutableListOf(),
-		null
-	)
-
-	class Tab(
-		name: String,
-		layers: MutableList<SettingLayer>,
-		parent: Multiple
-	) : Multiple(name, MultipleLayerType.Tab, layers, parent)
-
-	class Group(
-		name: String,
-		layers: MutableList<SettingLayer>,
-		parent: Multiple
-	) : Multiple(name, MultipleLayerType.Group, layers, parent)
-
-	class Single<T : Setting<R>, R>(
-		override val parent: Multiple,
-		settingSupplier: (Single<T, R>) -> T
-	) : SettingLayer {
-		val setting = settingSupplier(this)
-		override val name = setting.name
-	}
-}
-
-sealed class ConfigBlockLayer {
-	open val parent: ConfigBlockLayer? = null
-	val layers = mutableListOf<ConfigBlockLayer.Block>()
-	val settingLayers = mutableListOf<SettingLayer.Single<*, *>>()
-
-	class Root : ConfigBlockLayer() {
-		override val parent = null
-	}
-
-	class Block(
-		override val parent: ConfigBlockLayer?
-	) : ConfigBlockLayer()
-}
-
-sealed class PropertyLayer {
-	abstract val name: String
-
-	open class Multiple(
-		override val name: String
-	) : PropertyLayer() {
-		val layers = mutableListOf<PropertyLayer>()
-	}
-
-	class Root : Multiple("Properties")
-
-	class Single<T>(
-		val property: Property<T>,
-		override val name: String
-	) : PropertyLayer()
 }
 
 @Target(AnnotationTarget.PROPERTY)

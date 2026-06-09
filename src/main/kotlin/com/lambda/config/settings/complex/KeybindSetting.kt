@@ -27,10 +27,9 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.ConfigEntryD5l
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.ConfigEntryDsl
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
@@ -59,18 +58,18 @@ class KeybindSetting(
     name: String,
     description: String,
     config: Config,
-    layer: SettingLayer.Single<*, Bind>,
+    layer: SettingEntryLayer<KeybindSetting, Bind>,
     visibility: () -> Boolean,
     defaultValue: Bind,
     private val muteable: Muteable?,
     private val alwaysListening: Boolean,
     private val screenCheck: Boolean
-) : Setting<Bind>(name, description, SettingCore(defaultValue), config, layer, visibility), Muteable {
+) : Setting<Bind>(name, description, defaultValue, layer, config, visibility), Muteable {
     constructor(
         name: String,
         description: String,
         config: Config,
-        layer: SettingLayer.Single<*, Bind>,
+        layer: SettingEntryLayer<KeybindSetting, Bind>,
         visibility: () -> Boolean,
         defaultValue: KeyCode,
         muteable: Muteable?,
@@ -209,13 +208,13 @@ class KeybindSetting(
 
     @Suppress("unused")
     companion object {
-        @ConfigEntryD5l
+        @ConfigEntryDsl
         fun KeybindSetting.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply { pressListeners.add(block) }
 
-        @ConfigEntryD5l
+        @ConfigEntryDsl
         fun KeybindSetting.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply { repeatListeners.add(block) }
 
-        @ConfigEntryD5l
+        @ConfigEntryDsl
         fun KeybindSetting.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply { releaseListeners.add(block) }
     }
 }

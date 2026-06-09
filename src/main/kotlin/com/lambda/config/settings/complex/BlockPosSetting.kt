@@ -23,9 +23,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.CommunicationUtils.info
@@ -38,10 +37,10 @@ class BlockPosSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, BlockPos>,
+	layer: SettingEntryLayer<BlockPosSetting, BlockPos>,
 	visibility: () -> Boolean,
 	defaultValue: BlockPos
-) : Setting<BlockPos>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<BlockPos>(name, description, defaultValue, layer, config, visibility) {
 	override fun ImGuiBuilder.buildLayout() {
 		button("Set##$name") {
 			mc.crosshairTarget?.blockResult?.blockPos?.let {

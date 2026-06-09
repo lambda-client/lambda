@@ -21,7 +21,7 @@ package com.lambda.config.serializers
 
 import com.lambda.config.Deserializer
 import com.lambda.config.Serializer
-import com.lambda.config.Setting
+import com.lambda.config.entries.Setting
 import com.lambda.config.settings.collections.ClassCollectionSetting
 import com.lambda.util.ReflectionUtils.className
 import tools.jackson.core.JsonGenerator

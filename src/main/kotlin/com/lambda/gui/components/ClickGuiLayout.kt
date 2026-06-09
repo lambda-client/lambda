@@ -119,14 +119,14 @@ object ClickGuiLayout : Loadable, Config(
 	@Tab(GeneralTab) val alpha by setting("Alpha", 1.0f, 0.0f..1.0f, 0.01f)
 	@Tab(GeneralTab) val disabledAlpha by setting("Disabled Alpha", 0.6f, 0.0f..1.0f, 0.01f)
 	@Tab(GeneralTab) val tooltipType by setting("Tooltip Type", TooltipType.Stationary, description = "When to show the tooltip.")
-	@Tab(GeneralTab) val setLambdaWindowIcon by setting("Set Lambda Window Icon", true).onValueChange { _, to ->
-		if (to) {
-			setLambdaWindowIcon()
-		} else {
-			val icon = if (SharedConstants.getGameVersion().stable()) Icons.RELEASE else Icons.SNAPSHOT
-			mc.window.setIcon(mc.defaultResourcePack, icon)
+	@Tab(GeneralTab) val setLambdaWindowIcon by setting("Set Lambda Window Icon", true)
+		.onValueChange { _, to ->
+			if (to) setLambdaWindowIcon()
+			else {
+				val icon = if (SharedConstants.getGameVersion().stable()) Icons.RELEASE else Icons.SNAPSHOT
+				mc.window.setIcon(mc.defaultResourcePack, icon)
+			}
 		}
-	}
 	@JvmStatic
 	@Tab(GeneralTab) val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }
 	@Tab(GeneralTab) val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }

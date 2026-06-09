@@ -15,9 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config
+package com.lambda.config.entries
 
-import com.google.common.base.Defaults.defaultValue
 import com.lambda.Lambda.mapper
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
@@ -27,6 +26,11 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.ConfigCommand
+import com.lambda.config.Config
+import com.lambda.config.ConfigEntry
+import com.lambda.config.EntryCore
+import com.lambda.config.EntryLayer
+import com.lambda.config.MultipleLayerType
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.threading.runSafe
@@ -91,22 +95,32 @@ import kotlin.reflect.KProperty
 abstract class Setting<T>(
 	override val name: String,
 	override val description: String,
-	var core: SettingCore<T>,
-	val config: Config,
-	val layer: SettingLayer.Single<*, *>,
+	defaultValue: T,
+	value: T,
+	override val layer: SettingEntryLayer<*, T>,
+	override val config: Config,
 	var visibility: () -> Boolean
-) : Nameable, Describable {
-	val originalCore = core
+) : ConfigEntry<T>, Nameable, Describable {
+	constructor(
+		name: String,
+		description: String,
+		defaultValue: T,
+		layer: SettingEntryLayer<*, T>,
+		config: Config,
+		visibility: () -> Boolean
+	) : this(name, description, defaultValue, defaultValue, layer, config, visibility)
+
+	override var core = EntryCore(defaultValue, value)
+	override val originalCore = core
 	var disabled = { false }
 
 	open var value by this
 
 	val listeners = mutableListOf<ValueListener<T>>()
 
-	open val isModified get() = originalCore.value != originalCore.defaultValue
+	override val isModified get() = originalCore.value != originalCore.defaultValue
 
-	operator fun getValue(thisRef: Any?, property: KProperty<*>) = core.value
-	operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
+	override operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
 		val oldValue = originalCore.value
 		originalCore.value = newValue
 		listeners.forEach {
@@ -150,7 +164,7 @@ abstract class Setting<T>(
 	 * Will only register changes of the variable, not the content of the variable!
 	 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
 	 */
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(true) { from, to ->
 			runSafe {
@@ -159,17 +173,17 @@ abstract class Setting<T>(
 		})
 	}
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(true, block))
 	}
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
 		listeners.add(ValueListener(false, block))
 	}
 
-	@ConfigEntryD5l
+	@ConfigEntryDsl
 	fun disabled(predicate: () -> Boolean) = apply {
 		disabled = predicate
 	}
@@ -233,7 +247,7 @@ abstract class Setting<T>(
 
 	internal fun getConfigCommandPath(): Collection<String> =
 		buildList {
-			var current: SettingLayer.Multiple = layer.parent
+			var current: EntryLayer.Multiple<Setting<*>> = layer.parent
 			while (true) {
 				current = current.parent ?: break
 				if (current.multipleType == MultipleLayerType.Root) break
@@ -246,10 +260,12 @@ abstract class Setting<T>(
 	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 }
 
-class SettingCore<T>(
-	var defaultValue: T,
-	var value: T = defaultValue,
-)
+class SettingEntryLayer<T : Setting<U>, U>(
+	override val parent: EntryLayer.Multiple<Setting<*>>,
+	entrySupplier: (layer: SettingEntryLayer<T, U>) -> T
+) : EntryLayer.Single<Setting<*>>() {
+	override val entry = entrySupplier(this)
+}
 
 @DslMarker
-annotation class ConfigEntryD5l
+annotation class ConfigEntryDsl

@@ -24,9 +24,8 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.Describable
 import com.lambda.util.StringUtils.capitalize
@@ -38,10 +37,10 @@ class EnumSetting<T : Enum<T>>(
     name: String,
     description: String,
     config: Config,
-    layer: SettingLayer.Single<*, T>,
+    layer: SettingEntryLayer<EnumSetting<T>, T>,
     visibility: () -> Boolean,
     defaultValue: T
-) : Setting<T>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<T>(name, description, defaultValue, layer, config, visibility) {
     override fun ImGuiBuilder.buildLayout() {
         val values = value.enumValues
         val currentDisplay = value.displayValue

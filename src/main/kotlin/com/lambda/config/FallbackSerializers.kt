@@ -31,7 +31,7 @@ import tools.jackson.databind.ser.Serializers
  * A combined [Serializers] and [Deserializers] implementation that resolves
  * serializers/deserializers by walking the class hierarchy to find the closest
  * registered supertype. This allows registering a single serializer for a base
- * class (e.g., [com.lambda.config.SettingCore]) that handles all its subclasses.
+ * class (e.g., [com.lambda.config.EntryCore]) that handles all its subclasses.
  *
  * Exact-match serializers registered via [tools.jackson.databind.module.SimpleModule.addSerializer]
  * take priority over these fallbacks in Jackson's resolution order.
@@ -75,13 +75,28 @@ class FallbackSerializers(
 		return bestValue
 	}
 
-	private fun inheritanceDistance(sub: Class<*>, superClass: Class<*>): Int {
-		var distance = 0
-		var current: Class<*>? = sub
-		while (current != null && current != superClass) {
-			distance++
-			current = current.superclass
+	private fun inheritanceDistance(sub: Class<*>, target: Class<*>): Int {
+		if (sub == target) return 0
+
+		val queue = ArrayDeque<Pair<Class<*>, Int>>()
+		val visited = HashSet<Class<*>>()
+		queue.add(sub to 0)
+		visited.add(sub)
+
+		while (queue.isNotEmpty()) {
+			val (current, distance) = queue.removeFirst()
+
+			current.superclass?.let { superclass ->
+				if (superclass == target) return distance + 1
+				if (visited.add(superclass)) queue.add(superclass to distance + 1)
+			}
+
+			current.interfaces.forEach { i ->
+				if (i == target) return distance + 1
+				if (visited.add(i)) queue.add(i to distance + 1)
+			}
 		}
-		return if (current == superClass) distance else Int.MAX_VALUE
+
+		return Int.MAX_VALUE
 	}
 }

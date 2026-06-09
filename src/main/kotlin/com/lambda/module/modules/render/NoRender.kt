@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.SettingEditor.editTyped
+import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.EntitySelectionSettings
 import com.lambda.config.withEdits
@@ -75,7 +75,7 @@ object NoRender : Module(
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
 	@Tab(EntityTab) private val entitySettings by configBlock(EntitySelectionSettings(this))
 		.withEdits {
-			editTyped(::playerEntities, ::mobEntities, ::bossEntities) { defaultValue(mutableSetOf()) }
+			editTypedSettings(::playerEntities, ::mobEntities, ::bossEntities) { defaultValue(mutableSetOf()) }
 		}
 
 	@Tab(WorldTab) @JvmStatic val noTerrainFog by setting("No Terrain Fog", false)

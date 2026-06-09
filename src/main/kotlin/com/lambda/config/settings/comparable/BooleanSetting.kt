@@ -22,9 +22,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -33,10 +32,10 @@ class BooleanSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, Boolean>,
+	layer: SettingEntryLayer<BooleanSetting, Boolean>,
 	visibility: () -> Boolean,
 	defaultValue: Boolean
-) : Setting<Boolean>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<Boolean>(name, description, defaultValue, layer, config, visibility) {
 	override fun ImGuiBuilder.buildLayout() {
 		checkbox(name, ::value)
 		lambdaTooltip(description)

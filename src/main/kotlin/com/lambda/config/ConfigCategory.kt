@@ -37,7 +37,7 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * Represents a compound of [Config] objects whose [SettingCore]s
+ * Represents a compound of [Config] objects whose [EntryCore]s
  * are saved into a single [ConfigCategory] file ([ConfigCategory.primaryFile]).
  *
  * This class also handles the concurrent loading and saving of persisted data on the `Dispatchers.IO` thread.

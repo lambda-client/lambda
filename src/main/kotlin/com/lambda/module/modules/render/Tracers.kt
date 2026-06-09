@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.SettingEditor.hide
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.EntityColorSettings

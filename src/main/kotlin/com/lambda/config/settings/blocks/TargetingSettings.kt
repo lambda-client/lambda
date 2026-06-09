@@ -18,8 +18,8 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingEditor.hide
 import com.lambda.config.ConfigBlock
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend

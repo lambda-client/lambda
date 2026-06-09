@@ -73,6 +73,7 @@ import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
@@ -207,17 +208,19 @@ object BreakManager : Manager<BreakRequest>(
 
 		// ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
 		listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
-			if (it.entity !is ItemEntity) return@listen
+			runGameScheduled {
+				if (it.entity !is ItemEntity) return@runGameScheduled
 
-			// ToDo: Proper item drop prediction system
-			RebreakHandler.rebreak?.let { reBreak ->
-				if (matchesBlockItem(reBreak, it.entity)) return@listen
+				// ToDo: Proper item drop prediction system
+				RebreakHandler.rebreak?.let { reBreak ->
+					if (matchesBlockItem(reBreak, it.entity)) return@runGameScheduled
+				}
+
+				breakInfos
+					.filterNotNull()
+					.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+					?.internalOnItemDrop(it.entity)
 			}
-
-			breakInfos
-				.filterNotNull()
-				.firstOrNull { info -> matchesBlockItem(info, it.entity) }
-				?.internalOnItemDrop(it.entity)
 		}
 
 		listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {

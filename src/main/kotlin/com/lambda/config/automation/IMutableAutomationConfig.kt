@@ -17,9 +17,9 @@
 
 package com.lambda.config.automation
 
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.EntryCore
+import com.lambda.config.EntryLayer
+import com.lambda.config.entries.Setting
 import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.config.settings.blocks.BuildConfig
 import com.lambda.config.settings.blocks.EatConfig
@@ -54,28 +54,28 @@ class MutableAutomationConfig : IMutableAutomationConfig {
 		set(value) {
 			if (value === defaultAutomationConfig) {
 				if (backingAutomationConfig !== defaultAutomationConfig) {
-					field.forEachSetting { _, single -> single.setting.restoreOriginalCore() }
+					field.settingLayers.forEachEntry { _, single -> single.entry.restoreOriginalCore() }
 				}
 				field = value
 			} else {
-				field.forEachSetting { path, single ->
-					var otherLayer: SettingLayer.Multiple = value.settingLayers
+				field.settingLayers.forEachEntry { path, single ->
+					var otherLayer: EntryLayer.Multiple<Setting<*>> = value.settingLayers
 					path.forEach { layer ->
 						val subLayer = otherLayer.layers
 							.asSequence()
-							.filterIsInstance<SettingLayer.Multiple>()
-							.find { it.name == layer.name } ?: return@forEachSetting
+							.filterIsInstance<EntryLayer.Multiple<Setting<*>>>()
+							.find { it.name == layer.name } ?: return@forEachEntry
 						otherLayer = subLayer
 					}
 					val otherSetting = otherLayer.layers
 						.asSequence()
-						.filterIsInstance<SettingLayer.Single<*, *>>()
+						.filterIsInstance<EntryLayer.Single<Setting<*>>>()
 						.find { it.name == single.name }
-						?.setting ?: return@forEachSetting
-					if (single.setting.core::class != otherSetting.core::class)
+						?.entry ?: return@forEachEntry
+					if (single.entry.core::class != otherSetting.core::class)
 						throw IllegalStateException("Settings with the same name do not have the same type.")
 					@Suppress("UNCHECKED_CAST")
-					(single.setting as Setting<Any>).core = otherSetting.core as SettingCore<Any>
+					(single.entry as Setting<Any>).core = otherSetting.core as EntryCore<Any>
 				}
 			}
 			backingAutomationConfig = value

@@ -23,7 +23,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.type.ImInt
@@ -39,7 +39,7 @@ class DoubleSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, Double>,
+	layer: SettingEntryLayer<NumericSetting<Double>, Double>,
 	visibility: () -> Boolean,
 	defaultValue: Double,
 	override var range: ClosedRange<Double>,

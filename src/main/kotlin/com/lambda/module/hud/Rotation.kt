@@ -17,7 +17,7 @@
 
 package com.lambda.module.hud
 
-import com.lambda.config.SettingEditor.edit
+import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -34,7 +34,7 @@ object Rotation : HudModule(
 ) {
 	private val formatter by configBlock(FormatterSettings(this))
 		.withEdits {
-			::timeFormat.edit { hide() }
+			::timeFormat.editSetting { hide() }
 		}
 
 	override fun ImGuiBuilder.buildLayout() {

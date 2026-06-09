@@ -25,8 +25,8 @@ object Diagnostics {
         modules.filter { it.isEnabled }
             .forEach { module ->
                 append("\t${module.name}")
-                module.forEachSetting { path, single ->
-                    val setting = single.setting
+                module.settingLayers.forEachEntry { path, single ->
+                    val setting = single.entry
                     if (setting.isModified) {
                         append("\t\t${path.joinToString(".", postfix = ".") { it.name }}${setting.name} -> ${setting.value}")
                     }

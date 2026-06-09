@@ -18,7 +18,7 @@
 package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalGetToBlock
-import com.lambda.config.SettingEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits

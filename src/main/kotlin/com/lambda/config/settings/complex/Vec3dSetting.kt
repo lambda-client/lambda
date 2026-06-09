@@ -22,9 +22,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
@@ -34,10 +33,10 @@ class Vec3dSetting(
     name: String,
     description: String,
     config: Config,
-    layer: SettingLayer.Single<*, Vec3d>,
+    layer: SettingEntryLayer<Vec3dSetting, Vec3d>,
     visibility: () -> Boolean,
     defaultValue: Vec3d
-) : Setting<Vec3d>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
     override fun ImGuiBuilder.buildLayout() {
         inputVec3d(name, ::value as Vec3d) // FixMe: what the fuck
         lambdaTooltip(description)

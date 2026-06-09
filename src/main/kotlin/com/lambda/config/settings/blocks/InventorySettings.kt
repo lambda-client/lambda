@@ -18,8 +18,8 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.Group
 import com.lambda.config.ConfigBlock
+import com.lambda.config.Group
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.util.item.ItemUtils
 

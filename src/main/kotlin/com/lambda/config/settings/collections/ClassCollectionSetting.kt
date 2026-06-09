@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.ReflectionUtils.className
 
@@ -31,7 +31,7 @@ class ClassCollectionSetting<T : Any>(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, MutableCollection<T>>,
+	layer: SettingEntryLayer<CollectionSetting<T>, MutableCollection<T>>,
 	visibility: () -> Boolean,
 	immutableCollection: Collection<T>,
 	defaultValue: MutableCollection<T>

@@ -18,7 +18,7 @@
 package com.lambda.mixin;
 
 import com.lambda.Lambda;
-import com.lambda.config.SettingLayer;
+import com.lambda.config.EntryLayer;
 import com.lambda.module.Module;
 import com.lambda.module.ModuleRegistry;
 import com.lambda.util.DynamicExceptionKt;
@@ -66,18 +66,17 @@ public class CrashReportMixin {
                     .forEach(module -> {
                         list.add(String.format("\t%s", module.getName()));
 
-                        module.forEachSetting$lambda(
-                                module.getSettingLayers$lambda(),
+                        module.getSettingLayers$lambda().forEachEntry(
                                 true,
                                 null,
                                 (path, single) -> {
-                                    final var setting = single.getSetting();
+                                    final var setting = single.getEntry();
                                     if (setting.isModified()) {
-                                        list.add("\t\t" + String.join(".", path.stream().map(SettingLayer.Multiple::getName).toList()) + "." + setting.getName() + " -> " + setting.getValue());
+                                        list.add("\t\t" + String.join(".", path.stream().map(EntryLayer.Multiple::getName).toList()) + "." + setting.getName() + " -> " + setting.getValue());
                                     }
                                     return Unit.INSTANCE;
                                 }
-                                );
+                        );
                     });
         }
 

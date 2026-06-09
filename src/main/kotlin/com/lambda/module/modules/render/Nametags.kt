@@ -18,8 +18,8 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.SettingEditor.edit
-import com.lambda.config.SettingEditor.hide
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.EntitySelectionSettings
@@ -84,7 +84,7 @@ object Nametags : Module(
 	@Tab(TextTab) @Group(FriendGroup) private val friendTextConfig by configBlock(ScreenTextSettings(this))
 		.withEdits {
 			hide(::sizeSetting)
-			::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
+			::textColor.editSetting { defaultValue(Color(0, 255, 255, 255)) }
 		}
 	@Tab(TextTab) @Group(OtherGroup) private val otherTextConfig by configBlock(ScreenTextSettings(this))
 		.withEdits { hide(::sizeSetting) }

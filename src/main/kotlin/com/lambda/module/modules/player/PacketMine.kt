@@ -17,10 +17,10 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.SettingEditor.edit
-import com.lambda.config.SettingEditor.editTyped
-import com.lambda.config.SettingEditor.hide
-import com.lambda.config.SettingEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.BreakConfig
@@ -117,18 +117,18 @@ object PacketMine : Module(
 						::interactBlocks,
 						::placeBlocks
 					)
-					::maxBuildDependencies.edit { defaultValue(0) }
+					::maxBuildDependencies.editSetting { defaultValue(0) }
 				}
 				breakConfig.apply {
-					editTyped(
+					editTypedSettings(
 						::avoidFluids,
 						::avoidSupporting,
 						::efficientOnly,
 						::suitableToolsOnly
 					) { defaultValue(false) }
-					::swing.edit { defaultValue(BreakConfig.SwingMode.Start) }
+					::swing.editSetting { defaultValue(BreakConfig.SwingMode.Start) }
 				}
-				hotbarConfig::keepTicks.edit { defaultValue(0) }
+				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 			}
 
 		listen<TickEvent.Post> {

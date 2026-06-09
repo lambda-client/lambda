@@ -18,11 +18,10 @@
 package com.lambda.config.settings
 
 import com.lambda.config.Config
-import com.lambda.config.SettingEditor
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingLayer
+import com.lambda.config.ConfigEditor
+import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.calcTextSize
@@ -38,13 +37,13 @@ abstract class NumericSetting<T>(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, T>,
+	layer: SettingEntryLayer<NumericSetting<T>, T>,
 	defaultValue: T,
 	visibility: () -> Boolean,
 	open var range: ClosedRange<T>,
 	open var step: T,
 	var unit: String
-) : Setting<T>(name, description, SettingCore(defaultValue), config, layer, visibility) where T : Number, T : Comparable<T> {
+) : Setting<T>(name, description, defaultValue, layer, config, visibility) where T : Number, T : Comparable<T> {
 	override var value: T
 		get() = super.value
 		set(newVal) {
@@ -98,19 +97,19 @@ abstract class NumericSetting<T>(
 
 	@Suppress("unchecked_cast", "unused")
 	companion object {
-		@SettingEditorDsl
-		fun <T> SettingEditor.TypedEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
-			(settings as Collection<NumericSetting<T>>).forEach { it.range = range }
+		@ConfigEditorD5l
+		fun <T> ConfigEditor.SettingEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+			(entries as Collection<NumericSetting<T>>).forEach { it.range = range }
 		}
 
-		@SettingEditorDsl
-		fun <T> SettingEditor.TypedEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
-			(settings as Collection<NumericSetting<T>>).forEach { it.step = step }
+		@ConfigEditorD5l
+		fun <T> ConfigEditor.SettingEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+			(entries as Collection<NumericSetting<T>>).forEach { it.step = step }
 		}
 
-		@SettingEditorDsl
-		fun <T> SettingEditor.TypedEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
-			(settings as Collection<NumericSetting<T>>).forEach { it.unit = unit }
+		@ConfigEditorD5l
+		fun <T> ConfigEditor.SettingEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+			(entries as Collection<NumericSetting<T>>).forEach { it.unit = unit }
 		}
 	}
 }

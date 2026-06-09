@@ -18,12 +18,11 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.Config
-import com.lambda.config.SettingEditor
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.ConfigEntryD5l
-import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingLayer
+import com.lambda.config.ConfigEditor
+import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.entries.ConfigEntryDsl
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.context.SafeContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
@@ -50,13 +49,13 @@ open class CollectionSetting<R : Any>(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, MutableCollection<R>>,
+	layer: SettingEntryLayer<CollectionSetting<R>, MutableCollection<R>>,
 	visibility: () -> Boolean,
 	defaultValue: MutableCollection<R>,
 	var immutableCollection: Collection<R>,
 	val type: JavaType,
 	val serialize: Boolean,
-) : Setting<MutableCollection<R>>(name, description, SettingCore(defaultValue, defaultValue.toMutableList()), config, layer, visibility) {
+) : Setting<MutableCollection<R>>(name, description, defaultValue, defaultValue.toMutableList(), layer, config, visibility) {
 	override var value: MutableCollection<R>
 		get() = super.value
 		set(newVal) {
@@ -172,18 +171,21 @@ open class CollectionSetting<R : Any>(
 
 	@Suppress("unused")
 	companion object {
-		@ConfigEntryD5l
+		@ConfigEntryDsl
 		fun <T : CollectionSetting<R>, R : Any> T.onSelect(block: SafeContext.(R) -> Unit) =
 			apply { selectListeners.add(block) }
 
-		@ConfigEntryD5l
+		@ConfigEntryDsl
 		fun <T : CollectionSetting<R>, R : Any> T.onDeselect(block: SafeContext.(R) -> Unit) =
 			apply { deselectListeners.add(block) }
 
 		@Suppress("unchecked_cast")
-		@SettingEditorDsl
-		fun <T : Any> SettingEditor.TypedEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-			(settings as Collection<CollectionSetting<T>>).forEach { it.immutableCollection = collection }
+		@ConfigEditorD5l
+		fun <T : Any> ConfigEditor.SettingEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+			(entries as Collection<CollectionSetting<T>>).forEach {
+				it.value.retainAll(collection.toSet())
+				it.immutableCollection = collection
+			}
 		}
 	}
 }

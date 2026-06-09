@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.SettingEditor.forEachSetting
-import com.lambda.config.SettingEditor.hide
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.settings.blocks.EntityColorSettings
@@ -40,7 +40,7 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 
 @Suppress("unused")
-object ESP : Module(
+object Esp : Module(
 	name = "ESP",
 	description = "Highlight entities with smooth interpolated rendering",
 	tag = ModuleTag.Render

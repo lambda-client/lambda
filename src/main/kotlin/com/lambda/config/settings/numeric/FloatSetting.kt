@@ -22,7 +22,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.type.ImInt
@@ -38,7 +38,7 @@ class FloatSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, Float>,
+	layer: SettingEntryLayer<NumericSetting<Float>, Float>,
 	visibility: () -> Boolean,
 	defaultValue: Float,
 	override var range: ClosedRange<Float>,

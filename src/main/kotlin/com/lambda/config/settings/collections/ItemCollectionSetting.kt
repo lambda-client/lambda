@@ -19,7 +19,7 @@ package com.lambda.config.settings.collections
 
 import com.lambda.Lambda.typeFactory
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.serializers.ItemSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
@@ -28,7 +28,7 @@ class ItemCollectionSetting(
 	name: String,
 	description: String,
 	config: Config,
-	layer: SettingLayer.Single<*, MutableCollection<Item>>,
+	layer: SettingEntryLayer<CollectionSetting<Item>, MutableCollection<Item>>,
 	visibility: () -> Boolean,
 	immutableCollection: Collection<Item>,
 	defaultValue: MutableCollection<Item>

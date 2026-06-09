@@ -22,7 +22,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.SettingLayer
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
@@ -32,15 +32,15 @@ import net.minecraft.command.CommandRegistryAccess
  * @see [com.lambda.config.Config]
  */
 class IntegerSetting(
-    name: String,
-    description: String,
-    config: Config,
-    layer: SettingLayer.Single<*, Int>,
-    visibility: () -> Boolean,
-    defaultValue: Int,
-    override var range: ClosedRange<Int>,
-    override var step: Int = 1,
-    unit: String
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingEntryLayer<NumericSetting<Int>, Int>,
+	visibility: () -> Boolean,
+	defaultValue: Int,
+	override var range: ClosedRange<Int>,
+	override var step: Int = 1,
+	unit: String
 ) : NumericSetting<Int>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
     override fun ImGuiBuilder.buildSlider() {
         slider("##$name", ::value, range.start, range.endInclusive, "")

@@ -22,8 +22,8 @@ import baritone.api.IBaritone
 import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
 import com.lambda.config.Config
-import com.lambda.config.Group
 import com.lambda.config.ConfigBlock
+import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.categories.LambdaCategory

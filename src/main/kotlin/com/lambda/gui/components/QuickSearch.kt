@@ -22,7 +22,7 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Config
 import com.lambda.config.ConfigLoader
-import com.lambda.config.Setting
+import com.lambda.config.entries.Setting
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
@@ -264,8 +264,8 @@ object QuickSearch {
             val settingResults = buildList {
                 ConfigLoader.configCategories.forEach { category ->
                     category.configs.forEach { config ->
-                        config.forEachSetting { _, single ->
-                            val setting = single.setting
+                        config.settingLayers.forEachEntry { _, single ->
+                            val setting = single.entry
                             if (setting.visibility()) {
                                 val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
                                 if (score > 0) add(RankedSearchResult(SettingResult(setting, config), score))

@@ -18,9 +18,9 @@
 package com.lambda.config.settings.blocks
 
 import com.lambda.config.Config
-import com.lambda.config.SettingEditor.hide
-import com.lambda.config.Group
 import com.lambda.config.ConfigBlock
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.Group
 import com.lambda.config.settings.blocks.BreakConfig.AnimationMode
 import com.lambda.config.settings.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.config.settings.blocks.BreakConfig.BreakMode

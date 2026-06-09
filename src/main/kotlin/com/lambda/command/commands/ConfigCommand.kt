@@ -27,7 +27,8 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.ConfigLoader
-import com.lambda.config.SettingLayer
+import com.lambda.config.EntryLayer
+import com.lambda.config.entries.Setting
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
@@ -69,29 +70,29 @@ object ConfigCommand : LambdaCommand(
                     suggests { context, builder ->
 	                    val config = ConfigLoader.configByCommandName(configArg(context).value()) ?: return@suggests null
 	                    val suggestions = mutableListOf<String>()
-                        config.forEachSetting { path, single ->
+                        config.settingLayers.forEachEntry { path, single ->
                             val settingLit =
-                                if (path.isEmpty()) single.setting.name
-                                else "${path.joinToString("->") { it.commandName }}->${single.setting.commandName}"
+                                if (path.isEmpty()) single.entry.name
+                                else "${path.joinToString("->") { it.commandName }}->${single.entry.commandName}"
                             suggestions.add(settingLit)
                         }
                         suggestMatching(suggestions, builder)
                     }
                     executeWithResult {
                         val config = ConfigLoader.configByCommandName(configArg().value()) ?: return@executeWithResult failure("Config not found.")
-                        var currentMultiple: SettingLayer.Multiple = config.settingLayers
+                        var currentMultiple: EntryLayer.Multiple<Setting<*>> = config.settingLayers
                         val fullSettingPath = settingArg().value().split("->")
                         fullSettingPath.dropLast(1).forEach { path ->
                             currentMultiple = currentMultiple.layers
                                 .asSequence()
-                                .filterIsInstance<SettingLayer.Multiple>()
+                                .filterIsInstance<EntryLayer.Multiple<Setting<*>>>()
                                 .find { it.name == path } ?: return@executeWithResult failure("Setting not found.")
                         }
-                        val settingLayer = currentMultiple.layers
+                        val entryLayer = currentMultiple.layers
                             .asSequence()
-                            .filterIsInstance<SettingLayer.Single<*, *>>()
-                            .find { it.setting.commandName == fullSettingPath.last() } ?: return@executeWithResult failure("Setting not found.")
-                        settingLayer.setting.reset()
+                            .filterIsInstance<EntryLayer.Single<Setting<*>>>()
+                            .find { it.entry.commandName == fullSettingPath.last() } ?: return@executeWithResult failure("Setting not found.")
+                        entryLayer.entry.reset()
                         success()
                     }
                 }
@@ -100,12 +101,12 @@ object ConfigCommand : LambdaCommand(
         required(literal("set")) {
             ConfigLoader.configs.forEach { config ->
                 required(literal(config.commandName)) {
-                    config.forEachSetting { path, single ->
+                    config.settingLayers.forEachEntry { path, single ->
                         val settingLit =
-                            if (path.isEmpty()) single.setting.commandName
-                            else "${path.joinToString("->") { it.commandName }}->${single.setting.commandName}"
+                            if (path.isEmpty()) single.entry.commandName
+                            else "${path.joinToString("->") { it.commandName }}->${single.entry.commandName}"
                         required(literal(settingLit)) {
-                            with(single.setting) { buildCommand(registry) }
+                            with(single.entry) { buildCommand(registry) }
                         }
                     }
                 }

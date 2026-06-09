@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.SettingEditor.editTyped
-import com.lambda.config.SettingEditor.hideBlock
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -58,7 +58,7 @@ object PlayerTrap : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTyped(
+					editTypedSettings(
 						::pathing,
 						::stayInRange,
 						::spleefEntities,

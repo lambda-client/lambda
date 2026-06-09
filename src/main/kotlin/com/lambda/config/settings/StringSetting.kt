@@ -22,11 +22,10 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.SettingEditor
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingLayer
+import com.lambda.config.ConfigEditor
+import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.extension.CommandBuilder
@@ -39,12 +38,12 @@ class StringSetting(
     name: String,
     description: String,
     config: Config,
-    layer: SettingLayer.Single<*, String>,
+    layer: SettingEntryLayer<StringSetting, String>,
     defaultValue: String,
     visibility: () -> Boolean,
     var multiline: Boolean = false,
     var flags: Int = ImGuiInputTextFlags.None,
-) : Setting<String>(name, description, SettingCore(defaultValue), config, layer, visibility) {
+) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
 
     override fun ImGuiBuilder.buildLayout() {
         if (multiline) {
@@ -65,14 +64,14 @@ class StringSetting(
 
     @Suppress("unused", "unchecked_cast")
     companion object {
-        @SettingEditorDsl
-        fun SettingEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
-            (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
+        @ConfigEditorD5l
+        fun ConfigEditor.SettingEditBuilder<String>.multiline(multiline: Boolean) {
+            (entries as Collection<StringSetting>).forEach { it.multiline = multiline }
         }
 
-        @SettingEditorDsl
-        fun SettingEditor.TypedEditBuilder<String>.flags(flags: Int) {
-            (settings as Collection<StringSetting>).forEach { it.flags = flags }
+        @ConfigEditorD5l
+        fun ConfigEditor.SettingEditBuilder<String>.flags(flags: Int) {
+            (entries as Collection<StringSetting>).forEach { it.flags = flags }
         }
     }
 }

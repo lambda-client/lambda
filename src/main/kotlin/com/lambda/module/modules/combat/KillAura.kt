@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.SettingEditor.edit
-import com.lambda.config.SettingEditor.hide
-import com.lambda.config.SettingEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
@@ -58,7 +58,7 @@ object KillAura : Module(
     @Tab(GeneralTab) private val rotate by setting("Rotate", true)
     @Tab(GeneralTab) private val swap by setting("Swap", true, "Swap to the item with the highest damage")
     @Tab(GeneralTab) private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra")
-    @Tab(GeneralTab) private val damageMode by setting("Damage Mode", DamageMode.DPS)
+    @Tab(GeneralTab) private val damageMode by setting("Damage Mode", DamageMode.Dps)
     @Tab(GeneralTab) private val attackMode by setting("Attack Mode", AttackMode.Cooldown)
     @Tab(GeneralTab) private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }
     @Tab(GeneralTab) private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
@@ -83,7 +83,7 @@ object KillAura : Module(
 
     @Suppress("unused")
     enum class DamageMode(override val displayName: String, val block: SafeContext.(ItemStack) -> Double) : NamedEnum {
-        DPS("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
+        Dps("Damage Per Second", { player.attackDamage(stack = it) * player.attackSpeed(stack = it) }),
         Total("Hit Damage", { player.attackDamage(stack = it) })
     }
 
@@ -99,7 +99,7 @@ object KillAura : Module(
                     )
                 }
                 hotbarConfig.apply {
-                    ::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+                    ::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Pre)) }
                 }
             }
 

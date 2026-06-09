@@ -210,7 +210,7 @@ object CommunicationUtils {
                         ConfigLoader.configCategories.sumOf { config ->
                             config.configs.sumOf {
                                 var count = 0
-                                it.forEachSetting { _, _ -> count++ }
+                                it.settingLayers.forEachEntry { _, _ -> count++ }
                                 count
                             }
                         }
