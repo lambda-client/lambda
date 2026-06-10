@@ -209,17 +209,18 @@ object BreakManager : Manager<BreakRequest>(
 		// ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
 		listen<EntityEvent.Update>({ Int.MIN_VALUE }) {
 			runGameScheduled {
-				if (it.entity !is ItemEntity) return@runGameScheduled
+				val entity = it.entity
+				if (entity !is ItemEntity) return@runGameScheduled
 
 				// ToDo: Proper item drop prediction system
 				RebreakHandler.rebreak?.let { reBreak ->
-					if (matchesBlockItem(reBreak, it.entity)) return@runGameScheduled
+					if (matchesBlockItem(reBreak, entity)) return@runGameScheduled
 				}
 
 				breakInfos
 					.filterNotNull()
-					.firstOrNull { info -> matchesBlockItem(info, it.entity) }
-					?.internalOnItemDrop(it.entity)
+					.firstOrNull { info -> matchesBlockItem(info, entity) }
+					?.internalOnItemDrop(entity)
 			}
 		}
 

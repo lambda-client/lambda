@@ -25,12 +25,23 @@ import com.lambda.config.migration.StepConfigMigration
 @Suppress("unused")
 object ModuleConfigMigration : StepConfigMigration() {
 	override val category = ModuleCategory
-	override val latestVersion = 2
+	override val latestVersion = 3
 
 	init {
 		step(1, 2) { root ->
 			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
 			Log.info("Migrated Module config category schema v1 -> v2: $count settings moved")
+		}
+
+		step(2, 3) { root ->
+			val autoUpdater = root.get("AutoUpdater") ?: return@step
+			if (!autoUpdater.isObject) return@step
+			val settings = autoUpdater.get("Settings") ?: return@step
+			val loaderPromptHandled = settings.get("Loader Prompt Handled") ?: return@step
+			if (!loaderPromptHandled.isBoolean) return@step
+			val properties = autoUpdater.asObject().objectOrCreate("Properties")
+			properties.put("loaderPromptHandled", loaderPromptHandled.asString())
+			Log.info("Module config category schema v2 -> v3")
 		}
 	}
 }
