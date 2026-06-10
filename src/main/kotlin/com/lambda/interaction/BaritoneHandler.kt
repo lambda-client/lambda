@@ -47,7 +47,7 @@ object BaritoneHandler : Config(
     // The new config system, as its using reflections to gather metadata about the settings before registering them, does not allow for nullability.
     // Partially because it would be a lot of work to account for all edge cases, but also because we use the by keyword to register ConfigBlock's as delegates.
     // This doesnt allow for nullability either.
-//    val settings by baritoneSettings?.let { settingBlock(BaritoneConfigSettings(this, it)) }
+//    val settings by baritoneSettings?.let { configBlock(BaritoneConfigSettings(this, it)) }
     private const val RotationTab = "Rotation"
     @Tab(RotationTab) override val rotationConfig by configBlock(RotationSettings(this))
 

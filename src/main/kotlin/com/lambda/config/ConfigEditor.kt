@@ -37,7 +37,7 @@ fun <T : Config> T.withEdits(
 context(c: Config)
 fun <T : ConfigBlock> ConfigBlockWrapper<T>.withEdits(
 	edits: context(EditContext.BlockEditContext) T.() -> Unit
-) = apply { with(EditContext.BlockEditContext(c, this)) { this@withEdits.settingBlock.edits() } }
+) = apply { with(EditContext.BlockEditContext(c, this)) { this@withEdits.configBlock.edits() } }
 
 @ConfigEditorD5l
 fun <T : ConfigBlock> ConfigBlockWrapper<T>.withEdits(
@@ -74,7 +74,7 @@ object ConfigEditor {
 	fun hideAllBlocksExcept(
 		vararg except: ConfigBlockProperty<ConfigBlock>,
 		recursive: Boolean = true
-	) = internalHideAllBlocksExcept(editContext.c.settingBlockLayers, *except, recursive = recursive)
+	) = internalHideAllBlocksExcept(editContext.c.configBlockLayers, *except, recursive = recursive)
 
 	@ConfigEditorD5l
 	context(editContext: EditContext.BlockEditContext)
@@ -143,13 +143,13 @@ object ConfigEditor {
 
 	@ConfigEditorD5l
 	context(_: EditContext)
-	fun hide(vararg settings: ConfigEntryProperty<*>) =
-		internalHide(settings.map { it.configEntry.layer })
+	fun hide(vararg entries: ConfigEntryProperty<*>) =
+		internalHide(entries.map { it.configEntry.layer })
 
 	@ConfigEditorD5l
 	context(_: EditContext)
-	fun <T : ConfigBlock> hideBlock(settingBlock: ConfigBlockProperty<T>) {
-		settingBlock.configBlock.layer.settingLayers.forEach(::internalHide)
+	fun <T : ConfigBlock> hideBlock(configBlock: ConfigBlockProperty<T>) {
+		configBlock.configBlock.layer.settingLayers.forEach(::internalHide)
 	}
 
 	@ConfigEditorD5l
@@ -160,7 +160,7 @@ object ConfigEditor {
 	@ConfigEditorD5l
 	context(_: EditContext)
 	fun <T : ConfigBlock> hideBlockExcept(
-		settingBlock: ConfigBlockProperty<T>,
+		configBlock: ConfigBlockProperty<T>,
 		vararg except: ConfigEntryProperty<*>,
 		recursive: Boolean = true
 	) {
@@ -174,7 +174,7 @@ object ConfigEditor {
 			}
 			if (recursive) blockLayer.layers.forEach(::processBlock)
 		}
-		processBlock(settingBlock.configBlock.layer)
+		processBlock(configBlock.configBlock.layer)
 	}
 
 	interface BasicEditBuilder {
@@ -240,10 +240,10 @@ object ConfigEditor {
 		recursive: Boolean
 	) {
 		val exceptBlocks = except.map { it.configBlock.layer }
-		fun processBlock(settingBlockLayer: ConfigBlockLayer) {
-			val unProtected = settingBlockLayer !in exceptBlocks
-			if (unProtected) settingBlockLayer.settingLayers.forEach(::internalHide)
-			if (unProtected || !recursive) settingBlockLayer.layers.forEach(::processBlock)
+		fun processBlock(configBlockLayer: ConfigBlockLayer) {
+			val unProtected = configBlockLayer !in exceptBlocks
+			if (unProtected) configBlockLayer.settingLayers.forEach(::internalHide)
+			if (unProtected || !recursive) configBlockLayer.layers.forEach(::processBlock)
 		}
 		processBlock(root)
 	}
@@ -262,9 +262,9 @@ object ConfigEditor {
 
 	private val <T : ConfigBlock> ConfigBlockProperty<T>.configBlock
 		get() = this.delegate as? ConfigBlockWrapper<T>
-			?: throw IllegalStateException("SettingBlock delegate did not match the given type")
+			?: throw IllegalStateException("ConfigBlock delegate did not match the given type")
 
-	private val PropertyProperty<*>.delegate
+	private val KProperty0<*>.delegate
 		get() = try {
 			apply { isAccessible = true }.getDelegate()
 		} catch (e: Exception) {
@@ -274,5 +274,5 @@ object ConfigEditor {
 	private typealias SettingProperty<T> = ConfigEntryProperty<T>
 	private typealias PropertyProperty<T> = ConfigEntryProperty<T>
 	private typealias ConfigEntryProperty<T> = KProperty0<T>
-	private typealias ConfigBlockProperty<T> = ConfigEntryProperty<T>
+	private typealias ConfigBlockProperty<T> = KProperty0<T>
 }

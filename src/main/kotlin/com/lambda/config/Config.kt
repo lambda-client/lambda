@@ -74,7 +74,7 @@ abstract class Config(
 ) : Nameable {
 	internal val settingLayers = EntryLayer.Root<Setting<*>>("Settings")
 	internal val propertyLayers = EntryLayer.Root<Property<*>>("Properties")
-	internal val settingBlockLayers = ConfigBlockLayer.Root()
+	internal val configBlockLayers = ConfigBlockLayer.Root()
 	private val registrationQueue = ArrayDeque<LayerSpecInfo>()
 
 	init {
@@ -88,18 +88,18 @@ abstract class Config(
 		forEachConfigEntry(
 			klass,
 			onSetting = { enqueuePrimitiveConfigEntry(it, outerPath, outerBlockPath, it.name) },
-			onSettingBlock = { settingBlock, blockClass ->
+			onSettingBlock = { configBlock, blockClass ->
 				val fullBlockPath = outerBlockPath + childBlockIndex
 				enqueueConfigEntries(
 					blockClass,
-					outerPath + buildPathFromAnnotations(settingBlock),
+					outerPath + buildPathFromAnnotations(configBlock),
 					fullBlockPath
 				)
 				registrationQueue.addLast(
 					LayerSpecInfo(
 						emptyList(),
 						fullBlockPath,
-						settingBlock.name
+						configBlock.name
 					)
 				)
 				childBlockIndex++
@@ -390,7 +390,7 @@ abstract class Config(
 			throw IllegalStateException("Setting block registered from an unknown location for config '$name'. Layer path was not queued before setting block initialization")
 		}
 
-		var currentLayer: ConfigBlockLayer = settingBlockLayers
+		var currentLayer: ConfigBlockLayer = configBlockLayers
 		path.forEach { index ->
 			currentLayer = currentLayer.layers.getOrElse(index) {
 				ConfigBlockLayer.Block(currentLayer).also { currentLayer.layers.add(it) }
@@ -435,7 +435,7 @@ abstract class Config(
 		if (currentPropertyLayer.layers.any { it.name == spec.propertyName })
 			throw IllegalStateException("Duplicate layer name ('${spec.propertyName}') within ${currentPropertyLayer.name}")
 
-		var currentBlockLayer: ConfigBlockLayer = settingBlockLayers
+		var currentBlockLayer: ConfigBlockLayer = configBlockLayers
 		spec.blockSpecs.forEach { index ->
 			currentBlockLayer =
 				currentBlockLayer.layers.getOrElse(index) {
@@ -504,7 +504,7 @@ abstract class Config(
 		if (currentEntryLayer.layers.any { it.name == name })
 			throw IllegalStateException("Duplicate layer name ('$name') within ${currentEntryLayer.name}")
 
-		var currentBlockLayer: ConfigBlockLayer = settingBlockLayers
+		var currentBlockLayer: ConfigBlockLayer = configBlockLayers
 		spec.blockSpecs.forEach { index ->
 			currentBlockLayer =
 				currentBlockLayer.layers.getOrElse(index) {
