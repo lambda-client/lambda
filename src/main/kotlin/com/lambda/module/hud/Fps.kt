@@ -26,7 +26,7 @@ import com.lambda.util.collections.LimitedDecayQueue
 import kotlin.time.Duration.Companion.seconds
 
 @Suppress("unused")
-object FPS : HudModule(
+object Fps : HudModule(
 	name = "FPS",
 	description = "Displays your games frames per second",
 	tag = ModuleTag.Hud

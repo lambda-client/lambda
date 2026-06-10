@@ -26,7 +26,7 @@ import com.lambda.util.ServerTPSUtils
 import com.lambda.util.ServerTPSUtils.recentData
 
 @Suppress("unused")
-object TPS : HudModule(
+object Tps : HudModule(
 	name = "TPS",
 	description = "Display the server's tick rate",
 	tag = ModuleTag.Hud,
