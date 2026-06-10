@@ -25,7 +25,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
+import com.lambda.event.events.TickEvent.Companion.AllStages
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.BaritoneHandler
@@ -58,7 +58,7 @@ import kotlin.math.sin
 @Suppress("unused")
 object RotationManager : Manager<RotationRequest>(
 	1,
-	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),
+	*(AllStages.subList(AllStages.indexOf(TickEvent.Player.Post), AllStages.size - 1).toTypedArray()),
 ) {
 	var pitchRequest
 		get() = requests[0] as? IRotationRequest.PitchRot

@@ -77,8 +77,8 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	private val layerIncrement = 1f
 
-	private val DEFAULT_LIGHT_DIR = Vector3f(0.2f, 1.0f, -0.7f).normalize()
-	private val DEFAULT_LIGHT1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
+	private val DefaultLightDir = Vector3f(0.2f, 1.0f, -0.7f).normalize()
+	private val DefaultLight1Dir = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
 
 	private fun eulerToQuaternion(rot: Vec3d): Quaternionf {
 		return Quaternionf().rotationYXZ(
@@ -606,8 +606,8 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 					tr, tg, tb, ta,
 					olU, olV, overlayFlag, shadingAmount,
 					light,
-					DEFAULT_LIGHT_DIR.x, DEFAULT_LIGHT_DIR.y, DEFAULT_LIGHT_DIR.z,
-					DEFAULT_LIGHT1_DIR.x, DEFAULT_LIGHT1_DIR.y, DEFAULT_LIGHT1_DIR.z,
+					DefaultLightDir.x, DefaultLightDir.y, DefaultLightDir.z,
+					DefaultLight1Dir.x, DefaultLight1Dir.y, DefaultLight1Dir.z,
 					normalVec.x, normalVec.y, normalVec.z,
 					edgeX, edgeY
 				))
@@ -627,7 +627,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		rotation: Vec3d? = null,
 		centered: Boolean = true,
 		flat: Boolean = true,
-		lighting: ItemLighting = ItemLighting.VANILLA,
+		lighting: ItemLighting = ItemLighting.Vanilla,
 		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
@@ -645,7 +645,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		size: Float = 0.05f,
 		rotation: Vec3d? = null,
 		centered: Boolean = true,
-		lighting: ItemLighting = ItemLighting.VANILLA,
+		lighting: ItemLighting = ItemLighting.Vanilla,
 		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
@@ -670,7 +670,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		centered: Boolean,
 		isScreen: Boolean,
 		flat: Boolean = false,
-		lighting: ItemLighting = ItemLighting.VANILLA,
+		lighting: ItemLighting = ItemLighting.Vanilla,
 		overlay: ItemOverlay? = null
 	) {
 		val posVec = if (isScreen) {
@@ -697,7 +697,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val layer = state.layers[i]
 
 			queue.currentGlint = when (overlay) {
-				ItemOverlay.DISABLED -> false
+				ItemOverlay.Disabled -> false
 				null -> layer.glint != ItemRenderState.Glint.NONE
 				else -> true
 			}

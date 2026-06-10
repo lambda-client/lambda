@@ -60,7 +60,7 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     }
 
     companion object {
-        val ZERO = Rect(Vec2d.ZERO, Vec2d.ZERO)
+        val Zero = Rect(Vec2d.Zero, Vec2d.Zero)
 
         fun basedOn(base: Vec2d, width: Double, height: Double) =
             Rect(base, base + Vec2d(width, height))

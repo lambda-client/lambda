@@ -36,7 +36,7 @@ data class SwapInfo(
 	val longSwap: Boolean = false
 ) : Automated by automated {
 	companion object {
-		val EMPTY = SwapInfo(Primary)
+		val Empty = SwapInfo(Primary)
 
 		/**
 		 * Calculates the contents and returns a [SwapInfo].

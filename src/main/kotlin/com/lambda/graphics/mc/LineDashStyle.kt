@@ -35,7 +35,7 @@ data class LineDashStyle(
     val dashRatio: Float get() = dashLength / cycleLength
     
     companion object {
-        val SOLID: LineDashStyle? = null
+        val Solid: LineDashStyle? = null
         
         fun dotted(size: Float = 0.15f) = LineDashStyle(
             dashLength = size,

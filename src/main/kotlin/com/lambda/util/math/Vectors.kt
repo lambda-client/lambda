@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.util.math
 
 import com.lambda.context.SafeContext
@@ -39,7 +41,7 @@ fun BlockPos.getHitVec(side: Direction): Vec3d =
 /* Direction */
 val Direction.hitVecOffset: Vec3d
     get() =
-        CENTER + vector.vec3d * 0.5
+        Center + vector.vec3d * 0.5
 
 fun EightWayDirection.rotateClockwise(steps: Int) =
     EightWayDirection.entries[(ordinal + steps) % 8]
@@ -191,7 +193,7 @@ infix fun Vec2d.distSq(other: Vec2f): Double = (other.x - x).pow(2) + (other.y -
 
 fun Vec2d.normal(): Vec2d {
     val length = sqrt(x * x + y * y)
-    return if (length != 0.0) Vec2d(x / length, y / length) else Vec2d.ZERO
+    return if (length != 0.0) Vec2d(x / length, y / length) else Vec2d.Zero
 }
 
 /* Entity */
@@ -205,6 +207,6 @@ infix fun Entity.distSq(other: Entity): Double = squaredDistanceTo(other)
 context(safeContext: SafeContext)
 val Vec3d.isLoaded get() = flooredBlockPos.isLoaded
 
-val UP = Vec3d(0.0, 1.0, 0.0)
-val DOWN = Vec3d(0.0, -1.0, 0.0)
-val CENTER = Vec3d(0.5, 0.5, 0.5)
+val Up = Vec3d(0.0, 1.0, 0.0)
+val Down = Vec3d(0.0, -1.0, 0.0)
+val Center = Vec3d(0.5, 0.5, 0.5)

@@ -209,7 +209,7 @@ object OutlineIdPassRenderer {
             ) ?: return
 
 	    renderPass.use { renderPass ->
-		    renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_ID)
+		    renderPass.setPipeline(LambdaRenderPipelines.OutlineId)
 
 		    renderPass.setUniform("DynamicTransforms", idUniform)
 

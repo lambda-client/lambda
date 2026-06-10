@@ -23,7 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
+import com.lambda.event.events.TickEvent.Companion.AllStages
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafeAutomated
@@ -39,7 +39,7 @@ abstract class Manager<R : Request>(
 	private val onOpen: (SafeContext.() -> Unit)? = null,
 	private val onClose: (SafeContext.() -> Unit)? = null
 ) : Loadable {
-	val openStages: List<TickEvent> = ALL_STAGES.filter { it !in blacklistedStages }
+	val openStages: List<TickEvent> = AllStages.filter { it !in blacklistedStages }
 
 	/**
 	 * Represents if the handler is accepting requests at any given time
@@ -107,8 +107,8 @@ abstract class Manager<R : Request>(
 		if (!canOverrideQueued) return request
 		if ((!acceptingRequests || tickStage !in request.tickStageMask)) {
 			if (!queueIfMismatchedStage || request.nowOrNothing) return request
-			val currentStageIndex = ALL_STAGES.indexOf(tickStage)
-			if (openStages.none { ALL_STAGES.indexOf(it) > currentStageIndex && it in request.tickStageMask })
+			val currentStageIndex = AllStages.indexOf(tickStage)
+			if (openStages.none { AllStages.indexOf(it) > currentStageIndex && it in request.tickStageMask })
 				return request
 			queuedRequest = request
 			return request

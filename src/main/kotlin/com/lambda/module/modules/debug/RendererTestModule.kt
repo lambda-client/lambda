@@ -389,7 +389,7 @@ object ImmediateRendererTest : Module(
 					stack = ItemStack(Items.GRASS_BLOCK),
 					pos = startPos.offset(Direction.NORTH, 2.0).offset(Direction.WEST, 1.0).add(0.0, 1.5, 0.0),
 					scale = 0.5f,
-					overlay = ItemOverlay.ENCHANT_GLINT,
+					overlay = ItemOverlay.EnchantGlint,
 				)
 
 				screenGuiItem(
@@ -405,7 +405,7 @@ object ImmediateRendererTest : Module(
 					pos = startPos.offset(Direction.NORTH, 3.0),
 					scale = 0.5f,
 					flat = true,
-					overlay = ItemOverlay.ENCHANT_GLINT
+					overlay = ItemOverlay.EnchantGlint
 				)
 
 				worldGuiItem(
@@ -419,7 +419,7 @@ object ImmediateRendererTest : Module(
 					x = 0.6f, y = 0.4f,
 					size = 0.08f,
 					rotation = Vec3d(0.0, 0.0, lightTime.toDouble()), // Spinning on screen
-					lighting = ItemLighting.NONE
+					lighting = ItemLighting.None
 				)
 
 				withOutline(OutlineStyle(Color.CYAN)) {

@@ -15,10 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.util.math.CENTER
-import com.lambda.util.math.DOWN
+import com.lambda.util.math.Center
+import com.lambda.util.math.Down
 import com.lambda.util.math.MathUtils.sq
-import com.lambda.util.math.UP
+import com.lambda.util.math.Up
 import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
 import com.lambda.util.math.div
@@ -177,8 +177,8 @@ class Vec3dTest {
 
     @Test
     fun `test constants`() {
-        assertEquals(Vec3d(0.0, 1.0, 0.0), UP)
-        assertEquals(Vec3d(0.0, -1.0, 0.0), DOWN)
-        assertEquals(Vec3d(0.5, 0.5, 0.5), CENTER)
+        assertEquals(Vec3d(0.0, 1.0, 0.0), Up)
+        assertEquals(Vec3d(0.0, -1.0, 0.0), Down)
+        assertEquals(Vec3d(0.5, 0.5, 0.5), Center)
     }
 }

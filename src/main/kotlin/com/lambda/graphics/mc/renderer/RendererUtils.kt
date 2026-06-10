@@ -43,25 +43,26 @@ import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+@Suppress("unused")
 object RendererUtils {
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, false)
 
-	val worldFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_QUADS
-	val worldLinesPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_LINES
-	val worldTextPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_SDF_TEXT
-	val worldImagePipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_IMAGES
-	val worldModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS
+	val worldFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.WorldQuads
+	val worldLinesPipeline: RenderPipeline get() = LambdaRenderPipelines.WorldLines
+	val worldTextPipeline: RenderPipeline get() = LambdaRenderPipelines.WorldSdfText
+	val worldImagePipeline: RenderPipeline get() = LambdaRenderPipelines.WorldImages
+	val worldModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WorldModels
 
-	val outlineFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_QUADS
-	val outlineEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_LINES
-	val outlineTextPipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_SDF_TEXT
-	val outlineImagePipeline: RenderPipeline get() = LambdaRenderPipelines.OUTLINE_IMAGES
-	val outlineModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WORLD_MODELS
+	val outlineFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.OutlineQuads
+	val outlineEdgesPipeline: RenderPipeline get() = LambdaRenderPipelines.OutlineLines
+	val outlineTextPipeline: RenderPipeline get() = LambdaRenderPipelines.OutlineSdfText
+	val outlineImagePipeline: RenderPipeline get() = LambdaRenderPipelines.OutlineImages
+	val outlineModelPipeline: RenderPipeline get() = LambdaRenderPipelines.WorldModels
 
-	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_QUADS
-	val screenLinesPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_LINES
-	val screenTextPipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_TEXT
-	val screenImagePipeline: RenderPipeline get() = LambdaRenderPipelines.SCREEN_IMAGES
+	val screenFacesPipeline: RenderPipeline get() = LambdaRenderPipelines.ScreenQuads
+	val screenLinesPipeline: RenderPipeline get() = LambdaRenderPipelines.ScreenLines
+	val screenTextPipeline: RenderPipeline get() = LambdaRenderPipelines.ScreenText
+	val screenImagePipeline: RenderPipeline get() = LambdaRenderPipelines.ScreenImages
 
 	private var glintTextureView: GpuTextureView? = null
 	private var glintSampler: GpuSampler? = null

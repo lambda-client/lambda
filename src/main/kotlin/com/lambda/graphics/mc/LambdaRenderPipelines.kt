@@ -30,11 +30,11 @@ import net.minecraft.util.Identifier
 object LambdaRenderPipelines : Loadable {
 	override val priority get() = 100
 
-	private val LAMBDA_ESP_SNIPPET = RenderPipeline.builder(RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET).buildSnippet()
+	private val LambdaEspSnippet = RenderPipeline.builder(RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET).buildSnippet()
 
-	val WORLD_LINES: RenderPipeline =
+	val WorldLines: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/world_lines"))
 				.withVertexShader(Identifier.of("lambda", "core/world_lines"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_lines"))
@@ -45,15 +45,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH,
+					LambdaVertexFormats.PositionColorNormalLineWidthDash,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val WORLD_QUADS: RenderPipeline =
+	val WorldQuads: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/world_quads"))
 				.withVertexShader(Identifier.of("lambda", "core/world_faces"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_faces"))
@@ -65,9 +65,9 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	val WORLD_SDF_TEXT: RenderPipeline =
+	val WorldSdfText: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/sdf_text"))
 				.withVertexShader(Identifier.of("lambda", "core/world_sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_sdf_text"))
@@ -76,13 +76,13 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthWrite(false)
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
-				.withVertexFormat(LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF, VertexFormat.DrawMode.QUADS)
+				.withVertexFormat(LambdaVertexFormats.PositionTextureColorAnchorSdf, VertexFormat.DrawMode.QUADS)
 				.build()
 		)
 
-	val WORLD_IMAGES: RenderPipeline =
+	val WorldImages: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/world_image"))
 				.withVertexShader(Identifier.of("lambda", "core/world_image"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_image"))
@@ -94,15 +94,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.WORLD_IMAGE_FORMAT,
+					LambdaVertexFormats.WorldImageFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val WORLD_MODELS: RenderPipeline =
+	val WorldModels: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/world_model"))
 				.withVertexShader(Identifier.of("lambda", "core/world_model"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_model"))
@@ -117,15 +117,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.WORLD_MODEL_FORMAT,
+					LambdaVertexFormats.WorldModelFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val OUTLINE_LINES: RenderPipeline =
+	val OutlineLines: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/outline_lines"))
 				.withVertexShader(Identifier.of("lambda", "core/world_lines"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_lines"))
@@ -136,15 +136,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH,
+					LambdaVertexFormats.PositionColorNormalLineWidthDash,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val OUTLINE_QUADS: RenderPipeline =
+	val OutlineQuads: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/outline_quads"))
 				.withVertexShader(Identifier.of("lambda", "core/world_faces"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_faces"))
@@ -156,9 +156,9 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	val OUTLINE_SDF_TEXT: RenderPipeline =
+	val OutlineSdfText: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/outline_sdf_text"))
 				.withVertexShader(Identifier.of("lambda", "core/world_sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_sdf_text"))
@@ -167,13 +167,13 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthWrite(true)
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
-				.withVertexFormat(LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF, VertexFormat.DrawMode.QUADS)
+				.withVertexFormat(LambdaVertexFormats.PositionTextureColorAnchorSdf, VertexFormat.DrawMode.QUADS)
 				.build()
 		)
 
-	val OUTLINE_IMAGES: RenderPipeline =
+	val OutlineImages: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/outline_world_image"))
 				.withVertexShader(Identifier.of("lambda", "core/world_image"))
 				.withFragmentShader(Identifier.of("lambda", "core/world_image"))
@@ -185,15 +185,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.WORLD_IMAGE_FORMAT,
+					LambdaVertexFormats.WorldImageFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val SCREEN_LINES: RenderPipeline =
+	val ScreenLines: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/screen_lines"))
 				.withVertexShader(Identifier.of("lambda", "core/screen_lines"))
 				.withFragmentShader(Identifier.of("lambda", "core/screen_lines"))
@@ -202,15 +202,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.SCREEN_LINE_FORMAT,
+					LambdaVertexFormats.ScreenLineFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val SCREEN_QUADS: RenderPipeline =
+	val ScreenQuads: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/screen_faces"))
 				.withVertexShader(Identifier.of("lambda", "core/screen_faces"))
 				.withFragmentShader(Identifier.of("lambda", "core/screen_faces"))
@@ -219,15 +219,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.SCREEN_FACE_FORMAT,
+					LambdaVertexFormats.ScreenFaceFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val SCREEN_TEXT: RenderPipeline =
+	val ScreenText: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/screen_text"))
 				.withVertexShader(Identifier.of("lambda", "core/screen_sdf_text"))
 				.withFragmentShader(Identifier.of("lambda", "core/screen_sdf_text"))
@@ -237,15 +237,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT,
+					LambdaVertexFormats.ScreenTextSdfFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val SCREEN_IMAGES: RenderPipeline =
+	val ScreenImages: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/screen_image"))
 				.withVertexShader(Identifier.of("lambda", "core/screen_image"))
 				.withFragmentShader(Identifier.of("lambda", "core/screen_image"))
@@ -256,15 +256,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.SCREEN_IMAGE_FORMAT,
+					LambdaVertexFormats.ScreenImageFormat,
 					VertexFormat.DrawMode.QUADS
 				)
 				.build()
 		)
 
-	val OUTLINE_ID: RenderPipeline =
+	val OutlineId: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet, RenderPipelines.GLOBALS_SNIPPET)
 				.withLocation(Identifier.of("lambda", "pipeline/outline_id"))
 				.withVertexShader(Identifier.of("lambda", "core/outline_id"))
 				.withFragmentShader(Identifier.of("lambda", "core/outline_id"))
@@ -274,15 +274,15 @@ object LambdaRenderPipelines : Loadable {
 				.withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
 				.withCull(false)
 				.withVertexFormat(
-					LambdaVertexFormats.OUTLINE_ID_FORMAT,
+					LambdaVertexFormats.OutlineIdFormat,
 					VertexFormat.DrawMode.TRIANGLES
 				)
 				.build()
 		)
 
-	val OUTLINE_SOBEL: RenderPipeline =
+	val OutlineSobel: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
+			RenderPipeline.builder(LambdaEspSnippet)
 				.withLocation(Identifier.of("lambda", "pipeline/outline_sobel"))
 				.withVertexShader(Identifier.of("lambda", "core/outline_sobel"))
 				.withFragmentShader(Identifier.of("lambda", "core/outline_sobel"))

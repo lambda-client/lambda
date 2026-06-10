@@ -28,6 +28,6 @@ data class OutlineStyle(
     val fillOpacity: Float = 0.4f
 ) {
     companion object {
-        val DEFAULT = OutlineStyle(Color.WHITE)
+        val Default = OutlineStyle(Color.WHITE)
     }
 }

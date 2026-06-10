@@ -161,7 +161,7 @@ sealed class TickEvent : Event {
     }
 
     companion object {
-        val ALL_STAGES by lazy {
+        val AllStages by lazy {
             listOf(
                 Pre,
                 Post,

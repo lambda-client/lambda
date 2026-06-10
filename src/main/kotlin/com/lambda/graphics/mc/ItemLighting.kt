@@ -28,13 +28,13 @@ data class ItemLighting(
     val respectsUseLight: Boolean = false
 ) {
     companion object {
-        val VANILLA: ItemLighting by lazy {
+        val Vanilla: ItemLighting by lazy {
             val light0 = Vector3f(0.2f, 1.0f, -0.7f).normalize()
             val light1 = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
             ItemLighting(light0, light1, respectsUseLight = true)
         }
         
-        val NONE = ItemLighting(
+        val None = ItemLighting(
             light0 = Vector3f(0f, 1f, 0f),
             light1 = Vector3f(0f, 1f, 0f),
             ambient = 1.0f,

@@ -43,7 +43,7 @@ object SlabPreProcessor : PropertyPreProcessor {
             SlabType.DOUBLE -> {
                 if (state.block !is SlabBlock) {
 	                addIgnores(Properties.SLAB_TYPE)
-					SurfaceScan.DEFAULT
+					SurfaceScan.Default
                 } else when (state.get(Properties.SLAB_TYPE)) {
                     SlabType.BOTTOM -> SurfaceScan(ScanMode.GreaterBlockHalf, Direction.Axis.Y)
                     else -> SurfaceScan(ScanMode.LesserBlockHalf, Direction.Axis.Y)

@@ -187,11 +187,11 @@ class Vec2dTest {
 
     @Test
     fun `test Vec2d constants`() {
-        assertEquals(Vec2d.ZERO, Vec2d(0.0, 0.0))
-        assertEquals(Vec2d.ONE, Vec2d(1.0, 1.0))
-        assertEquals(Vec2d.LEFT, Vec2d(-1.0, 0.0))
-        assertEquals(Vec2d.RIGHT, Vec2d(1.0, 0.0))
-        assertEquals(Vec2d.TOP, Vec2d(0.0, -1.0))
-        assertEquals(Vec2d.BOTTOM, Vec2d(0.0, 1.0))
+        assertEquals(Vec2d.Zero, Vec2d(0.0, 0.0))
+        assertEquals(Vec2d.One, Vec2d(1.0, 1.0))
+        assertEquals(Vec2d.Left, Vec2d(-1.0, 0.0))
+        assertEquals(Vec2d.Right, Vec2d(1.0, 0.0))
+        assertEquals(Vec2d.Top, Vec2d(0.0, -1.0))
+        assertEquals(Vec2d.Bottom, Vec2d(0.0, 1.0))
     }
 }

@@ -52,12 +52,12 @@ data class Vec2d(val x: Double, val y: Double) {
     fun roundToInt() = Vec2d(x.roundToInt(), y.roundToInt())
 
     companion object {
-        val ZERO = Vec2d(0.0, 0.0)
-        val ONE = Vec2d(1.0, 1.0)
+        val Zero = Vec2d(0.0, 0.0)
+        val One = Vec2d(1.0, 1.0)
 
-        val LEFT = Vec2d(-1.0, 0.0)
-        val RIGHT = Vec2d(1.0, 0.0)
-        val TOP = Vec2d(0.0, -1.0)
-        val BOTTOM = Vec2d(0.0, 1.0)
+        val Left = Vec2d(-1.0, 0.0)
+        val Right = Vec2d(1.0, 0.0)
+        val Top = Vec2d(0.0, -1.0)
+        val Bottom = Vec2d(0.0, 1.0)
     }
 }

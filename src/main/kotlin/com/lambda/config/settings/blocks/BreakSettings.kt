@@ -28,7 +28,7 @@ import com.lambda.config.settings.blocks.BreakConfig.SwingMode
 import com.lambda.config.settings.blocks.BreakConfig.WhitelistMode
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
+import com.lambda.event.events.TickEvent.Companion.AllStages
 import net.minecraft.registry.Registries
 import java.awt.Color
 
@@ -51,7 +51,7 @@ class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 //	@Group(GeneralGroup) override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { page == Page.General }
 	override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)")
 	// Timing
-	override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
+	override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), AllStages.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
 	override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
 	override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand")
 	override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
