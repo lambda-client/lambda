@@ -121,8 +121,8 @@ abstract class Setting<T>(
 	override val isModified get() = originalCore.value != originalCore.defaultValue
 
 	override operator fun setValue(thisRef: Any?, property: KProperty<*>, newValue: T) {
-		val oldValue = originalCore.value
-		originalCore.value = newValue
+		val oldValue = core.value
+		core.value = newValue
 		listeners.forEach {
 			if (it.requiresValueChange && oldValue == newValue) return@forEach
 			it.execute(oldValue, newValue)
