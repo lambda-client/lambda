@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.gui.DearImGui;
@@ -33,7 +34,6 @@ import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.cursor.Cursor;
 import net.minecraft.client.render.Camera;
@@ -100,23 +100,17 @@ public class GameRendererMixin {
     private void applyCursorOverride(DrawContext context, Window window, Operation<Void> original) {
         original.call(context, window);
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.currentScreen instanceof CursorOverrideProvider provider) {
-            int mouseX = (int) client.mouse.getScaledX(window);
-            int mouseY = (int) client.mouse.getScaledY(window);
+        if (Lambda.getMc().currentScreen instanceof CursorOverrideProvider provider) {
+            int mouseX = (int) Lambda.getMc().mouse.getScaledX(window);
+            int mouseY = (int) Lambda.getMc().mouse.getScaledY(window);
             Cursor cursor = provider.getCursorOverride(mouseX, mouseY);
 
             if (cursor != null) {
                 cursor.applyTo(window);
-                lambda$forcedCursorActive = true;
                 return;
             }
         }
-
-        if (lambda$forcedCursorActive) {
-            Cursor.DEFAULT.applyTo(window);
-            lambda$forcedCursorActive = false;
-        }
+        Cursor.DEFAULT.applyTo(window);
     }
 
     @Inject(method = "shouldRenderBlockOutline()Z", at = @At("HEAD"), cancellable = true)
