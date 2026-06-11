@@ -19,6 +19,7 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.combat.AutoDisconnect;
 import com.lambda.module.modules.combat.MultiplayerReconnectTarget;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
 import net.minecraft.client.network.CookieStorage;
 import net.minecraft.client.network.ServerAddress;
@@ -32,13 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ConnectScreenMixin {
 
     @Inject(method = "connect(Lnet/minecraft/client/MinecraftClient;Lnet/minecraft/client/network/ServerAddress;Lnet/minecraft/client/network/ServerInfo;Lnet/minecraft/client/network/CookieStorage;)V", at= @At("HEAD"))
-    private void connectHead(
-            net.minecraft.client.MinecraftClient client,
-            ServerAddress address,
-            ServerInfo info,
-            CookieStorage cookieStorage,
-            CallbackInfo ci
-    ) {
+    private void connectHead(MinecraftClient client, ServerAddress address, ServerInfo info, CookieStorage cookieStorage, CallbackInfo ci) {
         AutoDisconnect.INSTANCE.setLastReconnectTarget(new MultiplayerReconnectTarget(address, info, cookieStorage));
     }
 }
