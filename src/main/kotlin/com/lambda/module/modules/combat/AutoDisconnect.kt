@@ -233,11 +233,7 @@ object AutoDisconnect : Module(
         }
     }
 
-    fun consumeDetails(): DisconnectDetails? {
-        val details = disconnectDetails
-        disconnectDetails = null
-        return details
-    }
+    fun consumeDetails() = disconnectDetails.also { disconnectDetails = null }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
         text(prefix(Communication.LogLevel.Warn.logoColor))
