@@ -20,8 +20,8 @@ package com.lambda.task.tasks
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.ContainerManager
-import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
+import com.lambda.interaction.material.container.ContainerHandler
+import com.lambda.interaction.material.container.ContainerHandler.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
@@ -40,7 +40,7 @@ class AcquireMaterialTask @Ta5kBuilder constructor(
                 ?.finally {
                     success(selection)
                 }?.execute(this@AcquireMaterialTask)
-                ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
+                ?: failure(ContainerHandler.NoContainerFound(selection)) // ToDo: Create crafting path
         }
     }
 

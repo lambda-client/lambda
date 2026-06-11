@@ -22,7 +22,7 @@ import com.lambda.event.events.ClientEvent
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.milliseconds
 
-object TimerManager : Loadable {
+object TimerHandler : Loadable {
     const val DEFAULT_LENGTH = 50.0
     var lastTickLength = 50.0
 

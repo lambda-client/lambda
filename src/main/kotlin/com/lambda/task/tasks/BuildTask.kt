@@ -26,7 +26,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
@@ -275,11 +275,11 @@ class BuildTask private constructor(
                 if (!buildConfig.pathing) return
                 val sim = blueprint.simulation()
                 val goal = BuildGoal(sim, player.blockPos)
-                BaritoneManager.setGoalAndPath(goal)
+                BaritoneHandler.setGoalAndPath(goal)
             }
 
             is Navigable -> {
-                if (buildConfig.pathing) BaritoneManager.setGoalAndPath(result.goal)
+                if (buildConfig.pathing) BaritoneHandler.setGoalAndPath(result.goal)
             }
 
             is Contextual -> {
@@ -318,7 +318,7 @@ class BuildTask private constructor(
 
                 if (!world.entities.contains(itemDrop)) {
                     dropsToCollect.remove(itemDrop)
-                    BaritoneManager.cancel()
+                    BaritoneHandler.cancel()
                     return@let true
                 }
 
@@ -335,7 +335,7 @@ class BuildTask private constructor(
                     return@let true
                 }
 
-                BaritoneManager.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                BaritoneHandler.setGoalAndPath(GoalBlock(itemDrop.blockPos))
                 return@let true
             } ?: false
 

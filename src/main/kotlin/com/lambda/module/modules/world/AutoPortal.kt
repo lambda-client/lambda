@@ -29,7 +29,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DirectionMask
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
@@ -301,7 +301,7 @@ object AutoPortal : Module(
 					}
 					swapPacket()
 					if (walkIn) {
-						BaritoneManager.setGoalAndPath(GoalBlock(currAnchorPos.up()))
+						BaritoneHandler.setGoalAndPath(GoalBlock(currAnchorPos.up()))
 					}
 					success()
 				}

@@ -18,7 +18,7 @@
 package com.lambda.module.modules.world
 
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -62,7 +62,7 @@ object WorldEater : Module(
             runningTask?.cancel()
             runningTask = null
             work.clear()
-            BaritoneManager.cancel()
+            BaritoneHandler.cancel()
         }
 
         tickedRenderer("WorldEater Ticked Renderer") {

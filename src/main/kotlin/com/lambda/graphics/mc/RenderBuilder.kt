@@ -20,7 +20,7 @@ package com.lambda.graphics.mc
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.LineConfig
 import com.lambda.context.SafeContext
-import com.lambda.graphics.outline.OutlineManager
+import com.lambda.graphics.outline.OutlineHandler
 import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.text.FontHandler
 import com.lambda.graphics.text.SDFFontAtlas
@@ -277,28 +277,28 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	fun worldOutline(
 		entity: Entity,
 		style: OutlineStyle
-	) = OutlineManager.setEntityOutline(entity.id, style, depthTest = depthTest)
+	) = OutlineHandler.setEntityOutline(entity.id, style, depthTest = depthTest)
 
 	@JvmName("worldOutlines1")
 	fun worldOutlines(
 		entities: Iterable<Entity>,
 		style: OutlineStyle
 	) = entities.forEach {
-		OutlineManager.setEntityOutline(it.id, style, depthTest = depthTest)
+		OutlineHandler.setEntityOutline(it.id, style, depthTest = depthTest)
 	}
 
 	@JvmName("worldOutline2")
 	fun worldOutline(
 		pos: BlockPos,
 		style: OutlineStyle
-	) = OutlineManager.setBlockOutline(pos, style, depthTest = depthTest)
+	) = OutlineHandler.setBlockOutline(pos, style, depthTest = depthTest)
 
 	@JvmName("worldOutlines2")
 	fun worldOutlines(
 		positions: Iterable<BlockPos>,
 		style: OutlineStyle
 	) = positions.forEach {
-		OutlineManager.setBlockOutline(it, style, depthTest = depthTest)
+		OutlineHandler.setBlockOutline(it, style, depthTest = depthTest)
 	}
 
 	fun withOutline(style: OutlineStyle, block: RenderBuilder.() -> Unit) {

@@ -19,10 +19,10 @@ package com.lambda.module.modules.chat
 
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.friend.FriendManager
+import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager.playSound
+import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.Communication.logError
 import com.lambda.util.text.MessageType
 import com.lambda.util.text.buildText
@@ -51,7 +51,7 @@ object FriendHighlight : Module(
 
 	init {
 		onEnable {
-			if (FriendManager.friends.isEmpty())
+			if (FriendHandler.friends.isEmpty())
 				logError("You don't have any friends added, silly! Go add some friends before using the module")
 		}
 
@@ -60,7 +60,7 @@ object FriendHighlight : Module(
 			val author = MessageType.Others.playerName(raw) ?: return@listen
 			val content = MessageType.Others.removedOrNull(raw) ?: return@listen
 
-			if (!FriendManager.isFriend(author)) return@listen
+			if (!FriendHandler.isFriend(author)) return@listen
 
 			if (ping) playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
 

@@ -34,7 +34,7 @@ import net.minecraft.text.Text
 import java.awt.Color
 import java.util.*
 
-object FriendManager : Configurable(FriendConfig), Loadable {
+object FriendHandler : Configurable(FriendConfig), Loadable {
     override val name = "friends"
     val friends by setting("friends", emptySet<UUID>(), serialize = true)
 

@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.command.CommandManager;
+import com.lambda.command.CommandHandler;
 import net.minecraft.client.gui.screen.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,8 +28,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ChatScreenMixin {
     @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
     void sendMessageInject(String chatText, boolean addToHistory, CallbackInfo ci) {
-        if (!CommandManager.INSTANCE.isLambdaCommand(chatText)) return;
-        CommandManager.INSTANCE.executeCommand(chatText);
+        if (!CommandHandler.INSTANCE.isLambdaCommand(chatText)) return;
+        CommandHandler.INSTANCE.executeCommand(chatText);
         ci.cancel();
     }
 }

@@ -19,7 +19,7 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ContainerHandler
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.Task
@@ -42,7 +42,7 @@ data class ChestContainer(
     context(safeContext: SafeContext)
     override val slots
         get(): List<Slot> =
-            if (ContainerManager.lastInteractedBlockEntity is ChestBlockEntity)
+            if (ContainerHandler.lastInteractedBlockEntity is ChestBlockEntity)
                 safeContext.player.currentScreenHandler.containerSlots
             else emptyList()
 

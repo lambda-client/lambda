@@ -21,7 +21,7 @@ import baritone.api.event.events.PlayerUpdateEvent;
 import baritone.api.event.events.RotationMoveEvent;
 import baritone.api.utils.Rotation;
 import baritone.behavior.LookBehavior;
-import com.lambda.interaction.BaritoneManager;
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -37,7 +37,7 @@ public class LookBehaviourMixin {
     // Redirect baritone's rotations into our rotation engine
     @Inject(method = "updateTarget", at = @At("HEAD"), cancellable = true)
     void onTargetUpdate(Rotation rotation, boolean blockInteract, CallbackInfo ci) {
-        if (instance.baritone != BaritoneManager.getPrimary()) return;
+        if (instance.baritone != BaritoneHandler.getPrimary()) return;
 
         RotationManager.handleBaritoneRotation(rotation.getYaw(), rotation.getPitch());
         ci.cancel();
@@ -45,14 +45,14 @@ public class LookBehaviourMixin {
 
     @Inject(method = "onPlayerUpdate", at = @At("HEAD"), cancellable = true)
     void onUpdate(PlayerUpdateEvent event, CallbackInfo ci) {
-        if (instance.baritone != BaritoneManager.getPrimary()) return;
+        if (instance.baritone != BaritoneHandler.getPrimary()) return;
 
         ci.cancel();
     }
 
     @Inject(method = "onPlayerRotationMove", at = @At("HEAD"), cancellable = true)
     void onMovementUpdate(RotationMoveEvent event, CallbackInfo ci) {
-        if (instance.baritone != BaritoneManager.getPrimary()) return;
+        if (instance.baritone != BaritoneHandler.getPrimary()) return;
 
         ci.cancel();
     }

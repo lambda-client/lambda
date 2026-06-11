@@ -32,7 +32,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager.playSound
+import com.lambda.sound.SoundHandler.playSound
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build

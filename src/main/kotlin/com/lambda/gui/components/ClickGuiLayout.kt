@@ -31,16 +31,16 @@ import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.components.QuickSearch.renderQuickSearch
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
 import com.lambda.gui.snap.RectF
-import com.lambda.gui.snap.SnapManager
-import com.lambda.gui.snap.SnapManager.drawDragGrid
-import com.lambda.gui.snap.SnapManager.drawSnapLines
-import com.lambda.gui.snap.SnapManager.updateDragAndSnapping
+import com.lambda.gui.snap.SnapHandler
+import com.lambda.gui.snap.SnapHandler.drawDragGrid
+import com.lambda.gui.snap.SnapHandler.drawSnapLines
+import com.lambda.gui.snap.SnapHandler.updateDragAndSnapping
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.play
+import com.lambda.sound.SoundHandler.play
 import com.lambda.util.Describable
 import com.lambda.util.KeyCode
 import com.lambda.util.NamedEnum
@@ -79,7 +79,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 	private var dragOffsetY = 0f
 	private val lastBounds = mutableMapOf<String, RectF>()
 	private val pendingPositions = mutableMapOf<String, Pair<Float, Float>>()
-	private val snapOverlays = mutableMapOf<String, SnapManager.SnapVisual>()
+	private val snapOverlays = mutableMapOf<String, SnapHandler.SnapVisual>()
 
 	private enum class Group(override val displayName: String) : NamedEnum {
 		General("General"),
@@ -250,7 +250,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 			buildLayout {
 				buildMenuBar()
 				val vp = ImGui.getMainViewport()
-				SnapManager.beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
+				SnapHandler.beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
 
 				val mouseDown = io.mouseDown[0]
 				val mousePressedThisFrame = mouseDown && !mouseWasDown
@@ -330,7 +330,7 @@ object ClickGuiLayout : Loadable, Configurable(GuiConfig) {
 						}
 
 						val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
-						SnapManager.registerElement(tag.name, rect)
+						SnapHandler.registerElement(tag.name, rect)
 						lastBounds[tag.name] = rect
 
 						nextX += ImGui.getWindowWidth() + 20f

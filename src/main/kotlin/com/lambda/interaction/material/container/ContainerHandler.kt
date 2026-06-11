@@ -39,7 +39,7 @@ import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
-object ContainerManager : Loadable {
+object ContainerHandler : Loadable {
     private val containers: List<MaterialContainer>
         get() = compileContainers + runtimeContainers
 

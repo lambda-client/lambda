@@ -26,7 +26,7 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
-import com.lambda.network.NetworkManager.updateToken
+import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.login
 import com.lambda.util.StringUtils.hash
 import com.lambda.util.extension.isOffline
@@ -71,7 +71,7 @@ object LambdaAPI : Configurable(LambdaConfig) {
 
         listenConcurrentlyUnsafe<ConnectionEvent.Connect.Post> {
             // FixMe: If the player have the properties but are invalid this doesn't work
-            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenConcurrentlyUnsafe
+            if (NetworkHandler.isValid || mc.gameProfile.isOffline) return@listenConcurrentlyUnsafe
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets

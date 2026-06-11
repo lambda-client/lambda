@@ -17,7 +17,7 @@
 
 package com.lambda.command
 
-import com.lambda.command.CommandManager.dispatcher
+import com.lambda.command.CommandHandler.dispatcher
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
 import com.lambda.core.Loadable

@@ -21,7 +21,7 @@ import com.lambda.config.applyEdits
 import com.lambda.config.groups.EntityColorSettings
 import com.lambda.config.groups.EntitySelectionSettings
 import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.friend.FriendManager.isFriend
+import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized
 import com.lambda.module.Module

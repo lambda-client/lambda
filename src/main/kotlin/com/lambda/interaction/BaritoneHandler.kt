@@ -30,7 +30,7 @@ import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.NamedEnum
 import net.fabricmc.loader.api.FabricLoader
 
-object BaritoneManager : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
+object BaritoneHandler : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
     override val name = "baritone"
 
     val isBaritoneLoaded = FabricLoader.getInstance().isModLoaded("baritone")

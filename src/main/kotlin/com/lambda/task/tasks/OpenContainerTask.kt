@@ -22,7 +22,7 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.task.Task
@@ -98,7 +98,7 @@ class OpenContainerTask @Ta5kBuilder constructor(
             val checkedHit = runSafeAutomated { lookAtBlock(blockPos, sides) }
                 ?: run {
                     containerState = State.Pathing
-                    if (!BaritoneManager.isActive) BaritoneManager.setGoalAndPath(GoalNear(blockPos, 3))
+                    if (!BaritoneHandler.isActive) BaritoneHandler.setGoalAndPath(GoalNear(blockPos, 3))
                     return@listen
                 }
             if (interactConfig.rotate && !rotationRequest { rotation(checkedHit.rotation) }.submit().done) return@listen

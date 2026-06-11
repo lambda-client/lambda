@@ -32,7 +32,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractConfig
@@ -602,10 +602,10 @@ object StashMover : Module(
 		private fun SafeContext.handleDroppingItems() {
 			val throwPos = itemThrowPos ?: run { failWithLog("No item throw pos set!"); return }
 			if (player.blockPos != throwPos) {
-				BaritoneManager.setGoalAndPath(GoalBlock(throwPos))
+				BaritoneHandler.setGoalAndPath(GoalBlock(throwPos))
 				return
 			}
-			if (BaritoneManager.isActive) return
+			if (BaritoneHandler.isActive) return
 			val rotation = itemThrowRotation ?: run { failWithLog("No item throw rotation set!"); return }
 			val rotationRequest = rotationRequest {
 				rotation(rotation)
@@ -655,10 +655,10 @@ object StashMover : Module(
 		private fun SafeContext.handleDispensingPearl() {
 			val dispensePos = pearlDispensePos ?: run { failWithLog("No pearl button set!"); return }
 			if (player.blockPos != dispensePos) {
-				BaritoneManager.setGoalAndPath(GoalBlock(dispensePos))
+				BaritoneHandler.setGoalAndPath(GoalBlock(dispensePos))
 				return
 			}
-			if (BaritoneManager.isActive) return
+			if (BaritoneHandler.isActive) return
 			if (player.hotbarStacks.none { it.isEmpty }) {
 				val firstSlot = player.hotbarSlots.getOrNull(0) ?: run { failWithLog("No first slot? This shouldn't occur."); return }
 				if (player.inventoryStacks.any { it.isEmpty }) {
@@ -682,10 +682,10 @@ object StashMover : Module(
 		private fun SafeContext.handleThrowingPearl() {
 			val throwPos = pearlThrowPos ?: run { failWithLog("No pearl throw pos set!"); return }
 			if (player.blockPos != throwPos) {
-				BaritoneManager.setGoalAndPath(GoalBlock(throwPos))
+				BaritoneHandler.setGoalAndPath(GoalBlock(throwPos))
 				return
 			}
-			if (BaritoneManager.isActive) return
+			if (BaritoneHandler.isActive) return
 			if (player.velocity.y < -0.08 || player.velocity.x !in -0.001..0.001 || player.velocity.z !in -0.001..0.001) return
 
 			if (pearlThrown) {

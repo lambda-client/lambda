@@ -37,7 +37,7 @@ import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
+import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState

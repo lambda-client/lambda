@@ -36,7 +36,7 @@ import com.lambda.interaction.material.ContainerSelection.Companion.selectContai
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
+import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -53,12 +53,6 @@ import net.minecraft.fluid.FlowableFluid
 import net.minecraft.fluid.LavaFluid
 import net.minecraft.fluid.WaterFluid
 import net.minecraft.item.ItemStack
-import net.minecraft.registry.tag.ItemTags.DIAMOND_TOOL_MATERIALS
-import net.minecraft.registry.tag.ItemTags.GOLD_TOOL_MATERIALS
-import net.minecraft.registry.tag.ItemTags.IRON_TOOL_MATERIALS
-import net.minecraft.registry.tag.ItemTags.NETHERITE_TOOL_MATERIALS
-import net.minecraft.registry.tag.ItemTags.STONE_TOOL_MATERIALS
-import net.minecraft.registry.tag.ItemTags.WOODEN_TOOL_MATERIALS
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import kotlin.jvm.optionals.getOrNull

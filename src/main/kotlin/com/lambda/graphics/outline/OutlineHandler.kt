@@ -19,7 +19,7 @@ package com.lambda.graphics.outline
 
 import net.minecraft.util.math.BlockPos
 
-object OutlineManager {
+object OutlineHandler {
     private val depthTestedEntityOutlines = mutableMapOf<Int, OutlineStyle>()
     private val xrayEntityOutlines = mutableMapOf<Int, OutlineStyle>()
 

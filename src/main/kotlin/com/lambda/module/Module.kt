@@ -42,7 +42,7 @@ import com.lambda.event.listener.UnsafeListener
 import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.play
+import com.lambda.sound.SoundHandler.play
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 

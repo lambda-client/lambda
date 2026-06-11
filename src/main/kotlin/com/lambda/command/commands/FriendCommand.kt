@@ -29,7 +29,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.configurations.FriendConfig
-import com.lambda.friend.FriendManager
+import com.lambda.friend.FriendHandler
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
@@ -53,13 +53,13 @@ object FriendCommand : LambdaCommand(
             runIO {
                 info(
                     buildText {
-                        if (FriendManager.friends.isEmpty()) {
+                        if (FriendHandler.friends.isEmpty()) {
                             literal("You have no friends yet. Go make some! :3\n")
                         } else {
-                            literal("Your friends (${FriendManager.friends.size}):\n")
+                            literal("Your friends (${FriendHandler.friends.size}):\n")
 
-                            FriendManager.friends.forEachIndexed { index, uuid ->
-                                val profile = FriendManager.latestGameProfile(uuid)
+                            FriendHandler.friends.forEachIndexed { index, uuid ->
+                                val profile = FriendHandler.latestGameProfile(uuid)
                                 val displayName = profile?.name ?: uuid.toString()
 
                                 literal("   ${index + 1}. $displayName ")
@@ -100,15 +100,15 @@ object FriendCommand : LambdaCommand(
                     val name = player().value()
 
                     runBlocking {
-                        val profile = FriendManager.latestGameProfile(name)
+                        val profile = FriendHandler.latestGameProfile(name)
                             ?: return@runBlocking failure("Could not find the player")
 
-                        if (FriendManager.isFriend(profile.id))
+                        if (FriendHandler.isFriend(profile.id))
                             return@runBlocking failure("This player is already in your friend list")
 
-                        FriendManager.befriend(profile)
+                        FriendHandler.befriend(profile)
 
-                        info(FriendManager.befriendedText(profile.name))
+                        info(FriendHandler.befriendedText(profile.name))
                         success()
                     }
                 }
@@ -129,18 +129,18 @@ object FriendCommand : LambdaCommand(
                 executeWithResult {
                     val uuid = player().value()
 
-                    if (FriendManager.isFriend(uuid))
+                    if (FriendHandler.isFriend(uuid))
                         return@executeWithResult failure("This player is already in your friend list")
 
                     runBlocking {
-                        val profile = FriendManager.latestGameProfile(uuid)
+                        val profile = FriendHandler.latestGameProfile(uuid)
 
                         if (profile != null) {
-                            FriendManager.befriend(profile)
-                            info(FriendManager.befriendedText(profile.name))
+                            FriendHandler.befriend(profile)
+                            info(FriendHandler.befriendedText(profile.name))
                         } else {
-                            FriendManager.befriend(uuid)
-                            info(FriendManager.befriendedText(uuid.toString()))
+                            FriendHandler.befriend(uuid)
+                            info(FriendHandler.befriendedText(uuid.toString()))
                         }
 
                         success()
@@ -152,7 +152,7 @@ object FriendCommand : LambdaCommand(
         required(literal("remove")) {
             required(string("player name")) { player ->
                 suggests { _, builder ->
-                    val playerNames = FriendManager.friends.map { FriendManager.friendDisplayName(it) }
+                    val playerNames = FriendHandler.friends.map { FriendHandler.friendDisplayName(it) }
                     suggestMatching(playerNames, builder)
                 }
 
@@ -160,17 +160,17 @@ object FriendCommand : LambdaCommand(
                     val name = player().value()
 
                     runBlocking {
-                        val uuid = FriendManager.gameProfile(name)?.id
+                        val uuid = FriendHandler.gameProfile(name)?.id
                             ?: getProfile(name).getOrNull()?.id
                             ?: runCatching { UUID.fromString(name) }.getOrNull()
                             ?: return@runBlocking failure("Could not resolve the player name")
 
-                        if (!FriendManager.isFriend(uuid))
+                        if (!FriendHandler.isFriend(uuid))
                             return@runBlocking failure("This player is not in your friend list")
 
-                        FriendManager.unfriend(uuid)
+                        FriendHandler.unfriend(uuid)
 
-                        info(FriendManager.unfriendedText(name))
+                        info(FriendHandler.unfriendedText(name))
                         success()
                     }
                 }
@@ -191,13 +191,13 @@ object FriendCommand : LambdaCommand(
                 executeWithResult {
                     val uuid = player().value()
 
-                    if (!FriendManager.isFriend(uuid))
+                    if (!FriendHandler.isFriend(uuid))
                         return@executeWithResult failure("This player is not in your friend list")
 
-                    val displayName = FriendManager.friendDisplayName(uuid)
-                    FriendManager.unfriend(uuid)
+                    val displayName = FriendHandler.friendDisplayName(uuid)
+                    FriendHandler.unfriend(uuid)
 
-                    info(FriendManager.unfriendedText(displayName))
+                    info(FriendHandler.unfriendedText(displayName))
                     success()
                 }
             }

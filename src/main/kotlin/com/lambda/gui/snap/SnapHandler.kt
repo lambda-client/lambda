@@ -37,7 +37,7 @@ import kotlin.collections.set
 import kotlin.math.abs
 import kotlin.math.max
 
-object SnapManager : Loadable {
+object SnapHandler : Loadable {
     private data class SnapGuide(val guide: Guide, val sourceId: String?)
     private val frameGuides = ArrayList<SnapGuide>(512)
     private val elementRects = LinkedHashMap<String, RectF>()

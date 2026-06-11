@@ -28,7 +28,7 @@ import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
-import com.lambda.core.TimerManager
+import com.lambda.core.TimerHandler
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
@@ -41,7 +41,7 @@ import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager.playSound
+import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
@@ -557,7 +557,7 @@ object Replay : Module(
         val size: Int
             get() = minOf(input.size, rotation.size, position.size)
         val duration: Duration
-            get() = (size * TimerManager.lastTickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
+            get() = (size * TimerHandler.lastTickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
         val startPos: Vec3d
             get() = position.firstOrNull() ?: Vec3d.ZERO
         val endPos: Vec3d

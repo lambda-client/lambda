@@ -61,7 +61,7 @@ object OutlineIdPassRenderer {
         
         val colorView = OutlineIdBuffer.getTextureView() ?: return
         
-        val outlines = if (useMcDepth) OutlineManager.getDepthTestedEntityStyles() else OutlineManager.getXrayEntityStyles()
+        val outlines = if (useMcDepth) OutlineHandler.getDepthTestedEntityStyles() else OutlineHandler.getXrayEntityStyles()
         val filteredOutlines = outlines.filter { (id, _) -> id in entityIds }
         
         if (filteredOutlines.isNotEmpty()) {
