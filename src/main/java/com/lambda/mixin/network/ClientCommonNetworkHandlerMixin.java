@@ -36,7 +36,5 @@ public class ClientCommonNetworkHandlerMixin {
         if (details != null) {
             cir.setReturnValue(new AutoDisconnectScreen(details));
         }
-
     }
-
 }
