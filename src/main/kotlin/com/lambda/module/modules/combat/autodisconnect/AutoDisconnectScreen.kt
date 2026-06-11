@@ -335,16 +335,12 @@ class AutoDisconnectScreen(private val details: DisconnectDetails) :
             super.render(context, mouseX, mouseY, deltaTicks)
         }
 
-        override fun close() {
-            client?.setScreen(parent)
-        }
+        override fun close() { client?.setScreen(parent) }
 
-        override fun getCursorOverride(mouseX: Int, mouseY: Int): Cursor? {
-            return if (zoom > MIN_ZOOM && viewportBounds.contains(mouseX, mouseY)) {
-                StandardCursors.RESIZE_ALL
-            } else {
-                null
-            }
+        override fun getCursorOverride(mouseX: Int, mouseY: Int): Cursor? = if (zoom > MIN_ZOOM && viewportBounds.contains(mouseX, mouseY)) {
+            StandardCursors.RESIZE_ALL
+        } else {
+            null
         }
 
         override fun mouseScrolled(mouseX: Double, mouseY: Double, horizontalAmount: Double, verticalAmount: Double): Boolean {
