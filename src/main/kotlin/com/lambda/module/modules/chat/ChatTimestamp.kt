@@ -17,14 +17,16 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.FormatterConfig
-import com.lambda.config.groups.FormatterSettings
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.settings.blocks.FormatterConfig
+import com.lambda.config.settings.blocks.FormatterSettings
+import com.lambda.config.withEdits
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
@@ -36,17 +38,21 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
+@Suppress("unused")
 object ChatTimestamp : Module(
 	name = "ChatTimestamp",
 	description = "Displays the time a message was sent next to it",
 	tag = ModuleTag.CHAT,
 ) {
-	var color: Formatting by setting("Color", Formatting.GRAY)
+	private var color: Formatting by setting("Color", Formatting.GRAY)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
+	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val javaColor: Color get() = Color(color.colorValue!! and 16777215)
-
-	val formatter = FormatterSettings(c = this,).apply { applyEdits { hide(::localeEnum, ::sep, ::customSep, ::group, ::floatingPrecision); editTyped(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) } } }
+	val formatter by configBlock(FormatterSettings(this))
+		.withEdits {
+			hide(::localeEnum, ::sep, ::customSep, ::floatingPrecision)
+			editTypedSettings(::timeFormat) { defaultValue(FormatterConfig.Time.IsoLocalTime) }
+		}
 
 	private val currentTime get() =
 		ZonedDateTime.of(LocalDateTime.now(), ZoneId.systemDefault())

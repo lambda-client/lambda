@@ -49,6 +49,7 @@ import net.minecraft.util.math.random.Random
 import org.joml.Quaternionf
 import java.awt.Color
 
+@Suppress("unused")
 object ChunkedRendererTest : Module(
 	name = "ChunkedRendererTest",
 	description = "Test module for ChunkedRenderer",
@@ -163,6 +164,7 @@ object ChunkedRendererTest : Module(
 	}
 }
 
+@Suppress("unused")
 object TickedRendererTest : Module(
 	name = "TickedRendererTest",
 	description = "Test module for TickedRenderer",
@@ -269,6 +271,7 @@ object TickedRendererTest : Module(
 	}
 }
 
+@Suppress("unused")
 object ImmediateRendererTest : Module(
 	name = "ImmediateRendererTest",
 	description = "Test module for ImmediateRenderer",

@@ -17,8 +17,8 @@
 
 package com.lambda.gui.components
 
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.HudConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.HudCategory
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -30,9 +30,6 @@ import com.lambda.gui.snap.SnapHandler
 import com.lambda.gui.snap.SnapHandler.drawDragGrid
 import com.lambda.gui.snap.SnapHandler.drawSnapLines
 import com.lambda.gui.snap.SnapHandler.updateDragAndSnapping
-import com.lambda.module.HudModule
-import com.lambda.module.ModuleRegistry
-import com.lambda.util.NamedEnum
 import com.lambda.imgui.ImColor
 import com.lambda.imgui.ImDrawList
 import com.lambda.imgui.ImGui
@@ -40,23 +37,22 @@ import com.lambda.imgui.flag.ImDrawListFlags
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.module.HudModule
+import com.lambda.module.ModuleRegistry
 import java.awt.Color
 import kotlin.math.PI
 
-object HudGuiLayout : Loadable, Configurable(HudConfig) {
-    override val name = "HUD"
-
-    enum class Group(override val displayName: String) : NamedEnum {
-        HudOutline("HUD Outline")
-    }
-
+object HudGuiLayout : Loadable, Config(
+    "HUD",
+    HudCategory
+) {
     // HUD Outline
-    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f).group(Group.HudOutline)
-    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90)).group(Group.HudOutline)
-    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200)).group(Group.HudOutline)
-    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f).group(Group.HudOutline)
-    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f).group(Group.HudOutline)
-    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc").group(Group.HudOutline)
+    val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
+    val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90))
+    val hudOutlineBorderColor by setting("HUD Corner Border Color", Color(190, 190, 190, 200))
+    val hudOutlineHaloThickness by setting("HUD Corner Halo Thickness", 3.0f, 1.0f..6.0f, 0.5f)
+    val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
+    val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
 
     const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or

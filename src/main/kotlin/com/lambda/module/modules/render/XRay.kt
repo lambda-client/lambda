@@ -53,6 +53,7 @@ object XRay : Module(
 	@JvmStatic
 	fun isSelected(blockState: BlockState) = mode.select(blockState)
 
+	@Suppress("unused")
 	enum class Selection(val select: (BlockState) -> Boolean) {
 		Whitelist({ it.block in selection }),
 		Blacklist({ it.block !in selection })

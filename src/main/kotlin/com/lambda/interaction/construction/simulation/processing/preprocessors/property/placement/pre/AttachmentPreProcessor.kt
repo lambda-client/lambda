@@ -26,7 +26,6 @@ import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-// Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object AttachmentPreProcessor : PropertyPreProcessor {
     override fun acceptsState(state: BlockState, targetState: BlockState) =

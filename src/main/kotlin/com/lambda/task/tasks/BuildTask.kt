@@ -19,7 +19,7 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -59,7 +59,7 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.playerSlots
 import com.lambda.util.math.dist
@@ -73,7 +73,7 @@ import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
-import java.util.Collections
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.sqrt
@@ -279,7 +279,7 @@ class BuildTask private constructor(
             }
 
             is Navigable -> {
-                if (buildConfig.pathing) BaritoneHandler.setGoalAndPath(result.goal)
+                if (buildConfig.pathing) BaritoneHandler.setGoalAndPath(result.goal ?: return)
             }
 
             is Contextual -> {
@@ -336,7 +336,7 @@ class BuildTask private constructor(
                 }
 
                 BaritoneHandler.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-                return@let true
+                true
             } ?: false
 
     fun iteratePropagating() =

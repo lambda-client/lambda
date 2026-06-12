@@ -18,7 +18,7 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.LineConfig
+import com.lambda.config.settings.blocks.LineConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.outline.OutlineHandler
 import com.lambda.graphics.outline.OutlineStyle
@@ -32,12 +32,12 @@ import com.mojang.blaze3d.textures.GpuTextureView
 import net.minecraft.block.BlockState
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.render.OverlayTexture
-import net.minecraft.client.render.item.ItemRenderState
-import net.minecraft.client.render.command.OrderedRenderCommandQueue
-import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.RenderLayer
+import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.command.ModelCommandRenderer
+import net.minecraft.client.render.command.OrderedRenderCommandQueue
 import net.minecraft.client.render.entity.state.EntityRenderState
+import net.minecraft.client.render.item.ItemRenderState
 import net.minecraft.client.render.model.BakedQuad
 import net.minecraft.client.render.model.BlockModelPart
 import net.minecraft.client.render.model.BlockStateModel
@@ -45,14 +45,14 @@ import net.minecraft.client.render.state.CameraRenderState
 import net.minecraft.client.texture.Sprite
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.entity.Entity
-import net.minecraft.util.Identifier
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Vec3d
 import net.minecraft.item.ItemDisplayContext
 import net.minecraft.item.ItemStack
 import net.minecraft.text.OrderedText
 import net.minecraft.text.Text
+import net.minecraft.util.Identifier
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.random.Random
 import org.joml.Matrix4f
 import org.joml.Quaternionf
@@ -78,7 +78,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	private val layerIncrement = 1f
 
 	private val DEFAULT_LIGHT_DIR = Vector3f(0.2f, 1.0f, -0.7f).normalize()
-	private val DEFAULT_LIGHT1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
+	private val DEFAULT_LIGHT_1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
 
 	private fun eulerToQuaternion(rot: Vec3d): Quaternionf {
 		return Quaternionf().rotationYXZ(
@@ -607,7 +607,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 					olU, olV, overlayFlag, shadingAmount,
 					light,
 					DEFAULT_LIGHT_DIR.x, DEFAULT_LIGHT_DIR.y, DEFAULT_LIGHT_DIR.z,
-					DEFAULT_LIGHT1_DIR.x, DEFAULT_LIGHT1_DIR.y, DEFAULT_LIGHT1_DIR.z,
+					DEFAULT_LIGHT_1_DIR.x, DEFAULT_LIGHT_1_DIR.y, DEFAULT_LIGHT_1_DIR.z,
 					normalVec.x, normalVec.y, normalVec.z,
 					edgeX, edgeY
 				))
@@ -1477,6 +1477,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		collector.addEdgeVertex(rx2, ry2, rz2, color2, dx, dy, dz, width, dashStyle, activeOutlineId)
 	}
 
+	@Suppress("SameParameterValue")
 	private fun transformPoint(matrix: Matrix4f, x: Float, y: Float, z: Float): Vector3f {
 		val result = Vector4f(x, y, z, 1f)
 		matrix.transform(result)

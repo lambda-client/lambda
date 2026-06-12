@@ -17,21 +17,19 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.AutomationConfig
-import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.player.RotationUtils.lookAt
 import net.minecraft.util.hit.HitResult
 
+@Suppress("unused")
 object RotationTest : Module(
     name = "RotationTest",
     tag = ModuleTag.DEBUG,
 ) {
-    override val rotationConfig = RotationSettings(this, AutomationConfig.Group.Rotation)
     var hitPos: HitResult? = null
     
     init {

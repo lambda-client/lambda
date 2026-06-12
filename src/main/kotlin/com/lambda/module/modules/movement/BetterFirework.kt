@@ -19,10 +19,12 @@ package com.lambda.module.modules.movement
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -32,7 +34,7 @@ import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
@@ -50,6 +52,7 @@ object BetterFirework : Module(
 	name = "BetterFirework",
 	description = "Automatic takeoff with fireworks",
 	tag = ModuleTag.MOVEMENT,
+	modulePriority = 1
 ) {
 	private var activateButton: Bind by setting("Activate Key", Bind(0, 0, Mouse.Middle.ordinal), "Button to activate Firework")
 		.onPress {
@@ -71,6 +74,7 @@ object BetterFirework : Module(
 			if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
+	@Suppress("unused")
 	private var midFlightActivationKey by setting("Mid-Flight Activation Key", Bind.EMPTY, "Firework use key for mid flight activation")
 		.onPress { if (player.isGliding) takeoffState = TakeoffState.StartFlying }
 	private var middleClickCancel by setting("Middle Click Cancel", false, description = "Cancel pick block action on middle mouse click") { activateButton.key != KeyCode.Unbound.code }
@@ -97,14 +101,12 @@ object BetterFirework : Module(
 		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
 
 	init {
-		setModulePriority(1)
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(hotbarConfig, inventoryConfig)
-				hotbarConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
-				inventoryConfig::tickStageMask.edit { defaultValue(mutableSetOf(TickEvent.Pre)) }
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::hotbarConfig, ::inventoryConfig)
+				hotbarConfig::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Pre)) }
+				inventoryConfig::tickStageMask.editSetting { defaultValue(mutableSetOf(TickEvent.Pre)) }
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			when (takeoffState) {

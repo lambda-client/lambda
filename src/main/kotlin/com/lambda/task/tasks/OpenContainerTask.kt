@@ -24,10 +24,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.visibilty.lookAtBlock
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.TickTimer
+import com.lambda.util.player.RotationUtils.lookAtBlock
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.Hand

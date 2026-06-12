@@ -18,8 +18,8 @@
 package com.lambda.graphics.outline
 
 import com.mojang.blaze3d.textures.GpuTextureView
-import kotlin.collections.find
 
+@Suppress("unused")
 object VertexCapture {
     private val entityGeometries = mutableMapOf<Any, MutableList<CapturedGeometry>>()
 

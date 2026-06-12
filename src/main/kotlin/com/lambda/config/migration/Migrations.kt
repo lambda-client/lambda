@@ -17,84 +17,51 @@
 
 package com.lambda.config.migration
 
-import com.google.gson.JsonArray
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.lambda.Lambda.LOG
+import com.lambda.config.ConfigCategory
 import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
-import java.util.*
+import com.lambda.util.ReflectionUtils.getInstances
+import tools.jackson.databind.node.ArrayNode
+import tools.jackson.databind.node.ObjectNode
 import kotlin.math.max
 
-interface ConfigMigration {
-    val configName: String
-    val latestVersion: Int
-    val schemaVersionKey: String get() = ConfigMigrations.DEFAULT_SCHEMA_VERSION_KEY
-    fun applyStep(fromVersion: Int, root: JsonObject): StepResult?
-}
-
-data class StepResult(
-    val toVersion: Int,
-    val changed: Boolean = true,
-)
-
-data class MigrationResult(
-    val json: JsonObject,
-    val migrated: Boolean,
-)
-
-abstract class StepConfigMigration : ConfigMigration {
-    private val steps = mutableMapOf<Int, Pair<Int, JsonObject.() -> Unit>>()
-
-    protected fun step(fromVersion: Int, toVersion: Int, migrate: JsonObject.() -> Unit) {
-        steps[fromVersion] = toVersion to migrate
-    }
-
-    final override fun applyStep(fromVersion: Int, root: JsonObject): StepResult? {
-        val step = steps[fromVersion] ?: return null
-        val (toVersion, block) = step
-        root.block()
-        return StepResult(toVersion = toVersion, changed = true)
-    }
-}
-
-object ConfigMigrations : Loadable {
+object ConfigMigrationHandler : Loadable {
     const val DEFAULT_SCHEMA_VERSION_KEY = "_schemaVersion"
     override val priority: Int = 2
 
     @Volatile
     private var initialized = false
-    private var byConfig = emptyMap<String, ConfigMigration>()
+    private var byCategory = emptyMap<ConfigCategory, ConfigMigration>()
 
     override fun load(): String {
         refreshRegistry()
-        return "Loaded ${byConfig.size} config migrations"
+        return "Loaded ${byCategory.size} config migrations"
     }
 
-    fun schemaVersionKey(configName: String): String? {
+    fun schemaVersionKey(category: ConfigCategory): String? {
         ensureInitialized()
-        return byConfig[configName]?.schemaVersionKey
+        return byCategory[category]?.schemaVersionKey
     }
 
-    fun latestVersion(configName: String): Int {
+    fun latestVersion(category: ConfigCategory): Int {
         ensureInitialized()
-        return byConfig[configName]?.latestVersion ?: 1
+        return byCategory[category]?.latestVersion ?: 1
     }
 
-    fun migrate(configName: String, original: JsonObject): MigrationResult {
+    fun migrate(category: ConfigCategory, original: ObjectNode): MigrationResult {
         ensureInitialized()
-        val migration = byConfig[configName] ?: return MigrationResult(original.deepCopy(), false)
+        val migration = byCategory[category] ?: return MigrationResult(original.deepCopy(), false)
         if (migration.latestVersion <= 1) return MigrationResult(original.deepCopy(), false)
 
         val json = original.deepCopy()
         var currentVersion = runCatching {
-            json.get(migration.schemaVersionKey)?.takeIf { it.isJsonPrimitive }?.asInt
+            json.get(migration.schemaVersionKey)?.takeIf { it.isNumber }?.asInt()
         }.getOrNull() ?: 1
         var migrated = false
 
         if (currentVersion > migration.latestVersion) {
             LOG.warn(
-                "Config ${configName.replaceFirstChar { it.uppercase() }} has schema version $currentVersion " +
+                "Config category '${category.name}' has schema version $currentVersion " +
                     "which is newer than supported ${migration.latestVersion}"
             )
             return MigrationResult(json, false)
@@ -106,7 +73,7 @@ object ConfigMigrations : Loadable {
                 val stepResult = migration.applyStep(fromVersion, json)
                 if (stepResult == null) {
                     LOG.warn(
-                        "Missing migration step for ${configName.replaceFirstChar { it.uppercase() }} " +
+                        "Missing migration step for '${category.name}' config category " +
                             "schema version $fromVersion -> ?. Expected latest schema version is ${migration.latestVersion}"
                     )
                     break
@@ -115,12 +82,12 @@ object ConfigMigrations : Loadable {
                 currentVersion = stepResult.toVersion
                 migrated = migrated || stepResult.changed
                 if (currentVersion > 1) {
-                    json.addProperty(migration.schemaVersionKey, currentVersion)
+                    json.put(migration.schemaVersionKey, currentVersion)
                     migrated = true
                 }
             } catch (t: Throwable) {
                 LOG.error(
-                    "Failed to migrate ${configName.replaceFirstChar { it.uppercase() }} config " +
+                    "Failed to migrate ${category.name} config category " +
                         "from v$currentVersion to next version",
                     t
                 )
@@ -130,9 +97,9 @@ object ConfigMigrations : Loadable {
 
         val normalizedVersion = max(1, currentVersion)
         if (normalizedVersion > 1) {
-            val existingVersion = runCatching { json.get(migration.schemaVersionKey)?.asInt }.getOrNull()
+            val existingVersion = runCatching { json.get(migration.schemaVersionKey)?.asInt() }.getOrNull()
             if (existingVersion != normalizedVersion) {
-                json.addProperty(migration.schemaVersionKey, normalizedVersion)
+                json.put(migration.schemaVersionKey, normalizedVersion)
                 migrated = true
             }
         } else if (json.has(migration.schemaVersionKey)) {
@@ -146,14 +113,14 @@ object ConfigMigrations : Loadable {
     @Synchronized
     private fun refreshRegistry() {
         val discovered = getInstances<ConfigMigration>()
-        val duplicates = discovered.groupBy { it.configName }.filter { it.value.size > 1 }
+        val duplicates = discovered.groupBy { it.category }.filter { it.value.size > 1 }
         if (duplicates.isNotEmpty()) {
             duplicates.keys.forEach { key ->
                 LOG.warn("Multiple config migrations found for '$key'. Using the last discovered migration.")
             }
         }
 
-        byConfig = discovered.associateBy { it.configName }
+        byCategory = discovered.associateBy { it.category }
         initialized = true
     }
 
@@ -162,25 +129,41 @@ object ConfigMigrations : Loadable {
     }
 }
 
-fun JsonObject.objectOrCreate(key: String): JsonObject =
-    getAsJsonObject(key) ?: JsonObject().also { add(key, it) }
+abstract class StepConfigMigration : ConfigMigration {
+    private val steps = mutableMapOf<Int, Pair<Int, ObjectNode.() -> Unit>>()
 
-fun JsonObject.arrayOrCreate(key: String): JsonArray =
-    getAsJsonArray(key) ?: JsonArray().also { add(key, it) }
-
-fun JsonElement.parseUuidOrNull(): UUID? {
-    val raw = when {
-        isJsonPrimitive -> asString
-        isJsonObject && asJsonObject.has("id") -> asJsonObject.get("id").asString
-        else -> return null
+    protected fun step(fromVersion: Int, toVersion: Int, migrate: (ObjectNode) -> Unit) {
+        steps[fromVersion] = toVersion to migrate
     }
 
-    val normalized =
-        if (raw.length == 32) raw.replaceFirst(
-            "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(),
-            "$1-$2-$3-$4-$5"
-        )
-        else raw
+    final override fun applyStep(fromVersion: Int, root: ObjectNode): StepResult? {
+        val step = steps[fromVersion] ?: return null
+        val (toVersion, block) = step
+        root.block()
+        return StepResult(toVersion = toVersion, changed = true)
+    }
 
-    return runCatching { UUID.fromString(normalized) }.getOrNull()
+    fun ObjectNode.objectOrCreate(key: String): ObjectNode =
+        get(key) as? ObjectNode ?: putObject(key)
+
+    fun ObjectNode.arrayOrCreate(key: String): ArrayNode =
+        get(key) as? ArrayNode ?: putArray(key)
 }
+
+interface ConfigMigration {
+    val category: ConfigCategory
+    val latestVersion: Int
+    val schemaVersionKey: String get() = ConfigMigrationHandler.DEFAULT_SCHEMA_VERSION_KEY
+    fun applyStep(fromVersion: Int, root: ObjectNode): StepResult?
+}
+
+data class StepResult(
+    val toVersion: Int,
+    val changed: Boolean = true,
+)
+
+data class MigrationResult(
+    val json: ObjectNode,
+    val migrated: Boolean,
+)
+

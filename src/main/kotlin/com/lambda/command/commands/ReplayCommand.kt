@@ -28,11 +28,12 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
 import com.lambda.util.FileUtils.listRecursive
-import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegistry
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 import kotlin.io.path.exists
 
+@Suppress("unused")
 object ReplayCommand : LambdaCommand(
     name = "replay",
     usage = "replay <play | load | save | prune>",
@@ -50,7 +51,7 @@ object ReplayCommand : LambdaCommand(
         required(literal("load")) {
             required(greedyString("replay filepath")) { replayName ->
                 suggests { _, builder ->
-                    val dir = FolderRegister.replay.toFile()
+                    val dir = FolderRegistry.replay.toFile()
                     val paths = dir
                         .listRecursive { it.isFile }
                         .map { it.relativeTo(dir).path }
@@ -59,7 +60,7 @@ object ReplayCommand : LambdaCommand(
                 }
 
                 executeWithResult {
-                    val replayFile = FolderRegister.replay.resolve(replayName().value())
+                    val replayFile = FolderRegistry.replay.resolve(replayName().value())
 
                     if (!replayFile.exists()) {
                         return@executeWithResult CommandResult.failure("Replay file does not exist")

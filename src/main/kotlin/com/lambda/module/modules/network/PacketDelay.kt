@@ -37,6 +37,7 @@ import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import java.util.concurrent.ConcurrentLinkedDeque
 
+@Suppress("unused")
 object PacketDelay : Module(
     name = "PacketDelay",
     description = "Delays packets client-bound & server-bound",

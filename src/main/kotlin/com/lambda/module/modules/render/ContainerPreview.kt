@@ -18,15 +18,14 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.Tab
 import com.lambda.config.settings.complex.Bind
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Describable
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
-import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.bundleContents
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemUtils.bundles
@@ -57,23 +56,23 @@ import net.minecraft.world.World
 import org.joml.Matrix3x2f
 import kotlin.math.max
 
-
 object ContainerPreview : Module(
     name = "ContainerPreview",
     description = "Renders shulker box contents visually in tooltips",
     tag = ModuleTag.RENDER,
 ) {
-    private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction").group(Group.ContainerTooltip)
-    private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color").group(Group.ContainerTooltip)
+    private const val CONTAINER_TOOLTIP_TAB = "Container Tooltip"
+    private const val CONTENT_PREVIEW_TAB = "Content Preview"
 
-    private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories").group(Group.ContentPreview)
-    private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }.group(Group.ContentPreview)
-    private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }.group(Group.ContentPreview)
-        .onValueChange { _, _ ->
-            containerCache.clear()
-        }
+    @Tab(CONTAINER_TOOLTIP_TAB) private val lockKey by setting("Lock Key", Bind(KeyCode.LeftShift.code, 0, -1), "Key to lock the tooltip in place for item interaction")
+    @Tab(CONTAINER_TOOLTIP_TAB) private val colorTint by setting("Color Tint", true, "Tint the background with the shulker box color")
+
+    @Tab(CONTENT_PREVIEW_TAB) private val contentPreview by setting("Content Preview", true, "Show a preview of the most common item in a container on the container item in inventories")
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemScale by setting("Item Scale", 11f, 1f..32f, 0.1f, "Scale of the item icons on a container item") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemXOffset by setting("Item X Offset", -2f, -32f..32f, 0.1f, "X offset of the item icons on a container item") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemYOffset by setting("Item Y Offset", 2f, -32f..32f, 0.1f, "Y offset of the item icons on a container item") { contentPreview }
+    @Tab(CONTENT_PREVIEW_TAB) private val previewItemWeightedCount by setting("Weighted Count", true, description = "Count items for preview in containers relative to max stack size") { contentPreview }
+        .onValueChange { _, _ -> containerCache.clear() }
 
     private val background = Identifier.ofVanilla("textures/gui/container/shulker_box.png")
 
@@ -427,11 +426,6 @@ object ContainerPreview : Module(
             )
         }
 	}
-
-    enum class Group(override val displayName: String, override val description: String) : NamedEnum, Describable {
-        ContentPreview("Preview", "Settings related to the item preview rendered on container items in inventories"),
-        ContainerTooltip("Container", "Settings related to container tooltip previews")
-    }
 
     open class ContainerComponent(val stack: ItemStack) : TooltipData, TooltipComponent {
         override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, width: Int, height: Int, context: DrawContext) {}

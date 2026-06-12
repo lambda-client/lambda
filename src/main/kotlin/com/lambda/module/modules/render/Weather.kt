@@ -17,10 +17,10 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.Tab
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.NamedEnum
 import net.minecraft.world.World
 
 object Weather : Module(
@@ -28,16 +28,14 @@ object Weather : Module(
 	description = "Modifies the client side weather",
 	tag = ModuleTag.RENDER
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		Overworld("Overworld"),
-		Nether("Nether"),
-		End("End")
-	}
+	private const val OVERWORLD_TAB = "Overworld"
+	private const val NETHER_TAB = "Nether"
+	private const val END_TAB = "End"
 
-	@JvmStatic val overworldMode by setting("Overworld Mode", WeatherMode.Clear).group(Group.Overworld)
-	@JvmStatic val overrideSnow by setting("Override Snow", false) { overworldMode == WeatherMode.Rain }.group(Group.Overworld)
-	@JvmStatic val netherMode by setting("Nether Mode", WeatherMode.Clear).group(Group.Nether)
-	@JvmStatic val endMode by setting("End Mode", WeatherMode.Clear).group(Group.End)
+	@Tab(OVERWORLD_TAB) @JvmStatic val overworldMode by setting("Overworld Mode", WeatherMode.Clear)
+	@Tab(OVERWORLD_TAB) @JvmStatic val overrideSnow by setting("Override Snow", false) { overworldMode == WeatherMode.Rain }
+	@Tab(NETHER_TAB) @JvmStatic val netherMode by setting("Nether Mode", WeatherMode.Clear)
+	@Tab(END_TAB) @JvmStatic val endMode by setting("End Mode", WeatherMode.Clear)
 
 	@JvmStatic fun getWeatherMode() =
 		runSafe {

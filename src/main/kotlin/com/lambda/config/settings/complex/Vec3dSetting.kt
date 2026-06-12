@@ -17,35 +17,37 @@
 
 package com.lambda.config.settings.complex
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
+import com.lambda.config.Config
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
 
-class Vec3dSetting(defaultValue: Vec3d) : SettingCore<Vec3d>(
-	defaultValue,
-	TypeToken.get(Vec3d::class.java).type
-) {
-    context(setting: Setting<*, Vec3d>)
-	override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(setting.name, ::value as Vec3d) // FixMe: what the fuck
-        lambdaTooltip(setting.description)
+class Vec3dSetting(
+    name: String,
+    description: String,
+    config: Config,
+    layer: SettingEntryLayer<Vec3dSetting, Vec3d>,
+    visibility: () -> Boolean,
+    defaultValue: Vec3d
+) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
+    override fun ImGuiBuilder.buildLayout() {
+        inputVec3d(name, ::value as Vec3d) // FixMe: what the fuck
+        lambdaTooltip(description)
     }
 
-	context(setting: Setting<*, Vec3d>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->
             required(double("Y", -64.0, 255.0)) { y ->
                 required(double("Z", -30000000.0, 30000000.0)) { z ->
                     execute {
-                        setting.trySetValue(Vec3d(x().value(), y().value(), z().value()))
+                        trySetValue(Vec3d(x().value(), y().value(), z().value()))
                     }
                 }
             }

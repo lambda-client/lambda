@@ -26,7 +26,6 @@ import net.minecraft.block.enums.ChestType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 
-// Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object ChestPreProcessor : PropertyPreProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =

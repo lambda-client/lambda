@@ -29,8 +29,8 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
+import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
-import com.lambda.util.reflections.getInstances
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
@@ -39,6 +39,7 @@ import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
+@Suppress("unused")
 object ContainerHandler : Loadable {
     private val containers: List<MaterialContainer>
         get() = compileContainers + runtimeContainers

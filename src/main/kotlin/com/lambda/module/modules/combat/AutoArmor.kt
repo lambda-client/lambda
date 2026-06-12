@@ -17,10 +17,11 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -40,13 +41,14 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.ItemTags
 import net.minecraft.screen.slot.Slot
 
+@Suppress("unused")
 object AutoArmor : Module(
 	name = "AutoArmor",
 	description = "Automatically equips armor",
-	tag = ModuleTag.Companion.COMBAT
+	tag = ModuleTag.COMBAT
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
-	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.Companion.EMPTY)
+	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
 		.onPress { elytraPriority = !elytraPriority }
 	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)
@@ -94,11 +96,10 @@ object AutoArmor : Module(
 	}
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(inventoryConfig)
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllBlocksExcept(::inventoryConfig)
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			val armorSlots = player.armorSlots

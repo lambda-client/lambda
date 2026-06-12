@@ -31,7 +31,7 @@ public interface BlockEntityRendererMixin<T extends BlockEntity> {
 
     @Inject(method = "isInRenderDistance", at = @At("HEAD"), cancellable = true)
     default void forceOutlineRenderDistance(T blockEntity, Vec3d pos, CallbackInfoReturnable<Boolean> cir) {
-        if (OutlineHandler.INSTANCE.shouldCapture(blockEntity.getPos())) {
+        if (OutlineHandler.shouldCapture(blockEntity.getPos())) {
             cir.setReturnValue(true);
         }
     }

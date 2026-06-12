@@ -20,6 +20,7 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
@@ -133,7 +134,7 @@ sealed class GenericResult : BuildResult() {
             misses.minOfOrNull { pov.distanceTo(it.first) } ?: 0.0
         }
 
-        override val goal = GoalNear(pos, 3)
+        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalNear(pos, 3) else null
 
         override fun RenderBuilder.render() {
             val center = pos.toCenterPos()

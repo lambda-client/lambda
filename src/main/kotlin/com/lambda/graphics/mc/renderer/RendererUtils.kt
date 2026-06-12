@@ -43,6 +43,7 @@ import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+@Suppress("unused")
 object RendererUtils {
 	private val screenProjectionMatrix = ProjectionMatrix2("lambda_screen", -1000f, 1000f, false)
 

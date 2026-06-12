@@ -18,14 +18,13 @@
 package com.lambda.graphics.mc.renderer
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.mc.RegionRenderer
 import com.lambda.graphics.mc.RenderBuilder
+import com.lambda.graphics.mc.RenderDsl
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.math.Vec3d
@@ -87,6 +86,7 @@ class TickedRenderer(
 	override fun getScreenRenderers() = if (renderer.hasScreenData()) listOf(renderer) else emptyList()
 
 	companion object {
+		@RenderDsl
 		fun Any.tickedRenderer(
 			name: String,
 			depthTest: () -> Boolean = { false },

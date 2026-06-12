@@ -30,6 +30,7 @@ val discordIPCVersion: String by project
 val classGraphVersion: String by project
 val kotlinVersion: String by project
 val ktorVersion: String by project
+val jacksonVersion: String by project
 val mockkVersion: String by project
 val spairVersion: String by project
 val lwjglVersion: String by project
@@ -80,6 +81,7 @@ repositories {
 }
 
 fabricApi {
+    @Suppress("UnstableApiUsage")
     configureTests {
         modId = "${base.archivesName}-tests"
         eula = true
@@ -173,7 +175,10 @@ dependencies {
         exclude(group = "org.slf4j")
     }
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
+    includeLib("io.ktor:ktor-serialization-jackson:$ktorVersion")
+    includeLib("tools.jackson.core:jackson-core:$jacksonVersion")
+    includeLib("tools.jackson.core:jackson-databind:$jacksonVersion")
+    includeLib("tools.jackson.module:jackson-module-kotlin:$jacksonVersion")
 
     // Add mods
     modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion-SNAPSHOT")
@@ -221,7 +226,7 @@ tasks {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility")
+        freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility", "-Xannotation-default-target=param-property")
     }
 
     jvmToolchain(21)

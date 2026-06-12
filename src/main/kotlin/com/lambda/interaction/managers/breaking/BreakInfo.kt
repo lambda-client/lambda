@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.managers.breaking
 
+import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.managers.ActionInfo

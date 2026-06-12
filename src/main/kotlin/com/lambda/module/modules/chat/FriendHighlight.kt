@@ -23,7 +23,7 @@ import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.text.MessageType
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -32,22 +32,22 @@ import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Formatting
 import java.awt.Color
 
+@Suppress("unused")
 object FriendHighlight : Module(
 	name = "FriendHighlight",
 	description = "Highlights your friends names in chat",
 	tag = ModuleTag.CHAT,
 ) {
-	var color: Formatting by setting("Color", Formatting.GREEN)
+	private var color: Formatting by setting("Color", Formatting.GREEN)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
+	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
 
-	val javaColor: Color get() = Color(color.colorValue!! and 16777215)
+	private val bold by setting("Bold", true)
+	private val italic by setting("Italic", false)
+	private val underlined by setting("Underlined", false)
+	private val strikethrough by setting("Strikethrough", false)
 
-	val bold by setting("Bold", true)
-	val italic by setting("Italic", false)
-	val underlined by setting("Underlined", false)
-	val strikethrough by setting("Strikethrough", false)
-
-	val ping by setting("Ping On Message", true)
+	private val ping by setting("Ping On Message", true)
 
 	init {
 		onEnable {

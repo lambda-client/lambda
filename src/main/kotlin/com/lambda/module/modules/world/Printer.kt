@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -30,17 +30,18 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
-import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
-import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
 import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
 import com.lambda.util.PlayerBuildLayerUtils.inSchematic
+import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
+import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
 import fi.dy.masa.litematica.data.DataManager
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
 
+@Suppress("unused")
 object Printer : Module(
 	name = "Printer",
 	description = "Automatically prints schematics",

@@ -28,7 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.onShutdown
 import com.lambda.util.Timer
-import com.lambda.util.player.FakePlayerId
+import com.lambda.util.player.FAKE_PLAYER_ID
 import com.mojang.authlib.GameProfile
 import com.mojang.datafixers.util.Either
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -37,6 +37,7 @@ import java.util.*
 import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration.Companion.seconds
 
+@Suppress("unused")
 object FakePlayer : Module(
     name = "FakePlayer",
     description = "Spawns a fake player",
@@ -71,7 +72,7 @@ object FakePlayer : Module(
         }
 
         listen<PlayerEvent.Attack.Entity> {
-            if (it.entity.id == FakePlayerId) it.cancel()
+            if (it.entity.id == FAKE_PLAYER_ID) it.cancel()
         }
 
         listen<ConnectionEvent.Connect.Pre> { disable() }
@@ -84,7 +85,7 @@ object FakePlayer : Module(
     fun SafeContext.newFakePlayer(profile: GameProfile) =
         OtherClientPlayerEntity(world, profile).apply {
             copyFrom(player)
-            id = FakePlayerId
+            id = FAKE_PLAYER_ID
         }
 
     suspend fun SafeContext.fetchProfile(user: String): GameProfile {

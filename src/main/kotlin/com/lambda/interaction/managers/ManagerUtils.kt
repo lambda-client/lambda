@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers
 
-import com.lambda.util.reflections.getInstances
+import com.lambda.util.ReflectionUtils.getInstances
 import net.minecraft.util.math.BlockPos
 
 object ManagerUtils {

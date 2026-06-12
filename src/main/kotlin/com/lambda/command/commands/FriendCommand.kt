@@ -28,11 +28,11 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.config.configurations.FriendConfig
+import com.lambda.config.categories.FriendCategory
 import com.lambda.friend.FriendHandler
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.runIO
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
@@ -41,8 +41,9 @@ import com.lambda.util.text.styled
 import kotlinx.coroutines.runBlocking
 import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
-import java.util.UUID
+import java.util.*
 
+@Suppress("unused")
 object FriendCommand : LambdaCommand(
     name = "friends",
     usage = "friends <add <name> | add-uuid <uuid> | remove <name> | remove-uuid <uuid>>",
@@ -76,7 +77,7 @@ object FriendCommand : LambdaCommand(
                         styled(
                             color = Color.CYAN,
                             underlined = true,
-                            clickEvent = ClickEvents.openFile(FriendConfig.primary.path),
+                            clickEvent = ClickEvents.openFile(FriendCategory.primaryFile.path),
                         ) {
                             literal("Click to open your friends list as a file")
                         }

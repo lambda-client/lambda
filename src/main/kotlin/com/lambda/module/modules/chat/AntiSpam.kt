@@ -17,10 +17,9 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.Configurable
-import com.lambda.config.SettingGroup
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.ReplaceConfig
+import com.lambda.config.Config
+import com.lambda.config.ConfigBlock
+import com.lambda.config.Group
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendHandler
@@ -34,16 +33,18 @@ import com.lambda.util.ChatUtils.sexual
 import com.lambda.util.ChatUtils.slurs
 import com.lambda.util.ChatUtils.swears
 import com.lambda.util.ChatUtils.toAscii
-import com.lambda.util.NamedEnum
+import com.lambda.util.Describable
 import com.lambda.util.text.DirectMessage
 import com.lambda.util.text.MessageParser
 import com.lambda.util.text.MessageType
 import net.minecraft.text.Text
 
+@Suppress("unused")
 object AntiSpam : Module(
 	name = "AntiSpam",
 	description = "Keeps your chat clean",
 	tag = ModuleTag.CHAT,
+	modulePriority = 100
 ) {
 	private val fancyChats by setting("Replace Fancy Chat", false)
 
@@ -55,39 +56,22 @@ object AntiSpam : Module(
 	private val ignoreSystem by setting("Ignore System", false)
 	private val ignoreDms by setting("Ignore DMs", false)
 
-	private val detectSlurs = ReplaceSettings("Slurs", this, Group.Slurs)
-	private val detectSwears = ReplaceSettings("Swears", this, Group.Swears)
-	private val detectSexual = ReplaceSettings("Sexual", this, Group.Sexual)
-	private val detectDiscord = ReplaceSettings("Discord", this, Group.Discord)
-		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
-	private val detectAddresses = ReplaceSettings("Addresses", this, Group.Addresses)
-		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
-	private val detectHexBypass = ReplaceSettings("Hex", this, Group.Hex)
-		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.Hide) } } }
-	private val detectColors = ReplaceSettings("Colors", this, Group.Colors)
-		.apply { applyEdits { ::action.edit { defaultValue(ReplaceConfig.ActionStrategy.None) } } }
-
-	enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Slurs("Slurs"),
-		Swears("Swears"),
-		Sexual("Sexual"),
-		Discord("Discord Invites"),
-		Addresses("IPs and Addresses"),
-		Hex("Hex Bypass"),
-		Colors("Color Prefixes")
-	}
+	@Group("Slurs") private val detectSlurs by configBlock(ReplaceSettings("Slurs", this))
+	@Group("Swears") private val detectSwears by configBlock(ReplaceSettings("Swears", this))
+	@Group("Sexual") private val detectSexual by configBlock(ReplaceSettings("Sexual", this))
+	@Group("Discord") private val detectDiscord by configBlock(ReplaceSettings("Discord", this, ActionStrategy.Hide))
+	@Group("Addresses") private val detectAddresses by configBlock(ReplaceSettings("Addresses", this, ActionStrategy.Hide))
+	@Group("Hex") private val detectHexBypass by configBlock(ReplaceSettings("Hex", this, ActionStrategy.Hide))
+	@Group("Colors") private val detectColors by configBlock(ReplaceSettings("Colors", this, ActionStrategy.None))
 
 	init {
-		setModulePriority(100)
 		listen<ChatEvent.Receive> { event ->
 			var raw = event.message.string
 			val author = MessageParser.playerName(raw)
 
-			if (
-				ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
-				ignoreDms && DirectMessage.Receive.matches(raw)
-			) return@listen
+			if ((ignoreSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw)) ||
+				(ignoreDms && DirectMessage.Receive.matches(raw))
+				) return@listen
 
 			val slurMatches = slurs.takeIf { detectSlurs.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
 			val swearMatches = swears.takeIf { detectSwears.enabled }.orEmpty().flatMap { it.findAll(raw).toList().reversed() }
@@ -100,22 +84,21 @@ object AntiSpam : Module(
 			var cancelled = false
 			var hasMatches = false
 
-			fun doMatch(replace: ReplaceConfig, matches: Sequence<MatchResult>) {
-				if (
-					cancelled ||
-					filterSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw) ||
-					filterDms && DirectMessage.Receive.matches(raw) ||
-					filterFriends && author?.let { FriendHandler.isFriend(it) } == true ||
-					filterSelf && MessageType.Self.matches(raw)
-				) return
+			fun doMatch(replace: ReplaceSettings, matches: Sequence<MatchResult>) {
+				if (cancelled ||
+					(filterSystem && !MessageType.Both.matches(raw) && !DirectMessage.Both.matches(raw)) ||
+					(filterDms && DirectMessage.Receive.matches(raw)) ||
+					(filterFriends && author?.let { FriendHandler.isFriend(it) } == true) ||
+					(filterSelf && MessageType.Self.matches(raw))
+					) return
 
 				when (replace.action) {
-					ReplaceConfig.ActionStrategy.Hide -> matches.firstOrNull()?.let { event.cancel(); cancelled = true } // If there's one detection, nuke the whole damn thang
-					ReplaceConfig.ActionStrategy.Delete -> matches
+					ActionStrategy.Hide -> matches.firstOrNull()?.let { event.cancel(); cancelled = true } // If there's one detection, nuke the whole damn thang
+					ActionStrategy.Delete -> matches
 						.forEach { raw = raw.replaceRange(it.range, ""); hasMatches = true }
-					ReplaceConfig.ActionStrategy.Replace -> matches
+					ActionStrategy.Replace -> matches
 						.forEach { raw = raw.replaceRange(it.range, replace.replace.block(it.value)); hasMatches = true }
-					ReplaceConfig.ActionStrategy.None -> {}
+					ActionStrategy.None -> {}
 				}
 			}
 
@@ -129,18 +112,32 @@ object AntiSpam : Module(
 
 			if (cancelled) return@listen event.cancel()
 
-			if (hasMatches)
-				event.message = Text.of(if (fancyChats) raw.toAscii else raw)
+			if (hasMatches) event.message = Text.of(if (fancyChats) raw.toAscii else raw)
 		}
 	}
 
 	class ReplaceSettings(
-		name: String,
-		c: Configurable,
-		baseGroup: NamedEnum,
-		override val visibility: () -> Boolean = { true },
-	) : ReplaceConfig, SettingGroup(c) {
-		override val action by setting("$name Action Strategy", ReplaceConfig.ActionStrategy.Replace, visibility = visibility).group(baseGroup)
-		override val replace by setting("$name Replace Strategy", ReplaceConfig.ReplaceStrategy.CensorAll) { visibility() && action == ReplaceConfig.ActionStrategy.Replace }.group(baseGroup)
+		val name: String,
+		override val c: Config,
+		actionStrategy: ActionStrategy = ActionStrategy.Replace
+	) : ConfigBlock {
+		val action by c.setting("$name Action Strategy", actionStrategy)
+		val replace by c.setting("$name Replace Strategy", ReplaceStrategy.CensorAll) { action == ActionStrategy.Replace }
+
+		val enabled: Boolean get() = action != ActionStrategy.None
+	}
+
+	enum class ActionStrategy(override val description: String) : Describable {
+		Hide("Hides the message. Will override other strategies."),
+		Delete("Deletes the matching part off the message."),
+		Replace("Replace the matching string in the message with one of the following replace strategy."),
+		None("Don't do anything."),
+	}
+
+	@Suppress("unused")
+	enum class ReplaceStrategy(val block: (String) -> String) {
+		CensorAll({ it.replaceRange(0..<it.length, "*".repeat(it.length))}),
+		CensorHalf({ it.foldIndexed("") { i, acc, char -> if (i % 2 == 0) acc + char else "$acc*" } }),
+		KeepFirst({ if (it.length <= 1) it else it.replaceRange(1, it.length, "*".repeat(it.length - 1)) }),
 	}
 }

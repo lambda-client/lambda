@@ -18,9 +18,13 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.EntitySelectionSettings
-import com.lambda.config.groups.ScreenTextSettings
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.Group
+import com.lambda.config.Tab
+import com.lambda.config.settings.blocks.EntitySelectionSettings
+import com.lambda.config.settings.blocks.ScreenTextSettings
+import com.lambda.config.withEdits
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -30,7 +34,6 @@ import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.maxFullHealth
 import com.lambda.util.math.MathUtils.roundToStep
@@ -52,47 +55,43 @@ object Nametags : Module(
 	description = "Displays information about entities above them",
 	tag = ModuleTag.RENDER
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Entities("Entities"),
-		Background("Background"),
-		Text("Text")
-	}
+	private const val GENERAL_TAB = "General"
+	private const val ENTITY_TAB = "Entities"
+	private const val BACKGROUND_TAB = "Background"
+	private const val TEXT_TAB = "Text"
 
-	private enum class TextGroup(override val displayName: String): NamedEnum {
-		Other("Other"),
-		Friend("Friend")
-	}
+	@Tab(GENERAL_TAB) private val textSize by setting("Text Size", 18, 1..50, 1)
+	@Tab(GENERAL_TAB) private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f)
+	@Tab(GENERAL_TAB) private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01)
+	@Tab(GENERAL_TAB) private val spacing by setting("Spacing", 0, 0..10, 1)
+	@Tab(GENERAL_TAB) private val health by setting("Health", true)
+	@Tab(GENERAL_TAB) private val ping by setting("Ping", true)
+	@Tab(GENERAL_TAB) private val gear by setting("Gear", true)
+	@Tab(GENERAL_TAB) private val mainItem by setting("Main Item", true) { gear }
+	@Tab(GENERAL_TAB) private val offhandItem by setting("Offhand Item", true) { gear }
+//ToDo: Implement 	private val enchantments by setting("Enchantments", false) { gear }
+	@Tab(GENERAL_TAB) private val itemName by setting("Item Name", true)
+	@Tab(GENERAL_TAB) private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }
+	@Tab(GENERAL_TAB) private val itemCount by setting("Item Count", true)
+	@Tab(GENERAL_TAB) private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }
 
-	private val itemScale by setting("Item Scale", 3f, 0.4f..5f, 0.01f).group(Group.General)
-	private val yOffset by setting("Y Offset", 0.2, 0.0..1.0, 0.01).group(Group.General)
-	private val spacing by setting("Spacing", 0, 0..10, 1).group(Group.General)
-	private val health by setting("Health", true).group(Group.General)
-	private val ping by setting("Ping", true).group(Group.General)
-	private val gear by setting("Gear", true).group(Group.General)
-	private val mainItem by setting("Main Item", true) { gear }.group(Group.General)
-	private val offhandItem by setting("Offhand Item", true) { gear }.group(Group.General)
-	private val itemName by setting("Item Name", true).group(Group.General)
-	private val itemNameScale by setting("Item Name Scale", 0.7f, 0.1f..1.0f, 0.01f) { itemName }.group(Group.General)
-	private val itemCount by setting("Item Count", true).group(Group.General)
-	private val durabilityMode by setting("Durability Mode", DurabilityMode.Text) { gear }.group(Group.General)
-	private val entitySelectionSettings = EntitySelectionSettings(this, Group.Entities).apply {
-		applyEdits {
-			hide(::blockEntities)
+	@Tab(ENTITY_TAB) private val entitySelectionSettings by configBlock(EntitySelectionSettings(this))
+		.withEdits { hide(::blockEntities) }
+
+	private const val FRIEND_GROUP = "Friends"
+	private const val OTHER_GROUP = "Others"
+
+	@Tab(TEXT_TAB) @Group(FRIEND_GROUP) private val friendTextConfig by configBlock(ScreenTextSettings(this))
+		.withEdits {
+			hide(::sizeSetting)
+			::textColor.editSetting { defaultValue(Color(0, 255, 255, 255)) }
 		}
-	}
-	private val background by setting("Background", true).group(Group.Background)
-	private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }.group(Group.Background)
-	private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }.group(Group.Background)
-	//ToDo: Implement
-//	private val enchantments by setting("Enchantments", false) { gear }
+	@Tab(TEXT_TAB) @Group(OTHER_GROUP) private val otherTextConfig by configBlock(ScreenTextSettings(this))
+		.withEdits { hide(::sizeSetting) }
 
-	private val friendTextConfig = ScreenTextSettings(this, TextGroup.Friend, prefix = "Friend ").apply {
-		applyEdits {
-			::textColor.edit { defaultValue(Color(0, 255, 255, 255)) }
-		}
-	}
-	private val otherTextConfig = ScreenTextSettings(this, TextGroup.Other, prefix = "Other ")
+	@Tab(BACKGROUND_TAB) private val background by setting("Background", true)
+	@Tab(BACKGROUND_TAB) private val backgroundColor by setting("Background Color", Color(0, 0, 0, 60)) { background }
+	@Tab(BACKGROUND_TAB) private val backgroundSize by setting("Background Size", 1.0f, 1.0f..2.0f, 0.01f) { background }
 
 	var heightWidthRatio = 0f
 	var trueItemScaleX = 0f
@@ -121,9 +120,9 @@ object Nametags : Module(
 							if (entity is PlayerEntity && entity.isFriend) friendTextConfig
 							else otherTextConfig
 						val textStyle = textConfig.getSDFStyle()
-						val textSize = textConfig.size
+						val size = textSize * 0.001f
 						val nameText = entity.displayName?.string ?: return@forEach
-						val nameWidth = FontHandler.getStringWidthNormalized(nameText, textSize)
+						val nameWidth = FontHandler.getStringWidthNormalized(nameText, size)
 						val box = entity.interpolatedBox
 						val boxCenter = box.center
 						var (anchorX, anchorY) =
@@ -134,22 +133,22 @@ object Nametags : Module(
 
 						if (entity !is LivingEntity) {
 							if (background) {
-								screenRect(anchorX - halfNameWidth - trueBGSizeX, anchorY - trueBGSizeY, nameWidth + (trueBGSizeX * 2), textSize + (trueBGSizeY * 2), backgroundColor)
+								screenRect(anchorX - halfNameWidth - trueBGSizeX, anchorY - trueBGSizeY, nameWidth + (trueBGSizeX * 2), size + (trueBGSizeY * 2), backgroundColor)
 							}
-							screenText(nameText, anchorX, anchorY, textSize, style = textStyle, centered = true)
+							screenText(nameText, anchorX, anchorY, size, style = textStyle, centered = true)
 							return@forEach
 						}
 
 						val healthCount = if (health) entity.fullHealth else -1.0
 						val healthText = if (health) " ${healthCount.roundToStep(0.01)}" else ""
 						val healthWidth =
-							FontHandler.getStringWidthNormalized(healthText, textSize)
+							FontHandler.getStringWidthNormalized(healthText, size)
 								.let { if (healthCount > 0) it + trueSpacingX else it }
 
 						val pingCount = if (ping && entity is PlayerEntity) connection.getPlayerListEntry(entity.uuid)?.latency ?: -1 else -1
 						val pingText = if (pingCount >= 0) " [$pingCount]" else ""
 						val pingWidth =
-							FontHandler.getStringWidthNormalized(pingText, textSize)
+							FontHandler.getStringWidthNormalized(pingText, size)
 								.let { if (pingCount >= 0) it + trueSpacingX else it }
 
 						var combinedWidth = nameWidth + healthWidth + pingWidth
@@ -157,7 +156,7 @@ object Nametags : Module(
 
 						val itemName = itemName && !entity.mainHandStack.isEmpty
 						val itemNameText = if (itemName) entity.mainHandStack.name.string else ""
-						val itemNameSize = if (itemName) textSize * itemNameScale else 0f
+						val itemNameSize = if (itemName) size * itemNameScale else 0f
 
 						if (background) {
 							anchorY += trueBGSizeY
@@ -165,21 +164,21 @@ object Nametags : Module(
 							val maxWidth =
 								if (itemName) max(itemNameWidth, combinedWidth)
 								else combinedWidth
-							screenRect((anchorX - (maxWidth * 0.5f)) - trueBGSizeX, anchorY - trueBGSizeY, maxWidth + (trueBGSizeX * 2), textSize + itemNameSize + trueSpacingY + (trueBGSizeY * 2), backgroundColor)
+							screenRect((anchorX - (maxWidth * 0.5f)) - trueBGSizeX, anchorY - trueBGSizeY, maxWidth + (trueBGSizeX * 2), size + itemNameSize + trueSpacingY + (trueBGSizeY * 2), backgroundColor)
 						}
 
 						if (itemName) {
 							screenText(itemNameText, anchorX, anchorY, itemNameSize, centered = true)
 							anchorY += (itemNameSize * 1.1f) + trueSpacingY
 						}
-						screenText(nameText, nameX, anchorY, textSize, style = textStyle)
+						screenText(nameText, nameX, anchorY, size, style = textStyle)
 						if (healthCount >= 0) {
 							val healthColor = lerp(entity.fullHealth / entity.maxFullHealth, Color.RED, Color.GREEN).brighter()
-							screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, textSize, style = textStyle.apply { color = healthColor })
+							screenText(healthText, nameX + nameWidth + trueSpacingX, anchorY, size, style = textStyle.apply { color = healthColor })
 						}
 						if (pingCount >= 0) {
 							val pingColor = lerp(pingCount / 500.0, Color.GREEN, Color.RED).brighter()
-							screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, textSize, style = textStyle.apply { color = pingColor })
+							screenText(pingText, nameX + nameWidth + healthWidth + trueSpacingX, anchorY, size, style = textStyle.apply { color = pingColor })
 						}
 
 						if (!gear) return@forEach
@@ -187,12 +186,12 @@ object Nametags : Module(
 						if (background) anchorY += trueBGSizeY
 
 						if (EquipmentSlot.entries.none { it.index in 1..4 && !entity.getEquippedStack(it).isEmpty }) {
-							anchorY -= textSize * 0.5f
+							anchorY -= size * 0.5f
 							if (mainItem && !entity.mainHandStack.isEmpty)
 								renderItem(entity.mainHandStack, nameX - trueItemScaleX - trueSpacingX, anchorY)
 							if (offhandItem && !entity.offHandStack.isEmpty)
 								renderItem(entity.offHandStack, anchorX + (combinedWidth * 0.5f) + trueSpacingX, anchorY)
-						} else drawArmorAndItems(entity, anchorX, anchorY + textSize + trueSpacingY)
+						} else drawArmorAndItems(entity, anchorX, anchorY + size + trueSpacingY)
 					}
 			}
 		}
@@ -247,9 +246,10 @@ object Nametags : Module(
 
 	@JvmStatic
 	fun shouldRenderNametag(entity: Entity) =
-		(entity !== mc.player || !mc.options.perspective.isFirstPerson) &&
+		(entity !== mc.player || !mc.options.perspective.isFirstPerson || Freecam.isEnabled) &&
 				entitySelectionSettings.isSelected(entity) && (entity !is LivingEntity || entity.isAlive)
 
+	@Suppress("unused")
 	private enum class DurabilityMode(val text: Boolean, val bar: Boolean) {
 		None(false, false),
 		Text(true, false),

@@ -19,10 +19,16 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideBlock
+import com.lambda.config.Tab
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.ChatEvent
@@ -35,7 +41,6 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
@@ -51,9 +56,9 @@ import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.extension.containerSlots
@@ -91,21 +96,18 @@ import net.minecraft.util.math.Box
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import kotlin.math.min
-import kotlin.run
-import kotlin.to
 
 @Suppress("unused")
 object StashMover : Module(
 	name = "StashMover",
 	description = "Moves items from one stash location to another",
-	tag = ModuleTag.WORLD
+	tag = ModuleTag.WORLD,
+	modulePriority = 100
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		CommandBinds("Command Binds")
-	}
+	private const val GENERAL_TAB = "General"
+	private const val COMMAND_BINDS_TAB = "Command Binds"
 
-	enum class Role(val createTask: () -> Task<*>) {
+	private enum class Role(val createTask: () -> Task<*>) {
 		MoverBot({ MoverBot() }),
 		PearlBot({ PearlBot() })
 	}
@@ -115,70 +117,45 @@ object StashMover : Module(
 		Drop("Drop")
 	}
 
-	val role: Role by setting("Role", Role.MoverBot).group(Group.General)
+	@Tab(GENERAL_TAB) private val role: Role by setting("Role", Role.MoverBot)
 		.onValueChange { _, _ -> clearModule() }
-	private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }.group(Group.General)
-	private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }.group(Group.General)
-	private val dropOffMode by setting("Drop-Off Mode", DropOffMode.Chests) { role == Role.MoverBot }.group(Group.General)
-	private var chestPullSelMode: Boolean by setting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }.group(Group.General)
+	@Tab(GENERAL_TAB) private val pearlBotName by setting("PearlBot Name", "Steve") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val moverBotName by setting("MoverBot Name", "Steve") { role == Role.PearlBot }
+	@Tab(GENERAL_TAB) private val dropOffMode by setting("Drop-Off Mode", DropOffMode.Chests) { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private var chestPullSelMode: Boolean by setting("Chest Pull Sel Mode", false, "Enables the mode to select the stash containers you want to move items from") { role == Role.MoverBot }
 		.onValueChange { _, to -> if (to) { chestPutSelMode = false; StashMover.info("Enabled chest pull selection mode!") } }
-	private var chestPutSelMode: Boolean by setting("Chest Put Sel Mode", false, "Enables the mod to select the stash containers you want to move items into") { role == Role.MoverBot }.group(Group.General)
+	@Tab(GENERAL_TAB) private var chestPutSelMode: Boolean by setting("Chest Put Sel Mode", false, "Enables the mod to select the stash containers you want to move items into") { role == Role.MoverBot }
 		.onValueChange { _, to -> if (to) { chestPullSelMode = false; StashMover.info("Enabled chest put selection mode!") } }
-	private val pearlMsgTimeout by setting("Pearl Msg Timeout", 100, 0..1500, 1, "Ticks before messaging the pearl bot again", "ticks") { role == Role.MoverBot }.group(Group.General)
-	private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }.group(Group.General)
-	private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }.group(Group.General)
-	private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }.group(Group.General)
-	private val useEnderChest by setting("Use Ender Chest", false, "Uses the ender chest to move more items at once. (Ender chests are included in the pull/put selections)") { role == Role.MoverBot }.group(Group.General)
+	@Tab(GENERAL_TAB) private val pearlMsgTimeout by setting("Pearl Msg Timeout", 100, 0..1500, 1, "Ticks before messaging the pearl bot again", "ticks") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val pearlButtonTimeout by setting("Pearl Button Timeout", 100, 0..1500, 1, "Ticks before pressing the pearl dispenser button again", "ticks") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val killRespawnTimeout by setting("Kill/Respawn Timeout", 100, 0..1500, 1, "Ticks before sending the kill command or attempting to respawn again", "ticks") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val actionDelay by setting("Action Delay", 3, 0..20, 1, "The delay after performing one action, before the next") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val useEnderChest by setting("Use Ender Chest", false, "Uses the ender chest to move more items at once. (Ender chests are included in the pull/put selections)") { role == Role.MoverBot }
 		.onValueChange { _, to ->
 			if (!to) {
 				putEnderChests.clear()
 				pullEnderChests.clear()
 			}
 		}
-	private val breakEmptyPullContainers by setting("Break Empty Pull Containers", false, "Breaks empty pull containers after taking their items") { role == Role.MoverBot }.group(Group.General)
-	private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }.group(Group.General)
-	private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }.group(Group.General)
-	private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role").group(Group.General)
-		.onPress { event ->
-			event.cancel()
-			startStop()
-		}
-	private val pauseUnpause by setting("Pause/Unpause", Bind.EMPTY, "Pauses and unpauses the selected role").group(Group.General)
-		.onPress { event ->
-			event.cancel()
-			pauseUnpause()
-		}
-
-	private val indexSelectedContainers by setting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }.group(Group.CommandBinds)
-		.onPress { event ->
-			event.cancel()
-			indexSelectedContainers()
-		}
-	private val removeSelectedContainers by setting("Remove Selected Containers", Bind.EMPTY, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }.group(Group.CommandBinds)
-		.onPress { event ->
-			event.cancel()
-			removeSelectedContainers()
-		}
-	private val setItemThrowPosAndRotation by setting("Set Item Throw", Bind.EMPTY, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }.group(Group.CommandBinds)
-		.onPress { event ->
-			event.cancel()
-			setItemThrow()
-		}
-	private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }.group(Group.CommandBinds)
-		.onPress { event ->
-			event.cancel()
-			setPearlButtonPos()
-		}
-	private val setPearlThrowPosAndRotation by setting("Set Pearl Throw", Bind.EMPTY, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }.group(Group.CommandBinds)
-		.onPress { event ->
-			event.cancel()
-			setPearlThrow()
-		}
-	private val setPearlBotButton by setting("Set PearlBot Button", Bind.EMPTY, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }.group(Group.CommandBinds)
-		.onPress { event ->
-			event.cancel()
-			setPearlBotButton()
-		}
+	@Tab(GENERAL_TAB) private val breakEmptyPullContainers by setting("Break Empty Pull Containers", false, "Breaks empty pull containers after taking their items") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val disconnectOnFinish by setting("Disconnect On Finish", false, "Disconnects the mover bot when it's finished") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val disconnectOnFail by setting("Disconnect On Fail", false, "Disconnects the mover bot if it fails") { role == Role.MoverBot }
+	@Tab(GENERAL_TAB) private val startStop by setting("Start/Stop", Bind.EMPTY, "Starts and stops the selected role")
+		.onPress { event -> event.cancel(); startStop() }
+	@Tab(GENERAL_TAB) private val pauseUnpause by setting("Pause/Unpause", Bind.EMPTY, "Pauses and unpauses the selected role")
+		.onPress { event -> event.cancel(); pauseUnpause() }
+	@Tab(COMMAND_BINDS_TAB) private val indexSelectedContainers by setting("Index Selected Containers", Bind.EMPTY, "Indexes the selected containers to pull/push items from/to") { role == Role.MoverBot }
+		.onPress { event -> event.cancel(); indexSelectedContainers() }
+	@Tab(COMMAND_BINDS_TAB) private val removeSelectedContainers by setting("Remove Selected Containers", Bind.EMPTY, "Removes the selected containers from being pull/pushed from/to") { role == Role.MoverBot }
+		.onPress { event -> event.cancel(); removeSelectedContainers() }
+	@Tab(COMMAND_BINDS_TAB) private val setItemThrowPosAndRotation by setting("Set Item Throw", Bind.EMPTY, "Sets the item throw position and rotation. (This is usually set to throw into hoppers to pickup the items)") { role == Role.MoverBot }
+		.onPress { event -> event.cancel(); setItemThrow() }
+	@Tab(COMMAND_BINDS_TAB) private val setPearlButtonPos by setting("Set Pearl Button Pos", Bind.EMPTY, "Sets the button used to dispense a pearl for the player") { role == Role.MoverBot }
+		.onPress { event -> event.cancel(); setPearlButtonPos() }
+	@Tab(COMMAND_BINDS_TAB) private val setPearlThrowPosAndRotation by setting("Set Pearl Throw", Bind.EMPTY, "Sets the pearl throw position and rotation. (This is best if you throw somewhat sideways into a line of bubble columns)") { role == Role.MoverBot }
+		.onPress { event -> event.cancel(); setPearlThrow() }
+	@Tab(COMMAND_BINDS_TAB) private val setPearlBotButton by setting("Set PearlBot Button", Bind.EMPTY, "Sets the button position for the pearl bot to press to load the mover bot") { role == Role.PearlBot }
+		.onPress { event -> event.cancel(); setPearlBotButton() }
 
 	private var sel1: BlockPos? = null
 	private var sel2: BlockPos? = null
@@ -202,20 +179,18 @@ object StashMover : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setModulePriority(100)
-		setDefaultAutomationConfig {
-			applyEdits {
+		setDefaultAutomationConfig()
+			.withEdits {
 				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
+					editTypedSettings(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
 					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
-					hideGroup(eatConfig)
+					hideBlock(::eatConfig)
 				}
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
 				breakConfig.apply {
-					editTyped(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
+					editTypedSettings(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
 				}
 			}
-		}
 
 		listen<ButtonEvent.Mouse.Click> { event ->
 			if (!chestPullSelMode && !chestPutSelMode) return@listen

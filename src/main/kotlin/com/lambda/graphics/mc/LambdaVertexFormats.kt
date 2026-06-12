@@ -157,6 +157,7 @@ object LambdaVertexFormats {
         .add("BillboardData", BILLBOARD_DATA_ELEMENT)
         .add("OverlayUV", OVERLAY_UV_ELEMENT)
         .build()
+
     val EDGE_DATA_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         26,
         0,
@@ -173,7 +174,7 @@ object LambdaVertexFormats {
         3
     )
 
-    val LIGHT1_DIR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
+    val LIGHT_1_DIR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         28,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -188,7 +189,7 @@ object LambdaVertexFormats {
         .add("OverlayUV", OVERLAY_UV_ELEMENT)
         .add("Light", VertexFormatElement.UV2)
         .add("LightDir", LIGHT_DIR_ELEMENT)
-        .add("Light1Dir", LIGHT1_DIR_ELEMENT)
+        .add("Light1Dir", LIGHT_1_DIR_ELEMENT)
         .add("Normal", NORMAL_FLOAT)
         .add("EdgeData", EDGE_DATA_ELEMENT)
         .build()

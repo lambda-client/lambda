@@ -18,8 +18,10 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerEvent
@@ -29,7 +31,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -51,6 +52,7 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
+import com.lambda.util.player.RotationUtils.lookAt
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.option.Perspective
@@ -83,7 +85,6 @@ object Freecam : Module(
 	// Follow Player settings
 	private val followMaxDistance by setting("String Length", 10.0, 2.0..50.0, 0.5, "Maximum distance before the string pulls the camera", unit = "m") { mode == Mode.FollowPlayer }
 	private val followTrackPlayer by setting("Track Player", false, "Keeps looking at the followed player") { mode == Mode.FollowPlayer }
-
 
 	private var lastPerspective = Perspective.FIRST_PERSON
 	private var lastPlayerPosition: Vec3d = Vec3d.ZERO
@@ -122,14 +123,11 @@ object Freecam : Module(
 	private const val SENSITIVITY_FACTOR = 0.15
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				rotationConfig::rotationMode.edit {
-					defaultValue(RotationMode.Lock)
-				}
-				hideAllGroupsExcept(rotationConfig)
+		setDefaultAutomationConfig()
+			.withEdits {
+				rotationConfig::rotationMode.editSetting { defaultValue(RotationMode.Lock) }
+				hideAllBlocksExcept(::rotationConfig)
 			}
-		}
 
 		onEnable {
 			lastPerspective = mc.options.perspective

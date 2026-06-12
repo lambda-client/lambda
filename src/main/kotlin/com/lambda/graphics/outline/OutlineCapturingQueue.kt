@@ -19,39 +19,39 @@ package com.lambda.graphics.outline
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
-import net.minecraft.client.model.Model
-import net.minecraft.client.model.ModelPart
-import net.minecraft.client.render.RenderLayer
-import net.minecraft.client.render.VertexConsumer
-import net.minecraft.client.render.model.BakedQuad
-import net.minecraft.client.render.state.CameraRenderState
-import net.minecraft.client.texture.Sprite
-import net.minecraft.client.util.math.MatrixStack
-import net.minecraft.item.ItemDisplayContext
-import net.minecraft.util.math.Vec3d
-import org.joml.Matrix4f
-import org.joml.Vector3f
-import org.joml.Vector4f
 import com.mojang.blaze3d.textures.GpuTextureView
 import net.minecraft.block.BlockState
 import net.minecraft.client.font.TextRenderer
+import net.minecraft.client.model.Model
+import net.minecraft.client.model.ModelPart
+import net.minecraft.client.render.RenderLayer
 import net.minecraft.client.render.SpriteTexturedVertexConsumer
+import net.minecraft.client.render.VertexConsumer
 import net.minecraft.client.render.block.BlockModelRenderer
 import net.minecraft.client.render.block.MovingBlockRenderState
 import net.minecraft.client.render.command.BatchingRenderCommandQueue
 import net.minecraft.client.render.command.CustomCommandRenderer
 import net.minecraft.client.render.command.LabelCommandRenderer
-import net.minecraft.client.render.command.OrderedRenderCommandQueue
-import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl
 import net.minecraft.client.render.command.ModelCommandRenderer
 import net.minecraft.client.render.command.ModelPartCommandRenderer
+import net.minecraft.client.render.command.OrderedRenderCommandQueue
+import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl
 import net.minecraft.client.render.entity.state.EntityRenderState
 import net.minecraft.client.render.item.ItemRenderState
+import net.minecraft.client.render.model.BakedQuad
 import net.minecraft.client.render.model.BlockStateModel
+import net.minecraft.client.render.state.CameraRenderState
+import net.minecraft.client.texture.Sprite
+import net.minecraft.client.util.math.MatrixStack
+import net.minecraft.item.ItemDisplayContext
 import net.minecraft.text.OrderedText
 import net.minecraft.text.Text
+import net.minecraft.util.math.Vec3d
+import org.joml.Matrix4f
 import org.joml.Matrix4fStack
 import org.joml.Quaternionf
+import org.joml.Vector3f
+import org.joml.Vector4f
 
 class OutlineCapturingQueue @JvmOverloads constructor(
     private val delegate: OrderedRenderCommandQueueImpl,

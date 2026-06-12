@@ -22,13 +22,17 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
 import net.minecraft.client.texture.AbstractTexture
 import net.minecraft.client.texture.MissingSprite
+import net.minecraft.client.texture.NativeImage
+import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.texture.Sprite
 import net.minecraft.client.texture.SpriteAtlasTexture
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.Registries
 import net.minecraft.util.Identifier
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 
 object LambdaImageAtlas {
     data class ImageEntry(
@@ -51,7 +55,7 @@ object LambdaImageAtlas {
 
     private var missingEntry: ImageEntry? = null
 
-    private val pendingLoadQueue = java.util.concurrent.ConcurrentLinkedQueue<Identifier>()
+    private val pendingLoadQueue = ConcurrentLinkedQueue<Identifier>()
 
     fun loadMCTexture(id: Identifier): ImageEntry? {
         mcTextureCache[id]?.let { return it }
@@ -128,7 +132,7 @@ object LambdaImageAtlas {
         
         RenderSystem.assertOnRenderThread()
 
-        val itemId = net.minecraft.registry.Registries.ITEM.getId(stack.item)
+        val itemId = Registries.ITEM.getId(stack.item)
         return loadItemTexture(itemId) ?: getMissingTexture()
     }
 
@@ -166,7 +170,7 @@ object LambdaImageAtlas {
 
     data class UploadedTexture(
         val id: String,
-        val texture: net.minecraft.client.texture.NativeImageBackedTexture,
+        val texture: NativeImageBackedTexture,
         val entry: ImageEntry
     )
 
@@ -177,7 +181,7 @@ object LambdaImageAtlas {
 
         uploadedTextureCache[cacheKey]?.let { return it.entry }
 
-        val nativeImage = net.minecraft.client.texture.NativeImage(image.width, image.height, true)
+        val nativeImage = NativeImage(image.width, image.height, true)
         for (y in 0 until image.height) {
             for (x in 0 until image.width) {
                 val argb = image.getRGB(x, y)
@@ -190,7 +194,7 @@ object LambdaImageAtlas {
             }
         }
 
-        val nativeTexture = net.minecraft.client.texture.NativeImageBackedTexture({ cacheKey }, nativeImage)
+        val nativeTexture = NativeImageBackedTexture({ cacheKey }, nativeImage)
         val textureId = Identifier.of("lambda", "uploaded/$cacheKey")
 
         mc.textureManager.registerTexture(textureId, nativeTexture)
@@ -215,7 +219,7 @@ object LambdaImageAtlas {
 
         uploadedTextureCache[cacheKey]?.let { return it.entry }
 
-        val nativeImage = net.minecraft.client.texture.NativeImage(width, height, true)
+        val nativeImage = NativeImage(width, height, true)
         buffer.rewind()
         for (y in 0 until height) {
             for (x in 0 until width) {
@@ -228,7 +232,7 @@ object LambdaImageAtlas {
             }
         }
 
-        val nativeTexture = net.minecraft.client.texture.NativeImageBackedTexture({ cacheKey }, nativeImage)
+        val nativeTexture = NativeImageBackedTexture({ cacheKey }, nativeImage)
         val textureId = Identifier.of("lambda", "uploaded/$cacheKey")
         mc.textureManager.registerTexture(textureId, nativeTexture)
         val gpuTextureView = nativeTexture.glTextureView ?: return null

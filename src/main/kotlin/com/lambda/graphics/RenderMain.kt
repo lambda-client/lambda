@@ -20,8 +20,8 @@ package com.lambda.graphics
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.graphics.mc.renderer.RendererUtils
-import com.lambda.graphics.outline.OutlineIdBuffer
 import com.lambda.graphics.outline.OutlineHandler
+import com.lambda.graphics.outline.OutlineIdBuffer
 import com.lambda.graphics.outline.OutlineRenderer
 import com.lambda.graphics.outline.VertexCapture
 import org.joml.Matrix4f

@@ -29,9 +29,7 @@ import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
-import kotlin.collections.asSequence
 import kotlin.math.ceil
-import kotlin.sequences.filter
 
 object WorldUtils {
     fun SafeContext.isLoaded(pos: BlockPos) =
@@ -136,10 +134,10 @@ object WorldUtils {
      * @see [blockSearch]
      */
     inline fun SafeContext.internalSearchBlocks(
-        pos: FastVector,
-        range: FastVector = F_ONE times 7,
-        step: FastVector = F_ONE,
-        crossinline filter: (FastVector, BlockState) -> Boolean = { _, _ -> true },
+	    pos: FastVector,
+	    range: FastVector = F_ONE times 7,
+	    step: FastVector = F_ONE,
+	    crossinline filter: (FastVector, BlockState) -> Boolean = { _, _ -> true },
     ) = fastSequence(pos, range, step)
         .filter {
             val state = world.getBlockState(it)
@@ -153,10 +151,10 @@ object WorldUtils {
      * @see [fluidSearch]
      */
     inline fun <reified T : Fluid> SafeContext.internalSearchFluids(
-        pos: FastVector,
-        range: FastVector = F_ONE times 7,
-        step: FastVector = F_ONE,
-        crossinline filter: (FastVector, FluidState) -> Boolean = { _, _ -> true },
+	    pos: FastVector,
+	    range: FastVector = F_ONE times 7,
+	    step: FastVector = F_ONE,
+	    crossinline filter: (FastVector, FluidState) -> Boolean = { _, _ -> true },
     ) = fastSequence(pos, range, step)
         .filter {
             val state = world.getFluidState(it.x, it.y, it.z)

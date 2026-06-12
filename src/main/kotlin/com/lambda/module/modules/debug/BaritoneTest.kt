@@ -24,6 +24,7 @@ import com.lambda.interaction.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object BaritoneTest : Module(
     name = "BaritoneTest",
     description = "Test Baritone",

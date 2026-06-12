@@ -30,8 +30,7 @@ import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.system.MemoryUtil
-import java.util.OptionalDouble
-import java.util.OptionalInt
+import java.util.*
 
 object OutlineRenderer {
     private var silhouetteTexture: GpuTexture? = null
@@ -238,7 +237,7 @@ object OutlineRenderer {
 
     private fun applyEdgeDetection(style: OutlineStyle = OutlineStyle.DEFAULT) {
         val idBufferView = OutlineIdBuffer.getTextureView() ?: return
-        applySobel(idBufferView, "Lambda Global Outline Sobel Pass", style)
+        applySobel(idBufferView, style)
     }
 
     private fun buildStyleMatrix(style: OutlineStyle): Matrix4f {
@@ -250,7 +249,7 @@ object OutlineRenderer {
         return mat
     }
 
-    private fun applySobel(textureView: GpuTextureView, label: String, style: OutlineStyle = OutlineStyle.DEFAULT) {
+    private fun applySobel(textureView: GpuTextureView, style: OutlineStyle = OutlineStyle.DEFAULT) {
         val framebuffer = mc.framebuffer ?: return
         
         ensureFullscreenQuad()
@@ -264,7 +263,7 @@ object OutlineRenderer {
         RenderSystem.getDevice()
             .createCommandEncoder()
             .createRenderPass(
-                { label },
+                { "Lambda Outline Sobel Pass" },
                 framebuffer.colorAttachmentView,
                 OptionalInt.empty(),
                 null,

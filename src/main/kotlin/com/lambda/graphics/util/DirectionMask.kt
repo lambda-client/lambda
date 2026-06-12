@@ -24,6 +24,7 @@ import com.lambda.util.world.toFastVec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
+@Suppress("unused")
 object DirectionMask {
     const val EAST = 1 // X +
     const val WEST = 2 // X -

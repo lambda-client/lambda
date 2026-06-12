@@ -21,7 +21,7 @@ import com.lambda.event.events.ModuleEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.log
+import com.lambda.util.CommunicationUtils.log
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.text.TextBuilder
@@ -31,6 +31,7 @@ import com.lambda.util.text.literal
 import net.minecraft.util.Colors
 import java.awt.Color
 
+@Suppress("unused")
 object ModuleNotifier : Module(
 	name = "ModuleNotifier",
 	description = "Notifies you when a module is enabled or disabled",

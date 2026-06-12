@@ -29,6 +29,6 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: Bind = Bind.EMPTY,
-) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind), Layout {
+) : Module(name, description, tag, alwaysListening, enabledByDefault, defaultKeybind = defaultKeybind), Layout {
     val backgroundColor = setting("Background Color", Color(0, 0, 0, 0))
 }

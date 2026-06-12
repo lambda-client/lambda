@@ -22,6 +22,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object Timer : Module(
     name = "Timer",
     description = "Modify client tick speed.",

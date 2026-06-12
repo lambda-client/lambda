@@ -18,7 +18,6 @@
 package com.lambda.util
 
 import com.lambda.util.DynamicReflectionSerializer.simpleRemappedName
-import kotlin.collections.toTypedArray
 
 /**
  * Remaps the stacktrace in production to have readable, class, method and field names

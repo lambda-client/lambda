@@ -25,9 +25,9 @@ import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
-import com.lambda.util.Communication
-import com.lambda.util.Communication.prefix
-import com.lambda.util.Formatting.format
+import com.lambda.util.CommunicationUtils
+import com.lambda.util.CommunicationUtils.prefix
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -50,10 +50,12 @@ import net.minecraft.text.Text
 import net.minecraft.world.GameMode
 import java.awt.Color
 
+@Suppress("unused")
 object AutoDisconnect : Module(
     name = "AutoDisconnect",
     description = "Automatically disconnects when in danger or on low health",
     tag = ModuleTag.COMBAT,
+    modulePriority = -100
 ) {
     private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
     private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
@@ -86,7 +88,6 @@ object AutoDisconnect : Module(
     private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }
 
     init {
-        setModulePriority(-100)
         listen<TickEvent.Pre> {
             Reason.entries.filter {
                 it.check()
@@ -160,13 +161,13 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
-        text(prefix(Communication.LogLevel.Warn.logoColor))
+        text(prefix(CommunicationUtils.LogLevel.Warn.logoColor))
         text(text)
         literal("\n\n")
         literal("Disconnected at ")
         highlighted(player.pos.format())
         literal(" on ")
-        highlighted(Communication.currentTime())
+        highlighted(CommunicationUtils.currentTime())
         literal(" with ")
         highlighted(player.fullHealth.format())
         literal(" health.")

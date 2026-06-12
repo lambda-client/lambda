@@ -21,12 +21,12 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.world.blockSearch
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.Vec3i
 import java.awt.Color
 
+@Suppress("unused")
 object BlockTest : Module(
     name = "BlockTest",
     description = "BlockTest",

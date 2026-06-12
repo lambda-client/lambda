@@ -19,11 +19,12 @@ package com.lambda.module.modules.debug
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegistry
 import com.lambda.util.extension.resolveFile
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 
+@Suppress("unused")
 object PropertyPrinter : Module(
     name = "PropertyPrinter",
     description = "Prints all properties coupled with all the states that use them into a text file",
@@ -31,7 +32,7 @@ object PropertyPrinter : Module(
 ) {
     init {
         onEnable {
-            val file = FolderRegister.lambda.resolve("property-print").resolveFile("property-print.txt")
+            val file = FolderRegistry.lambda.resolve("property-print").resolveFile("property-print.txt")
             file.parentFile.mkdirs()
             file.writeText("")
             StateInfo.propertyFields.forEach properties@{ property ->

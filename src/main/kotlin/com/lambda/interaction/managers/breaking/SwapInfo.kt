@@ -17,7 +17,8 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.config.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
+import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary

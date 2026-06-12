@@ -18,9 +18,9 @@
 package com.lambda.graphics.mc
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.outline.OutlineStyle
 import com.lambda.graphics.mc.renderer.RendererUtils
 import com.lambda.graphics.mc.renderer.upload
+import com.lambda.graphics.outline.OutlineStyle
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
@@ -409,8 +409,6 @@ class RegionRenderer {
 	fun hasData(): Boolean = hasWorldData
 
 	companion object {
-		fun createRenderPass(label: String): RenderPass? = createRenderPass(label, useMcDepth = true)
-
 		fun createRenderPass(label: String, useMcDepth: Boolean): RenderPass? {
 			val framebuffer = mc.framebuffer ?: return null
 

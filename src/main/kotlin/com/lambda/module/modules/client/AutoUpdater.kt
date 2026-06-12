@@ -23,14 +23,14 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.popupModal
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
-import com.lambda.util.Communication.debug
-import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.util.CommunicationUtils.debug
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.CommunicationUtils.warn
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.SharedConstants
 import java.net.URI
@@ -45,7 +45,8 @@ object AutoUpdater : Module(
     private val debug by setting("Debug", false, "Enable debug logging")
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
     private val clientBranch by setting("Client Branch", Branch.Snapshot, "Select client update branch")
-    private var loaderPromptHandled by setting("Loader Prompt Handled", false) { false }
+
+    private var loaderPromptHandled by property(false)
 
     @JvmStatic var showFirstLaunchModal = false
     @JvmStatic var showInstallModal = false

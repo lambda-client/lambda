@@ -17,27 +17,27 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.groups.HotbarSettings
+import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
-import com.lambda.util.NamedEnum
+import com.lambda.util.CommunicationUtils.info
 
 object SilentSwap : Module(
     name = "SilentSwap",
     description = "SilentSwap",
     tag = ModuleTag.DEBUG,
 ) {
-    private enum class Group(override val displayName: String) : NamedEnum {
-        Hotbar("Hotbar")
-    }
-
-    override val hotbarConfig = HotbarSettings(this, Group.Hotbar)
-
     init {
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllBlocksExcept(::hotbarConfig)
+            }
+
         listen<PlayerEvent.Attack.Block> {
             if (!HotbarRequest(0, this@SilentSwap).submit().done) {
                 it.cancel()

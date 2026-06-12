@@ -21,325 +21,38 @@ import baritone.api.BaritoneAPI
 import baritone.api.IBaritone
 import baritone.api.Settings
 import baritone.api.pathing.goals.Goal
-import com.lambda.config.AutomationConfig
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.LambdaConfig
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.Config
+import com.lambda.config.ConfigBlock
+import com.lambda.config.Group
+import com.lambda.config.Tab
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.categories.LambdaCategory
+import com.lambda.config.settings.blocks.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.NamedEnum
 import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.util.BlockMirror
+import net.minecraft.util.BlockRotation
 
-object BaritoneHandler : Configurable(LambdaConfig), Automated by AutomationConfig.Companion.DEFAULT {
-    override val name = "baritone"
-
+@Suppress("unused")
+object BaritoneHandler : Config(
+    "baritone",
+    LambdaCategory
+), Automated by AutomationConfig.DEFAULT {
     val isBaritoneLoaded = FabricLoader.getInstance().isModLoaded("baritone")
 
     private val baritone = if (isBaritoneLoaded) BaritoneAPI.getProvider() else null
     val baritoneSettings: Settings? = if (isBaritoneLoaded) BaritoneAPI.getSettings() else null
 
+    // The new config system, as its using reflections to gather metadata about the settings before registering them, does not allow for nullability.
+    // Partially because it would be a lot of work to account for all edge cases, but also because we use the by keyword to register ConfigBlock's as delegates.
+    // This doesnt allow for nullability either.
+//    val settings by baritoneSettings?.let { configBlock(BaritoneConfigSettings(this, it)) }
+    private const val ROTATION_TAB = "Rotation"
+    @Tab(ROTATION_TAB) override val rotationConfig by configBlock(RotationSettings(this))
+
     @JvmStatic
     val primary: IBaritone? = baritone?.primaryBaritone
-
-    private enum class Group(override val displayName: String) : NamedEnum {
-        General("General"),
-        Rotation("Rotation"),
-        Pathing("Pathing"),
-        Behavior("Behavior"),
-        Building("Building"),
-        Rendering("Rendering"),
-        Elytra("Elytra")
-    }
-
-    private enum class SubGroup(override val displayName: String) : NamedEnum {
-        ChatAndControl("Chat & Control"),
-        Waypoints("Waypoints"),
-        Assumptions("Assumptions"),
-        Movement("Movement"),
-        BlockRules("Block Rules"),
-        MiningAndFarming("Mining & Farming"),
-        Interaction("Interaction"),
-        Penalties("Penalties"),
-        Exploration("Exploration"),
-        Misc("Misc"),
-        Rendering("Rendering"),
-        RenderingColors("Rendering Colors"),
-        RenderingSelection("Rendering Selection"),
-        PathingPerformance("Pathing Performance"),
-        PathingCore("Pathing Core"),
-        Follow("Follow"),
-        Schematic("Schematic")
-    }
-
-    override val rotationConfig = RotationSettings(this, Group.Rotation)
-
-    init {
-        // ToDo: Dont actually save the settings as its duplicate data
-        if (isBaritoneLoaded) {
-            with(baritoneSettings!!) {
-                // GENERAL
-                setting("Log As Toast", logAsToast.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> logAsToast.value = it }
-                setting("Chat Debug", chatDebug.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> chatDebug.value = it }
-                setting("Chat Control", chatControl.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> chatControl.value = it }
-                setting("Chat Control Anyway", chatControlAnyway.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> chatControlAnyway.value = it }
-                setting("Prefix Control", prefixControl.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> prefixControl.value = it }
-                setting("Prefix", prefix.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> prefix.value = it }
-                setting("Short Baritone Prefix", shortBaritonePrefix.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> shortBaritonePrefix.value = it }
-                setting("Use Message Tag", useMessageTag.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> useMessageTag.value = it }
-                setting("Echo Commands", echoCommands.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> echoCommands.value = it }
-                setting("Censor Coordinates", censorCoordinates.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> censorCoordinates.value = it }
-                setting("Censor Ran Commands", censorRanCommands.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> censorRanCommands.value = it }
-                setting("Desktop Notifications", desktopNotifications.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> desktopNotifications.value = it }
-                setting("Notification On Path Complete", notificationOnPathComplete.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> notificationOnPathComplete.value = it }
-                setting("Notification On Farm Fail", notificationOnFarmFail.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> notificationOnFarmFail.value = it }
-                setting("Notification On Build Finished", notificationOnBuildFinished.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> notificationOnBuildFinished.value = it }
-                setting("Notification On Explore Finished", notificationOnExploreFinished.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> notificationOnExploreFinished.value = it }
-                setting("Notification On Mine Fail", notificationOnMineFail.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> notificationOnMineFail.value = it }
-                setting("Verbose Command Exceptions", verboseCommandExceptions.value).group(Group.General, SubGroup.ChatAndControl).onValueChange { _, it -> verboseCommandExceptions.value = it }
-
-                setting("Do Bed Waypoints", doBedWaypoints.value).group(Group.General, SubGroup.Waypoints).onValueChange { _, it -> doBedWaypoints.value = it }
-                setting("Do Death Waypoints", doDeathWaypoints.value).group(Group.General, SubGroup.Waypoints).onValueChange { _, it -> doDeathWaypoints.value = it }
-
-                setting("Anti Cheat Compatibility", antiCheatCompatibility.value).group(Group.General, SubGroup.Misc).onValueChange { _, it -> antiCheatCompatibility.value = it }
-
-                // PATHING
-                setting("Pathing Max Chunk Border Fetch", pathingMaxChunkBorderFetch.value, 0..64).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathingMaxChunkBorderFetch.value = it }
-                setting("Pathing Map Default Size", pathingMapDefaultSize.value, 0..2048).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathingMapDefaultSize.value = it }
-                setting("Pathing Map Load Factor", pathingMapLoadFactor.value, 0f..1f, 0.05f).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathingMapLoadFactor.value = it }
-                setting("Distance Trim", distanceTrim.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> distanceTrim.value = it }
-                setting("Simplify Unloaded Y Coord", simplifyUnloadedYCoord.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> simplifyUnloadedYCoord.value = it }
-                setting("Repack On Any Block Change", repackOnAnyBlockChange.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> repackOnAnyBlockChange.value = it }
-                setting("Avoidance", avoidance.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> avoidance.value = it }
-                setting("Prune Regions From RAM", pruneRegionsFromRAM.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pruneRegionsFromRAM.value = it }
-                setting("Backfill", backfill.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> backfill.value = it }
-                setting("Max Fall Height No Water", maxFallHeightNoWater.value, 0..256).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> maxFallHeightNoWater.value = it }
-                setting("Max Fall Height Bucket", maxFallHeightBucket.value, 0..256).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> maxFallHeightBucket.value = it }
-                setting("Axis Height", axisHeight.value, 0..256).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> axisHeight.value = it }
-                setting("Disconnect On Arrival", disconnectOnArrival.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> disconnectOnArrival.value = it }
-                setting("Splice Path", splicePath.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> splicePath.value = it }
-                setting("Max Path History Length", maxPathHistoryLength.value, 0..10000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> maxPathHistoryLength.value = it }
-                setting("Path History Cutoff Amount", pathHistoryCutoffAmount.value, 0..10000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathHistoryCutoffAmount.value = it }
-                setting("Mine Goal Update Interval", mineGoalUpdateInterval.value, 0..10000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> mineGoalUpdateInterval.value = it }
-                setting("Max Cached World Scan Count", maxCachedWorldScanCount.value, 0..100000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> maxCachedWorldScanCount.value = it }
-                setting("Mine Max Ore Locations Count", mineMaxOreLocationsCount.value, 0..100000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> mineMaxOreLocationsCount.value = it }
-                setting("Cached Chunks Expiry Seconds", cachedChunksExpirySeconds.value, -1L..86400L).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> cachedChunksExpirySeconds.value = it }
-                setting("Y Level Box Size", yLevelBoxSize.value, 0.0..256.0).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> yLevelBoxSize.value = it }
-                setting("Extend Cache On Threshold", extendCacheOnThreshold.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> extendCacheOnThreshold.value = it }
-                setting("Cancel On Goal Invalidation", cancelOnGoalInvalidation.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> cancelOnGoalInvalidation.value = it }
-                setting("Chunk Caching", chunkCaching.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> chunkCaching.value = it }
-                setting("Chunk Packer Queue Max Size", chunkPackerQueueMaxSize.value, 0..10000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> chunkPackerQueueMaxSize.value = it }
-                setting("Path Through Cached Only", pathThroughCachedOnly.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathThroughCachedOnly.value = it }
-                setting("Blacklist Closest On Failure", blacklistClosestOnFailure.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> blacklistClosestOnFailure.value = it }
-                setting("Path Cutoff Minimum Length", pathCutoffMinimumLength.value, 0..1000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> pathCutoffMinimumLength.value = it }
-                setting("Cutoff At Load Boundary", cutoffAtLoadBoundary.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> cutoffAtLoadBoundary.value = it }
-                setting("Minimum Improvement Repropagation", minimumImprovementRepropagation.value).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> minimumImprovementRepropagation.value = it }
-                setting("Cost Verification Lookahead", costVerificationLookahead.value, 0..1000).group(Group.Pathing, SubGroup.PathingCore).onValueChange { _, it -> costVerificationLookahead.value = it }
-
-                setting("Primary Timeout", primaryTimeoutMS.value, 0L..600000L, unit = " ms").group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> primaryTimeoutMS.value = it }
-                setting("Failure Timeout", failureTimeoutMS.value, 0L..600000L, unit = " ms").group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> failureTimeoutMS.value = it }
-                setting("Plan Ahead Primary Timeout", planAheadPrimaryTimeoutMS.value, 0L..600000L, unit = " ms").group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> planAheadPrimaryTimeoutMS.value = it }
-                setting("Plan Ahead Failure Timeout", planAheadFailureTimeoutMS.value, 0L..600000L, unit = " ms").group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> planAheadFailureTimeoutMS.value = it }
-                setting("Slow Path", slowPath.value).group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> slowPath.value = it }
-                setting("Slow Path Time Delay", slowPathTimeDelayMS.value, 0L..600000L, unit = " ms").group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> slowPathTimeDelayMS.value = it }
-                setting("Slow Path Timeout", slowPathTimeoutMS.value, 0L..600000L, unit = " ms").group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> slowPathTimeoutMS.value = it }
-                setting("Planning Tick Lookahead", planningTickLookahead.value, 0..200).group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> planningTickLookahead.value = it }
-                setting("Movement Timeout Ticks", movementTimeoutTicks.value, 0..2000).group(Group.Pathing, SubGroup.PathingPerformance).onValueChange { _, it -> movementTimeoutTicks.value = it }
-
-                setting("Follow Offset Distance", followOffsetDistance.value, 0.0..256.0).group(Group.Pathing, SubGroup.Follow).onValueChange { _, it -> followOffsetDistance.value = it }
-                setting("Follow Offset Direction", followOffsetDirection.value, -180f..180f, 1f).group(Group.Pathing, SubGroup.Follow).onValueChange { _, it -> followOffsetDirection.value = it }
-                setting("Follow Radius", followRadius.value, 0..1000).group(Group.Pathing, SubGroup.Follow).onValueChange { _, it -> followRadius.value = it }
-                setting("Follow Target Max Distance", followTargetMaxDistance.value, 0..10000).group(Group.Pathing, SubGroup.Follow).onValueChange { _, it -> followTargetMaxDistance.value = it }
-                setting("Disable Completion Check", disableCompletionCheck.value).group(Group.Pathing, SubGroup.Follow).onValueChange { _, it -> disableCompletionCheck.value = it }
-
-                // BEHAVIOR
-                setting("Strict Liquid Check", strictLiquidCheck.value).group(Group.Behavior, SubGroup.Assumptions).onValueChange { _, it -> strictLiquidCheck.value = it }
-                setting("Assume Walk On Water", assumeWalkOnWater.value).group(Group.Behavior, SubGroup.Assumptions).onValueChange { _, it -> assumeWalkOnWater.value = it }
-                setting("Assume Walk On Lava", assumeWalkOnLava.value).group(Group.Behavior, SubGroup.Assumptions).onValueChange { _, it -> assumeWalkOnLava.value = it }
-                setting("Assume Step", assumeStep.value).group(Group.Behavior, SubGroup.Assumptions).onValueChange { _, it -> assumeStep.value = it }
-                setting("Assume Safe Walk", assumeSafeWalk.value).group(Group.Behavior, SubGroup.Assumptions).onValueChange { _, it -> assumeSafeWalk.value = it }
-                setting("Assume External Auto Tool", assumeExternalAutoTool.value).group(Group.Behavior, SubGroup.Assumptions).onValueChange { _, it -> assumeExternalAutoTool.value = it }
-
-                setting("Allow Parkour Ascend", allowParkourAscend.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowParkourAscend.value = it }
-                setting("Allow Diagonal Descend", allowDiagonalDescend.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowDiagonalDescend.value = it }
-                setting("Allow Diagonal Ascend", allowDiagonalAscend.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowDiagonalAscend.value = it }
-                setting("Allow Downward", allowDownward.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowDownward.value = it }
-                setting("Allow Vines", allowVines.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowVines.value = it }
-                setting("Allow Walk On Bottom Slab", allowWalkOnBottomSlab.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowWalkOnBottomSlab.value = it }
-                setting("Allow Parkour", allowParkour.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowParkour.value = it }
-                setting("Allow Parkour Place", allowParkourPlace.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowParkourPlace.value = it }
-                setting("Sprint Ascends", sprintAscends.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> sprintAscends.value = it }
-                setting("Overshoot Traverse", overshootTraverse.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> overshootTraverse.value = it }
-                setting("Pause Mining For Falling Blocks", pauseMiningForFallingBlocks.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> pauseMiningForFallingBlocks.value = it }
-                setting("Allow Overshoot Diagonal Descend", allowOvershootDiagonalDescend.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> allowOvershootDiagonalDescend.value = it }
-                setting("Sprint In Water", sprintInWater.value).group(Group.Behavior, SubGroup.Movement).onValueChange { _, it -> sprintInWater.value = it }
-
-                setting("Allow Break", allowBreak.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowBreak.value = it }
-                setting("Allow Break Anyway", allowBreakAnyway.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowBreakAnyway.value = it.toList() }
-                setting("Allow Sprint", allowSprint.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowSprint.value = it }
-                setting("Allow Place", allowPlace.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowPlace.value = it }
-                setting("Allow Place In Fluids Source", allowPlaceInFluidsSource.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowPlaceInFluidsSource.value = it }
-                setting("Allow Place In Fluids Flow", allowPlaceInFluidsFlow.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowPlaceInFluidsFlow.value = it }
-                setting("Allow Inventory", allowInventory.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowInventory.value = it }
-                setting("Ticks Between Inventory Moves", ticksBetweenInventoryMoves.value, 0..20).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> ticksBetweenInventoryMoves.value = it }
-                setting("Inventory Move Only If Stationary", inventoryMoveOnlyIfStationary.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> inventoryMoveOnlyIfStationary.value = it }
-                setting("Auto Tool", autoTool.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> autoTool.value = it }
-                setting("Allow Water Bucket Fall", allowWaterBucketFall.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowWaterBucketFall.value = it }
-                setting("Allow Jump At Build Limit", allowJumpAtBuildLimit.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> allowJumpAtBuildLimit.value = it }
-                setting("Right Click Container On Arrival", rightClickContainerOnArrival.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> rightClickContainerOnArrival.value = it }
-                setting("Enter Portal", enterPortal.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> enterPortal.value = it }
-                setting("Walk While Breaking", walkWhileBreaking.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> walkWhileBreaking.value = it }
-                setting("Use Sword To Mine", useSwordToMine.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> useSwordToMine.value = it }
-                setting("Right Click Speed", rightClickSpeed.value, 0..10).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> rightClickSpeed.value = it }
-                setting("Block Reach Distance", blockReachDistance.value, 0f..10f, 0.1f).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> blockReachDistance.value = it }
-                setting("Block Break Speed", blockBreakSpeed.value, 0..10).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> blockBreakSpeed.value = it }
-                setting("Random Looking 1.13", randomLooking113.value, 0.0..5.0, 0.01).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> randomLooking113.value = it }
-                setting("Random Looking", randomLooking.value, 0.0..1.0, 0.01).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> randomLooking.value = it }
-                setting("Free Look", freeLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> freeLook.value = it }
-                setting("Block Free Look", blockFreeLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> blockFreeLook.value = it }
-                setting("Elytra Free Look", elytraFreeLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> elytraFreeLook.value = it }
-                setting("Smooth Look", smoothLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> smoothLook.value = it }
-                setting("Elytra Smooth Look", elytraSmoothLook.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> elytraSmoothLook.value = it }
-                setting("Smooth Look Ticks", smoothLookTicks.value, 0..200).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> smoothLookTicks.value = it }
-                setting("Remain With Existing Look Direction", remainWithExistingLookDirection.value).group(Group.Behavior, SubGroup.Interaction).onValueChange { _, it -> remainWithExistingLookDirection.value = it }
-
-                setting("Block Placement Penalty", blockPlacementPenalty.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> blockPlacementPenalty.value = it }
-                setting("Block Break Additional Penalty", blockBreakAdditionalPenalty.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> blockBreakAdditionalPenalty.value = it }
-                setting("Jump Penalty", jumpPenalty.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> jumpPenalty.value = it }
-                setting("Walk On Water One Penalty", walkOnWaterOnePenalty.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> walkOnWaterOnePenalty.value = it }
-                setting("Avoid Breaking Multiplier", avoidBreakingMultiplier.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> avoidBreakingMultiplier.value = it }
-                setting("Max Cost Increase", maxCostIncrease.value, 0.0..100.0).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> maxCostIncrease.value = it }
-                setting("Backtrack Cost Favoring Coefficient", backtrackCostFavoringCoefficient.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> backtrackCostFavoringCoefficient.value = it }
-                setting("Mob Spawner Avoidance Coefficient", mobSpawnerAvoidanceCoefficient.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> mobSpawnerAvoidanceCoefficient.value = it }
-                setting("Mob Spawner Avoidance Radius", mobSpawnerAvoidanceRadius.value, 0..1000).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> mobSpawnerAvoidanceRadius.value = it }
-                setting("Mob Avoidance Coefficient", mobAvoidanceCoefficient.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> mobAvoidanceCoefficient.value = it }
-                setting("Mob Avoidance Radius", mobAvoidanceRadius.value, 0..1000).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> mobAvoidanceRadius.value = it }
-                setting("Path Cutoff Factor", pathCutoffFactor.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> pathCutoffFactor.value = it }
-                setting("Break Correct Block Penalty Multiplier", breakCorrectBlockPenaltyMultiplier.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> breakCorrectBlockPenaltyMultiplier.value = it }
-                setting("Place Incorrect Block Penalty Multiplier", placeIncorrectBlockPenaltyMultiplier.value, 0.0..100.0, 0.1).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> placeIncorrectBlockPenaltyMultiplier.value = it }
-                setting("Cost Heuristic", costHeuristic.value, 0.0..10.0, 0.001).group(Group.Behavior, SubGroup.Penalties).onValueChange { _, it -> costHeuristic.value = it }
-
-                setting("Item Saver", itemSaver.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> itemSaver.value = it }
-                setting("Item Saver Threshold", itemSaverThreshold.value, 0..100).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> itemSaverThreshold.value = it }
-                setting("Prefer Silk Touch", preferSilkTouch.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> preferSilkTouch.value = it }
-                setting("Mine Scan Dropped Items", mineScanDroppedItems.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> mineScanDroppedItems.value = it }
-                setting("Mine Drop Loiter Duration", mineDropLoiterDurationMSThanksLouca.value, 0L..600000L, unit = " ms").group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> mineDropLoiterDurationMSThanksLouca.value = it }
-                setting("Legit Mine", legitMine.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> legitMine.value = it }
-                setting("Legit Mine Y Level", legitMineYLevel.value, 0..256).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> legitMineYLevel.value = it }
-                setting("Legit Mine Include Diagonals", legitMineIncludeDiagonals.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> legitMineIncludeDiagonals.value = it }
-                setting("Force Internal Mining", forceInternalMining.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> forceInternalMining.value = it }
-                setting("Internal Mining Air Exception", internalMiningAirException.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> internalMiningAirException.value = it }
-                setting("Min Y Level While Mining", minYLevelWhileMining.value, 0..2048).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> minYLevelWhileMining.value = it }
-                setting("Max Y Level While Mining", maxYLevelWhileMining.value, 0..2048).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> maxYLevelWhileMining.value = it }
-                setting("Allow Only Exposed Ores", allowOnlyExposedOres.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> allowOnlyExposedOres.value = it }
-                setting("Allow Only Exposed Ores Distance", allowOnlyExposedOresDistance.value, 0..16).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> allowOnlyExposedOresDistance.value = it }
-                setting("Replant Crops", replantCrops.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> replantCrops.value = it }
-                setting("Replant Nether Wart", replantNetherWart.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> replantNetherWart.value = it }
-                setting("Farm Max Scan Size", farmMaxScanSize.value, 0..1024).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> farmMaxScanSize.value = it }
-                setting("Consider Potion Effects", considerPotionEffects.value).group(Group.Behavior, SubGroup.MiningAndFarming).onValueChange { _, it -> considerPotionEffects.value = it }
-
-                setting("Explore For Blocks", exploreForBlocks.value).group(Group.Behavior, SubGroup.Exploration).onValueChange { _, it -> exploreForBlocks.value = it }
-                setting("World Exploring Chunk Offset", worldExploringChunkOffset.value, 0..32).group(Group.Behavior, SubGroup.Exploration).onValueChange { _, it -> worldExploringChunkOffset.value = it }
-                setting("Explore Chunk Set Minimum Size", exploreChunkSetMinimumSize.value, 0..10000).group(Group.Behavior, SubGroup.Exploration).onValueChange { _, it -> exploreChunkSetMinimumSize.value = it }
-                setting("Explore Maintain Y", exploreMaintainY.value, 0..256).group(Group.Behavior, SubGroup.Exploration).onValueChange { _, it -> exploreMaintainY.value = it }
-
-                // BUILDING
-                setting("Build In Layers", buildInLayers.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildInLayers.value = it }
-                setting("Layer Order", layerOrder.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> layerOrder.value = it }
-                setting("Layer Height", layerHeight.value, 0..256).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> layerHeight.value = it }
-                setting("Start At Layer", startAtLayer.value, 0..256).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> startAtLayer.value = it }
-                setting("Skip Failed Layers", skipFailedLayers.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> skipFailedLayers.value = it }
-                setting("Build Only Selection", buildOnlySelection.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildOnlySelection.value = it }
-                setting("Build Repeat", buildRepeat.value.blockPos).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildRepeat.value = it }
-                setting("Build Repeat Count", buildRepeatCount.value, 0..1000).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildRepeatCount.value = it }
-                setting("Build Repeat Sneaky", buildRepeatSneaky.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildRepeatSneaky.value = it }
-                setting("Break From Above", breakFromAbove.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> breakFromAbove.value = it }
-                setting("Goal Break From Above", goalBreakFromAbove.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> goalBreakFromAbove.value = it }
-                setting("Map Art Mode", mapArtMode.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> mapArtMode.value = it }
-                setting("Ok If Water", okIfWater.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> okIfWater.value = it }
-                setting("Incorrect Size", incorrectSize.value, 0..1000).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> incorrectSize.value = it }
-                setting("Schematic Orientation X", schematicOrientationX.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> schematicOrientationX.value = it }
-                setting("Schematic Orientation Y", schematicOrientationY.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> schematicOrientationY.value = it }
-                setting("Schematic Orientation Z", schematicOrientationZ.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> schematicOrientationZ.value = it }
-                setting("Build Schematic Rotation", buildSchematicRotation.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildSchematicRotation.value = it }
-                setting("Build Schematic Mirror", buildSchematicMirror.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> buildSchematicMirror.value = it }
-                setting("Schematic Fallback Extension", schematicFallbackExtension.value).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> schematicFallbackExtension.value = it }
-                setting("Builder Tick Scan Radius", builderTickScanRadius.value, 0..64).group(Group.Building, SubGroup.Schematic).onValueChange { _, it -> builderTickScanRadius.value = it }
-
-                setting("Acceptable Throwaway Items", acceptableThrowawayItems.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> acceptableThrowawayItems.value = it.toList() }
-                setting("Blocks To Avoid", blocksToAvoid.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToAvoid.value = it.toList() }
-                setting("Blocks To Disallow Breaking", blocksToDisallowBreaking.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToDisallowBreaking.value = it.toList() }
-                setting("Blocks To Avoid Breaking", blocksToAvoidBreaking.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> blocksToAvoidBreaking.value = it.toList() }
-                setting("Build Ignore Blocks", buildIgnoreBlocks.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreBlocks.value = it.toList() }
-                setting("Build Skip Blocks", buildSkipBlocks.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildSkipBlocks.value = it.toList() }
-                // FixMe: lmao fuck this im so done
-                //setting("Build Valid Substitutes", buildValidSubstitutes.value.flatMap { it.value }).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildValidSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
-                //setting("Build Substitutes", buildSubstitutes.value.flatMap { it.value }).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
-                setting("Ok If Air", okIfAir.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> okIfAir.value = it.toList() }
-                setting("Build Ignore Existing", buildIgnoreExisting.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreExisting.value = it }
-                setting("Build Ignore Direction", buildIgnoreDirection.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreDirection.value = it }
-                setting("Build Ignore Properties", buildIgnoreProperties.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> buildIgnoreProperties.value = it.toList() }
-                setting("Avoid Updating Falling Blocks", avoidUpdatingFallingBlocks.value).group(Group.Building, SubGroup.BlockRules).onValueChange { _, it -> avoidUpdatingFallingBlocks.value = it }
-
-                // RENDERING
-                setting("Render Path", renderPath.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderPath.value = it }
-                setting("Render Path As Line", renderPathAsLine.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderPathAsLine.value = it }
-                setting("Render Goal", renderGoal.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderGoal.value = it }
-                setting("Render Goal Animated", renderGoalAnimated.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderGoalAnimated.value = it }
-                setting("Render Goal Ignore Depth", renderGoalIgnoreDepth.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderGoalIgnoreDepth.value = it }
-                setting("Render Goal XZ Beacon", renderGoalXZBeacon.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderGoalXZBeacon.value = it }
-                setting("Path Render Line Width Pixels", pathRenderLineWidthPixels.value, 0f..10f, 0.1f).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> pathRenderLineWidthPixels.value = it }
-                setting("Goal Render Line Width Pixels", goalRenderLineWidthPixels.value, 0f..10f, 0.1f).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> goalRenderLineWidthPixels.value = it }
-                setting("Fade Path", fadePath.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> fadePath.value = it }
-                setting("Render Cached Chunks", renderCachedChunks.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderCachedChunks.value = it }
-                setting("Cached Chunks Opacity", cachedChunksOpacity.value, 0f..1f, 0.05f).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> cachedChunksOpacity.value = it }
-                setting("Render Path Ignore Depth", renderPathIgnoreDepth.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderPathIgnoreDepth.value = it }
-                setting("Render Selection Boxes", renderSelectionBoxes.value).group(Group.Rendering, SubGroup.Rendering).onValueChange { _, it -> renderSelectionBoxes.value = it }
-
-                setting("Color Current Path", colorCurrentPath.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorCurrentPath.value = it }
-                setting("Color Next Path", colorNextPath.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorNextPath.value = it }
-                setting("Color Blocks To Break", colorBlocksToBreak.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorBlocksToBreak.value = it }
-                setting("Color Blocks To Place", colorBlocksToPlace.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorBlocksToPlace.value = it }
-                setting("Color Blocks To Walk Into", colorBlocksToWalkInto.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorBlocksToWalkInto.value = it }
-                setting("Color Best Path So Far", colorBestPathSoFar.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorBestPathSoFar.value = it }
-                setting("Color Most Recent Considered", colorMostRecentConsidered.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorMostRecentConsidered.value = it }
-                setting("Color Goal Box", colorGoalBox.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorGoalBox.value = it }
-                setting("Color Inverted Goal Box", colorInvertedGoalBox.value).group(Group.Rendering, SubGroup.RenderingColors).onValueChange { _, it -> colorInvertedGoalBox.value = it }
-
-                setting("Render Selection", renderSelection.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> renderSelection.value = it }
-                setting("Color Selection", colorSelection.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> colorSelection.value = it }
-                setting("Color Selection Pos1", colorSelectionPos1.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> colorSelectionPos1.value = it }
-                setting("Color Selection Pos2", colorSelectionPos2.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> colorSelectionPos2.value = it }
-                setting("Selection Opacity", selectionOpacity.value, 0f..1f, 0.05f).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> selectionOpacity.value = it }
-                setting("Selection Line Width", selectionLineWidth.value, 0f..10f, 0.1f).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> selectionLineWidth.value = it }
-                setting("Render Selection Ignore Depth", renderSelectionIgnoreDepth.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> renderSelectionIgnoreDepth.value = it }
-                setting("Render Selection Corners", renderSelectionCorners.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> renderSelectionCorners.value = it }
-                setting("Render Selection Boxes Ignore Depth", renderSelectionBoxesIgnoreDepth.value).group(Group.Rendering, SubGroup.RenderingSelection).onValueChange { _, it -> renderSelectionBoxesIgnoreDepth.value = it }
-
-                // ELYTRA
-                setting("Simulation Ticks", elytraSimulationTicks.value, 0..200).group(Group.Elytra).onValueChange { _, it -> elytraSimulationTicks.value = it }
-                setting("Pitch Range", elytraPitchRange.value, 0..90).group(Group.Elytra).onValueChange { _, it -> elytraPitchRange.value = it }
-                setting("Firework Speed", elytraFireworkSpeed.value, 0.0..3.0, 0.1).group(Group.Elytra).onValueChange { _, it -> elytraFireworkSpeed.value = it }
-                setting("Firework Setback Use Delay", elytraFireworkSetbackUseDelay.value, 0..600).group(Group.Elytra).onValueChange { _, it -> elytraFireworkSetbackUseDelay.value = it }
-                setting("Minimum Avoidance", elytraMinimumAvoidance.value, 0.0..10.0, 0.1).group(Group.Elytra).onValueChange { _, it -> elytraMinimumAvoidance.value = it }
-                setting("Conserve Fireworks", elytraConserveFireworks.value).group(Group.Elytra).onValueChange { _, it -> elytraConserveFireworks.value = it }
-                setting("Render Raytraces", elytraRenderRaytraces.value).group(Group.Elytra).onValueChange { _, it -> elytraRenderRaytraces.value = it }
-                setting("Render Hitbox Raytraces", elytraRenderHitboxRaytraces.value).group(Group.Elytra).onValueChange { _, it -> elytraRenderHitboxRaytraces.value = it }
-                setting("Render Simulation", elytraRenderSimulation.value).group(Group.Elytra).onValueChange { _, it -> elytraRenderSimulation.value = it }
-                setting("Auto Jump", elytraAutoJump.value).group(Group.Elytra).onValueChange { _, it -> elytraAutoJump.value = it }
-                setting("Nether Seed", elytraNetherSeed.value, Long.MIN_VALUE..Long.MAX_VALUE).group(Group.Elytra).onValueChange { _, it -> elytraNetherSeed.value = it }
-                setting("Predict Terrain", elytraPredictTerrain.value).group(Group.Elytra).onValueChange { _, it -> elytraPredictTerrain.value = it }
-                setting("Auto Swap", elytraAutoSwap.value).group(Group.Elytra).onValueChange { _, it -> elytraAutoSwap.value = it }
-                setting("Minimum Durability", elytraMinimumDurability.value, 0..432).group(Group.Elytra).onValueChange { _, it -> elytraMinimumDurability.value = it }
-                setting("Min Fireworks Before Landing", elytraMinFireworksBeforeLanding.value, 0..64).group(Group.Elytra).onValueChange { _, it -> elytraMinFireworksBeforeLanding.value = it }
-                setting("Allow Emergency Land", elytraAllowEmergencyLand.value).group(Group.Elytra).onValueChange { _, it -> elytraAllowEmergencyLand.value = it }
-                setting("Time Between Cache Cull Secs", elytraTimeBetweenCacheCullSecs.value, 0L..86400L).group(Group.Elytra).onValueChange { _, it -> elytraTimeBetweenCacheCullSecs.value = it }
-                setting("Cache Cull Distance", elytraCacheCullDistance.value, 0..100000).group(Group.Elytra).onValueChange { _, it -> elytraCacheCullDistance.value = it }
-                setting("Allow Land On Nether Fortress", elytraAllowLandOnNetherFortress.value).group(Group.Elytra).onValueChange { _, it -> elytraAllowLandOnNetherFortress.value = it }
-                setting("Terms Accepted", elytraTermsAccepted.value).group(Group.Elytra).onValueChange { _, it -> elytraTermsAccepted.value = it }
-                setting("Chat Spam", elytraChatSpam.value).group(Group.Elytra).onValueChange { _, it -> elytraChatSpam.value = it }
-            }
-        }
-    }
 
     /**
      * Whether Baritone is currently pathing
@@ -385,5 +98,274 @@ object BaritoneHandler : Configurable(LambdaConfig), Automated by AutomationConf
         if (!isBaritoneLoaded) return
         primary?.pathingBehavior?.cancelEverything()
         primary?.elytraProcess?.resetState()
+    }
+
+    class BaritoneConfigSettings(
+        override val c: Config,
+        private val bSettings: Settings
+    ) : ConfigBlock {
+        companion object {
+            private const val GENERAL_TAB = "General"
+            private const val PATHING_TAB = "Pathing"
+            private const val BEHAVIOR_TAB = "Behavior"
+            private const val BUILDING_TAB = "Building"
+            private const val RENDERING_TAB = "Rendering"
+            private const val ELYTRA_TAB = "Elytra"
+
+            private const val CHAT_AND_CONTROL_GROUP = "Chat & Control"
+            private const val WAYPOINTS_GROUP = "Waypoints"
+            private const val ASSUMPTIONS_GROUP = "Assumptions"
+            private const val MOVEMENT_GROUP = "Movement"
+            private const val BLOCK_RULES_GROUP = "Block Rules"
+            private const val MINING_AND_FARMING_GROUP = "Mining & Farming"
+            private const val INTERACTION_GROUP = "Interaction"
+            private const val PENALTIES_GROUP = "Penalties"
+            private const val EXPLORATION_GROUP = "Exploration"
+            private const val MISC_GROUP = "Misc"
+            private const val RENDERING_GROUP = "Rendering"
+            private const val RENDERING_COLORS_GROUP = "Rendering Colors"
+            private const val RENDERING_SELECTION_GROUP = "Rendering Selection"
+            private const val PATHING_PERFORMANCE_GROUP = "Pathing Performance"
+            private const val PATHING_CORE_GROUP = "Pathing Core"
+            private const val FOLLOW_GROUP = "Follow"
+            private const val SCHEMATIC_GROUP = "Schematic"
+        }
+
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val logAsToast by c.setting("Log As Toast", bSettings.logAsToast.value).onValueChange { _, it -> bSettings.logAsToast.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val chatDebug by c.setting("Chat Debug", bSettings.chatDebug.value).onValueChange { _, it -> bSettings.chatDebug.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val chatControl by c.setting("Chat Control", bSettings.chatControl.value).onValueChange { _, it -> bSettings.chatControl.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val chatControlAnyway by c.setting("Chat Control Anyway", bSettings.chatControlAnyway.value).onValueChange { _, it -> bSettings.chatControlAnyway.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val prefixControl by c.setting("Prefix Control", bSettings.prefixControl.value).onValueChange { _, it -> bSettings.prefixControl.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val prefix by c.setting("Prefix", bSettings.prefix.value).onValueChange { _, it -> bSettings.prefix.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val shortBaritonePrefix by c.setting("Short Baritone Prefix", bSettings.shortBaritonePrefix.value).onValueChange { _, it -> bSettings.shortBaritonePrefix.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val useMessageTag by c.setting("Use Message Tag", bSettings.useMessageTag.value).onValueChange { _, it -> bSettings.useMessageTag.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val echoCommands by c.setting("Echo Commands", bSettings.echoCommands.value).onValueChange { _, it -> bSettings.echoCommands.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val censorCoordinates by c.setting("Censor Coordinates", bSettings.censorCoordinates.value).onValueChange { _, it -> bSettings.censorCoordinates.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val censorRanCommands by c.setting("Censor Ran Commands", bSettings.censorRanCommands.value).onValueChange { _, it -> bSettings.censorRanCommands.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val desktopNotifications by c.setting("Desktop Notifications", bSettings.desktopNotifications.value).onValueChange { _, it -> bSettings.desktopNotifications.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val notificationOnPathComplete by c.setting("Notification On Path Complete", bSettings.notificationOnPathComplete.value).onValueChange { _, it -> bSettings.notificationOnPathComplete.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val notificationOnFarmFail by c.setting("Notification On Farm Fail", bSettings.notificationOnFarmFail.value).onValueChange { _, it -> bSettings.notificationOnFarmFail.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val notificationOnBuildFinished by c.setting("Notification On Build Finished", bSettings.notificationOnBuildFinished.value).onValueChange { _, it -> bSettings.notificationOnBuildFinished.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val notificationOnExploreFinished by c.setting("Notification On Explore Finished", bSettings.notificationOnExploreFinished.value).onValueChange { _, it -> bSettings.notificationOnExploreFinished.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val notificationOnMineFail by c.setting("Notification On Mine Fail", bSettings.notificationOnMineFail.value).onValueChange { _, it -> bSettings.notificationOnMineFail.value = it }
+        @Tab(GENERAL_TAB) @Group(CHAT_AND_CONTROL_GROUP) val verboseCommandExceptions by c.setting("Verbose Command Exceptions", bSettings.verboseCommandExceptions.value).onValueChange { _, it -> bSettings.verboseCommandExceptions.value = it }
+        @Tab(GENERAL_TAB) @Group(WAYPOINTS_GROUP) val doBedWaypoints by c.setting("Do Bed Waypoints", bSettings.doBedWaypoints.value).onValueChange { _, it -> bSettings.doBedWaypoints.value = it }
+        @Tab(GENERAL_TAB) @Group(WAYPOINTS_GROUP) val doDeathWaypoints by c.setting("Do Death Waypoints", bSettings.doDeathWaypoints.value).onValueChange { _, it -> bSettings.doDeathWaypoints.value = it }
+        @Tab(GENERAL_TAB) @Group(MISC_GROUP) val antiCheatCompatibility by c.setting("Anti Cheat Compatibility", bSettings.antiCheatCompatibility.value).onValueChange { _, it -> bSettings.antiCheatCompatibility.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pathingMaxChunkBorderFetch by c.setting("Pathing Max Chunk Border Fetch", bSettings.pathingMaxChunkBorderFetch.value, 0..64).onValueChange { _, it -> bSettings.pathingMaxChunkBorderFetch.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pathingMapDefaultSize by c.setting("Pathing Map Default Size", bSettings.pathingMapDefaultSize.value, 0..2048).onValueChange { _, it -> bSettings.pathingMapDefaultSize.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pathingMapLoadFactor by c.setting("Pathing Map Load Factor", bSettings.pathingMapLoadFactor.value, 0f..1f, 0.05f).onValueChange { _, it -> bSettings.pathingMapLoadFactor.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val distanceTrim by c.setting("Distance Trim", bSettings.distanceTrim.value).onValueChange { _, it -> bSettings.distanceTrim.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val simplifyUnloadedYCoord by c.setting("Simplify Unloaded Y Coord", bSettings.simplifyUnloadedYCoord.value).onValueChange { _, it -> bSettings.simplifyUnloadedYCoord.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val repackOnAnyBlockChange by c.setting("Repack On Any Block Change", bSettings.repackOnAnyBlockChange.value).onValueChange { _, it -> bSettings.repackOnAnyBlockChange.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val avoidance by c.setting("Avoidance", bSettings.avoidance.value).onValueChange { _, it -> bSettings.avoidance.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pruneRegionsFromRAM by c.setting("Prune Regions From RAM", bSettings.pruneRegionsFromRAM.value).onValueChange { _, it -> bSettings.pruneRegionsFromRAM.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val backfill by c.setting("Backfill", bSettings.backfill.value).onValueChange { _, it -> bSettings.backfill.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val maxFallHeightNoWater by c.setting("Max Fall Height No Water", bSettings.maxFallHeightNoWater.value, 0..256).onValueChange { _, it -> bSettings.maxFallHeightNoWater.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val maxFallHeightBucket by c.setting("Max Fall Height Bucket", bSettings.maxFallHeightBucket.value, 0..256).onValueChange { _, it -> bSettings.maxFallHeightBucket.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val axisHeight by c.setting("Axis Height", bSettings.axisHeight.value, 0..256).onValueChange { _, it -> bSettings.axisHeight.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val disconnectOnArrival by c.setting("Disconnect On Arrival", bSettings.disconnectOnArrival.value).onValueChange { _, it -> bSettings.disconnectOnArrival.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val splicePath by c.setting("Splice Path", bSettings.splicePath.value).onValueChange { _, it -> bSettings.splicePath.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val maxPathHistoryLength by c.setting("Max Path History Length", bSettings.maxPathHistoryLength.value, 0..10000).onValueChange { _, it -> bSettings.maxPathHistoryLength.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pathHistoryCutoffAmount by c.setting("Path History Cutoff Amount", bSettings.pathHistoryCutoffAmount.value, 0..10000).onValueChange { _, it -> bSettings.pathHistoryCutoffAmount.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val mineGoalUpdateInterval by c.setting("Mine Goal Update Interval", bSettings.mineGoalUpdateInterval.value, 0..10000).onValueChange { _, it -> bSettings.mineGoalUpdateInterval.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val maxCachedWorldScanCount by c.setting("Max Cached World Scan Count", bSettings.maxCachedWorldScanCount.value, 0..100000).onValueChange { _, it -> bSettings.maxCachedWorldScanCount.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val mineMaxOreLocationsCount by c.setting("Mine Max Ore Locations Count", bSettings.mineMaxOreLocationsCount.value, 0..100000).onValueChange { _, it -> bSettings.mineMaxOreLocationsCount.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val cachedChunksExpirySeconds by c.setting("Cached Chunks Expiry Seconds", bSettings.cachedChunksExpirySeconds.value, -1L..86400L).onValueChange { _, it -> bSettings.cachedChunksExpirySeconds.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val yLevelBoxSize by c.setting("Y Level Box Size", bSettings.yLevelBoxSize.value, 0.0..256.0).onValueChange { _, it -> bSettings.yLevelBoxSize.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val extendCacheOnThreshold by c.setting("Extend Cache On Threshold", bSettings.extendCacheOnThreshold.value).onValueChange { _, it -> bSettings.extendCacheOnThreshold.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val cancelOnGoalInvalidation by c.setting("Cancel On Goal Invalidation", bSettings.cancelOnGoalInvalidation.value).onValueChange { _, it -> bSettings.cancelOnGoalInvalidation.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val chunkCaching by c.setting("Chunk Caching", bSettings.chunkCaching.value).onValueChange { _, it -> bSettings.chunkCaching.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val chunkPackerQueueMaxSize by c.setting("Chunk Packer Queue Max Size", bSettings.chunkPackerQueueMaxSize.value, 0..10000).onValueChange { _, it -> bSettings.chunkPackerQueueMaxSize.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pathThroughCachedOnly by c.setting("Path Through Cached Only", bSettings.pathThroughCachedOnly.value).onValueChange { _, it -> bSettings.pathThroughCachedOnly.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val blacklistClosestOnFailure by c.setting("Blacklist Closest On Failure", bSettings.blacklistClosestOnFailure.value).onValueChange { _, it -> bSettings.blacklistClosestOnFailure.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val pathCutoffMinimumLength by c.setting("Path Cutoff Minimum Length", bSettings.pathCutoffMinimumLength.value, 0..1000).onValueChange { _, it -> bSettings.pathCutoffMinimumLength.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val cutoffAtLoadBoundary by c.setting("Cutoff At Load Boundary", bSettings.cutoffAtLoadBoundary.value).onValueChange { _, it -> bSettings.cutoffAtLoadBoundary.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val minimumImprovementRepropagation by c.setting("Minimum Improvement Repropagation", bSettings.minimumImprovementRepropagation.value).onValueChange { _, it -> bSettings.minimumImprovementRepropagation.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_CORE_GROUP) val costVerificationLookahead by c.setting("Cost Verification Lookahead", bSettings.costVerificationLookahead.value, 0..1000).onValueChange { _, it -> bSettings.costVerificationLookahead.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val primaryTimeoutMS by c.setting("Primary Timeout", bSettings.primaryTimeoutMS.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.primaryTimeoutMS.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val failureTimeoutMS by c.setting("Failure Timeout", bSettings.failureTimeoutMS.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.failureTimeoutMS.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val planAheadPrimaryTimeoutMS by c.setting("Plan Ahead Primary Timeout", bSettings.planAheadPrimaryTimeoutMS.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.planAheadPrimaryTimeoutMS.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val planAheadFailureTimeoutMS by c.setting("Plan Ahead Failure Timeout", bSettings.planAheadFailureTimeoutMS.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.planAheadFailureTimeoutMS.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val slowPath by c.setting("Slow Path", bSettings.slowPath.value).onValueChange { _, it -> bSettings.slowPath.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val slowPathTimeDelayMS by c.setting("Slow Path Time Delay", bSettings.slowPathTimeDelayMS.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.slowPathTimeDelayMS.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val slowPathTimeoutMS by c.setting("Slow Path Timeout", bSettings.slowPathTimeoutMS.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.slowPathTimeoutMS.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val planningTickLookahead by c.setting("Planning Tick Lookahead", bSettings.planningTickLookahead.value, 0..200).onValueChange { _, it -> bSettings.planningTickLookahead.value = it }
+        @Tab(PATHING_TAB) @Group(PATHING_PERFORMANCE_GROUP) val movementTimeoutTicks by c.setting("Movement Timeout Ticks", bSettings.movementTimeoutTicks.value, 0..2000).onValueChange { _, it -> bSettings.movementTimeoutTicks.value = it }
+        @Tab(PATHING_TAB) @Group(FOLLOW_GROUP) val followOffsetDistance by c.setting("Follow Offset Distance", bSettings.followOffsetDistance.value, 0.0..256.0).onValueChange { _, it -> bSettings.followOffsetDistance.value = it }
+        @Tab(PATHING_TAB) @Group(FOLLOW_GROUP) val followOffsetDirection by c.setting("Follow Offset Direction", bSettings.followOffsetDirection.value, -180f..180f, 1f).onValueChange { _, it -> bSettings.followOffsetDirection.value = it }
+        @Tab(PATHING_TAB) @Group(FOLLOW_GROUP) val followRadius by c.setting("Follow Radius", bSettings.followRadius.value, 0..1000).onValueChange { _, it -> bSettings.followRadius.value = it }
+        @Tab(PATHING_TAB) @Group(FOLLOW_GROUP) val followTargetMaxDistance by c.setting("Follow Target Max Distance", bSettings.followTargetMaxDistance.value, 0..10000).onValueChange { _, it -> bSettings.followTargetMaxDistance.value = it }
+        @Tab(PATHING_TAB) @Group(FOLLOW_GROUP) val disableCompletionCheck by c.setting("Disable Completion Check", bSettings.disableCompletionCheck.value).onValueChange { _, it -> bSettings.disableCompletionCheck.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(ASSUMPTIONS_GROUP) val strictLiquidCheck by c.setting("Strict Liquid Check", bSettings.strictLiquidCheck.value).onValueChange { _, it -> bSettings.strictLiquidCheck.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(ASSUMPTIONS_GROUP) val assumeWalkOnWater by c.setting("Assume Walk On Water", bSettings.assumeWalkOnWater.value).onValueChange { _, it -> bSettings.assumeWalkOnWater.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(ASSUMPTIONS_GROUP) val assumeWalkOnLava by c.setting("Assume Walk On Lava", bSettings.assumeWalkOnLava.value).onValueChange { _, it -> bSettings.assumeWalkOnLava.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(ASSUMPTIONS_GROUP) val assumeStep by c.setting("Assume Step", bSettings.assumeStep.value).onValueChange { _, it -> bSettings.assumeStep.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(ASSUMPTIONS_GROUP) val assumeSafeWalk by c.setting("Assume Safe Walk", bSettings.assumeSafeWalk.value).onValueChange { _, it -> bSettings.assumeSafeWalk.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(ASSUMPTIONS_GROUP) val assumeExternalAutoTool by c.setting("Assume External Auto Tool", bSettings.assumeExternalAutoTool.value).onValueChange { _, it -> bSettings.assumeExternalAutoTool.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowParkourAscend by c.setting("Allow Parkour Ascend", bSettings.allowParkourAscend.value).onValueChange { _, it -> bSettings.allowParkourAscend.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowDiagonalDescend by c.setting("Allow Diagonal Descend", bSettings.allowDiagonalDescend.value).onValueChange { _, it -> bSettings.allowDiagonalDescend.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowDiagonalAscend by c.setting("Allow Diagonal Ascend", bSettings.allowDiagonalAscend.value).onValueChange { _, it -> bSettings.allowDiagonalAscend.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowDownward by c.setting("Allow Downward", bSettings.allowDownward.value).onValueChange { _, it -> bSettings.allowDownward.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowVines by c.setting("Allow Vines", bSettings.allowVines.value).onValueChange { _, it -> bSettings.allowVines.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowWalkOnBottomSlab by c.setting("Allow Walk On Bottom Slab", bSettings.allowWalkOnBottomSlab.value).onValueChange { _, it -> bSettings.allowWalkOnBottomSlab.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowParkour by c.setting("Allow Parkour", bSettings.allowParkour.value).onValueChange { _, it -> bSettings.allowParkour.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowParkourPlace by c.setting("Allow Parkour Place", bSettings.allowParkourPlace.value).onValueChange { _, it -> bSettings.allowParkourPlace.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val sprintAscends by c.setting("Sprint Ascends", bSettings.sprintAscends.value).onValueChange { _, it -> bSettings.sprintAscends.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val overshootTraverse by c.setting("Overshoot Traverse", bSettings.overshootTraverse.value).onValueChange { _, it -> bSettings.overshootTraverse.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val pauseMiningForFallingBlocks by c.setting("Pause Mining For Falling Blocks", bSettings.pauseMiningForFallingBlocks.value).onValueChange { _, it -> bSettings.pauseMiningForFallingBlocks.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val allowOvershootDiagonalDescend by c.setting("Allow Overshoot Diagonal Descend", bSettings.allowOvershootDiagonalDescend.value).onValueChange { _, it -> bSettings.allowOvershootDiagonalDescend.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MOVEMENT_GROUP) val sprintInWater by c.setting("Sprint In Water", bSettings.sprintInWater.value).onValueChange { _, it -> bSettings.sprintInWater.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowBreak by c.setting("Allow Break", bSettings.allowBreak.value).onValueChange { _, it -> bSettings.allowBreak.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowBreakAnyway by c.setting("Allow Break Anyway", bSettings.allowBreakAnyway.value).onValueChange { _, it -> bSettings.allowBreakAnyway.value = it.toList() }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowSprint by c.setting("Allow Sprint", bSettings.allowSprint.value).onValueChange { _, it -> bSettings.allowSprint.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowPlace by c.setting("Allow Place", bSettings.allowPlace.value).onValueChange { _, it -> bSettings.allowPlace.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowPlaceInFluidsSource by c.setting("Allow Place In Fluids Source", bSettings.allowPlaceInFluidsSource.value).onValueChange { _, it -> bSettings.allowPlaceInFluidsSource.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowPlaceInFluidsFlow by c.setting("Allow Place In Fluids Flow", bSettings.allowPlaceInFluidsFlow.value).onValueChange { _, it -> bSettings.allowPlaceInFluidsFlow.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowInventory by c.setting("Allow Inventory", bSettings.allowInventory.value).onValueChange { _, it -> bSettings.allowInventory.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val ticksBetweenInventoryMoves by c.setting("Ticks Between Inventory Moves", bSettings.ticksBetweenInventoryMoves.value, 0..20).onValueChange { _, it -> bSettings.ticksBetweenInventoryMoves.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val inventoryMoveOnlyIfStationary by c.setting("Inventory Move Only If Stationary", bSettings.inventoryMoveOnlyIfStationary.value).onValueChange { _, it -> bSettings.inventoryMoveOnlyIfStationary.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val autoTool by c.setting("Auto Tool", bSettings.autoTool.value).onValueChange { _, it -> bSettings.autoTool.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowWaterBucketFall by c.setting("Allow Water Bucket Fall", bSettings.allowWaterBucketFall.value).onValueChange { _, it -> bSettings.allowWaterBucketFall.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val allowJumpAtBuildLimit by c.setting("Allow Jump At Build Limit", bSettings.allowJumpAtBuildLimit.value).onValueChange { _, it -> bSettings.allowJumpAtBuildLimit.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val rightClickContainerOnArrival by c.setting("Right Click Container On Arrival", bSettings.rightClickContainerOnArrival.value).onValueChange { _, it -> bSettings.rightClickContainerOnArrival.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val enterPortal by c.setting("Enter Portal", bSettings.enterPortal.value).onValueChange { _, it -> bSettings.enterPortal.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val walkWhileBreaking by c.setting("Walk While Breaking", bSettings.walkWhileBreaking.value).onValueChange { _, it -> bSettings.walkWhileBreaking.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val useSwordToMine by c.setting("Use Sword To Mine", bSettings.useSwordToMine.value).onValueChange { _, it -> bSettings.useSwordToMine.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val rightClickSpeed by c.setting("Right Click Speed", bSettings.rightClickSpeed.value, 0..10).onValueChange { _, it -> bSettings.rightClickSpeed.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val blockReachDistance by c.setting("Block Reach Distance", bSettings.blockReachDistance.value, 0f..10f, 0.1f).onValueChange { _, it -> bSettings.blockReachDistance.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val blockBreakSpeed by c.setting("Block Break Speed", bSettings.blockBreakSpeed.value, 0..10).onValueChange { _, it -> bSettings.blockBreakSpeed.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val randomLooking113 by c.setting("Random Looking 1.13", bSettings.randomLooking113.value, 0.0..5.0, 0.01).onValueChange { _, it -> bSettings.randomLooking113.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val randomLooking by c.setting("Random Looking", bSettings.randomLooking.value, 0.0..1.0, 0.01).onValueChange { _, it -> bSettings.randomLooking.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val freeLook by c.setting("Free Look", bSettings.freeLook.value).onValueChange { _, it -> bSettings.freeLook.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val blockFreeLook by c.setting("Block Free Look", bSettings.blockFreeLook.value).onValueChange { _, it -> bSettings.blockFreeLook.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val elytraFreeLook by c.setting("Elytra Free Look", bSettings.elytraFreeLook.value).onValueChange { _, it -> bSettings.elytraFreeLook.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val smoothLook by c.setting("Smooth Look", bSettings.smoothLook.value).onValueChange { _, it -> bSettings.smoothLook.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val elytraSmoothLook by c.setting("Elytra Smooth Look", bSettings.elytraSmoothLook.value).onValueChange { _, it -> bSettings.elytraSmoothLook.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val smoothLookTicks by c.setting("Smooth Look Ticks", bSettings.smoothLookTicks.value, 0..200).onValueChange { _, it -> bSettings.smoothLookTicks.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(INTERACTION_GROUP) val remainWithExistingLookDirection by c.setting("Remain With Existing Look Direction", bSettings.remainWithExistingLookDirection.value).onValueChange { _, it -> bSettings.remainWithExistingLookDirection.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val blockPlacementPenalty by c.setting("Block Placement Penalty", bSettings.blockPlacementPenalty.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.blockPlacementPenalty.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val blockBreakAdditionalPenalty by c.setting("Block Break Additional Penalty", bSettings.blockBreakAdditionalPenalty.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.blockBreakAdditionalPenalty.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val jumpPenalty by c.setting("Jump Penalty", bSettings.jumpPenalty.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.jumpPenalty.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val walkOnWaterOnePenalty by c.setting("Walk On Water One Penalty", bSettings.walkOnWaterOnePenalty.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.walkOnWaterOnePenalty.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val avoidBreakingMultiplier by c.setting("Avoid Breaking Multiplier", bSettings.avoidBreakingMultiplier.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.avoidBreakingMultiplier.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val maxCostIncrease by c.setting("Max Cost Increase", bSettings.maxCostIncrease.value, 0.0..100.0).onValueChange { _, it -> bSettings.maxCostIncrease.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val backtrackCostFavoringCoefficient by c.setting("Backtrack Cost Favoring Coefficient", bSettings.backtrackCostFavoringCoefficient.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.backtrackCostFavoringCoefficient.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val mobSpawnerAvoidanceCoefficient by c.setting("Mob Spawner Avoidance Coefficient", bSettings.mobSpawnerAvoidanceCoefficient.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.mobSpawnerAvoidanceCoefficient.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val mobSpawnerAvoidanceRadius by c.setting("Mob Spawner Avoidance Radius", bSettings.mobSpawnerAvoidanceRadius.value, 0..1000).onValueChange { _, it -> bSettings.mobSpawnerAvoidanceRadius.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val mobAvoidanceCoefficient by c.setting("Mob Avoidance Coefficient", bSettings.mobAvoidanceCoefficient.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.mobAvoidanceCoefficient.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val mobAvoidanceRadius by c.setting("Mob Avoidance Radius", bSettings.mobAvoidanceRadius.value, 0..1000).onValueChange { _, it -> bSettings.mobAvoidanceRadius.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val pathCutoffFactor by c.setting("Path Cutoff Factor", bSettings.pathCutoffFactor.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.pathCutoffFactor.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val breakCorrectBlockPenaltyMultiplier by c.setting("Break Correct Block Penalty Multiplier", bSettings.breakCorrectBlockPenaltyMultiplier.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.breakCorrectBlockPenaltyMultiplier.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val placeIncorrectBlockPenaltyMultiplier by c.setting("Place Incorrect Block Penalty Multiplier", bSettings.placeIncorrectBlockPenaltyMultiplier.value, 0.0..100.0, 0.1).onValueChange { _, it -> bSettings.placeIncorrectBlockPenaltyMultiplier.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(PENALTIES_GROUP) val costHeuristic by c.setting("Cost Heuristic", bSettings.costHeuristic.value, 0.0..10.0, 0.001).onValueChange { _, it -> bSettings.costHeuristic.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val itemSaver by c.setting("Item Saver", bSettings.itemSaver.value).onValueChange { _, it -> bSettings.itemSaver.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val itemSaverThreshold by c.setting("Item Saver Threshold", bSettings.itemSaverThreshold.value, 0..100).onValueChange { _, it -> bSettings.itemSaverThreshold.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val preferSilkTouch by c.setting("Prefer Silk Touch", bSettings.preferSilkTouch.value).onValueChange { _, it -> bSettings.preferSilkTouch.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val mineScanDroppedItems by c.setting("Mine Scan Dropped Items", bSettings.mineScanDroppedItems.value).onValueChange { _, it -> bSettings.mineScanDroppedItems.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val mineDropLoiterDurationMSThanksLouca by c.setting("Mine Drop Loiter Duration", bSettings.mineDropLoiterDurationMSThanksLouca.value, 0L..600000L, unit = " ms").onValueChange { _, it -> bSettings.mineDropLoiterDurationMSThanksLouca.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val legitMine by c.setting("Legit Mine", bSettings.legitMine.value).onValueChange { _, it -> bSettings.legitMine.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val legitMineYLevel by c.setting("Legit Mine Y Level", bSettings.legitMineYLevel.value, 0..256).onValueChange { _, it -> bSettings.legitMineYLevel.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val legitMineIncludeDiagonals by c.setting("Legit Mine Include Diagonals", bSettings.legitMineIncludeDiagonals.value).onValueChange { _, it -> bSettings.legitMineIncludeDiagonals.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val forceInternalMining by c.setting("Force Internal Mining", bSettings.forceInternalMining.value).onValueChange { _, it -> bSettings.forceInternalMining.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val internalMiningAirException by c.setting("Internal Mining Air Exception", bSettings.internalMiningAirException.value).onValueChange { _, it -> bSettings.internalMiningAirException.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val minYLevelWhileMining by c.setting("Min Y Level While Mining", bSettings.minYLevelWhileMining.value, 0..2048).onValueChange { _, it -> bSettings.minYLevelWhileMining.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val maxYLevelWhileMining by c.setting("Max Y Level While Mining", bSettings.maxYLevelWhileMining.value, 0..2048).onValueChange { _, it -> bSettings.maxYLevelWhileMining.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val allowOnlyExposedOres by c.setting("Allow Only Exposed Ores", bSettings.allowOnlyExposedOres.value).onValueChange { _, it -> bSettings.allowOnlyExposedOres.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val allowOnlyExposedOresDistance by c.setting("Allow Only Exposed Ores Distance", bSettings.allowOnlyExposedOresDistance.value, 0..16).onValueChange { _, it -> bSettings.allowOnlyExposedOresDistance.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val replantCrops by c.setting("Replant Crops", bSettings.replantCrops.value).onValueChange { _, it -> bSettings.replantCrops.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val replantNetherWart by c.setting("Replant Nether Wart", bSettings.replantNetherWart.value).onValueChange { _, it -> bSettings.replantNetherWart.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val farmMaxScanSize by c.setting("Farm Max Scan Size", bSettings.farmMaxScanSize.value, 0..1024).onValueChange { _, it -> bSettings.farmMaxScanSize.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(MINING_AND_FARMING_GROUP) val considerPotionEffects by c.setting("Consider Potion Effects", bSettings.considerPotionEffects.value).onValueChange { _, it -> bSettings.considerPotionEffects.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(EXPLORATION_GROUP) val exploreForBlocks by c.setting("Explore For Blocks", bSettings.exploreForBlocks.value).onValueChange { _, it -> bSettings.exploreForBlocks.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(EXPLORATION_GROUP) val worldExploringChunkOffset by c.setting("World Exploring Chunk Offset", bSettings.worldExploringChunkOffset.value, 0..32).onValueChange { _, it -> bSettings.worldExploringChunkOffset.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(EXPLORATION_GROUP) val exploreChunkSetMinimumSize by c.setting("Explore Chunk Set Minimum Size", bSettings.exploreChunkSetMinimumSize.value, 0..10000).onValueChange { _, it -> bSettings.exploreChunkSetMinimumSize.value = it }
+        @Tab(BEHAVIOR_TAB) @Group(EXPLORATION_GROUP) val exploreMaintainY by c.setting("Explore Maintain Y", bSettings.exploreMaintainY.value, 0..256).onValueChange { _, it -> bSettings.exploreMaintainY.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildInLayers by c.setting("Build In Layers", bSettings.buildInLayers.value).onValueChange { _, it -> bSettings.buildInLayers.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val layerOrder by c.setting("Layer Order", bSettings.layerOrder.value).onValueChange { _, it -> bSettings.layerOrder.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val layerHeight by c.setting("Layer Height", bSettings.layerHeight.value, 0..256).onValueChange { _, it -> bSettings.layerHeight.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val startAtLayer by c.setting("Start At Layer", bSettings.startAtLayer.value, 0..256).onValueChange { _, it -> bSettings.startAtLayer.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val skipFailedLayers by c.setting("Skip Failed Layers", bSettings.skipFailedLayers.value).onValueChange { _, it -> bSettings.skipFailedLayers.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildOnlySelection by c.setting("Build Only Selection", bSettings.buildOnlySelection.value).onValueChange { _, it -> bSettings.buildOnlySelection.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildRepeat by c.setting("Build Repeat", bSettings.buildRepeat.value.blockPos).onValueChange { _, it -> bSettings.buildRepeat.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildRepeatCount by c.setting("Build Repeat Count", bSettings.buildRepeatCount.value, 0..1000).onValueChange { _, it -> bSettings.buildRepeatCount.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildRepeatSneaky by c.setting("Build Repeat Sneaky", bSettings.buildRepeatSneaky.value).onValueChange { _, it -> bSettings.buildRepeatSneaky.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val breakFromAbove by c.setting("Break From Above", bSettings.breakFromAbove.value).onValueChange { _, it -> bSettings.breakFromAbove.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val goalBreakFromAbove by c.setting("Goal Break From Above", bSettings.goalBreakFromAbove.value).onValueChange { _, it -> bSettings.goalBreakFromAbove.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val mapArtMode by c.setting("Map Art Mode", bSettings.mapArtMode.value).onValueChange { _, it -> bSettings.mapArtMode.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val okIfWater by c.setting("Ok If Water", bSettings.okIfWater.value).onValueChange { _, it -> bSettings.okIfWater.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val incorrectSize by c.setting("Incorrect Size", bSettings.incorrectSize.value, 0..1000).onValueChange { _, it -> bSettings.incorrectSize.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val schematicOrientationX by c.setting("Schematic Orientation X", bSettings.schematicOrientationX.value).onValueChange { _, it -> bSettings.schematicOrientationX.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val schematicOrientationY by c.setting("Schematic Orientation Y", bSettings.schematicOrientationY.value).onValueChange { _, it -> bSettings.schematicOrientationY.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val schematicOrientationZ by c.setting("Schematic Orientation Z", bSettings.schematicOrientationZ.value).onValueChange { _, it -> bSettings.schematicOrientationZ.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildSchematicRotation: BlockRotation by c.setting("Build Schematic Rotation", bSettings.buildSchematicRotation.value).onValueChange { _, it -> bSettings.buildSchematicRotation.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val buildSchematicMirror: BlockMirror by c.setting("Build Schematic Mirror", bSettings.buildSchematicMirror.value).onValueChange { _, it -> bSettings.buildSchematicMirror.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val schematicFallbackExtension by c.setting("Schematic Fallback Extension", bSettings.schematicFallbackExtension.value).onValueChange { _, it -> bSettings.schematicFallbackExtension.value = it }
+        @Tab(BUILDING_TAB) @Group(SCHEMATIC_GROUP) val builderTickScanRadius by c.setting("Builder Tick Scan Radius", bSettings.builderTickScanRadius.value, 0..64).onValueChange { _, it -> bSettings.builderTickScanRadius.value = it }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val acceptableThrowawayItems by c.setting("Acceptable Throwaway Items", bSettings.acceptableThrowawayItems.value).onValueChange { _, it -> bSettings.acceptableThrowawayItems.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val blocksToAvoid by c.setting("Blocks To Avoid", bSettings.blocksToAvoid.value).onValueChange { _, it -> bSettings.blocksToAvoid.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val blocksToDisallowBreaking by c.setting("Blocks To Disallow Breaking", bSettings.blocksToDisallowBreaking.value).onValueChange { _, it -> bSettings.blocksToDisallowBreaking.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val blocksToAvoidBreaking by c.setting("Blocks To Avoid Breaking", bSettings.blocksToAvoidBreaking.value).onValueChange { _, it -> bSettings.blocksToAvoidBreaking.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildIgnoreBlocks by c.setting("Build Ignore Blocks", bSettings.buildIgnoreBlocks.value).onValueChange { _, it -> bSettings.buildIgnoreBlocks.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildSkipBlocks by c.setting("Build Skip Blocks", bSettings.buildSkipBlocks.value).onValueChange { _, it -> bSettings.buildSkipBlocks.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildValidSubstitutes by c.setting("Build Valid Substitutes", bSettings.buildValidSubstitutes.value).onValueChange { _, it -> bSettings.buildValidSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildSubstitutes by c.setting("Build Substitutes", bSettings.buildSubstitutes.value).onValueChange { _, it -> bSettings.buildSubstitutes.value = it.mapValues { (_, v) -> v.toList() } }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val okIfAir by c.setting("Ok If Air", bSettings.okIfAir.value).onValueChange { _, it -> bSettings.okIfAir.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildIgnoreExisting by c.setting("Build Ignore Existing", bSettings.buildIgnoreExisting.value).onValueChange { _, it -> bSettings.buildIgnoreExisting.value = it }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildIgnoreDirection by c.setting("Build Ignore Direction", bSettings.buildIgnoreDirection.value).onValueChange { _, it -> bSettings.buildIgnoreDirection.value = it }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val buildIgnoreProperties by c.setting("Build Ignore Properties", bSettings.buildIgnoreProperties.value).onValueChange { _, it -> bSettings.buildIgnoreProperties.value = it.toList() }
+        @Tab(BUILDING_TAB) @Group(BLOCK_RULES_GROUP) val avoidUpdatingFallingBlocks by c.setting("Avoid Updating Falling Blocks", bSettings.avoidUpdatingFallingBlocks.value).onValueChange { _, it -> bSettings.avoidUpdatingFallingBlocks.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderPath by c.setting("Render Path", bSettings.renderPath.value).onValueChange { _, it -> bSettings.renderPath.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderPathAsLine by c.setting("Render Path As Line", bSettings.renderPathAsLine.value).onValueChange { _, it -> bSettings.renderPathAsLine.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderGoal by c.setting("Render Goal", bSettings.renderGoal.value).onValueChange { _, it -> bSettings.renderGoal.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderGoalAnimated by c.setting("Render Goal Animated", bSettings.renderGoalAnimated.value).onValueChange { _, it -> bSettings.renderGoalAnimated.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderGoalIgnoreDepth by c.setting("Render Goal Ignore Depth", bSettings.renderGoalIgnoreDepth.value).onValueChange { _, it -> bSettings.renderGoalIgnoreDepth.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderGoalXZBeacon by c.setting("Render Goal XZ Beacon", bSettings.renderGoalXZBeacon.value).onValueChange { _, it -> bSettings.renderGoalXZBeacon.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val pathRenderLineWidthPixels by c.setting("Path Render Line Width Pixels", bSettings.pathRenderLineWidthPixels.value, 0f..10f, 0.1f).onValueChange { _, it -> bSettings.pathRenderLineWidthPixels.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val goalRenderLineWidthPixels by c.setting("Goal Render Line Width Pixels", bSettings.goalRenderLineWidthPixels.value, 0f..10f, 0.1f).onValueChange { _, it -> bSettings.goalRenderLineWidthPixels.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val fadePath by c.setting("Fade Path", bSettings.fadePath.value).onValueChange { _, it -> bSettings.fadePath.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderCachedChunks by c.setting("Render Cached Chunks", bSettings.renderCachedChunks.value).onValueChange { _, it -> bSettings.renderCachedChunks.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val cachedChunksOpacity by c.setting("Cached Chunks Opacity", bSettings.cachedChunksOpacity.value, 0f..1f, 0.05f).onValueChange { _, it -> bSettings.cachedChunksOpacity.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderPathIgnoreDepth by c.setting("Render Path Ignore Depth", bSettings.renderPathIgnoreDepth.value).onValueChange { _, it -> bSettings.renderPathIgnoreDepth.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_GROUP) val renderSelectionBoxes by c.setting("Render Selection Boxes", bSettings.renderSelectionBoxes.value).onValueChange { _, it -> bSettings.renderSelectionBoxes.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorCurrentPath by c.setting("Color Current Path", bSettings.colorCurrentPath.value).onValueChange { _, it -> bSettings.colorCurrentPath.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorNextPath by c.setting("Color Next Path", bSettings.colorNextPath.value).onValueChange { _, it -> bSettings.colorNextPath.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorBlocksToBreak by c.setting("Color Blocks To Break", bSettings.colorBlocksToBreak.value).onValueChange { _, it -> bSettings.colorBlocksToBreak.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorBlocksToPlace by c.setting("Color Blocks To Place", bSettings.colorBlocksToPlace.value).onValueChange { _, it -> bSettings.colorBlocksToPlace.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorBlocksToWalkInto by c.setting("Color Blocks To Walk Into", bSettings.colorBlocksToWalkInto.value).onValueChange { _, it -> bSettings.colorBlocksToWalkInto.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorBestPathSoFar by c.setting("Color Best Path So Far", bSettings.colorBestPathSoFar.value).onValueChange { _, it -> bSettings.colorBestPathSoFar.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorMostRecentConsidered by c.setting("Color Most Recent Considered", bSettings.colorMostRecentConsidered.value).onValueChange { _, it -> bSettings.colorMostRecentConsidered.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorGoalBox by c.setting("Color Goal Box", bSettings.colorGoalBox.value).onValueChange { _, it -> bSettings.colorGoalBox.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_COLORS_GROUP) val colorInvertedGoalBox by c.setting("Color Inverted Goal Box", bSettings.colorInvertedGoalBox.value).onValueChange { _, it -> bSettings.colorInvertedGoalBox.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val renderSelection by c.setting("Render Selection", bSettings.renderSelection.value).onValueChange { _, it -> bSettings.renderSelection.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val colorSelection by c.setting("Color Selection", bSettings.colorSelection.value).onValueChange { _, it -> bSettings.colorSelection.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val colorSelectionPos1 by c.setting("Color Selection Pos1", bSettings.colorSelectionPos1.value).onValueChange { _, it -> bSettings.colorSelectionPos1.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val colorSelectionPos2 by c.setting("Color Selection Pos2", bSettings.colorSelectionPos2.value).onValueChange { _, it -> bSettings.colorSelectionPos2.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val selectionOpacity by c.setting("Selection Opacity", bSettings.selectionOpacity.value, 0f..1f, 0.05f).onValueChange { _, it -> bSettings.selectionOpacity.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val selectionLineWidth by c.setting("Selection Line Width", bSettings.selectionLineWidth.value, 0f..10f, 0.1f).onValueChange { _, it -> bSettings.selectionLineWidth.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val renderSelectionIgnoreDepth by c.setting("Render Selection Ignore Depth", bSettings.renderSelectionIgnoreDepth.value).onValueChange { _, it -> bSettings.renderSelectionIgnoreDepth.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val renderSelectionCorners by c.setting("Render Selection Corners", bSettings.renderSelectionCorners.value).onValueChange { _, it -> bSettings.renderSelectionCorners.value = it }
+        @Tab(RENDERING_TAB) @Group(RENDERING_SELECTION_GROUP) val renderSelectionBoxesIgnoreDepth by c.setting("Render Selection Boxes Ignore Depth", bSettings.renderSelectionBoxesIgnoreDepth.value).onValueChange { _, it -> bSettings.renderSelectionBoxesIgnoreDepth.value = it }
+        @Tab(ELYTRA_TAB) val elytraSimulationTicks by c.setting("Simulation Ticks", bSettings.elytraSimulationTicks.value, 0..200).onValueChange { _, it -> bSettings.elytraSimulationTicks.value = it }
+        @Tab(ELYTRA_TAB) val elytraPitchRange by c.setting("Pitch Range", bSettings.elytraPitchRange.value, 0..90).onValueChange { _, it -> bSettings.elytraPitchRange.value = it }
+        @Tab(ELYTRA_TAB) val elytraFireworkSpeed by c.setting("Firework Speed", bSettings.elytraFireworkSpeed.value, 0.0..3.0, 0.1).onValueChange { _, it -> bSettings.elytraFireworkSpeed.value = it }
+        @Tab(ELYTRA_TAB) val elytraFireworkSetbackUseDelay by c.setting("Firework Setback Use Delay", bSettings.elytraFireworkSetbackUseDelay.value, 0..600).onValueChange { _, it -> bSettings.elytraFireworkSetbackUseDelay.value = it }
+        @Tab(ELYTRA_TAB) val elytraMinimumAvoidance by c.setting("Minimum Avoidance", bSettings.elytraMinimumAvoidance.value, 0.0..10.0, 0.1).onValueChange { _, it -> bSettings.elytraMinimumAvoidance.value = it }
+        @Tab(ELYTRA_TAB) val elytraConserveFireworks by c.setting("Conserve Fireworks", bSettings.elytraConserveFireworks.value).onValueChange { _, it -> bSettings.elytraConserveFireworks.value = it }
+        @Tab(ELYTRA_TAB) val elytraRenderRaytraces by c.setting("Render Raytraces", bSettings.elytraRenderRaytraces.value).onValueChange { _, it -> bSettings.elytraRenderRaytraces.value = it }
+        @Tab(ELYTRA_TAB) val elytraRenderHitboxRaytraces by c.setting("Render Hitbox Raytraces", bSettings.elytraRenderHitboxRaytraces.value).onValueChange { _, it -> bSettings.elytraRenderHitboxRaytraces.value = it }
+        @Tab(ELYTRA_TAB) val elytraRenderSimulation by c.setting("Render Simulation", bSettings.elytraRenderSimulation.value).onValueChange { _, it -> bSettings.elytraRenderSimulation.value = it }
+        @Tab(ELYTRA_TAB) val elytraAutoJump by c.setting("Auto Jump", bSettings.elytraAutoJump.value).onValueChange { _, it -> bSettings.elytraAutoJump.value = it }
+        @Tab(ELYTRA_TAB) val elytraNetherSeed by c.setting("Nether Seed", bSettings.elytraNetherSeed.value, Long.MIN_VALUE..Long.MAX_VALUE).onValueChange { _, it -> bSettings.elytraNetherSeed.value = it }
+        @Tab(ELYTRA_TAB) val elytraPredictTerrain by c.setting("Predict Terrain", bSettings.elytraPredictTerrain.value).onValueChange { _, it -> bSettings.elytraPredictTerrain.value = it }
+        @Tab(ELYTRA_TAB) val elytraAutoSwap by c.setting("Auto Swap", bSettings.elytraAutoSwap.value).onValueChange { _, it -> bSettings.elytraAutoSwap.value = it }
+        @Tab(ELYTRA_TAB) val elytraMinimumDurability by c.setting("Minimum Durability", bSettings.elytraMinimumDurability.value, 0..432).onValueChange { _, it -> bSettings.elytraMinimumDurability.value = it }
+        @Tab(ELYTRA_TAB) val elytraMinFireworksBeforeLanding by c.setting("Min Fireworks Before Landing", bSettings.elytraMinFireworksBeforeLanding.value, 0..64).onValueChange { _, it -> bSettings.elytraMinFireworksBeforeLanding.value = it }
+        @Tab(ELYTRA_TAB) val elytraAllowEmergencyLand by c.setting("Allow Emergency Land", bSettings.elytraAllowEmergencyLand.value).onValueChange { _, it -> bSettings.elytraAllowEmergencyLand.value = it }
+        @Tab(ELYTRA_TAB) val elytraTimeBetweenCacheCullSecs by c.setting("Time Between Cache Cull Secs", bSettings.elytraTimeBetweenCacheCullSecs.value, 0L..86400L).onValueChange { _, it -> bSettings.elytraTimeBetweenCacheCullSecs.value = it }
+        @Tab(ELYTRA_TAB) val elytraCacheCullDistance by c.setting("Cache Cull Distance", bSettings.elytraCacheCullDistance.value, 0..100000).onValueChange { _, it -> bSettings.elytraCacheCullDistance.value = it }
+        @Tab(ELYTRA_TAB) val elytraAllowLandOnNetherFortress by c.setting("Allow Land On Nether Fortress", bSettings.elytraAllowLandOnNetherFortress.value).onValueChange { _, it -> bSettings.elytraAllowLandOnNetherFortress.value = it }
+        @Tab(ELYTRA_TAB) val elytraTermsAccepted by c.setting("Terms Accepted", bSettings.elytraTermsAccepted.value).onValueChange { _, it -> bSettings.elytraTermsAccepted.value = it }
+        @Tab(ELYTRA_TAB) val elytraChatSpam by c.setting("Chat Spam", bSettings.elytraChatSpam.value).onValueChange { _, it -> bSettings.elytraChatSpam.value = it }
     }
 }

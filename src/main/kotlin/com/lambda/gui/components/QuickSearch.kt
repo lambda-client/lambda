@@ -20,14 +20,19 @@ package com.lambda.gui.components
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configurable
-import com.lambda.config.Configuration
-import com.lambda.config.Setting
+import com.lambda.config.Config
+import com.lambda.config.ConfigLoader
+import com.lambda.config.entries.Setting
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
 import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.imgui.flag.ImGuiStyleVar
+import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.imgui.type.ImString
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
@@ -35,15 +40,11 @@ import com.lambda.module.modules.client.AutoUpdater
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.StringUtils.levenshteinDistance
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.flag.ImGuiInputTextFlags
-import com.lambda.imgui.flag.ImGuiStyleVar
-import com.lambda.imgui.flag.ImGuiWindowFlags
-import com.lambda.imgui.type.ImString
 import net.minecraft.client.gui.screen.ChatScreen
 import kotlin.math.max
 
 // ToDo: Add support for searching of menu bar entries
+@Suppress("unused")
 object QuickSearch {
     private val searchInput = ImString(256)
     var isOpen = false
@@ -101,8 +102,8 @@ object QuickSearch {
         }
     }
 
-    private class SettingResult(val setting: Setting<*, *>, val configurable: Configurable) : SearchResult {
-        override val breadcrumb: String by lazy { buildSettingBreadcrumb(configurable.name, setting) }
+    private class SettingResult(val setting: Setting<*>, val config: Config) : SearchResult {
+        override val breadcrumb: String by lazy { buildSettingBreadcrumb(config.name, setting) }
 
         override fun ImGuiBuilder.buildLayout() {
             with(setting) {
@@ -260,14 +261,17 @@ object QuickSearch {
                 } else null
             }
 
-            val settingResults = Configuration.configurations.flatMap {
-                it.configurables.flatMap { configurable ->
-                    configurable.settings
-                        .filter { setting -> setting.visibility() }
-                        .mapNotNull { setting ->
-                            val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
-                            if (score > 0) RankedSearchResult(SettingResult(setting, configurable), score) else null
+            val settingResults = buildList {
+                ConfigLoader.configCategories.forEach { category ->
+                    category.configs.forEach { config ->
+                        config.settingLayers.forEachEntry { _, single ->
+                            val setting = single.entry
+                            if (setting.visibility()) {
+                                val score = calculateScore(lowerCaseQuery, setting.name.lowercase(), lenient)
+                                if (score > 0) add(RankedSearchResult(SettingResult(setting, config), score))
+                            }
                         }
+                    }
                 }
             }
 
@@ -296,12 +300,10 @@ object QuickSearch {
         }
     }
 
-    private fun buildSettingBreadcrumb(configurableName: String, setting: Setting<*, *>): String {
-        val group = setting.groups
-            .minByOrNull { it.size }
-            ?.joinToString(" » ") { it.displayName }
-            ?: return configurableName
-        return "$configurableName » $group"
+    private fun buildSettingBreadcrumb(configName: String, setting: Setting<*>): String {
+        val path = setting.getConfigCommandPath()
+        return if (path.isEmpty()) configName
+        else "$configName » ${path.joinToString(" » ")}"
     }
 
     private fun handleKeyPress(event: ButtonEvent.Keyboard.Press) {

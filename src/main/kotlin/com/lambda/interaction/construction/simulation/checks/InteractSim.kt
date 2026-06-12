@@ -31,9 +31,6 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.managers.rotating.visibilty.lookInDirection
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -42,11 +39,14 @@ import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
+import com.lambda.util.PlaceDirection
 import com.lambda.util.item.ItemStackUtils.inventoryIndex
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
+import com.lambda.util.player.CheckedHit
 import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.RotationUtils.lookInDirection
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope

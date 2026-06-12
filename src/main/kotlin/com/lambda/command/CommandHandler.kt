@@ -21,8 +21,8 @@ import com.lambda.brigadier.CommandException
 import com.lambda.command.CommandRegistry.prefix
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication
-import com.lambda.util.Communication.logError
+import com.lambda.util.CommunicationUtils
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.text.ClickEvents.suggestCommand
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -103,11 +103,11 @@ object CommandHandler {
                     literal(syntax.input.substring(max(0, (position - ERROR_PADDING)), position))
                 }
                 if (position < syntax.input.length) {
-                    styled(color = Communication.LogLevel.Error.logoColor, underlined = true) {
+                    styled(color = CommunicationUtils.LogLevel.Error.logoColor, underlined = true) {
                         literal(syntax.input.substring(position))
                     }
                 }
-                styled(color = Communication.LogLevel.Error.logoColor, italic = true) {
+                styled(color = CommunicationUtils.LogLevel.Error.logoColor, italic = true) {
                     translatable("command.context.here")
                 }
             }

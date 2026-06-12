@@ -21,11 +21,11 @@ import com.lambda.Lambda
 import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
-import com.lambda.config.AutomationConfig
-import com.lambda.config.Configuration
-import com.lambda.config.Configuration.Companion.configurables
-import com.lambda.config.UserAutomationConfig
-import com.lambda.config.configurations.UserAutomationConfigs
+import com.lambda.config.ConfigLoader
+import com.lambda.config.ConfigLoader.configs
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.automation.UserAutomationConfig
+import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
@@ -35,22 +35,22 @@ import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImGui
+import com.lambda.imgui.ImGui.closeCurrentPopup
+import com.lambda.imgui.flag.ImGuiCol
+import com.lambda.imgui.flag.ImGuiStyleVar
+import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.LambdaAPI
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Diagnostics.gatherDiagnostics
-import com.lambda.util.FolderRegister
-import com.lambda.util.FolderRegister.minecraft
+import com.lambda.util.FolderRegistry
+import com.lambda.util.FolderRegistry.minecraft
 import com.mojang.blaze3d.platform.TextureUtil
-import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.closeCurrentPopup
-import com.lambda.imgui.flag.ImGuiCol
-import com.lambda.imgui.flag.ImGuiStyleVar
-import com.lambda.imgui.flag.ImGuiWindowFlags
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.gui.screen.DebugOptionsScreen
 import net.minecraft.network.packet.c2s.play.ChangeGameModeC2SPacket
@@ -118,25 +118,25 @@ object MenuBar {
     private fun ImGuiBuilder.buildLambdaMenu() {
         menu("Save Config...") {
             menuItem("Save All Configs") {
-                Configuration.configurations.forEach { it.trySave(true) }
-                info("Saved ${Configuration.configurations.size} configuration files.")
+                ConfigLoader.configCategories.forEach { it.trySaveToFile(true) }
+                info("Saved ${ConfigLoader.configCategories.size} configuration files.")
             }
-            Configuration.configurations.forEach { config ->
-                menuItem("Save ${config.configName}") {
-                    config.trySave(true)
-                    info("Saved ${config.configName}")
+            ConfigLoader.configCategories.forEach { config ->
+                menuItem("Save ${config.name}") {
+                    config.trySaveToFile(true)
+                    info("Saved ${config.name}")
                 }
             }
         }
         menu("Load Config...") {
             menuItem("Load All Configs") {
-                Configuration.configurations.forEach { it.tryLoad() }
-                info("Loaded ${Configuration.configurations.size} configuration files.")
+                ConfigLoader.configCategories.forEach { it.tryLoadFromFile() }
+                info("Loaded ${ConfigLoader.configCategories.size} configuration files.")
             }
-            Configuration.configurations.forEach { config ->
-                menuItem("Load ${config.configName}") {
-                    config.tryLoad()
-                    info("Loaded ${config.configName}")
+            ConfigLoader.configCategories.forEach { config ->
+                menuItem("Load ${config.name}") {
+                    config.tryLoadFromFile()
+                    info("Loaded ${config.name}")
                 }
             }
         }
@@ -158,28 +158,28 @@ object MenuBar {
         separator()
         menu("Open Folder") {
             menuItem("Open Lambda Folder") {
-                Util.getOperatingSystem().open(FolderRegister.lambda)
+                Util.getOperatingSystem().open(FolderRegistry.lambda)
             }
             menuItem("Open Config Folder") {
-                Util.getOperatingSystem().open(FolderRegister.config)
+                Util.getOperatingSystem().open(FolderRegistry.config)
             }
             menuItem("Open Packet Logs Folder") {
-                Util.getOperatingSystem().open(FolderRegister.packetLogs)
+                Util.getOperatingSystem().open(FolderRegistry.packetLogs)
             }
             menuItem("Open Replay Folder") {
-                Util.getOperatingSystem().open(FolderRegister.replay)
+                Util.getOperatingSystem().open(FolderRegistry.replay)
             }
             menuItem("Open Cache Folder") {
-                Util.getOperatingSystem().open(FolderRegister.cache)
+                Util.getOperatingSystem().open(FolderRegistry.cache)
             }
             menuItem("Open Capes Folder") {
-                Util.getOperatingSystem().open(FolderRegister.capes)
+                Util.getOperatingSystem().open(FolderRegistry.capes)
             }
             menuItem("Open Structures Folder") {
-                Util.getOperatingSystem().open(FolderRegister.structure)
+                Util.getOperatingSystem().open(FolderRegistry.structure)
             }
             menuItem("Open Maps Folder") {
-                Util.getOperatingSystem().open(FolderRegister.maps)
+                Util.getOperatingSystem().open(FolderRegistry.maps)
             }
         }
         separator()
@@ -290,7 +290,7 @@ object MenuBar {
         popupContextWindow("##new-config") {
             inputText("Name", ::newConfigName)
             button("Create") {
-                if (newConfigName.isEmpty() && configurables.none { it.name == newConfigName }) return@button
+                if (newConfigName.isEmpty() && configs.none { it.name == newConfigName }) return@button
                 UserAutomationConfig(newConfigName)
                 newConfigName = ""
                 closeCurrentPopup()
@@ -303,11 +303,11 @@ object MenuBar {
             }
         }
 
-        UserAutomationConfigs.configurables.forEach { config ->
-            if (config !is UserAutomationConfig) throw java.lang.IllegalStateException("All configurables within UserAutomationConfigs must be UserAutomationConfigs!")
+        UserAutomationCategory.configs.forEach { config ->
+            if (config !is UserAutomationConfig) throw IllegalStateException("All configs within UserAutomationConfigs must be UserAutomationConfigs!")
             buildAutomationConfigSelectable(config)
         }
-        buildAutomationConfigSelectable(AutomationConfig.Companion.DEFAULT)
+        buildAutomationConfigSelectable(AutomationConfig.DEFAULT)
     }
 
     private fun ImGuiBuilder.buildAutomationConfigSelectable(config: AutomationConfig) {
@@ -321,7 +321,7 @@ object MenuBar {
 							module.automationConfig = module.defaultAutomationConfig
 						}
 					}
-					UserAutomationConfigs.configurables.remove(config)
+					UserAutomationCategory.configs.remove(config)
 				}
 				separator()
 			}
@@ -469,8 +469,12 @@ object MenuBar {
                 text("Runtime: ${Loader.runtime}")
                 text("Modules: ${ModuleRegistry.modules.size}")
                 text("Commands: ${CommandRegistry.commands.size}")
-                val totalSettings = Configuration.configurations.sumOf { cfg ->
-                    cfg.configurables.sumOf { it.settings.size }
+                val totalSettings = ConfigLoader.configCategories.sumOf { cfg ->
+                    cfg.configs.sumOf {
+                        var count = 0
+                        it.settingLayers.forEachEntry { _, _ -> count++ }
+                        count
+                    }
                 }
                 text("Settings: $totalSettings")
                 text("Synchronous listeners: ${EventFlow.syncListeners.size}")

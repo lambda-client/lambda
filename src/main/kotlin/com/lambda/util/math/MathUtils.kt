@@ -27,6 +27,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random.Default.nextDouble
 
+@Suppress("unused")
 object MathUtils {
     private const val PI_FLOAT = 3.141593f
 

@@ -26,6 +26,7 @@ import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.passive.AbstractHorseEntity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
+@Suppress("unused")
 object EntityControl : Module(
     name = "EntityControl",
     description = "Control mountable entities",

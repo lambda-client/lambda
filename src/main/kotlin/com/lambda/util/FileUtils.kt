@@ -18,7 +18,7 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
-import com.lambda.network.LambdaHttp
+import com.lambda.network.LAMBDA_HTTP
 import com.lambda.network.download
 import com.lambda.util.StringUtils.sanitizeForFilename
 import com.lambda.util.extension.dimensionName
@@ -100,7 +100,7 @@ object FileUtils {
     ) = runCatching {
         createIfNotExists {
             val bytes = readBytes()
-            val remote = LambdaHttp.download(url, block)
+            val remote = LAMBDA_HTTP.download(url, block)
             val sign = (bytes.size - remote.size).sign
 
             if (sign == compare) writeBytes(remote)
@@ -110,20 +110,20 @@ object FileUtils {
     suspend fun File.downloadIfNotPresent(
         url: String,
         block: HttpRequestBuilder.() -> Unit = {},
-    ) = runCatching { createIfNotExists { LambdaHttp.download(url, this, block) } }
+    ) = runCatching { createIfNotExists { LAMBDA_HTTP.download(url, this, block) } }
 
     suspend fun String.downloadIfNotPresent(
         file: File,
         block: HttpRequestBuilder.() -> Unit = {},
-    ) = runCatching { file.createIfNotExists { LambdaHttp.download(this, file, block) } }
+    ) = runCatching { file.createIfNotExists { LAMBDA_HTTP.download(this, file, block) } }
 
     suspend fun File.downloadIfPresent(
         url: String,
         block: HttpRequestBuilder.() -> Unit = {},
-    ) = runCatching { ifExists { LambdaHttp.download(url, this, block) } }
+    ) = runCatching { ifExists { LAMBDA_HTTP.download(url, this, block) } }
 
     suspend fun String.downloadIfPresent(
         file: File,
         block: HttpRequestBuilder.() -> Unit = {},
-    ) = runCatching { file.ifExists { LambdaHttp.download(this, file, block) } }
+    ) = runCatching { file.ifExists { LAMBDA_HTTP.download(this, file, block) } }
 }

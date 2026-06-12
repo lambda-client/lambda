@@ -38,7 +38,10 @@ object TargetStrafe : Module(
     private val stabilize by setting("Stabilize", StabilizationMode.Normal)
 
     enum class StabilizationMode {
-        None, Weak, Normal, Strong
+        None,
+        Weak,
+        Normal,
+        Strong
     }
 
     private var forwardDirection = 1.0

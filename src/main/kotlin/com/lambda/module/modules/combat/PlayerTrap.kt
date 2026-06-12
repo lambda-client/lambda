@@ -17,8 +17,10 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hideBlock
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
@@ -53,19 +55,18 @@ object PlayerTrap : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
+		setDefaultAutomationConfig()
+			.withEdits {
 				buildConfig.apply {
-					editTyped(
+					editTypedSettings(
 						::pathing,
 						::stayInRange,
 						::spleefEntities,
 						::collectDrops
 					) { defaultValue(false); hide() }
 				}
-				hideGroup(eatConfig)
+				hideBlock(::eatConfig)
 			}
-		}
 
 		onEnable {
 			task = tickingBlueprint {

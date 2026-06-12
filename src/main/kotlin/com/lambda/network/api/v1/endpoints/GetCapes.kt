@@ -19,7 +19,7 @@ package com.lambda.network.api.v1.endpoints
 
 import com.lambda.network.LambdaAPI.apiUrl
 import com.lambda.network.LambdaAPI.apiVersion
-import com.lambda.network.LambdaHttp
+import com.lambda.network.LAMBDA_HTTP
 import com.lambda.network.api.v1.models.Cape
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -45,7 +45,7 @@ suspend fun getCapes(vararg uuid: UUID) = getCapes(uuid.toList())
  *  - id: fdee323e-7f0c-4c15-8d1c-0f277442342a
  */
 suspend fun getCapes(uuids: List<UUID>) = runCatching {
-    LambdaHttp.get("$apiUrl/api/$apiVersion/capes") {
+    LAMBDA_HTTP.get("$apiUrl/api/$apiVersion/capes") {
         contentType(ContentType.Application.Json)
         setBody("""{ "players": [${uuids.joinToString(prefix = "\"", postfix = "\"", separator = "\",\"")}] }""")
     }.body<List<Cape>>()

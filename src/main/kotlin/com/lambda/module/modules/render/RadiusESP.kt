@@ -17,8 +17,11 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.Group
+import com.lambda.config.settings.blocks.WorldLineSettings
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
@@ -27,7 +30,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.NamedEnum
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.Blocks
@@ -35,37 +37,33 @@ import net.minecraft.block.entity.BeaconBlockEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
 
+@Suppress("unused")
 object RadiusESP : Module(
 	name = "RadiusESP",
 	description = "Shows the radius for blocks with abnormal functionality",
 	tag = ModuleTag.RENDER
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		Blocks("Blocks"),
-		Render("Render")
-	}
+	private const val RENDER_GROUP = "Render"
+	private const val OUTLINE_GROUP = "Outline"
 
-	private enum class RenderGroup(override val displayName: String) : NamedEnum {
-		General("General"),
-		Outline("Outline")
-	}
+	private val beacons by setting("Beacons", true).onValueChange(::rebuildMesh)
+	private val spawners by setting("Spawners", true).onValueChange(::rebuildMesh)
 
-	private val beacons by setting("Beacons", true).group(Group.Blocks).onValueChange(::rebuildMesh)
-	private val spawners by setting("Spawners", true).group(Group.Blocks).onValueChange(::rebuildMesh)
-
-	private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.group(Group.Render, RenderGroup.General).onValueChange(::rebuildMesh)
-	private val spawnerColor by setting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.group(Group.Render, RenderGroup.General).onValueChange(::rebuildMesh)
-	private var fill: Boolean by setting("Fill", true).group(Group.Render, RenderGroup.General).onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private val spawnerColor by setting("Spawner Color", Color(255, 0, 0, 255)) { spawners }.onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private var fill: Boolean by setting("Box Fill", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) outline = true }
-	private var outline: Boolean by setting("Outline", true).group(Group.Render, RenderGroup.General).onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP) private var outline: Boolean by setting("Box Outline", true).onValueChange(::rebuildMesh)
 		.onValueChange { _, to -> if (!to) fill = true }
-	private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).group(Group.Render, RenderGroup.General).onValueChange(::rebuildMesh)
-	private val worldLineConfig = WorldLineSettings(this, Group.Render, RenderGroup.Outline) { outline }.apply {
-		applyEdits {
+	@Group(RENDER_GROUP) private val fillAlpha by setting("Fill Alpha", 0.1, 0.0..1.0, 0.01).onValueChange(::rebuildMesh)
+	@Group(RENDER_GROUP, OUTLINE_GROUP) private val worldLineConfig by configBlock(WorldLineSettings(this))
+		.withEdits {
 			hide(::startColor, ::endColor)
-			settings.forEach { it.onValueChange(::rebuildMesh) }
+			forEachSetting {
+				visibility { old -> { old() && outline } }
+				onValueChange(::rebuildMesh)
+			}
 		}
-	}
 
 	private val chunkedRenderer = chunkedRenderer("RadiusESP Chunked Renderer") { pos ->
 		runSafe {

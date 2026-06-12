@@ -27,6 +27,7 @@ data class ItemLighting(
     val strength1: Float = 0.2f,
     val respectsUseLight: Boolean = false
 ) {
+    @Suppress("unused")
     companion object {
         val VANILLA: ItemLighting by lazy {
             val light0 = Vector3f(0.2f, 1.0f, -0.7f).normalize()

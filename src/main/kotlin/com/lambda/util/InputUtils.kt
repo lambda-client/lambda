@@ -20,7 +20,6 @@ package com.lambda.util
 import com.lambda.Lambda.mc
 import com.lambda.config.settings.complex.Bind
 import com.lambda.context.SafeContext
-import com.lambda.core.Loadable
 import com.lambda.event.events.ButtonEvent
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap
 import org.lwjgl.glfw.GLFW
@@ -38,7 +37,7 @@ import org.lwjgl.glfw.GLFW.GLFW_PRESS
 import org.lwjgl.glfw.GLFW.glfwGetKey
 import org.lwjgl.glfw.GLFW.glfwGetMouseButton
 
-object InputUtils : Loadable {
+object InputUtils {
     private val lastPressedKeys = Int2IntArrayMap() // Keep track of the previously pressed keys to report GLFW_RELEASE states
 
     /**

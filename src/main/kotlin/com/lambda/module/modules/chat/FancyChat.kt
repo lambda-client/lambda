@@ -28,14 +28,15 @@ import com.lambda.util.ChatUtils.toGreen
 import com.lambda.util.ChatUtils.toLeet
 import com.lambda.util.ChatUtils.toUwu
 
+@Suppress("unused")
 object FancyChat : Module(
 	name = "FancyChat",
 	description = "Makes messages you send - fancy",
 	tag = ModuleTag.CHAT,
 ) {
-	private val uwu by setting("uwu", true)
+	private val uwu by setting("uwu", false)
 	private val leet by setting("1337", false)
-	private val green by setting(">", false)
+	private val green by setting(">", true)
 	private val blue by setting("`", false)
 
 	init {

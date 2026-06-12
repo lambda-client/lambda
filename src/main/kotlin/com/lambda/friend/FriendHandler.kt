@@ -18,8 +18,10 @@
 package com.lambda.friend
 
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.FriendConfig
+import com.lambda.command.CommandRegistry.prefix
+import com.lambda.command.commands.FriendCommand
+import com.lambda.config.Config
+import com.lambda.config.categories.FriendCategory
 import com.lambda.core.Loadable
 import com.lambda.network.mojang.getProfile
 import com.lambda.util.text.ClickEvents
@@ -34,8 +36,10 @@ import net.minecraft.text.Text
 import java.awt.Color
 import java.util.*
 
-object FriendHandler : Configurable(FriendConfig), Loadable {
-    override val name = "friends"
+object FriendHandler : Config(
+    "friends",
+    FriendCategory
+), Loadable {
     val friends by setting("friends", emptySet<UUID>(), serialize = true)
 
     private val cachedProfiles = mutableMapOf<UUID, GameProfile>()
@@ -112,7 +116,7 @@ object FriendHandler : Configurable(FriendConfig), Loadable {
         literal(Color.GREEN, "Added ")
         text(name)
         literal(" to your friend list ")
-        clickEvent(ClickEvents.suggestCommand(";friends remove ${name.string}")) {
+        clickEvent(ClickEvents.suggestCommand("${prefix}${FriendCommand.name} remove ${name.string}")) {
             styled(underlined = true, color = Color.LIGHT_GRAY) {
                 literal("[Undo]")
             }
@@ -124,7 +128,7 @@ object FriendHandler : Configurable(FriendConfig), Loadable {
         literal(Color.RED, "Removed ")
         text(name)
         literal(" from your friend list ")
-        clickEvent(ClickEvents.suggestCommand(";friends add ${name.string}")) {
+        clickEvent(ClickEvents.suggestCommand("${prefix}${FriendCommand.name} add ${name.string}")) {
             styled(underlined = true, color = Color.LIGHT_GRAY) {
                 literal("[Undo]")
             }

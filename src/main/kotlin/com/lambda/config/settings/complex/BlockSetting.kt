@@ -17,34 +17,33 @@
 
 package com.lambda.config.settings.complex
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.blockState
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
+import com.lambda.config.Config
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.block.Block
 import net.minecraft.command.CommandRegistryAccess
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-class BlockSetting(defaultValue: Block) : SettingCore<Block>(
-	defaultValue,
-	TypeToken.get(Block::class.java).type
-) {
-	context(setting: Setting<*, Block>)
-    override fun ImGuiBuilder.buildLayout() {}
+class BlockSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingEntryLayer<BlockSetting, Block>,
+	visibility: () -> Boolean,
+	defaultValue: Block
+) : Setting<Block>(name, description, defaultValue, layer, config, visibility) {
+	override fun ImGuiBuilder.buildLayout() {}
 
-	context(setting: Setting<*, Block>)
-    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(blockState(setting.name, registry)) { argument ->
-            execute {
-                setting.trySetValue(argument().value().blockState.block)
-            }
-        }
-    }
+	override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+		required(blockState(name, registry)) { argument ->
+			execute {
+				trySetValue(argument().value().blockState.block)
+			}
+		}
+	}
 }

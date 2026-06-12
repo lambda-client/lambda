@@ -19,8 +19,8 @@ package com.lambda.interaction.construction
 
 import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
-import com.lambda.util.FolderRegister
-import com.lambda.util.FolderRegister.structure
+import com.lambda.util.FolderRegistry
+import com.lambda.util.FolderRegistry.structure
 import com.lambda.util.extension.readLitematica
 import com.lambda.util.extension.readSchematic
 import com.lambda.util.extension.readSponge
@@ -164,7 +164,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
      * @param structure The [StructureTemplate] to save.
      */
     private fun saveStructure(relativePath: String, structure: StructureTemplate) {
-        val path = FolderRegister.structure.resolve("$relativePath.nbt")
+        val path = FolderRegistry.structure.resolve("$relativePath.nbt")
         val compound = structure.writeNbt(NbtCompound())
 
         Files.createDirectories(path.parent)

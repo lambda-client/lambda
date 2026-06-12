@@ -73,3 +73,6 @@ abstract class Listener<T : Event> : Comparable<Listener<T>> {
             get() = (this as? OwnerPriority)?.let { { ownerPriority } } ?: { 0 }
     }
 }
+
+@DslMarker
+annotation class ListenMarker

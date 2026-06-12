@@ -20,21 +20,19 @@ package com.lambda.command.commands
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.greedyString
-import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configuration
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.util.Communication.info
+import com.lambda.config.settings.CharSetting
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 
+@Suppress("unused")
 object PrefixCommand : LambdaCommand(
 	"prefix",
 	usage = "prefix <prefix>",
@@ -42,21 +40,18 @@ object PrefixCommand : LambdaCommand(
 ) {
 	// i have no idea why someone would want to use some of these as a prefix
 	// but ig the people who run 20 clients at once could benefit from this
-	val ptrn = Regex("^[!\"#$%&'()*+,\\-./:;<=>?@\\[\\\\\\]^_`{|}~]$")
+	val pattern = Regex("^[!\"#$%&'()*+,\\-./:;<=>?@\\[\\\\\\]^_`{|}~]$")
 
 	override fun CommandBuilder.create() {
 		required(greedyString("prefix")) { prefixStr ->
 			executeWithResult {
 				val prefix = prefixStr().value()
-				if (!ptrn.matches(prefix)) {
+				if (!pattern.matches(prefix)) {
 					return@executeWithResult failure("Prefix must be a single non-alphanumeric ASCII character, excluding spaces.")
 				}
 				val prefixChar = prefix.first()
-				val configurable = Configuration.configurableByName("command") ?: return@executeWithResult failure("No command configurable found.")
-				@Suppress("UNCHECKED_CAST")
-				val setting = configurable.settings.find { it.name == "prefix" } as? Setting<SettingCore<Char>, Char>
-					?: return@executeWithResult failure("Prefix setting is not a Char or can not be found.")
-				setting.trySetValue(prefixChar)
+				@Suppress("unchecked_cast")
+				(CommandRegistry::prefix.getDelegate() as? CharSetting)?.trySetValue(prefixChar)
 				return@executeWithResult success()
 			}
 		}

@@ -19,78 +19,94 @@ package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configuration
-import com.lambda.util.Communication.info
+import com.lambda.config.ConfigLoader
+import com.lambda.config.EntryLayer
+import com.lambda.config.entries.Setting
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 
+//ToDo: Make this command add and remove paths when configs are created or removed.
+// Brigadier doesn't allow for removing paths by default, so that's something we might have to look into creating our own small system for.
 object ConfigCommand : LambdaCommand(
     name = "config",
     aliases = setOf("cfg", "settings", "setting"),
-    usage = "config <save | load | set> <configurable> <setting> <value>",
-    description = "Save or load configuration files, or set any settings value",
+    usage = "config <save | load | set | reset> <config> <setting> [value]",
+    description = "Save or load configuration files, or set/reset any settings value",
     examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
 ) {
     override fun CommandBuilder.create() {
         required(literal("save")) {
             executeWithResult {
-                Configuration.configurations.forEach { config ->
-                    config.trySave(true)
+                ConfigLoader.configCategories.forEach { config ->
+                    config.trySaveToFile(true)
                 }
-                this@ConfigCommand.info("Saved ${Configuration.configurations.size} configuration files.")
+                this@ConfigCommand.info("Saved ${ConfigLoader.configCategories.size} config files.")
                 return@executeWithResult success()
             }
         }
         required(literal("load")) {
             executeWithResult {
-                Configuration.configurations.forEach { config ->
-                    config.tryLoad()
+                ConfigLoader.configCategories.forEach { config ->
+                    config.tryLoadFromFile()
                 }
-                this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
+                this@ConfigCommand.info("Loaded ${ConfigLoader.configCategories.size} config files.")
                 return@executeWithResult success()
             }
         }
         required(literal("reset")) {
-            required(string("config")) { config ->
+            required(string("config")) { configArg ->
                 suggests { _, builder ->
-                    suggestMatching(Configuration.configurables.map { it.commandName }, builder)
+                    suggestMatching(ConfigLoader.configs.map { it.commandName }, builder)
                 }
-                required(string("setting")) { setting ->
-                    suggests { ctx, builder ->
-                        val conf = config(ctx).value()
-                        Configuration.configurableByName(conf)?.let { configurable ->
-                            suggestMatching(configurable.settings.map { it.commandName }, builder)
-                        } ?: builder.buildFuture()
+                required(greedyString("setting")) { settingArg ->
+                    suggests { context, builder ->
+	                    val config = ConfigLoader.configByCommandName(configArg(context).value()) ?: return@suggests null
+	                    val suggestions = mutableListOf<String>()
+                        config.settingLayers.forEachEntry { path, single ->
+                            val settingLit =
+                                if (path.isEmpty()) single.entry.name
+                                else "${path.joinToString("->") { it.commandName }}->${single.entry.commandName}"
+                            suggestions.add(settingLit)
+                        }
+                        suggestMatching(suggestions, builder)
                     }
                     executeWithResult {
-                        val confName = config().value()
-                        val settingName = setting().value()
-                        val configurable = Configuration.configurableByCommandName(confName) ?: run {
-                            return@executeWithResult failure("$confName is not a valid configurable.")
+                        val config = ConfigLoader.configByCommandName(configArg().value()) ?: return@executeWithResult failure("Config not found.")
+                        var currentMultiple: EntryLayer.Multiple<Setting<*>> = config.settingLayers
+                        val fullSettingPath = settingArg().value().split("->")
+                        fullSettingPath.dropLast(1).forEach { path ->
+                            currentMultiple = currentMultiple.layers
+                                .asSequence()
+                                .filterIsInstance<EntryLayer.Multiple<Setting<*>>>()
+                                .find { it.name == path } ?: return@executeWithResult failure("Setting not found.")
                         }
-                        val setting = Configuration.settingByCommandName(configurable, settingName) ?: run {
-                            return@executeWithResult failure("$settingName is not a valid setting for $confName.")
-                        }
-                        setting.reset()
-                        return@executeWithResult success()
+                        val entryLayer = currentMultiple.layers
+                            .asSequence()
+                            .filterIsInstance<EntryLayer.Single<Setting<*>>>()
+                            .find { it.entry.commandName == fullSettingPath.last() } ?: return@executeWithResult failure("Setting not found.")
+                        entryLayer.entry.reset()
+                        success()
                     }
                 }
             }
         }
         required(literal("set")) {
-            Configuration.configurables.forEach { configurable ->
-                required(literal(configurable.commandName)) {
-                    configurable.settings.forEach { setting ->
-                        required(literal(setting.commandName)) {
-                            with(setting) {
-                                buildCommand(registry)
-                            }
+            ConfigLoader.configs.forEach { config ->
+                required(literal(config.commandName)) {
+                    config.settingLayers.forEachEntry { path, single ->
+                        val settingLit =
+                            if (path.isEmpty()) single.entry.commandName
+                            else "${path.joinToString("->") { it.commandName }}->${single.entry.commandName}"
+                        required(literal(settingLit)) {
+                            with(single.entry) { buildCommand(registry) }
                         }
                     }
                 }

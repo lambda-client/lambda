@@ -22,6 +22,7 @@ import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.util.DirectionMask.mask
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -181,7 +182,7 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakPlayerOnTop
         private val color = Color(252, 3, 207, 100)
 
-        override val goal = GoalInverted(GoalBlock(pos))
+        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalInverted(GoalBlock(pos)) else null
 
         override fun RenderBuilder.render() {
             box(pos) {
